@@ -18,14 +18,6 @@ final class InventorySidebarRegistry
     {
         return [
             [
-                'key' => 'hub',
-                'label' => 'Inventory overview',
-                'icon' => 'heroicon-o-cube',
-                'sort' => 0,
-                'url' => InventoryHub::getUrl(),
-                'active_routes' => ['filament.admin.pages.inventory-hub'],
-            ],
-            [
                 'key' => 'products',
                 'label' => 'Products',
                 'icon' => 'heroicon-o-shopping-bag',
@@ -102,7 +94,6 @@ final class InventorySidebarRegistry
     public static function canSeeEntry(string $key): bool
     {
         return match ($key) {
-            'hub' => InventoryHub::canAccess(),
             'products' => ProductResource::canViewAny(),
             'purchase_orders' => PurchaseOrderResource::canViewAny(),
             'fixed_assets' => FixedAssetResource::canViewAny(),

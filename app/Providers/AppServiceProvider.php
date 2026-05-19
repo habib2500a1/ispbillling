@@ -125,20 +125,6 @@ class AppServiceProvider extends ServiceProvider
 
         Event::listen(Logout::class, RecordStaffLogout::class);
 
-        SettingsSidebarNavigation::register();
-        OltSidebarNavigation::register();
-        HrmSidebarNavigation::register();
-        BwSidebarNavigation::register();
-        \App\Filament\Reports\ReportsSidebarNavigation::register();
-        \App\Filament\Network\NetworkSidebarNavigation::register();
-        \App\Filament\Resellers\ResellerSidebarNavigation::register();
-        \App\Filament\Accounts\AccountsSidebarNavigation::register();
-        \App\Filament\Clients\ClientsSidebarNavigation::register();
-        BillingSidebarNavigation::register();
-        SmsSidebarNavigation::register();
-        \App\Filament\Support\SupportSidebarNavigation::register();
-        \App\Filament\Payments\PaymentsSidebarNavigation::register();
-        \App\Filament\System\SystemSidebarNavigation::register();
-        \App\Filament\Inventory\InventorySidebarNavigation::register();
+        \App\Filament\Navigation\IspSidebarNavigation::register();
     }
 }

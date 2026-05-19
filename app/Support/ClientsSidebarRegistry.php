@@ -32,14 +32,6 @@ final class ClientsSidebarRegistry
 
         return [
             [
-                'key' => 'hub',
-                'label' => 'Clients overview',
-                'icon' => 'heroicon-o-squares-2x2',
-                'sort' => 0,
-                'url' => ClientsHub::getUrl(),
-                'active_routes' => ['filament.admin.pages.clients-hub'],
-            ],
-            [
                 'key' => 'add',
                 'label' => 'Add client',
                 'icon' => 'heroicon-o-user-plus',
@@ -192,7 +184,6 @@ final class ClientsSidebarRegistry
     public static function canSeeEntry(string $key): bool
     {
         return match ($key) {
-            'hub' => ClientsHub::canAccess(),
             'add' => CustomerResource::canCreate(),
             'monitor' => OnlineClientsMonitoring::canAccess(),
             'import' => ImportClientsCsvPage::canAccess(),

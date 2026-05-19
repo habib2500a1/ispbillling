@@ -22,14 +22,6 @@ final class SupportSidebarRegistry
     {
         return [
             [
-                'key' => 'hub',
-                'label' => 'Support overview',
-                'icon' => 'heroicon-o-lifebuoy',
-                'sort' => 0,
-                'url' => SupportHub::getUrl(),
-                'active_routes' => ['filament.admin.pages.support-hub'],
-            ],
-            [
                 'key' => 'tickets',
                 'label' => 'All tickets',
                 'icon' => 'heroicon-o-ticket',
@@ -160,7 +152,6 @@ final class SupportSidebarRegistry
         }
 
         return match ($key) {
-            'hub' => SupportHub::canAccess(),
             'tickets', 'new_ticket' => SupportPanelAccess::viewTickets($user),
             'pipeline' => SalesLeadPipeline::canAccess(),
             'leads' => SalesLeadResource::canViewAny(),

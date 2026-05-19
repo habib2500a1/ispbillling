@@ -23,14 +23,6 @@ final class SmsSidebarRegistry
     {
         return [
             [
-                'key' => 'hub',
-                'label' => 'SMS overview',
-                'icon' => 'heroicon-o-chat-bubble-left-ellipsis',
-                'sort' => 0,
-                'url' => NotificationsHub::getUrl(),
-                'active_routes' => ['filament.admin.pages.notifications-hub'],
-            ],
-            [
                 'key' => 'send_sms',
                 'label' => 'Send SMS',
                 'icon' => 'heroicon-o-chat-bubble-left',

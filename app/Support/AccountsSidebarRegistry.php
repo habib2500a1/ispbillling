@@ -40,14 +40,6 @@ final class AccountsSidebarRegistry
                 'active_routes' => ['filament.admin.pages.accounts-wallet-hub'],
             ],
             [
-                'key' => 'dashboard',
-                'label' => 'Dashboard',
-                'icon' => 'heroicon-o-squares-2x2',
-                'sort' => 2,
-                'url' => AccountsHub::getUrl(),
-                'active_routes' => ['filament.admin.pages.accounts-hub'],
-            ],
-            [
                 'key' => 'balance_transfer',
                 'label' => 'Balance transfer',
                 'icon' => 'heroicon-o-arrows-right-left',
@@ -200,7 +192,6 @@ final class AccountsSidebarRegistry
     public static function canSeeEntry(string $key): bool
     {
         return match ($key) {
-            'dashboard' => AccountsHub::canAccess(),
             'wallets' => AccountsWalletHubPage::canAccess(),
             'balance_transfer' => CollectorCashHub::canAccess(),
             'bkash' => ManagePaymentSettings::canAccess(),

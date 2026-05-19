@@ -2,6 +2,7 @@
 
 namespace App\Filament\Billing;
 
+use App\Filament\Resources\InvoiceResource;
 use App\Support\BillingSidebarRegistry;
 use Filament\Events\ServingFilament;
 use Filament\Facades\Filament;

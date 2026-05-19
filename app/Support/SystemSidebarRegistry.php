@@ -23,14 +23,6 @@ final class SystemSidebarRegistry
     {
         return [
             [
-                'key' => 'staff_hub',
-                'label' => 'Admin & staff',
-                'icon' => 'heroicon-o-users',
-                'sort' => 0,
-                'url' => StaffControlHub::getUrl(),
-                'active_routes' => ['filament.admin.pages.staff-control-hub'],
-            ],
-            [
                 'key' => 'users',
                 'label' => 'Users',
                 'icon' => 'heroicon-o-user-group',
@@ -146,7 +138,6 @@ final class SystemSidebarRegistry
     public static function canSeeEntry(string $key): bool
     {
         return match ($key) {
-            'staff_hub' => StaffControlHub::canAccess(),
             'users' => UserResource::canViewAny(),
             'roles' => RoleResource::canViewAny(),
             'permissions' => PermissionMatrix::canAccess(),

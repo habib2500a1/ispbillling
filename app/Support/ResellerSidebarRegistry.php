@@ -19,14 +19,6 @@ final class ResellerSidebarRegistry
     {
         return [
             [
-                'key' => 'hub',
-                'label' => 'Resellers overview',
-                'icon' => 'heroicon-o-building-storefront',
-                'sort' => 0,
-                'url' => ResellersHub::getUrl(),
-                'active_routes' => ['filament.admin.pages.resellers-hub'],
-            ],
-            [
                 'key' => 'add',
                 'label' => 'Add reseller',
                 'icon' => 'heroicon-o-plus-circle',
@@ -111,7 +103,10 @@ final class ResellerSidebarRegistry
     public static function canSeeEntry(string $key): bool
     {
         return match ($key) {
-            'hub' => ResellersHub::canAccess(),
+            'package_prices' => ResellerPackagePricesPage::canAccess(),
+            'report' => ResellerReportPage::canAccess(),
+            'wallet' => ResellerWalletHubPage::canAccess(),
+            'add' => ResellerResource::canCreate(),
             default => ResellerResource::canViewAny(),
         };
     }

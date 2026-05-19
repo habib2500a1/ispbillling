@@ -58,15 +58,12 @@ class AdminPanelProvider extends PanelProvider
             ->globalSearchKeyBindings(['command+k', 'ctrl+k'])
             ->maxContentWidth('full')
             ->navigationGroups([
-                NavigationGroup::make('Overview')
+                NavigationGroup::make('Main')
                     ->icon('heroicon-o-home')
                     ->collapsed(false),
                 NavigationGroup::make('Clients')
                     ->icon('heroicon-o-users')
                     ->collapsed(false),
-                NavigationGroup::make('Subscribers')
-                    ->icon('heroicon-o-user-group')
-                    ->collapsed(true),
                 NavigationGroup::make('Billing')
                     ->icon('heroicon-o-document-text')
                     ->collapsed(false),
@@ -88,33 +85,21 @@ class AdminPanelProvider extends PanelProvider
                 NavigationGroup::make('Reports')
                     ->icon('heroicon-o-chart-bar')
                     ->collapsed(false),
-                NavigationGroup::make('Accounting')
-                    ->icon('heroicon-o-calculator')
-                    ->collapsed(true),
                 NavigationGroup::make('BW Client')
                     ->icon('heroicon-o-arrows-right-left')
                     ->collapsed(false),
                 NavigationGroup::make('HRM')
                     ->icon('heroicon-o-briefcase')
                     ->collapsed(false),
-                NavigationGroup::make('HR & Payroll')
-                    ->icon('heroicon-o-user-group')
-                    ->collapsed(),
                 NavigationGroup::make('Inventory')
                     ->icon('heroicon-o-cube')
                     ->collapsed(false),
                 NavigationGroup::make('Resellers')
                     ->icon('heroicon-o-building-storefront')
                     ->collapsed(false),
-                NavigationGroup::make('Catalog')
-                    ->icon('heroicon-o-tag')
-                    ->collapsed(),
                 NavigationGroup::make('Accounts')
                     ->icon('heroicon-o-currency-dollar')
                     ->collapsed(false),
-                NavigationGroup::make('Finance')
-                    ->icon('heroicon-o-currency-dollar')
-                    ->collapsed(),
                 NavigationGroup::make('Settings')
                     ->icon('heroicon-o-adjustments-horizontal')
                     ->collapsed(false),

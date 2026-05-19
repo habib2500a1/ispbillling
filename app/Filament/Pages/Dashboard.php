@@ -19,6 +19,8 @@ class Dashboard extends BaseDashboard
 {
     protected static ?string $navigationIcon = 'heroicon-o-squares-2x2';
 
+    protected static bool $shouldRegisterNavigation = false;
+
     protected static ?string $title = 'Dashboard';
 
     protected static ?string $navigationLabel = 'Dashboard';

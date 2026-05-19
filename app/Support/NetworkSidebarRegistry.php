@@ -32,14 +32,6 @@ final class NetworkSidebarRegistry
     {
         return [
             [
-                'key' => 'hub',
-                'label' => 'Network center',
-                'icon' => 'heroicon-o-cpu-chip',
-                'sort' => 0,
-                'url' => NetworkIntelligenceHub::getUrl(),
-                'active_routes' => ['filament.admin.pages.network-intelligence-hub'],
-            ],
-            [
                 'key' => 'routers_list',
                 'label' => 'Routers list',
                 'icon' => 'heroicon-o-server-stack',
@@ -239,7 +231,6 @@ final class NetworkSidebarRegistry
     public static function canSeeEntry(string $key): bool
     {
         return match ($key) {
-            'hub' => NetworkIntelligenceHub::canAccess(),
             'routers_list', 'add_router', 'import_mikrotik' => auth()->check(),
             'areas' => AreaResource::canViewAny(),
             'zones' => ZoneResource::canViewAny(),

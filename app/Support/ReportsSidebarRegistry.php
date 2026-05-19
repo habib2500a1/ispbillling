@@ -28,14 +28,6 @@ final class ReportsSidebarRegistry
     {
         return [
             [
-                'key' => 'overview',
-                'label' => 'Reports overview',
-                'icon' => 'heroicon-o-presentation-chart-line',
-                'sort' => 0,
-                'url' => ReportsHub::getUrl(),
-                'active_routes' => ['filament.admin.pages.reports-hub'],
-            ],
-            [
                 'key' => 'due_report',
                 'label' => 'Due Report',
                 'icon' => 'heroicon-o-exclamation-triangle',
@@ -180,7 +172,6 @@ final class ReportsSidebarRegistry
     public static function canSeeEntry(string $key): bool
     {
         return match ($key) {
-            'overview' => ReportsHub::canAccess(),
             'monthly' => BillingReports::canAccess(),
             'gateway' => GatewayReconciliationReport::canAccess(),
             'btrc' => BtrcReport::canAccess(),

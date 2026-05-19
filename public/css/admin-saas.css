@@ -83,6 +83,17 @@
     letter-spacing: 0.08em;
 }
 
+/* Main module menu — always at top, highlighted */
+.fi-sidebar-group:has(.fi-sidebar-group-label:is([title="Main"], *)) .fi-sidebar-group-label,
+.fi-sidebar .fi-sidebar-group:first-child .fi-sidebar-group-label {
+    color: rgba(255, 255, 255, 0.92) !important;
+    font-weight: 700;
+}
+
+.fi-sidebar-group:first-child .fi-sidebar-item-button {
+    font-weight: 600;
+}
+
 .fi-sidebar .fi-sidebar-item-button {
     border-radius: 0.625rem !important;
     color: var(--isp-sidebar-link) !important;
