@@ -95,7 +95,7 @@ Route::middleware('auth:reseller')->prefix('reseller')->name('reseller.')->group
     Route::post('/logout', [ResellerLoginController::class, 'destroy'])->name('logout');
 });
 
-Route::middleware(['guest:customer', 'throttle:15,1'])->group(function () {
+Route::middleware(['portal.enabled', 'guest:customer', 'throttle:15,1'])->group(function () {
     Route::get('/login', [PortalLoginController::class, 'create'])->name('portal.login');
     Route::post('/login', [PortalLoginController::class, 'store'])->name('portal.login.store');
     Route::get('/login/otp', [PortalLoginController::class, 'otpForm'])->name('portal.login.otp');
@@ -112,7 +112,7 @@ Route::middleware('throttle:30,1')->prefix('hotspot')->name('hotspot.')->group(f
     Route::post('/redeem', [HotspotPortalController::class, 'redeem'])->name('redeem');
 });
 
-Route::middleware('auth:customer')->group(function () {
+Route::middleware(['portal.enabled', 'auth:customer'])->group(function () {
     Route::get('/portal', [PortalDashboardController::class, 'index'])->name('portal.dashboard');
     Route::get('/portal/dashboard/live', [PortalDashboardController::class, 'live'])->name('portal.dashboard.live');
     Route::post('/portal/logout', [PortalLoginController::class, 'destroy'])->name('portal.logout');

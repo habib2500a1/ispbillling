@@ -261,6 +261,7 @@ class AppSetting extends Model
             'network.mikrotik_always_push_ppp_on_customer_save' => fn (): bool => (bool) config('network.env_defaults.mikrotik_always_push_ppp_on_customer_save'),
             'network.auto_suspend_enabled' => fn (): bool => (bool) config('network.env_defaults.auto_suspend_enabled'),
             'network.service_expiry_enforced' => fn (): bool => (bool) config('network.env_defaults.service_expiry_enforced'),
+            'portal.enabled' => fn (): bool => (bool) config('portal.env_defaults.enabled', true),
             'portal.otp.enabled' => fn (): bool => (bool) config('portal.env_defaults.otp_enabled'),
             'portal.otp.log_delivery_only' => fn (): bool => (bool) config('portal.env_defaults.otp_log_delivery_only'),
             'portal.otp.ttl_seconds' => fn (): int => (int) config('portal.env_defaults.otp_ttl_seconds'),

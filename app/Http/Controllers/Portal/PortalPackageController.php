@@ -25,7 +25,7 @@ class PortalPackageController extends Controller
         $customer = $request->user('customer')->load(['package', 'pendingPackage']);
 
         $packages = Package::query()
-            ->where('is_active', true)
+            ->publicCatalog()
             ->orderBy('price_monthly')
             ->get();
 
@@ -42,6 +42,8 @@ class PortalPackageController extends Controller
             'packages' => $packages,
             'currentPackageId' => $customer->package_id,
             'quotesByPackage' => $quotesByPackage,
+            'openBalance' => $customer->openInvoiceBalance(),
+            'mustClearBalance' => (bool) config('billing.portal_package_change_requires_clear_balance', true),
         ]);
     }
 
@@ -50,7 +52,11 @@ class PortalPackageController extends Controller
         $customer = $request->user('customer')->load(['package', 'pendingPackage']);
 
         $validated = $request->validate([
-            'package_id' => ['required', 'integer', Rule::exists('packages', 'id')->where('is_active', true)],
+            'package_id' => [
+                'required',
+                'integer',
+                Rule::exists('packages', 'id')->where(fn ($q) => $q->where('is_active', true)->where('show_on_website', true)),
+            ],
             'note' => ['nullable', 'string', 'max:1000'],
         ]);
 
@@ -58,6 +64,17 @@ class PortalPackageController extends Controller
 
         if ((int) $package->id === (int) $customer->package_id) {
             return back()->withErrors(['package_id' => 'You are already on this package.']);
+        }
+
+        if (config('billing.portal_package_change_requires_clear_balance', true)) {
+            $openBalance = $customer->openInvoiceBalance();
+            if ($openBalance > 0.009) {
+                return back()
+                    ->withErrors([
+                        'package_id' => 'Pay your outstanding bill ('.number_format($openBalance, 2).' BDT) before changing package.',
+                    ])
+                    ->withInput();
+            }
         }
 
         $quote = $this->quotes->quote($customer, $package);

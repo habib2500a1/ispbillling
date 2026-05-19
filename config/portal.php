@@ -2,6 +2,9 @@
 
 return [
 
+    /** Master switch: /login and /portal/* (customer self-service). Bill pay (/pay) stays available. */
+    'enabled' => (bool) env('PORTAL_ENABLED', true),
+
     /*
     | Optional second step after portal password: one-time code (email and/or log).
     | Super-admin / isp-admin / isp-manager: Filament → System → Customer portal.
@@ -29,6 +32,7 @@ return [
     ],
 
     'env_defaults' => [
+        'enabled' => (bool) env('PORTAL_ENABLED', true),
         'otp_enabled' => (bool) env('PORTAL_OTP_ENABLED', false),
         'otp_log_delivery_only' => (bool) env('PORTAL_OTP_LOG_ONLY', false),
         'otp_ttl_seconds' => max(60, min(3600, (int) env('PORTAL_OTP_TTL_SECONDS', 600))),

@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Console\Scheduling\Schedule;
+use App\Http\Middleware\EnsureCustomerPortalEnabled;
 use App\Http\Middleware\IdentifyTenantFromSubdomain;
 use App\Http\Middleware\SecurityHeaders;
 use App\Http\Middleware\SetAppLocale;
@@ -42,6 +43,10 @@ return Application::configure(basePath: dirname(__DIR__))
             ? array_values(array_filter(array_map(trim(...), explode(',', (string) $trusted))))
             : '*');
 
+        $middleware->alias([
+            'portal.enabled' => EnsureCustomerPortalEnabled::class,
+        ]);
+
         $middleware->appendToGroup('web', SecurityHeaders::class);
         $middleware->appendToGroup('api', SecurityHeaders::class);
 
@@ -54,9 +59,11 @@ return Application::configure(basePath: dirname(__DIR__))
                 return route('reseller.dashboard');
             }
 
-            return Auth::guard('customer')->check()
-                ? route('portal.dashboard')
-                : route('filament.admin.pages.dashboard');
+            if (Auth::guard('customer')->check() && config('portal.enabled', true)) {
+                return route('portal.dashboard');
+            }
+
+            return route('filament.admin.pages.dashboard');
         });
 
         $middleware->redirectGuestsTo(function (Request $request) {
@@ -64,7 +71,8 @@ return Application::configure(basePath: dirname(__DIR__))
                 return route('reseller.login');
             }
 
-            if ($request->is('portal') || $request->is('portal/*') || $request->is('login') || $request->is('login/*')) {
+            if (config('portal.enabled', true)
+                && ($request->is('portal') || $request->is('portal/*') || $request->is('login') || $request->is('login/*'))) {
                 return route('portal.login');
             }
 

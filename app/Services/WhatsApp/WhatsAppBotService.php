@@ -179,7 +179,7 @@ final class WhatsAppBotService
     private function replyPackages(): string
     {
         $packages = Package::query()
-            ->where('is_active', true)
+            ->publicCatalog()
             ->orderBy('price_monthly')
             ->limit(8)
             ->get(['name', 'download_mbps', 'upload_mbps', 'price_monthly']);

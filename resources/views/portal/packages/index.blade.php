@@ -4,7 +4,19 @@
 
 @section('content')
     <h1 class="text-2xl font-bold text-fuchsia-800">Internet packages</h1>
-    <p class="mt-1 text-sm text-slate-600">Compare plans, see prorated upgrade cost, and request a change.</p>
+    <p class="mt-1 text-sm text-slate-600">Only plans published for customers are listed. Upgrades need payment; clear any open bill first.</p>
+
+    @if ($errors->any())
+        <p class="mt-4 rounded-lg bg-rose-50 px-4 py-3 text-sm text-rose-800">{{ $errors->first() }}</p>
+    @endif
+
+    @if (($mustClearBalance ?? true) && ($openBalance ?? 0) > 0)
+        <div class="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+            <p class="font-semibold">Outstanding bill: {{ number_format($openBalance, 2) }} BDT</p>
+            <p class="mt-1">Pay your current bill before changing package.</p>
+            <a href="{{ route('portal.bills.index') }}" class="mt-2 inline-block font-semibold text-violet-700 hover:underline">Go to My bills →</a>
+        </div>
+    @endif
 
     @if (session('status'))
         <p class="mt-4 rounded-lg bg-emerald-50 px-4 py-3 text-sm text-emerald-800">{{ session('status') }}</p>
@@ -61,11 +73,12 @@
                 @endif
 
                 @if ((int) $pkg->id !== (int) $currentPackageId)
+                    @php $blocked = ($mustClearBalance ?? true) && ($openBalance ?? 0) > 0; @endphp
                     <form method="post" action="{{ route('portal.packages.request') }}" class="mt-4">
                         @csrf
                         <input type="hidden" name="package_id" value="{{ $pkg->id }}">
-                        <textarea name="note" rows="2" placeholder="Optional note…" class="mb-2 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"></textarea>
-                        <button type="submit" class="portal-btn-primary w-full text-sm">
+                        <textarea name="note" rows="2" placeholder="Optional note…" class="mb-2 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" @disabled($blocked)></textarea>
+                        <button type="submit" class="portal-btn-primary w-full text-sm" @disabled($blocked)>
                             @if ($quote && $quote['is_upgrade'] && $quote['net_due'] > 0)
                                 Upgrade — pay {{ number_format($quote['net_due'], 0) }} BDT
                             @elseif ($quote && $quote['is_upgrade'])

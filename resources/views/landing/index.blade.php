@@ -101,7 +101,9 @@
                 </div>
             </div>
             <nav>
-                <a class="btn-ghost" href="{{ $portalUrl }}">Customer portal</a>
+                @if ($portalUrl)
+                    <a class="btn-ghost" href="{{ $portalUrl }}">Customer portal</a>
+                @endif
                 <a class="btn-primary" href="{{ $payUrl }}">Pay bill online</a>
             </nav>
         </header>
@@ -135,6 +137,7 @@
         </div>
 
         <h2 class="section-title" id="packages">Internet packages</h2>
+        <p style="text-align:center;color:var(--muted);margin:-1rem 0 1.5rem;font-size:0.95rem;">Only packages with “Show on website” on appear here.</p>
         <div class="packages">
             @forelse ($packages as $i => $pkg)
                 <article class="pkg {{ $i === 1 ? 'popular' : '' }}">
@@ -149,7 +152,11 @@
                         @endif
                         <li>Billing every {{ $pkg->billing_cycle_days ?? 30 }} days</li>
                     </ul>
-                    <a href="{{ $portalUrl }}">Request connection</a>
+                    @if ($portalUrl)
+                        <a href="{{ $portalUrl }}">Request connection</a>
+                    @else
+                        <a href="{{ $payUrl }}">Pay bill / contact</a>
+                    @endif
                 </article>
             @empty
                 <p style="grid-column:1/-1;text-align:center;color:var(--muted);">Packages coming soon — call us for pricing.</p>

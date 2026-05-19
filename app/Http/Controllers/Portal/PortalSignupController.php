@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Services\Portal\PortalSignupService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 class PortalSignupController extends Controller
@@ -31,7 +32,11 @@ class PortalSignupController extends Controller
             'address' => ['nullable', 'string', 'max:500'],
             'area_id' => ['nullable', 'integer', 'exists:areas,id'],
             'zone_id' => ['nullable', 'integer', 'exists:zones,id'],
-            'package_id' => ['nullable', 'integer', 'exists:packages,id'],
+            'package_id' => [
+                'nullable',
+                'integer',
+                Rule::exists('packages', 'id')->where(fn ($q) => $q->where('is_active', true)->where('show_on_website', true)),
+            ],
             'notes' => ['nullable', 'string', 'max:1000'],
         ]);
 

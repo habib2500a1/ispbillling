@@ -11,7 +11,7 @@ class LandingPageController extends Controller
     public function __invoke(): View
     {
         $packages = Package::query()
-            ->where('is_active', true)
+            ->publicCatalog()
             ->orderBy('price_monthly')
             ->orderBy('download_mbps')
             ->get();
@@ -26,7 +26,7 @@ class LandingPageController extends Controller
             'packages' => $packages,
             'adminUrl' => $this->adminUrl(),
             'payUrl' => url('/pay'),
-            'portalUrl' => route('portal.login'),
+            'portalUrl' => config('portal.enabled', true) ? route('portal.login') : null,
         ]);
     }
 

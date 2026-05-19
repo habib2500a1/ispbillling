@@ -45,7 +45,7 @@ final class PortalSignupService
     public function packageOptions(): array
     {
         return Package::query()
-            ->where('is_active', true)
+            ->publicCatalog()
             ->orderBy('name')
             ->pluck('name', 'id')
             ->all();

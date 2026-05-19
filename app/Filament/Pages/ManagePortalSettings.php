@@ -59,6 +59,7 @@ class ManagePortalSettings extends Page
         abort_unless(static::canAccess(), 403);
 
         $this->form->fill([
+            'portal_enabled' => (bool) config('portal.enabled', true),
             'portal_otp_enabled' => (bool) config('portal.otp.enabled', false),
             'portal_otp_log_delivery_only' => (bool) config('portal.otp.log_delivery_only', false),
             'portal_otp_ttl_seconds' => (int) config('portal.otp.ttl_seconds', 600),
@@ -81,6 +82,13 @@ class ManagePortalSettings extends Page
             'form' => $this->form(
                 $this->makeForm()
                     ->schema([
+                        Section::make('Customer portal access')
+                            ->description('Turn off to hide /login and all /portal pages. Public bill payment (/pay) and admin panel stay available.')
+                            ->schema([
+                                Toggle::make('portal_enabled')
+                                    ->label('Customer portal enabled')
+                                    ->helperText('Off = subscribers cannot log in; they can still use /pay to pay bills.'),
+                            ]),
                         Section::make('Two-step login (OTP)')
                             ->description('After the correct portal password, subscribers can be asked for a one-time code. Codes are sent by email when the account has a valid address, unless “log only” is on (staging: code also appears in laravel.log — never for real production traffic).')
                             ->schema([
@@ -154,6 +162,7 @@ class ManagePortalSettings extends Page
 
         $before = $this->portalSnapshot();
 
+        AppSetting::putValue('portal.enabled', $this->formStateTruthy($state['portal_enabled'] ?? true) ? '1' : '0');
         AppSetting::putValue('portal.otp.enabled', $this->formStateTruthy($state['portal_otp_enabled'] ?? false) ? '1' : '0');
         AppSetting::putValue('portal.otp.log_delivery_only', $this->formStateTruthy($state['portal_otp_log_delivery_only'] ?? false) ? '1' : '0');
         AppSetting::putValue(
@@ -208,6 +217,7 @@ class ManagePortalSettings extends Page
     private function portalSnapshot(): array
     {
         return [
+            'portal.enabled' => (bool) config('portal.enabled', true),
             'portal.otp.enabled' => (bool) config('portal.otp.enabled', false),
             'portal.otp.log_delivery_only' => (bool) config('portal.otp.log_delivery_only', false),
             'portal.otp.ttl_seconds' => (int) config('portal.otp.ttl_seconds', 600),

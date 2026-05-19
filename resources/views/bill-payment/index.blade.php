@@ -15,6 +15,9 @@
         @if ($notification)
             <div class="bp-alert bp-alert-ok">{{ $notification }}</div>
         @endif
+        @if (session('portal_disabled'))
+            <div class="bp-alert bp-alert-err">Customer portal is currently off. You can still pay your bill here.</div>
+        @endif
         @if (session('status'))
             <div class="bp-alert bp-alert-ok">{{ session('status') }}</div>
         @endif

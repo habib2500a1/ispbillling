@@ -53,6 +53,11 @@ return [
     'portal_instant_upgrade' => (bool) env('BILLING_PORTAL_INSTANT_UPGRADE', true),
 
     /**
+     * Block portal package change requests while monthly/other invoices have an open balance.
+     */
+    'portal_package_change_requires_clear_balance' => (bool) env('BILLING_PORTAL_PACKAGE_CHANGE_REQUIRES_CLEAR_BALANCE', true),
+
+    /**
      * Dunning ladder stages (days relative to due_date: negative = before, positive = after).
      * Each stage uses notifications.templates.{event_key} and notifications.events.{event_key}.
      */

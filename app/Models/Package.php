@@ -35,6 +35,7 @@ class Package extends Model
         'billing_cycle_days',
         'billing_cycle_type',
         'is_active',
+        'show_on_website',
         'is_ott',
         'promo_starts_at',
         'promo_ends_at',
@@ -48,6 +49,7 @@ class Package extends Model
         return [
             'is_ott' => 'boolean',
             'is_active' => 'boolean',
+            'show_on_website' => 'boolean',
             'price_monthly' => 'decimal:2',
             'setup_fee' => 'decimal:2',
             'vat_percent' => 'decimal:2',
@@ -62,6 +64,14 @@ class Package extends Model
             'mikrotik_synced_at' => 'datetime',
             'mikrotik_sync_meta' => 'array',
         ];
+    }
+
+    /**
+     * Packages shown on public landing + customer portal (admin can still assign hidden packages).
+     */
+    public function scopePublicCatalog(\Illuminate\Database\Eloquent\Builder $query): \Illuminate\Database\Eloquent\Builder
+    {
+        return $query->where('is_active', true)->where('show_on_website', true);
     }
 
     public function customers(): HasMany

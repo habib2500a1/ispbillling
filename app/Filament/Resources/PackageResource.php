@@ -164,6 +164,10 @@ class PackageResource extends Resource
                     ->helperText('Optional tiered pricing; full automation can be wired later.'),
                 Forms\Components\Toggle::make('is_active')
                     ->required(),
+                Forms\Components\Toggle::make('show_on_website')
+                    ->label('Show on website')
+                    ->default(false)
+                    ->helperText('On = visible on landing page, signup, and customer portal. Off = hidden from customers (admin can still assign). Package upgrades require bill payment.'),
                 Forms\Components\Toggle::make('is_ott')
                     ->label('OTT add-on (VAS)')
                     ->helperText('Mark as OTT subscription package for value-added service billing.'),
@@ -229,6 +233,10 @@ class PackageResource extends Resource
                     ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\IconColumn::make('is_active')
                     ->boolean(),
+                Tables\Columns\IconColumn::make('show_on_website')
+                    ->label('Public')
+                    ->boolean()
+                    ->toggleable(),
                 Tables\Columns\TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()

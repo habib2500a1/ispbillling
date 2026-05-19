@@ -305,6 +305,19 @@ class Customer extends Model implements AuthenticatableContract, AuthorizableCon
         return $this->hasMany(Invoice::class);
     }
 
+    /**
+     * Sum of unpaid balances on open invoices (monthly bills, fees, etc.).
+     */
+    public function openInvoiceBalance(): float
+    {
+        $sum = $this->invoices()
+            ->whereIn('status', ['open', 'partial', 'sent', 'overdue'])
+            ->get(['total', 'amount_paid'])
+            ->sum(fn (Invoice $invoice): float => max(0, (float) $invoice->total - (float) $invoice->amount_paid));
+
+        return round((float) $sum, 2);
+    }
+
     public function payments(): HasMany
     {
         return $this->hasMany(Payment::class);
