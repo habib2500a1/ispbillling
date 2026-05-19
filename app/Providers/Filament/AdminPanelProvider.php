@@ -72,7 +72,7 @@ class AdminPanelProvider extends PanelProvider
                     ->collapsed(false),
                 NavigationGroup::make('Payments')
                     ->icon('heroicon-o-banknotes')
-                    ->collapsed(),
+                    ->collapsed(false),
                 NavigationGroup::make('OLT & Tools')
                     ->icon('heroicon-o-server-stack')
                     ->collapsed(false),
@@ -84,13 +84,13 @@ class AdminPanelProvider extends PanelProvider
                     ->collapsed(false),
                 NavigationGroup::make('Support')
                     ->icon('heroicon-o-lifebuoy')
-                    ->collapsed(),
+                    ->collapsed(false),
                 NavigationGroup::make('Reports')
                     ->icon('heroicon-o-chart-bar')
                     ->collapsed(false),
                 NavigationGroup::make('Accounting')
                     ->icon('heroicon-o-calculator')
-                    ->collapsed(),
+                    ->collapsed(true),
                 NavigationGroup::make('BW Client')
                     ->icon('heroicon-o-arrows-right-left')
                     ->collapsed(false),
@@ -102,7 +102,7 @@ class AdminPanelProvider extends PanelProvider
                     ->collapsed(),
                 NavigationGroup::make('Inventory')
                     ->icon('heroicon-o-cube')
-                    ->collapsed(),
+                    ->collapsed(false),
                 NavigationGroup::make('Resellers')
                     ->icon('heroicon-o-building-storefront')
                     ->collapsed(false),
@@ -120,7 +120,7 @@ class AdminPanelProvider extends PanelProvider
                     ->collapsed(false),
                 NavigationGroup::make('System')
                     ->icon('heroicon-o-cog-6-tooth')
-                    ->collapsed(),
+                    ->collapsed(false),
             ])
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\\Filament\\Resources')
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\\Filament\\Pages')

@@ -20,7 +20,7 @@ final class ClientsDashboardService
 
         return Cache::remember(
             'clients_dashboard_summary:'.$tenantId.':'.md5((string) ($scopedQuery?->toRawSql() ?? 'all')),
-            45,
+            120,
             function () use ($scopedQuery): array {
                 $base = $scopedQuery ?? Customer::query();
                 $notTerminated = fn () => (clone $base)->where('status', '!=', CustomerStatus::TERMINATED);

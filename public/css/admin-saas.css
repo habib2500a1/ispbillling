@@ -63,6 +63,16 @@
     background: var(--isp-sidebar-bg) !important;
 }
 
+/* Full sidebar scroll — all module links reachable */
+.fi-sidebar .fi-sidebar-nav {
+    overflow-y: auto !important;
+    overflow-x: hidden;
+    max-height: calc(100vh - 4.5rem);
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.25) transparent;
+}
+
 .fi-sidebar .fi-sidebar-header {
     border-bottom-color: rgba(255, 255, 255, 0.08) !important;
 }
