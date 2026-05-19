@@ -29,6 +29,8 @@ class CollectorMobile extends Page
 
     protected static ?string $navigationGroup = 'Billing';
 
+    protected static bool $shouldRegisterNavigation = false;
+
     protected static ?string $slug = 'collector-mobile';
 
     protected static ?int $navigationSort = 3;

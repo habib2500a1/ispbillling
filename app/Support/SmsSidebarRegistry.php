@@ -2,6 +2,7 @@
 
 namespace App\Support;
 
+use App\Filament\Pages\BroadcastOutage;
 use App\Filament\Pages\BulkSmsCampaign;
 use App\Filament\Pages\ManageNotifications;
 use App\Filament\Pages\NotificationsHub;
@@ -9,6 +10,7 @@ use App\Filament\Pages\SendSms;
 use App\Filament\Resources\SmsTemplateResource;
 use App\Filament\Pages\SmsGatewaySetup;
 use App\Filament\Resources\NotificationLogResource;
+use App\Filament\Resources\SmsDeliveryReportResource;
 use Filament\Facades\Filament;
 use Filament\Navigation\NavigationItem;
 
@@ -88,10 +90,26 @@ final class SmsSidebarRegistry
                 ],
             ],
             [
+                'key' => 'broadcast_outage',
+                'label' => 'Broadcast outage',
+                'icon' => 'heroicon-o-megaphone',
+                'sort' => 8,
+                'url' => BroadcastOutage::getUrl(),
+                'active_routes' => ['filament.admin.pages.broadcast-outage'],
+            ],
+            [
+                'key' => 'dlr',
+                'label' => 'SMS delivery (DLR)',
+                'icon' => 'heroicon-o-check-badge',
+                'sort' => 9,
+                'url' => SmsDeliveryReportResource::getUrl(),
+                'active_routes' => ['filament.admin.resources.sms-delivery-reports.index'],
+            ],
+            [
                 'key' => 'gateway_tester',
                 'label' => 'Gateway Tester',
                 'icon' => 'heroicon-o-globe-alt',
-                'sort' => 8,
+                'sort' => 10,
                 'url' => SmsGatewaySetup::getUrl(),
                 'active_routes' => ['filament.admin.pages.sms-gateway'],
             ],
@@ -99,7 +117,7 @@ final class SmsSidebarRegistry
                 'key' => 'notification_settings',
                 'label' => 'Gateway & events',
                 'icon' => 'heroicon-o-cog-6-tooth',
-                'sort' => 9,
+                'sort' => 11,
                 'url' => ManageNotifications::getUrl(),
                 'active_routes' => ['filament.admin.pages.manage-notifications'],
             ],

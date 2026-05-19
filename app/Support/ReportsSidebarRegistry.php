@@ -16,7 +16,6 @@ use App\Filament\Pages\PackageWiseReportPage;
 use App\Filament\Pages\PaymentsReport;
 use App\Filament\Pages\PrintReportsHub;
 use App\Filament\Pages\ReportsHub;
-use App\Filament\Resources\SupportTicketResource;
 use Filament\Facades\Filament;
 use Filament\Navigation\NavigationItem;
 
@@ -37,23 +36,10 @@ final class ReportsSidebarRegistry
                 'active_routes' => ['filament.admin.pages.reports-hub'],
             ],
             [
-                'key' => 'tickets',
-                'label' => 'Tickets',
-                'icon' => 'heroicon-o-ticket',
-                'sort' => 1,
-                'url' => SupportTicketResource::getUrl(),
-                'active_routes' => [
-                    'filament.admin.resources.support-tickets.index',
-                    'filament.admin.resources.support-tickets.create',
-                    'filament.admin.resources.support-tickets.edit',
-                    'filament.admin.resources.support-tickets.view',
-                ],
-            ],
-            [
                 'key' => 'due_report',
                 'label' => 'Due Report',
                 'icon' => 'heroicon-o-exclamation-triangle',
-                'sort' => 2,
+                'sort' => 1,
                 'url' => DueReportPage::getUrl(),
                 'active_routes' => ['filament.admin.pages.due-report'],
             ],
@@ -195,7 +181,6 @@ final class ReportsSidebarRegistry
     {
         return match ($key) {
             'overview' => ReportsHub::canAccess(),
-            'tickets' => SupportTicketResource::canViewAny(),
             'monthly' => BillingReports::canAccess(),
             'gateway' => GatewayReconciliationReport::canAccess(),
             'btrc' => BtrcReport::canAccess(),

@@ -55,22 +55,6 @@ final class OltSidebarRegistry
                 'url' => ManageOpticalLaserSettings::getUrl(),
                 'active_routes' => ['filament.admin.pages.optical-laser-settings'],
             ],
-            [
-                'key' => 'topology',
-                'label' => 'Topology map',
-                'icon' => 'heroicon-o-share',
-                'sort' => 5,
-                'url' => NetworkTopology::getUrl(),
-                'active_routes' => ['filament.admin.pages.network-topology'],
-            ],
-            [
-                'key' => 'snmp_monitor',
-                'label' => 'SNMP monitor',
-                'icon' => 'heroicon-o-signal',
-                'sort' => 6,
-                'url' => SnmpMonitor::getUrl(),
-                'active_routes' => ['filament.admin.pages.snmp-monitor'],
-            ],
         ];
     }
 

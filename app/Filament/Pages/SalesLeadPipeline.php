@@ -20,6 +20,8 @@ class SalesLeadPipeline extends Page
 
     protected static ?int $navigationSort = 5;
 
+    protected static bool $shouldRegisterNavigation = false;
+
     public ?int $filterAssignee = null;
 
     public static function canAccess(): bool

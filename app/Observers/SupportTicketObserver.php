@@ -3,6 +3,7 @@
 namespace App\Observers;
 
 use App\Models\SupportTicket;
+use App\Services\Notifications\OpsNotificationService;
 use App\Services\Sms\AutomatedSmsNotifier;
 use App\Services\Support\SupportTicketAutoAssignment;
 use App\Services\Support\SupportTicketNotifier;
@@ -25,6 +26,7 @@ class SupportTicketObserver
             }
 
             app(AutomatedSmsNotifier::class)->onSupportTicketCreated($ticket);
+            app(OpsNotificationService::class)->onSupportTicketCreated($ticket);
         } catch (Throwable $e) {
             Log::error('support_ticket_observer.created', [
                 'ticket_id' => $ticket->id,
@@ -66,6 +68,7 @@ class SupportTicketObserver
             if ($ticket->wasChanged('status') && in_array($ticket->status, ['resolved', 'closed'], true)) {
                 $notifier->notifyCustomerResolved($ticket);
                 app(AutomatedSmsNotifier::class)->onSupportTicketResolved($ticket);
+                app(OpsNotificationService::class)->onSupportTicketResolved($ticket);
             }
         } catch (Throwable $e) {
             Log::error('support_ticket_observer.updated', [

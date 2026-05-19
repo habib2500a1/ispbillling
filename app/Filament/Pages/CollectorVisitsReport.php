@@ -18,6 +18,8 @@ class CollectorVisitsReport extends Page
 
     protected static ?string $navigationGroup = 'Billing';
 
+    protected static bool $shouldRegisterNavigation = false;
+
     protected static ?int $navigationSort = 41;
 
     public string $dateFrom = '';

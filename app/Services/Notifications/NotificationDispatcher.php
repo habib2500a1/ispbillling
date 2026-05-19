@@ -49,6 +49,12 @@ final class NotificationDispatcher
         }
 
         foreach ($this->channelsForEvent($event) as $channelName) {
+            if ($channelName === NotificationChannel::SMS && ! app(SmsTemplateService::class)->isEnabled($event, (int) $customer->tenant_id)) {
+                $this->logSkipped($customer, $event, $channelName, 'SMS template disabled');
+
+                continue;
+            }
+
             $recipient = $this->recipientForCustomer($customer, $channelName);
             if ($recipient === null) {
                 $this->logSkipped($customer, $event, $channelName, 'No recipient');
@@ -59,24 +65,22 @@ final class NotificationDispatcher
             $this->send($customer->tenant_id, $customer->id, $event, $channelName, $recipient, $message, $context);
         }
 
-        if ($this->telegramOpsForEvent($event)) {
-            $opsMessage = MessageTemplateRenderer::render($event.'_ops', array_merge(
+        if ($this->telegramOpsEnabled($event)) {
+            $this->notifyOps((int) $customer->tenant_id, $event, array_merge(
                 ['name' => $customer->name],
                 $variables,
             ));
-            if ($opsMessage !== '') {
-                $chatId = (string) config('notifications.telegram.ops_chat_id', '');
-                $this->send($customer->tenant_id, $customer->id, $event, NotificationChannel::TELEGRAM, $chatId, $opsMessage, $context);
-            }
         }
     }
 
     /**
+     * Admin Telegram alert — not gated by customer SMS template toggles.
+     *
      * @param  array<string, string|int|float|null>  $variables
      */
     public function notifyOps(int $tenantId, string $event, array $variables = []): void
     {
-        if (! (bool) config('notifications.telegram.enabled', false)) {
+        if (! $this->telegramOpsEnabled($event)) {
             return;
         }
 
@@ -86,6 +90,10 @@ final class NotificationDispatcher
         }
 
         $chatId = (string) config('notifications.telegram.ops_chat_id', '');
+        if ($chatId === '') {
+            return;
+        }
+
         $this->send($tenantId, null, $event, NotificationChannel::TELEGRAM, $chatId, $message, []);
     }
 
@@ -220,10 +228,6 @@ final class NotificationDispatcher
 
     private function eventEnabled(string $event): bool
     {
-        if (! app(SmsTemplateService::class)->isEnabled($event)) {
-            return false;
-        }
-
         return (bool) config("notifications.events.{$event}.enabled", true);
     }
 
@@ -237,8 +241,16 @@ final class NotificationDispatcher
         return is_array($channels) ? array_values(array_filter($channels, 'is_string')) : ['email'];
     }
 
-    private function telegramOpsForEvent(string $event): bool
+    private function telegramOpsEnabled(string $event): bool
     {
+        if (! (bool) config('notifications.telegram.enabled', false)) {
+            return false;
+        }
+
+        if (! filled(config('notifications.telegram.ops_chat_id'))) {
+            return false;
+        }
+
         return (bool) config("notifications.events.{$event}.telegram_ops", false);
     }
 

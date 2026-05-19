@@ -18,6 +18,8 @@ class InventoryHub extends Page
 
     protected static ?int $navigationSort = 0;
 
+    protected static bool $shouldRegisterNavigation = false;
+
     public static function canAccess(): bool
     {
         return auth()->check();

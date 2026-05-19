@@ -27,15 +27,6 @@ class SettingsHub extends Page
 
     public static function registerNavigationItems(): void
     {
-        if (! static::canAccess()) {
-            return;
-        }
-
-        $panel = Filament::getCurrentPanel();
-        if ($panel === null) {
-            return;
-        }
-
-        $panel->navigationItems(SettingsSidebarNavigation::navigationItems());
+        // Curated sidebar: SettingsSidebarNavigation → SettingsSidebarRegistry.
     }
 }

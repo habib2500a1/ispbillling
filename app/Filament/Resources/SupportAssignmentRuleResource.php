@@ -24,6 +24,8 @@ class SupportAssignmentRuleResource extends Resource
 
     protected static ?string $navigationLabel = 'Auto-assign rules';
 
+    protected static bool $shouldRegisterNavigation = false;
+
     public static function form(Form $form): Form
     {
         return $form

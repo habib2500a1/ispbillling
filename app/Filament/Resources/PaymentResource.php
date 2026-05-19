@@ -30,6 +30,8 @@ class PaymentResource extends Resource
 
     protected static ?string $navigationLabel = 'Payments';
 
+    protected static bool $shouldRegisterNavigation = false;
+
     public static function form(Form $form): Form
     {
         return $form

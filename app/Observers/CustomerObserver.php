@@ -5,6 +5,7 @@ namespace App\Observers;
 use App\Jobs\SyncCustomerNetworkAccessJob;
 use App\Models\Customer;
 use App\Services\Radius\CustomerRadiusSyncService;
+use App\Services\Notifications\OpsNotificationService;
 use App\Services\Sms\AutomatedSmsNotifier;
 use App\Models\CustomerNote;
 use App\Models\MikrotikServer;
@@ -17,6 +18,7 @@ class CustomerObserver
     {
         try {
             app(AutomatedSmsNotifier::class)->onClientCreated($customer);
+            app(OpsNotificationService::class)->onClientCreated($customer);
         } catch (\Throwable $e) {
             Log::channel('single')->warning('customer.sms_created_failed', [
                 'customer_id' => $customer->id,
@@ -33,6 +35,7 @@ class CustomerObserver
             if ($from !== $to) {
                 try {
                     app(AutomatedSmsNotifier::class)->onClientStatusChanged($customer, $from, $to);
+                    app(OpsNotificationService::class)->onClientStatusChanged($customer, $from, $to);
                 } catch (\Throwable $e) {
                     Log::channel('single')->warning('customer.sms_status_failed', [
                         'customer_id' => $customer->id,

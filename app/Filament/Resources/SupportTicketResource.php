@@ -27,6 +27,8 @@ class SupportTicketResource extends Resource
 
     protected static ?string $recordTitleAttribute = 'ticket_number';
 
+    protected static bool $shouldRegisterNavigation = false;
+
     public static function form(Form $form): Form
     {
         return $form

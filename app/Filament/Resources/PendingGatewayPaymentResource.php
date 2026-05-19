@@ -26,6 +26,8 @@ class PendingGatewayPaymentResource extends Resource
 
     protected static ?int $navigationSort = 5;
 
+    protected static bool $shouldRegisterNavigation = false;
+
     public static function canViewAny(): bool
     {
         return auth()->user()?->hasAnyRole(['super-admin', 'isp-admin', 'admin', 'cashier']) ?? false;

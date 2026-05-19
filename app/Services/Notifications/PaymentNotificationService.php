@@ -10,6 +10,7 @@ final class PaymentNotificationService
 {
     public function __construct(
         private readonly NotificationDispatcher $dispatcher,
+        private readonly OpsNotificationService $ops,
     ) {}
 
     public function onPaymentCompleted(Payment $payment): void
@@ -32,5 +33,7 @@ final class PaymentNotificationService
         ], [
             'subject' => 'Payment received — '.$customer->name,
         ]);
+
+        $this->ops->onPaymentCompleted($payment);
     }
 }

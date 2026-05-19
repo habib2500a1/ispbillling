@@ -136,5 +136,9 @@ class AppServiceProvider extends ServiceProvider
         \App\Filament\Clients\ClientsSidebarNavigation::register();
         BillingSidebarNavigation::register();
         SmsSidebarNavigation::register();
+        \App\Filament\Support\SupportSidebarNavigation::register();
+        \App\Filament\Payments\PaymentsSidebarNavigation::register();
+        \App\Filament\System\SystemSidebarNavigation::register();
+        \App\Filament\Inventory\InventorySidebarNavigation::register();
     }
 }

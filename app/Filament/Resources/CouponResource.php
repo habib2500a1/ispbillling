@@ -21,6 +21,8 @@ class CouponResource extends Resource
 
     protected static ?int $navigationSort = 8;
 
+    protected static bool $shouldRegisterNavigation = false;
+
     protected static ?string $modelLabel = 'Coupon / promo';
 
     public static function canViewAny(): bool

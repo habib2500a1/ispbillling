@@ -24,6 +24,8 @@ class KnowledgeArticleResource extends Resource
 
     protected static ?string $navigationLabel = 'Knowledge base';
 
+    protected static bool $shouldRegisterNavigation = false;
+
     public static function form(Form $form): Form
     {
         return $form

@@ -37,16 +37,7 @@ class InvoiceResource extends Resource
 
     public static function registerNavigationItems(): void
     {
-        if (filled(static::getCluster())) {
-            return;
-        }
-
-        if (! \App\Filament\Billing\BillingSidebarNavigation::userCanSee()) {
-            return;
-        }
-
-        Filament::getCurrentPanel()
-            ->navigationItems(static::getBillingNavigationItems());
+        // Curated sidebar: BillingSidebarNavigation → BillingSidebarRegistry.
     }
 
     /**
