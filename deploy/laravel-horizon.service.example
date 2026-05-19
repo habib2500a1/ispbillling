@@ -1,0 +1,23 @@
+# Example systemd unit for Laravel Horizon (Redis queues).
+# Install: sudo cp deploy/laravel-horizon.service.example /etc/systemd/system/laravel-horizon.service
+# Edit User/Group and paths, then:
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now laravel-horizon
+
+[Unit]
+Description=Laravel Horizon (ISP Platform)
+After=network.target redis-server.service postgresql.service
+
+[Service]
+Type=simple
+User=www-data
+Group=www-data
+Restart=always
+RestartSec=5
+WorkingDirectory=/var/www/isp-platform
+ExecStart=/usr/bin/php artisan horizon
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,7 @@
+# Laravel scheduler (required for isp:generate-bills, invoice reminders, etc.)
+# Install: sudo crontab -e -u www-data
+# Add this single line (adjust path / PHP binary):
+#
+# * * * * * cd /var/www/isp-platform && /usr/bin/php artisan schedule:run >> /dev/null 2>&1
+#
+# Verify: php artisan schedule:list

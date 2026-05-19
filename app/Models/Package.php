@@ -1,0 +1,92 @@
+<?php
+
+namespace App\Models;
+
+use App\Models\Concerns\BelongsToTenant;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+
+class Package extends Model
+{
+    use BelongsToTenant;
+
+    protected $fillable = [
+        'tenant_id',
+        'mikrotik_server_id',
+        'mikrotik_profile_name',
+        'mikrotik_synced_at',
+        'mikrotik_sync_meta',
+        'btrc_label',
+        'btrc_bandwidth',
+        'btrc_notes',
+        'name',
+        'type',
+        'pricing_model',
+        'download_mbps',
+        'upload_mbps',
+        'included_data_gb',
+        'overage_price_per_gb',
+        'time_quota_hours',
+        'price_monthly',
+        'setup_fee',
+        'vat_percent',
+        'sd_percent',
+        'withholding_percent',
+        'billing_cycle_days',
+        'billing_cycle_type',
+        'is_active',
+        'is_ott',
+        'promo_starts_at',
+        'promo_ends_at',
+        'promo_price_monthly',
+        'slab_pricing',
+        'description',
+    ];
+
+    protected function casts(): array
+    {
+        return [
+            'is_ott' => 'boolean',
+            'is_active' => 'boolean',
+            'price_monthly' => 'decimal:2',
+            'setup_fee' => 'decimal:2',
+            'vat_percent' => 'decimal:2',
+            'sd_percent' => 'decimal:2',
+            'withholding_percent' => 'decimal:2',
+            'included_data_gb' => 'decimal:2',
+            'overage_price_per_gb' => 'decimal:2',
+            'promo_starts_at' => 'date',
+            'promo_ends_at' => 'date',
+            'promo_price_monthly' => 'decimal:2',
+            'slab_pricing' => 'array',
+            'mikrotik_synced_at' => 'datetime',
+            'mikrotik_sync_meta' => 'array',
+        ];
+    }
+
+    public function customers(): HasMany
+    {
+        return $this->hasMany(Customer::class);
+    }
+
+    public function mikrotikServer(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    {
+        return $this->belongsTo(MikrotikServer::class);
+    }
+
+    public function addons(): HasMany
+    {
+        return $this->hasMany(PackageAddon::class)->orderBy('sort_order');
+    }
+
+    public function areaPrices(): HasMany
+    {
+        return $this->hasMany(PackageAreaPrice::class);
+    }
+
+    public function zonePrices(): HasMany
+    {
+        return $this->hasMany(PackageZonePrice::class);
+    }
+
+}

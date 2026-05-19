@@ -1,0 +1,175 @@
+<div
+    class="flex items-center gap-2 me-2"
+    x-data="{
+        theme: window.ispGetTheme?.() || 'system',
+        setTheme(mode) {
+            window.ispSetTheme?.(mode);
+            this.theme = mode;
+        },
+    }"
+    @isp-theme-changed.window="theme = $event.detail.mode"
+>
+    <div
+        class="isp-theme-switch"
+        role="group"
+        aria-label="Color theme"
+    >
+        <button
+            type="button"
+            class="isp-theme-switch__btn"
+            title="Light mode"
+            :class="{ 'isp-theme-switch__btn--active': theme === 'light' }"
+            @click="setTheme('light')"
+            aria-pressed="false"
+            x-bind:aria-pressed="theme === 'light' ? 'true' : 'false'"
+        >
+            <x-filament::icon icon="heroicon-m-sun" class="h-4 w-4" />
+        </button>
+        <button
+            type="button"
+            class="isp-theme-switch__btn"
+            title="Dark mode"
+            :class="{ 'isp-theme-switch__btn--active': theme === 'dark' }"
+            @click="setTheme('dark')"
+            x-bind:aria-pressed="theme === 'dark' ? 'true' : 'false'"
+        >
+            <x-filament::icon icon="heroicon-m-moon" class="h-4 w-4" />
+        </button>
+        <button
+            type="button"
+            class="isp-theme-switch__btn"
+            title="System theme"
+            :class="{ 'isp-theme-switch__btn--active': theme === 'system' }"
+            @click="setTheme('system')"
+            x-bind:aria-pressed="theme === 'system' ? 'true' : 'false'"
+        >
+            <x-filament::icon icon="heroicon-m-computer-desktop" class="h-4 w-4" />
+        </button>
+    </div>
+    <button
+        type="button"
+        class="isp-theme-btn text-xs font-semibold text-gray-600 dark:text-gray-300"
+        title="Smart search (Ctrl+K)"
+        @click="window.dispatchEvent(new CustomEvent('isp-open-command-palette'))"
+    >
+        ⌘K
+    </button>
+    @php
+        $currentLocale = app()->getLocale();
+        $localeLabels = config('locales.labels', []);
+    @endphp
+    <div class="flex items-center gap-1 rounded-lg border border-gray-200 bg-white/80 px-1 dark:border-gray-600 dark:bg-gray-900/80">
+        @foreach (config('locales.supported', ['en']) as $code)
+            <a
+                href="{{ route('locale.switch', $code) }}"
+                class="rounded px-2 py-1 text-xs font-semibold {{ $currentLocale === $code ? 'bg-teal-100 text-teal-800 dark:bg-teal-900/50 dark:text-teal-200' : 'text-gray-500 hover:text-gray-800 dark:text-gray-400' }}"
+                title="{{ $localeLabels[$code] ?? $code }}"
+            >{{ strtoupper($code) }}</a>
+        @endforeach
+    </div>
+</div>
+
+<div
+    x-data="{
+        open: false,
+        q: '',
+        items: @js($commandItems ?? []),
+        entityResults: [],
+        searching: false,
+        searchError: '',
+        searchUrl: @js(route('admin.smart-search')),
+        get filtered() {
+            const s = this.q.toLowerCase();
+            const cmds = !s ? this.items.slice(0, 8) : this.items.filter(i => i.label.toLowerCase().includes(s) || (i.group || '').toLowerCase().includes(s)).slice(0, 8);
+            return cmds;
+        },
+        async searchEntities() {
+            if (this.q.length < 2) { this.entityResults = []; this.searchError = ''; return; }
+            this.searching = true;
+            this.searchError = '';
+            try {
+                const r = await fetch(this.searchUrl + '?q=' + encodeURIComponent(this.q), {
+                    headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+                    credentials: 'same-origin',
+                });
+                if (!r.ok) {
+                    this.entityResults = [];
+                    this.searchError = 'Search failed (' + r.status + ')';
+                    return;
+                }
+                const j = await r.json();
+                this.entityResults = j.results || [];
+            } catch (e) {
+                this.entityResults = [];
+                this.searchError = 'Search unavailable';
+            }
+            this.searching = false;
+        },
+    }"
+    x-cloak
+    @isp-open-command-palette.window="open = true; q = ''; entityResults = []; searchError = ''; $nextTick(() => $refs.search?.focus())"
+    @keydown.escape.window="open = false"
+>
+    <template x-if="open">
+        <div class="isp-cmd-palette" @click.self="open = false">
+            <div class="isp-cmd-panel isp-cmd-panel--wide" role="dialog" aria-label="Smart search">
+                <input
+                    x-ref="search"
+                    type="text"
+                    class="isp-cmd-input text-gray-900 dark:text-white"
+                    placeholder="ID, name, phone, PPP user, invoice…"
+                    x-model="q"
+                    @input.debounce.300ms="searchEntities()"
+                    @keydown.escape="open = false"
+                />
+                <div class="max-h-96 overflow-y-auto py-1">
+                    <template x-if="entityResults.length > 0">
+                        <div>
+                            <p class="px-4 py-1 text-xs font-bold uppercase text-gray-400">Subscribers & records</p>
+                            <template x-for="item in entityResults" :key="item.url + (item.view_url || '')">
+                                <div class="isp-cmd-item text-gray-800 dark:text-gray-200">
+                                    <span class="text-xs uppercase text-teal-600" x-text="item.type"></span>
+                                    <span class="block font-medium" x-text="item.label"></span>
+                                    <span class="text-xs text-gray-500" x-text="item.sublabel"></span>
+                                    <div class="mt-2 flex flex-wrap gap-2" x-show="item.view_url">
+                                        <a
+                                            :href="item.view_url"
+                                            class="rounded-md bg-teal-600 px-2 py-1 text-xs font-semibold text-white hover:bg-teal-700"
+                                            @click="open = false"
+                                        >View</a>
+                                        <a
+                                            :href="item.edit_url"
+                                            class="rounded-md border border-gray-300 px-2 py-1 text-xs font-semibold text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-800"
+                                            @click="open = false"
+                                        >Edit</a>
+                                        <a
+                                            :href="item.pay_url"
+                                            class="rounded-md bg-violet-600 px-2 py-1 text-xs font-semibold text-white hover:bg-violet-700"
+                                            @click="open = false"
+                                        >Collect payment</a>
+                                    </div>
+                                    <a
+                                        x-show="!item.view_url"
+                                        :href="item.url"
+                                        class="mt-1 inline-block text-xs font-semibold text-teal-600"
+                                        @click="open = false"
+                                    >Open</a>
+                                </div>
+                            </template>
+                        </div>
+                    </template>
+                    <p class="px-4 py-1 text-xs font-bold uppercase text-gray-400">Pages</p>
+                    <template x-for="item in filtered" :key="item.url">
+                        <a :href="item.url" class="isp-cmd-item text-gray-800 dark:text-gray-200" @click="open = false">
+                            <span class="text-xs uppercase text-gray-400" x-text="item.group"></span>
+                            <span class="block font-medium" x-text="item.label"></span>
+                        </a>
+                    </template>
+                    <p x-show="searchError" class="px-4 py-2 text-sm text-rose-600" x-text="searchError"></p>
+                    <p x-show="filtered.length === 0 && entityResults.length === 0 && !searching && !searchError && q.length >= 2" class="px-4 py-6 text-sm text-gray-500">No matches.</p>
+                    <p x-show="searching" class="px-4 py-4 text-sm text-gray-500">Searching…</p>
+                </div>
+            </div>
+        </div>
+    </template>
+</div>

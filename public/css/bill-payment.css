@@ -1,0 +1,340 @@
+:root {
+    --bp-teal: #0d9488;
+    --bp-teal-dark: #0f766e;
+    --bp-coral: #ea580c;
+    --bp-navy: #0c1222;
+    --bp-font: 'Outfit', ui-sans-serif, system-ui, sans-serif;
+}
+
+.bp-bg {
+    min-height: 100vh;
+    background: linear-gradient(145deg, #0c1222 0%, #134e4a 45%, #9a3412 100%);
+    font-family: var(--bp-font);
+}
+
+.bp-mobile-brand {
+    padding: 1rem 1.25rem 0.5rem;
+    text-align: center;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.bp-split {
+    display: grid;
+    min-height: 100vh;
+}
+
+@media (min-width: 1024px) {
+    .bp-split {
+        grid-template-columns: 38% 1fr;
+    }
+}
+
+.bp-brand {
+    display: none;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 2.5rem;
+    color: #fff;
+}
+
+@media (min-width: 1024px) {
+    .bp-brand {
+        display: flex;
+    }
+}
+
+.bp-brand h1 {
+    font-size: 1.75rem;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+}
+
+.bp-brand-steps {
+    margin-top: 2rem;
+    list-style: none;
+    padding: 0;
+    font-size: 0.9rem;
+    color: rgba(255, 255, 255, 0.75);
+}
+
+.bp-brand-steps li {
+    margin-bottom: 0.75rem;
+    padding-left: 1.5rem;
+    position: relative;
+}
+
+.bp-brand-steps li::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0.45rem;
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 999px;
+    background: var(--bp-teal);
+}
+
+.bp-main {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem 1.25rem;
+}
+
+.bp-card {
+    width: 100%;
+    max-width: 28rem;
+    background: rgba(255, 255, 255, 0.96);
+    border-radius: 1.25rem;
+    padding: 2rem;
+    box-shadow: 0 25px 60px -12px rgba(0, 0, 0, 0.35);
+}
+
+.bp-card-wide {
+    max-width: 40rem;
+}
+
+.bp-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--bp-navy);
+    letter-spacing: -0.03em;
+}
+
+.bp-sub {
+    margin-top: 0.35rem;
+    font-size: 0.875rem;
+    color: #64748b;
+}
+
+.bp-input {
+    width: 100%;
+    margin-top: 0.35rem;
+    border-radius: 0.75rem;
+    border: 1px solid #cbd5e1;
+    padding: 0.875rem 1rem;
+    font-size: 1rem;
+}
+
+.bp-input:focus {
+    outline: none;
+    border-color: var(--bp-teal);
+    box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.2);
+}
+
+.bp-btn {
+    display: inline-flex;
+    width: 100%;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    margin-top: 1.25rem;
+    border-radius: 0.75rem;
+    padding: 0.875rem 1.25rem;
+    font-weight: 600;
+    color: #fff;
+    background: linear-gradient(135deg, var(--bp-teal), var(--bp-teal-dark));
+    box-shadow: 0 4px 14px rgba(13, 148, 136, 0.4);
+}
+
+.bp-btn:hover {
+    filter: brightness(1.05);
+}
+
+.bp-btn-bkash {
+    background: linear-gradient(135deg, #e2136e, #c4105e);
+    box-shadow: 0 4px 14px rgba(226, 19, 110, 0.35);
+}
+
+.bp-alert {
+    margin-bottom: 1rem;
+    border-radius: 0.75rem;
+    padding: 0.75rem 1rem;
+    font-size: 0.875rem;
+}
+
+.bp-alert-ok {
+    background: #ecfdf5;
+    color: #065f46;
+}
+
+.bp-alert-err {
+    background: #fff1f2;
+    color: #9f1239;
+}
+
+.bp-invoice-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    border-radius: 0.75rem;
+    border: 1px solid #e2e8f0;
+    padding: 1rem;
+    margin-top: 0.75rem;
+}
+
+.bp-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
+    margin: 1.25rem 0;
+}
+
+.bp-stat {
+    border-radius: 0.75rem;
+    background: #f8fafc;
+    padding: 0.875rem;
+}
+
+.bp-stat strong {
+    display: block;
+    font-size: 1.25rem;
+    color: var(--bp-teal-dark);
+}
+
+.bp-link {
+    font-size: 0.875rem;
+    color: var(--bp-teal-dark);
+    text-decoration: underline;
+}
+
+.bp-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    border-bottom: 1px solid #e2e8f0;
+    padding-bottom: 0.5rem;
+}
+
+.bp-tab {
+    padding: 0.5rem 1rem;
+    border-radius: 0.5rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #64748b;
+    text-decoration: none;
+}
+
+.bp-tab:hover {
+    background: #f1f5f9;
+    color: var(--bp-navy);
+}
+
+.bp-tab-active {
+    background: rgba(13, 148, 136, 0.12);
+    color: var(--bp-teal-dark);
+    font-weight: 600;
+}
+
+.bp-pay-form {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    min-width: 10rem;
+}
+
+.bp-topbar {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 0.75rem 1rem;
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    backdrop-filter: blur(12px);
+    background: rgba(12, 18, 34, 0.75);
+}
+
+.bp-topbar-inner {
+    max-width: 40rem;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.bp-topbar-kicker {
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: rgba(45, 212, 191, 0.85);
+}
+
+.bp-topbar-title {
+    font-size: 1.125rem;
+    font-weight: 700;
+    color: white;
+}
+
+.bp-theme-btn {
+    height: 2.25rem;
+    width: 2.25rem;
+    border-radius: 0.5rem;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.1);
+    cursor: pointer;
+}
+
+@media (max-width: 1023px) {
+    .bp-main {
+        padding: 1.25rem 1rem 2rem;
+        align-items: flex-start;
+    }
+
+    .bp-card {
+        padding: 1.5rem;
+    }
+
+    .bp-card-wide {
+        max-width: 100%;
+    }
+
+    .bp-summary-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .bp-tabs {
+        overflow-x: auto;
+        flex-wrap: nowrap;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .bp-tab {
+        white-space: nowrap;
+    }
+}
+
+html.portal-dark .bp-card {
+    background: rgba(15, 23, 42, 0.95);
+    color: #f1f5f9;
+}
+
+html.portal-dark .bp-title {
+    color: #f8fafc;
+}
+
+html.portal-dark .bp-sub,
+html.portal-dark .bp-stat {
+    color: #94a3b8;
+    background: rgba(30, 41, 59, 0.8);
+}
+
+html.portal-dark .bp-input {
+    background: rgb(30 41 59);
+    border-color: rgba(148, 163, 184, 0.2);
+    color: #f1f5f9;
+}
+
+html.portal-dark .bp-invoice-row {
+    border-color: rgba(148, 163, 184, 0.15);
+}
+
+html.portal-dark .bp-tab {
+    color: #94a3b8;
+}
+
+html.portal-dark .bp-tab-active {
+    background: rgba(13, 148, 136, 0.2);
+    color: #5eead4;
+}

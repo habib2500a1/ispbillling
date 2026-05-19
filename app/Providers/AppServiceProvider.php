@@ -1,0 +1,103 @@
+<?php
+
+namespace App\Providers;
+
+use App\Auth\CustomerUserProvider;
+use App\Contracts\NetworkAccessProvisioner;
+use App\Models\AppSetting;
+use App\Models\Customer;
+use App\Models\Invoice;
+use App\Models\InvoiceItem;
+use App\Models\Payment;
+use App\Models\SupportTicket;
+use App\Models\SupportTicketMessage;
+use App\Observers\CustomerObserver;
+use App\Observers\InvoiceItemObserver;
+use App\Observers\InvoiceObserver;
+use App\Observers\PaymentObserver;
+use App\Observers\SupportTicketMessageObserver;
+use App\Observers\SupportTicketObserver;
+use App\Observers\UserObserver;
+use App\Services\Network\CompositeNetworkProvisioner;
+use App\Services\Network\LogNetworkProvisioner;
+use App\Services\Network\MikrotikNetworkProvisioner;
+use App\Services\Network\NetworkAccessCoordinator;
+use App\Services\Network\NullNetworkProvisioner;
+use App\Services\Network\RadiusNetworkProvisioner;
+use App\Listeners\RecordStaffLogout;
+use App\Models\User;
+use Illuminate\Auth\Events\Logout;
+use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\ServiceProvider;
+
+class AppServiceProvider extends ServiceProvider
+{
+    /**
+     * Register any application services.
+     */
+    public function register(): void
+    {
+        $this->app->singleton(NetworkAccessProvisioner::class, function ($app): NetworkAccessProvisioner {
+            return match (config('network.provisioner_driver', 'null')) {
+                'log' => new LogNetworkProvisioner,
+                'mikrotik', 'radius', 'both' => new CompositeNetworkProvisioner(
+                    $app->make(MikrotikNetworkProvisioner::class),
+                    $app->make(RadiusNetworkProvisioner::class),
+                ),
+                default => new NullNetworkProvisioner,
+            };
+        });
+
+        $this->app->singleton(NetworkAccessCoordinator::class, function ($app): NetworkAccessCoordinator {
+            return new NetworkAccessCoordinator(
+                $app->make(NetworkAccessProvisioner::class),
+            );
+        });
+    }
+
+    /**
+     * Bootstrap any application services.
+     */
+    public function boot(): void
+    {
+        Auth::provider('customer', function ($app, array $config): CustomerUserProvider {
+            return new CustomerUserProvider($app['hash'], $config['model']);
+        });
+
+        InvoiceItem::observe(InvoiceItemObserver::class);
+        Payment::observe(PaymentObserver::class);
+        Invoice::observe(InvoiceObserver::class);
+        Customer::observe(CustomerObserver::class);
+        SupportTicket::observe(SupportTicketObserver::class);
+        SupportTicketMessage::observe(SupportTicketMessageObserver::class);
+        User::observe(UserObserver::class);
+
+        Gate::before(function (?User $user, string $ability): ?bool {
+            if ($user?->hasRole('super-admin')) {
+                return true;
+            }
+
+            return null;
+        });
+
+        if (Schema::hasTable('app_settings')) {
+            AppSetting::syncToRuntimeConfig();
+        }
+
+        RateLimiter::for('api', function (Request $request) {
+            $key = $request->user()?->getAuthIdentifier();
+
+            return Limit::perMinute(120)->by($key !== null ? 'user:'.$key : $request->ip());
+        });
+
+        RateLimiter::for('webhooks', fn (Request $request) => Limit::perMinute(120)->by($request->ip()));
+
+        Event::listen(Logout::class, RecordStaffLogout::class);
+    }
+}
