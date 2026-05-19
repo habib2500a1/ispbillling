@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Console\Scheduling\Schedule;
+use App\Http\Middleware\DisconnectIdleDatabase;
 use App\Http\Middleware\EnsureCustomerPortalEnabled;
 use App\Http\Middleware\IdentifyTenantFromSubdomain;
 use App\Http\Middleware\SecurityHeaders;
@@ -27,8 +28,8 @@ return Application::configure(basePath: dirname(__DIR__))
         // Single entry point — schedules are defined in admin → Automatic process (DB).
         $schedule->command('isp:run-automatic-processes')
             ->everyMinute()
-            ->withoutOverlapping(20)
-            ->runInBackground();
+            ->withoutOverlapping(30)
+            ->onOneServer();
 
         foreach ($schedule->events() as $event) {
             $event->appendOutputTo(storage_path('logs/scheduler.log'));
@@ -55,6 +56,7 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->prependToGroup('web', IdentifyTenantFromSubdomain::class);
         $middleware->appendToGroup('web', SetAppLocale::class);
+        $middleware->appendToGroup('web', DisconnectIdleDatabase::class);
         $middleware->prependToGroup('api', IdentifyTenantFromSubdomain::class);
 
         RedirectIfAuthenticated::redirectUsing(function () {

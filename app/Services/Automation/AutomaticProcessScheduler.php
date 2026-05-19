@@ -8,6 +8,7 @@ use App\Services\Automation\AutomaticProcessFailureNotifier;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
 use Symfony\Component\Console\Output\BufferedOutput;
@@ -86,38 +87,44 @@ final class AutomaticProcessScheduler
         $exitCode = 1;
 
         try {
-            $exitCode = Artisan::call(
-                $process->artisan_command,
-                $process->command_options ?? [],
-                $output,
+            try {
+                $exitCode = Artisan::call(
+                    $process->artisan_command,
+                    $process->command_options ?? [],
+                    $output,
+                );
+            } catch (\Throwable $e) {
+                Log::error('Automatic process failed', [
+                    'process' => $process->slug,
+                    'error' => $e->getMessage(),
+                ]);
+
+                $this->finishRun($process, $run, $startedAt, 'failed', $exitCode, $e->getMessage(), $triggeredBy);
+
+                return false;
+            }
+
+            $body = trim($output->fetch());
+            $status = $exitCode === 0 ? 'success' : 'failed';
+            $this->finishRun(
+                $process,
+                $run,
+                $startedAt,
+                $status,
+                $exitCode,
+                $body !== '' ? $body : 'Exit code: '.$exitCode,
+                $triggeredBy,
             );
-        } catch (\Throwable $e) {
-            Log::error('Automatic process failed', [
-                'process' => $process->slug,
-                'error' => $e->getMessage(),
-            ]);
 
-            $this->finishRun($process, $run, $startedAt, 'failed', $exitCode, $e->getMessage(), $triggeredBy);
+            return $exitCode === 0;
+        } finally {
             $lock?->release();
-
-            return false;
+            try {
+                DB::disconnect();
+            } catch (\Throwable) {
+                // ignore
+            }
         }
-
-        $body = trim($output->fetch());
-        $status = $exitCode === 0 ? 'success' : 'failed';
-        $this->finishRun(
-            $process,
-            $run,
-            $startedAt,
-            $status,
-            $exitCode,
-            $body !== '' ? $body : 'Exit code: '.$exitCode,
-            $triggeredBy,
-        );
-
-        $lock?->release();
-
-        return $exitCode === 0;
     }
 
     /**
