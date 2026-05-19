@@ -19,7 +19,6 @@ use App\Support\BwSidebarRegistry;
 use App\Support\ClientsSidebarRegistry;
 use App\Support\HrmSidebarRegistry;
 use App\Support\InventorySidebarRegistry;
-use App\Support\MainSidebarRegistry;
 use App\Support\NetworkSidebarRegistry;
 use App\Support\OltSidebarRegistry;
 use App\Support\PaymentsSidebarRegistry;
@@ -34,7 +33,7 @@ use Filament\Facades\Filament;
 use Illuminate\Support\Facades\Event;
 
 /**
- * Single sidebar builder — "Main" menu + module links on every admin page.
+ * Single sidebar builder — module links on every admin page.
  */
 final class IspSidebarNavigation
 {
@@ -63,7 +62,7 @@ final class IspSidebarNavigation
      */
     public static function allNavigationItems(): array
     {
-        $merged = MainSidebarRegistry::navigationItems();
+        $merged = [];
 
         static::appendIf($merged, ClientsSidebarNavigation::userCanSee(), ClientsSidebarRegistry::navigationItems());
         static::appendIf($merged, BillingSidebarNavigation::userCanSee(), BillingSidebarRegistry::navigationItems());

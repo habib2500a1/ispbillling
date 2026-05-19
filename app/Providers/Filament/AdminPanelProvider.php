@@ -58,7 +58,7 @@ class AdminPanelProvider extends PanelProvider
             ->globalSearchKeyBindings(['command+k', 'ctrl+k'])
             ->maxContentWidth('full')
             ->navigationGroups([
-                NavigationGroup::make('Main')
+                NavigationGroup::make('Overview')
                     ->icon('heroicon-o-home')
                     ->collapsed(false),
                 NavigationGroup::make('Clients')
