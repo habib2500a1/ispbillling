@@ -187,6 +187,7 @@ class ManagePortalSettings extends Page
 
         AppSetting::syncToRuntimeConfig();
         \Illuminate\Support\Facades\Cache::forget('bootstrap.app_settings_sync');
+        \Illuminate\Support\Facades\Artisan::call('view:clear');
 
         $this->form->fill([
             'portal_enabled' => (bool) config('portal.enabled', true),

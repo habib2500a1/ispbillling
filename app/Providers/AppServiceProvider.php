@@ -26,6 +26,8 @@ use App\Services\Network\NullNetworkProvisioner;
 use App\Services\Network\RadiusNetworkProvisioner;
 use App\Listeners\RecordStaffLogout;
 use App\Models\User;
+use App\View\Composers\BillPaymentViewComposer;
+use Illuminate\Support\Facades\View;
 use Illuminate\Auth\Events\Logout;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
@@ -87,6 +89,8 @@ class AppServiceProvider extends ServiceProvider
 
             return null;
         });
+
+        View::composer('bill-payment.*', BillPaymentViewComposer::class);
 
         try {
             if (Cache::remember('bootstrap.app_settings_table', 300, fn (): bool => Schema::hasTable('app_settings'))) {

@@ -14,8 +14,10 @@ $PHP artisan cache:clear
 
 echo "==> Building production caches..."
 $PHP artisan config:cache
+# Load DB settings into runtime config before caching views (bill-payment layout uses live OTP flag).
+$PHP -r "require 'vendor/autoload.php'; \$app = require 'bootstrap/app.php'; \$app->make('Illuminate\Contracts\Console\Kernel')->bootstrap(); if (\Illuminate\Support\Facades\Schema::hasTable('app_settings')) { \App\Models\AppSetting::syncToRuntimeConfig(); }"
 $PHP artisan route:cache
-$PHP artisan view:cache
+# Skip view:cache — it bakes config() into compiled Blade and breaks admin OTP toggles.
 $PHP artisan event:cache 2>/dev/null || true
 
 echo "==> Optimizing Composer autoloader..."
