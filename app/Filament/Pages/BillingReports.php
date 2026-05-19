@@ -17,7 +17,7 @@ class BillingReports extends Page
 
     protected static ?string $navigationGroup = 'Reports';
 
-    protected static ?int $navigationSort = 10;
+    protected static ?int $navigationSort = 53;
 
     public static function canAccess(): bool
     {

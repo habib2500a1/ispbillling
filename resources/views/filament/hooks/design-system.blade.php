@@ -15,7 +15,7 @@
     document.documentElement.dataset.themeMode = pref;
 })();
 </script>
-<link rel="stylesheet" href="{{ asset('css/admin-saas.css') }}?v={{ @filemtime(public_path('css/admin-saas.css')) ?: '9' }}">
+<link rel="stylesheet" href="{{ asset('css/admin-saas.css') }}?v={{ @filemtime(public_path('css/admin-saas.css')) ?: '10' }}">
 <script src="{{ asset('js/admin-theme.js') }}?v=4"></script>
 @if (request()->routeIs('filament.admin.pages.dashboard*', 'filament.admin.pages.dashboard-hub*'))
 <script src="{{ asset('js/isp-dashboard-realtime.js') }}?v={{ @filemtime(public_path('js/isp-dashboard-realtime.js')) ?: 1 }}" defer></script>

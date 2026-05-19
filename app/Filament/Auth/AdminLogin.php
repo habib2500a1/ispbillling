@@ -42,7 +42,27 @@ class AdminLogin extends BaseLogin
             ->autocomplete('username')
             ->required()
             ->autofocus()
-            ->extraInputAttributes(['tabindex' => 1]);
+            ->extraInputAttributes([
+                'tabindex' => 1,
+                'class' => 'isp-auth-field-input',
+                'autocapitalize' => 'off',
+                'autocorrect' => 'off',
+            ]);
+    }
+
+    protected function getPasswordFormComponent(): Component
+    {
+        return TextInput::make('password')
+            ->label('Password')
+            ->password()
+            ->revealable(filament()->arePasswordsRevealable())
+            ->required()
+            ->autocomplete('current-password')
+            ->extraInputAttributes([
+                'tabindex' => 2,
+                'id' => 'admin-login-password',
+                'style' => 'pointer-events: auto;',
+            ]);
     }
 
     /**

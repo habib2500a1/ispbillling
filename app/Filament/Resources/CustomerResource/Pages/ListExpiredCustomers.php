@@ -7,13 +7,15 @@ use Illuminate\Database\Eloquent\Builder;
 
 class ListExpiredCustomers extends ListFilteredCustomers
 {
-    protected static ?string $navigationLabel = 'Expired';
+    use Concerns\HasBillingAccountListPage;
 
-    protected static ?string $title = 'Expired / inactive (by date or status)';
+    protected static ?string $navigationLabel = 'Expired accounts';
+
+    protected static ?string $title = 'Expired accounts';
 
     public static function getNavigationLabel(): string
     {
-        return 'Expired';
+        return 'Expired accounts';
     }
 
     protected function applyFilter(Builder $query): Builder

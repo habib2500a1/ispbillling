@@ -17,10 +17,14 @@ use App\Services\Optical\CustomerOnuAutoProvisionService;
 use App\Support\MacAddress;
 use App\Support\OnuSignalLevel;
 use App\Support\OpticalThresholds;
+use App\Services\Billing\BillingAccountListCounts;
+use App\Support\BillingAccountListRegistry;
+use Filament\Facades\Filament;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Infolists;
 use Filament\Infolists\Infolist;
+use Filament\Navigation\NavigationItem;
 use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Support\Enums\FontWeight;
@@ -45,13 +49,15 @@ class CustomerResource extends Resource
 
     protected static ?string $navigationGroup = 'Subscribers';
 
-    protected static ?string $navigationLabel = 'Subscribers';
+    protected static ?string $navigationLabel = 'All accounts';
 
     protected static ?string $modelLabel = 'Subscriber';
 
     protected static ?string $pluralModelLabel = 'Subscribers';
 
     protected static ?int $navigationSort = 10;
+
+    protected static bool $shouldRegisterNavigation = false;
 
     protected static ?string $recordTitleAttribute = 'name';
 
@@ -814,7 +820,27 @@ class CustomerResource extends Resource
                         ->label('Set as Standard')
                         ->requiresConfirmation()
                         ->action(fn ($records) => static::bulkUpdateSubscriberType($records, SubscriberType::STANDARD)),
-                    Tables\Actions\DeleteBulkAction::make(),
+                    Tables\Actions\DeleteBulkAction::make()
+                        ->action(function (\Illuminate\Database\Eloquent\Collection $records): void {
+                            $result = app(\App\Services\Subscribers\CustomerDeletionService::class)
+                                ->deleteMany($records);
+
+                            if ($result['deleted'] > 0) {
+                                Notification::make()
+                                    ->title('Deleted '.$result['deleted'].' subscriber(s)')
+                                    ->success()
+                                    ->send();
+                            }
+
+                            if ($result['failed'] !== []) {
+                                $first = $result['failed'][0];
+                                Notification::make()
+                                    ->title('Some subscribers could not be deleted')
+                                    ->body(($first['code'] ?? '#'.$first['id']).': '.$first['error'])
+                                    ->danger()
+                                    ->send();
+                            }
+                        }),
                 ]),
             ]);
     }
@@ -925,11 +951,69 @@ class CustomerResource extends Resource
     }
 
     /**
+     * Custom billing account lists — Filament skips registration when {@see $shouldRegisterNavigation} is false.
+     */
+    public static function registerNavigationItems(): void
+    {
+        if (filled(static::getCluster()) || ! static::canAccess()) {
+            return;
+        }
+
+        Filament::getCurrentPanel()
+            ->navigationItems(static::getNavigationItems());
+    }
+
+    /**
      * @return array<NavigationItem>
      */
     public static function getNavigationItems(): array
     {
-        return parent::getNavigationItems();
+        if (! static::canViewAny()) {
+            return [];
+        }
+
+        try {
+            $counts = app(BillingAccountListCounts::class)->all();
+        } catch (\Throwable) {
+            $counts = [];
+        }
+        $items = [];
+
+        foreach (BillingAccountListRegistry::items() as $list) {
+            $count = $counts[$list['count_key']] ?? 0;
+            $items[] = NavigationItem::make($list['label'])
+                ->url(static::getUrl($list['route']))
+                ->icon($list['icon'])
+                ->group('Subscribers')
+                ->sort($list['sort'])
+                ->badge($count > 0 ? (string) $count : null)
+                ->isActiveWhen(fn (): bool => request()->routeIs(
+                    'filament.admin.resources.subscribers.'.($list['route'] === 'index' ? 'index' : $list['route']),
+                ));
+        }
+
+        $items[] = NavigationItem::make('Free clients')
+            ->url(static::getUrl('free'))
+            ->icon('heroicon-o-gift')
+            ->group('Subscribers')
+            ->sort(20)
+            ->isActiveWhen(fn (): bool => request()->routeIs('filament.admin.resources.subscribers.free'));
+
+        $items[] = NavigationItem::make('VIP clients')
+            ->url(static::getUrl('vip'))
+            ->icon('heroicon-o-star')
+            ->group('Subscribers')
+            ->sort(21)
+            ->isActiveWhen(fn (): bool => request()->routeIs('filament.admin.resources.subscribers.vip'));
+
+        $items[] = NavigationItem::make('New subscriber')
+            ->url(static::getUrl('create'))
+            ->icon('heroicon-o-user-plus')
+            ->group('Subscribers')
+            ->sort(22)
+            ->isActiveWhen(fn (): bool => request()->routeIs('filament.admin.resources.subscribers.create'));
+
+        return $items;
     }
 
     public static function getRelations(): array
@@ -948,6 +1032,11 @@ class CustomerResource extends Resource
     {
         return [
             'index' => Pages\ListCustomers::route('/'),
+            'active' => Pages\ListActiveCustomers::route('/active'),
+            'today' => Pages\ListTodaysCustomers::route('/today'),
+            'expire-3' => Pages\ListExpireIn3DaysCustomers::route('/expire-3'),
+            'expire-7' => Pages\ListExpireIn7DaysCustomers::route('/expire-7'),
+            'pending' => Pages\ListPendingCustomers::route('/pending'),
             'free' => Pages\ListFreeCustomers::route('/free'),
             'vip' => Pages\ListVipCustomers::route('/vip'),
             'expired' => Pages\ListExpiredCustomers::route('/expired'),

@@ -139,6 +139,16 @@ final class MikrotikPppImportService
      *
      * @return array{created: int, updated: int, skipped: int, errors: list<string>}
      */
+    public function sampleSpreadsheetFilename(): string
+    {
+        return MikrotikPppImportSampleBuilder::FILENAME;
+    }
+
+    public function sampleSpreadsheetBinary(): string
+    {
+        return (new MikrotikPppImportSampleBuilder)->buildBinary();
+    }
+
     public function importFromFile(MikrotikServer $server, UploadedFile $file, array $options = []): array
     {
         $path = $file->getRealPath();

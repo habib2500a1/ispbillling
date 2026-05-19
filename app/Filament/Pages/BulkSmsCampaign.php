@@ -36,7 +36,7 @@ class BulkSmsCampaign extends Page implements HasTable
 
     protected static ?string $title = 'Bulk SMS & email';
 
-    protected static ?string $navigationGroup = 'System';
+    protected static ?string $navigationGroup = 'SMS Service';
 
     protected static ?int $navigationSort = 12;
 

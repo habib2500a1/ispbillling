@@ -2,19 +2,21 @@
 
 namespace App\Filament\Resources\CustomerResource\Pages;
 
-use App\Filament\Pages\SubscriberListsHub;
 use App\Filament\Resources\CustomerResource;
+use App\Filament\Resources\CustomerResource\Pages\Concerns\HasBillingAccountListPage;
 use App\Filament\Widgets\SubscriberLifecycleWidget;
 use Filament\Actions;
 use Filament\Resources\Pages\ListRecords;
 
 class ListCustomers extends ListRecords
 {
+    use HasBillingAccountListPage;
+
     protected static string $resource = CustomerResource::class;
 
     public function getHeading(): string
     {
-        return 'Subscribers';
+        return 'All accounts';
     }
 
     public function getSubheading(): ?string
@@ -35,11 +37,6 @@ class ListCustomers extends ListRecords
     protected function getHeaderActions(): array
     {
         return [
-            Actions\Action::make('smart_lists')
-                ->label('Smart lists')
-                ->icon('heroicon-o-queue-list')
-                ->color('gray')
-                ->url(SubscriberListsHub::getUrl()),
             Actions\CreateAction::make()
                 ->label('New subscriber')
                 ->icon('heroicon-o-user-plus'),

@@ -52,25 +52,57 @@ class AdminPanelProvider extends PanelProvider
             ->darkMode(true)
             ->defaultThemeMode(ThemeMode::System)
             ->sidebarCollapsibleOnDesktop()
+            ->sidebarFullyCollapsibleOnDesktop()
             ->globalSearch(IspGlobalSearchProvider::class)
             ->globalSearchDebounce('300ms')
             ->globalSearchKeyBindings(['command+k', 'ctrl+k'])
             ->maxContentWidth('full')
             ->navigationGroups([
-                NavigationGroup::make('Overview')->collapsed(false),
-                NavigationGroup::make('Subscribers')->collapsed(),
-                NavigationGroup::make('Billing')->collapsed(),
-                NavigationGroup::make('Payments')->collapsed(),
-                NavigationGroup::make('Network')->collapsed(),
-                NavigationGroup::make('Support')->collapsed(),
-                NavigationGroup::make('HR & Payroll')->collapsed(),
-                NavigationGroup::make('Inventory')->collapsed(),
-                NavigationGroup::make('Finance')->collapsed(),
-                NavigationGroup::make('Accounting')->collapsed(),
-                NavigationGroup::make('Resellers')->collapsed(),
-                NavigationGroup::make('Reports')->collapsed(),
-                NavigationGroup::make('Catalog')->collapsed(),
-                NavigationGroup::make('System')->collapsed(),
+                NavigationGroup::make('Overview')
+                    ->icon('heroicon-o-home')
+                    ->collapsed(false),
+                NavigationGroup::make('Subscribers')
+                    ->icon('heroicon-o-users')
+                    ->collapsed(false),
+                NavigationGroup::make('Billing')
+                    ->icon('heroicon-o-document-text')
+                    ->collapsed(false),
+                NavigationGroup::make('Payments')
+                    ->icon('heroicon-o-banknotes')
+                    ->collapsed(),
+                NavigationGroup::make('Network')
+                    ->icon('heroicon-o-signal')
+                    ->collapsed(),
+                NavigationGroup::make('SMS Service')
+                    ->icon('heroicon-o-chat-bubble-left-ellipsis')
+                    ->collapsed(false),
+                NavigationGroup::make('Support')
+                    ->icon('heroicon-o-lifebuoy')
+                    ->collapsed(),
+                NavigationGroup::make('Reports')
+                    ->icon('heroicon-o-chart-bar')
+                    ->collapsed(),
+                NavigationGroup::make('Accounting')
+                    ->icon('heroicon-o-calculator')
+                    ->collapsed(),
+                NavigationGroup::make('HR & Payroll')
+                    ->icon('heroicon-o-user-group')
+                    ->collapsed(),
+                NavigationGroup::make('Inventory')
+                    ->icon('heroicon-o-cube')
+                    ->collapsed(),
+                NavigationGroup::make('Resellers')
+                    ->icon('heroicon-o-building-storefront')
+                    ->collapsed(),
+                NavigationGroup::make('Catalog')
+                    ->icon('heroicon-o-tag')
+                    ->collapsed(),
+                NavigationGroup::make('Finance')
+                    ->icon('heroicon-o-currency-dollar')
+                    ->collapsed(),
+                NavigationGroup::make('System')
+                    ->icon('heroicon-o-cog-6-tooth')
+                    ->collapsed(),
             ])
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\\Filament\\Resources')
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\\Filament\\Pages')
@@ -103,14 +135,19 @@ class AdminPanelProvider extends PanelProvider
                 fn (): string => view('filament.flash-banners')->render(),
             )
             ->renderHook(
-                PanelsRenderHook::TOPBAR_END,
-                fn (): string => view('filament.hooks.topbar-extras', [
-                    'commandItems' => AdminCommandPalette::items(),
-                ])->render(),
+                PanelsRenderHook::TOPBAR_START,
+                fn (): string => view('filament.hooks.topbar-mobile-logo')->render(),
+            )
+            ->renderHook(
+                PanelsRenderHook::USER_MENU_BEFORE,
+                fn (): string => view('filament.hooks.topbar-extras')->render(),
             )
             ->renderHook(
                 PanelsRenderHook::BODY_END,
                 fn (): string => view('filament.hooks.livewire-session')->render()
+                    .view('filament.hooks.command-palette', [
+                        'commandItems' => AdminCommandPalette::items(),
+                    ])->render()
                     .view('filament.hooks.mobile-dock')->render(),
             );
     }

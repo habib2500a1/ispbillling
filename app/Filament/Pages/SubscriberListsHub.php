@@ -9,6 +9,11 @@ use Filament\Pages\Page;
 class SubscriberListsHub extends Page
 {
     use HidesHubNavigation;
+
+    public static function shouldRegisterNavigation(): bool
+    {
+        return false;
+    }
     protected static ?string $navigationIcon = 'heroicon-o-queue-list';
 
     protected static string $view = 'filament.pages.subscriber-lists-hub';

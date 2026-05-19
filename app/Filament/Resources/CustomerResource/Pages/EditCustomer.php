@@ -4,7 +4,9 @@ namespace App\Filament\Resources\CustomerResource\Pages;
 
 use App\Filament\Resources\CustomerResource;
 use App\Filament\Resources\CustomerResource\Pages\Concerns\HasMobileSubscriberFormLayout;
+use App\Models\Customer;
 use App\Services\Optical\CustomerOnuAutoProvisionService;
+use App\Services\Subscribers\CustomerDeletionService;
 use Filament\Actions;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\EditRecord;
@@ -75,7 +77,8 @@ class EditCustomer extends EditRecord
                 ->label('360° view')
                 ->icon('heroicon-o-eye')
                 ->url(fn (): string => CustomerResource::getUrl('view', ['record' => $this->record])),
-            Actions\DeleteAction::make(),
+            Actions\DeleteAction::make()
+                ->using(fn (Customer $record) => app(CustomerDeletionService::class)->delete($record)),
         ];
     }
 }

@@ -20,6 +20,34 @@ class MikrotikPppImportTest extends TestCase
         TenantResolver::fake(1);
     }
 
+    public function test_sample_spreadsheet_builds_and_imports(): void
+    {
+        $server = MikrotikServer::query()->create([
+            'tenant_id' => 1,
+            'name' => 'Sample MT',
+            'host' => '127.0.0.1',
+            'api_port' => 8728,
+            'api_username' => 'admin',
+            'api_password' => 'secret',
+            'is_enabled' => true,
+        ]);
+
+        $service = app(MikrotikPppImportService::class);
+        $path = storage_path('app/sample-import.xlsx');
+        file_put_contents($path, $service->sampleSpreadsheetBinary());
+        $this->assertFileExists($path);
+        $this->assertGreaterThan(1000, filesize($path));
+
+        $file = new UploadedFile($path, $service->sampleSpreadsheetFilename(), 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', null, true);
+        $result = $service->importFromFile($server, $file, ['code_format' => 'secret_as_code']);
+
+        $this->assertGreaterThanOrEqual(2, $result['created']);
+        $this->assertTrue(Customer::query()->where('mikrotik_secret_name', 'user001')->exists());
+        $this->assertTrue(Customer::query()->where('mikrotik_secret_name', 'user002')->exists());
+
+        @unlink($path);
+    }
+
     public function test_csv_import_creates_and_updates_subscribers(): void
     {
         $server = MikrotikServer::query()->create([

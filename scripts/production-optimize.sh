@@ -33,4 +33,11 @@ echo "==> Permissions (www-data must own storage for Blade compile)..."
 chown -R www-data:www-data storage bootstrap/cache 2>/dev/null || sudo chown -R www-data:www-data storage bootstrap/cache
 chmod -R ug+rwx storage bootstrap/cache 2>/dev/null || sudo chmod -R ug+rwx storage bootstrap/cache
 
+echo "==> Reload PHP-FPM (OPcache must pick up new route/config cache files)..."
+if systemctl is-active --quiet php8.3-fpm 2>/dev/null; then
+  systemctl reload php8.3-fpm || systemctl restart php8.3-fpm
+elif systemctl is-active --quiet php-fpm 2>/dev/null; then
+  systemctl reload php-fpm || systemctl restart php-fpm
+fi
+
 echo "Done."

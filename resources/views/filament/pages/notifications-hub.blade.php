@@ -1,4 +1,8 @@
 @php
+    $smsGatewayUrl = \Illuminate\Support\Facades\Route::has('filament.admin.pages.sms-gateway')
+        ? \App\Filament\Pages\SmsGatewaySetup::getUrl()
+        : url('/admin/sms-gateway');
+
     $channels = [
         ['key' => 'email', 'label' => 'Email', 'on' => (bool) config('notifications.email.enabled')],
         ['key' => 'sms', 'label' => 'SMS', 'on' => (bool) config('notifications.sms.enabled') && filled(config('notifications.sms.api_key')) && (config('notifications.sms.provider') !== 'khudebarta' || filled(config('notifications.sms.secret_key')))],
@@ -31,14 +35,25 @@
         </div>
 
         <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <a href="{{ $smsGatewayUrl }}" class="group rounded-xl border border-emerald-200 bg-emerald-50/50 p-5 shadow-sm transition hover:border-emerald-400 dark:border-emerald-900/50 dark:bg-emerald-950/20">
+                <div class="flex items-center gap-3">
+                    <span class="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-100 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400">
+                        <x-heroicon-o-chat-bubble-left-ellipsis class="h-5 w-5" />
+                    </span>
+                    <div>
+                        <p class="font-semibold text-gray-900 group-hover:text-emerald-600 dark:text-white">SMS Gateway</p>
+                        <p class="mt-0.5 text-sm text-gray-500">Balance, usage stats & credentials</p>
+                    </div>
+                </div>
+            </a>
             <a href="{{ \App\Filament\Pages\ManageNotifications::getUrl() }}" class="group rounded-xl border border-gray-200 bg-white p-5 shadow-sm transition hover:border-primary-400 hover:shadow-md dark:border-gray-700 dark:bg-gray-900">
                 <div class="flex items-center gap-3">
                     <span class="flex h-10 w-10 items-center justify-center rounded-lg bg-primary-100 text-primary-600 dark:bg-primary-500/20 dark:text-primary-400">
                         <x-heroicon-o-cog-6-tooth class="h-5 w-5" />
                     </span>
                     <div>
-                        <p class="font-semibold text-gray-900 group-hover:text-primary-600 dark:text-white">Channel settings</p>
-                        <p class="mt-0.5 text-sm text-gray-500">Gateways, templates, event toggles</p>
+                        <p class="font-semibold text-gray-900 group-hover:text-primary-600 dark:text-white">All channel settings</p>
+                        <p class="mt-0.5 text-sm text-gray-500">Email, WhatsApp, Telegram, templates</p>
                     </div>
                 </div>
             </a>

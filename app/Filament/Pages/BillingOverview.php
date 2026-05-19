@@ -22,7 +22,7 @@ class BillingOverview extends Page
 
     protected static ?string $navigationGroup = 'Billing';
 
-    protected static ?int $navigationSort = 1;
+    protected static ?int $navigationSort = 0;
 
     public static function canAccess(): bool
     {

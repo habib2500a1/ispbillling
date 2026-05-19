@@ -22,7 +22,9 @@ class NotificationLogResource extends Resource
 
     protected static ?string $pluralModelLabel = 'notification log';
 
-    protected static bool $shouldRegisterNavigation = false;
+    protected static ?string $navigationGroup = 'SMS Service';
+
+    protected static ?int $navigationSort = 4;
 
     public static function canViewAny(): bool
     {

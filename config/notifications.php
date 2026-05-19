@@ -22,6 +22,9 @@ return [
         'khudebarta_hash_uppercase' => (bool) env('KHUDEBARTA_HASH_UPPERCASE', false),
         /** Full DLR callback URL for KhudeBarta portal (Delivery API → Query). Empty = APP_URL + /webhooks/sms/khudebarta/dlr */
         'khudebarta_dlr_url' => env('KHUDEBARTA_DLR_URL'),
+        /** Optional balance endpoint from KhudeBarta (if provided by vendor). */
+        'khudebarta_balance_url' => env('KHUDEBARTA_BALANCE_URL'),
+        'balance_cache_minutes' => (int) env('NOTIFICATIONS_SMS_BALANCE_CACHE_MINUTES', 5),
     ],
 
     'whatsapp' => [

@@ -28,7 +28,9 @@ class BroadcastOutage extends Page
 
     protected static ?string $title = 'Outage / maintenance notice';
 
-    protected static bool $shouldRegisterNavigation = false;
+    protected static ?string $navigationGroup = 'SMS Service';
+
+    protected static ?int $navigationSort = 6;
 
     /**
      * @var array<string, mixed>|null

@@ -20,7 +20,7 @@ class DunningReport extends Page
 
     protected static ?string $navigationGroup = 'Billing';
 
-    protected static bool $shouldRegisterNavigation = false;
+    protected static ?int $navigationSort = 52;
 
     public static function canAccess(): bool
     {

@@ -281,6 +281,7 @@ class MikrotikServerResource extends Resource
                 Tables\Actions\Action::make('import_excel')
                     ->label('Upload Excel/CSV')
                     ->icon('heroicon-o-document-arrow-up')
+                    ->modalDescription('Columns: username, password, profile, name, phone, customer_code, disabled. Use “Download sample Excel” on the list page for a template.')
                     ->form([
                         Forms\Components\FileUpload::make('file')
                             ->label('File (.csv, .xlsx)')

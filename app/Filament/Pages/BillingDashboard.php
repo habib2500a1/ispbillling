@@ -20,7 +20,7 @@ class BillingDashboard extends Page
 
     protected static ?string $title = 'Billing dashboard';
 
-    protected static ?string $navigationGroup = 'Overview';
+    protected static ?string $navigationGroup = 'Billing';
 
     protected static ?int $navigationSort = 1;
 

@@ -18,7 +18,7 @@ class CollectorVisitsReport extends Page
 
     protected static ?string $navigationGroup = 'Billing';
 
-    protected static ?int $navigationSort = 5;
+    protected static ?int $navigationSort = 41;
 
     public string $dateFrom = '';
 

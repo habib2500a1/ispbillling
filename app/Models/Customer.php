@@ -44,6 +44,10 @@ class Customer extends Model implements AuthenticatableContract, AuthorizableCon
             }
         });
 
+        static::deleting(function (Customer $customer): void {
+            app(\App\Services\Subscribers\CustomerDeletionService::class)->prepareDelete($customer);
+        });
+
         static::saved(function (Customer $customer): void {
             if ($customer->wasChanged([
                 'mikrotik_secret_name',

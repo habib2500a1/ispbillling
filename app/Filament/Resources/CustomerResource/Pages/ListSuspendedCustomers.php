@@ -7,13 +7,15 @@ use Illuminate\Database\Eloquent\Builder;
 
 class ListSuspendedCustomers extends ListFilteredCustomers
 {
-    protected static ?string $navigationLabel = 'Suspended';
+    use Concerns\HasBillingAccountListPage;
 
-    protected static ?string $title = 'Suspended subscribers';
+    protected static ?string $navigationLabel = 'Suspend accounts';
+
+    protected static ?string $title = 'Suspended accounts';
 
     public static function getNavigationLabel(): string
     {
-        return 'Suspended';
+        return 'Suspend accounts';
     }
 
     protected function applyFilter(Builder $query): Builder

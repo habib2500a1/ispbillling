@@ -67,6 +67,11 @@ class SubscriberLifecycleWidget extends Widget
                 'suspended' => CustomerResource::getUrl('suspended'),
                 'left' => CustomerResource::getUrl('left'),
                 'all' => CustomerResource::getUrl('index'),
+                'active' => CustomerResource::getUrl('active'),
+                'today' => CustomerResource::getUrl('today'),
+                'expire_3' => CustomerResource::getUrl('expire-3'),
+                'expire_7' => CustomerResource::getUrl('expire-7'),
+                'pending' => CustomerResource::getUrl('pending'),
             ],
         ]);
     }

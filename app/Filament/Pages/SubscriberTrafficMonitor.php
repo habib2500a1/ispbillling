@@ -28,11 +28,9 @@ class SubscriberTrafficMonitor extends Page
 
     protected static ?string $navigationGroup = 'Network';
 
-    protected static ?int $navigationSort = 4;
+    protected static ?int $navigationSort = 25;
 
     protected static ?string $slug = 'subscriber-traffic';
-
-    protected static bool $shouldRegisterNavigation = false;
 
     public function mount(): void
     {

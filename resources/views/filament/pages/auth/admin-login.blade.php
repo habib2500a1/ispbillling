@@ -1,4 +1,4 @@
-<div class="isp-auth-card">
+<div class="isp-auth-card isp-auth-card--login">
     <h2 class="isp-auth-card__title">Login to your account</h2>
     <p class="isp-auth-card__sub">Admin panel · {{ config('isp.company_name') }}</p>
 

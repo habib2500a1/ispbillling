@@ -16,9 +16,9 @@ class NotificationsHub extends Page
 
     protected static ?string $title = 'SMS & notifications';
 
-    protected static ?string $navigationGroup = 'System';
+    protected static ?string $navigationGroup = 'SMS Service';
 
-    protected static ?int $navigationSort = 4;
+    protected static ?int $navigationSort = 5;
 
     public static function canAccess(): bool
     {
