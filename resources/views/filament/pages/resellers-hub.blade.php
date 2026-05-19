@@ -41,13 +41,21 @@
                 <p class="font-semibold text-gray-900 group-hover:text-primary-600 dark:text-white">All resellers & franchises</p>
                 <p class="mt-1 text-sm text-gray-500">Create, edit, hierarchy, territories.</p>
             </a>
-            <a href="{{ \App\Filament\Resources\ResellerResource::getUrl('create') }}" class="group rounded-xl border border-gray-200 bg-white p-5 shadow-sm transition hover:border-primary-400 dark:border-gray-700 dark:bg-gray-900">
-                <p class="font-semibold text-gray-900 dark:text-white">Add partner</p>
-                <p class="mt-1 text-sm text-gray-500">Reseller, franchise, or sub-reseller.</p>
+            <a href="{{ \App\Filament\Resources\ResellerResource::getUrl('create') }}" class="group rounded-xl border border-violet-200 bg-violet-50/50 p-5 shadow-sm transition hover:border-violet-400 dark:border-violet-800 dark:bg-violet-950/30">
+                <p class="font-semibold text-violet-900 dark:text-violet-100">Add reseller</p>
+                <p class="mt-1 text-sm text-violet-800/80 dark:text-violet-300">Commission, wallet & portal login.</p>
             </a>
-            <a href="{{ \App\Filament\Resources\AreaResource::getUrl('index') }}" class="group rounded-xl border border-gray-200 bg-white p-5 shadow-sm transition hover:border-primary-400 dark:border-gray-700 dark:bg-gray-900">
-                <p class="font-semibold text-gray-900 dark:text-white">Territory (areas & zones)</p>
-                <p class="mt-1 text-sm text-gray-500">Assign coverage per partner.</p>
+            <a href="{{ \App\Filament\Pages\ResellerPackagePricesPage::getUrl() }}" class="group rounded-xl border border-gray-200 bg-white p-5 shadow-sm transition hover:border-primary-400 dark:border-gray-700 dark:bg-gray-900">
+                <p class="font-semibold text-gray-900 dark:text-white">Package prices</p>
+                <p class="mt-1 text-sm text-gray-500">Area & zone pricing overrides.</p>
+            </a>
+            <a href="{{ \App\Filament\Pages\ResellerReportPage::getUrl() }}" class="group rounded-xl border border-gray-200 bg-white p-5 shadow-sm transition hover:border-primary-400 dark:border-gray-700 dark:bg-gray-900">
+                <p class="font-semibold text-gray-900 dark:text-white">Commission report</p>
+                <p class="mt-1 text-sm text-gray-500">Earnings by partner & period.</p>
+            </a>
+            <a href="{{ \App\Filament\Pages\ResellerWalletHubPage::getUrl() }}" class="group rounded-xl border border-gray-200 bg-white p-5 shadow-sm transition hover:border-primary-400 dark:border-gray-700 dark:bg-gray-900">
+                <p class="font-semibold text-gray-900 dark:text-white">Wallet hub</p>
+                <p class="mt-1 text-sm text-gray-500">Top-up and balances.</p>
             </a>
             <a href="{{ url('/reseller/login') }}" target="_blank" rel="noopener" class="group rounded-xl border border-indigo-200 bg-indigo-50/60 p-5 shadow-sm transition hover:border-indigo-400 dark:border-indigo-800 dark:bg-indigo-950/30">
                 <p class="font-semibold text-indigo-900 group-hover:text-indigo-700 dark:text-indigo-100">Partner portal</p>

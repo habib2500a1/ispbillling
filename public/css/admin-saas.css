@@ -900,6 +900,28 @@ a.isp-lifecycle-card:hover {
     .isp-hub-page {
         padding-bottom: calc(var(--isp-mobile-bar-height, 10.5rem) + 0.5rem + env(safe-area-inset-bottom, 0px));
     }
+
+    /* Mobile drawer must sit above fixed bottom bar (z-55) */
+    .fi-sidebar-close-overlay {
+        z-index: 70 !important;
+    }
+
+    .fi-sidebar {
+        z-index: 80 !important;
+    }
+
+    /* Scroll past safe area; Settings / System items stay reachable */
+    .fi-sidebar-nav {
+        padding-bottom: calc(1.5rem + env(safe-area-inset-bottom, 0px)) !important;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    /* Hide bottom quick bar while full menu is open */
+    body.isp-admin-sidebar-open .isp-mobile-bar {
+        visibility: hidden;
+        pointer-events: none;
+        opacity: 0;
+    }
 }
 
 .isp-hub-stat-grid {
@@ -1936,6 +1958,270 @@ a.isp-lifecycle-card:hover {
 .isp-hr-payroll-kpi--attendance { border-left: 3px solid #fbbf24; }
 .isp-hr-payroll-kpi--payroll { border-left: 3px solid #e879f9; }
 .isp-hr-payroll-kpi--gross { border-left: 3px solid #c4b5fd; }
+
+/* ── HRM Employees list ── */
+.isp-hrm-employees-page .fi-header {
+    display: none;
+}
+
+.isp-hrm-employees-hero {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1.25rem;
+    padding: 1.35rem 1.5rem;
+    border-radius: var(--isp-radius-lg);
+    border: 1px solid color-mix(in srgb, #f43f5e 28%, var(--isp-card-border));
+    background: linear-gradient(135deg, color-mix(in srgb, #f43f5e 10%, var(--isp-card-bg)) 0%, var(--isp-card-bg) 60%);
+}
+
+.isp-hrm-employees-hero__eyebrow {
+    font-size: .7rem;
+    font-weight: 700;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: #e11d48;
+}
+
+.isp-hrm-employees-hero__title {
+    margin-top: .2rem;
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: var(--isp-text);
+}
+
+.isp-hrm-employees-hero__sub {
+    margin-top: .4rem;
+    max-width: 32rem;
+    font-size: .875rem;
+    color: var(--isp-text-muted);
+}
+
+.isp-hrm-employees-hero__stats {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(7rem, 1fr));
+    gap: .65rem;
+}
+
+@media (min-width: 640px) {
+    .isp-hrm-employees-hero__stats {
+        grid-template-columns: repeat(4, minmax(6.5rem, 1fr));
+    }
+}
+
+.isp-hrm-employees-stat {
+    padding: .65rem .75rem;
+    border-radius: var(--isp-radius-md);
+    border: 1px solid var(--isp-card-border);
+    background: var(--isp-card-bg);
+}
+
+.isp-hrm-employees-stat__label {
+    display: block;
+    font-size: .65rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    color: var(--isp-text-muted);
+}
+
+.isp-hrm-employees-stat strong {
+    display: block;
+    margin-top: .2rem;
+    font-size: 1.1rem;
+    font-weight: 800;
+    color: var(--isp-text);
+}
+
+.isp-hrm-employees-stat strong small {
+    font-size: .65rem;
+    font-weight: 600;
+}
+
+.isp-hrm-employees-filters-card,
+.isp-hrm-employees-table-card {
+    padding: 1rem 1.15rem;
+    border-radius: var(--isp-radius-lg);
+    border: 1px solid var(--isp-card-border);
+    background: var(--isp-card-bg);
+}
+
+.isp-hrm-employees-filters-card__title {
+    font-size: .8rem;
+    font-weight: 700;
+    color: var(--isp-text-muted);
+    text-transform: uppercase;
+    letter-spacing: .05em;
+}
+
+.isp-hrm-employees-filters-card__hint {
+    margin-top: .35rem;
+    font-size: .8rem;
+    color: var(--isp-text-muted);
+}
+
+.isp-hrm-employees-table-card__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: .75rem;
+    margin-bottom: .75rem;
+}
+
+.isp-hrm-employees-table-card__title {
+    font-size: .8rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    color: var(--isp-text-muted);
+}
+
+.isp-hrm-employees-table-card__badge {
+    font-size: .7rem;
+    font-weight: 600;
+    padding: .2rem .55rem;
+    border-radius: 999px;
+    background: color-mix(in srgb, #f43f5e 12%, var(--isp-surface));
+    color: #be123c;
+}
+
+.isp-hrm-employees-table-card .fi-ta-ctn {
+    border: none;
+    box-shadow: none;
+    background: transparent;
+}
+
+.isp-hrm-employees-table-card .fi-ta-header-cell {
+    font-size: .72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    color: var(--isp-primary-dark, #0f766e);
+}
+
+.dark .isp-hrm-employees-table-card .fi-ta-header-cell {
+    color: #5eead4;
+}
+
+.isp-hrm-employees-table-card .fi-ta-empty-state {
+    padding: 2rem 1rem;
+}
+
+/* ── BW Client (bandwidth wholesale) ── */
+.isp-bw-clients-page .fi-header,
+.isp-bw-generate-page .fi-header {
+    display: none;
+}
+
+.isp-bw-clients-hero {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1.25rem;
+    padding: 1.35rem 1.5rem;
+    border-radius: var(--isp-radius-lg);
+    border: 1px solid color-mix(in srgb, #0ea5e9 30%, var(--isp-card-border));
+    background: linear-gradient(135deg, color-mix(in srgb, #0ea5e9 12%, var(--isp-card-bg)) 0%, var(--isp-card-bg) 65%);
+}
+
+.isp-bw-clients-hero__eyebrow {
+    font-size: .7rem;
+    font-weight: 700;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: #0284c7;
+}
+
+.isp-bw-clients-hero__title {
+    margin-top: .2rem;
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: var(--isp-text);
+}
+
+.isp-bw-clients-hero__sub {
+    margin-top: .4rem;
+    max-width: 34rem;
+    font-size: .875rem;
+    color: var(--isp-text-muted);
+}
+
+.isp-bw-clients-hero__stats {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(6.5rem, 1fr));
+    gap: .65rem;
+}
+
+@media (min-width: 640px) {
+    .isp-bw-clients-hero__stats {
+        grid-template-columns: repeat(4, minmax(5.5rem, 1fr));
+    }
+}
+
+.isp-bw-clients-stat {
+    padding: .65rem .75rem;
+    border-radius: var(--isp-radius-md);
+    border: 1px solid var(--isp-card-border);
+    background: var(--isp-card-bg);
+}
+
+.isp-bw-clients-stat--due strong {
+    color: #e11d48;
+}
+
+.isp-bw-clients-stat__label {
+    display: block;
+    font-size: .65rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    color: var(--isp-text-muted);
+}
+
+.isp-bw-clients-stat strong {
+    display: block;
+    margin-top: .2rem;
+    font-size: 1.05rem;
+    font-weight: 800;
+}
+
+.isp-bw-clients-table-card,
+.isp-bw-generate-card {
+    padding: 1rem 1.15rem;
+    border-radius: var(--isp-radius-lg);
+    border: 1px solid var(--isp-card-border);
+    background: var(--isp-card-bg);
+}
+
+.isp-bw-clients-table-card__hint {
+    margin-bottom: .75rem;
+    font-size: .8rem;
+    color: var(--isp-text-muted);
+}
+
+.isp-bw-clients-table-card .fi-ta-ctn {
+    border: none;
+    box-shadow: none;
+    background: transparent;
+}
+
+.isp-bw-clients-table-card .fi-ta-header-cell {
+    font-size: .72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    color: #0369a1;
+}
+
+.dark .isp-bw-clients-table-card .fi-ta-header-cell {
+    color: #7dd3fc;
+}
+
+.isp-bw-clients-table-card .fi-ta-empty-state {
+    padding: 2.5rem 1rem;
+}
 
 .isp-accounting-section-icon--rose { background: rgba(244, 63, 94, 0.12); color: #e11d48; }
 .isp-accounting-section-icon--slate { background: rgba(100, 116, 139, 0.12); color: #475569; }
@@ -4831,4 +5117,1239 @@ button.isp-rbac-check { padding: 0; }
 /* Role edit: matrix section full width */
 .fi-fo-component-ctn:has(.isp-rbac-matrix--picker) {
     grid-column: 1 / -1;
+}
+
+/* ── OLT MAC table ── */
+.isp-olt-mac-page .fi-page {
+    --isp-olt-accent: #0ea5e9;
+}
+
+.isp-olt-mac-hero {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1.25rem 1.5rem;
+    border-radius: var(--isp-radius-lg);
+    border: 1px solid color-mix(in srgb, var(--isp-olt-accent) 35%, var(--isp-card-border));
+    background: linear-gradient(135deg, color-mix(in srgb, var(--isp-olt-accent) 12%, var(--isp-card-bg)) 0%, var(--isp-card-bg) 55%);
+}
+
+.isp-olt-mac-hero__eyebrow {
+    font-size: .7rem;
+    font-weight: 700;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--isp-olt-accent);
+}
+
+.isp-olt-mac-hero__title {
+    margin-top: .25rem;
+    font-size: 1.35rem;
+    font-weight: 700;
+    color: var(--isp-text);
+}
+
+.isp-olt-mac-hero__sub {
+    margin-top: .35rem;
+    max-width: 36rem;
+    font-size: .85rem;
+    color: var(--isp-text-muted);
+}
+
+.isp-olt-mac-hero__total {
+    text-align: right;
+    padding: .65rem 1rem;
+    border-radius: var(--isp-radius-md);
+    background: var(--isp-card-bg);
+    border: 1px solid var(--isp-card-border);
+}
+
+.isp-olt-mac-hero__total-label {
+    display: block;
+    font-size: .7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    color: var(--isp-text-muted);
+}
+
+.isp-olt-mac-hero__total strong {
+    font-size: 1.75rem;
+    font-weight: 800;
+    color: var(--isp-olt-accent);
+}
+
+.isp-olt-mac-filters {
+    padding: 1rem 1.25rem;
+    border-radius: var(--isp-radius-lg);
+    border: 1px solid var(--isp-card-border);
+    background: var(--isp-card-bg);
+}
+
+.isp-olt-mac-filters__grid {
+    display: grid;
+    gap: .85rem;
+    grid-template-columns: 1fr;
+}
+
+@media (min-width: 768px) {
+    .isp-olt-mac-filters__grid {
+        grid-template-columns: minmax(10rem, 14rem) 1fr;
+    }
+}
+
+.isp-olt-mac-filters__label {
+    display: block;
+    margin-bottom: .35rem;
+    font-size: .68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    color: var(--isp-text-muted);
+}
+
+.isp-olt-mac-filters__input {
+    width: 100%;
+    border-radius: var(--isp-radius-md);
+    border: 1px solid var(--isp-card-border);
+    background: var(--isp-surface);
+    color: var(--isp-text);
+    padding: .5rem .75rem;
+    font-size: .875rem;
+}
+
+.isp-olt-mac-filters__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .5rem;
+    margin-top: .85rem;
+}
+
+.isp-olt-mac-summary {
+    display: flex;
+    gap: .75rem;
+    overflow-x: auto;
+    padding-bottom: .25rem;
+}
+
+.isp-olt-mac-summary__card {
+    flex: 0 0 auto;
+    min-width: 11rem;
+    text-align: left;
+    padding: .85rem 1rem;
+    border-radius: var(--isp-radius-lg);
+    border: 1px solid var(--isp-card-border);
+    background: var(--isp-card-bg);
+    transition: border-color .15s, box-shadow .15s;
+}
+
+.isp-olt-mac-summary__card:hover {
+    border-color: color-mix(in srgb, var(--isp-olt-accent) 50%, var(--isp-card-border));
+}
+
+.isp-olt-mac-summary__card--active {
+    border-color: var(--isp-olt-accent);
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--isp-olt-accent) 40%, transparent);
+}
+
+.isp-olt-mac-summary__olt {
+    display: block;
+    font-size: .72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: var(--isp-text-muted);
+}
+
+.isp-olt-mac-summary__count {
+    display: block;
+    margin-top: .25rem;
+    font-size: 1.35rem;
+    font-weight: 800;
+    color: var(--isp-text);
+}
+
+.isp-olt-mac-summary__seen {
+    display: block;
+    margin-top: .35rem;
+    font-size: .68rem;
+    color: var(--isp-text-muted);
+}
+
+.isp-olt-mac-table-wrap {
+    border-radius: var(--isp-radius-lg);
+    border: 1px solid var(--isp-card-border);
+    overflow: hidden;
+    background: var(--isp-card-bg);
+}
+
+.isp-olt-mac-table-wrap .fi-ta {
+    border: none;
+    box-shadow: none;
+}
+
+.isp-olt-mac-pill {
+    display: inline-block;
+    padding: .2rem .55rem;
+    border-radius: 999px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: .75rem;
+    font-weight: 600;
+    background: color-mix(in srgb, var(--isp-olt-accent) 14%, var(--isp-surface));
+    border: 1px solid color-mix(in srgb, var(--isp-olt-accent) 28%, var(--isp-card-border));
+    color: var(--isp-text);
+}
+
+/* ── Reports (professional layout) ── */
+.isp-reports-page .fi-header {
+    display: none;
+}
+
+.isp-reports-hero {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem 1.5rem;
+    padding: 1.25rem 1.5rem;
+    border-radius: var(--isp-radius-lg);
+    border: 1px solid color-mix(in srgb, #2563eb 28%, var(--isp-card-border));
+    background: linear-gradient(135deg, color-mix(in srgb, #2563eb 10%, var(--isp-card-bg)) 0%, var(--isp-card-bg) 70%);
+}
+
+.isp-reports-hero__eyebrow {
+    font-size: .7rem;
+    font-weight: 700;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: #2563eb;
+}
+
+.isp-reports-hero__title {
+    margin: .25rem 0 0;
+    font-size: 1.45rem;
+    font-weight: 800;
+    color: var(--isp-text);
+}
+
+.isp-reports-hero__sub {
+    margin: .35rem 0 0;
+    font-size: .875rem;
+    color: var(--isp-muted);
+    max-width: 36rem;
+}
+
+.isp-reports-filter-badge {
+    display: inline-flex;
+    margin-top: .5rem;
+    padding: .2rem .65rem;
+    border-radius: 999px;
+    font-size: .72rem;
+    font-weight: 600;
+    border: 1px solid color-mix(in srgb, #2563eb 35%, var(--isp-card-border));
+    background: color-mix(in srgb, #2563eb 8%, var(--isp-card-bg));
+    color: #1d4ed8;
+}
+
+.isp-reports-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .75rem;
+    align-items: flex-end;
+}
+
+.isp-reports-filters__field label {
+    display: block;
+    font-size: .7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    color: var(--isp-muted);
+    margin-bottom: .25rem;
+}
+
+.isp-reports-filters__input {
+    min-width: 10rem;
+    padding: .45rem .65rem;
+    border-radius: var(--isp-radius-md);
+    border: 1px solid var(--isp-card-border);
+    background: var(--isp-card-bg);
+    font-size: .875rem;
+    color: var(--isp-text);
+}
+
+.isp-reports-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(9.5rem, 1fr));
+    gap: .75rem;
+    position: relative;
+}
+
+.isp-reports-stats--aging {
+    grid-template-columns: repeat(auto-fill, minmax(8.5rem, 1fr));
+}
+
+.isp-reports-stat {
+    padding: .85rem 1rem;
+    border-radius: var(--isp-radius-lg);
+    border: 1px solid var(--isp-card-border);
+    background: var(--isp-card-bg);
+}
+
+.isp-reports-stat--primary strong {
+    color: #2563eb;
+}
+
+.isp-reports-stat--warn strong {
+    color: #d97706;
+}
+
+.isp-reports-stat--danger strong {
+    color: #dc2626;
+}
+
+.isp-reports-stat__label {
+    display: block;
+    font-size: .68rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    color: var(--isp-muted);
+}
+
+.isp-reports-stat strong {
+    display: block;
+    margin-top: .35rem;
+    font-size: 1.35rem;
+    font-weight: 800;
+    color: var(--isp-text);
+}
+
+.isp-reports-period {
+    grid-column: 1 / -1;
+    margin: 0;
+    text-align: right;
+    font-size: .8rem;
+    color: var(--isp-muted);
+}
+
+.isp-reports-table-card,
+.isp-reports-info-card {
+    border-radius: var(--isp-radius-lg);
+    border: 1px solid var(--isp-card-border);
+    background: var(--isp-card-bg);
+    overflow: hidden;
+}
+
+.isp-reports-table-card__head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: .5rem;
+    padding: .85rem 1rem;
+    border-bottom: 1px solid var(--isp-card-border);
+}
+
+.isp-reports-table-card__head h3 {
+    margin: 0;
+    font-size: .95rem;
+    font-weight: 700;
+}
+
+.isp-reports-table-card__head span {
+    font-size: .8rem;
+    color: var(--isp-muted);
+}
+
+.isp-reports-table-card .fi-ta-ctn {
+    border: none;
+    box-shadow: none;
+}
+
+.isp-reports-table-card .fi-ta-header-cell {
+    font-size: .68rem;
+    font-weight: 700;
+    letter-spacing: .05em;
+    text-transform: uppercase;
+    color: #2563eb;
+}
+
+.isp-reports-empty {
+    padding: 2.5rem 1.5rem;
+    text-align: center;
+    color: var(--isp-muted);
+}
+
+.isp-reports-scroll-table {
+    overflow-x: auto;
+}
+
+.isp-reports-data-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: .875rem;
+}
+
+.isp-reports-data-table th,
+.isp-reports-data-table td {
+    padding: .65rem 1rem;
+    border-bottom: 1px solid var(--isp-card-border);
+    text-align: left;
+}
+
+.isp-reports-data-table th {
+    font-size: .68rem;
+    font-weight: 700;
+    letter-spacing: .05em;
+    text-transform: uppercase;
+    color: #2563eb;
+    background: color-mix(in srgb, #2563eb 6%, var(--isp-card-bg));
+}
+
+.isp-reports-data-table .text-right {
+    text-align: right;
+}
+
+.isp-reports-row--overdue td {
+    background: color-mix(in srgb, #fef2f2 50%, transparent);
+}
+
+.isp-reports-pill {
+    display: inline-block;
+    padding: .15rem .5rem;
+    border-radius: 999px;
+    font-size: .72rem;
+    font-weight: 600;
+    background: var(--isp-surface);
+    border: 1px solid var(--isp-card-border);
+}
+
+.isp-reports-empty-cell {
+    text-align: center;
+    color: var(--isp-muted);
+    padding: 2rem !important;
+}
+
+.isp-reports-info-card {
+    padding: 1.25rem 1.5rem;
+}
+
+.isp-reports-info-card h3 {
+    margin: 0 0 .5rem;
+    font-weight: 700;
+}
+
+.isp-reports-info-card__hint {
+    margin-top: .75rem;
+    font-size: .85rem;
+    color: var(--isp-muted);
+}
+
+.isp-reports-print-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr));
+    gap: .75rem;
+}
+
+.isp-reports-print-card {
+    display: flex;
+    flex-direction: column;
+    gap: .35rem;
+    padding: 1rem 1.1rem;
+    border-radius: var(--isp-radius-lg);
+    border: 1px solid var(--isp-card-border);
+    background: var(--isp-card-bg);
+    transition: border-color .15s, box-shadow .15s;
+}
+
+.isp-reports-print-card:hover {
+    border-color: #2563eb;
+    box-shadow: 0 4px 14px color-mix(in srgb, #2563eb 12%, transparent);
+}
+
+.isp-reports-print-card__title {
+    font-weight: 700;
+    color: var(--isp-text);
+}
+
+.isp-reports-print-card__hint {
+    font-size: .8rem;
+    color: var(--isp-muted);
+}
+
+.isp-reports-page--print .fi-sidebar,
+.isp-reports-page--print .fi-topbar,
+.isp-reports-page--print .isp-mobile-bar {
+    display: none !important;
+}
+
+@media print {
+    .isp-reports-page--print .fi-main {
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+}
+
+/* ── Network (routers, coverage, imports) ── */
+.isp-network-page .fi-header {
+    display: none;
+}
+
+.isp-network-hero {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem 1.5rem;
+    padding: 1.25rem 1.5rem;
+    border-radius: var(--isp-radius-lg);
+    border: 1px solid color-mix(in srgb, #0891b2 30%, var(--isp-card-border));
+    background: linear-gradient(135deg, color-mix(in srgb, #0891b2 10%, var(--isp-card-bg)) 0%, var(--isp-card-bg) 70%);
+}
+
+.isp-network-hero--compact {
+    padding: 1rem 1.25rem;
+}
+
+.isp-network-hero__eyebrow {
+    font-size: .7rem;
+    font-weight: 700;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: #0891b2;
+}
+
+.isp-network-hero__title {
+    margin: .25rem 0 0;
+    font-size: 1.45rem;
+    font-weight: 800;
+    color: var(--isp-text);
+}
+
+.isp-network-hero__sub {
+    margin: .35rem 0 0;
+    font-size: .875rem;
+    color: var(--isp-muted);
+    max-width: 40rem;
+}
+
+.isp-network-hero__stats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .65rem;
+}
+
+.isp-network-hero__actions {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+}
+
+.isp-network-stat {
+    min-width: 5.5rem;
+    padding: .65rem .85rem;
+    border-radius: var(--isp-radius-md);
+    border: 1px solid var(--isp-card-border);
+    background: var(--isp-card-bg);
+}
+
+.isp-network-stat--primary strong {
+    color: #0891b2;
+}
+
+.isp-network-stat__label {
+    display: block;
+    font-size: .65rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    color: var(--isp-muted);
+}
+
+.isp-network-stat strong {
+    display: block;
+    margin-top: .25rem;
+    font-size: 1.2rem;
+    font-weight: 800;
+}
+
+.isp-network-table-card,
+.isp-network-form-card {
+    border-radius: var(--isp-radius-lg);
+    border: 1px solid var(--isp-card-border);
+    background: var(--isp-card-bg);
+    overflow: hidden;
+}
+
+.isp-network-table-card__head {
+    padding: .85rem 1rem;
+    border-bottom: 1px solid var(--isp-card-border);
+}
+
+.isp-network-table-card__head h3 {
+    margin: 0;
+    font-size: .95rem;
+    font-weight: 700;
+}
+
+.isp-network-table-card .fi-ta-ctn {
+    border: none;
+    box-shadow: none;
+}
+
+.isp-network-form-card {
+    padding: 1.25rem 1.5rem;
+}
+
+.isp-network-form-card .fi-section-header {
+    margin-bottom: .5rem;
+}
+
+.isp-network-page .fi-fo-section {
+    border-radius: var(--isp-radius-md);
+}
+
+/* ── Resellers (partners & franchise) ── */
+.isp-reseller-page .fi-header {
+    display: none;
+}
+
+.isp-reseller-hero {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem 1.5rem;
+    padding: 1.25rem 1.5rem;
+    border-radius: var(--isp-radius-lg);
+    border: 1px solid color-mix(in srgb, #7c3aed 30%, var(--isp-card-border));
+    background: linear-gradient(135deg, color-mix(in srgb, #7c3aed 10%, var(--isp-card-bg)) 0%, var(--isp-card-bg) 70%);
+}
+
+.isp-reseller-hero--compact {
+    padding: 1rem 1.25rem;
+}
+
+.isp-reseller-hero__eyebrow {
+    font-size: .7rem;
+    font-weight: 700;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: #7c3aed;
+}
+
+.isp-reseller-hero__title {
+    margin: .25rem 0 0;
+    font-size: 1.45rem;
+    font-weight: 800;
+    color: var(--isp-text);
+}
+
+.isp-reseller-hero__sub {
+    margin: .35rem 0 0;
+    font-size: .875rem;
+    color: var(--isp-muted);
+    max-width: 40rem;
+}
+
+.isp-reseller-hero__stats,
+.isp-reseller-stats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .65rem;
+}
+
+.isp-reseller-stat {
+    min-width: 5.5rem;
+    padding: .65rem .85rem;
+    border-radius: var(--isp-radius-md);
+    border: 1px solid var(--isp-card-border);
+    background: var(--isp-card-bg);
+}
+
+.isp-reseller-stat--primary strong {
+    color: #7c3aed;
+}
+
+.isp-reseller-stat--danger strong {
+    color: #dc2626;
+}
+
+.isp-reseller-stat__label {
+    display: block;
+    font-size: .65rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    color: var(--isp-muted);
+}
+
+.isp-reseller-stat strong {
+    display: block;
+    margin-top: .25rem;
+    font-size: 1.2rem;
+    font-weight: 800;
+}
+
+.isp-reseller-table-card,
+.isp-reseller-form-card {
+    border-radius: var(--isp-radius-lg);
+    border: 1px solid var(--isp-card-border);
+    background: var(--isp-card-bg);
+    overflow: hidden;
+}
+
+.isp-reseller-form-card {
+    padding: 1.25rem 1.5rem;
+}
+
+.isp-reseller-form-card--inline {
+    padding: 1rem 1.25rem;
+}
+
+.isp-reseller-table-card .fi-ta-ctn {
+    border: none;
+    box-shadow: none;
+}
+
+.isp-reseller-table-card__head {
+    display: flex;
+    justify-content: space-between;
+    padding: .85rem 1rem;
+    border-bottom: 1px solid var(--isp-card-border);
+}
+
+.isp-reseller-table-card__head h3 {
+    margin: 0;
+    font-size: .95rem;
+    font-weight: 700;
+}
+
+.isp-reseller-scroll-table {
+    overflow-x: auto;
+}
+
+.isp-reseller-data-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: .875rem;
+}
+
+.isp-reseller-data-table th,
+.isp-reseller-data-table td {
+    padding: .65rem 1rem;
+    border-bottom: 1px solid var(--isp-card-border);
+}
+
+.isp-reseller-data-table th {
+    font-size: .68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    color: #7c3aed;
+    background: color-mix(in srgb, #7c3aed 6%, var(--isp-card-bg));
+}
+
+.isp-reseller-data-table .text-right {
+    text-align: right;
+}
+
+.isp-reseller-pill {
+    display: inline-block;
+    padding: .15rem .5rem;
+    border-radius: 999px;
+    font-size: .72rem;
+    font-weight: 600;
+    background: var(--isp-surface);
+    border: 1px solid var(--isp-card-border);
+}
+
+.isp-reseller-empty-cell {
+    text-align: center;
+    color: var(--isp-muted);
+    padding: 2rem !important;
+}
+
+.isp-reseller-page .fi-fo-section {
+    border-radius: var(--isp-radius-md);
+}
+
+/* ── Accounts / Finance ── */
+.isp-accounts-page .fi-header {
+    display: none;
+}
+
+.isp-accounts-hero {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem 1.5rem;
+    padding: 1.25rem 1.5rem;
+    border-radius: var(--isp-radius-lg);
+    border: 1px solid color-mix(in srgb, #059669 28%, var(--isp-card-border));
+    background: linear-gradient(135deg, color-mix(in srgb, #059669 10%, var(--isp-card-bg)) 0%, var(--isp-card-bg) 70%);
+}
+
+.isp-accounts-hero--compact {
+    padding: 1rem 1.25rem;
+}
+
+.isp-accounts-hero__eyebrow {
+    font-size: .7rem;
+    font-weight: 700;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: #059669;
+}
+
+.isp-accounts-hero__title {
+    margin: .25rem 0 0;
+    font-size: 1.45rem;
+    font-weight: 800;
+}
+
+.isp-accounts-hero__sub {
+    margin: .35rem 0 0;
+    font-size: .875rem;
+    color: var(--isp-muted);
+    max-width: 40rem;
+}
+
+.isp-accounts-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .75rem;
+    align-items: flex-end;
+}
+
+.isp-accounts-filters label {
+    display: block;
+    font-size: .68rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    color: var(--isp-muted);
+    margin-bottom: .25rem;
+}
+
+.isp-accounts-filters__input {
+    padding: .45rem .65rem;
+    border-radius: var(--isp-radius-md);
+    border: 1px solid var(--isp-card-border);
+    background: var(--isp-card-bg);
+    font-size: .875rem;
+}
+
+.isp-accounts-stats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .65rem;
+}
+
+.isp-accounts-stat {
+    min-width: 5.5rem;
+    padding: .65rem .85rem;
+    border-radius: var(--isp-radius-md);
+    border: 1px solid var(--isp-card-border);
+    background: var(--isp-card-bg);
+}
+
+.isp-accounts-stat--inline {
+    min-width: 7rem;
+}
+
+.isp-accounts-stat--primary strong {
+    color: #059669;
+}
+
+.isp-accounts-stat--income strong {
+    color: #16a34a;
+}
+
+.isp-accounts-stat--expense strong {
+    color: #dc2626;
+}
+
+.isp-accounts-stat__label {
+    display: block;
+    font-size: .65rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    color: var(--isp-muted);
+}
+
+.isp-accounts-stat strong {
+    display: block;
+    margin-top: .25rem;
+    font-size: 1.15rem;
+    font-weight: 800;
+}
+
+.isp-accounts-period {
+    margin: 0;
+    text-align: right;
+    font-size: .8rem;
+    color: var(--isp-muted);
+}
+
+.isp-accounts-table-card,
+.isp-accounts-form-card,
+.isp-accounts-info-card {
+    border-radius: var(--isp-radius-lg);
+    border: 1px solid var(--isp-card-border);
+    background: var(--isp-card-bg);
+    overflow: hidden;
+}
+
+.isp-accounts-form-card {
+    padding: 1rem 1.25rem;
+}
+
+.isp-accounts-info-card {
+    padding: 1.25rem 1.5rem;
+}
+
+.isp-accounts-table-card__head {
+    padding: .85rem 1rem;
+    border-bottom: 1px solid var(--isp-card-border);
+}
+
+.isp-accounts-table-card__head h3 {
+    margin: 0;
+    font-size: .95rem;
+    font-weight: 700;
+}
+
+.isp-accounts-table-card .fi-ta-ctn {
+    border: none;
+    box-shadow: none;
+}
+
+.isp-accounts-scroll-table {
+    overflow-x: auto;
+}
+
+.isp-accounts-data-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: .875rem;
+}
+
+.isp-accounts-data-table th,
+.isp-accounts-data-table td {
+    padding: .65rem 1rem;
+    border-bottom: 1px solid var(--isp-card-border);
+}
+
+.isp-accounts-data-table th {
+    font-size: .68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: #059669;
+    background: color-mix(in srgb, #059669 6%, var(--isp-card-bg));
+}
+
+.isp-accounts-data-table .text-right {
+    text-align: right;
+}
+
+.isp-accounts-pill {
+    display: inline-block;
+    padding: .15rem .5rem;
+    border-radius: 999px;
+    font-size: .72rem;
+    font-weight: 600;
+    background: var(--isp-surface);
+    border: 1px solid var(--isp-card-border);
+}
+
+.isp-accounts-bar {
+    display: flex;
+    height: .5rem;
+    border-radius: 999px;
+    overflow: hidden;
+    background: var(--isp-surface);
+}
+
+.isp-accounts-bar__income {
+    background: #16a34a;
+}
+
+.isp-accounts-bar__expense {
+    background: #dc2626;
+}
+
+/* ── Clients (subscriber directory) ── */
+.isp-clients-page .fi-header {
+    display: none;
+}
+
+.isp-clients-hero {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem 1.5rem;
+    padding: 1.25rem 1.5rem;
+    border-radius: var(--isp-radius-lg);
+    border: 1px solid color-mix(in srgb, #0d9488 30%, var(--isp-card-border));
+    background: linear-gradient(135deg, color-mix(in srgb, #0d9488 10%, var(--isp-card-bg)) 0%, var(--isp-card-bg) 70%);
+}
+
+.isp-clients-hero__eyebrow {
+    font-size: .7rem;
+    font-weight: 700;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: #0d9488;
+}
+
+.isp-clients-hero__title {
+    margin: .25rem 0 0;
+    font-size: 1.45rem;
+    font-weight: 800;
+    color: var(--isp-text);
+}
+
+.isp-clients-hero__sub {
+    margin: .35rem 0 0;
+    font-size: .875rem;
+    color: var(--isp-muted);
+    max-width: 40rem;
+}
+
+.isp-clients-hero__stats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .65rem;
+}
+
+.isp-clients-stat {
+    min-width: 5.5rem;
+    padding: .65rem .85rem;
+    border-radius: var(--isp-radius-md);
+    border: 1px solid var(--isp-card-border);
+    background: var(--isp-card-bg);
+}
+
+.isp-clients-stat--primary strong {
+    color: #0d9488;
+}
+
+.isp-clients-stat__label {
+    display: block;
+    font-size: .65rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    color: var(--isp-muted);
+}
+
+.isp-clients-stat strong {
+    display: block;
+    margin-top: .25rem;
+    font-size: 1.2rem;
+    font-weight: 800;
+}
+
+.isp-clients-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .5rem;
+}
+
+.isp-clients-tab {
+    display: inline-flex;
+    align-items: center;
+    gap: .4rem;
+    padding: .45rem .85rem;
+    border-radius: 999px;
+    border: 1px solid var(--isp-card-border);
+    background: var(--isp-card-bg);
+    font-size: .8125rem;
+    font-weight: 600;
+    color: var(--isp-muted);
+    transition: border-color .15s, color .15s, background .15s;
+}
+
+.isp-clients-tab:hover {
+    border-color: color-mix(in srgb, #0d9488 40%, var(--isp-card-border));
+    color: var(--isp-text);
+}
+
+.isp-clients-tab--active {
+    border-color: #0d9488;
+    background: color-mix(in srgb, #0d9488 12%, var(--isp-card-bg));
+    color: #0f766e;
+}
+
+.isp-clients-tab__count {
+    font-size: .7rem;
+    font-weight: 700;
+    padding: .1rem .45rem;
+    border-radius: 999px;
+    background: var(--isp-surface);
+    color: var(--isp-muted);
+}
+
+.isp-clients-tab--active .isp-clients-tab__count {
+    background: color-mix(in srgb, #0d9488 20%, transparent);
+    color: #0f766e;
+}
+
+.isp-clients-table-card {
+    border-radius: var(--isp-radius-lg);
+    border: 1px solid var(--isp-card-border);
+    background: var(--isp-card-bg);
+    overflow: hidden;
+}
+
+.isp-clients-table-card__head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: .5rem 1rem;
+    padding: .85rem 1rem;
+    border-bottom: 1px solid var(--isp-card-border);
+}
+
+.isp-clients-table-card__head h3 {
+    margin: 0;
+    font-size: .95rem;
+    font-weight: 700;
+}
+
+.isp-clients-table-card__meta {
+    font-size: .75rem;
+    color: var(--isp-muted);
+}
+
+.isp-clients-table-card .fi-ta-ctn {
+    border: none;
+    box-shadow: none;
+}
+
+.isp-clients-hub-card {
+    display: block;
+    border-radius: var(--isp-radius-lg);
+    border: 1px solid var(--isp-card-border);
+    background: var(--isp-card-bg);
+    padding: 1.15rem 1.25rem;
+    transition: border-color .15s, box-shadow .15s;
+}
+
+.isp-clients-hub-card:hover {
+    border-color: color-mix(in srgb, #0d9488 45%, var(--isp-card-border));
+    box-shadow: 0 4px 14px color-mix(in srgb, #0d9488 8%, transparent);
+}
+
+.isp-clients-hub-card--accent {
+    border-color: color-mix(in srgb, #0d9488 35%, var(--isp-card-border));
+    background: color-mix(in srgb, #0d9488 6%, var(--isp-card-bg));
+}
+
+.isp-clients-hub-card__title {
+    margin: 0;
+    font-weight: 700;
+    font-size: .95rem;
+    color: var(--isp-text);
+}
+
+.isp-clients-hub-card__sub {
+    margin: .35rem 0 0;
+    font-size: .8125rem;
+    color: var(--isp-muted);
+}
+
+/* ── SMS Templates ── */
+.isp-sms-templates-page .fi-header {
+    display: none;
+}
+
+.isp-sms-templates-hero {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1.25rem 1.5rem;
+    border-radius: var(--isp-radius-lg);
+    border: 1px solid color-mix(in srgb, #059669 30%, var(--isp-card-border));
+    background: linear-gradient(135deg, color-mix(in srgb, #059669 10%, var(--isp-card-bg)) 0%, var(--isp-card-bg) 70%);
+}
+
+.isp-sms-templates-hero__eyebrow {
+    font-size: .7rem;
+    font-weight: 700;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: #059669;
+}
+
+.isp-sms-templates-hero__title {
+    margin: .25rem 0 0;
+    font-size: 1.45rem;
+    font-weight: 800;
+}
+
+.isp-sms-templates-hero__sub {
+    margin: .35rem 0 0;
+    font-size: .875rem;
+    color: var(--isp-muted);
+    max-width: 42rem;
+}
+
+.isp-sms-templates-hero__stats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .65rem;
+}
+
+.isp-sms-templates-stat {
+    min-width: 5rem;
+    padding: .6rem .85rem;
+    border-radius: var(--isp-radius-md);
+    border: 1px solid var(--isp-card-border);
+    background: var(--isp-card-bg);
+}
+
+.isp-sms-templates-stat--on strong {
+    color: #059669;
+}
+
+.isp-sms-templates-stat__label {
+    display: block;
+    font-size: .65rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    color: var(--isp-muted);
+}
+
+.isp-sms-templates-stat strong {
+    display: block;
+    margin-top: .2rem;
+    font-size: 1.15rem;
+    font-weight: 800;
+}
+
+.isp-sms-templates-table-card {
+    border-radius: var(--isp-radius-lg);
+    border: 1px solid var(--isp-card-border);
+    background: var(--isp-card-bg);
+    overflow: hidden;
+}
+
+.isp-sms-templates-table-card .fi-ta-ctn {
+    border: none;
+    box-shadow: none;
+}
+
+.isp-sms-templates-table-card .fi-ta-header-cell {
+    font-size: .68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    color: #059669;
 }

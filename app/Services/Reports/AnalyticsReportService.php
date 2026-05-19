@@ -130,6 +130,53 @@ class AnalyticsReportService
     }
 
     /**
+     * @return array{rows: list<array<string, mixed>>, aging: array<string, float>, count: int}
+     */
+    public function dueReportPro(?int $tenantId = null, int $limit = 500): array
+    {
+        $rows = $this->dueReport($tenantId, $limit);
+
+        $aging = [
+            'current' => 0.0,
+            'days_1_30' => 0.0,
+            'days_31_60' => 0.0,
+            'days_61_plus' => 0.0,
+            'total' => 0.0,
+        ];
+
+        foreach ($rows as &$row) {
+            $due = (float) $row['balance_due'];
+            $days = (int) ($row['days_overdue'] ?? 0);
+            $bucket = 'Current';
+            if ($days <= 0) {
+                $aging['current'] += $due;
+            } elseif ($days <= 30) {
+                $aging['days_1_30'] += $due;
+                $bucket = '1–30 days';
+            } elseif ($days <= 60) {
+                $aging['days_31_60'] += $due;
+                $bucket = '31–60 days';
+            } else {
+                $aging['days_61_plus'] += $due;
+                $bucket = '61+ days';
+            }
+            $aging['total'] += $due;
+            $row['aging_bucket'] = $bucket;
+        }
+        unset($row);
+
+        foreach ($aging as $key => $value) {
+            $aging[$key] = round($value, 2);
+        }
+
+        return [
+            'rows' => $rows,
+            'aging' => $aging,
+            'count' => count($rows),
+        ];
+    }
+
+    /**
      * @return array{labels: list<string>, invoiced: list<float>, collected: list<float>, totals: array<string, float>}
      */
     public function revenueAnalytics(int $months = 12, ?int $tenantId = null): array

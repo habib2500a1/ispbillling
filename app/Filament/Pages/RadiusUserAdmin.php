@@ -20,6 +20,8 @@ class RadiusUserAdmin extends Page
 
     protected static ?string $navigationGroup = 'Network';
 
+    protected static bool $shouldRegisterNavigation = false;
+
     protected static ?int $navigationSort = 15;
 
     /** @var list<string> */

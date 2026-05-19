@@ -21,6 +21,8 @@ class BtrcReport extends Page
 
     protected static ?int $navigationSort = 5;
 
+    protected static bool $shouldRegisterNavigation = false;
+
     public int $rowCount = 0;
 
     public function mount(): void

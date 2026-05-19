@@ -5,6 +5,7 @@ namespace App\Observers;
 use App\Jobs\SyncCustomerNetworkAccessJob;
 use App\Models\Customer;
 use App\Services\Radius\CustomerRadiusSyncService;
+use App\Services\Sms\AutomatedSmsNotifier;
 use App\Models\CustomerNote;
 use App\Models\MikrotikServer;
 use App\Support\CustomerStatus;
@@ -12,12 +13,32 @@ use Illuminate\Support\Facades\Log;
 
 class CustomerObserver
 {
+    public function created(Customer $customer): void
+    {
+        try {
+            app(AutomatedSmsNotifier::class)->onClientCreated($customer);
+        } catch (\Throwable $e) {
+            Log::channel('single')->warning('customer.sms_created_failed', [
+                'customer_id' => $customer->id,
+                'message' => $e->getMessage(),
+            ]);
+        }
+    }
+
     public function saved(Customer $customer): void
     {
         if ($customer->wasChanged('status') && $customer->getOriginal('status') !== null) {
             $from = CustomerStatus::normalize((string) $customer->getOriginal('status'));
             $to = CustomerStatus::normalize((string) $customer->status);
             if ($from !== $to) {
+                try {
+                    app(AutomatedSmsNotifier::class)->onClientStatusChanged($customer, $from, $to);
+                } catch (\Throwable $e) {
+                    Log::channel('single')->warning('customer.sms_status_failed', [
+                        'customer_id' => $customer->id,
+                        'message' => $e->getMessage(),
+                    ]);
+                }
                 CustomerNote::query()->create([
                     'customer_id' => $customer->id,
                     'tenant_id' => $customer->tenant_id,

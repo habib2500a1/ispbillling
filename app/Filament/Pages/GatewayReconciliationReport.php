@@ -20,6 +20,8 @@ class GatewayReconciliationReport extends Page
 
     protected static ?int $navigationSort = 6;
 
+    protected static bool $shouldRegisterNavigation = false;
+
     public string $dateFrom = '';
 
     public string $dateTo = '';

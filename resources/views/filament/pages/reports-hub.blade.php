@@ -44,9 +44,17 @@
                 <p class="font-semibold dark:text-white">Collection report</p>
                 <p class="mt-1 text-sm text-gray-500">Payments by method & day</p>
             </a>
-            <a href="{{ \App\Filament\Pages\AnalyticsReports::getUrl(['tab' => 'due']) }}" class="group rounded-xl border border-gray-200 bg-white p-5 shadow-sm transition hover:border-indigo-400 dark:border-gray-700 dark:bg-gray-900">
+            <a href="{{ \App\Filament\Pages\PaymentsReport::getUrl() }}" class="group rounded-xl border border-blue-200 bg-blue-50/50 p-5 shadow-sm transition hover:border-blue-400 dark:border-blue-800 dark:bg-blue-950/30">
+                <p class="font-semibold text-blue-900 dark:text-blue-100">Payment reports</p>
+                <p class="mt-1 text-sm text-blue-800/80 dark:text-blue-300">Collections, discounts & export</p>
+            </a>
+            <a href="{{ \App\Filament\Pages\DueReportPage::getUrl() }}" class="group rounded-xl border border-gray-200 bg-white p-5 shadow-sm transition hover:border-indigo-400 dark:border-gray-700 dark:bg-gray-900">
                 <p class="font-semibold dark:text-white">Due report</p>
-                <p class="mt-1 text-sm text-gray-500">Outstanding invoices & aging</p>
+                <p class="mt-1 text-sm text-gray-500">Outstanding invoices</p>
+            </a>
+            <a href="{{ \App\Filament\Pages\DueReportProPage::getUrl() }}" class="group rounded-xl border border-amber-200 bg-amber-50/50 p-5 shadow-sm transition hover:border-amber-400 dark:border-amber-800 dark:bg-amber-950/30">
+                <p class="font-semibold text-amber-900 dark:text-amber-100">Due report pro</p>
+                <p class="mt-1 text-sm text-amber-800/80 dark:text-amber-300">Aging buckets & totals</p>
             </a>
             <a href="{{ \App\Filament\Pages\AnalyticsReports::getUrl(['tab' => 'revenue']) }}" class="group rounded-xl border border-gray-200 bg-white p-5 shadow-sm transition hover:border-indigo-400 dark:border-gray-700 dark:bg-gray-900">
                 <p class="font-semibold dark:text-white">Revenue analytics</p>
@@ -68,13 +76,21 @@
                 <p class="font-semibold dark:text-white">Online user report</p>
                 <p class="mt-1 text-sm text-gray-500">Live PPP sessions</p>
             </a>
-            <a href="{{ \App\Filament\Pages\AnalyticsReports::getUrl(['tab' => 'area']) }}" class="group rounded-xl border border-gray-200 bg-white p-5 shadow-sm transition hover:border-indigo-400 dark:border-gray-700 dark:bg-gray-900">
-                <p class="font-semibold dark:text-white">Area-wise report</p>
+            <a href="{{ \App\Filament\Pages\AreaWiseClientsReport::getUrl() }}" class="group rounded-xl border border-gray-200 bg-white p-5 shadow-sm transition hover:border-indigo-400 dark:border-gray-700 dark:bg-gray-900">
+                <p class="font-semibold dark:text-white">Area-wise clients</p>
                 <p class="mt-1 text-sm text-gray-500">Subscribers & collections by area</p>
             </a>
-            <a href="{{ \App\Filament\Pages\AnalyticsReports::getUrl(['tab' => 'packages']) }}" class="group rounded-xl border border-gray-200 bg-white p-5 shadow-sm transition hover:border-indigo-400 dark:border-gray-700 dark:bg-gray-900">
-                <p class="font-semibold dark:text-white">Package popularity</p>
+            <a href="{{ \App\Filament\Pages\PackageWiseReportPage::getUrl() }}" class="group rounded-xl border border-gray-200 bg-white p-5 shadow-sm transition hover:border-indigo-400 dark:border-gray-700 dark:bg-gray-900">
+                <p class="font-semibold dark:text-white">Package-wise report</p>
                 <p class="mt-1 text-sm text-gray-500">Active subs & est. MRR</p>
+            </a>
+            <a href="{{ \App\Filament\Pages\ExportClientsReport::getUrl() }}" class="group rounded-xl border border-gray-200 bg-white p-5 shadow-sm transition hover:border-indigo-400 dark:border-gray-700 dark:bg-gray-900">
+                <p class="font-semibold dark:text-white">Export clients</p>
+                <p class="mt-1 text-sm text-gray-500">CSV download of all subscribers</p>
+            </a>
+            <a href="{{ \App\Filament\Pages\PrintReportsHub::getUrl() }}" class="group rounded-xl border border-gray-200 bg-white p-5 shadow-sm transition hover:border-indigo-400 dark:border-gray-700 dark:bg-gray-900">
+                <p class="font-semibold dark:text-white">Print reports</p>
+                <p class="mt-1 text-sm text-gray-500">Print-friendly PDF views</p>
             </a>
             <a href="{{ \App\Filament\Pages\BillingReports::getUrl() }}" class="group rounded-xl border border-gray-200 bg-white p-5 shadow-sm transition hover:border-indigo-400 dark:border-gray-700 dark:bg-gray-900">
                 <p class="font-semibold dark:text-white">Monthly AR widgets</p>

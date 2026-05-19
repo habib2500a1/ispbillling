@@ -34,68 +34,102 @@ class MikrotikServerResource extends Resource
 
     protected static ?int $navigationSort = 3;
 
+    protected static bool $shouldRegisterNavigation = false;
+
     public static function form(Form $form): Form
     {
         return $form
             ->schema([
-                Forms\Components\TextInput::make('name')
-                    ->required()
-                    ->maxLength(255)
-                    ->helperText('Unique per tenant (e.g. Core-1, BRAS-Dhaka).'),
-                Forms\Components\TextInput::make('host')
-                    ->label('Host / IP')
-                    ->required()
-                    ->maxLength(255),
-                Forms\Components\TextInput::make('api_port')
-                    ->label('API port')
-                    ->numeric()
-                    ->default(8728)
-                    ->minValue(1)
-                    ->maxValue(65535)
-                    ->required(),
-                Forms\Components\Toggle::make('use_ssl')
-                    ->label('API SSL (8729)')
-                    ->helperText('Use when RouterOS API-SSL is enabled on port 8729 (set port accordingly).'),
-                Forms\Components\Toggle::make('legacy_login')
-                    ->label('Legacy login (RouterOS pre-6.43)')
-                    ->helperText('Only if the router still uses pre-6.43 API login.'),
-                Forms\Components\TextInput::make('api_username')
-                    ->label('API user')
-                    ->required()
-                    ->maxLength(255),
-                Forms\Components\TextInput::make('api_password')
-                    ->label('API password')
-                    ->password()
-                    ->revealable()
-                    ->required(fn (string $operation): bool => $operation === 'create')
-                    ->dehydrated(fn (?string $state): bool => filled($state))
-                    ->helperText('Leave blank when editing to keep the current password.'),
-                Forms\Components\TextInput::make('default_ppp_password')
-                    ->label('Default PPPoE password (bulk)')
-                    ->password()
-                    ->revealable()
-                    ->dehydrated(fn (?string $state): bool => filled($state))
-                    ->helperText('Used for sync when a customer has no individual MikroTik PPP password.'),
-                Forms\Components\TextInput::make('ppp_profile_default')
-                    ->label('Default PPP profile on router')
-                    ->maxLength(64)
-                    ->helperText('Optional RouterOS profile name applied on sync (e.g. default, residential).'),
-                Forms\Components\Toggle::make('is_enabled')
-                    ->label('Enabled')
-                    ->default(true),
-                Forms\Components\Textarea::make('meta_preview')
-                    ->label('Stored API snapshot (read-only)')
-                    ->disabled()
-                    ->dehydrated(false)
-                    ->rows(10)
-                    ->columnSpanFull()
+                Forms\Components\Section::make('Router identity')
+                    ->description('Register router connection details for API and monitoring access.')
+                    ->icon('heroicon-o-server')
+                    ->schema([
+                        Forms\Components\TextInput::make('name')
+                            ->label('Router name')
+                            ->required()
+                            ->maxLength(255)
+                            ->placeholder('Main MikroTik')
+                            ->helperText('Unique per tenant (e.g. Core-1, BRAS-Dhaka).'),
+                        Forms\Components\Placeholder::make('router_type')
+                            ->label('Router type')
+                            ->content('MikroTik RouterOS'),
+                        Forms\Components\TextInput::make('host')
+                            ->label('IP address')
+                            ->required()
+                            ->maxLength(255)
+                            ->placeholder('192.168.88.1'),
+                        Forms\Components\Toggle::make('is_enabled')
+                            ->label('Enabled')
+                            ->default(true)
+                            ->inline(false),
+                    ])
+                    ->columns(2),
+                Forms\Components\Section::make('API connection')
+                    ->description('RouterOS API credentials used for sync, import, and monitoring.')
+                    ->icon('heroicon-o-key')
+                    ->schema([
+                        Forms\Components\TextInput::make('api_port')
+                            ->label('API port')
+                            ->numeric()
+                            ->default(8728)
+                            ->minValue(1)
+                            ->maxValue(65535)
+                            ->required(),
+                        Forms\Components\Toggle::make('use_ssl')
+                            ->label('API SSL (8729)')
+                            ->helperText('Enable when RouterOS API-SSL is on port 8729.'),
+                        Forms\Components\Toggle::make('legacy_login')
+                            ->label('Legacy login (pre-6.43)')
+                            ->helperText('Only for routers still using pre-6.43 API login.'),
+                        Forms\Components\TextInput::make('api_username')
+                            ->label('API user')
+                            ->required()
+                            ->maxLength(255),
+                        Forms\Components\TextInput::make('api_password')
+                            ->label('API password')
+                            ->password()
+                            ->revealable()
+                            ->required(fn (string $operation): bool => $operation === 'create')
+                            ->dehydrated(fn (?string $state): bool => filled($state))
+                            ->helperText('Leave blank when editing to keep the current password.'),
+                    ])
+                    ->columns(2),
+                Forms\Components\Section::make('PPP defaults')
+                    ->description('Used when syncing subscribers or bulk-importing PPP users.')
+                    ->icon('heroicon-o-user-group')
+                    ->schema([
+                        Forms\Components\TextInput::make('default_ppp_password')
+                            ->label('Default PPPoE password')
+                            ->password()
+                            ->revealable()
+                            ->dehydrated(fn (?string $state): bool => filled($state))
+                            ->helperText('Fallback when a subscriber has no individual password.'),
+                        Forms\Components\TextInput::make('ppp_profile_default')
+                            ->label('Default PPP profile')
+                            ->maxLength(64)
+                            ->placeholder('default')
+                            ->helperText('RouterOS profile name applied on sync.'),
+                    ])
+                    ->columns(2),
+                Forms\Components\Section::make('API snapshot')
+                    ->description('Last fetched RouterOS details (read-only).')
+                    ->icon('heroicon-o-document-magnifying-glass')
+                    ->schema([
+                        Forms\Components\Textarea::make('meta_preview')
+                            ->label('Stored snapshot')
+                            ->disabled()
+                            ->dehydrated(false)
+                            ->rows(8)
+                            ->columnSpanFull()
+                            ->afterStateHydrated(function (Forms\Components\Textarea $component): void {
+                                $r = $component->getRecord();
+                                if ($r instanceof MikrotikServer && filled($r->meta)) {
+                                    $component->state(json_encode($r->meta, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+                                }
+                            }),
+                    ])
                     ->visible(fn (string $operation): bool => $operation === 'edit')
-                    ->afterStateHydrated(function (Forms\Components\Textarea $component): void {
-                        $r = $component->getRecord();
-                        if ($r instanceof MikrotikServer && filled($r->meta)) {
-                            $component->state(json_encode($r->meta, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
-                        }
-                    }),
+                    ->collapsed(),
             ]);
     }
 

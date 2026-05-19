@@ -21,6 +21,8 @@ class FixedAssetResource extends Resource
 
     protected static ?string $navigationGroup = 'Finance';
 
+    protected static bool $shouldRegisterNavigation = false;
+
     protected static ?string $navigationLabel = 'Fixed assets';
 
     protected static ?int $navigationSort = 20;

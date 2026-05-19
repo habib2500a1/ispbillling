@@ -22,6 +22,8 @@ class PopBoxResource extends Resource
 
     protected static ?string $navigationGroup = 'Network';
 
+    protected static bool $shouldRegisterNavigation = false;
+
     protected static ?string $navigationLabel = 'POP / boxes';
 
     protected static ?int $navigationSort = 25;

@@ -1,7 +1,6 @@
 <?php
 
 namespace App\Filament\Pages;
-use App\Filament\Pages\Concerns\HidesHubNavigation;
 
 use App\Models\Device;
 use App\Models\NetflowFlow;
@@ -11,7 +10,8 @@ use Filament\Pages\Page;
 
 class NetworkIntelligenceHub extends Page
 {
-    use HidesHubNavigation;
+    protected static bool $shouldRegisterNavigation = false;
+
     protected static ?string $navigationIcon = 'heroicon-o-cpu-chip';
 
     protected static string $view = 'filament.pages.network-intelligence-hub';

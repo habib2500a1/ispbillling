@@ -4,7 +4,9 @@ namespace App\Support;
 
 use App\Filament\Pages\BulkSmsCampaign;
 use App\Filament\Pages\ManageNotifications;
+use App\Filament\Pages\NotificationsHub;
 use App\Filament\Pages\SendSms;
+use App\Filament\Resources\SmsTemplateResource;
 use App\Filament\Pages\SmsGatewaySetup;
 use App\Filament\Resources\NotificationLogResource;
 use Filament\Facades\Filament;
@@ -18,6 +20,14 @@ final class SmsSidebarRegistry
     public static function definitions(): array
     {
         return [
+            [
+                'key' => 'hub',
+                'label' => 'SMS overview',
+                'icon' => 'heroicon-o-chat-bubble-left-ellipsis',
+                'sort' => 0,
+                'url' => NotificationsHub::getUrl(),
+                'active_routes' => ['filament.admin.pages.notifications-hub'],
+            ],
             [
                 'key' => 'send_sms',
                 'label' => 'Send SMS',
@@ -71,8 +81,11 @@ final class SmsSidebarRegistry
                 'label' => 'SMS Templates',
                 'icon' => 'heroicon-o-document-text',
                 'sort' => 7,
-                'url' => ManageNotifications::getUrl(),
-                'active_routes' => ['filament.admin.pages.manage-notifications'],
+                'url' => SmsTemplateResource::getUrl(),
+                'active_routes' => [
+                    'filament.admin.resources.sms-templates.index',
+                    'filament.admin.resources.sms-templates.edit',
+                ],
             ],
             [
                 'key' => 'gateway_tester',
@@ -81,6 +94,14 @@ final class SmsSidebarRegistry
                 'sort' => 8,
                 'url' => SmsGatewaySetup::getUrl(),
                 'active_routes' => ['filament.admin.pages.sms-gateway'],
+            ],
+            [
+                'key' => 'notification_settings',
+                'label' => 'Gateway & events',
+                'icon' => 'heroicon-o-cog-6-tooth',
+                'sort' => 9,
+                'url' => ManageNotifications::getUrl(),
+                'active_routes' => ['filament.admin.pages.manage-notifications'],
             ],
         ];
     }

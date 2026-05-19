@@ -61,18 +61,24 @@ class AdminPanelProvider extends PanelProvider
                 NavigationGroup::make('Overview')
                     ->icon('heroicon-o-home')
                     ->collapsed(false),
-                NavigationGroup::make('Subscribers')
+                NavigationGroup::make('Clients')
                     ->icon('heroicon-o-users')
                     ->collapsed(false),
+                NavigationGroup::make('Subscribers')
+                    ->icon('heroicon-o-user-group')
+                    ->collapsed(true),
                 NavigationGroup::make('Billing')
                     ->icon('heroicon-o-document-text')
                     ->collapsed(false),
                 NavigationGroup::make('Payments')
                     ->icon('heroicon-o-banknotes')
                     ->collapsed(),
+                NavigationGroup::make('OLT & Tools')
+                    ->icon('heroicon-o-server-stack')
+                    ->collapsed(false),
                 NavigationGroup::make('Network')
                     ->icon('heroicon-o-signal')
-                    ->collapsed(),
+                    ->collapsed(false),
                 NavigationGroup::make('SMS Service')
                     ->icon('heroicon-o-chat-bubble-left-ellipsis')
                     ->collapsed(false),
@@ -81,10 +87,16 @@ class AdminPanelProvider extends PanelProvider
                     ->collapsed(),
                 NavigationGroup::make('Reports')
                     ->icon('heroicon-o-chart-bar')
-                    ->collapsed(),
+                    ->collapsed(false),
                 NavigationGroup::make('Accounting')
                     ->icon('heroicon-o-calculator')
                     ->collapsed(),
+                NavigationGroup::make('BW Client')
+                    ->icon('heroicon-o-arrows-right-left')
+                    ->collapsed(false),
+                NavigationGroup::make('HRM')
+                    ->icon('heroicon-o-briefcase')
+                    ->collapsed(false),
                 NavigationGroup::make('HR & Payroll')
                     ->icon('heroicon-o-user-group')
                     ->collapsed(),
@@ -93,10 +105,13 @@ class AdminPanelProvider extends PanelProvider
                     ->collapsed(),
                 NavigationGroup::make('Resellers')
                     ->icon('heroicon-o-building-storefront')
-                    ->collapsed(),
+                    ->collapsed(false),
                 NavigationGroup::make('Catalog')
                     ->icon('heroicon-o-tag')
                     ->collapsed(),
+                NavigationGroup::make('Accounts')
+                    ->icon('heroicon-o-currency-dollar')
+                    ->collapsed(false),
                 NavigationGroup::make('Finance')
                     ->icon('heroicon-o-currency-dollar')
                     ->collapsed(),

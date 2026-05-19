@@ -1,15 +1,19 @@
 <?php
 
 namespace App\Filament\Pages;
-use App\Filament\Pages\Concerns\HidesHubNavigation;
 
+use App\Filament\Pages\ResellerPackagePricesPage;
+use App\Filament\Pages\ResellerReportPage;
+use App\Filament\Pages\ResellerWalletHubPage;
+use App\Filament\Resources\ResellerResource;
 use App\Models\Reseller;
 use App\Models\ResellerCommission;
 use Filament\Pages\Page;
 
 class ResellersHub extends Page
 {
-    use HidesHubNavigation;
+    protected static bool $shouldRegisterNavigation = false;
+
     protected static ?string $navigationIcon = 'heroicon-o-building-storefront';
 
     protected static string $view = 'filament.pages.resellers-hub';

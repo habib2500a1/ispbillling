@@ -50,7 +50,11 @@
             themeLabel() {
                 return { light: 'Light', dark: 'Dark', system: 'Auto' }[this.theme] || 'Theme';
             },
+            syncSidebarBodyClass() {
+                document.body.classList.toggle('isp-admin-sidebar-open', $store.sidebar.isOpen);
+            },
         }"
+        x-init="syncSidebarBodyClass(); $watch('$store.sidebar.isOpen', () => syncSidebarBodyClass())"
         @isp-theme-changed.window="theme = $event.detail.mode"
     >
         <button
@@ -119,7 +123,10 @@
             <button
                 type="button"
                 class="isp-mobile-bar__chip isp-mobile-bar__chip--menu"
-                x-on:click.stop="$store.sidebar.isOpen ? $store.sidebar.close() : $store.sidebar.open()"
+                x-on:click.stop="
+                    $store.sidebar.isOpen ? $store.sidebar.close() : $store.sidebar.open();
+                    syncSidebarBodyClass();
+                "
                 :class="{ 'isp-mobile-bar__chip--active': $store.sidebar.isOpen }"
                 :aria-expanded="$store.sidebar.isOpen"
                 title="Full menu"

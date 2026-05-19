@@ -3,7 +3,6 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\NotificationLogResource\Pages;
-use App\Filament\Sms\SmsSidebarNavigation;
 use App\Models\NotificationLog;
 use App\Support\NotificationChannel;
 use App\Support\NotificationEvent;
@@ -29,20 +28,6 @@ class NotificationLogResource extends Resource
     protected static ?int $navigationSort = 4;
 
     protected static bool $shouldRegisterNavigation = false;
-
-    public static function registerNavigationItems(): void
-    {
-        if (filled(static::getCluster())) {
-            return;
-        }
-
-        if (! SmsSidebarNavigation::userCanSee()) {
-            return;
-        }
-
-        Filament::getCurrentPanel()
-            ->navigationItems(SmsSidebarNavigation::navigationItems());
-    }
 
     public static function canViewAny(): bool
     {

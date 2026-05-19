@@ -38,6 +38,8 @@ class OnlineClientsMonitoring extends Page implements HasForms, HasTable
 
     protected static ?string $navigationGroup = 'Network';
 
+    protected static bool $shouldRegisterNavigation = false;
+
     protected static ?int $navigationSort = 3;
 
     protected static ?string $slug = 'online-clients';

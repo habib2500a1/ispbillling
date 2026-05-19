@@ -19,6 +19,8 @@ class IpPoolResource extends Resource
 
     protected static ?string $navigationGroup = 'Network';
 
+    protected static bool $shouldRegisterNavigation = false;
+
     protected static ?string $navigationLabel = 'IP pools';
 
     protected static ?int $navigationSort = 13;

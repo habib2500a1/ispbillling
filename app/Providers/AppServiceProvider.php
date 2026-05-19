@@ -3,13 +3,20 @@
 namespace App\Providers;
 
 use App\Auth\CustomerUserProvider;
+use App\Filament\Billing\BillingSidebarNavigation;
+use App\Filament\Bw\BwSidebarNavigation;
+use App\Filament\Hrm\HrmSidebarNavigation;
+use App\Filament\Olt\OltSidebarNavigation;
 use App\Filament\Settings\SettingsSidebarNavigation;
+use App\Filament\Sms\SmsSidebarNavigation;
+use App\Services\Sms\SmsTemplateService;
 use App\Contracts\NetworkAccessProvisioner;
 use App\Models\AppSetting;
 use App\Models\Customer;
 use App\Models\Invoice;
 use App\Models\InvoiceItem;
 use App\Models\Payment;
+use App\Models\SmsTemplate;
 use App\Models\SupportTicket;
 use App\Models\SupportTicketMessage;
 use App\Observers\CustomerObserver;
@@ -98,6 +105,10 @@ class AppServiceProvider extends ServiceProvider
                 // Must run every request: caching sync caused OTP/toggles to revert to config defaults.
                 AppSetting::syncToRuntimeConfig();
             }
+
+            if (Schema::hasTable('sms_templates') && SmsTemplate::query()->count() === 0) {
+                app(SmsTemplateService::class)->seedDefaults();
+            }
         } catch (\Throwable $e) {
             Log::channel('single')->warning('bootstrap.app_settings_skipped', [
                 'message' => $e->getMessage(),
@@ -115,5 +126,15 @@ class AppServiceProvider extends ServiceProvider
         Event::listen(Logout::class, RecordStaffLogout::class);
 
         SettingsSidebarNavigation::register();
+        OltSidebarNavigation::register();
+        HrmSidebarNavigation::register();
+        BwSidebarNavigation::register();
+        \App\Filament\Reports\ReportsSidebarNavigation::register();
+        \App\Filament\Network\NetworkSidebarNavigation::register();
+        \App\Filament\Resellers\ResellerSidebarNavigation::register();
+        \App\Filament\Accounts\AccountsSidebarNavigation::register();
+        \App\Filament\Clients\ClientsSidebarNavigation::register();
+        BillingSidebarNavigation::register();
+        SmsSidebarNavigation::register();
     }
 }

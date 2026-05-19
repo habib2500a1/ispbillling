@@ -40,7 +40,7 @@ class OpticalMonitoringHub extends Page implements HasForms, HasTable
 
     protected static ?string $navigationGroup = 'Network';
 
-    protected static bool $shouldRegisterNavigation = true;
+    protected static bool $shouldRegisterNavigation = false;
 
     protected static ?int $navigationSort = 2;
 

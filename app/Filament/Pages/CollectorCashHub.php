@@ -101,7 +101,7 @@ class CollectorCashHub extends Page
 
     public static function shouldRegisterNavigation(): bool
     {
-        return static::canAccess() && (bool) config('collector.enabled', true);
+        return false;
     }
 
     public function mount(): void

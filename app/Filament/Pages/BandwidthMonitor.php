@@ -40,6 +40,8 @@ class BandwidthMonitor extends Page
 
     protected static ?string $navigationGroup = 'Network';
 
+    protected static bool $shouldRegisterNavigation = false;
+
     protected static ?int $navigationSort = 5;
 
     public string $activeTab = 'online';

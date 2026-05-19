@@ -17,6 +17,23 @@ class ListMikrotikServers extends ListRecords
 {
     protected static string $resource = MikrotikServerResource::class;
 
+    protected static string $view = 'filament.resources.mikrotik-server-resource.pages.list-mikrotik-servers';
+
+    /**
+     * @return array{total: int, enabled: int, online: int, subscribers: int}
+     */
+    public function getRouterStats(): array
+    {
+        $base = MikrotikServer::query();
+
+        return [
+            'total' => (int) (clone $base)->count(),
+            'enabled' => (int) (clone $base)->where('is_enabled', true)->count(),
+            'online' => (int) (clone $base)->where('last_api_status', 'online')->count(),
+            'subscribers' => (int) MikrotikServer::query()->withCount('customers')->get()->sum('customers_count'),
+        ];
+    }
+
     protected function getHeaderActions(): array
     {
         return [

@@ -9,6 +9,7 @@ use App\Services\Notifications\Channels\NotificationChannelInterface;
 use App\Services\Notifications\Channels\SmsNotificationChannel;
 use App\Services\Notifications\Channels\TelegramNotificationChannel;
 use App\Services\Notifications\Channels\WhatsAppNotificationChannel;
+use App\Services\Sms\SmsTemplateService;
 use App\Support\NotificationChannel;
 use App\Support\NotificationEvent;
 use Illuminate\Support\Facades\Log;
@@ -219,6 +220,10 @@ final class NotificationDispatcher
 
     private function eventEnabled(string $event): bool
     {
+        if (! app(SmsTemplateService::class)->isEnabled($event)) {
+            return false;
+        }
+
         return (bool) config("notifications.events.{$event}.enabled", true);
     }
 

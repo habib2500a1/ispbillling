@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Concerns\BelongsToTenant;
+use App\Models\User;
 use App\Support\ResellerType;
 use Illuminate\Auth\Authenticatable as AuthenticatableTrait;
 use Illuminate\Contracts\Auth\Authenticatable as AuthenticatableContract;
@@ -69,8 +70,16 @@ class Reseller extends Model implements AuthenticatableContract
         'franchise_type',
         'name',
         'code',
+        'client_id_prefix',
         'phone',
         'email',
+        'portal_login',
+        'primary_user_id',
+        'address',
+        'city',
+        'district',
+        'trade_license',
+        'nid_number',
         'portal_password',
         'portal_last_login_at',
         'contact_person',
@@ -117,6 +126,16 @@ class Reseller extends Model implements AuthenticatableContract
     public function parent(): BelongsTo
     {
         return $this->belongsTo(Reseller::class, 'parent_id');
+    }
+
+    public function primaryUser(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'primary_user_id');
+    }
+
+    public function portalLoginId(): string
+    {
+        return (string) ($this->portal_login ?: $this->code);
     }
 
     public function children(): HasMany

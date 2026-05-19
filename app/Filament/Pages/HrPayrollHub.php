@@ -27,6 +27,8 @@ class HrPayrollHub extends Page
 
     protected static ?int $navigationSort = 0;
 
+    protected static bool $shouldRegisterNavigation = false;
+
     /**
      * @return array<string, mixed>
      */

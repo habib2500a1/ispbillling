@@ -1,7 +1,6 @@
 <?php
 
 namespace App\Filament\Pages;
-use App\Filament\Pages\Concerns\HidesHubNavigation;
 
 use App\Services\Reports\AnalyticsReportService;
 use Carbon\Carbon;
@@ -9,7 +8,7 @@ use Filament\Pages\Page;
 
 class ReportsHub extends Page
 {
-    use HidesHubNavigation;
+    protected static bool $shouldRegisterNavigation = false;
     protected static ?string $navigationIcon = 'heroicon-o-presentation-chart-line';
 
     protected static string $view = 'filament.pages.reports-hub';

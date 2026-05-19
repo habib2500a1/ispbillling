@@ -34,6 +34,8 @@ class ManageOpticalLaserSettings extends Page
 
     protected static ?int $navigationSort = 5;
 
+    protected static bool $shouldRegisterNavigation = false;
+
     protected static ?string $slug = 'optical-laser-settings';
 
     /**

@@ -1,7 +1,6 @@
 <?php
 
 namespace App\Filament\Pages;
-use App\Filament\Pages\Concerns\HidesHubNavigation;
 
 use App\Models\BankAccount;
 use App\Models\CashbookEntry;
@@ -21,7 +20,8 @@ use Filament\Pages\Page;
 
 class AccountingHub extends Page
 {
-    use HidesHubNavigation;
+    protected static bool $shouldRegisterNavigation = false;
+
     protected static ?string $navigationIcon = 'heroicon-o-calculator';
 
     protected static string $view = 'filament.pages.accounting-hub';

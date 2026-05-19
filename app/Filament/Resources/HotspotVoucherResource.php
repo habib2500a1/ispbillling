@@ -21,6 +21,8 @@ class HotspotVoucherResource extends Resource
 
     protected static ?string $navigationGroup = 'Network';
 
+    protected static bool $shouldRegisterNavigation = false;
+
     protected static ?string $navigationLabel = 'Hotspot vouchers';
 
     protected static ?int $navigationSort = 12;

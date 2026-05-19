@@ -34,6 +34,8 @@ class OltResource extends Resource
 
     protected static ?int $navigationSort = 5;
 
+    protected static bool $shouldRegisterNavigation = false;
+
     public static function getEloquentQuery(): Builder
     {
         return parent::getEloquentQuery()->olts();

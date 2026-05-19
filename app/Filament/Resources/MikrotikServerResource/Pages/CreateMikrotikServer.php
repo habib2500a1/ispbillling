@@ -12,6 +12,8 @@ class CreateMikrotikServer extends CreateRecord
 {
     protected static string $resource = MikrotikServerResource::class;
 
+    protected static string $view = 'filament.resources.mikrotik-server-resource.pages.create-mikrotik-server';
+
     protected function mutateFormDataBeforeCreate(array $data): array
     {
         $tid = auth()->user()?->tenant_id ?? (int) (Tenant::query()->value('id') ?? 1);

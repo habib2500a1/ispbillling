@@ -5,11 +5,12 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\ResellerResource\Pages;
 use App\Filament\Resources\ResellerResource\RelationManagers;
 use App\Models\Reseller;
+use App\Models\User;
 use App\Support\ResellerType;
 use Filament\Forms;
+use Filament\Forms\Get;
 use Illuminate\Support\Facades\Hash;
 use Filament\Forms\Form;
-use Filament\Forms\Get;
 use Filament\Infolists;
 use Filament\Infolists\Infolist;
 use Filament\Resources\Resource;
@@ -32,10 +33,38 @@ class ResellerResource extends Resource
     {
         return $form
             ->schema([
-                Forms\Components\Section::make('Partner profile')
+                Forms\Components\Section::make('Reseller account')
+                    ->description('Core identity and hierarchy for this partner.')
+                    ->icon('heroicon-o-identification')
                     ->schema([
+                        Forms\Components\TextInput::make('code')
+                            ->label('Code')
+                            ->maxLength(64)
+                            ->helperText('Leave blank to auto-generate.'),
+                        Forms\Components\TextInput::make('name')
+                            ->label('Name')
+                            ->required()
+                            ->maxLength(255),
+                        Forms\Components\TextInput::make('client_id_prefix')
+                            ->label('Client ID prefix')
+                            ->maxLength(32)
+                            ->placeholder('e.g. ABC')
+                            ->helperText('Prefix for subscriber IDs created under this reseller.'),
+                        Forms\Components\Select::make('franchise_type')
+                            ->label('Partner type')
+                            ->options(ResellerType::labels())
+                            ->default(ResellerType::RESELLER)
+                            ->required()
+                            ->native(false),
+                        Forms\Components\Select::make('is_active')
+                            ->label('Status')
+                            ->options(['1' => 'Active', '0' => 'Inactive'])
+                            ->default('1')
+                            ->required()
+                            ->dehydrateStateUsing(fn (string $state): bool => $state === '1')
+                            ->formatStateUsing(fn (?bool $state): string => ($state ?? true) ? '1' : '0'),
                         Forms\Components\Select::make('parent_id')
-                            ->label('Parent (sub-reseller of)')
+                            ->label('Parent reseller')
                             ->options(fn (): array => Reseller::query()
                                 ->where('is_active', true)
                                 ->orderBy('name')
@@ -43,51 +72,92 @@ class ResellerResource extends Resource
                                 ->all())
                             ->searchable()
                             ->preload()
-                            ->live()
+                            ->placeholder('Top-level reseller')
+                            ->helperText('Select only if creating a sub-reseller.')
                             ->nullable(),
-                        Forms\Components\Select::make('franchise_type')
-                            ->label('Partner type')
-                            ->options(ResellerType::labels())
-                            ->default(ResellerType::RESELLER)
-                            ->required()
-                            ->native(false),
-                        Forms\Components\TextInput::make('name')->required()->maxLength(255),
-                        Forms\Components\TextInput::make('code')
-                            ->maxLength(64)
-                            ->helperText('Leave blank for auto-generated code.'),
-                        Forms\Components\TextInput::make('contact_person')->maxLength(255),
-                        Forms\Components\TextInput::make('phone')->tel()->maxLength(32),
-                        Forms\Components\TextInput::make('email')->email()->maxLength(255),
-                        Forms\Components\Toggle::make('is_active')->default(true),
-                        Forms\Components\Textarea::make('notes')->rows(3)->columnSpanFull(),
                     ])
-                    ->columns(2),
-                Forms\Components\Section::make('Commission & revenue share')
+                    ->columns(3),
+                Forms\Components\Section::make('Contact & address')
+                    ->icon('heroicon-o-phone')
+                    ->schema([
+                        Forms\Components\TextInput::make('email')->email()->maxLength(255),
+                        Forms\Components\TextInput::make('phone')->tel()->maxLength(32),
+                        Forms\Components\TextInput::make('contact_person')->label('Contact person')->maxLength(255),
+                        Forms\Components\TextInput::make('address')->maxLength(255)->columnSpanFull(),
+                        Forms\Components\TextInput::make('city')->maxLength(64),
+                        Forms\Components\TextInput::make('district')->maxLength(64),
+                    ])
+                    ->columns(3),
+                Forms\Components\Section::make('Commission & wallet')
+                    ->icon('heroicon-o-banknotes')
                     ->schema([
                         Forms\Components\Select::make('commission_type')
-                            ->options(['percent' => 'Percentage of payment', 'fixed' => 'Fixed per payment'])
+                            ->options(['percent' => 'Percentage', 'fixed' => 'Fixed amount'])
                             ->default('percent')
                             ->required()
-                            ->native(false),
+                            ->native(false)
+                            ->live(),
                         Forms\Components\TextInput::make('commission_value')
-                            ->label('Commission value')
+                            ->label(fn (Get $get): string => $get('commission_type') === 'fixed' ? 'Fixed commission (BDT)' : 'Default commission %')
                             ->numeric()
                             ->default(0)
-                            ->required(),
+                            ->required()
+                            ->suffix(fn (Get $get): ?string => $get('commission_type') === 'fixed' ? 'BDT' : '%'),
                         Forms\Components\TextInput::make('revenue_share_percent')
                             ->label('Parent revenue share %')
-                            ->helperText('Share of this partner\'s commission paid to parent franchise.')
                             ->numeric()
                             ->default(0)
                             ->minValue(0)
-                            ->maxValue(100),
+                            ->maxValue(100)
+                            ->visible(fn (Get $get, ?Reseller $record): bool => filled($get('parent_id')) || $record?->parent_id !== null),
+                        Forms\Components\TextInput::make('opening_balance')
+                            ->label('Opening balance')
+                            ->numeric()
+                            ->default(0)
+                            ->prefix('BDT')
+                            ->visibleOn('create')
+                            ->dehydrated(false),
                         Forms\Components\TextInput::make('wallet_balance')
                             ->label('Wallet balance')
                             ->numeric()
-                            ->default(0)
-                            ->disabledOn('create'),
+                            ->disabled()
+                            ->visibleOn('edit'),
                     ])
-                    ->columns(2),
+                    ->columns(3),
+                Forms\Components\Section::make('Portal login')
+                    ->description('Credentials for /reseller/login partner portal.')
+                    ->icon('heroicon-o-key')
+                    ->schema([
+                        Forms\Components\TextInput::make('portal_login')
+                            ->label('Reseller user ID')
+                            ->maxLength(64)
+                            ->helperText('Login username. Defaults to partner code if empty.'),
+                        Forms\Components\TextInput::make('portal_password')
+                            ->label('Login password')
+                            ->password()
+                            ->revealable()
+                            ->required(fn (string $operation): bool => $operation === 'create')
+                            ->dehydrated(fn (?string $state): bool => filled($state))
+                            ->dehydrateStateUsing(fn (?string $state): ?string => filled($state) ? Hash::make((string) $state) : null)
+                            ->helperText('Leave blank when editing to keep the current password.'),
+                        Forms\Components\Select::make('primary_user_id')
+                            ->label('Primary user')
+                            ->options(fn (): array => User::query()->orderBy('name')->pluck('name', 'id')->all())
+                            ->searchable()
+                            ->preload()
+                            ->placeholder('Select staff user')
+                            ->helperText('Optional HQ staff owner for this partner account.'),
+                    ])
+                    ->columns(3),
+                Forms\Components\Section::make('Documents')
+                    ->icon('heroicon-o-document-text')
+                    ->schema([
+                        Forms\Components\TextInput::make('trade_license')->label('Trade license no.')->maxLength(64),
+                        Forms\Components\TextInput::make('nid_number')->label('NID / representative ID')->maxLength(32),
+                        Forms\Components\Textarea::make('notes')->rows(3)->columnSpanFull(),
+                    ])
+                    ->columns(2)
+                    ->collapsed(),
                 Forms\Components\Section::make('White-label branding')
                     ->schema([
                         Forms\Components\Toggle::make('white_label_enabled')
@@ -111,18 +181,6 @@ class ResellerResource extends Resource
                     ])
                     ->columns(2)
                     ->collapsed(),
-                Forms\Components\Section::make('Reseller portal')
-                    ->schema([
-                        Forms\Components\TextInput::make('portal_password')
-                            ->label('Portal password')
-                            ->password()
-                            ->revealable()
-                            ->maxLength(255)
-                            ->helperText('Leave blank to keep unchanged. Login at /reseller/login with code, email, or phone.')
-                            ->dehydrated(fn (?string $state): bool => filled($state))
-                            ->dehydrateStateUsing(fn (?string $state): ?string => filled($state) ? Hash::make((string) $state) : null),
-                    ])
-                    ->collapsed(),
             ]);
     }
 
@@ -134,6 +192,7 @@ class ResellerResource extends Resource
                     ->schema([
                         Infolists\Components\TextEntry::make('name')->size(Infolists\Components\TextEntry\TextEntrySize::Large),
                         Infolists\Components\TextEntry::make('code')->fontFamily('mono'),
+                        Infolists\Components\TextEntry::make('client_id_prefix')->label('Client prefix')->placeholder('—'),
                         Infolists\Components\TextEntry::make('franchise_type')->formatStateUsing(fn (string $s): string => ResellerType::labels()[$s] ?? $s)->badge(),
                         Infolists\Components\TextEntry::make('parent.name')->label('Parent')->placeholder('—'),
                         Infolists\Components\IconEntry::make('is_active')->boolean()->label('Active'),
@@ -141,16 +200,17 @@ class ResellerResource extends Resource
                         Infolists\Components\TextEntry::make('commission_value')
                             ->label('Commission')
                             ->formatStateUsing(fn (Reseller $record): string => $record->commissionLabel()),
+                        Infolists\Components\TextEntry::make('portal_login')->label('Portal login')->formatStateUsing(fn (Reseller $r): string => $r->portalLoginId()),
+                        Infolists\Components\TextEntry::make('primaryUser.name')->label('Primary user')->placeholder('—'),
                     ])
                     ->columns(3),
-                Infolists\Components\Section::make('White-label')
+                Infolists\Components\Section::make('Contact')
                     ->schema([
-                        Infolists\Components\IconEntry::make('white_label_enabled')->boolean(),
-                        Infolists\Components\TextEntry::make('brand_name')->placeholder('—'),
-                        Infolists\Components\TextEntry::make('portal_subdomain')->placeholder('—'),
+                        Infolists\Components\TextEntry::make('email')->placeholder('—'),
+                        Infolists\Components\TextEntry::make('phone')->placeholder('—'),
+                        Infolists\Components\TextEntry::make('address')->placeholder('—')->columnSpanFull(),
                     ])
-                    ->columns(3)
-                    ->visible(fn (Reseller $r): bool => $r->white_label_enabled),
+                    ->columns(2),
             ]);
     }
 
@@ -160,25 +220,23 @@ class ResellerResource extends Resource
             ->columns([
                 Tables\Columns\TextColumn::make('code')->searchable()->fontFamily('mono')->sortable(),
                 Tables\Columns\TextColumn::make('name')->searchable()->sortable(),
+                Tables\Columns\TextColumn::make('client_id_prefix')->label('Prefix')->placeholder('—')->toggleable(),
                 Tables\Columns\TextColumn::make('franchise_type')
                     ->label('Type')
                     ->formatStateUsing(fn (string $s): string => ResellerType::labels()[$s] ?? $s)
                     ->badge(),
                 Tables\Columns\TextColumn::make('parent.name')->label('Parent')->placeholder('—'),
                 Tables\Columns\TextColumn::make('customers_count')->counts('customers')->label('Customers'),
-                Tables\Columns\TextColumn::make('children_count')->counts('children')->label('Sub-resellers'),
                 Tables\Columns\TextColumn::make('commission_value')
                     ->label('Commission')
                     ->formatStateUsing(fn (Reseller $r): string => $r->commissionLabel()),
                 Tables\Columns\TextColumn::make('wallet_balance')->money('BDT')->sortable(),
-                Tables\Columns\IconColumn::make('white_label_enabled')->boolean()->label('WL'),
-                Tables\Columns\IconColumn::make('is_active')->boolean(),
+                Tables\Columns\IconColumn::make('is_active')->boolean()->label('Active'),
             ])
             ->defaultSort('id', 'desc')
             ->filters([
                 Tables\Filters\SelectFilter::make('franchise_type')->options(ResellerType::labels()),
                 Tables\Filters\TernaryFilter::make('is_active'),
-                Tables\Filters\TernaryFilter::make('white_label_enabled')->label('White-label'),
             ])
             ->actions([
                 Tables\Actions\ViewAction::make(),

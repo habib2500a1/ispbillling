@@ -18,13 +18,11 @@ use App\Support\MacAddress;
 use App\Support\OnuSignalLevel;
 use App\Support\OpticalThresholds;
 use App\Services\Billing\BillingAccountListCounts;
-use App\Support\BillingAccountListRegistry;
 use Filament\Facades\Filament;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Infolists;
 use Filament\Infolists\Infolist;
-use Filament\Navigation\NavigationItem;
 use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Support\Enums\FontWeight;
@@ -845,9 +843,107 @@ class CustomerResource extends Resource
             ]);
     }
 
+    public static function clientsDirectoryTable(Table $table): Table
+    {
+        return static::table($table)
+            ->columns(static::clientsDirectoryColumns())
+            ->defaultPaginationPageOption(50)
+            ->paginationPageOptions([25, 50, 100, 200])
+            ->emptyStateHeading('No clients found')
+            ->emptyStateDescription('Add a client, change the tab preset, or clear filters.')
+            ->filters([
+                Tables\Filters\SelectFilter::make('status')
+                    ->options(CustomerStatus::options()),
+                Tables\Filters\SelectFilter::make('package_id')
+                    ->label('Package')
+                    ->relationship('package', 'name')
+                    ->searchable()
+                    ->preload(),
+                Tables\Filters\SelectFilter::make('mikrotik_server_id')
+                    ->label('Router')
+                    ->relationship('mikrotikServer', 'name')
+                    ->searchable()
+                    ->preload(),
+                Tables\Filters\SelectFilter::make('area_id')
+                    ->label('Area')
+                    ->relationship('area', 'name')
+                    ->searchable()
+                    ->preload(),
+                Tables\Filters\SelectFilter::make('zone_id')
+                    ->label('Zone')
+                    ->relationship('zone', 'name')
+                    ->searchable()
+                    ->preload(),
+            ])
+            ->filtersLayout(FiltersLayout::AboveContentCollapsible)
+            ->filtersFormColumns(['default' => 2, 'sm' => 3, 'lg' => 5]);
+    }
+
     /**
-     * @param  \Illuminate\Support\Collection<int, Customer>  $records
+     * @return array<int, Tables\Columns\Column>
      */
+    protected static function clientsDirectoryColumns(): array
+    {
+        return [
+            Tables\Columns\TextColumn::make('customer_code')
+                ->label('C.ID')
+                ->searchable()
+                ->sortable()
+                ->fontFamily('mono'),
+            Tables\Columns\ImageColumn::make('photo_path')
+                ->label('Photo')
+                ->disk('local')
+                ->visibility('private')
+                ->circular()
+                ->height(36)
+                ->width(36)
+                ->defaultImageUrl(fn (): string => 'https://ui-avatars.com/api/?background=0d9488&color=fff&name=C'),
+            Tables\Columns\TextColumn::make('name')
+                ->label('Name')
+                ->searchable(['name', 'phone', 'email'])
+                ->sortable()
+                ->weight(FontWeight::SemiBold)
+                ->description(fn (Customer $record): ?string => $record->phone),
+            Tables\Columns\TextColumn::make('mikrotik_secret_name')
+                ->label('PPPoE ID')
+                ->searchable()
+                ->fontFamily('mono')
+                ->placeholder('—')
+                ->copyable(),
+            Tables\Columns\TextColumn::make('package.name')
+                ->label('Package')
+                ->sortable()
+                ->limit(24)
+                ->placeholder('—'),
+            Tables\Columns\TextColumn::make('account_balance')
+                ->label('Balance')
+                ->money('BDT')
+                ->sortable()
+                ->alignEnd(),
+            Tables\Columns\TextColumn::make('status')
+                ->label('Status')
+                ->badge()
+                ->formatStateUsing(fn (Customer $record): string => $record->statusLabel())
+                ->color(fn (Customer $record): string => $record->statusColor())
+                ->sortable(),
+            Tables\Columns\TextColumn::make('coverage')
+                ->label('Area / Zone')
+                ->state(fn (Customer $record): string => collect([
+                    $record->area?->name,
+                    $record->zone?->name,
+                ])->filter()->implode(' · ') ?: '—')
+                ->wrap(),
+            Tables\Columns\IconColumn::make('is_ppp_online')
+                ->label('Online')
+                ->boolean()
+                ->trueIcon('heroicon-o-signal')
+                ->falseIcon('heroicon-o-signal-slash')
+                ->trueColor('success')
+                ->falseColor('gray')
+                ->toggleable(isToggledHiddenByDefault: true),
+        ];
+    }
+
     /**
      * @param  \Illuminate\Support\Collection<int, Customer>  $records
      */
@@ -955,65 +1051,7 @@ class CustomerResource extends Resource
      */
     public static function registerNavigationItems(): void
     {
-        if (filled(static::getCluster()) || ! static::canAccess()) {
-            return;
-        }
-
-        Filament::getCurrentPanel()
-            ->navigationItems(static::getNavigationItems());
-    }
-
-    /**
-     * @return array<NavigationItem>
-     */
-    public static function getNavigationItems(): array
-    {
-        if (! static::canViewAny()) {
-            return [];
-        }
-
-        try {
-            $counts = app(BillingAccountListCounts::class)->all();
-        } catch (\Throwable) {
-            $counts = [];
-        }
-        $items = [];
-
-        foreach (BillingAccountListRegistry::items() as $list) {
-            $count = $counts[$list['count_key']] ?? 0;
-            $items[] = NavigationItem::make($list['label'])
-                ->url(static::getUrl($list['route']))
-                ->icon($list['icon'])
-                ->group('Subscribers')
-                ->sort($list['sort'])
-                ->badge($count > 0 ? (string) $count : null)
-                ->isActiveWhen(fn (): bool => request()->routeIs(
-                    'filament.admin.resources.subscribers.'.($list['route'] === 'index' ? 'index' : $list['route']),
-                ));
-        }
-
-        $items[] = NavigationItem::make('Free clients')
-            ->url(static::getUrl('free'))
-            ->icon('heroicon-o-gift')
-            ->group('Subscribers')
-            ->sort(20)
-            ->isActiveWhen(fn (): bool => request()->routeIs('filament.admin.resources.subscribers.free'));
-
-        $items[] = NavigationItem::make('VIP clients')
-            ->url(static::getUrl('vip'))
-            ->icon('heroicon-o-star')
-            ->group('Subscribers')
-            ->sort(21)
-            ->isActiveWhen(fn (): bool => request()->routeIs('filament.admin.resources.subscribers.vip'));
-
-        $items[] = NavigationItem::make('New subscriber')
-            ->url(static::getUrl('create'))
-            ->icon('heroicon-o-user-plus')
-            ->group('Subscribers')
-            ->sort(22)
-            ->isActiveWhen(fn (): bool => request()->routeIs('filament.admin.resources.subscribers.create'));
-
-        return $items;
+        // Curated sidebar: ClientsSidebarRegistry (see ClientsSidebarNavigation).
     }
 
     public static function getRelations(): array

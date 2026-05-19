@@ -23,6 +23,6 @@ class ResellerCreatePageTest extends TestCase
             $response = $this->followRedirects($response);
         }
 
-        $response->assertOk()->assertSee('Partner profile', false);
+        $response->assertOk()->assertSee('Reseller account', false);
     }
 }
