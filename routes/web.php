@@ -210,7 +210,8 @@ if (filled($adminDomain)) {
 }
 
 Route::get('/', function () {
-    if (filled($landingDomain) && request()->getHost() === $landingDomain) {
+    $landingHost = config('domains.landing');
+    if (filled($landingHost) && request()->getHost() === $landingHost) {
         return app(LandingPageController::class)();
     }
 
