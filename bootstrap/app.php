@@ -64,7 +64,7 @@ return Application::configure(basePath: dirname(__DIR__))
                 return route('reseller.login');
             }
 
-            if ($request->is('portal') || $request->is('portal/*')) {
+            if ($request->is('portal') || $request->is('portal/*') || $request->is('login') || $request->is('login/*')) {
                 return route('portal.login');
             }
 

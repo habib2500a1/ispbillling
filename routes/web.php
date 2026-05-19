@@ -33,8 +33,12 @@ use App\Http\Controllers\Reseller\ResellerDashboardController;
 use App\Http\Controllers\Reseller\ResellerLoginController;
 use App\Http\Controllers\PipraPayPaymentController;
 use App\Http\Controllers\RocketPaymentController;
+use App\Http\Controllers\LandingPageController;
 use App\Http\Controllers\Webhooks\KhudeBartaDlrController;
 use Illuminate\Support\Facades\Route;
+
+$landingDomain = config('domains.landing');
+$adminDomain = config('domains.admin');
 
 // Legacy Filament URLs (resource slug is now `subscribers`).
 // 308 (not 301) keeps POST method/body when following the redirect (old tabs posting to /admin/customers/.../edit).
@@ -92,10 +96,12 @@ Route::middleware('auth:reseller')->prefix('reseller')->name('reseller.')->group
 });
 
 Route::middleware(['guest:customer', 'throttle:15,1'])->group(function () {
-    Route::get('/portal/login', [PortalLoginController::class, 'create'])->name('portal.login');
-    Route::post('/portal/login', [PortalLoginController::class, 'store'])->name('portal.login.store');
-    Route::get('/portal/login/otp', [PortalLoginController::class, 'otpForm'])->name('portal.login.otp');
-    Route::post('/portal/login/otp', [PortalLoginController::class, 'otpVerify'])->name('portal.login.otp.verify');
+    Route::get('/login', [PortalLoginController::class, 'create'])->name('portal.login');
+    Route::post('/login', [PortalLoginController::class, 'store'])->name('portal.login.store');
+    Route::get('/login/otp', [PortalLoginController::class, 'otpForm'])->name('portal.login.otp');
+    Route::post('/login/otp', [PortalLoginController::class, 'otpVerify'])->name('portal.login.otp.verify');
+    Route::redirect('/portal/login', '/login', 301);
+    Route::redirect('/portal/login/otp', '/login/otp', 301);
     Route::get('/portal/signup', [PortalSignupController::class, 'create'])->name('portal.signup');
     Route::post('/portal/signup', [PortalSignupController::class, 'store'])->name('portal.signup.store');
     Route::get('/portal/signup/success', [PortalSignupController::class, 'success'])->name('portal.signup.success');
@@ -186,7 +192,24 @@ Route::middleware('throttle:30,1')->prefix('pay')->name('bill-payment.')->group(
 Route::redirect('/BillPayment/Index', '/pay');
 Route::redirect('/bill-payment', '/pay');
 
+if (filled($landingDomain)) {
+    Route::domain($landingDomain)->group(function (): void {
+        Route::get('/', LandingPageController::class)->name('landing.home');
+    });
+}
+
+if (filled($adminDomain)) {
+    Route::domain($adminDomain)->group(function (): void {
+        Route::get('/', fn () => redirect('/admin'));
+        Route::permanentRedirect('/login', '/admin/login');
+    });
+}
+
 Route::get('/', function () {
+    if (filled($landingDomain) && request()->getHost() === $landingDomain) {
+        return app(LandingPageController::class)();
+    }
+
     if (auth()->check()) {
         return redirect('/admin');
     }
