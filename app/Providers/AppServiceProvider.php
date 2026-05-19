@@ -90,11 +90,8 @@ class AppServiceProvider extends ServiceProvider
 
         try {
             if (Cache::remember('bootstrap.app_settings_table', 300, fn (): bool => Schema::hasTable('app_settings'))) {
-                Cache::remember('bootstrap.app_settings_sync', 60, function (): bool {
-                    AppSetting::syncToRuntimeConfig();
-
-                    return true;
-                });
+                // Must run every request: caching sync caused OTP/toggles to revert to config defaults.
+                AppSetting::syncToRuntimeConfig();
             }
         } catch (\Throwable $e) {
             Log::channel('single')->warning('bootstrap.app_settings_skipped', [

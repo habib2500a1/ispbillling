@@ -47,6 +47,36 @@ class ManagePortalSettingsTest extends TestCase
         $this->assertStringContainsString('Customer portal', IntegrationSettingsAudit::query()->first()->summary);
     }
 
+    public function test_bill_pay_otp_off_persists_after_sync(): void
+    {
+        Role::findOrCreate('isp-admin');
+        $user = User::factory()->create();
+        $user->assignRole('isp-admin');
+
+        Livewire::actingAs($user)
+            ->test(ManagePortalSettings::class)
+            ->set('data.portal_enabled', true)
+            ->set('data.portal_otp_enabled', false)
+            ->set('data.portal_otp_log_delivery_only', false)
+            ->set('data.portal_otp_ttl_seconds', 600)
+            ->set('data.portal_otp_digits', 6)
+            ->set('data.bill_pay_otp_enabled', false)
+            ->set('data.bill_pay_otp_log_delivery_only', false)
+            ->set('data.bill_pay_otp_ttl_seconds', 600)
+            ->set('data.bill_pay_otp_digits', 6)
+            ->call('save')
+            ->assertHasNoErrors();
+
+        $this->assertSame('0', AppSetting::getStoredValue('bill_payment.otp.enabled'));
+        $this->assertFalse(config('bill_payment.otp.enabled'));
+
+        // Simulate next request: bootstrap must load DB value (not skip cached sync).
+        config(['bill_payment.otp.enabled' => true]);
+        AppSetting::syncToRuntimeConfig();
+
+        $this->assertFalse(config('bill_payment.otp.enabled'));
+    }
+
     public function test_isp_support_cannot_open_portal_settings(): void
     {
         Role::findOrCreate('isp-support');

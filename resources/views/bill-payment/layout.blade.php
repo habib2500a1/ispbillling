@@ -29,7 +29,7 @@
                 <p class="mt-2 text-sm text-white/65">{{ config('isp.company_tagline') }}</p>
                 <ol class="bp-brand-steps">
                     <li>Enter your client code</li>
-                    @if (config('bill_payment.otp.enabled', true))
+                    @if (config('bill_payment.otp.enabled', false))
                         <li>Verify mobile OTP</li>
                     @endif
                     <li>Review invoice &amp; due amount</li>

@@ -64,7 +64,7 @@ class ManagePortalSettings extends Page
             'portal_otp_log_delivery_only' => (bool) config('portal.otp.log_delivery_only', false),
             'portal_otp_ttl_seconds' => (int) config('portal.otp.ttl_seconds', 600),
             'portal_otp_digits' => (int) config('portal.otp.digits', 6),
-            'bill_pay_otp_enabled' => (bool) config('bill_payment.otp.enabled', true),
+            'bill_pay_otp_enabled' => (bool) config('bill_payment.otp.enabled', false),
             'bill_pay_otp_log_delivery_only' => (bool) config('bill_payment.otp.log_delivery_only', false),
             'bill_pay_otp_ttl_seconds' => (int) config('bill_payment.otp.ttl_seconds', 600),
             'bill_pay_otp_digits' => (int) config('bill_payment.otp.digits', 6),
@@ -186,6 +186,19 @@ class ManagePortalSettings extends Page
         );
 
         AppSetting::syncToRuntimeConfig();
+        \Illuminate\Support\Facades\Cache::forget('bootstrap.app_settings_sync');
+
+        $this->form->fill([
+            'portal_enabled' => (bool) config('portal.enabled', true),
+            'portal_otp_enabled' => (bool) config('portal.otp.enabled', false),
+            'portal_otp_log_delivery_only' => (bool) config('portal.otp.log_delivery_only', false),
+            'portal_otp_ttl_seconds' => (int) config('portal.otp.ttl_seconds', 600),
+            'portal_otp_digits' => (int) config('portal.otp.digits', 6),
+            'bill_pay_otp_enabled' => (bool) config('bill_payment.otp.enabled', false),
+            'bill_pay_otp_log_delivery_only' => (bool) config('bill_payment.otp.log_delivery_only', false),
+            'bill_pay_otp_ttl_seconds' => (int) config('bill_payment.otp.ttl_seconds', 600),
+            'bill_pay_otp_digits' => (int) config('bill_payment.otp.digits', 6),
+        ]);
 
         $after = $this->portalSnapshot();
 
@@ -222,7 +235,7 @@ class ManagePortalSettings extends Page
             'portal.otp.log_delivery_only' => (bool) config('portal.otp.log_delivery_only', false),
             'portal.otp.ttl_seconds' => (int) config('portal.otp.ttl_seconds', 600),
             'portal.otp.digits' => (int) config('portal.otp.digits', 6),
-            'bill_payment.otp.enabled' => (bool) config('bill_payment.otp.enabled', true),
+            'bill_payment.otp.enabled' => (bool) config('bill_payment.otp.enabled', false),
             'bill_payment.otp.log_delivery_only' => (bool) config('bill_payment.otp.log_delivery_only', false),
             'bill_payment.otp.ttl_seconds' => (int) config('bill_payment.otp.ttl_seconds', 600),
             'bill_payment.otp.digits' => (int) config('bill_payment.otp.digits', 6),

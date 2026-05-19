@@ -13,7 +13,7 @@ class BillPaymentOtpService
 {
     public function isEnabled(): bool
     {
-        return (bool) config('bill_payment.otp.enabled', true);
+        return (bool) config('bill_payment.otp.enabled', false);
     }
 
     public function startChallenge(Customer $customer): void

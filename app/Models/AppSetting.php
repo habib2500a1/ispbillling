@@ -107,6 +107,7 @@ class AppSetting extends Model
         );
 
         Cache::forget('bootstrap.app_settings_sync');
+        static::syncToRuntimeConfig();
     }
 
     public static function castValueForConfigKey(string $key, string $value): mixed
