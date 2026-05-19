@@ -42,6 +42,8 @@ class SmsGatewaySetup extends Page
 
     protected static ?int $navigationSort = 0;
 
+    protected static bool $shouldRegisterNavigation = false;
+
     protected static ?string $slug = 'sms-gateway';
 
     /**

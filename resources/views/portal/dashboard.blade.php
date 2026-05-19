@@ -27,6 +27,12 @@
         <p id="dash-updated" class="text-xs text-slate-500">Live</p>
     </div>
 
+    @if (($movieServers ?? collect())->isNotEmpty())
+        <div class="mt-6">
+            <x-movie-servers-showcase :servers="$movieServers" variant="portal" />
+        </div>
+    @endif
+
     @if ($outages->isNotEmpty())
         <div class="mt-6 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-950">
             <p class="font-semibold">Area notices</p>

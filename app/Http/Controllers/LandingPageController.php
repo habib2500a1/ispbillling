@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Package;
+use App\Services\Portal\PortalMovieServerCatalog;
 use App\Support\CompanyBranding;
 use Illuminate\View\View;
 
@@ -16,6 +17,8 @@ class LandingPageController extends Controller
             ->orderBy('download_mbps')
             ->get();
 
+        $movieServers = PortalMovieServerCatalog::forLanding();
+
         return view('landing.index', [
             'company' => CompanyBranding::name(),
             'tagline' => config('isp.company_tagline'),
@@ -24,6 +27,7 @@ class LandingPageController extends Controller
             'address' => config('isp.company_address'),
             'logo' => CompanyBranding::logoUrl(),
             'packages' => $packages,
+            'movieServers' => $movieServers,
             'adminUrl' => rtrim((string) config('app.url'), '/').'/admin',
             'payUrl' => url('/pay'),
             'portalUrl' => config('portal.enabled', true) ? route('portal.login') : null,

@@ -49,8 +49,8 @@ class StaffControlHub extends Page
         $user = auth()->user();
 
         return $user !== null
-            && ($user->hasRole('super-admin')
-                || $user->hasRole('isp-admin')
-                || $user->can('staff.view'));
+            && ($user->hasAnyRole(['super-admin', 'isp-admin', 'isp-manager', 'admin'])
+                || $user->can('staff.view')
+                || $user->can('security.roles'));
     }
 }

@@ -37,11 +37,13 @@ class ManageNotifications extends Page
 
     protected static ?string $navigationLabel = 'Notification settings';
 
-    protected static ?string $title = 'Notification channels & templates';
+    protected static ?string $title = 'SMS & notification templates';
 
     protected static ?string $navigationGroup = 'SMS Service';
 
     protected static ?int $navigationSort = 3;
+
+    protected static bool $shouldRegisterNavigation = false;
 
     /**
      * @var array<string, mixed>|null

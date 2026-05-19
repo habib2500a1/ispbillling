@@ -12,8 +12,10 @@
         );
         $onSms = request()->routeIs(
             'filament.admin.pages.sms-gateway',
+            'filament.admin.pages.send-sms',
             'filament.admin.pages.notifications-hub',
             'filament.admin.pages.bulk-sms-campaign',
+            'filament.admin.pages.manage-notifications',
             'filament.admin.resources.sms-delivery-reports.*',
             'filament.admin.resources.notification-logs.*',
         );

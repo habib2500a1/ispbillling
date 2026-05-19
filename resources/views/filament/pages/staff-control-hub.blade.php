@@ -41,9 +41,13 @@
                 <p class="font-semibold group-hover:text-violet-600 dark:text-white">Staff users</p>
                 <p class="mt-1 text-sm text-gray-500">Create accounts · assign roles & branches</p>
             </a>
-            <a href="{{ \App\Filament\Resources\RoleResource::getUrl('index') }}" class="group rounded-xl border border-violet-200 bg-violet-50/50 p-5 shadow-sm transition hover:border-violet-400 dark:border-violet-800 dark:bg-violet-950/20">
-                <p class="font-semibold text-violet-900 dark:text-violet-100">Role management</p>
-                <p class="mt-1 text-sm text-violet-800/80 dark:text-violet-300">Templates · matrix · clone · audit</p>
+            <a href="{{ \App\Filament\Pages\PermissionMatrix::getUrl() }}" class="group rounded-xl border border-violet-200 bg-violet-50/50 p-5 shadow-sm transition hover:border-violet-400 dark:border-violet-800 dark:bg-violet-950/20">
+                <p class="font-semibold text-violet-900 dark:text-violet-100">Permission matrix</p>
+                <p class="mt-1 text-sm text-violet-800/80 dark:text-violet-300">Roles × permissions · grouped · audit</p>
+            </a>
+            <a href="{{ \App\Filament\Resources\RoleResource::getUrl('index') }}" class="group rounded-xl border border-gray-200 bg-white p-5 shadow-sm transition hover:border-violet-400 dark:border-gray-700 dark:bg-gray-900">
+                <p class="font-semibold dark:text-white">Role management</p>
+                <p class="mt-1 text-sm text-gray-500">Templates · clone · audit</p>
             </a>
             <a href="{{ \App\Filament\Resources\PermissionResource::getUrl('index') }}" class="group rounded-xl border border-gray-200 bg-white p-5 shadow-sm transition hover:border-violet-400 dark:border-gray-700 dark:bg-gray-900">
                 <p class="font-semibold dark:text-white">Permissions catalog</p>

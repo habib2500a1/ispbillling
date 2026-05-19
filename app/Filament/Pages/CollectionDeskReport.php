@@ -23,6 +23,11 @@ class CollectionDeskReport extends Page
 
     protected static ?int $navigationSort = 40;
 
+    public static function shouldRegisterNavigation(): bool
+    {
+        return false;
+    }
+
     public string $dateFrom = '';
 
     public string $dateTo = '';
@@ -35,8 +40,15 @@ class CollectionDeskReport extends Page
 
     public function mount(): void
     {
-        $this->dateFrom = now()->toDateString();
-        $this->dateTo = now()->toDateString();
+        $preset = request()->string('preset')->toString();
+        if ($preset === 'month') {
+            $this->setDatePreset('month');
+        } elseif ($preset === 'week') {
+            $this->setDatePreset('week');
+        } else {
+            $this->setDatePreset('today');
+        }
+
         $filterCustomer = request()->integer('customer');
         if ($filterCustomer > 0) {
             $this->customerId = $filterCustomer;

@@ -44,6 +44,28 @@ class RolePermissionService
         $this->syncRolePermissions($role, $keys, "Applied template: {$templateSlug}");
     }
 
+    public function togglePermission(Role $role, string $permissionName): void
+    {
+        app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
+
+        $before = $role->permissions()->pluck('name')->sort()->values()->all();
+
+        if ($role->hasPermissionTo($permissionName)) {
+            $role->revokePermissionTo($permissionName);
+        } else {
+            $role->givePermissionTo($permissionName);
+        }
+
+        $after = $role->fresh()->permissions()->pluck('name')->sort()->values()->all();
+
+        $this->logPermissionChange(
+            $role,
+            $before,
+            $after,
+            'Matrix: toggled '.$permissionName,
+        );
+    }
+
     public function cloneRole(Role $role, string $newName): Role
     {
         $clone = Role::findOrCreate($newName, 'web');
@@ -65,7 +87,11 @@ class RolePermissionService
     public function syncRolePermissions(Role $role, array $permissionNames, ?string $note = null): void
     {
         $before = $role->permissions()->pluck('name')->sort()->values()->all();
-        $valid = array_values(array_intersect($permissionNames, IspPermissionCatalog::all()));
+        $valid = Permission::query()
+            ->where('guard_name', $role->guard_name ?? 'web')
+            ->whereIn('name', $permissionNames)
+            ->pluck('name')
+            ->all();
         $role->syncPermissions($valid);
         $after = $role->fresh()->permissions()->pluck('name')->sort()->values()->all();
 

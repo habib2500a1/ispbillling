@@ -2,10 +2,13 @@
 
 namespace App\Filament\Resources;
 
+use App\Filament\Pages\PermissionMatrix;
 use App\Filament\Resources\RoleResource\Pages;
+use App\Forms\Components\PermissionMatrixPicker;
 use App\Support\Rbac\IspPermissionCatalog;
 use App\Support\Rbac\IspRoleTemplates;
 use Filament\Forms;
+use Filament\Forms\Components\Actions\Action as FormAction;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
@@ -74,15 +77,20 @@ class RoleResource extends Resource
                     ])
                     ->columns(2),
                 Forms\Components\Section::make('Permission matrix')
-                    ->description('Grouped A–I categories · search · bulk toggle · audit logged on save.')
+                    ->description('Grouped categories with labels and keys — same layout as the full matrix page.')
+                    ->headerActions([
+                        FormAction::make('open_full_matrix')
+                            ->label('Open full matrix')
+                            ->icon('heroicon-o-table-cells')
+                            ->url(fn (?Role $record): string => $record
+                                ? PermissionMatrix::getUrl().'?role='.urlencode($record->name)
+                                : PermissionMatrix::getUrl())
+                            ->openUrlInNewTab(),
+                    ])
                     ->schema([
-                        Forms\Components\CheckboxList::make('permissions')
-                            ->relationship('permissions', 'name')
-                            ->options(IspPermissionCatalog::labeledOptions())
-                            ->searchable()
-                            ->bulkToggleable()
-                            ->columns(2)
-                            ->gridDirection('row'),
+                        PermissionMatrixPicker::make('permission_keys')
+                            ->label('')
+                            ->columnSpanFull(),
                     ]),
                 Forms\Components\View::make('filament.resources.role-audit-timeline')
                     ->visibleOn('edit')

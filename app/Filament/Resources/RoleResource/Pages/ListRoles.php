@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\RoleResource\Pages;
 
+use App\Filament\Pages\PermissionMatrix;
 use App\Filament\Resources\RoleResource;
 use App\Services\Rbac\RolePermissionService;
 use App\Support\Rbac\IspPermissionCatalog;
@@ -27,6 +28,11 @@ class ListRoles extends ListRecords
     protected function getHeaderActions(): array
     {
         return [
+            Actions\Action::make('permission_matrix')
+                ->label('Permission matrix')
+                ->icon('heroicon-o-table-cells')
+                ->color('primary')
+                ->url(PermissionMatrix::getUrl()),
             Actions\Action::make('sync_catalog')
                 ->label('Sync permission catalog')
                 ->icon('heroicon-o-arrow-path')

@@ -24,6 +24,7 @@ use App\Filament\Auth\EditAdminProfile;
 use App\Filament\Pages\ManageAppSettings;
 use App\Filament\Pages\ManageOpticalLaserSettings;
 use App\Filament\Pages\ManageCompanySetup;
+use App\Filament\Pages\ManageMovieServerList;
 use App\Filament\Pages\NetworkIntelligenceHub;
 use App\Filament\Pages\NetworkTopology;
 use App\Filament\Pages\NotificationsHub;
@@ -81,6 +82,7 @@ class AdminCommandPalette
             ['group' => 'System', 'label' => 'Backup & restore', 'url' => ManagePlatformBackups::getUrl()],
             ['group' => 'Admin', 'label' => 'Notifications', 'url' => NotificationsHub::getUrl()],
             ['group' => 'System', 'label' => 'Company setup', 'url' => ManageCompanySetup::getUrl()],
+            ['group' => 'System', 'label' => 'Movie server list', 'url' => ManageMovieServerList::getUrl()],
             ['group' => 'System', 'label' => 'App settings', 'url' => ManageAppSettings::getUrl()],
             ['group' => 'Network', 'label' => 'Laser thresholds', 'url' => ManageOpticalLaserSettings::getUrl()],
         ];

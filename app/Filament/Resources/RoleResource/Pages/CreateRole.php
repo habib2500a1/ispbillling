@@ -10,10 +10,14 @@ class CreateRole extends CreateRecord
 {
     protected static string $resource = RoleResource::class;
 
+    /** @var list<string> */
+    protected array $permissionKeys = [];
+
     protected function mutateFormDataBeforeCreate(array $data): array
     {
         $this->roleTemplate = $data['role_template'] ?? null;
-        unset($data['role_template']);
+        $this->permissionKeys = array_values($data['permission_keys'] ?? []);
+        unset($data['role_template'], $data['permission_keys']);
 
         return $data;
     }
@@ -24,6 +28,12 @@ class CreateRole extends CreateRecord
     {
         if (filled($this->roleTemplate)) {
             app(RolePermissionService::class)->applyTemplate($this->record, $this->roleTemplate);
+        } elseif ($this->permissionKeys !== []) {
+            app(RolePermissionService::class)->syncRolePermissions(
+                $this->record,
+                $this->permissionKeys,
+                'Initial permissions on create',
+            );
         }
     }
 }

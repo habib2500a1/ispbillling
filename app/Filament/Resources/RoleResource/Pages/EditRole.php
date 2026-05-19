@@ -15,7 +15,7 @@ class EditRole extends EditRecord
     protected static string $resource = RoleResource::class;
 
     /** @var list<string> */
-    protected array $permissionsBeforeSave = [];
+    protected array $permissionKeys = [];
 
     protected function getHeaderActions(): array
     {
@@ -36,7 +36,8 @@ class EditRole extends EditRecord
                         $this->record,
                         $data['template'],
                     );
-                    $this->fillForm();
+                    $this->record->refresh();
+                    $this->data['permission_keys'] = $this->record->permissions()->pluck('name')->all();
                 })
                 ->visible(fn (): bool => $this->record->name !== 'super-admin'),
             Actions\DeleteAction::make()
@@ -44,23 +45,28 @@ class EditRole extends EditRecord
         ];
     }
 
-    protected function beforeSave(): void
+    protected function mutateFormDataBeforeFill(array $data): array
     {
         /** @var Role $record */
         $record = $this->record;
-        $this->permissionsBeforeSave = $record->permissions()->pluck('name')->sort()->values()->all();
+        $data['permission_keys'] = $record->permissions()->pluck('name')->all();
+
+        return $data;
+    }
+
+    protected function mutateFormDataBeforeSave(array $data): array
+    {
+        $this->permissionKeys = array_values($data['permission_keys'] ?? []);
+        unset($data['permission_keys']);
+
+        return $data;
     }
 
     protected function afterSave(): void
     {
-        /** @var Role $record */
-        $record = $this->record->fresh();
-        $after = $record->permissions()->pluck('name')->sort()->values()->all();
-
-        app(RolePermissionService::class)->logPermissionChange(
-            $record,
-            $this->permissionsBeforeSave,
-            $after,
+        app(RolePermissionService::class)->syncRolePermissions(
+            $this->record->fresh(),
+            $this->permissionKeys,
             'Permission matrix updated',
         );
     }

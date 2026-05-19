@@ -86,6 +86,50 @@
             border-top: 1px solid #1e293b;
         }
         footer a { color: var(--accent); }
+        .isp-movie-servers { margin: 2.5rem 0; }
+        .isp-movie-servers__head {
+            display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between;
+            gap: 1rem; margin-bottom: 1.25rem;
+        }
+        .isp-movie-servers__eyebrow {
+            font-size: .7rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
+            color: var(--accent); margin-bottom: .35rem;
+        }
+        .isp-movie-servers__title { font-size: 1.5rem; font-weight: 700; }
+        .isp-movie-servers__lead { margin-top: .35rem; font-size: .9rem; color: var(--muted); max-width: 32rem; }
+        .isp-movie-servers__count {
+            font-size: .75rem; font-weight: 600; padding: .35rem .75rem; border-radius: 999px;
+            background: rgba(20,184,166,.15); color: var(--accent);
+        }
+        .isp-movie-servers__grid {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1rem;
+        }
+        .isp-movie-server-card {
+            display: flex; align-items: flex-start; gap: .85rem; padding: 1.1rem 1.15rem;
+            border-radius: .85rem; border: 1px solid #1e293b; background: linear-gradient(145deg, #111b2e 0%, #0f172a 100%);
+            text-decoration: none; color: inherit; transition: border-color .15s, transform .15s, box-shadow .15s;
+        }
+        .isp-movie-server-card:hover {
+            border-color: var(--accent); transform: translateY(-2px);
+            box-shadow: 0 12px 32px -8px rgba(20,184,166,.35);
+        }
+        .isp-movie-server-card__icon {
+            flex-shrink: 0; width: 2.5rem; height: 2.5rem; display: flex; align-items: center; justify-content: center;
+            border-radius: .65rem; background: rgba(20,184,166,.12); color: var(--accent);
+        }
+        .isp-movie-server-card__icon svg { width: 1.35rem; height: 1.35rem; }
+        .isp-movie-server-card__body { flex: 1; min-width: 0; }
+        .isp-movie-server-card__name { display: block; font-weight: 700; font-size: 1rem; }
+        .isp-movie-server-card__url {
+            display: block; margin-top: .2rem; font-size: .75rem; font-family: ui-monospace, monospace;
+            color: #fb7185; word-break: break-all;
+        }
+        .isp-movie-server-card__note {
+            display: block; margin-top: .45rem; font-size: .78rem; color: var(--muted); line-height: 1.4;
+        }
+        .isp-movie-server-card__cta {
+            flex-shrink: 0; align-self: center; font-size: .75rem; font-weight: 700; color: var(--accent);
+        }
     </style>
 </head>
 <body>
@@ -142,6 +186,8 @@
                 <p>@if($phone) Call {{ $phone }} @else Contact our support desk @endif for new connections.</p>
             </div>
         </div>
+
+        <x-movie-servers-showcase :servers="$movieServers" id="entertainment" />
 
         <h2 class="section-title" id="packages">Internet packages</h2>
         <p style="text-align:center;color:var(--muted);margin:-1rem 0 1.5rem;font-size:0.95rem;">Only packages with “Show on website” on appear here.</p>

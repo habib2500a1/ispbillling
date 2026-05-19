@@ -8,6 +8,8 @@ use Filament\Pages\Page;
 class NotificationsHub extends Page
 {
     use HidesHubNavigation;
+
+    protected static bool $shouldRegisterNavigation = false;
     protected static ?string $navigationIcon = 'heroicon-o-bell-alert';
 
     protected static string $view = 'filament.pages.notifications-hub';

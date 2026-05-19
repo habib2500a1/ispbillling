@@ -5,11 +5,15 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\InvoiceResource\Pages;
 use App\Filament\Resources\InvoiceResource\RelationManagers;
 use App\Models\Invoice;
+use App\Services\Billing\BillingInvoiceCounts;
 use App\Services\Billing\CouponApplicator;
 use App\Services\Billing\InvoiceCalculator;
 use App\Services\Billing\LateFeeCalculator;
+use App\Support\BillingSidebarRegistry;
+use Filament\Facades\Filament;
 use Filament\Forms;
 use Filament\Forms\Form;
+use Filament\Navigation\NavigationItem;
 use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Tables;
@@ -28,6 +32,70 @@ class InvoiceResource extends Resource
     protected static ?int $navigationSort = 50;
 
     protected static ?string $navigationLabel = 'Invoices';
+
+    protected static bool $shouldRegisterNavigation = false;
+
+    public static function registerNavigationItems(): void
+    {
+        if (filled(static::getCluster())) {
+            return;
+        }
+
+        if (! \App\Filament\Billing\BillingSidebarNavigation::userCanSee()) {
+            return;
+        }
+
+        Filament::getCurrentPanel()
+            ->navigationItems(static::getBillingNavigationItems());
+    }
+
+    /**
+     * @return array<NavigationItem>
+     */
+    public static function getBillingNavigationItems(): array
+    {
+        try {
+            $counts = app(BillingInvoiceCounts::class)->all();
+        } catch (\Throwable) {
+            $counts = [];
+        }
+
+        $items = [];
+
+        foreach (BillingSidebarRegistry::items() as $entry) {
+            $count = isset($entry['count_key']) ? ($counts[$entry['count_key']] ?? 0) : 0;
+            $routes = $entry['active_routes'];
+
+            $item = NavigationItem::make($entry['label'])
+                ->url($entry['url'])
+                ->icon($entry['icon'])
+                ->group('Billing')
+                ->sort($entry['sort'])
+                ->isActiveWhen(function () use ($routes, $entry): bool {
+                    if (! request()->routeIs($routes)) {
+                        return false;
+                    }
+
+                    if ($entry['key'] === 'today_collection') {
+                        return request()->query('preset', 'today') === 'today';
+                    }
+
+                    if ($entry['key'] === 'all_collection') {
+                        return request()->query('preset') === 'month';
+                    }
+
+                    return true;
+                });
+
+            if ($count > 0 && isset($entry['count_key'])) {
+                $item->badge((string) $count);
+            }
+
+            $items[] = $item;
+        }
+
+        return $items;
+    }
 
     public static function form(Form $form): Form
     {
@@ -300,6 +368,8 @@ class InvoiceResource extends Resource
     {
         return [
             'index' => Pages\ListInvoices::route('/'),
+            'due' => Pages\ListDueInvoices::route('/due'),
+            'paid' => Pages\ListPaidInvoices::route('/paid'),
             'create' => Pages\CreateInvoice::route('/create'),
             'edit' => Pages\EditInvoice::route('/{record}/edit'),
         ];

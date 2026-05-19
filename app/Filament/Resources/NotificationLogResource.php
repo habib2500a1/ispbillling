@@ -3,9 +3,11 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\NotificationLogResource\Pages;
+use App\Filament\Sms\SmsSidebarNavigation;
 use App\Models\NotificationLog;
 use App\Support\NotificationChannel;
 use App\Support\NotificationEvent;
+use Filament\Facades\Filament;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -25,6 +27,22 @@ class NotificationLogResource extends Resource
     protected static ?string $navigationGroup = 'SMS Service';
 
     protected static ?int $navigationSort = 4;
+
+    protected static bool $shouldRegisterNavigation = false;
+
+    public static function registerNavigationItems(): void
+    {
+        if (filled(static::getCluster())) {
+            return;
+        }
+
+        if (! SmsSidebarNavigation::userCanSee()) {
+            return;
+        }
+
+        Filament::getCurrentPanel()
+            ->navigationItems(SmsSidebarNavigation::navigationItems());
+    }
 
     public static function canViewAny(): bool
     {
@@ -88,6 +106,10 @@ class NotificationLogResource extends Resource
     {
         return [
             'index' => Pages\ListNotificationLogs::route('/'),
+            'sms-report' => Pages\ListSmsReport::route('/sms-report'),
+            'delivered' => Pages\ListDeliveredSms::route('/delivered'),
+            'pending' => Pages\ListPendingSms::route('/pending'),
+            'failed' => Pages\ListFailedSms::route('/failed'),
         ];
     }
 }
