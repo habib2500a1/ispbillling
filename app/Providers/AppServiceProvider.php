@@ -30,8 +30,10 @@ use Illuminate\Auth\Events\Logout;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\ServiceProvider;
@@ -86,8 +88,18 @@ class AppServiceProvider extends ServiceProvider
             return null;
         });
 
-        if (Schema::hasTable('app_settings')) {
-            AppSetting::syncToRuntimeConfig();
+        try {
+            if (Cache::remember('bootstrap.app_settings_table', 300, fn (): bool => Schema::hasTable('app_settings'))) {
+                Cache::remember('bootstrap.app_settings_sync', 60, function (): bool {
+                    AppSetting::syncToRuntimeConfig();
+
+                    return true;
+                });
+            }
+        } catch (\Throwable $e) {
+            Log::channel('single')->warning('bootstrap.app_settings_skipped', [
+                'message' => $e->getMessage(),
+            ]);
         }
 
         RateLimiter::for('api', function (Request $request) {

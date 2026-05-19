@@ -25,7 +25,10 @@ return Application::configure(basePath: dirname(__DIR__))
         $schedule->useCache('file');
 
         // Single entry point — schedules are defined in admin → Automatic process (DB).
-        $schedule->command('isp:run-automatic-processes')->everyMinute();
+        $schedule->command('isp:run-automatic-processes')
+            ->everyMinute()
+            ->withoutOverlapping(20)
+            ->runInBackground();
 
         foreach ($schedule->events() as $event) {
             $event->appendOutputTo(storage_path('logs/scheduler.log'));
