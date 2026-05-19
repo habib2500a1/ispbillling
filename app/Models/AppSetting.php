@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
 
@@ -104,6 +105,8 @@ class AppSetting extends Model
             ['key' => $key],
             ['value' => $plainValue],
         );
+
+        Cache::forget('bootstrap.app_settings_sync');
     }
 
     public static function castValueForConfigKey(string $key, string $value): mixed
