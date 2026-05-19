@@ -156,6 +156,9 @@
             </nav>
         </header>
 
+        <x-portal-marquee :items="$portalMarquee ?? collect()" variant="landing" />
+        <x-portal-notices-banner :notices="$portalNotices ?? collect()" variant="landing" />
+
         <section class="hero">
             <h2>Fast, reliable internet for home & business</h2>
             <p class="lead">{{ $tagline }}. Choose a package, pay online, and manage your connection from our customer portal.</p>

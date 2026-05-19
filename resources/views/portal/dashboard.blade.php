@@ -27,6 +27,9 @@
         <p id="dash-updated" class="text-xs text-slate-500">Live</p>
     </div>
 
+    <x-portal-marquee :items="$portalMarquee ?? collect()" variant="portal" />
+    <x-portal-notices-banner :notices="$portalNotices ?? collect()" variant="portal" />
+
     @if (($movieServers ?? collect())->isNotEmpty())
         <div class="mt-6">
             <x-movie-servers-showcase :servers="$movieServers" variant="portal" />

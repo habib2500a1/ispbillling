@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Package;
+use App\Services\Portal\PortalContentCatalog;
 use App\Services\Portal\PortalMovieServerCatalog;
 use App\Support\CompanyBranding;
 use Illuminate\View\View;
@@ -20,6 +21,8 @@ class LandingPageController extends Controller
         $movieServers = PortalMovieServerCatalog::forLanding();
 
         return view('landing.index', [
+            'portalNotices' => PortalContentCatalog::noticesForLanding(),
+            'portalMarquee' => PortalContentCatalog::marqueeForLanding(),
             'company' => CompanyBranding::name(),
             'tagline' => config('isp.company_tagline'),
             'phone' => config('isp.company_phone'),

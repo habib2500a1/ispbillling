@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Portal;
 use App\Http\Controllers\Controller;
 use App\Models\Outage;
 use App\Services\Portal\CustomerPortalDashboardService;
+use App\Services\Portal\PortalContentCatalog;
 use App\Services\Portal\PortalMovieServerCatalog;
 use Illuminate\Http\JsonResponse;
 use Illuminate\View\View;
@@ -36,6 +37,8 @@ class PortalDashboardController extends Controller
             'outages' => $outages,
             'dash' => $dashboard->payload($customer),
             'movieServers' => PortalMovieServerCatalog::forPortal((int) $customer->tenant_id),
+            'portalNotices' => PortalContentCatalog::noticesForPortal((int) $customer->tenant_id),
+            'portalMarquee' => PortalContentCatalog::marqueeForPortal((int) $customer->tenant_id),
         ]);
     }
 

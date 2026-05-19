@@ -2,6 +2,7 @@
 
 namespace App\Filament\Pages;
 
+use App\Filament\Concerns\ValidatesInlineForm;
 use App\Models\PortalMovieServer;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
@@ -9,6 +10,8 @@ use Illuminate\Support\Collection;
 
 class ManageMovieServerList extends Page
 {
+    use ValidatesInlineForm;
+
     protected static ?string $navigationIcon = 'heroicon-o-film';
 
     protected static string $view = 'filament.pages.manage-movie-servers';
@@ -39,7 +42,7 @@ class ManageMovieServerList extends Page
 
     public static function shouldRegisterNavigation(): bool
     {
-        return static::canAccess();
+        return false;
     }
 
     public function mount(): void
@@ -72,7 +75,7 @@ class ManageMovieServerList extends Page
 
     public function save(): void
     {
-        $data = $this->validateFormData($this->rules());
+        $data = $this->normalizeServerPayload($this->validatedFormPayload($this->rules()));
 
         if ($this->editingId) {
             PortalMovieServer::query()->findOrFail($this->editingId)->update($data);
@@ -140,13 +143,11 @@ class ManageMovieServerList extends Page
     }
 
     /**
-     * @param  array<string, mixed>  $rules
+     * @param  array<string, mixed>  $validated
      * @return array<string, mixed>
      */
-    private function validateFormData(array $rules): array
+    private function normalizeServerPayload(array $validated): array
     {
-        $validated = validator(['form' => $this->form], $rules)->validate()['form'];
-
         return [
             'name' => trim((string) $validated['name']),
             'url' => trim((string) $validated['url']),

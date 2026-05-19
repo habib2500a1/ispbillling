@@ -27,13 +27,17 @@ class ManagePortalSettings extends Page
 
     protected static string $view = 'filament.pages.manage-portal-settings';
 
-    protected static ?string $navigationLabel = 'Customer portal';
+    protected static ?string $navigationLabel = 'App Settings';
 
-    protected static ?string $title = 'Customer portal settings';
+    protected static ?string $title = 'App Settings';
 
-    protected static ?string $navigationGroup = 'System';
+    protected static ?string $navigationGroup = 'Settings';
 
-    protected static ?int $navigationSort = 3;
+    protected static ?int $navigationSort = 1;
+
+    protected static ?string $slug = 'app-settings';
+
+    protected static bool $shouldRegisterNavigation = false;
 
     /**
      * @var array<string, mixed> | null

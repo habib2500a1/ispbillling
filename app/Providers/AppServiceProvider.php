@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use App\Auth\CustomerUserProvider;
+use App\Filament\Settings\SettingsSidebarNavigation;
 use App\Contracts\NetworkAccessProvisioner;
 use App\Models\AppSetting;
 use App\Models\Customer;
@@ -112,5 +113,7 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('webhooks', fn (Request $request) => Limit::perMinute(120)->by($request->ip()));
 
         Event::listen(Logout::class, RecordStaffLogout::class);
+
+        SettingsSidebarNavigation::register();
     }
 }

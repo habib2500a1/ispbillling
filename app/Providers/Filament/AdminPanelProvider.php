@@ -100,6 +100,9 @@ class AdminPanelProvider extends PanelProvider
                 NavigationGroup::make('Finance')
                     ->icon('heroicon-o-currency-dollar')
                     ->collapsed(),
+                NavigationGroup::make('Settings')
+                    ->icon('heroicon-o-adjustments-horizontal')
+                    ->collapsed(false),
                 NavigationGroup::make('System')
                     ->icon('heroicon-o-cog-6-tooth')
                     ->collapsed(),
