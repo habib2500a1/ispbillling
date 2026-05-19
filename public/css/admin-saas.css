@@ -6374,3 +6374,280 @@ button.isp-rbac-check { padding: 0; }
     letter-spacing: .05em;
     color: #059669;
 }
+
+/* ── Billing executive dashboard ── */
+.isp-billing-dash {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+
+.isp-billing-dash__head {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: .75rem;
+}
+
+.isp-billing-dash__eyebrow {
+    font-size: .7rem;
+    font-weight: 700;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--isp-primary);
+}
+
+.isp-billing-dash__title {
+    margin: .2rem 0 0;
+    font-size: 1.35rem;
+    font-weight: 800;
+    color: var(--isp-text);
+}
+
+.isp-billing-dash__updated {
+    font-size: .75rem;
+    color: var(--isp-muted);
+}
+
+.isp-billing-dash__top {
+    display: grid;
+    gap: 1rem;
+    grid-template-columns: 1fr;
+}
+
+@media (min-width: 1024px) {
+    .isp-billing-dash__top {
+        grid-template-columns: 1.4fr 1fr;
+    }
+}
+
+.isp-billing-dash__chart-card,
+.isp-billing-dash__table-card {
+    border-radius: var(--isp-radius-lg);
+    border: 1px solid var(--isp-card-border);
+    background: var(--isp-card-bg);
+    box-shadow: var(--isp-shadow);
+    padding: 1rem 1.1rem;
+}
+
+.isp-billing-dash__card-title {
+    margin: 0 0 .85rem;
+    font-size: .9rem;
+    font-weight: 700;
+    color: var(--isp-text);
+}
+
+.isp-billing-dash__chart {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: .35rem;
+    min-height: 220px;
+    padding: .5rem .25rem 0;
+}
+
+.isp-billing-dash__bar-col {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 0;
+}
+
+.isp-billing-dash__bar-wrap {
+    width: 100%;
+    height: 180px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+}
+
+.isp-billing-dash__bar {
+    width: min(100%, 2.4rem);
+    border-radius: .45rem .45rem .2rem .2rem;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    min-height: 1.5rem;
+    transition: height .35s ease;
+}
+
+.isp-billing-dash__bar-val {
+    margin-top: .35rem;
+    font-size: .62rem;
+    font-weight: 700;
+    color: #fff;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, .25);
+}
+
+.isp-billing-dash__bar-label {
+    margin-top: .4rem;
+    font-size: .68rem;
+    font-weight: 600;
+    color: var(--isp-muted);
+}
+
+.isp-billing-dash__table-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: .5rem;
+    margin-bottom: .65rem;
+}
+
+.isp-billing-dash__table-head .isp-billing-dash__card-title {
+    margin: 0;
+}
+
+.isp-billing-dash__link {
+    font-size: .75rem;
+    font-weight: 600;
+    color: var(--isp-primary);
+}
+
+.isp-billing-dash__table-wrap {
+    overflow-x: auto;
+    max-height: 240px;
+    overflow-y: auto;
+}
+
+.isp-billing-dash__table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: .8125rem;
+}
+
+.isp-billing-dash__table th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background: var(--isp-card-bg);
+    padding: .5rem .6rem;
+    text-align: left;
+    font-size: .65rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    color: var(--isp-muted);
+    border-bottom: 1px solid var(--isp-card-border);
+}
+
+.isp-billing-dash__table td {
+    padding: .55rem .6rem;
+    border-bottom: 1px solid color-mix(in srgb, var(--isp-card-border) 70%, transparent);
+    color: var(--isp-text);
+}
+
+.isp-billing-dash__table tbody tr:nth-child(even) {
+    background: color-mix(in srgb, var(--isp-surface) 80%, transparent);
+}
+
+.isp-billing-dash__user {
+    font-weight: 600;
+    color: var(--isp-primary);
+}
+
+.isp-billing-dash__user:hover {
+    text-decoration: underline;
+}
+
+.isp-billing-dash__due {
+    font-weight: 700;
+    color: var(--isp-danger, #e11d48);
+}
+
+.isp-billing-dash__empty {
+    text-align: center;
+    padding: 1.5rem !important;
+    color: var(--isp-muted);
+}
+
+.isp-billing-dash__kpis {
+    display: grid;
+    gap: .85rem;
+    grid-template-columns: repeat(2, 1fr);
+}
+
+@media (min-width: 768px) {
+    .isp-billing-dash__kpis {
+        grid-template-columns: repeat(4, 1fr);
+    }
+}
+
+.isp-billing-dash__kpi {
+    display: flex;
+    gap: .75rem;
+    align-items: flex-start;
+    padding: 1rem;
+    border-radius: var(--isp-radius-lg);
+    border: 1px solid var(--isp-card-border);
+    color: #fff;
+    min-height: 7.5rem;
+    box-shadow: var(--isp-shadow);
+}
+
+.isp-billing-dash__kpi-icon {
+    opacity: .9;
+}
+
+.isp-billing-dash__kpi-label {
+    margin: 0;
+    font-size: .78rem;
+    font-weight: 600;
+    opacity: .92;
+}
+
+.isp-billing-dash__kpi-value {
+    margin: .25rem 0 0;
+    font-size: 1.65rem;
+    font-weight: 800;
+    line-height: 1.1;
+    letter-spacing: -.02em;
+}
+
+.isp-billing-dash__kpi-hint {
+    margin: .35rem 0 0;
+    font-size: .65rem;
+    line-height: 1.35;
+    opacity: .82;
+}
+
+.isp-billing-dash__kpi--blue {
+    background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+}
+
+.isp-billing-dash__kpi--teal {
+    background: linear-gradient(135deg, #0d9488 0%, #0f766e 100%);
+}
+
+.isp-billing-dash__kpi--violet {
+    background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
+}
+
+.isp-billing-dash__kpi--slate {
+    background: linear-gradient(135deg, #475569 0%, #334155 100%);
+}
+
+.isp-billing-dash__kpi--sky {
+    background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+}
+
+.isp-billing-dash__kpi--cyan {
+    background: linear-gradient(135deg, #0891b2 0%, #0e7490 100%);
+}
+
+.isp-billing-dash__kpi--indigo {
+    background: linear-gradient(135deg, #4f46e5 0%, #4338ca 100%);
+}
+
+.isp-billing-dash__kpi--rose {
+    background: linear-gradient(135deg, #e11d48 0%, #be123c 100%);
+}
+
+.dark .isp-billing-dash__chart-card,
+.dark .isp-billing-dash__table-card,
+[data-theme='dark'] .isp-billing-dash__chart-card,
+[data-theme='dark'] .isp-billing-dash__table-card {
+    background: color-mix(in srgb, var(--isp-card-bg) 95%, #0f172a);
+}

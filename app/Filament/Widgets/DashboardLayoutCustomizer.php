@@ -35,6 +35,7 @@ class DashboardLayoutCustomizer extends Widget
     public function widgetOptions(): array
     {
         return [
+            \App\Filament\Widgets\BillingExecutiveDashboardWidget::class => 'Billing overview (KPIs + chart)',
             \App\Filament\Widgets\DashboardHeroWidget::class => 'Hero banner',
             \App\Filament\Widgets\ExecutiveKpiGridWidget::class => 'KPI wall (20 cards)',
             \App\Filament\Widgets\UnifiedOperationsWidget::class => 'All departments',

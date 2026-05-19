@@ -8,6 +8,7 @@ final class DashboardPreferencesService
 {
     /** @var list<class-string> */
     public const DEFAULT_WIDGETS = [
+        \App\Filament\Widgets\BillingExecutiveDashboardWidget::class,
         \App\Filament\Widgets\OperationsCommandCenterWidget::class,
         \App\Filament\Widgets\DashboardCommandStripWidget::class,
         \App\Filament\Widgets\RevenueTrendChartWidget::class,
@@ -56,8 +57,15 @@ final class DashboardPreferencesService
             return self::DEFAULT_WIDGETS;
         }
 
+        if (! in_array(\App\Filament\Widgets\BillingExecutiveDashboardWidget::class, $ordered, true)) {
+            array_unshift($ordered, \App\Filament\Widgets\BillingExecutiveDashboardWidget::class);
+        }
+
         if (! in_array(\App\Filament\Widgets\OperationsCommandCenterWidget::class, $ordered, true)) {
-            array_unshift($ordered, \App\Filament\Widgets\OperationsCommandCenterWidget::class);
+            $opsIndex = array_search(\App\Filament\Widgets\BillingExecutiveDashboardWidget::class, $ordered, true);
+            array_splice($ordered, $opsIndex === false ? 0 : $opsIndex + 1, 0, [
+                \App\Filament\Widgets\OperationsCommandCenterWidget::class,
+            ]);
         }
 
         return $ordered;
