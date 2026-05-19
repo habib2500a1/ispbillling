@@ -24,19 +24,10 @@ class LandingPageController extends Controller
             'address' => config('isp.company_address'),
             'logo' => CompanyBranding::logoUrl(),
             'packages' => $packages,
-            'adminUrl' => $this->adminUrl(),
+            'adminUrl' => rtrim((string) config('app.url'), '/').'/admin',
             'payUrl' => url('/pay'),
             'portalUrl' => config('portal.enabled', true) ? route('portal.login') : null,
+            'signupUrl' => config('portal.signup.enabled', true) ? route('portal.signup') : null,
         ]);
-    }
-
-    private function adminUrl(): string
-    {
-        $adminHost = config('domains.admin');
-        if (filled($adminHost) && request()->getHost() !== $adminHost) {
-            return 'https://'.$adminHost.'/admin';
-        }
-
-        return url('/admin');
     }
 }

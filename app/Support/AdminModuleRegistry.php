@@ -105,8 +105,8 @@ class AdminModuleRegistry
 
             // ── Support ──
             ['group' => 'Support', 'section' => 'Hub', 'label' => 'Support center', 'description' => 'Tickets · SLA · chat', 'url' => SupportHub::getUrl(), 'accent' => 'text-amber-600', 'icon' => 'heroicon-o-lifebuoy'],
-            ['group' => 'Support', 'section' => 'CRM', 'label' => 'Sales leads', 'description' => 'Pipeline · one-click convert', 'url' => SalesLeadResource::getUrl('index'), 'accent' => 'text-amber-600', 'icon' => 'heroicon-o-user-plus'],
-            ['group' => 'Support', 'section' => 'CRM', 'label' => 'Lead pipeline', 'description' => 'Kanban by stage', 'url' => SalesLeadPipeline::getUrl(), 'accent' => 'text-amber-600', 'icon' => 'heroicon-o-view-columns'],
+            ['group' => 'Support', 'section' => 'CRM', 'label' => 'New connections', 'description' => 'Website signup requests · convert to subscriber', 'url' => SalesLeadResource::getUrl('index'), 'accent' => 'text-amber-600', 'icon' => 'heroicon-o-user-plus'],
+            ['group' => 'Support', 'section' => 'CRM', 'label' => 'Connection pipeline', 'description' => 'Kanban by stage', 'url' => SalesLeadPipeline::getUrl(), 'accent' => 'text-amber-600', 'icon' => 'heroicon-o-view-columns'],
             ['group' => 'Support', 'section' => 'Tickets', 'label' => 'All tickets', 'description' => 'Complaints queue', 'url' => SupportTicketResource::getUrl('index'), 'accent' => 'text-amber-600', 'icon' => 'heroicon-o-chat-bubble-left-right'],
             ['group' => 'Support', 'section' => 'Tasks', 'label' => 'Task board', 'description' => 'Kanban for staff', 'url' => TaskKanbanBoard::getUrl(), 'accent' => 'text-amber-600', 'icon' => 'heroicon-o-view-columns'],
             ['group' => 'Support', 'section' => 'Alerts', 'label' => 'Outage broadcast', 'description' => 'SMS / email alerts', 'url' => BroadcastOutage::getUrl(), 'accent' => 'text-amber-600', 'icon' => 'heroicon-o-megaphone'],

@@ -95,6 +95,13 @@ Route::middleware('auth:reseller')->prefix('reseller')->name('reseller.')->group
     Route::post('/logout', [ResellerLoginController::class, 'destroy'])->name('logout');
 });
 
+Route::middleware(['guest:customer', 'throttle:15,1'])->group(function () {
+    Route::get('/portal/signup', [PortalSignupController::class, 'create'])->name('portal.signup');
+    Route::post('/portal/signup', [PortalSignupController::class, 'store'])->name('portal.signup.store');
+    Route::get('/portal/signup/success', [PortalSignupController::class, 'success'])->name('portal.signup.success');
+    Route::redirect('/signup', '/portal/signup', 301);
+});
+
 Route::middleware(['portal.enabled', 'guest:customer', 'throttle:15,1'])->group(function () {
     Route::get('/login', [PortalLoginController::class, 'create'])->name('portal.login');
     Route::post('/login', [PortalLoginController::class, 'store'])->name('portal.login.store');
@@ -102,9 +109,6 @@ Route::middleware(['portal.enabled', 'guest:customer', 'throttle:15,1'])->group(
     Route::post('/login/otp', [PortalLoginController::class, 'otpVerify'])->name('portal.login.otp.verify');
     Route::redirect('/portal/login', '/login', 301);
     Route::redirect('/portal/login/otp', '/login/otp', 301);
-    Route::get('/portal/signup', [PortalSignupController::class, 'create'])->name('portal.signup');
-    Route::post('/portal/signup', [PortalSignupController::class, 'store'])->name('portal.signup.store');
-    Route::get('/portal/signup/success', [PortalSignupController::class, 'success'])->name('portal.signup.success');
 });
 
 Route::middleware('throttle:30,1')->prefix('hotspot')->name('hotspot.')->group(function (): void {

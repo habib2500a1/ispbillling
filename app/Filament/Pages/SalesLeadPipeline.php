@@ -12,9 +12,9 @@ class SalesLeadPipeline extends Page
 
     protected static string $view = 'filament.pages.sales-lead-pipeline';
 
-    protected static ?string $navigationLabel = 'Lead pipeline';
+    protected static ?string $navigationLabel = 'Connection pipeline';
 
-    protected static ?string $title = 'Sales lead pipeline';
+    protected static ?string $title = 'New connection pipeline';
 
     protected static ?string $navigationGroup = 'Support';
 

@@ -101,10 +101,14 @@
                 </div>
             </div>
             <nav>
+                @if ($signupUrl ?? null)
+                    <a class="btn-ghost" href="{{ $signupUrl }}">New connection</a>
+                @endif
                 @if ($portalUrl)
                     <a class="btn-ghost" href="{{ $portalUrl }}">Customer portal</a>
                 @endif
                 <a class="btn-primary" href="{{ $payUrl }}">Pay bill online</a>
+                <a class="btn-ghost" href="{{ $adminUrl }}">Staff</a>
             </nav>
         </header>
 
@@ -113,6 +117,9 @@
             <p class="lead">{{ $tagline }}. Choose a package, pay online, and manage your connection from our customer portal.</p>
             <div class="hero-actions">
                 <a class="btn-primary" href="#packages" style="padding:.65rem 1.25rem;border-radius:.5rem;text-decoration:none;font-weight:600;">View packages</a>
+                @if ($signupUrl ?? null)
+                    <a class="btn-ghost" href="{{ $signupUrl }}" style="padding:.65rem 1.25rem;border-radius:.5rem;text-decoration:none;font-weight:600;">Request new connection</a>
+                @endif
                 <a class="btn-ghost" href="{{ $payUrl }}" style="padding:.65rem 1.25rem;border-radius:.5rem;text-decoration:none;font-weight:600;">Quick bill pay</a>
             </div>
         </section>
@@ -152,8 +159,10 @@
                         @endif
                         <li>Billing every {{ $pkg->billing_cycle_days ?? 30 }} days</li>
                     </ul>
-                    @if ($portalUrl)
-                        <a href="{{ $portalUrl }}">Request connection</a>
+                    @if ($signupUrl ?? null)
+                        <a href="{{ $signupUrl }}">Request connection</a>
+                    @elseif ($portalUrl)
+                        <a href="{{ $portalUrl }}">Customer portal</a>
                     @else
                         <a href="{{ $payUrl }}">Pay bill / contact</a>
                     @endif
