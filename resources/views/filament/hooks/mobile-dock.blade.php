@@ -124,7 +124,12 @@
                 type="button"
                 class="isp-mobile-bar__chip isp-mobile-bar__chip--menu"
                 x-on:click.stop="
-                    $store.sidebar.isOpen ? $store.sidebar.close() : $store.sidebar.open();
+                    if ($store.sidebar.isOpen) {
+                        $store.sidebar.close();
+                    } else {
+                        $store.sidebar.open();
+                        window.dispatchEvent(new CustomEvent('isp-focus-sidebar-menu-search'));
+                    }
                     syncSidebarBodyClass();
                 "
                 :class="{ 'isp-mobile-bar__chip--active': $store.sidebar.isOpen }"

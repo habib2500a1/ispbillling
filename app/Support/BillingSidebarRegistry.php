@@ -5,6 +5,7 @@ namespace App\Support;
 use App\Filament\Pages\BillCollectionDesk;
 use App\Filament\Pages\CollectionDeskReport;
 use App\Filament\Pages\CollectorMobile;
+use App\Filament\Pages\ManageCollectionDiscountSettings;
 use App\Filament\Pages\CollectorVisitsReport;
 use App\Filament\Resources\CouponResource;
 use App\Filament\Resources\InvoiceResource;
@@ -107,10 +108,18 @@ final class BillingSidebarRegistry
                 'active_routes' => ['filament.admin.pages.collector-mobile'],
             ],
             [
+                'key' => 'collection_discount_settings',
+                'label' => 'Collection discounts',
+                'icon' => 'heroicon-o-receipt-percent',
+                'sort' => 7,
+                'url_target' => 'collection.discount_settings',
+                'active_routes' => ['filament.admin.pages.manage-collection-discount-settings'],
+            ],
+            [
                 'key' => 'coupons',
                 'label' => 'Coupons',
                 'icon' => 'heroicon-o-ticket',
-                'sort' => 7,
+                'sort' => 8,
                 'url_target' => 'coupons.index',
                 'active_routes' => [
                     'filament.admin.resources.coupons.index',
@@ -122,7 +131,7 @@ final class BillingSidebarRegistry
                 'key' => 'today_collection',
                 'label' => "Today's collection",
                 'icon' => 'heroicon-o-calendar-days',
-                'sort' => 8,
+                'sort' => 9,
                 'count_key' => 'today_collection',
                 'url_target' => 'collection.today',
                 'active_routes' => [
@@ -133,7 +142,7 @@ final class BillingSidebarRegistry
                 'key' => 'all_collection',
                 'label' => 'All collection',
                 'icon' => 'heroicon-o-banknotes',
-                'sort' => 9,
+                'sort' => 10,
                 'url_target' => 'collection.month',
                 'active_routes' => [
                     'filament.admin.pages.collection-desk-report',
@@ -143,7 +152,7 @@ final class BillingSidebarRegistry
                 'key' => 'collector_visits',
                 'label' => 'Collector visits',
                 'icon' => 'heroicon-o-map-pin',
-                'sort' => 10,
+                'sort' => 11,
                 'url_target' => 'collector.visits',
                 'active_routes' => ['filament.admin.pages.collector-visits-report'],
             ],
@@ -210,6 +219,7 @@ final class BillingSidebarRegistry
     {
         return match ($key) {
             'collection_desk' => BillCollectionDesk::canAccess(),
+            'collection_discount_settings' => ManageCollectionDiscountSettings::canAccess(),
             'collector_mobile' => CollectorMobile::canAccess(),
             'collector_visits' => CollectorVisitsReport::canAccess(),
             'coupons' => CouponResource::canViewAny(),
@@ -231,6 +241,7 @@ final class BillingSidebarRegistry
             'collection.today' => CollectionDeskReport::getUrl(['preset' => 'today']),
             'collection.month' => CollectionDeskReport::getUrl(['preset' => 'month']),
             'collection.desk' => BillCollectionDesk::getUrl(),
+            'collection.discount_settings' => ManageCollectionDiscountSettings::getUrl(),
             'collector.mobile' => CollectorMobile::getUrl(),
             'collector.visits' => CollectorVisitsReport::getUrl(),
             'coupons.index' => CouponResource::getUrl(),

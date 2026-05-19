@@ -1,9 +1,10 @@
 @php
     $rows = $rows ?? collect();
 @endphp
-<section class="isp-cmd-feed">
+<section class="isp-cmd-feed isp-cmd-feed--pro">
     <header class="isp-cmd-feed__head">
         <h3>{{ $title }}</h3>
+        <span class="isp-cmd-feed__count">{{ $rows->count() }}</span>
     </header>
     <div class="isp-cmd-feed__body">
         <table class="isp-cmd-feed__table">

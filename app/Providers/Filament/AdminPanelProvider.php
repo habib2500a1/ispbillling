@@ -52,60 +52,28 @@ class AdminPanelProvider extends PanelProvider
             ->darkMode(true)
             ->defaultThemeMode(ThemeMode::System)
             ->sidebarCollapsibleOnDesktop()
-            ->sidebarFullyCollapsibleOnDesktop()
+            ->collapsedSidebarWidth('4.5rem')
             ->globalSearch(IspGlobalSearchProvider::class)
             ->globalSearchDebounce('300ms')
             ->globalSearchKeyBindings(['command+k', 'ctrl+k'])
             ->maxContentWidth('full')
             ->navigationGroups([
-                NavigationGroup::make('Overview')
-                    ->icon('heroicon-o-home')
-                    ->collapsed(false),
-                NavigationGroup::make('Clients')
-                    ->icon('heroicon-o-users')
-                    ->collapsed(false),
-                NavigationGroup::make('Billing')
-                    ->icon('heroicon-o-document-text')
-                    ->collapsed(false),
-                NavigationGroup::make('Payments')
-                    ->icon('heroicon-o-banknotes')
-                    ->collapsed(false),
-                NavigationGroup::make('OLT & Tools')
-                    ->icon('heroicon-o-server-stack')
-                    ->collapsed(false),
-                NavigationGroup::make('Network')
-                    ->icon('heroicon-o-signal')
-                    ->collapsed(false),
-                NavigationGroup::make('SMS Service')
-                    ->icon('heroicon-o-chat-bubble-left-ellipsis')
-                    ->collapsed(false),
-                NavigationGroup::make('Support')
-                    ->icon('heroicon-o-lifebuoy')
-                    ->collapsed(false),
-                NavigationGroup::make('Reports')
-                    ->icon('heroicon-o-chart-bar')
-                    ->collapsed(false),
-                NavigationGroup::make('BW Client')
-                    ->icon('heroicon-o-arrows-right-left')
-                    ->collapsed(false),
-                NavigationGroup::make('HRM')
-                    ->icon('heroicon-o-briefcase')
-                    ->collapsed(false),
-                NavigationGroup::make('Inventory')
-                    ->icon('heroicon-o-cube')
-                    ->collapsed(false),
-                NavigationGroup::make('Resellers')
-                    ->icon('heroicon-o-building-storefront')
-                    ->collapsed(false),
-                NavigationGroup::make('Accounts')
-                    ->icon('heroicon-o-currency-dollar')
-                    ->collapsed(false),
-                NavigationGroup::make('Settings')
-                    ->icon('heroicon-o-adjustments-horizontal')
-                    ->collapsed(false),
-                NavigationGroup::make('System')
-                    ->icon('heroicon-o-cog-6-tooth')
-                    ->collapsed(false),
+                NavigationGroup::make('Overview')->collapsed(false),
+                NavigationGroup::make('Clients')->collapsed(false),
+                NavigationGroup::make('Billing')->collapsed(false),
+                NavigationGroup::make('Payments')->collapsed(false),
+                NavigationGroup::make('OLT & Tools')->collapsed(false),
+                NavigationGroup::make('Network')->collapsed(false),
+                NavigationGroup::make('SMS Service')->collapsed(false),
+                NavigationGroup::make('Support')->collapsed(false),
+                NavigationGroup::make('Reports')->collapsed(false),
+                NavigationGroup::make('BW Client')->collapsed(false),
+                NavigationGroup::make('HRM')->collapsed(false),
+                NavigationGroup::make('Inventory')->collapsed(false),
+                NavigationGroup::make('Resellers')->collapsed(false),
+                NavigationGroup::make('Accounts')->collapsed(false),
+                NavigationGroup::make('Settings')->collapsed(false),
+                NavigationGroup::make('System')->collapsed(false),
             ])
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\\Filament\\Resources')
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\\Filament\\Pages')
@@ -140,6 +108,10 @@ class AdminPanelProvider extends PanelProvider
             ->renderHook(
                 PanelsRenderHook::TOPBAR_START,
                 fn (): string => view('filament.hooks.topbar-mobile-logo')->render(),
+            )
+            ->renderHook(
+                PanelsRenderHook::SIDEBAR_NAV_START,
+                fn (): string => view('filament.hooks.sidebar-menu-search')->render(),
             )
             ->renderHook(
                 PanelsRenderHook::USER_MENU_BEFORE,

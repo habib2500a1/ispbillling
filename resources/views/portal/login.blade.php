@@ -3,12 +3,12 @@
 @section('title', __('portal.login_title'))
 
 @section('content')
-    <div class="mx-auto max-w-md text-center">
-        <span class="inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-500 to-fuchsia-500 text-2xl font-bold text-white shadow-xl">P</span>
-        <h1 class="mt-4 text-2xl font-bold text-slate-900">{{ __('portal.customer_portal') }}</h1>
-        <p class="mt-2 text-sm text-slate-600">
-            {{ __('portal.login_hint') }}
-        </p>
+    <div class="portal-auth-card mx-auto max-w-md text-center">
+        <div class="portal-auth-brand">
+            @include('portal.partials.brand-mark')
+        </div>
+        <h1 class="portal-auth-title">{{ $companyName }}</h1>
+        <p class="portal-auth-sub">{{ __('portal.customer_portal') }} · {{ __('portal.login_hint') }}</p>
         @if ($portalOtpEnabled ?? false)
             <p class="mt-3 rounded-xl bg-amber-50 px-3 py-2 text-sm text-amber-900 ring-1 ring-amber-200">
                 Two-step login: you will enter a code sent to your email after your password.

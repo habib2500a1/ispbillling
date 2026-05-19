@@ -430,7 +430,7 @@ class CustomerResource extends Resource
             ->columns([
                 Tables\Columns\TextColumn::make('name')
                     ->label('Subscriber')
-                    ->searchable(['name', 'customer_code', 'phone', 'email'])
+                    ->searchable(['name', 'customer_code', 'phone', 'email', 'address', 'mikrotik_secret_name', 'radius_username', 'nid_number'])
                     ->sortable()
                     ->weight(FontWeight::SemiBold)
                     ->wrap()

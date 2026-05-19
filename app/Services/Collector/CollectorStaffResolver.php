@@ -2,6 +2,7 @@
 
 namespace App\Services\Collector;
 
+use App\Models\Payment;
 use App\Models\User;
 use App\Support\TenantResolver;
 use Illuminate\Support\Collection;
@@ -35,28 +36,49 @@ final class CollectorStaffResolver
     public function collectableStaffOptions(?int $tenantId = null): array
     {
         $tenantId ??= TenantResolver::requiredTenantId();
-        $roles = config('collector.collectable_roles', ['cashier', 'branch-manager']);
 
-        $users = User::query()
+        $query = User::query()
             ->where('tenant_id', $tenantId)
-            ->where('is_active', true)
-            ->where(function ($q) use ($roles): void {
+            ->where('is_active', true);
+
+        if ($this->canPickCollector()) {
+            // Admin/manager: any active staff user in tenant.
+            $query->orderBy('name');
+        } else {
+            $roles = config('collector.collectable_roles', ['cashier', 'branch-manager']);
+            $query->where(function ($q) use ($roles): void {
                 $q->whereHas('roles', fn ($r) => $r->whereIn('name', $roles));
                 if (auth()->id()) {
                     $q->orWhere('id', auth()->id());
                 }
-            })
-            ->orderBy('name')
-            ->get(['id', 'name', 'email']);
+            })->orderBy('name');
+        }
 
-        return $users->mapWithKeys(function (User $user): array {
+        return $query->with('roles')->get(['id', 'name', 'email'])->mapWithKeys(function (User $user): array {
             $label = $user->name;
+            $roles = $user->roles->pluck('name')->take(2)->implode(', ');
+            if ($roles !== '') {
+                $label .= ' · '.$roles;
+            }
             if (auth()->id() === $user->id) {
                 $label .= ' (me)';
             }
 
             return [$user->id => $label];
         })->all();
+    }
+
+    /**
+     * Resolve which staff member owns this collection (settlement / due).
+     */
+    public function resolveCollectorUserIdFromPayment(Payment $payment): ?int
+    {
+        $meta = $payment->meta ?? [];
+        if (! empty($meta['collector_attributed_to'])) {
+            return (int) $meta['collector_attributed_to'];
+        }
+
+        return $payment->recorded_by !== null ? (int) $payment->recorded_by : null;
     }
 
     /**

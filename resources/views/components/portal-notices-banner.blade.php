@@ -28,17 +28,5 @@
             .isp-portal-notices--landing .isp-portal-notices__title { font-weight: 700; font-size: .9rem; color: #86efac; }
             .isp-portal-notices--landing .isp-portal-notices__body { margin-top: .35rem; font-size: .82rem; color: #94a3b8; }
         </style>
-    @else
-        <style>
-            .isp-portal-notices--portal { display: grid; gap: .75rem; margin-top: 1rem; }
-            .isp-portal-notices--portal .isp-portal-notices__card {
-                padding: .85rem 1rem;
-                border-radius: .75rem;
-                border: 1px solid #86efac;
-                background: #ecfdf5;
-            }
-            .isp-portal-notices--portal .isp-portal-notices__title { font-weight: 700; font-size: .9rem; color: #14532d; }
-            .isp-portal-notices--portal .isp-portal-notices__body { margin-top: .35rem; font-size: .82rem; color: #166534; }
-        </style>
     @endif
 @endif

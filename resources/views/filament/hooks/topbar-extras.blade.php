@@ -48,6 +48,17 @@
     </div>
     <button
         type="button"
+        class="isp-topbar-menu-search inline-flex items-center gap-1 rounded-lg border border-gray-200 bg-white/80 px-2.5 py-1.5 text-xs font-semibold text-gray-600 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-900/80 dark:text-gray-300"
+        title="Open full menu"
+        x-show="! $store.sidebar.isOpen"
+        x-cloak
+        @click="$store.sidebar.open(); window.dispatchEvent(new CustomEvent('isp-focus-sidebar-menu-search'));"
+    >
+        <x-filament::icon icon="heroicon-m-bars-3-bottom-left" class="h-4 w-4" />
+        Menu
+    </button>
+    <button
+        type="button"
         class="isp-theme-btn text-xs font-semibold text-gray-600 dark:text-gray-300"
         title="Smart search (Ctrl+K)"
         @click="window.dispatchEvent(new CustomEvent('isp-open-command-palette'))"

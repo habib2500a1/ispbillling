@@ -60,28 +60,5 @@
                 to { transform: translateX(-50%); }
             }
         </style>
-    @else
-        <style>
-            .isp-portal-marquee--portal {
-                margin-top: 1rem;
-                overflow: hidden;
-                border-radius: .75rem;
-                border: 1px solid #e2e8f0;
-                background: linear-gradient(90deg, #f8fafc, #ede9fe);
-            }
-            .isp-portal-marquee--portal .isp-portal-marquee__track {
-                display: flex;
-                gap: 2rem;
-                width: max-content;
-                padding: .5rem 0;
-                animation: isp-marquee-scroll 28s linear infinite;
-                white-space: nowrap;
-                font-size: .8rem;
-                font-weight: 600;
-                color: #6d28d9;
-            }
-            .isp-portal-marquee--portal .isp-portal-marquee__item a { color: inherit; text-decoration: none; }
-            .isp-portal-marquee--portal .isp-portal-marquee__sep { color: #94a3b8; }
-        </style>
     @endif
 @endif

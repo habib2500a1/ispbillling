@@ -118,18 +118,36 @@
                     <form wire:submit="collectPayment" class="isp-collection-form max-w-3xl space-y-4 rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-900">
                         @if ($this->canPickCollector() && count($this->getCollectorStaffOptions()) > 0)
                             <div class="rounded-lg border border-violet-200 bg-violet-50/50 p-3 dark:border-violet-900/40 dark:bg-violet-950/20">
-                                <label class="mb-1 block text-xs font-bold uppercase text-violet-800 dark:text-violet-200">Collection credited to</label>
-                                <select wire:model="collectorUserId" class="isp-collection-select w-full">
+                                <label class="mb-1 block text-xs font-bold uppercase text-violet-800 dark:text-violet-200">Collection credited to (staff) *</label>
+                                <select wire:model.live="collectorUserId" class="isp-collection-select w-full" required>
                                     @foreach ($this->getCollectorStaffOptions() as $id => $label)
                                         <option value="{{ $id }}">{{ $label }}</option>
                                     @endforeach
                                 </select>
-                                <p class="mt-1 text-xs text-violet-900/70 dark:text-violet-200/70">Entered by admin: {{ auth()->user()?->name }}</p>
+                                <p class="mt-1 text-xs text-violet-900/70 dark:text-violet-200/70">
+                                    Due/settlement এই staff-এর ওপর। Enter করছেন: <strong>{{ auth()->user()?->name }}</strong>
+                                </p>
+                                @error('collectorUserId')
+                                    <p class="mt-1 text-xs font-semibold text-rose-600">{{ $message }}</p>
+                                @enderror
                             </div>
                         @elseif (! $this->canPickCollector())
                             <p class="rounded-lg bg-gray-50 px-3 py-2 text-xs text-gray-600 dark:bg-gray-800 dark:text-gray-400">
                                 Collector: <strong>{{ auth()->user()?->name }}</strong>
                             </p>
+                        @endif
+                        @if (($selectedCustomer['account_balance'] ?? 0) > 0)
+                            <div class="rounded-lg border border-fuchsia-200 bg-fuchsia-50/60 px-4 py-3 text-sm dark:border-fuchsia-900/40 dark:bg-fuchsia-950/30">
+                                <p class="font-semibold text-fuchsia-900 dark:text-fuchsia-100">
+                                    Customer wallet: {{ number_format($selectedCustomer['account_balance'], 2) }} BDT
+                                </p>
+                                @if ($invoiceId && $this->selectedInvoiceBalanceDue() !== null)
+                                    <label class="mt-2 flex items-center gap-2 text-xs text-fuchsia-900 dark:text-fuchsia-100">
+                                        <input type="checkbox" wire:model.live="useCustomerWallet" class="rounded border-fuchsia-400" />
+                                        Apply wallet to this bill first (then cash for remainder)
+                                    </label>
+                                @endif
+                            </div>
                         @endif
                         @if (! empty($selectedCustomer['invoices']))
                             <div>
@@ -148,17 +166,42 @@
 
                         @if ($this->selectedInvoiceBalanceDue() !== null)
                             <div class="rounded-lg border border-amber-200 bg-amber-50/80 px-4 py-3 text-sm dark:border-amber-800 dark:bg-amber-950/30">
-                                <p class="font-semibold text-amber-900 dark:text-amber-100">Partial payment supported</p>
+                                <p class="font-semibold text-amber-900 dark:text-amber-100">Partial payment & notes</p>
                                 <p class="mt-1 text-amber-800 dark:text-amber-200">
                                     Bill due: <strong>{{ number_format($this->selectedInvoiceBalanceDue(), 2) }} BDT</strong>.
-                                    Amount কম দিলে বাকি due থাকবে (যেমন due ৫০০, নিলেন ২০০ → বাকি ৩০০)।
-                                    <strong>Notes</strong> ফিল্ডে কারণ লিখুন।
+                                    কম টাকা নিলে বাকি due থাকবে — অবশ্যই <strong>Notes</strong> এ কারণ লিখুন।
                                 </p>
-                                @if (is_numeric($amount) && (float) $amount > 0 && $this->partialPaymentRemaining() !== null && $this->partialPaymentRemaining() < $this->selectedInvoiceBalanceDue())
-                                    <p class="mt-2 font-bold text-rose-700 dark:text-rose-300">
-                                        After this payment: {{ number_format($this->partialPaymentRemaining(), 2) }} BDT will remain due
+                                @if ($this->previewCollectionDiscountBdt() > 0)
+                                    <p class="mt-2 text-amber-900 dark:text-amber-100">
+                                        Collection discount: <strong>{{ number_format($this->previewCollectionDiscountBdt(), 2) }} BDT</strong>
                                     </p>
                                 @endif
+                                @if (is_numeric($amount) && (float) $amount > 0 && $this->partialPaymentRemaining() !== null && $this->partialPaymentRemaining() < $this->selectedInvoiceBalanceDue())
+                                    <p class="mt-2 font-bold text-rose-700 dark:text-rose-300">
+                                        After cash + discount: {{ number_format($this->partialPaymentRemaining(), 2) }} BDT will remain due
+                                    </p>
+                                @endif
+                            </div>
+                        @endif
+
+                        @if ($this->canApplyCollectionDiscount() && count($this->getCollectionDiscountPresetOptions()) > 0)
+                            <div class="rounded-lg border border-violet-200 bg-violet-50/50 p-3 dark:border-violet-900/40 dark:bg-violet-950/20">
+                                <label class="mb-1 block text-xs font-bold uppercase text-violet-800 dark:text-violet-200">Collection discount (optional)</label>
+                                <select wire:model.live="collectionDiscountPreset" class="isp-collection-select w-full">
+                                    @foreach ($this->getCollectionDiscountPresetOptions() as $id => $label)
+                                        <option value="{{ $id }}">{{ $label }}</option>
+                                    @endforeach
+                                </select>
+                                @if ($this->collectionDiscountAllowsCustom() && $collectionDiscountPreset === 'none')
+                                    <div class="mt-2">
+                                        <label class="mb-1 block text-xs font-semibold text-violet-900/80 dark:text-violet-200/80">Custom discount (BDT)</label>
+                                        <input type="number" step="0.01" min="0" wire:model.live="collectionDiscountCustom" class="isp-collection-input w-full" placeholder="Max per admin settings" />
+                                    </div>
+                                @endif
+                                <p class="mt-1 text-xs text-violet-900/70 dark:text-violet-200/70">
+                                    Discount বিলে যোগ হবে।
+                                    <a href="{{ \App\Filament\Pages\ManageCollectionDiscountSettings::getUrl() }}" class="font-semibold underline">Discount presets (admin)</a>
+                                </p>
                             </div>
                         @endif
 
@@ -166,6 +209,9 @@
                             <div>
                                 <label class="mb-1 block text-xs font-bold uppercase text-gray-500">Amount (BDT)</label>
                                 <input type="number" step="0.01" min="0.01" @if($this->selectedInvoiceBalanceDue()) max="{{ $this->selectedInvoiceBalanceDue() }}" @endif wire:model.live="amount" class="isp-collection-input w-full text-lg font-bold" required />
+                                @if ($this->selectedInvoiceBalanceDue() !== null)
+                                    <p class="mt-1 text-xs text-gray-500">Invoice due auto-filled — collector can edit (partial pay allowed).</p>
+                                @endif
                             </div>
                             <div>
                                 <label class="mb-1 block text-xs font-bold uppercase text-gray-500">Method</label>
@@ -183,8 +229,13 @@
                                 <input type="text" wire:model="reference" class="isp-collection-input w-full" placeholder="Optional" />
                             </div>
                             <div>
-                                <label class="mb-1 block text-xs font-bold uppercase text-gray-500">Notes</label>
-                                <input type="text" wire:model="notes" class="isp-collection-input w-full" placeholder="যেমন: ৫০০ এর মধ্যে ২০০ নিলাম, বাকি পরে" />
+                                <label class="mb-1 block text-xs font-bold uppercase text-gray-500">
+                                    Notes
+                                    @if ($this->notesRequiredForCollection())
+                                        <span class="text-rose-600">*</span>
+                                    @endif
+                                </label>
+                                <input type="text" wire:model="notes" @class(['isp-collection-input w-full', 'ring-2 ring-amber-400' => $this->notesRequiredForCollection()]) placeholder="যেমন: ৫০০ এর মধ্যে ২০০ নিলাম, বাকি ১৫ তারিখে" @if($this->notesRequiredForCollection()) required @endif />
                             </div>
                         </div>
 

@@ -129,9 +129,41 @@
                         <p class="font-bold">{{ $selectedCustomer['name'] ?? '' }}</p>
                         <button type="button" wire:click="$set('selectedCustomerId', null)" class="text-xs text-gray-500 hover:underline">Change</button>
                     </div>
+                    @if (! empty($selectedCustomer['invoices']))
+                        <div>
+                            <label class="text-xs font-bold uppercase text-gray-500">Apply to invoice</label>
+                            <select wire:model.live="invoiceId" class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-800">
+                                <option value="">— Wallet —</option>
+                                @foreach ($selectedCustomer['invoices'] as $inv)
+                                    <option value="{{ $inv['id'] }}">{{ $inv['invoice_number'] }} · {{ number_format($inv['balance_due'], 0) }} due</option>
+                                @endforeach
+                            </select>
+                        </div>
+                    @endif
+                    @if ($this->selectedInvoiceBalanceDue() !== null)
+                        <p class="rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-900 dark:bg-amber-950/40 dark:text-amber-100">
+                            Due {{ number_format($this->selectedInvoiceBalanceDue(), 2) }} BDT — partial pay এ note লিখুন।
+                        </p>
+                    @endif
+                    @if ($this->canApplyCollectionDiscount() && count($this->getCollectionDiscountPresetOptions()) > 0)
+                        <div>
+                            <label class="text-xs font-bold uppercase text-gray-500">Discount</label>
+                            <select wire:model.live="collectionDiscountPreset" class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-800">
+                                @foreach ($this->getCollectionDiscountPresetOptions() as $id => $label)
+                                    <option value="{{ $id }}">{{ $label }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                    @endif
                     <div>
                         <label class="text-xs font-bold uppercase text-gray-500">Amount (BDT)</label>
-                        <input type="number" step="0.01" min="0.01" wire:model="amount" class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-800" required />
+                        <input type="number" step="0.01" min="0.01" wire:model.live="amount" class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-800" required />
+                    </div>
+                    <div>
+                        <label class="text-xs font-bold uppercase text-gray-500">
+                            Notes @if ($this->notesRequiredForCollection())<span class="text-rose-600">*</span>@endif
+                        </label>
+                        <input type="text" wire:model="notes" class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-800" placeholder="Partial / discount reason" @if($this->notesRequiredForCollection()) required @endif />
                     </div>
                     <div>
                         <label class="text-xs font-bold uppercase text-gray-500">Method</label>

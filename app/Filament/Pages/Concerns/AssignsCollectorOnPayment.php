@@ -10,7 +10,23 @@ trait AssignsCollectorOnPayment
 
     public function mountCollectorAssignment(): void
     {
-        $this->collectorUserId = app(CollectorStaffResolver::class)->defaultCollectorId();
+        $resolver = app(CollectorStaffResolver::class);
+
+        if ($resolver->canPickCollector()) {
+            $options = $resolver->collectableStaffOptions();
+            $this->collectorUserId = null;
+            foreach (array_keys($options) as $id) {
+                if ((int) $id !== (int) auth()->id()) {
+                    $this->collectorUserId = (int) $id;
+                    break;
+                }
+            }
+            if ($this->collectorUserId === null && $options !== []) {
+                $this->collectorUserId = (int) array_key_first($options);
+            }
+        } else {
+            $this->collectorUserId = $resolver->defaultCollectorId();
+        }
     }
 
     public function canPickCollector(): bool
@@ -29,19 +45,18 @@ trait AssignsCollectorOnPayment
     protected function resolveCollectorIdForPayment(): int
     {
         $resolver = app(CollectorStaffResolver::class);
-        $collectorId = (int) ($this->collectorUserId ?? 0);
-
-        if ($collectorId < 1) {
-            $collectorId = $resolver->defaultCollectorId();
-        }
 
         if (! $resolver->canPickCollector()) {
             return $resolver->defaultCollectorId();
         }
 
+        $collectorId = (int) ($this->collectorUserId ?? 0);
         $options = $resolver->collectableStaffOptions();
-        if (! array_key_exists($collectorId, $options)) {
-            return $resolver->defaultCollectorId();
+
+        if ($collectorId < 1 || ! array_key_exists($collectorId, $options)) {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'collectorUserId' => 'Select which staff member receives credit for this collection.',
+            ]);
         }
 
         return $collectorId;

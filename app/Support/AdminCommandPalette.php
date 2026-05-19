@@ -52,6 +52,7 @@ class AdminCommandPalette
             ['group' => 'Overview', 'label' => 'Dashboard hub (NOC / Billing / Support)', 'url' => DashboardHub::getUrl()],
             ['group' => 'Billing', 'label' => 'Billing overview', 'url' => BillingOverview::getUrl()],
             ['group' => 'Billing', 'label' => 'Bill collection desk', 'url' => BillCollectionDesk::getUrl()],
+            ['group' => 'Billing', 'label' => 'Collection discount settings', 'url' => \App\Filament\Pages\ManageCollectionDiscountSettings::getUrl()],
             ['group' => 'Billing', 'label' => 'Collection report', 'url' => CollectionDeskReport::getUrl()],
             ['group' => 'Billing', 'label' => 'Collector visits (GPS map)', 'url' => CollectorVisitsReport::getUrl()],
             ['group' => 'Billing', 'label' => 'Collector mobile (GPS)', 'url' => CollectorMobile::getUrl()],

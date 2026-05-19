@@ -35,6 +35,7 @@ use App\Services\Network\RadiusNetworkProvisioner;
 use App\Listeners\RecordStaffLogout;
 use App\Models\User;
 use App\View\Composers\BillPaymentViewComposer;
+use App\View\Composers\PortalViewComposer;
 use Illuminate\Support\Facades\View;
 use Illuminate\Auth\Events\Logout;
 use Illuminate\Cache\RateLimiting\Limit;
@@ -55,6 +56,11 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
+        // Laravel picks resources/lang when that folder exists; app strings live in /lang.
+        if (is_dir($lang = base_path('lang'))) {
+            $this->app->useLangPath($lang);
+        }
+
         $this->app->singleton(NetworkAccessProvisioner::class, function ($app): NetworkAccessProvisioner {
             return match (config('network.provisioner_driver', 'null')) {
                 'log' => new LogNetworkProvisioner,
@@ -99,6 +105,7 @@ class AppServiceProvider extends ServiceProvider
         });
 
         View::composer('bill-payment.*', BillPaymentViewComposer::class);
+        View::composer('portal.*', PortalViewComposer::class);
 
         try {
             if (Cache::remember('bootstrap.app_settings_table', 300, fn (): bool => Schema::hasTable('app_settings'))) {

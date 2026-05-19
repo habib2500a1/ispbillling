@@ -8,8 +8,8 @@
 @endphp
 
 <x-filament-widgets::widget>
-    <div class="isp-cmd-center" wire:poll.60s>
-        <header class="isp-cmd-hero">
+    <div class="isp-cmd-center isp-cmd-center--pro" wire:poll.60s>
+        <header class="isp-cmd-hero isp-cmd-hero--pro">
             <div class="isp-cmd-hero__main">
                 <div class="isp-cmd-hero__live">
                     <span class="isp-live-dot" aria-hidden="true"></span>
@@ -62,10 +62,13 @@
         <div class="isp-cmd-sections">
             @foreach ($sections as $section)
                 <section @class(['isp-cmd-section', 'isp-cmd-section--' . ($section['accent'] ?? 'teal')])>
-                    <h3 class="isp-cmd-section__title">
-                        <x-filament::icon :icon="$section['icon']" class="h-4 w-4" />
-                        {{ $section['title'] }}
-                    </h3>
+                    <header class="isp-cmd-section__title">
+                        <span class="isp-cmd-section__icon">
+                            <x-filament::icon :icon="$section['icon']" class="h-4 w-4" />
+                        </span>
+                        <span class="isp-cmd-section__name">{{ $section['title'] }}</span>
+                        <span class="isp-cmd-section__count">{{ count($section['cards'] ?? []) }}</span>
+                    </header>
                     <div class="isp-cmd-section__grid">
                         @foreach ($section['cards'] as $card)
                             <a
@@ -79,6 +82,9 @@
                             >
                                 <span class="isp-cmd-metric__value">{{ $card['value'] }}</span>
                                 <span class="isp-cmd-metric__label">{{ $card['label'] }}</span>
+                                @if (! empty($card['url']))
+                                    <x-heroicon-m-chevron-right class="isp-cmd-metric__arrow" />
+                                @endif
                             </a>
                         @endforeach
                     </div>

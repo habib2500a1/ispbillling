@@ -61,9 +61,18 @@ final class CollectorSettlementService
             return $existing;
         }
 
-        $collector = User::query()->find($payment->recorded_by);
+        $collectorId = app(CollectorStaffResolver::class)->resolveCollectorUserIdFromPayment($payment);
+        if ($collectorId === null) {
+            return null;
+        }
+
+        $collector = User::query()->find($collectorId);
         if ($collector === null) {
             return null;
+        }
+
+        if ((int) $payment->recorded_by !== $collector->id) {
+            $payment->forceFill(['recorded_by' => $collector->id])->saveQuietly();
         }
 
         $collection = CollectorCollection::query()->create([

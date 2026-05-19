@@ -3,7 +3,9 @@
 namespace App\Filament\Pages;
 
 use App\Filament\Pages\Concerns\AssignsCollectorOnPayment;
+use App\Filament\Pages\Concerns\HandlesCollectionDiscountAndNotes;
 use App\Models\Customer;
+use App\Models\Invoice;
 use App\Models\Payment;
 use App\Services\Billing\BillCollectionSearchService;
 use App\Services\Collector\CollectorCollectionReportService;
@@ -18,6 +20,7 @@ use Illuminate\Support\Collection;
 class CollectorMobile extends Page
 {
     use AssignsCollectorOnPayment;
+    use HandlesCollectionDiscountAndNotes;
 
     protected static ?string $navigationIcon = 'heroicon-o-device-phone-mobile';
 
@@ -47,9 +50,13 @@ class CollectorMobile extends Page
     /** @var array<string, mixed>|null */
     public ?array $selectedCustomer = null;
 
+    public ?int $invoiceId = null;
+
     public string $amount = '';
 
     public string $method = PaymentGateway::CASH;
+
+    public string $notes = '';
 
     public ?float $latitude = null;
 
@@ -135,8 +142,18 @@ class CollectorMobile extends Page
     {
         $this->selectedCustomerId = $customerId;
         $this->selectedCustomer = app(BillCollectionSearchService::class)->find($customerId);
-        if ($this->selectedCustomer !== null && ($this->selectedCustomer['balance_due'] ?? 0) > 0) {
-            $this->amount = (string) $this->selectedCustomer['balance_due'];
+        $this->invoiceId = null;
+        $this->notes = '';
+        $this->resetCollectionDiscountFields();
+
+        if ($this->selectedCustomer !== null) {
+            $invoices = $this->selectedCustomer['invoices'] ?? [];
+            if (count($invoices) === 1) {
+                $this->invoiceId = (int) $invoices[0]['id'];
+                $this->fillAmountFromSelectedInvoiceDue();
+            } elseif (($this->selectedCustomer['balance_due'] ?? 0) > 0) {
+                $this->amount = (string) round((float) $this->selectedCustomer['balance_due'], 2);
+            }
         }
     }
 
@@ -149,30 +166,53 @@ class CollectorMobile extends Page
 
     public function collectPayment(): void
     {
+        if ($this->invoiceId === '' || $this->invoiceId === 0) {
+            $this->invoiceId = null;
+        }
+
         $this->validate([
             'selectedCustomerId' => 'required|integer|exists:customers,id',
             'amount' => 'required|numeric|min:0.01',
             'method' => 'required|string',
             'collectorUserId' => 'nullable|integer|exists:users,id',
+            'invoiceId' => 'nullable|integer|exists:invoices,id',
+            'notes' => 'nullable|string|max:1000',
         ]);
 
         $customer = Customer::query()->findOrFail($this->selectedCustomerId);
+        $invoice = null;
+        if ($this->invoiceId) {
+            $invoice = Invoice::query()
+                ->where('customer_id', $customer->id)
+                ->findOrFail($this->invoiceId);
+        }
+
+        $payAmount = round((float) $this->amount, 2);
+        $discountBdt = $this->validateCollectionPayment($invoice, $payAmount, $this->notes);
+
         $collectorId = $this->resolveCollectorIdForPayment();
         $collector = app(CollectorStaffResolver::class)->resolveCollectorUser($collectorId);
 
         $payment = Payment::createTrusted([
             'tenant_id' => $customer->tenant_id,
             'customer_id' => $customer->id,
+            'invoice_id' => $this->invoiceId,
             'payment_type' => PaymentType::PAYMENT,
-            'amount' => round((float) $this->amount, 2),
+            'amount' => $payAmount,
             'method' => $this->method,
+            'notes' => $this->notes ?: null,
             'status' => 'completed',
             'paid_at' => now(),
             'recorded_by' => $collectorId,
-            'meta' => $this->collectorPaymentMeta($collectorId),
+            'meta' => array_merge(
+                $this->collectorPaymentMeta($collectorId),
+                $this->collectionDiscountMeta($discountBdt),
+            ),
         ]);
 
-        app(CollectorVisitService::class)->logFromPayment($payment, $collector, [
+        $this->applyCollectionDiscountIfNeeded($invoice, $discountBdt, $payment);
+
+        app(CollectorVisitService::class)->logFromPayment($payment->fresh(), $collector, [
             'latitude' => $this->latitude,
             'longitude' => $this->longitude,
             'accuracy_meters' => $this->accuracyMeters,
@@ -183,6 +223,9 @@ class CollectorMobile extends Page
         ]);
 
         $body = number_format((float) $payment->amount, 2).' BDT · Receipt '.$payment->receipt_number;
+        if ($discountBdt > 0) {
+            $body .= ' · Discount '.number_format($discountBdt, 2);
+        }
         if ($collectorId !== (int) auth()->id()) {
             $body .= ' · Credited to '.$collector->name;
         }
@@ -193,7 +236,8 @@ class CollectorMobile extends Page
             ->success()
             ->send();
 
-        $this->reset(['selectedCustomerId', 'selectedCustomer', 'amount', 'search']);
+        $this->reset(['selectedCustomerId', 'selectedCustomer', 'amount', 'search', 'invoiceId', 'notes']);
+        $this->resetCollectionDiscountFields();
         $this->results = collect();
         $this->panelTab = 'activity';
     }

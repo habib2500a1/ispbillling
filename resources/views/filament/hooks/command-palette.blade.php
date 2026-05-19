@@ -35,18 +35,17 @@
             this.searching = false;
         },
     }"
-    
     @isp-open-command-palette.window="open = true; q = ''; entityResults = []; searchError = ''; $nextTick(() => $refs.search?.focus())"
     @keydown.escape.window="open = false"
 >
     <template x-if="open">
-        <div class="isp-cmd-palette" @click.self="open = false">
+        <motion.div class="isp-cmd-palette" @click.self="open = false">
             <div class="isp-cmd-panel isp-cmd-panel--wide" role="dialog" aria-label="Smart search">
                 <input
                     x-ref="search"
                     type="text"
                     class="isp-cmd-input text-gray-900 dark:text-white"
-                    placeholder="ID, name, phone, PPP user, invoice…"
+                    placeholder="ID, name, phone, address, PPP user, invoice…"
                     x-model="q"
                     @input.debounce.300ms="searchEntities()"
                     @keydown.escape="open = false"
@@ -98,7 +97,7 @@
                     <p x-show="filtered.length === 0 && entityResults.length === 0 && !searching && !searchError && q.length >= 2" class="px-4 py-6 text-sm text-gray-500">No matches.</p>
                     <p x-show="searching" class="px-4 py-4 text-sm text-gray-500">Searching…</p>
                 </div>
-            </div>
-        </div>
+            </motion.div>
+        </motion.div>
     </template>
-</div>
+</motion.div>

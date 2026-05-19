@@ -88,4 +88,38 @@ return [
         'invoice_number_prefix' => (string) env('BILLING_INVOICE_PREFIX', 'INV'),
         'invoice_number_year_infix' => filter_var(env('BILLING_INVOICE_YEAR_INFIX', true), FILTER_VALIDATE_BOOL),
     ],
+
+    /**
+     * Collection desk: partial-pay notes + admin-managed discount presets.
+     * Overrides stored in app_settings key billing.collection_discount (JSON).
+     */
+    'collection_discount' => [
+        'enabled' => true,
+        'require_note_on_partial' => true,
+        'require_note_on_discount' => true,
+        'allow_custom_amount' => true,
+        'max_discount_bdt' => 500.0,
+        'max_discount_percent_of_due' => 50.0,
+        'presets' => [
+            [
+                'id' => 'waiver_50',
+                'label' => '৫০ টাকা ছাড়',
+                'type' => 'fixed',
+                'amount' => 50,
+            ],
+            [
+                'id' => 'waiver_10pct',
+                'label' => '১০% ছাড় (সর্বোচ্চ ২০০)',
+                'type' => 'percent',
+                'amount' => 10,
+                'max_bdt' => 200,
+            ],
+            [
+                'id' => 'waiver_100',
+                'label' => '১০০ টাকা ছাড়',
+                'type' => 'fixed',
+                'amount' => 100,
+            ],
+        ],
+    ],
 ];

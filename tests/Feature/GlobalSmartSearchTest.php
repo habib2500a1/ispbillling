@@ -66,4 +66,30 @@ class GlobalSmartSearchTest extends TestCase
         $this->assertStringContainsString('bill-collection', (string) $payUrl);
         $this->assertStringContainsString('customer=', (string) $payUrl);
     }
+
+    public function test_smart_search_finds_customer_by_address(): void
+    {
+        $user = User::factory()->create(['tenant_id' => 1]);
+        Role::findOrCreate('isp-admin');
+        $user->assignRole('isp-admin');
+
+        Customer::query()->create([
+            'tenant_id' => 1,
+            'name' => 'Address Test User',
+            'customer_code' => 'ADDR-001',
+            'phone' => '01700000099',
+            'address' => 'House 12, Road 5, Mirpur',
+            'status' => 'active',
+        ]);
+
+        $response = $this->actingAs($user)
+            ->getJson(route('admin.smart-search', ['q' => 'Road 5']))
+            ->assertOk()
+            ->assertJsonPath('results.0.type', 'customer')
+            ->assertJsonPath('results.0.label', 'ADDR-001 — Address Test User');
+
+        $sublabel = (string) $response->json('results.0.sublabel');
+        $this->assertStringContainsString('House 12, Road 5', $sublabel);
+        $this->assertStringContainsString('Address', $sublabel);
+    }
 }

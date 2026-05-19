@@ -71,7 +71,16 @@ final class GlobalSmartSearchService
             $customerQuery = Customer::withoutGlobalScopes()->where('tenant_id', $tenantId);
             $op = $customerQuery->getConnection()->getDriverName() === 'pgsql' ? 'ilike' : 'like';
             $customerQuery->where(function (Builder $b) use ($like, $q, $digits, $op): void {
-                $cols = ['name', 'customer_code', 'phone', 'email', 'mikrotik_secret_name', 'radius_username', 'nid_number'];
+                $cols = [
+                    'name',
+                    'customer_code',
+                    'phone',
+                    'email',
+                    'address',
+                    'mikrotik_secret_name',
+                    'radius_username',
+                    'nid_number',
+                ];
                 $started = false;
 
                 if (ctype_digit($q)) {
@@ -91,20 +100,39 @@ final class GlobalSmartSearchService
                 if ($digits !== '' && strlen($digits) >= 3) {
                     $b->orWhere('phone', 'like', '%'.$digits.'%');
                 }
+
+                $b->orWhereHas('area', fn (Builder $aq) => $aq->where('name', $op, $like))
+                    ->orWhereHas('zone', fn (Builder $zq) => $zq->where('name', $op, $like))
+                    ->orWhereHas('subzone', fn (Builder $sq) => $sq->where('name', $op, $like));
             });
 
             $customers = $customerQuery
+                ->with(['area:id,name', 'zone:id,name', 'subzone:id,name'])
                 ->limit($limit)
-                ->get(['id', 'name', 'customer_code', 'phone', 'mikrotik_secret_name', 'status', 'is_ppp_online']);
+                ->get([
+                    'id',
+                    'name',
+                    'customer_code',
+                    'phone',
+                    'address',
+                    'area_id',
+                    'zone_id',
+                    'subzone_id',
+                    'mikrotik_secret_name',
+                    'status',
+                    'is_ppp_online',
+                ]);
 
             foreach ($customers as $c) {
                 $links = $this->customerLinks($c);
+                $address = $c->formattedAddress();
                 $results[] = [
                     'type' => 'customer',
                     'label' => ($c->customer_code ?: '#'.$c->id).' — '.$c->name,
                     'sublabel' => trim(
                         'ID '.$c->id
                         .' · Phone '.($c->phone ?: '—')
+                        .' · Address '.($address !== '—' ? $address : '—')
                         .' · PPP '.($c->mikrotik_secret_name ?: '—')
                         .($c->is_ppp_online ? ' · online' : '')
                         .' · '.($c->status ?? '—')

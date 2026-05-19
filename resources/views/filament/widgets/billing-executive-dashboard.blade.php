@@ -7,7 +7,7 @@
 @endphp
 
 <x-filament-widgets::widget>
-    <section class="isp-billing-dash" wire:poll.60s>
+    <section class="isp-billing-dash isp-billing-dash--pro" wire:poll.60s>
         <header class="isp-billing-dash__head">
             <div>
                 <p class="isp-billing-dash__eyebrow">Billing overview</p>

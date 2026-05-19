@@ -3,6 +3,7 @@
 namespace App\Filament\Pages;
 
 use App\Filament\Pages\Concerns\AssignsCollectorOnPayment;
+use App\Filament\Pages\Concerns\HandlesCollectionDiscountAndNotes;
 use App\Models\Invoice;
 use App\Models\Payment;
 use App\Services\Billing\BillCollectionSearchService;
@@ -20,6 +21,7 @@ use Illuminate\Validation\ValidationException;
 class BillCollectionDesk extends Page
 {
     use AssignsCollectorOnPayment;
+    use HandlesCollectionDiscountAndNotes;
 
     protected static ?string $navigationIcon = 'heroicon-o-currency-bangladeshi';
 
@@ -56,6 +58,8 @@ class BillCollectionDesk extends Page
     public string $reference = '';
 
     public string $notes = '';
+
+    public bool $useCustomerWallet = false;
 
     public string $activeTab = 'collect';
 
@@ -143,6 +147,7 @@ class BillCollectionDesk extends Page
         $this->reloadCustomer();
         $this->activeTab = 'collect';
         $this->cancelEditPayment();
+        $this->resetCollectionDiscountFields();
 
         if ($this->selectedCustomer === null) {
             $this->clearSelection();
@@ -152,10 +157,10 @@ class BillCollectionDesk extends Page
 
         $invoices = $this->selectedCustomer['invoices'] ?? [];
         if (count($invoices) === 1) {
-            $this->invoiceId = $invoices[0]['id'];
-            $this->amount = (string) $invoices[0]['balance_due'];
-        } elseif ($this->selectedCustomer['balance_due'] > 0) {
-            $this->amount = (string) $this->selectedCustomer['balance_due'];
+            $this->invoiceId = (int) $invoices[0]['id'];
+            $this->fillAmountFromSelectedInvoiceDue();
+        } elseif (($this->selectedCustomer['balance_due'] ?? 0) > 0) {
+            $this->amount = (string) round((float) $this->selectedCustomer['balance_due'], 2);
         }
     }
 
@@ -174,6 +179,7 @@ class BillCollectionDesk extends Page
         $this->amount = '';
         $this->reference = '';
         $this->notes = '';
+        $this->resetCollectionDiscountFields();
         $this->activeTab = 'collect';
         $this->cancelEditPayment();
     }
@@ -280,51 +286,103 @@ class BillCollectionDesk extends Page
 
         $this->validate([
             'selectedCustomerId' => 'required|integer|exists:customers,id',
-            'amount' => 'required|numeric|min:0.01',
+            'amount' => 'required|numeric|min:0',
             'method' => 'required|string',
             'invoiceId' => 'nullable|integer|exists:invoices,id',
+            'notes' => 'nullable|string|max:1000',
+            'collectorUserId' => 'nullable|integer|exists:users,id',
         ]);
 
         $customer = \App\Models\Customer::query()->findOrFail($this->selectedCustomerId);
-
+        $invoice = null;
         if ($this->invoiceId) {
-            $invoice = \App\Models\Invoice::query()
+            $invoice = Invoice::query()
                 ->where('customer_id', $customer->id)
                 ->findOrFail($this->invoiceId);
-            $balanceDue = $invoice->balanceDue();
-            if ($balanceDue <= 0) {
-                throw ValidationException::withMessages([
-                    'invoiceId' => 'This invoice has no balance due.',
-                ]);
-            }
-            $payAmount = round((float) $this->amount, 2);
-            if ($payAmount > $balanceDue + 0.001) {
-                throw ValidationException::withMessages([
-                    'amount' => 'Amount cannot exceed invoice due ('.number_format($balanceDue, 2).' BDT). Use partial pay for less than full due.',
-                ]);
-            }
         }
 
         $collectorId = $this->resolveCollectorIdForPayment();
         $collector = app(CollectorStaffResolver::class)->resolveCollectorUser($collectorId);
 
-        $payment = Payment::createTrusted([
-            'tenant_id' => $customer->tenant_id,
-            'customer_id' => $customer->id,
-            'invoice_id' => $this->invoiceId,
-            'payment_type' => PaymentType::PAYMENT,
-            'amount' => round((float) $this->amount, 2),
-            'method' => $this->method,
-            'reference' => $this->reference ?: null,
-            'notes' => $this->notes ?: null,
-            'status' => 'completed',
-            'paid_at' => now(),
-            'recorded_by' => $collectorId,
-            'meta' => $this->collectorPaymentMeta($collectorId),
-        ]);
+        $walletApplied = 0.0;
+        if ($this->useCustomerWallet && $invoice !== null) {
+            $walletBalance = (float) $customer->account_balance;
+            $dueBefore = $invoice->fresh()->balanceDue();
+            if ($walletBalance > 0 && $dueBefore > 0) {
+                $walletApplied = round(min($walletBalance, $dueBefore), 2);
+                if ($walletApplied > 0) {
+                    Payment::createTrusted([
+                        'tenant_id' => $customer->tenant_id,
+                        'customer_id' => $customer->id,
+                        'invoice_id' => $invoice->id,
+                        'payment_type' => PaymentType::WALLET_APPLY,
+                        'amount' => $walletApplied,
+                        'method' => PaymentGateway::OTHER,
+                        'reference' => 'wallet-apply',
+                        'notes' => 'Applied from customer wallet at collection desk',
+                        'status' => 'completed',
+                        'paid_at' => now(),
+                        'recorded_by' => $collectorId,
+                        'meta' => $this->collectorPaymentMeta($collectorId),
+                    ]);
+                    $invoice = $invoice->fresh();
+                }
+            }
+        }
 
-        if (auth()->user() !== null) {
-            app(CollectorVisitService::class)->logFromPayment($payment, $collector, [
+        $payAmount = round((float) $this->amount, 2);
+        $discountBdt = $this->validateCollectionPayment($invoice, $payAmount, $this->notes);
+
+        if ($payAmount <= 0 && $walletApplied <= 0 && $discountBdt <= 0) {
+            throw ValidationException::withMessages([
+                'amount' => 'Enter cash amount, apply wallet, or give a discount.',
+            ]);
+        }
+
+        $payment = null;
+        if ($payAmount > 0) {
+            $payment = Payment::createTrusted([
+                'tenant_id' => $customer->tenant_id,
+                'customer_id' => $customer->id,
+                'invoice_id' => $this->invoiceId,
+                'payment_type' => PaymentType::PAYMENT,
+                'amount' => $payAmount,
+                'method' => $this->method,
+                'reference' => $this->reference ?: null,
+                'notes' => $this->notes ?: null,
+                'status' => 'completed',
+                'paid_at' => now(),
+                'recorded_by' => $collectorId,
+                'meta' => array_merge(
+                    $this->collectorPaymentMeta($collectorId),
+                    $this->collectionDiscountMeta($discountBdt),
+                ),
+            ]);
+
+            $this->applyCollectionDiscountIfNeeded($invoice, $discountBdt, $payment);
+        } elseif ($discountBdt > 0 && $invoice !== null) {
+            $payment = Payment::createTrusted([
+                'tenant_id' => $customer->tenant_id,
+                'customer_id' => $customer->id,
+                'invoice_id' => $this->invoiceId,
+                'payment_type' => PaymentType::PAYMENT,
+                'amount' => 0.01,
+                'method' => $this->method,
+                'reference' => $this->reference ?: null,
+                'notes' => $this->notes ?: null,
+                'status' => 'completed',
+                'paid_at' => now(),
+                'recorded_by' => $collectorId,
+                'meta' => array_merge(
+                    $this->collectorPaymentMeta($collectorId),
+                    $this->collectionDiscountMeta($discountBdt),
+                ),
+            ]);
+            $this->applyCollectionDiscountIfNeeded($invoice, $discountBdt, $payment);
+        }
+
+        if ($payment !== null && auth()->user() !== null) {
+            app(CollectorVisitService::class)->logFromPayment($payment->fresh(), $collector, [
                 'latitude' => $this->latitude,
                 'longitude' => $this->longitude,
                 'accuracy_meters' => $this->accuracyMeters,
@@ -332,58 +390,45 @@ class BillCollectionDesk extends Page
             ]);
         }
 
-        $body = 'Receipt '.$payment->receipt_number.' — '.number_format((float) $payment->amount, 2).' BDT';
-        if ($this->invoiceId) {
-            $invoice = Invoice::query()->find($this->invoiceId);
-            if ($invoice !== null && $invoice->balanceDue() > 0) {
-                $body .= ' · Remaining due '.number_format($invoice->balanceDue(), 2).' BDT (partial)';
+        $body = $payment !== null
+            ? 'Receipt '.$payment->receipt_number.' — '.number_format((float) $payment->amount, 2).' BDT'
+            : 'Collection recorded';
+        $body .= ' · Credited to '.$collector->name;
+        if ((int) auth()->id() !== $collectorId) {
+            $body .= ' (entered by '.auth()->user()?->name.')';
+        }
+        if ($walletApplied > 0) {
+            $body .= ' · Wallet applied '.number_format($walletApplied, 2).' BDT';
+        }
+        if ($discountBdt > 0) {
+            $body .= ' · Discount '.number_format($discountBdt, 2).' BDT';
+        }
+        if ($invoice !== null) {
+            $invoice = $invoice->fresh();
+            if ($invoice->balanceDue() > 0) {
+                $body .= ' · Remaining due '.number_format($invoice->balanceDue(), 2).' BDT';
             }
         }
 
-        Notification::make()
+        $notification = Notification::make()
             ->title('Payment collected')
             ->body($body)
-            ->success()
-            ->actions([
+            ->success();
+
+        if ($payment !== null) {
+            $notification->actions([
                 \Filament\Notifications\Actions\Action::make('receipt')
                     ->label('Open receipt')
                     ->url(route('payments.receipt', $payment), shouldOpenInNewTab: true),
-            ])
-            ->send();
+            ]);
+        }
 
+        $notification->send();
+
+        $this->resetCollectionDiscountFields();
         $this->search = $customer->customer_code;
         $this->runSearch();
         $this->reloadCustomer();
-    }
-
-    public function selectedInvoiceBalanceDue(): ?float
-    {
-        if ($this->invoiceId === null || $this->invoiceId === '' || $this->selectedCustomer === null) {
-            return null;
-        }
-
-        foreach ($this->selectedCustomer['invoices'] ?? [] as $inv) {
-            if ((int) $inv['id'] === (int) $this->invoiceId) {
-                return (float) $inv['balance_due'];
-            }
-        }
-
-        return null;
-    }
-
-    public function partialPaymentRemaining(): ?float
-    {
-        $due = $this->selectedInvoiceBalanceDue();
-        if ($due === null) {
-            return null;
-        }
-
-        $amount = (float) $this->amount;
-        if ($amount <= 0) {
-            return $due;
-        }
-
-        return max(0.0, round($due - $amount, 2));
     }
 
     /**
