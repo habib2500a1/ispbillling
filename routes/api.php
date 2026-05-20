@@ -23,6 +23,7 @@ use App\Http\Controllers\Api\V1\Staff\StaffTasksController;
 use App\Http\Controllers\Api\V1\Staff\StaffApprovalsController;
 use App\Http\Controllers\Api\V1\Staff\StaffBillingController;
 use App\Http\Controllers\Api\V1\Staff\StaffCustomerStoreController;
+use App\Http\Controllers\Api\V1\Staff\StaffCustomerUsageController;
 use App\Http\Controllers\Api\V1\Staff\StaffCommsController;
 use App\Http\Controllers\Api\V1\Staff\StaffExpenseController;
 use App\Http\Controllers\Api\V1\Staff\StaffOnuController;
@@ -92,6 +93,9 @@ Route::prefix('v1')->group(function (): void {
         Route::get('/staff/billing/due', [StaffBillingController::class, 'due']);
         Route::get('/staff/billing/invoices', [StaffBillingController::class, 'invoices']);
         Route::get('/staff/billing/collections', [StaffBillingController::class, 'collections']);
+        Route::get('/staff/billing/collection-options', [\App\Http\Controllers\Api\V1\Staff\StaffCollectionOptionsController::class, 'show']);
+        Route::get('/staff/team/discounts', [\App\Http\Controllers\Api\V1\Staff\StaffTeamDiscountController::class, 'index']);
+        Route::patch('/staff/team/{user}/discount', [\App\Http\Controllers\Api\V1\Staff\StaffTeamDiscountController::class, 'update'])->whereNumber('user');
         Route::get('/staff/customers/search', [CustomerSearchController::class, 'search']);
         Route::get('/staff/customers', [CustomerDetailController::class, 'index']);
         Route::patch('/staff/customers/{customer}', [StaffCustomerUpdateController::class, 'update'])->whereNumber('customer');
@@ -113,6 +117,9 @@ Route::prefix('v1')->group(function (): void {
         Route::post('/staff/expenses', [StaffExpenseController::class, 'store']);
         Route::get('/staff/payment-methods', [StaffPaymentsController::class, 'methods']);
         Route::post('/staff/payments', [StaffPaymentsController::class, 'store']);
+        Route::get('/staff/payments/{payment}/receipt-pdf', [\App\Http\Controllers\Api\V1\Staff\StaffDocumentController::class, 'paymentReceiptPdf'])->whereNumber('payment');
+        Route::delete('/staff/payments/{payment}', [StaffPaymentsController::class, 'destroy'])->whereNumber('payment');
+        Route::get('/staff/invoices/{invoice}/pdf', [\App\Http\Controllers\Api\V1\Staff\StaffDocumentController::class, 'invoicePdf'])->whereNumber('invoice');
         Route::get('/staff/packages', [StaffPackagesController::class, 'index']);
         Route::post('/staff/packages', [StaffPackagesController::class, 'store']);
         Route::patch('/staff/packages/{package}', [StaffPackagesController::class, 'update'])->whereNumber('package');
@@ -127,6 +134,7 @@ Route::prefix('v1')->group(function (): void {
         Route::patch('/staff/customers/{customer}/onu', [StaffOnuController::class, 'update'])->whereNumber('customer');
         Route::get('/staff/online-clients', [StaffOnlineController::class, 'index']);
         Route::get('/staff/customers/{customer}', [CustomerDetailController::class, 'show'])->whereNumber('customer');
+        Route::get('/staff/customers/{customer}/usage/live', [StaffCustomerUsageController::class, 'live'])->whereNumber('customer');
         Route::post('/staff/network/suspend', [NetworkController::class, 'suspend']);
         Route::post('/staff/network/reconnect', [NetworkController::class, 'reconnect']);
         Route::post('/staff/devices', [StaffDeviceController::class, 'register']);

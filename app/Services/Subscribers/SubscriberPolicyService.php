@@ -22,6 +22,16 @@ final class SubscriberPolicyService
             return false;
         }
 
+        $meta = is_array($customer->meta) ? $customer->meta : [];
+        if (array_key_exists('auto_invoice', $meta) && ! filter_var($meta['auto_invoice'], FILTER_VALIDATE_BOOLEAN)) {
+            return false;
+        }
+
+        $mode = (string) ($customer->billing_mode ?? 'postpaid');
+        if (in_array($mode, ['prepaid', 'advance'], true) && ! config('billing.prepaid_auto_invoice', true)) {
+            return false;
+        }
+
         return true;
     }
 

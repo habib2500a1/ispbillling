@@ -5,13 +5,20 @@ namespace App\Services\Billing;
 use App\Filament\Resources\InvoiceResource;
 use App\Filament\Resources\PaymentResource;
 use App\Models\Customer;
+use App\Support\BillingDefaults;
 use App\Models\Invoice;
 use App\Models\Payment;
+use App\Services\Network\CustomerConnectionStatusService;
+use App\Support\CustomerSearchPresenter;
 use App\Support\PaymentType;
 use Illuminate\Support\Collection;
 
 final class BillCollectionSearchService
 {
+    public function __construct(
+        private readonly CustomerConnectionStatusService $connectionStatus,
+        private readonly CustomerSearchPresenter $searchPresenter,
+    ) {}
     /**
      * @return Collection<int, array<string, mixed>>
      */
@@ -67,7 +74,9 @@ final class BillCollectionSearchService
             })
             ->take($limit);
 
-        return $customers->map(fn (Customer $customer): array => $this->present($customer))->values();
+        $rows = $customers->map(fn (Customer $customer): array => $this->present($customer));
+
+        return $this->searchPresenter->annotateDuplicateNames($rows)->values();
     }
 
     public function find(int $customerId): ?array
@@ -90,7 +99,13 @@ final class BillCollectionSearchService
             ->orderBy('due_date')
             ->get();
 
-        $balanceDue = round($openInvoices->sum(fn (Invoice $inv): float => $inv->balanceDue()), 2);
+        $meta = $customer->meta ?? [];
+        $synced = filled($meta['isp_digital_billing_synced_at'] ?? null);
+        $ispDue = (float) ($meta['isp_digital_balance_due'] ?? 0);
+        $invoiceDue = round($openInvoices->sum(fn (Invoice $inv): float => $inv->balanceDue()), 2);
+        $balanceDue = $synced && $ispDue > 0.009
+            ? round(max($ispDue, $invoiceDue), 2)
+            : ($synced ? round(max(0, $ispDue), 2) : $invoiceDue);
 
         $row = [
             'id' => $customer->id,
@@ -98,12 +113,25 @@ final class BillCollectionSearchService
             'name' => $customer->name,
             'phone' => $customer->phone,
             'username' => $customer->pppLoginName(),
-            'address' => $customer->formattedAddress(),
+            'address' => $customer->address ?? $customer->formattedAddress(),
+            'area_id' => $customer->area_id,
+            'zone_id' => $customer->zone_id,
+            'area' => $customer->area?->name,
+            'zone' => $customer->zone?->name,
+            'billing_mode' => $customer->billing_mode,
+            'expire_day' => BillingDefaults::expireDayFromDate($customer->service_expires_at?->toDateString()),
+            'service_expires_at' => $customer->service_expires_at?->toDateString(),
+            'notes' => $customer->notes,
+            'mikrotik_secret_name' => $customer->mikrotik_secret_name,
             'status' => $customer->status,
             'package' => $customer->package?->name,
+            'package_id' => $customer->package_id,
             'balance_due' => $balanceDue,
+            'billing_payment_state' => $meta['isp_digital_payment_state'] ?? null,
             'open_invoices' => $openInvoices->count(),
             'account_balance' => (float) $customer->account_balance,
+            'is_online' => $customer->isPppOnline(),
+            'connection' => $this->connectionStatus->summary($customer),
         ];
 
         if ($detailed) {
@@ -179,6 +207,8 @@ final class BillCollectionSearchService
             'edit_url' => PaymentResource::getUrl('edit', ['record' => $payment]),
             'can_correct' => $payment->status === 'completed'
                 && in_array($payment->payment_type ?? PaymentType::PAYMENT, [PaymentType::PAYMENT, PaymentType::WALLET_APPLY], true),
+            'can_void' => app(PaymentVoidService::class)->canVoid($payment),
+            'is_void' => $payment->status === 'void',
         ];
     }
 }

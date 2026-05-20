@@ -49,7 +49,20 @@
                 <span class="isp-cd-stat__value {{ $h['online'] ? 'text-emerald-600' : 'text-gray-500' }}">
                     {{ $h['online'] ? '● Online' : '○ Offline' }}
                 </span>
+                @if ($h['online'] && ! empty($h['connection_duration']))
+                    <span class="text-xs text-gray-500">{{ $h['connection_duration'] }}</span>
+                @endif
             </div>
+            <div class="isp-cd-stat">
+                <span class="isp-cd-stat__label">Last disconnect</span>
+                <span class="isp-cd-stat__value text-sm">{{ $h['last_disconnect'] ?? '—' }}</span>
+            </div>
+            @if (! empty($h['portal_last_logout']) && $h['portal_last_logout'] !== '—')
+            <div class="isp-cd-stat">
+                <span class="isp-cd-stat__label">Portal logout</span>
+                <span class="isp-cd-stat__value text-sm">{{ $h['portal_last_logout'] }}</span>
+            </div>
+            @endif
             <div class="isp-cd-stat">
                 <span class="isp-cd-stat__label">Network</span>
                 <span class="isp-cd-stat__value capitalize {{ $h['network'] === 'suspended' ? 'text-rose-600' : 'text-emerald-600' }}">{{ $h['network'] }}</span>
@@ -77,7 +90,27 @@
             </div>
         </div>
 
-        <div x-data="{ tab: 'all' }" class="isp-client-details__tabs">
+        <div x-data="{ tab: 'all' }" class="isp-client-details__tabs" id="onu-tab">
+            @php
+                $onuLease = $sections['onu_billing'] ?? [];
+            @endphp
+            <div class="mb-4 rounded-xl border border-violet-200 bg-violet-50/60 px-4 py-3 dark:border-violet-900/40 dark:bg-violet-950/20">
+                <div class="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                        <p class="text-xs font-bold uppercase text-violet-700 dark:text-violet-300">ONU / Optical summary</p>
+                        <p class="mt-1 text-sm text-violet-950 dark:text-violet-100">
+                            OLT RX/TX: <strong>{{ ($optical['linked'] ?? false) ? 'Linked — ONU / Optical tab' : 'Not linked yet' }}</strong>
+                            · ISP Digital optical = OLT SNMP sync (এই panel-এ একই পদ্ধতি)
+                        </p>
+                    </div>
+                    <button type="button" @click="tab = 'onu'" class="isp-cd-btn isp-cd-btn--secondary text-xs">Open ONU tab</button>
+                </div>
+                <div class="mt-2 flex flex-wrap gap-4 text-xs font-mono">
+                    @foreach (array_slice($onuLease, 0, 4) as $label => $val)
+                        <span><span class="text-violet-600 dark:text-violet-400">{{ $label }}:</span> {{ $val }}</span>
+                    @endforeach
+                </div>
+            </div>
             <div class="isp-client-details__tablist" role="tablist">
                 <button type="button" @click="tab = 'all'" :class="tab === 'all' && 'isp-cd-tab--active'" class="isp-cd-tab">All details</button>
                 <button type="button" @click="tab = 'onu'" :class="tab === 'onu' && 'isp-cd-tab--active'" class="isp-cd-tab">ONU / Optical</button>

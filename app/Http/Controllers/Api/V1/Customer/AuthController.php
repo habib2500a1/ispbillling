@@ -24,6 +24,8 @@ class AuthController extends Controller
             return response()->json(['message' => 'Invalid credentials.'], 401);
         }
 
+        $customer->recordPortalLogin();
+
         $expiresAt = now()->addDays((int) config('mobile.customer_token_expiry_days', 90));
         $token = $customer->createToken(
             $data['device_name'] ?? config('mobile.customer_token_name', 'customer-app'),
@@ -41,7 +43,12 @@ class AuthController extends Controller
 
     public function logout(Request $request): JsonResponse
     {
-        $request->user()?->currentAccessToken()?->delete();
+        $customer = $request->user();
+        if ($customer instanceof Customer) {
+            $customer->recordPortalLogout();
+        }
+
+        $customer?->currentAccessToken()?->delete();
 
         return response()->json(['message' => 'Logged out.']);
     }

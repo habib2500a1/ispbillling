@@ -7,10 +7,12 @@ use App\Filament\Pages\Concerns\HandlesCollectionDiscountAndNotes;
 use App\Models\Invoice;
 use App\Models\Payment;
 use App\Services\Billing\BillCollectionSearchService;
+use App\Services\Billing\CollectionPaymentClassifier;
 use App\Services\Collector\CollectorStaffResolver;
 use App\Services\Collector\CollectorVisitService;
 use App\Services\Billing\InvoiceCalculator;
 use App\Services\Billing\PaymentAllocationCorrectionService;
+use App\Services\Billing\PaymentVoidService;
 use App\Support\PaymentGateway;
 use App\Support\PaymentType;
 use Filament\Notifications\Notification;
@@ -121,11 +123,9 @@ class BillCollectionDesk extends Page
             return false;
         }
 
-        if ($user->hasRole(['super-admin', 'isp-admin', 'admin', 'cashier', 'branch-manager'])) {
-            return true;
-        }
+        $capability = \App\Support\Rbac\StaffCapability::for($user);
 
-        return $user->can('payments.add') || $user->can('billing.view');
+        return $capability->canAny(['payments.add', 'collections.view', 'billing.view']);
     }
 
     public function updatedSearch(): void
@@ -225,6 +225,29 @@ class BillCollectionDesk extends Page
         $this->editPaymentInvoiceId = null;
         $this->editPaymentReference = '';
         $this->editPaymentNotes = '';
+    }
+
+    public function voidPayment(int $paymentId, ?string $reason = null): void
+    {
+        abort_unless($this->selectedCustomerId !== null, 403);
+
+        $payment = Payment::query()
+            ->where('customer_id', $this->selectedCustomerId)
+            ->findOrFail($paymentId);
+
+        app(PaymentVoidService::class)->void($payment, $reason);
+
+        if ($this->editingPaymentId === $paymentId) {
+            $this->cancelEditPayment();
+        }
+
+        $this->reloadCustomer();
+
+        Notification::make()
+            ->title('Payment voided')
+            ->body('Collection removed and invoice/wallet balances adjusted.')
+            ->success()
+            ->send();
     }
 
     public function savePaymentCorrection(): void
@@ -353,9 +376,15 @@ class BillCollectionDesk extends Page
                 'status' => 'completed',
                 'paid_at' => now(),
                 'recorded_by' => $collectorId,
-                'meta' => array_merge(
-                    $this->collectorPaymentMeta($collectorId),
-                    $this->collectionDiscountMeta($discountBdt),
+                'meta' => CollectionPaymentClassifier::paymentMeta(
+                    $customer,
+                    $invoice,
+                    $payAmount,
+                    $discountBdt,
+                    array_merge(
+                        $this->collectorPaymentMeta($collectorId),
+                        $this->collectionDiscountMeta($discountBdt),
+                    ),
                 ),
             ]);
 

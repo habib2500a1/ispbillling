@@ -2,8 +2,8 @@
 
 namespace App\Filament\Billing;
 
-use App\Filament\Resources\InvoiceResource;
 use App\Support\BillingSidebarRegistry;
+use App\Support\Rbac\StaffCapability;
 use Filament\Events\ServingFilament;
 use Filament\Facades\Filament;
 use Illuminate\Support\Facades\Event;
@@ -32,26 +32,8 @@ final class BillingSidebarNavigation
 
     public static function userCanSee(): bool
     {
-        $user = auth()->user();
-        if ($user === null) {
-            return false;
-        }
+        $capability = StaffCapability::for(auth()->user());
 
-        if ($user->hasAnyRole([
-            'super-admin',
-            'isp-admin',
-            'isp-manager',
-            'admin',
-            'billing-manager',
-            'cashier',
-            'accounts-manager',
-            'branch-manager',
-        ])) {
-            return true;
-        }
-
-        return $user->can('billing.view')
-            || $user->can('payments.view')
-            || InvoiceResource::canViewAny();
+        return $capability->canBilling() || $capability->canPayments();
     }
 }

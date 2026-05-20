@@ -37,7 +37,6 @@ class ReportsHub extends Page
     {
         $user = auth()->user();
 
-        return $user !== null
-            && ($user->hasRole('super-admin') || $user->hasRole('isp-admin') || $user->hasRole('isp-manager'));
+        return $user !== null && \App\Support\Rbac\StaffCapability::for($user)->canReports();
     }
 }

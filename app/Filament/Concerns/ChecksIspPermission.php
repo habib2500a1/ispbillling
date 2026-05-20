@@ -38,7 +38,7 @@ trait ChecksIspPermission
         if ($user === null) {
             return false;
         }
-        if ($user->hasRole(['super-admin', 'isp-admin', 'admin'])) {
+        if ($user->hasRole(['super-admin', 'isp-admin'])) {
             return true;
         }
 

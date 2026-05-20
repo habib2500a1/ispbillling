@@ -12,10 +12,11 @@ class StaffPackagesController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        $user = $this->manager($request);
+        $user = $this->staff($request);
 
-        $packages = Package::query()
+        $packages = Package::withoutGlobalScopes()
             ->where('tenant_id', $user->tenant_id)
+            ->where('is_active', true)
             ->orderBy('name')
             ->get()
             ->map(fn (Package $p) => $this->row($p));
@@ -84,15 +85,30 @@ class StaffPackagesController extends Controller
             'upload_mbps' => $p->upload_mbps,
             'price_monthly' => (float) $p->price_monthly,
             'is_active' => (bool) $p->is_active,
+            'show_on_website' => (bool) $p->show_on_website,
             'mikrotik_profile_name' => $p->mikrotik_profile_name,
         ];
     }
 
-    private function manager(Request $request): User
+    private function staff(Request $request): User
     {
         $user = $request->user();
         abort_unless(
-            $user instanceof User && $user->hasAnyRole(['super-admin', 'isp-admin', 'isp-manager', 'branch-manager']),
+            $user instanceof User && $user->hasAnyRole([
+                'super-admin', 'isp-admin', 'admin', 'isp-manager', 'branch-manager',
+                'cashier', 'collector',
+            ]),
+            403,
+        );
+
+        return $user;
+    }
+
+    private function manager(Request $request): User
+    {
+        $user = $this->staff($request);
+        abort_unless(
+            $user->hasAnyRole(['super-admin', 'isp-admin', 'isp-manager', 'branch-manager']),
             403,
         );
 

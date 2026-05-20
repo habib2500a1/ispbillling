@@ -29,7 +29,7 @@ class IpPoolResource extends Resource
     {
         $u = auth()->user();
 
-        return $u !== null && ($u->hasRole('super-admin') || $u->hasRole('isp-admin'));
+        return $u !== null && \App\Support\Rbac\StaffCapability::for($u)->canMikrotik();
     }
 
     public static function form(Form $form): Form

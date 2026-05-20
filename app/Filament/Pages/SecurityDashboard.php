@@ -22,7 +22,7 @@ class SecurityDashboard extends Page
 
     public static function canAccess(): bool
     {
-        return static::userHasAnyRole(['super-admin', 'isp-admin', 'admin', 'isp-manager']);
+        return static::staff()->isTenantAdmin() || static::staff()->can('audit.view');
     }
 
     /**

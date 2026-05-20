@@ -2,13 +2,12 @@
 
 namespace App\Filament\Pages;
 
-use App\Filament\Pages\Concerns\HasRoleDashboard;
 use App\Filament\Pages\Concerns\HidesHubNavigation;
+use App\Support\Rbac\StaffCapability;
 use Filament\Pages\Page;
 
 class DashboardHub extends Page
 {
-    use HasRoleDashboard;
     use HidesHubNavigation;
 
     protected static ?string $navigationIcon = 'heroicon-o-presentation-chart-line';
@@ -25,7 +24,13 @@ class DashboardHub extends Page
 
     public static function canAccess(): bool
     {
-        return auth()->check();
+        foreach ((new static)->getDashboardCards() as $card) {
+            if ($card['visible']) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**
@@ -40,7 +45,7 @@ class DashboardHub extends Page
                 'url' => Dashboard::getUrl(),
                 'tone' => 'indigo',
                 'icon' => 'heroicon-o-squares-2x2',
-                'visible' => true,
+                'visible' => Dashboard::canAccess(),
             ],
             [
                 'title' => 'NOC dashboard',

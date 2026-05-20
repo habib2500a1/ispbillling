@@ -144,6 +144,17 @@ final class SupportSidebarRegistry
         return $items;
     }
 
+    public static function hasVisibleEntries(): bool
+    {
+        foreach (self::definitions() as $entry) {
+            if (self::canSeeEntry($entry['key'])) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     public static function canSeeEntry(string $key): bool
     {
         $user = auth()->user();

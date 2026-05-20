@@ -3,6 +3,7 @@
 namespace App\Filament\Pages;
 use App\Filament\Pages\Concerns\HidesHubNavigation;
 
+use App\Support\Rbac\StaffCapability;
 use Filament\Pages\Page;
 
 class PaymentsOverview extends Page
@@ -22,6 +23,6 @@ class PaymentsOverview extends Page
 
     public static function canAccess(): bool
     {
-        return auth()->check();
+        return StaffCapability::for(auth()->user())->canPayments();
     }
 }

@@ -4,6 +4,7 @@ namespace App\Services\Billing;
 
 use App\Models\AppSetting;
 use App\Models\User;
+use App\Support\UserCollectionDiscount;
 
 final class CollectionDiscountSettings
 {
@@ -50,11 +51,7 @@ final class CollectionDiscountSettings
     public static function userCanApplyDiscount(?User $user = null): bool
     {
         $user ??= auth()->user();
-        if ($user === null) {
-            return false;
-        }
-
-        if (! self::isEnabled()) {
+        if ($user === null || ! self::isEnabled()) {
             return false;
         }
 
@@ -62,7 +59,11 @@ final class CollectionDiscountSettings
             return true;
         }
 
-        return $user->can('billing.discount');
+        if (! $user->can('billing.discount')) {
+            return false;
+        }
+
+        return UserCollectionDiscount::prefs($user)['enabled'];
     }
 
     /**
@@ -99,6 +100,7 @@ final class CollectionDiscountSettings
         ?string $presetId,
         string $customAmount,
         float $balanceDue,
+        ?User $user = null,
     ): float {
         if ($balanceDue <= 0 || ! self::isEnabled()) {
             return 0.0;
@@ -136,7 +138,59 @@ final class CollectionDiscountSettings
             $discount = min($discount, $capBdt);
         }
 
-        return min($discount, $balanceDue);
+        $discount = min($discount, $balanceDue);
+
+        $user ??= auth()->user();
+        if ($user !== null) {
+            $staff = UserCollectionDiscount::prefs($user);
+            if ($staff['max_discount_bdt'] !== null) {
+                $discount = min($discount, $staff['max_discount_bdt']);
+            }
+            if ($staff['max_discount_percent_of_due'] !== null && $staff['max_discount_percent_of_due'] > 0) {
+                $discount = min($discount, round($balanceDue * ($staff['max_discount_percent_of_due'] / 100), 2));
+            }
+        }
+
+        return max(0.0, $discount);
+    }
+
+    /**
+     * Mobile / API payload for current collector.
+     *
+     * @return array<string, mixed>
+     */
+    public static function mobileOptions(?User $user = null): array
+    {
+        $user ??= auth()->user();
+        $settings = self::get();
+        $can = self::userCanApplyDiscount($user);
+        $staff = UserCollectionDiscount::prefs($user);
+
+        $presets = [];
+        if ($can) {
+            $presets[] = ['id' => 'none', 'label' => '— No discount —'];
+            foreach ($settings['presets'] as $preset) {
+                $presets[] = [
+                    'id' => $preset['id'],
+                    'label' => $preset['label'],
+                    'type' => $preset['type'],
+                    'amount' => $preset['amount'],
+                ];
+            }
+        }
+
+        return [
+            'enabled' => $settings['enabled'] && $can,
+            'can_apply' => $can,
+            'allow_custom' => $can && $settings['allow_custom_amount'],
+            'require_note_on_partial' => $settings['require_note_on_partial'],
+            'require_note_on_discount' => $settings['require_note_on_discount'],
+            'max_discount_bdt' => $staff['max_discount_bdt'] ?? $settings['max_discount_bdt'],
+            'max_discount_percent_of_due' => $staff['max_discount_percent_of_due'] ?? $settings['max_discount_percent_of_due'],
+            'staff_limits' => $staff,
+            'presets' => $presets,
+            'note_hint' => 'নিচে নোট লিখুন — আংশিক বিল বা ডিসকাউন্টের কারণ (বাধ্যতামূলক হলে *)',
+        ];
     }
 
     /**

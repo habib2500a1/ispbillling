@@ -31,12 +31,7 @@ class BillingDashboard extends Page
 
     public static function canAccess(): bool
     {
-        return static::userHasAnyRole([
-            'billing-manager',
-            'cashier',
-            'accounts-manager',
-            'isp-manager',
-        ]);
+        return static::staff()->canBilling();
     }
 
     /**

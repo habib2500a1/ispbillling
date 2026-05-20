@@ -26,7 +26,7 @@ class ListPackages extends ListRecords
                     ? 'কোনো চালু MikroTik সার্ভার নেই — আগে Network → MikroTik এ যোগ করুন।'
                     : null)
                 ->modalHeading('Import PPP profiles as packages')
-                ->modalDescription('নির্বাচিত রাউটার থেকে /ppp/profile লিস্ট এনে প্যাকেজ হিসেবে তৈরি/আপডেট হবে। নাম + BTRC ব্যান্ডউইথ লাইন দেখাবে; দাম হাতে সেট করতে হবে।')
+                ->modalDescription('রাউটারের PPP profile ইমপোর্ট হবে — Package নাম আপনি পরে দেবেন (যেমন 25 Mbps)। Profile নাম আলাদা ফিল্ডে থাকবে। নতুন ইমপোর্ট inactive থাকবে যতক্ষণ নাম/দাম সেট করেন।')
                 ->form([
                     Forms\Components\Select::make('mikrotik_server_id')
                         ->label('MikroTik server')
@@ -63,6 +63,26 @@ class ListPackages extends ListRecords
                         $notification->success();
                     }
                     $notification->send();
+                }),
+            Actions\Action::make('cleanupMikrotikImports')
+                ->label('Delete unused MT imports')
+                ->icon('heroicon-o-trash')
+                ->color('danger')
+                ->requiresConfirmation()
+                ->modalHeading('Delete unused MikroTik-imported packages?')
+                ->modalDescription('শুধু সেগুলো মুছবে যেগুলো MikroTik সিঙ্ক থেকে এসেছে, নাম = profile নাম, এবং কোনো subscriber নেই।')
+                ->action(function (): void {
+                    $deleted = \App\Models\Package::query()
+                        ->whereNotNull('mikrotik_synced_at')
+                        ->whereColumn('name', 'mikrotik_profile_name')
+                        ->whereDoesntHave('customers')
+                        ->delete();
+
+                    Notification::make()
+                        ->title('Cleanup done')
+                        ->body("Deleted {$deleted} unused package(s).")
+                        ->success()
+                        ->send();
                 }),
             Actions\CreateAction::make(),
         ];

@@ -2,6 +2,8 @@
 
 namespace App\Filament\Pages;
 
+use App\Support\Rbac\StaffCapability;
+
 use App\Models\Device;
 use App\Models\NetflowFlow;
 use App\Models\SnmpPollLog;
@@ -50,6 +52,6 @@ class NetworkIntelligenceHub extends Page
 
     public static function canAccess(): bool
     {
-        return auth()->check();
+        return \App\Support\Rbac\StaffCapability::for(auth()->user())->canNetwork();
     }
 }

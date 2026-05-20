@@ -4,14 +4,16 @@ namespace App\Services\Portal;
 
 use App\Models\Customer;
 use App\Models\Invoice;
-use App\Models\PppSessionLog;
+use App\Services\Network\CustomerConnectionStatusService;
 use App\Support\BandwidthDirection;
+
 final class CustomerPortalDashboardService
 {
     public function __construct(
         private readonly CustomerBandwidthService $bandwidth,
         private readonly CustomerOnuOpticalService $onu,
         private readonly CustomerPortalNotificationService $notifications,
+        private readonly CustomerConnectionStatusService $connectionStatus,
     ) {}
 
     /**
@@ -23,17 +25,7 @@ final class CustomerPortalDashboardService
 
         $live = $this->bandwidth->liveStats($customer);
 
-        $session = PppSessionLog::query()
-            ->where('customer_id', $customer->id)
-            ->where('status', 'active')
-            ->orderByDesc('started_at')
-            ->first(['id', 'started_at', 'ended_at', 'framed_ip', 'bytes_in', 'bytes_out', 'peak_rate_in_bps', 'peak_rate_out_bps', 'meta']);
-
-        $lastSessionEndedAt = $session?->ended_at
-            ?? PppSessionLog::query()
-                ->where('customer_id', $customer->id)
-                ->orderByDesc('started_at')
-                ->value('ended_at');
+        $conn = $this->connectionStatus->summary($customer);
 
         $invoiceDueQuery = Invoice::query()
             ->where('customer_id', $customer->id)
@@ -55,20 +47,18 @@ final class CustomerPortalDashboardService
         $monthly = $this->bandwidth->monthlyUsage($customer);
 
         return [
-            'connection' => [
-                'online' => $live['online'],
+            'connection' => array_merge($conn, [
                 'ppp_connected' => $live['online'],
-                'status_label' => $live['online'] ? 'Online' : 'Offline',
                 'status_color' => $live['online'] ? 'emerald' : 'slate',
-                'framed_ip' => $live['framed_ip'],
-                'session_uptime' => $session?->formattedDuration(),
-                'session_started' => $live['session_started'],
+                'session_uptime' => $conn['connection_duration'],
+                'session_started' => $conn['session_started_formatted'] ?? $live['session_started'],
                 'last_online' => $live['online']
                     ? 'Now'
-                    : ($customer->ppp_last_seen_at?->diffForHumans() ?? ($lastSessionEndedAt ? \Illuminate\Support\Carbon::parse($lastSessionEndedAt)->diffForHumans() : '—')),
+                    : ($conn['last_disconnect_human'] !== '—' ? $conn['last_disconnect_human'] : ($conn['ppp_last_seen_human'] ?? '—')),
+                'last_disconnect' => $conn['last_disconnect_formatted'],
                 'router_status' => $live['online'] ? 'PPPoE active' : 'Disconnected',
                 'onu_status' => $onuSnap['oper_status'] ?? ($onuSnap['linked'] ? 'unknown' : 'not_linked'),
-            ],
+            ]),
             'traffic' => [
                 'download_bps' => $live['download_bps'],
                 'upload_bps' => $live['upload_bps'],

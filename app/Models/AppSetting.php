@@ -180,7 +180,7 @@ class AppSetting extends Model
             return (int) $value;
         }
 
-        if (str_ends_with($key, '.reminders_days_before')) {
+        if (str_ends_with($key, '.reminders_days_before') || $key === 'billing.default_billing_day') {
             return (int) $value;
         }
 
@@ -198,6 +198,14 @@ class AppSetting extends Model
 
         if ($key === 'bkash.activation_date' || $key === 'bkash.expiry_date') {
             return $value === '' ? null : $value;
+        }
+
+        if ($key === 'subscriber.auto_generate_customer_code') {
+            return in_array(strtolower($value), ['1', 'true', 'yes', 'on'], true);
+        }
+
+        if ($key === 'subscriber.numeric_start') {
+            return max(1, (int) $value);
         }
 
         if ($key === 'network.mikrotik_push_enabled' || $key === 'network.radius_push_enabled' || $key === 'network.service_expiry_enforced' || $key === 'network.mikrotik_always_push_ppp_on_customer_save' || $key === 'network.auto_suspend_enabled' || $key === 'radius.accounting_enabled' || $key === 'radius.merge_with_api' || $key === 'bandwidth.collection_enabled' || $key === 'mikrotik.poll_enabled' || $key === 'radius_admin.enabled') {
@@ -269,6 +277,10 @@ class AppSetting extends Model
             'isp.invoice_terms' => fn (): string => (string) config('isp.env_defaults.invoice_terms'),
             'billing.invoice_number_prefix' => fn (): string => (string) config('billing.env_defaults.invoice_number_prefix'),
             'billing.invoice_number_year_infix' => fn (): bool => (bool) config('billing.env_defaults.invoice_number_year_infix'),
+            'subscriber.auto_generate_customer_code' => fn (): bool => (bool) config('subscriber.auto_generate_customer_code', true),
+            'subscriber.code_format' => fn (): string => (string) config('subscriber.code_format', 'prefixed_monthly'),
+            'subscriber.code_prefix' => fn (): string => (string) config('subscriber.code_prefix', 'CUST'),
+            'subscriber.numeric_start' => fn (): int => (int) config('subscriber.numeric_start', 10001),
             'sms.reminders_enabled' => fn (): bool => (bool) config('sms.env_defaults.reminders_enabled'),
             'sms.reminders_days_before' => fn (): int => (int) config('sms.env_defaults.reminders_days_before'),
             'notifications.log_delivery_only' => fn (): bool => (bool) config('notifications.env_defaults.log_delivery_only'),

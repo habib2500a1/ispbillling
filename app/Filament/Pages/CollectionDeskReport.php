@@ -97,8 +97,9 @@ class CollectionDeskReport extends Page
             return false;
         }
 
-        return $user->hasAnyRole(['super-admin', 'isp-admin', 'isp-manager', 'admin', 'cashier', 'branch-manager'])
-            || $user->can('payments.view') || $user->can('billing.view');
+        $capability = \App\Support\Rbac\StaffCapability::for($user);
+
+        return $capability->canPayments() || $capability->canBilling();
     }
 
     protected function getHeaderActions(): array

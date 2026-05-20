@@ -2,6 +2,7 @@
 
 namespace App\Services\Mobile;
 
+use App\Models\Package;
 use App\Models\PortalNotice;
 use App\Support\CompanyBranding;
 use App\Support\MobileAppLinks;
@@ -35,6 +36,7 @@ class MobileConfigService
                 'address' => CompanyBranding::address(),
             ],
             'notices' => $this->activeNotices($tenantId),
+            'packages' => $this->websitePackages($tenantId),
             'phases' => [
                 'phase_1' => 'live',
                 'phase_2' => 'live',
@@ -128,6 +130,37 @@ class MobileConfigService
         } catch (\Throwable) {
             return null;
         }
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    /**
+     * Active packages shown on website/portal — same list the app should use.
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function websitePackages(?int $tenantId): array
+    {
+        if ($tenantId === null || ! \Illuminate\Support\Facades\Schema::hasTable('packages')) {
+            return [];
+        }
+
+        return Package::withoutGlobalScopes()
+            ->where('tenant_id', $tenantId)
+            ->where('is_active', true)
+            ->where('show_on_website', true)
+            ->orderBy('price_monthly')
+            ->get(['id', 'name', 'download_mbps', 'upload_mbps', 'price_monthly', 'mikrotik_profile_name'])
+            ->map(fn (Package $p) => [
+                'id' => $p->id,
+                'name' => $p->name,
+                'download_mbps' => $p->download_mbps,
+                'upload_mbps' => $p->upload_mbps,
+                'price_monthly' => (float) $p->price_monthly,
+                'mikrotik_profile' => $p->mikrotik_profile_name,
+            ])
+            ->all();
     }
 
     /**

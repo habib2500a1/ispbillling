@@ -17,8 +17,8 @@ class UsageController extends Controller
         $customer = $request->user();
 
         $stats = $bandwidth->liveStats($customer);
-        $payload = $mobile->usagePayload($stats);
-        $payload['chart'] = $stats['chart'] ?? $bandwidth->chartForCustomer($customer, 12);
+        $payload = $mobile->usagePayload($stats, $customer);
+        $payload['chart'] = $stats['chart'] ?? $bandwidth->liveChartPerSecond($customer, (bool) ($stats['online'] ?? false));
         $payload['uptime'] = $stats['session_started'] ?? null;
         $payload['anomaly'] = $this->detectAnomaly($stats);
 

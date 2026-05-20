@@ -2,6 +2,8 @@
 
 namespace App\Filament\Pages;
 
+use App\Support\Rbac\StaffCapability;
+
 use App\Models\BankAccount;
 use App\Models\Reseller;
 use App\Models\User;
@@ -36,7 +38,7 @@ class AccountsWalletHubPage extends Page implements HasTable
 
     public static function canAccess(): bool
     {
-        return auth()->check();
+        return \App\Support\Rbac\StaffCapability::for(auth()->user())->canAccounting();
     }
 
     /**

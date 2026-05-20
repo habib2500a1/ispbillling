@@ -117,4 +117,3 @@ final class LateFeeCalculator
         return true;
     }
 }
-image.png

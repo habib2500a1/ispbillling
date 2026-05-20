@@ -49,6 +49,7 @@ class AutomaticProcessSeeder extends Seeder
             [
                 'slug' => 'generate-bills-monthly',
                 'name' => 'Generate bills (monthly)',
+                'description' => 'Runs daily at 03:15; creates invoices when subscriber bill day matches (default: 1st of month).',
                 'artisan_command' => 'isp:generate-bills',
                 'command_options' => [],
                 'execute_at' => '03:15',

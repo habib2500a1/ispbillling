@@ -46,7 +46,11 @@ class PollMikrotikFleetJob implements ShouldQueue
             app(NotificationDispatcher::class)->notifyOps(
                 (int) ($this->tenantId ?? 1),
                 NotificationEvent::OUTAGE,
-                ['message' => 'MikroTik offline: '.$offlineNames, 'count' => $stats['offline']],
+                [
+                    'message' => 'MikroTik offline: '.$offlineNames,
+                    'count' => $stats['offline'],
+                    'customer_list' => $offlineNames !== '' ? 'Servers: '.$offlineNames : '—',
+                ],
             );
         }
     }

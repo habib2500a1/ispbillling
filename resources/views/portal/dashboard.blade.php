@@ -66,8 +66,12 @@
             </p>
             <p id="stat-ppp" class="portal-pro-card__meta">{{ $conn['router_status'] ?? '—' }}</p>
             <p class="portal-pro-card__meta">IP: <span id="stat-ip" class="portal-mono">{{ $conn['framed_ip'] ?? '—' }}</span></p>
-            <p class="portal-pro-card__meta">Uptime: <span id="stat-uptime">{{ $conn['session_uptime'] ?? '—' }}</span></p>
-            <p class="portal-pro-card__meta">Last online: <span id="stat-last">{{ $conn['last_online'] ?? '—' }}</span></p>
+            <p class="portal-pro-card__meta">Connected since: <span id="stat-started">{{ $conn['session_started'] ?? '—' }}</span></p>
+            <p class="portal-pro-card__meta">Uptime: <span id="stat-uptime">{{ $conn['session_uptime'] ?? $conn['connection_duration'] ?? '—' }}</span></p>
+            <p class="portal-pro-card__meta">Last disconnect: <span id="stat-last">{{ $conn['last_disconnect'] ?? $conn['last_online'] ?? '—' }}</span></p>
+            @if (! empty($conn['portal_last_logout_at']) && ($conn['portal_last_logout_at'] ?? '—') !== '—')
+                <p class="portal-pro-card__meta">App logout: <span id="stat-portal-logout">{{ $conn['portal_last_logout_at'] }}</span></p>
+            @endif
         </article>
 
         <article class="portal-pro-card portal-pro-card--speed">
@@ -236,8 +240,12 @@
                     setOnline(c.online);
                     document.getElementById('stat-ppp').textContent = c.router_status || '—';
                     document.getElementById('stat-ip').textContent = c.framed_ip || '—';
-                    document.getElementById('stat-uptime').textContent = c.session_uptime || '—';
-                    document.getElementById('stat-last').textContent = c.last_online || '—';
+                    const startedEl = document.getElementById('stat-started');
+                    if (startedEl) startedEl.textContent = c.session_started || c.session_started_formatted || '—';
+                    document.getElementById('stat-uptime').textContent = c.session_uptime || c.connection_duration || '—';
+                    document.getElementById('stat-last').textContent = c.last_disconnect || c.last_online || '—';
+                    const logoutEl = document.getElementById('stat-portal-logout');
+                    if (logoutEl) logoutEl.textContent = c.portal_last_logout_at || '—';
                     document.getElementById('stat-down').textContent = t.download_human || '—';
                     document.getElementById('stat-up').textContent = t.upload_human || '—';
                     if (o.linked) {

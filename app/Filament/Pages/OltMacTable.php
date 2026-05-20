@@ -3,6 +3,7 @@
 namespace App\Filament\Pages;
 
 use App\Models\Device;
+use App\Support\Rbac\StaffCapability;
 use App\Services\Olt\OltMacTableService;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
@@ -41,7 +42,7 @@ class OltMacTable extends Page implements HasForms, HasTable
 
     public static function canAccess(): bool
     {
-        return auth()->check();
+        return StaffCapability::for(auth()->user())->canOlt();
     }
 
     /**

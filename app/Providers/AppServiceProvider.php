@@ -50,6 +50,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\ServiceProvider;
+use Livewire\Livewire;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -144,5 +145,10 @@ class AppServiceProvider extends ServiceProvider
         Event::listen(Logout::class, RecordStaffLogout::class);
 
         \App\Filament\Navigation\IspSidebarNavigation::register();
+
+        // Cloudflare Rocket Loader rewrites script type and breaks Livewire → login POST hits /admin/login → 405.
+        Livewire::useScriptTagAttributes([
+            'data-cfasync' => 'false',
+        ]);
     }
 }

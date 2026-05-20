@@ -4,6 +4,7 @@ namespace App\Filament\Pages;
 
 use App\Filament\Pages\Concerns\HidesHubNavigation;
 use App\Support\AdminModuleRegistry;
+use App\Support\Rbac\StaffCapability;
 use Filament\Pages\Page;
 
 /**
@@ -30,11 +31,11 @@ class OperationsHub extends Page
      */
     public function getModules(): array
     {
-        return AdminModuleRegistry::all();
+        return AdminModuleRegistry::visible();
     }
 
     public static function canAccess(): bool
     {
-        return auth()->check();
+        return AdminModuleRegistry::visible() !== [];
     }
 }

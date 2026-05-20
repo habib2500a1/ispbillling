@@ -2,11 +2,16 @@
 
 namespace App\Filament\Resources\CustomerResource\Pages;
 
+use App\Filament\Forms\SubscriberFormSchema;
 use App\Filament\Resources\CustomerResource;
 use App\Filament\Resources\CustomerResource\Pages\Concerns\HasMobileSubscriberFormLayout;
 use App\Support\OpticalCustomerSync;
+use Filament\Forms\Form;
 use App\Services\Optical\CustomerOnuAutoProvisionService;
+use App\Services\Billing\CustomerActivationBillingService;
+use App\Support\BillingDefaults;
 use App\Support\CustomerStatus;
+use Illuminate\Support\Arr;
 use Filament\Actions;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\CreateRecord;
@@ -19,7 +24,12 @@ class CreateCustomer extends CreateRecord
 
     public function getSubheading(): ?string
     {
-        return 'Start on the Essentials tab: name, phone, package, activation/expire dates, PPP username, and ONU if available.';
+        return 'Step 1: customer details. Step 2: PPPoE username & password (one place). Then register.';
+    }
+
+    public function form(Form $form): Form
+    {
+        return SubscriberFormSchema::configureCreateWizard($form);
     }
 
     protected function getCreateFormAction(): Actions\Action
@@ -37,11 +47,17 @@ class CreateCustomer extends CreateRecord
         $data['joined_at'] = $data['joined_at'] ?? now()->toDateString();
         $data['kyc_status'] = $data['kyc_status'] ?? 'pending';
         $data['status'] = $data['status'] ?? CustomerStatus::ACTIVE;
-        $data['billing_mode'] = $data['billing_mode'] ?? 'postpaid';
-        $data['billing_day'] = $data['billing_day'] ?? (int) now()->format('j');
+        $data['billing_mode'] = $data['billing_mode'] ?? 'prepaid';
+        $data['billing_day'] = max(1, min(28, (int) ($data['billing_day'] ?? BillingDefaults::billingDay())));
         $data['grace_period_days'] = $data['grace_period_days'] ?? 10;
+        $expireDay = (int) (Arr::get($this->form->getState(), 'expire_day') ?? BillingDefaults::defaultExpireDay());
+        $data['service_expires_at'] = BillingDefaults::dateFromExpireDay($expireDay);
         $data['account_balance'] = $data['account_balance'] ?? 0;
         $data['network_access_state'] = $data['network_access_state'] ?? 'active';
+
+        if (filled($data['mikrotik_secret_name'] ?? null) && blank($data['radius_username'] ?? null)) {
+            $data['radius_username'] = trim((string) $data['mikrotik_secret_name']);
+        }
 
         $meta = is_array($data['meta'] ?? null) ? $data['meta'] : [];
         $data['meta'] = array_merge([
@@ -59,6 +75,19 @@ class CreateCustomer extends CreateRecord
 
     protected function afterCreate(): void
     {
+        if (config('billing.bill_on_customer_create', true)) {
+            $cycle = (string) (Arr::get($this->form->getState(), 'first_bill_cycle')
+                ?? CustomerActivationBillingService::defaultFirstBillCycle((string) $this->record->billing_mode));
+            $bill = app(CustomerActivationBillingService::class)->issueFirstBillIfRequested($this->record->fresh(), $cycle);
+            if ($bill['invoice'] !== null) {
+                Notification::make()
+                    ->title('First bill created')
+                    ->body($bill['message'].($bill['settled'] ? ' Wallet applied.' : ''))
+                    ->success()
+                    ->send();
+            }
+        }
+
         $onuId = $this->form->getState()['onu_device_pick'] ?? null;
 
         if ($onuId) {

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -8,6 +10,8 @@ import '../theme/app_theme.dart';
 import '../utils/app_nav.dart';
 import '../widgets/page_scaffold.dart';
 import '../widgets/state_views.dart';
+import '../widgets/collection_payment_panel.dart';
+import '../widgets/usage_area_chart.dart';
 import 'staff_customer_edit_screen.dart';
 
 class StaffCustomerDetailScreen extends StatefulWidget {
@@ -20,10 +24,12 @@ class StaffCustomerDetailScreen extends StatefulWidget {
   State<StaffCustomerDetailScreen> createState() => _StaffCustomerDetailScreenState();
 }
 
-class _StaffCustomerDetailScreenState extends State<StaffCustomerDetailScreen> {
+class _StaffCustomerDetailScreenState extends State<StaffCustomerDetailScreen> with SingleTickerProviderStateMixin {
+  late final TabController _tabs = TabController(length: 2, vsync: this);
   Map<String, dynamic>? _customer;
+  Map<String, dynamic>? _usage;
   bool _loading = true;
-  final _amountCtrl = TextEditingController();
+  Timer? _usageTimer;
   final _fmt = NumberFormat('#,##0.00');
   late final OfflineSyncService _offline = OfflineSyncService(widget.api);
 
@@ -31,24 +37,34 @@ class _StaffCustomerDetailScreenState extends State<StaffCustomerDetailScreen> {
   void initState() {
     super.initState();
     _load();
+    _usageTimer = Timer.periodic(const Duration(seconds: 1), (_) => _pollUsage());
   }
 
   @override
   void dispose() {
-    _amountCtrl.dispose();
+    _usageTimer?.cancel();
+    _tabs.dispose();
     super.dispose();
   }
 
   Future<void> _load() async {
     setState(() => _loading = true);
     try {
-      final body = await widget.api.staffCustomerDetail(widget.customerId);
-      if (mounted) setState(() => _customer = body);
+      final detail = await widget.api.staffCustomerDetail(widget.customerId);
+      if (mounted) setState(() => _customer = detail);
+      await _pollUsage();
     } on ApiException catch (e) {
       if (mounted) showSnack(context, e.message, isError: true);
     } finally {
       if (mounted) setState(() => _loading = false);
     }
+  }
+
+  Future<void> _pollUsage() async {
+    try {
+      final usage = await widget.api.staffCustomerUsageLive(widget.customerId);
+      if (mounted) setState(() => _usage = usage);
+    } catch (_) {}
   }
 
   Future<void> _suspend() async {
@@ -71,39 +87,6 @@ class _StaffCustomerDetailScreenState extends State<StaffCustomerDetailScreen> {
     }
   }
 
-  Future<void> _collect({int? invoiceId}) async {
-    final amount = double.tryParse(_amountCtrl.text.trim());
-    if (amount == null || amount <= 0) {
-      showSnack(context, 'Enter valid amount', isError: true);
-      return;
-    }
-    try {
-      final res = await widget.api.recordCollection(
-        customerId: widget.customerId,
-        amount: amount,
-        invoiceId: invoiceId,
-      );
-      if (mounted) {
-        showSnack(context, 'Collected — receipt ${res['payment']?['receipt_number'] ?? ''}');
-        _amountCtrl.clear();
-        _load();
-      }
-    } on ApiException catch (e) {
-      if (mounted) showSnack(context, e.message, isError: true);
-    } catch (_) {
-      if (RemoteConfig.offlineSync) {
-        await _offline.enqueueCollection(
-          customerId: widget.customerId,
-          amount: amount,
-          invoiceId: invoiceId,
-        );
-        if (mounted) showSnack(context, 'Saved offline — will sync when online');
-      } else if (mounted) {
-        showSnack(context, 'Connection failed', isError: true);
-      }
-    }
-  }
-
   List<Map<String, dynamic>> get _invoices {
     final raw = _customer?['invoices'] as List<dynamic>?;
     if (raw == null) return [];
@@ -112,11 +95,14 @@ class _StaffCustomerDetailScreenState extends State<StaffCustomerDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final name = _customer?['name']?.toString() ?? 'Customer';
+
     return PageScaffold(
-      title: 'Bill collection',
+      title: name,
       actions: [
         IconButton(
-          icon: const Icon(Icons.edit),
+          icon: const Icon(Icons.edit_outlined),
+          tooltip: 'Edit',
           onPressed: _customer == null
               ? null
               : () async {
@@ -129,74 +115,90 @@ class _StaffCustomerDetailScreenState extends State<StaffCustomerDetailScreen> {
                   if (ok == true) _load();
                 },
         ),
+        if (RemoteConfig.networkControl && _customer != null)
+          PopupMenuButton<String>(
+            onSelected: (v) {
+              if (v == 'suspend') _suspend();
+              if (v == 'reconnect') _reconnect();
+            },
+            itemBuilder: (_) => const [
+              PopupMenuItem(value: 'suspend', child: Text('Suspend line')),
+              PopupMenuItem(value: 'reconnect', child: Text('Reconnect line')),
+            ],
+          ),
         IconButton(icon: const Icon(Icons.refresh), onPressed: _load),
       ],
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : _customer == null
-              ? const EmptyState(icon: Icons.person_off, title: 'Customer not found', subtitle: 'Pull back and try again')
-              : RefreshIndicator(
-                  onRefresh: _load,
-                  child: ListView(
-                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
-                    children: [
-                      _profileHeader(),
-                      const SizedBox(height: 16),
-                      _collectionCard(),
-                      if (RemoteConfig.networkControl) ...[
-                        const SizedBox(height: 12),
-                        _networkActions(),
-                      ],
-                      const SizedBox(height: 20),
-                      const SectionTitle('Open invoices'),
-                      const SizedBox(height: 8),
-                      ..._buildInvoices(),
-                    ],
-                  ),
+              ? const EmptyState(icon: Icons.person_off, title: 'Customer not found', subtitle: '')
+              : Column(
+                  children: [
+                    _compactHeader(),
+                    Material(
+                      color: Colors.white,
+                      child: TabBar(
+                        controller: _tabs,
+                        labelColor: AppTheme.primary,
+                        indicatorColor: AppTheme.accent,
+                        tabs: const [
+                          Tab(icon: Icon(Icons.home_outlined, size: 20), text: 'Home'),
+                          Tab(icon: Icon(Icons.payments_outlined, size: 20), text: 'Bill & collect'),
+                        ],
+                      ),
+                    ),
+                    Expanded(
+                      child: TabBarView(
+                        controller: _tabs,
+                        children: [
+                          RefreshIndicator(onRefresh: _load, child: _homeTab()),
+                          RefreshIndicator(onRefresh: _load, child: _billingTab()),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
     );
   }
 
-  Widget _profileHeader() {
+  Widget _compactHeader() {
     final c = _customer!;
     final due = (c['balance_due'] as num?)?.toDouble() ?? 0;
-    final code = c['customer_code']?.toString() ?? '';
-    final name = c['name']?.toString() ?? 'Customer';
+    final online = _usage?['online'] == true;
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(18),
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
       decoration: AppTheme.heroGradient,
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           CircleAvatar(
-            radius: 32,
+            radius: 26,
             backgroundColor: Colors.white24,
             child: Text(
-              name.isNotEmpty ? name[0].toUpperCase() : '?',
-              style: const TextStyle(color: Colors.white, fontSize: 26, fontWeight: FontWeight.bold),
+              (c['name']?.toString().isNotEmpty == true) ? c['name'].toString()[0].toUpperCase() : '?',
+              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 22),
             ),
           ),
-          const SizedBox(width: 14),
+          const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(name, style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
-                const SizedBox(height: 4),
-                Text('$code · ${c['phone'] ?? '—'}', style: const TextStyle(color: Colors.white70, fontSize: 13)),
-                const SizedBox(height: 10),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: due > 0 ? AppTheme.warning.withValues(alpha: 0.9) : AppTheme.success.withValues(alpha: 0.9),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text(
-                    'Due ${_fmt.format(due)} BDT',
-                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 13),
-                  ),
+                Text('${c['customer_code']} · ${c['phone'] ?? '—'}', style: const TextStyle(color: Colors.white70, fontSize: 12)),
+                Text(c['package']?.toString() ?? '—', style: const TextStyle(color: Colors.white, fontSize: 13)),
+                const SizedBox(height: 6),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 4,
+                  children: [
+                    _chip(online ? 'Online' : 'Offline', online ? AppTheme.success : Colors.white38),
+                    if (online && (_usage?['connection_duration'] != null))
+                      _chip(_usage!['connection_duration'].toString(), AppTheme.primary),
+                    if (!online && (_usage?['last_disconnect_human'] != null))
+                      _chip('Off ${_usage!['last_disconnect_human']}', Colors.white38),
+                    _chip('Due ${_fmt.format(due)}', due > 0 ? AppTheme.warning : AppTheme.success),
+                  ],
                 ),
               ],
             ),
@@ -206,145 +208,170 @@ class _StaffCustomerDetailScreenState extends State<StaffCustomerDetailScreen> {
     );
   }
 
-  Widget _collectionCard() {
-    final c = _customer!;
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: AppTheme.tinted(AppTheme.success),
-                  child: const Icon(Icons.payments, color: AppTheme.success),
-                ),
-                const SizedBox(width: 12),
-                const Expanded(
-                  child: Text('Record collection', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                ),
-              ],
-            ),
-            const SizedBox(height: 14),
-            TextField(
-              controller: _amountCtrl,
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
-              decoration: InputDecoration(
-                labelText: 'Amount (BDT)',
-                hintText: _fmt.format(c['balance_due'] ?? 0),
-                prefixIcon: const Icon(Icons.attach_money, color: AppTheme.accent),
-              ),
-            ),
-            const SizedBox(height: 12),
-            FilledButton.icon(
-              onPressed: () => _collect(),
-              icon: const Icon(Icons.savings),
-              label: const Text('Record cash collection'),
-              style: FilledButton.styleFrom(
-                backgroundColor: AppTheme.success,
-                minimumSize: const Size.fromHeight(48),
-              ),
-            ),
-          ],
-        ),
+  Widget _connRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 4),
+      child: Row(
+        children: [
+          SizedBox(width: 120, child: Text(label, style: TextStyle(fontSize: 12, color: Colors.grey.shade600))),
+          Expanded(child: Text(value, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600))),
+        ],
       ),
     );
   }
 
-  Widget _networkActions() {
-    return Row(
+  Widget _chip(String label, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(color: color.withValues(alpha: 0.85), borderRadius: BorderRadius.circular(12)),
+      child: Text(label, style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w600)),
+    );
+  }
+
+  Widget _homeTab() {
+    return ListView(
+      padding: const EdgeInsets.all(16),
       children: [
-        Expanded(
-          child: OutlinedButton.icon(
-            onPressed: _suspend,
-            icon: const Icon(Icons.pause_circle_outline, color: AppTheme.danger),
-            label: const Text('Suspend', style: TextStyle(color: AppTheme.danger, fontWeight: FontWeight.w600)),
-            style: OutlinedButton.styleFrom(
-              side: const BorderSide(color: AppTheme.danger),
-              backgroundColor: AppTheme.danger.withValues(alpha: 0.06),
-              minimumSize: const Size.fromHeight(44),
+        Card(
+          child: Padding(
+            padding: const EdgeInsets.all(14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.show_chart, color: AppTheme.primary, size: 22),
+                    const SizedBox(width: 8),
+                    const Text('Live usage (per second)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                    const Spacer(),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      decoration: BoxDecoration(color: AppTheme.success.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(8)),
+                      child: const Text('LIVE', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppTheme.success)),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                UsageAreaChart(chart: _usage?['chart'] as Map<String, dynamic>?),
+                const SizedBox(height: 10),
+                Text(
+                  '↓ ${_usage?['download_human'] ?? '—'} · ↑ ${_usage?['upload_human'] ?? '—'}',
+                  style: const TextStyle(fontWeight: FontWeight.w600, color: AppTheme.primary),
+                ),
+                if (_usage?['framed_ip'] != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 6),
+                    child: Text('IP ${_usage!['framed_ip']}', style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+                  ),
+              ],
             ),
           ),
         ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: FilledButton.icon(
-            onPressed: _reconnect,
-            icon: const Icon(Icons.play_circle_outline),
-            label: const Text('Reconnect'),
-            style: FilledButton.styleFrom(
-              backgroundColor: AppTheme.info,
-              minimumSize: const Size.fromHeight(44),
+        Card(
+          child: Padding(
+            padding: const EdgeInsets.all(14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('Connection', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                const SizedBox(height: 8),
+                _connRow('Status', (_usage?['online'] == true) ? 'Online' : 'Offline'),
+                if (_usage?['session_started_formatted'] != null)
+                  _connRow('Connected since', _usage!['session_started_formatted'].toString()),
+                if (_usage?['connection_duration'] != null)
+                  _connRow('Duration', _usage!['connection_duration'].toString()),
+                if (_usage?['last_disconnect_formatted'] != null && _usage?['online'] != true)
+                  _connRow('Last disconnect', _usage!['last_disconnect_formatted'].toString()),
+                if (_customer?['connection']?['portal_last_logout_at'] != null &&
+                    _customer!['connection']['portal_last_logout_at'].toString() != '—')
+                  _connRow('App logout', _customer!['connection']['portal_last_logout_at'].toString()),
+              ],
             ),
           ),
+        ),
+        const SizedBox(height: 12),
+        OutlinedButton.icon(
+          onPressed: () => _tabs.animateTo(1),
+          icon: const Icon(Icons.payments),
+          label: Text(
+            ((_customer?['balance_due'] as num?)?.toDouble() ?? 0) > 0
+                ? 'Collect due ${_fmt.format(_customer!['balance_due'])} BDT'
+                : 'Bill & collection',
+          ),
+          style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(48)),
         ),
       ],
     );
   }
 
-  List<Widget> _buildInvoices() {
-    if (_invoices.isEmpty) {
-      return [
-        Card(
-          color: AppTheme.accentSoft,
-          child: Padding(
-            padding: const EdgeInsets.all(20),
-            child: Row(
+  Widget _billingTab() {
+    final c = _customer!;
+    final due = (c['balance_due'] as num?)?.toDouble() ?? 0;
+    return Column(
+      children: [
+        Expanded(
+          child: CollectionPaymentPanel(
+            api: widget.api,
+            customerId: widget.customerId,
+            balanceDue: due,
+            onSuccess: _load,
+          ),
+        ),
+        if (_invoices.isNotEmpty)
+          Container(
+            color: Colors.white,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(Icons.receipt_long, color: AppTheme.accent, size: 40),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Text(
-                    'No open invoices — customer is up to date.',
-                    style: TextStyle(color: Colors.grey.shade800, fontWeight: FontWeight.w500),
+                const Padding(
+                  padding: EdgeInsets.fromLTRB(16, 8, 16, 4),
+                  child: Text('Open invoices — tap to collect', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                ),
+                SizedBox(
+                  height: 120,
+                  child: ListView(
+                    scrollDirection: Axis.horizontal,
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    children: _invoices.map((m) {
+                      final id = (m['id'] as num?)?.toInt();
+                      final invDue = (m['balance_due'] as num?)?.toDouble() ?? 0;
+                      return Padding(
+                        padding: const EdgeInsets.only(right: 8),
+                        child: ActionChip(
+                          avatar: const Icon(Icons.receipt, size: 18),
+                          label: Text('${m['invoice_number']} · ${_fmt.format(invDue)}'),
+                          onPressed: id == null
+                              ? null
+                              : () => Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => Scaffold(
+                                        appBar: AppBar(title: Text(m['invoice_number']?.toString() ?? 'Collect')),
+                                        body: CollectionPaymentPanel(
+                                          api: widget.api,
+                                          customerId: widget.customerId,
+                                          balanceDue: invDue,
+                                          invoiceId: id,
+                                          invoiceNumber: m['invoice_number']?.toString(),
+                                          onSuccess: () {
+                                            Navigator.pop(context);
+                                            _load();
+                                          },
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                        ),
+                      );
+                    }).toList(),
                   ),
                 ),
               ],
             ),
           ),
-        ),
-      ];
-    }
-
-    return _invoices.map((m) {
-      final id = (m['id'] as num?)?.toInt();
-      final due = (m['balance_due'] as num?)?.toDouble() ?? 0;
-      final overdue = m['is_overdue'] == true;
-      return Card(
-        margin: const EdgeInsets.only(bottom: 10),
-        child: ListTile(
-          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          leading: CircleAvatar(
-            backgroundColor: (overdue ? AppTheme.danger : AppTheme.primary).withValues(alpha: 0.12),
-            child: Icon(Icons.receipt, color: overdue ? AppTheme.danger : AppTheme.primary),
-          ),
-          title: Text(
-            m['invoice_number']?.toString() ?? 'Invoice',
-            style: const TextStyle(fontWeight: FontWeight.bold),
-          ),
-          subtitle: Text(
-            'Due ${_fmt.format(due)} BDT · ${m['status'] ?? ''}${overdue ? ' · Overdue' : ''}',
-            style: TextStyle(color: overdue ? AppTheme.danger : const Color(0xFF64748B)),
-          ),
-          trailing: id != null
-              ? FilledButton(
-                  onPressed: () {
-                    _amountCtrl.text = due.toStringAsFixed(2);
-                    _collect(invoiceId: id);
-                  },
-                  style: FilledButton.styleFrom(
-                    backgroundColor: AppTheme.accent,
-                    foregroundColor: const Color(0xFF1F2937),
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                  ),
-                  child: const Text('Collect'),
-                )
-              : null,
-        ),
-      );
-    }).toList();
+      ],
+    );
   }
+
 }

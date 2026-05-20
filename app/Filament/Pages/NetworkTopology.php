@@ -2,6 +2,8 @@
 
 namespace App\Filament\Pages;
 
+use App\Support\Rbac\StaffCapability;
+
 use App\Services\Network\NetworkTopologyService;
 use Filament\Pages\Page;
 
@@ -33,6 +35,6 @@ class NetworkTopology extends Page
 
     public static function canAccess(): bool
     {
-        return auth()->check();
+        return \App\Support\Rbac\StaffCapability::for(auth()->user())->canMikrotik();
     }
 }

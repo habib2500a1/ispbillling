@@ -240,7 +240,8 @@ final class NetworkSidebarRegistry
     public static function canSeeEntry(string $key): bool
     {
         return match ($key) {
-            'routers_list', 'add_router', 'import_mikrotik' => auth()->check(),
+            'routers_list', 'add_router' => MikrotikServerResource::canViewAny(),
+            'import_mikrotik' => ImportFromMikrotikPage::canAccess(),
             'areas' => AreaResource::canViewAny(),
             'zones' => ZoneResource::canViewAny(),
             'subzones' => SubzoneResource::canViewAny(),

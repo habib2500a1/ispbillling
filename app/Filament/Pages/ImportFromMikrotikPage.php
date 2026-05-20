@@ -3,6 +3,7 @@
 namespace App\Filament\Pages;
 
 use App\Models\MikrotikServer;
+use App\Support\Rbac\StaffCapability;
 use App\Services\Mikrotik\MikrotikPppImportService;
 use Filament\Forms\Components\CheckboxList;
 use Filament\Forms\Components\Placeholder;
@@ -35,7 +36,7 @@ class ImportFromMikrotikPage extends Page implements HasForms
 
     public static function canAccess(): bool
     {
-        return auth()->check();
+        return StaffCapability::for(auth()->user())->canMikrotik();
     }
 
     public function mount(): void

@@ -47,7 +47,7 @@ class ManageOpticalLaserSettings extends Page
     {
         $user = auth()->user();
 
-        return $user !== null && ($user->hasRole('super-admin') || $user->can('network.manage'));
+        return \App\Support\Rbac\StaffCapability::for($user)->canOlt();
     }
 
     public static function shouldRegisterNavigation(): bool

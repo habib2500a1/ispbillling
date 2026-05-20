@@ -2,6 +2,7 @@
 
 namespace App\Filament\Sms;
 
+use App\Support\Rbac\StaffCapability;
 use App\Support\SmsSidebarRegistry;
 use Filament\Events\ServingFilament;
 use Filament\Facades\Filament;
@@ -31,7 +32,17 @@ final class SmsSidebarNavigation
 
     public static function userCanSee(): bool
     {
-        return \App\Filament\Resources\NotificationLogResource::canViewAny();
+        if (! StaffCapability::for(auth()->user())->canSms()) {
+            return false;
+        }
+
+        foreach (SmsSidebarRegistry::definitions() as $entry) {
+            if (SmsSidebarRegistry::canSeeEntry($entry['key'])) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**

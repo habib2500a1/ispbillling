@@ -2,6 +2,8 @@
 
 namespace App\Filament\Pages;
 
+use App\Support\Rbac\StaffCapability;
+
 use App\Filament\Resources\CustomerResource;
 use App\Filament\Resources\OltResource;
 use App\Models\Customer;
@@ -296,6 +298,6 @@ class OpticalMonitoringHub extends Page implements HasForms, HasTable
 
     public static function canAccess(): bool
     {
-        return auth()->check();
+        return \App\Support\Rbac\StaffCapability::for(auth()->user())->canOlt();
     }
 }

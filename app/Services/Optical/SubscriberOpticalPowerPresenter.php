@@ -19,11 +19,15 @@ final class SubscriberOpticalPowerPresenter
      *   linked: bool,
      *   rows: list<array<string, mixed>>,
      *   hint: ?string,
+     *   onu_billing: array<string, string>,
+     *   isp_digital_synced_at: ?string,
      * }
      */
     public function forCustomer(Customer $customer): array
     {
         $customer->loadMissing(['activePppSession', 'devices']);
+        $meta = is_array($customer->meta) ? $customer->meta : [];
+        $onuBilling = $this->onuBillingSummary($meta);
 
         $onus = $customer->devices
             ->where('type', 'onu')
@@ -46,7 +50,10 @@ final class SubscriberOpticalPowerPresenter
             return [
                 'linked' => false,
                 'rows' => [],
+                'ppp_login' => $login,
                 'hint' => $this->unlinkHint($customer, $login, $suggestions),
+                'onu_billing' => $onuBilling,
+                'isp_digital_synced_at' => $meta['isp_digital_details_synced_at'] ?? null,
                 'suggestions' => array_map(fn (array $s): array => [
                     'id' => $s['onu']->id,
                     'label' => trim(sprintf(
@@ -67,8 +74,30 @@ final class SubscriberOpticalPowerPresenter
         return [
             'linked' => true,
             'rows' => $rows,
+            'ppp_login' => $customer->pppLoginName(),
             'hint' => null,
+            'onu_billing' => $onuBilling,
+            'isp_digital_synced_at' => $meta['isp_digital_details_synced_at'] ?? null,
             'suggestions' => [],
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $meta
+     * @return array<string, string>
+     */
+    private function onuBillingSummary(array $meta): array
+    {
+        $fmt = static fn ($v): string => isset($v) && (float) $v > 0
+            ? number_format((float) $v, 2).' BDT/mo'
+            : '—';
+
+        return [
+            'ONU rent' => $fmt($meta['onu_rent'] ?? null),
+            'ONU deposit' => $fmt($meta['onu_deposit'] ?? null),
+            'Router rent' => $fmt($meta['router_rent'] ?? null),
+            'Device' => (string) ($meta['device'] ?? '—'),
+            'ONU MAC (meta)' => (string) ($meta['onu_mac'] ?? '—'),
         ];
     }
 

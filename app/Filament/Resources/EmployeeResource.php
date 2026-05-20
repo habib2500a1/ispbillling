@@ -10,6 +10,8 @@ use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Illuminate\Support\Facades\Schema;
+
 class EmployeeResource extends Resource
 {
     use ChecksIspPermission;
@@ -154,13 +156,16 @@ class EmployeeResource extends Resource
             'Accounts' => 'Accounts',
         ];
 
-        $fromDb = Employee::query()
-            ->whereNotNull('department')
-            ->where('department', '!=', '')
-            ->distinct()
-            ->orderBy('department')
-            ->pluck('department', 'department')
-            ->all();
+        $fromDb = [];
+        if (Schema::hasColumn('employees', 'department')) {
+            $fromDb = Employee::query()
+                ->whereNotNull('department')
+                ->where('department', '!=', '')
+                ->distinct()
+                ->orderBy('department')
+                ->pluck('department', 'department')
+                ->all();
+        }
 
         return array_merge($defaults, $fromDb);
     }

@@ -46,7 +46,7 @@ class BtrcReport extends Page
         $user = auth()->user();
 
         return $user !== null
-            && ($user->hasRole('super-admin') || $user->hasRole('isp-admin') || $user->hasRole('isp-manager'));
+            && \App\Support\Rbac\StaffCapability::for($user)->canReports();
     }
 
     protected function streamCsv(): StreamedResponse

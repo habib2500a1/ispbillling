@@ -4,6 +4,7 @@ namespace App\Filament\Pages\Concerns;
 
 use App\Models\Invoice;
 use App\Services\Billing\CollectionDiscountApplicator;
+use App\Services\Billing\CollectionPaymentClassifier;
 use App\Services\Billing\CollectionDiscountSettings;
 use Illuminate\Validation\ValidationException;
 
@@ -63,19 +64,22 @@ trait HandlesCollectionDiscountAndNotes
      */
     protected function validateCollectionPayment(?Invoice $invoice, float $payAmount, string $notes): float
     {
-        $settings = CollectionDiscountSettings::get();
+        $customer = $this->selectedCustomer !== null
+            ? \App\Models\Customer::query()->find($this->selectedCustomerId)
+            : null;
         $discountBdt = 0.0;
         $balanceDue = null;
 
         if ($invoice !== null) {
             $balanceDue = $invoice->balanceDue();
-            if ($balanceDue <= 0) {
+            $isAdvance = CollectionPaymentClassifier::isAdvanceCollection($customer, $invoice, $payAmount, 0);
+            if ($balanceDue <= 0 && ! $isAdvance) {
                 throw ValidationException::withMessages([
                     'invoiceId' => 'This invoice has no balance due.',
                 ]);
             }
 
-            if ($payAmount > $balanceDue + 0.001) {
+            if (! $isAdvance && $payAmount > $balanceDue + 0.001) {
                 throw ValidationException::withMessages([
                     'amount' => 'Amount cannot exceed invoice due ('.number_format($balanceDue, 2).' BDT) before discount.',
                 ]);
@@ -96,18 +100,21 @@ trait HandlesCollectionDiscountAndNotes
                 ]);
             }
 
-            if ($discountBdt > 0 && ($payAmount + $discountBdt) > $balanceDue + 0.001) {
+            if (
+                ! CollectionPaymentClassifier::isAdvanceCollection($customer, $invoice, $payAmount, $discountBdt)
+                && $discountBdt > 0
+                && ($payAmount + $discountBdt) > $balanceDue + 0.001
+            ) {
                 throw ValidationException::withMessages([
                     'amount' => 'Cash ('.number_format($payAmount, 2).') + discount ('.number_format($discountBdt, 2).') cannot exceed due '.number_format($balanceDue, 2).' BDT.',
                 ]);
             }
         }
 
-        $isPartial = $balanceDue !== null && $payAmount + $discountBdt + 0.001 < $balanceDue;
-        $needsNote = ($isPartial && $settings['require_note_on_partial'])
-            || ($discountBdt > 0 && $settings['require_note_on_discount']);
+        $needsNote = CollectionPaymentClassifier::noteRequired($customer, $invoice, $payAmount, $discountBdt);
 
         if ($needsNote && trim($notes) === '') {
+            $isPartial = $balanceDue !== null && ($payAmount + $discountBdt + 0.001) < $balanceDue;
             throw ValidationException::withMessages([
                 'notes' => $isPartial
                     ? 'Partial payment requires a note (কারণ লিখুন — কত নিলেন, বাকি কখন দেবে ইত্যাদি).'

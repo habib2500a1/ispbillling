@@ -76,7 +76,15 @@ class ModuleTile extends StatelessWidget {
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(16),
-        child: Padding(
+        child: Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [color.withValues(alpha: 0.06), Colors.white],
+            ),
+          ),
           padding: const EdgeInsets.all(14),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -84,10 +92,15 @@ class ModuleTile extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.12),
+                  gradient: LinearGradient(
+                    colors: [color.withValues(alpha: 0.7), color],
+                  ),
                   borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(color: color.withValues(alpha: 0.3), blurRadius: 6, offset: const Offset(0, 2)),
+                  ],
                 ),
-                child: Icon(icon, color: color, size: 26),
+                child: Icon(icon, color: Colors.white, size: 26),
               ),
               const Spacer(),
               Text(title, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),

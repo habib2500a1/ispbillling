@@ -91,6 +91,18 @@
                     <dl class="mt-4 grid gap-2 text-sm sm:grid-cols-2 lg:grid-cols-4">
                         <div><dt class="font-semibold text-gray-500">Phone</dt><dd>{{ $selectedCustomer['phone'] ?: '—' }}</dd></div>
                         <div><dt class="font-semibold text-gray-500">Username</dt><dd class="font-mono">{{ $selectedCustomer['username'] }}</dd></div>
+                        @php $conn = $selectedCustomer['connection'] ?? []; @endphp
+                        <div><dt class="font-semibold text-gray-500">PPP</dt>
+                            <dd class="{{ ($conn['online'] ?? false) ? 'text-emerald-600 font-semibold' : 'text-gray-500' }}">
+                                {{ ($conn['online'] ?? false) ? 'Online' : 'Offline' }}
+                                @if (! empty($conn['connection_duration']))
+                                    · {{ $conn['connection_duration'] }}
+                                @endif
+                            </dd>
+                        </div>
+                        <div><dt class="font-semibold text-gray-500">Last disconnect</dt>
+                            <dd>{{ $conn['last_disconnect_formatted'] ?? '—' }}</dd>
+                        </div>
                         <div><dt class="font-semibold text-gray-500">Total due</dt><dd class="font-bold text-rose-600">{{ number_format($selectedCustomer['balance_due'], 2) }} BDT</dd></div>
                         <div><dt class="font-semibold text-gray-500">Wallet</dt><dd>{{ number_format($selectedCustomer['account_balance'], 2) }} BDT</dd></div>
                     </dl>
@@ -366,13 +378,24 @@
                                         <td class="px-3 py-2 font-mono text-xs">{{ $pay['invoice_number'] ?? '—' }}</td>
                                         <td class="px-3 py-2">{{ $pay['recorded_by'] }}</td>
                                         <td class="px-3 py-2 text-right whitespace-nowrap">
-                                            <a href="{{ $pay['receipt_url'] }}" target="_blank" class="text-xs font-semibold text-gray-600 hover:underline">Receipt</a>
-                                            @if ($pay['can_correct'])
-                                                <span class="text-gray-300">·</span>
-                                                <button type="button" wire:click="startEditPayment({{ $pay['id'] }})" class="text-xs font-semibold text-amber-700 hover:underline">Fix</button>
+                                            @if (!empty($pay['is_void']))
+                                                <span class="text-xs font-semibold text-gray-400 line-through">Voided</span>
+                                            @else
+                                                <a href="{{ $pay['receipt_url'] }}" target="_blank" class="text-xs font-semibold text-gray-600 hover:underline">Receipt</a>
+                                                @if ($pay['can_correct'])
+                                                    <span class="text-gray-300">·</span>
+                                                    <button type="button" wire:click="startEditPayment({{ $pay['id'] }})" class="text-xs font-semibold text-amber-700 hover:underline">Fix</button>
+                                                @endif
+                                                @if ($pay['can_void'] ?? false)
+                                                    <span class="text-gray-300">·</span>
+                                                    <button
+                                                        type="button"
+                                                        wire:click="voidPayment({{ $pay['id'] }})"
+                                                        wire:confirm="Delete this wrong collection? Invoice and wallet balance will be adjusted back."
+                                                        class="text-xs font-semibold text-red-600 hover:underline"
+                                                    >Delete</button>
+                                                @endif
                                             @endif
-                                            <span class="text-gray-300">·</span>
-                                            <a href="{{ $pay['edit_url'] }}" target="_blank" class="text-xs font-semibold text-violet-600 hover:underline">Edit</a>
                                         </td>
                                     </tr>
                                 @empty
@@ -383,7 +406,7 @@
                             </tbody>
                         </table>
                     </div>
-                    <p class="text-xs text-gray-500">Wrong invoice selected? Use <strong>Fix</strong> to move payment to the correct bill. <strong>Collected by</strong> shows which staff user recorded it.</p>
+                    <p class="text-xs text-gray-500">Wrong entry? <strong>Delete</strong> voids it and restores bill/wallet balance. <strong>Fix</strong> moves payment to another invoice. <strong>Collected by</strong> shows staff who recorded it.</p>
                 @endif
             </div>
         @endif

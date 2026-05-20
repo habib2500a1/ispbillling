@@ -10,6 +10,30 @@ return [
     'invoice_number_year_infix' => env('BILLING_INVOICE_YEAR_INFIX', true),
 
     /**
+     * Day of month (1–28) for auto bill generation (isp:generate-bills) for new subscribers.
+     * Set to 1 for bills on the 1st of each month.
+     */
+    'default_billing_day' => (int) env('BILLING_DEFAULT_BILLING_DAY', 1),
+
+    /** Day of month (1–31) for service expiry; 0 = last day of current month. */
+    'default_expire_day' => (int) env('BILLING_DEFAULT_EXPIRE_DAY', 0),
+
+    /**
+     * Auto-generate monthly invoices for prepaid / advance subscribers on their bill day.
+     */
+    'prepaid_auto_invoice' => (bool) env('BILLING_PREPAID_AUTO_INVOICE', true),
+
+    /**
+     * Prepaid/advance on registration: this_month = bill today; next_month = wait for bill day.
+     */
+    'default_first_bill_cycle_prepaid' => env('BILLING_FIRST_BILL_PREPAID', 'this_month'),
+
+    'default_first_bill_cycle_postpaid' => env('BILLING_FIRST_BILL_POSTPAID', 'next_month'),
+
+    /** Create first invoice immediately when first_bill_cycle is this_month. */
+    'bill_on_customer_create' => (bool) env('BILLING_ON_CUSTOMER_CREATE', true),
+
+    /**
      * Default grace days when subscriber has none set.
      */
     'default_grace_period_days' => (int) env('BILLING_DEFAULT_GRACE_DAYS', 10),

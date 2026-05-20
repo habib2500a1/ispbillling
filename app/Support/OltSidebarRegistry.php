@@ -3,10 +3,8 @@
 namespace App\Support;
 
 use App\Filament\Pages\ManageOpticalLaserSettings;
-use App\Filament\Pages\NetworkTopology;
 use App\Filament\Pages\OltMacTable;
 use App\Filament\Pages\OpticalMonitoringHub;
-use App\Filament\Pages\SnmpMonitor;
 use App\Filament\Resources\OltResource;
 use Filament\Facades\Filament;
 use Filament\Navigation\NavigationItem;
@@ -70,6 +68,10 @@ final class OltSidebarRegistry
         $items = [];
 
         foreach (self::definitions() as $entry) {
+            if (! self::canSeeEntry($entry['key'])) {
+                continue;
+            }
+
             $items[] = NavigationItem::make($entry['label'])
                 ->url($entry['url'])
                 ->icon($entry['icon'])
@@ -87,5 +89,27 @@ final class OltSidebarRegistry
         }
 
         return $items;
+    }
+
+    public static function hasVisibleEntries(): bool
+    {
+        foreach (self::definitions() as $entry) {
+            if (self::canSeeEntry($entry['key'])) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    public static function canSeeEntry(string $key): bool
+    {
+        return match ($key) {
+            'mac_table' => OltMacTable::canAccess(),
+            'olt_manage' => OltResource::canViewAny(),
+            'optical_noc' => OpticalMonitoringHub::canAccess(),
+            'laser_thresholds' => ManageOpticalLaserSettings::canAccess(),
+            default => false,
+        };
     }
 }

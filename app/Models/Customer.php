@@ -24,7 +24,7 @@ class Customer extends Model implements AuthenticatableContract, AuthorizableCon
     protected static function booted(): void
     {
         static::creating(function (Customer $customer): void {
-            if (blank($customer->customer_code)) {
+            if (blank($customer->customer_code) && \App\Support\SubscriberIdSettings::autoGenerateEnabled()) {
                 $customer->customer_code = \App\Support\CustomerCodeGenerator::generate(
                     (int) $customer->tenant_id,
                     $customer->mikrotik_secret_name,
@@ -141,6 +141,8 @@ class Customer extends Model implements AuthenticatableContract, AuthorizableCon
         'credit_limit',
         'pending_reconnection_fee',
         'portal_password',
+        'portal_last_login_at',
+        'portal_last_logout_at',
         'network_access_state',
         'notes',
         'meta',
@@ -184,6 +186,8 @@ class Customer extends Model implements AuthenticatableContract, AuthorizableCon
             'mikrotik_synced_at' => 'datetime',
             'is_ppp_online' => 'boolean',
             'ppp_last_seen_at' => 'datetime',
+            'portal_last_login_at' => 'datetime',
+            'portal_last_logout_at' => 'datetime',
             'kyc_verified_at' => 'datetime',
             'late_fee_fixed' => 'decimal:2',
             'late_fee_percent' => 'decimal:2',
@@ -457,6 +461,16 @@ class Customer extends Model implements AuthenticatableContract, AuthorizableCon
     public function portalAccessEnabled(): bool
     {
         return filled($this->portal_password);
+    }
+
+    public function recordPortalLogin(): void
+    {
+        $this->forceFill(['portal_last_login_at' => now()])->saveQuietly();
+    }
+
+    public function recordPortalLogout(): void
+    {
+        $this->forceFill(['portal_last_logout_at' => now()])->saveQuietly();
     }
 
     /**

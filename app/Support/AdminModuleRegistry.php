@@ -2,6 +2,7 @@
 
 namespace App\Support;
 
+use App\Support\Rbac\StaffCapability;
 use App\Filament\Pages\AccountingHub;
 use App\Filament\Pages\AnalyticsReports;
 use App\Filament\Pages\BandwidthMonitor;
@@ -157,9 +158,22 @@ class AdminModuleRegistry
     /**
      * @return array<string, list<array<string, mixed>>>
      */
+    /**
+     * Modules the current user may open (permission-based, not role slug).
+     *
+     * @return list<array{group: string, section: string, label: string, description: string, url: string, accent: string, icon?: string}>
+     */
+    public static function visible(): array
+    {
+        return array_values(array_filter(
+            static::all(),
+            fn (array $module): bool => StaffCapability::for(auth()->user())->canAccessModuleGroup($module['group'] ?? ''),
+        ));
+    }
+
     public static function groupedBySection(?string $groupFilter = null): array
     {
-        $items = collect(static::all());
+        $items = collect(static::visible());
         if ($groupFilter !== null) {
             $items = $items->where('group', $groupFilter);
         }
@@ -175,7 +189,7 @@ class AdminModuleRegistry
      */
     public static function groups(): array
     {
-        return collect(static::all())->pluck('group')->unique()->values()->all();
+        return collect(static::visible())->pluck('group')->unique()->values()->all();
     }
 
     public static function iconForGroup(string $group): string

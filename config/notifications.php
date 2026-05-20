@@ -46,6 +46,11 @@ return [
             'channels' => ['email', 'sms'],
             'telegram_ops' => true,
         ],
+        'payment_advance' => [
+            'enabled' => (bool) env('NOTIFICATIONS_PAYMENT_SUCCESS', true),
+            'channels' => ['email', 'sms'],
+            'telegram_ops' => true,
+        ],
         'client_created' => [
             'enabled' => true,
             'channels' => ['sms'],
@@ -143,6 +148,8 @@ return [
 
     'templates' => [
         'payment_success' => "Dear {name},\n\nPayment of {amount} BDT received for invoice {invoice_number}. Receipt: {receipt_number}.\n\nThank you.",
+        'payment_advance' => "Dear {name},\n\nAdvance (অগ্রিম) {amount} BDT received. Receipt: {receipt_number}. Wallet credit: {wallet_credit} BDT.\n\nThank you — {CompanyName}",
+        'payment_advance_ops' => "💰 Advance (অগ্রিম)\nCustomer: {name} ({ClientID})\nAmount: {PaidAmount} BDT\nInvoice: {invoice_number}\nReceipt: {receipt_number}\nWallet+: {wallet_credit} BDT\nMethod: {method}\nCollected by: {collected_by}\nPhone: {phone}\nTime: {time}",
         'invoice_due' => "Dear {name},\n\nInvoice {invoice_number} balance {balance} BDT is due on {due_date}. Please pay via the customer portal.",
         'invoice_due_soon' => "Dear {name},\n\nReminder: Invoice {invoice_number} — {balance} BDT due on {due_date}. Pay: {payment_url}",
         'invoice_due_today' => "Dear {name},\n\nInvoice {invoice_number} ({balance} BDT) is due TODAY ({due_date}). Pay now: {payment_url}",
@@ -159,7 +166,7 @@ return [
         'client_disable_ops' => "🔴 {title}\n{name} ({ClientID})\nBill: {MonthlyBillAmount} BDT\nTime: {time}",
         'support_token_created_ops' => "🎫 {title}\n#{ticket_number} — {name} ({ClientID})\nProblem: {Problem}\nAssignee: {assignee}\nTime: {time}",
         'support_solved_ops' => "✔️ {title}\n#{ticket_number} — {name} ({ClientID})\nProblem: {Problem}\nTime: {time}",
-        'outage_ops' => "Outage broadcast sent to {count} subscriber(s): {message}",
+        'outage_ops' => "⚠️ Outage / optical alert ({count} client(s))\n{message}\n\n{customer_list}",
         'pending_gateway_payment_ops' => 'Pending {gateway} payment: {transaction_id} — {amount} BDT ({name}). Approve in admin.',
         'session_integrity_ops' => 'Session alert [{alert_type}] {login}: {message}',
         'reseller_commission_accrued' => 'Reseller commission {amount} BDT earned (payment {gross} BDT). Your code: {code}',

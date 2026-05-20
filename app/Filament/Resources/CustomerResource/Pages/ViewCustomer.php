@@ -16,6 +16,7 @@ use App\Services\Optical\CustomerOnuAutoProvisionService;
 use App\Services\Optical\CustomerOnuMatcher;
 use App\Services\Optical\IspDigitalOnuPipelineService;
 use App\Services\Optical\CustomerOnuSmartLinkService;
+use App\Services\Import\IspDigitalCustomerDetailsSyncService;
 use App\Services\Optical\OnuSignalCollectionService;
 use App\Services\Subscribers\SubscriberClientDetailsPresenter;
 use Filament\Actions;
@@ -276,6 +277,47 @@ class ViewCustomer extends ViewRecord
                         ->warning()
                         ->persistent()
                         ->send();
+                }),
+            Actions\Action::make('pull_isp_digital_network')
+                ->label('ISP Digital → Network/ONU')
+                ->icon('heroicon-o-cloud-arrow-down')
+                ->color('gray')
+                ->visible(function (Customer $record): bool {
+                    $meta = is_array($record->meta) ? $record->meta : [];
+                    $raw = is_array($meta['isp_digital_raw'] ?? null) ? $meta['isp_digital_raw'] : [];
+
+                    return filled($meta['legacy_id'] ?? null) || filled($raw['CustomerHeaderId'] ?? null);
+                })
+                ->requiresConfirmation()
+                ->modalDescription('pay.anetbd.com Customer Details থেকে Device, MAC, Cable, ONU rent (যদি থাকে) — local meta-তে সেভ হবে। OLT optical আলাদা: «Sync OLT & link ONU»।')
+                ->action(function (): void {
+                    /** @var Customer $record */
+                    $record = $this->record;
+                    try {
+                        $result = app(IspDigitalCustomerDetailsSyncService::class)->syncCustomer($record->fresh());
+                        if (! empty($result['error'])) {
+                            Notification::make()->title('ISP Digital')->body($result['error'])->warning()->send();
+
+                            return;
+                        }
+                        if ($result['updated']) {
+                            Notification::make()
+                                ->title('ISP Digital network synced')
+                                ->body('Updated: '.implode(', ', $result['fields']))
+                                ->success()
+                                ->send();
+                        } else {
+                            Notification::make()
+                                ->title('ISP Digital — no new network fields')
+                                ->body('Details page-এ Device/MAC/Rent খালি থাকলে Edit client-এ ONU rent হাতে দিন।')
+                                ->warning()
+                                ->send();
+                        }
+                        OpticalCustomerSync::dispatch($record->fresh(), false, afterResponse: true);
+                        $this->redirect(static::getUrl(['record' => $record]));
+                    } catch (\Throwable $e) {
+                        Notification::make()->title('ISP Digital pull failed')->body($e->getMessage())->danger()->send();
+                    }
                 }),
             Actions\Action::make('sync_olt_and_link_onu')
                 ->label('Sync OLT & link ONU')

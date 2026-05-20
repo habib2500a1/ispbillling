@@ -4,6 +4,7 @@ namespace App\Services\Mobile;
 
 use App\Models\Customer;
 use App\Models\PppSessionLog;
+use App\Services\Bandwidth\TenantLiveTrafficService;
 use App\Support\BandwidthDirection;
 use Illuminate\Support\Collection;
 
@@ -72,6 +73,12 @@ final class StaffMonitoringService
      */
     public function liveSnapshot(int $tenantId): array
     {
+        $traffic = app(TenantLiveTrafficService::class)->tick($tenantId);
+        $chart = $traffic['chart'];
+        if ($chart['labels'] === []) {
+            $chart = app(TenantLiveTrafficService::class)->chartFromSamples($tenantId, 2, 120);
+        }
+
         $sessions = PppSessionLog::withoutGlobalScopes()
             ->where('tenant_id', $tenantId)
             ->where('status', 'active')
@@ -88,16 +95,20 @@ final class StaffMonitoringService
                 ->count();
         }
 
-        $bps = 0;
-        foreach ($sessions as $s) {
-            $bps += (int) ($s->liveDownloadBps() ?? 0) + (int) ($s->liveUploadBps() ?? 0);
-        }
+        $downBps = (int) ($traffic['download_bps'] ?? 0);
+        $upBps = (int) ($traffic['upload_bps'] ?? 0);
+        $bps = $downBps + $upBps;
 
         return [
             'online_count' => $count,
             'timestamp' => now()->toIso8601String(),
             'bandwidth_total_bps' => $bps,
             'bandwidth_human' => BandwidthDirection::formatBps($bps > 0 ? $bps : null),
+            'download_bps' => $downBps,
+            'upload_bps' => $upBps,
+            'download_human' => BandwidthDirection::formatBps($downBps > 0 ? $downBps : null),
+            'upload_human' => BandwidthDirection::formatBps($upBps > 0 ? $upBps : null),
+            'chart' => array_merge($chart, ['granularity' => 'per_second']),
         ];
     }
 

@@ -14,6 +14,7 @@ use App\Models\NotificationLog;
 use App\Models\Payment;
 use App\Models\User;
 use App\Support\NotificationEvent;
+use App\Services\Network\CustomerConnectionStatusService;
 use App\Services\Optical\SubscriberOpticalPowerPresenter;
 use App\Support\MacAddress;
 use App\Support\SubscriberType;
@@ -38,6 +39,7 @@ final class SubscriberClientDetailsPresenter
 
     public function __construct(
         private readonly SubscriberOpticalPowerPresenter $optical,
+        private readonly CustomerConnectionStatusService $connectionStatus,
     ) {}
 
     /**
@@ -119,6 +121,8 @@ final class SubscriberClientDetailsPresenter
             ?: $customer->radius_username
             ?: $customer->customer_code;
 
+        $conn = $this->connectionStatus->summary($customer);
+
         return [
             'customer' => $customer,
             'header' => [
@@ -130,6 +134,9 @@ final class SubscriberClientDetailsPresenter
                 'subscriber_type' => $customer->subscriberTypeLabel(),
                 'subscriber_type_color' => $customer->subscriberTypeColor(),
                 'online' => $customer->is_ppp_online,
+                'connection_duration' => $conn['connection_duration'] ?? '—',
+                'last_disconnect' => $conn['last_disconnect_formatted'],
+                'portal_last_logout' => $conn['portal_last_logout_at'] ?? '—',
                 'network' => $customer->network_access_state ?? 'active',
                 'balance' => (float) $customer->account_balance,
                 'open_balance' => round($openBalance, 2),
@@ -148,7 +155,7 @@ final class SubscriberClientDetailsPresenter
             'sections' => [
                 'identity' => $this->sectionIdentity($customer, $meta),
                 'location' => $this->sectionLocation($customer, $meta),
-                'connection' => $this->sectionConnection($customer, $meta, $ppp, $clientMac, $username),
+                'connection' => $this->sectionConnection($customer, $meta, $ppp, $clientMac, $username, $conn),
                 'billing' => $this->sectionBilling($customer, $meta, $openBalance, $lastPayment),
                 'fees' => $this->sectionFees($customer, $meta),
                 'installation' => $this->sectionInstallation($customer, $meta),
@@ -238,6 +245,7 @@ final class SubscriberClientDetailsPresenter
         mixed $ppp,
         ?string $clientMac,
         string $username,
+        array $conn,
     ): array {
         return [
             'UserName' => $username,
@@ -252,7 +260,12 @@ final class SubscriberClientDetailsPresenter
             'Router Host' => $customer->mikrotikServer?->host ?? '—',
             'Network Access' => ucfirst((string) ($customer->network_access_state ?? 'active')),
             'PPP Online' => $customer->is_ppp_online ? 'Yes' : 'No',
+            'Connected Since' => $conn['session_started_formatted'] ?? '—',
+            'Connection Duration' => $conn['connection_duration'] ?? '—',
+            'Last Disconnect (PPPoE)' => $conn['last_disconnect_formatted'],
             'Last Seen' => $customer->ppp_last_seen_at?->format('d-M-Y H:i') ?? '—',
+            'Portal Last Login' => $customer->portal_last_login_at?->format('d-M-Y H:i') ?? '—',
+            'Portal Last Logout' => $customer->portal_last_logout_at?->format('d-M-Y H:i') ?? '—',
             'MikroTik Synced' => $customer->mikrotik_synced_at?->format('d-M-Y H:i') ?? '—',
             'ONU MAC' => filled($meta['onu_mac'] ?? null)
                 ? (MacAddress::normalizeColon((string) $meta['onu_mac']) ?? $meta['onu_mac'])
@@ -286,8 +299,11 @@ final class SubscriberClientDetailsPresenter
             'Bill Generate Day' => (string) ($customer->billing_day ?? '—'),
             'Activation Date' => $customer->joined_at?->format('d-M-Y') ?? '—',
             'Expire Date' => $customer->service_expires_at?->format('d-M-Y') ?? '—',
-            'Grace Days' => ((int) $customer->grace_period_days).' days',
-            'Grace Expire' => $customer->serviceOffDate()?->format('d-M-Y') ?? '—',
+            'Expire Day (month)' => $customer->service_expires_at
+                ? (string) \App\Support\BillingDefaults::expireDayFromDate($customer->service_expires_at)
+                : '—',
+            'Line Off From' => $customer->serviceOffDate()?->format('d-M-Y') ?? '—',
+            'Late Fee Grace' => ((int) $customer->grace_period_days).' days after due',
             'Wallet Balance' => number_format((float) $customer->account_balance, 2).' BDT',
             'Open Due' => number_format($openBalance, 2).' BDT',
             'Credit Limit' => $customer->credit_limit !== null
@@ -360,12 +376,32 @@ final class SubscriberClientDetailsPresenter
      */
     private function sectionOnuBilling(array $meta): array
     {
-        return [
-            'ONU Rent / month' => isset($meta['onu_rent']) ? number_format((float) $meta['onu_rent'], 2).' BDT' : '—',
-            'ONU Installment' => isset($meta['onu_installment']) ? number_format((float) $meta['onu_installment'], 2).' BDT' : '—',
-            'ONU Deposit' => isset($meta['onu_deposit']) ? number_format((float) $meta['onu_deposit'], 2).' BDT' : '—',
-            'Router Rent / month' => isset($meta['router_rent']) ? number_format((float) $meta['router_rent'], 2).' BDT' : '—',
+        $network = is_array($meta['isp_digital_network'] ?? null) ? $meta['isp_digital_network'] : [];
+        $fmt = static fn ($v): string => isset($v) && $v !== '' && (float) $v > 0
+            ? number_format((float) $v, 2).' BDT'
+            : '—';
+
+        $rows = [
+            'ONU Rent / month' => $fmt($meta['onu_rent'] ?? null),
+            'ONU Installment' => $fmt($meta['onu_installment'] ?? null),
+            'ONU Deposit' => $fmt($meta['onu_deposit'] ?? null),
+            'Router Rent / month' => $fmt($meta['router_rent'] ?? null),
+            'ISP Digital server' => (string) ($network['server'] ?? '—'),
+            'Connection (ISP Digital)' => (string) ($network['connection_type'] ?? '—'),
+            'Device (ISP Digital)' => (string) ($meta['device'] ?? $network['device'] ?? '—'),
+            'Device MAC / Serial' => (string) ($meta['onu_mac'] ?? $network['device_mac_serial_no'] ?? '—'),
+            'Fiber / Cable' => trim(implode(' · ', array_filter([
+                filled($meta['fiber_code'] ?? null) ? 'Fiber: '.$meta['fiber_code'] : null,
+                isset($meta['cable_length_m']) && (float) $meta['cable_length_m'] > 0
+                    ? 'Cable: '.(float) $meta['cable_length_m'].' m'
+                    : null,
+            ]))) ?: '—',
+            'ISP Digital sync' => filled($meta['isp_digital_details_synced_at'] ?? null)
+                ? \Illuminate\Support\Carbon::parse((string) $meta['isp_digital_details_synced_at'])->format('d-M-Y H:i')
+                : '—',
         ];
+
+        return $rows;
     }
 
     /**

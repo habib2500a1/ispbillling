@@ -3,11 +3,16 @@
 namespace App\Services\Notifications;
 
 use App\Models\Customer;
+use App\Models\NotificationLog;
 use App\Models\Payment;
 use App\Models\SupportTicket;
 use App\Models\User;
+use App\Services\Billing\CollectionPaymentClassifier;
 use App\Services\Sms\SmsTemplateVariableBuilder;
+use App\Support\NotificationChannel;
 use App\Support\NotificationEvent;
+use App\Support\PaymentType;
+use Illuminate\Support\Facades\Cache;
 
 /**
  * Telegram / ops alerts for admins (independent of customer SMS template toggles).
@@ -20,7 +25,13 @@ final class OpsNotificationService
 
     public function onPaymentCompleted(Payment $payment): void
     {
-        if (! $this->opsEnabledFor('payment_success')) {
+        if (($payment->payment_type ?? PaymentType::PAYMENT) !== PaymentType::PAYMENT) {
+            return;
+        }
+
+        $event = CollectionPaymentClassifier::notificationEvent($payment);
+
+        if (! $this->opsEnabledFor($event)) {
             return;
         }
 
@@ -29,25 +40,50 @@ final class OpsNotificationService
             return;
         }
 
+        if (! $this->acquireTelegramOpsSendSlot($payment)) {
+            return;
+        }
+
         $invoice = $payment->invoice;
         $recorder = $payment->recorded_by ? User::query()->find($payment->recorded_by) : null;
+        $vars = array_merge(
+            SmsTemplateVariableBuilder::forPayment($payment),
+            CollectionPaymentClassifier::notificationVariables($payment),
+            [
+                'method' => $payment->methodLabel(),
+                'collected_by' => $recorder?->name ?? 'System / Gateway',
+                'phone' => $customer->phone ?? '—',
+                'due' => $invoice !== null
+                    ? number_format(max(0, (float) $invoice->total - (float) $invoice->amount_paid), 2)
+                    : '—',
+                'time' => ($payment->paid_at ?? now())->format('d M Y, h:i A'),
+            ],
+        );
 
-        $this->dispatcher->notifyOps((int) $payment->tenant_id, NotificationEvent::PAYMENT_SUCCESS, [
-            'name' => $customer->name,
-            'CustomerName' => $customer->name,
-            'ClientID' => $customer->client_code ?? (string) $customer->id,
-            'amount' => number_format((float) $payment->amount, 2),
-            'PaidAmount' => number_format((float) $payment->amount, 2),
-            'invoice_number' => $invoice?->invoice_number ?? '—',
-            'receipt_number' => $payment->receipt_number ?? '—',
-            'method' => $payment->methodLabel(),
-            'collected_by' => $recorder?->name ?? 'System / Gateway',
-            'phone' => $customer->phone ?? '—',
-            'due' => $invoice !== null
-                ? number_format(max(0, (float) $invoice->total - (float) $invoice->amount_paid), 2)
-                : '—',
-            'time' => ($payment->paid_at ?? now())->format('d M Y, h:i A'),
+        $this->dispatcher->notifyOps((int) $payment->tenant_id, $event, $vars, [
+            'payment_id' => $payment->id,
         ]);
+    }
+
+    /**
+     * One Telegram ops message per payment (guards duplicate observer / double-submit).
+     */
+    private function acquireTelegramOpsSendSlot(Payment $payment): bool
+    {
+        $key = 'notify:telegram_ops:payment:'.$payment->tenant_id.':'.$payment->id;
+
+        if (! Cache::add($key, 1, now()->addHours(12))) {
+            return false;
+        }
+
+        return ! NotificationLog::query()
+            ->withoutGlobalScopes()
+            ->where('tenant_id', $payment->tenant_id)
+            ->where('channel', NotificationChannel::TELEGRAM)
+            ->where('event', NotificationEvent::PAYMENT_SUCCESS)
+            ->where('status', 'sent')
+            ->where('meta->payment_id', $payment->id)
+            ->exists();
     }
 
     public function onClientCreated(Customer $customer): void
@@ -139,6 +175,8 @@ final class OpsNotificationService
             return false;
         }
 
-        return (bool) config("notifications.events.{$event}.telegram_ops", false);
+        $configKey = $event === NotificationEvent::PAYMENT_ADVANCE ? 'payment_success' : $event;
+
+        return (bool) config("notifications.events.{$configKey}.telegram_ops", false);
     }
 }

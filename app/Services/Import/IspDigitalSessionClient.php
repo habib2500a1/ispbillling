@@ -84,6 +84,131 @@ final class IspDigitalSessionClient
     }
 
     /**
+     * @return list<array<string, mixed>>
+     */
+    public function fetchPaymentHistory(int $customerHeaderId, int $start = 0, int $length = 500): array
+    {
+        $response = $this->http->asForm()
+            ->withHeaders([
+                'X-Requested-With' => 'XMLHttpRequest',
+                'Referer' => $this->baseUrl.'/Customer/Details?id='.$customerHeaderId,
+            ])
+            ->post($this->baseUrl.'/Customer/AjaxReceivedHistory/'.$customerHeaderId, [
+                'draw' => '1',
+                'start' => (string) $start,
+                'length' => (string) $length,
+            ]);
+
+        if (! $response->successful()) {
+            throw new RuntimeException('AjaxReceivedHistory failed: HTTP '.$response->status());
+        }
+
+        /** @var array{data?: list<array<string, mixed>>} $json */
+        $json = $response->json();
+
+        return $json['data'] ?? [];
+    }
+
+    /**
+     * @return array{aaData: list<array<string, mixed>>, iTotalDisplayRecords: int}
+     */
+    public function fetchServiceInvoicePage(int $start = 0, int $length = 100): array
+    {
+        $response = $this->http->asForm()
+            ->withHeaders([
+                'X-Requested-With' => 'XMLHttpRequest',
+                'Referer' => $this->baseUrl.'/serviceinvoice/index',
+            ])
+            ->post($this->baseUrl.'/ServiceInvoice/AjaxInvoiceList', [
+                'draw' => '1',
+                'start' => (string) $start,
+                'length' => (string) $length,
+            ]);
+
+        if (! $response->successful()) {
+            throw new RuntimeException('AjaxInvoiceList failed: HTTP '.$response->status());
+        }
+
+        /** @var array{aaData?: list<array<string, mixed>>, iTotalDisplayRecords?: int} $json */
+        $json = $response->json();
+
+        return [
+            'aaData' => $json['aaData'] ?? [],
+            'iTotalDisplayRecords' => (int) ($json['iTotalDisplayRecords'] ?? 0),
+        ];
+    }
+
+    /**
+     * Current-month billing grid (matches ISP Digital dashboard totals).
+     *
+     * @return array{aaData: list<array<string, mixed>>, iTotalDisplayRecords: int}
+     */
+    public function fetchCustomerBillListPage(int $start = 0, int $length = 200): array
+    {
+        $response = $this->http->asForm()
+            ->withHeaders([
+                'X-Requested-With' => 'XMLHttpRequest',
+                'Referer' => $this->baseUrl.'/Billing/Index',
+            ])
+            ->post($this->baseUrl.'/Billing/AjaxCustomerBillList', [
+                'draw' => '1',
+                'start' => (string) $start,
+                'length' => (string) $length,
+                'search[value]' => '',
+                'search[regex]' => 'false',
+            ]);
+
+        if (! $response->successful()) {
+            throw new RuntimeException('AjaxCustomerBillList failed: HTTP '.$response->status());
+        }
+
+        /** @var array{aaData?: list<array<string, mixed>>, iTotalDisplayRecords?: int} $json */
+        $json = $response->json();
+
+        return [
+            'aaData' => $json['aaData'] ?? [],
+            'iTotalDisplayRecords' => (int) ($json['iTotalDisplayRecords'] ?? 0),
+        ];
+    }
+
+    /**
+     * Dashboard KPIs from ISP Digital billing page (Monthly bill, collected, due).
+     *
+     * @return array{monthly_bill: float, collected_bill: float, due: float, discount: float, monthly_generated_bill: float, total_advanced: float, total_active: int, total_paid_clients: int, total_unpaid_clients: int}
+     */
+    public function fetchBillingListOtherData(): array
+    {
+        $response = $this->http
+            ->withHeaders([
+                'X-Requested-With' => 'XMLHttpRequest',
+                'Referer' => $this->baseUrl.'/Billing/Index',
+            ])
+            ->get($this->baseUrl.'/Billing/GetBillingListOtherData');
+
+        if (! $response->successful()) {
+            throw new RuntimeException('GetBillingListOtherData failed: HTTP '.$response->status());
+        }
+
+        /** @var array<string, mixed> $raw */
+        $raw = $response->json() ?? [];
+
+        $monthlyBill = (float) ($raw['MonthlyBill'] ?? 0);
+        $generated = (float) ($raw['MonthlyGeneratedBill'] ?? 0);
+
+        return [
+            'monthly_bill' => round($monthlyBill, 2),
+            'collected_bill' => round((float) ($raw['PaidAmount'] ?? 0), 2),
+            'due' => round((float) ($raw['DueAmount'] ?? 0), 2),
+            'discount' => round(max(0, $generated - $monthlyBill), 2),
+            'monthly_generated_bill' => round($generated, 2),
+            'total_advanced' => round((float) ($raw['TotalAdvancedBill'] ?? 0), 2),
+            'total_active' => (int) ($raw['TotalActiveClinetForBilling'] ?? 0),
+            'total_paid_clients' => (int) ($raw['TotalPaidClient'] ?? 0),
+            'total_unpaid_clients' => (int) ($raw['TotalUnpaidClient'] ?? 0),
+        ];
+    }
+
+    /**
      * @return array{aaData: list<array<string, mixed>>, iTotalDisplayRecords: int}
      */
     public function fetchCustomerPage(int $start = 0, int $length = 10, string $query = 'alloverclients'): array
@@ -115,6 +240,27 @@ final class IspDigitalSessionClient
             'aaData' => $json['aaData'] ?? [],
             'iTotalDisplayRecords' => (int) ($json['iTotalDisplayRecords'] ?? 0),
         ];
+    }
+
+    public function fetchCustomerDetailsHtml(int $customerHeaderId): string
+    {
+        $response = $this->http
+            ->withHeaders([
+                'Referer' => $this->baseUrl.'/Customer/Index',
+            ])
+            ->get($this->baseUrl.'/Customer/Details/'.$customerHeaderId);
+
+        if (! $response->successful()) {
+            $response = $this->http
+                ->withHeaders(['Referer' => $this->baseUrl.'/Customer/Index'])
+                ->get($this->baseUrl.'/Customer/Details', ['id' => $customerHeaderId]);
+        }
+
+        if (! $response->successful()) {
+            throw new RuntimeException('Customer details failed: HTTP '.$response->status());
+        }
+
+        return (string) $response->body();
     }
 
     private function extractVerificationToken(string $html): string

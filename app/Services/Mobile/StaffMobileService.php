@@ -10,7 +10,6 @@ use App\Models\SupportTicket;
 use App\Models\User;
 use App\Models\Zone;
 use App\Services\Dashboard\DashboardMetricsService;
-use App\Services\Reports\AnalyticsReportService;
 use App\Support\CustomerStatus;
 use App\Support\InternalTaskStatus;
 use Carbon\Carbon;
@@ -19,8 +18,8 @@ use Illuminate\Support\Facades\DB;
 final class StaffMobileService
 {
     public function __construct(
-        private readonly AnalyticsReportService $analytics,
         private readonly DashboardMetricsService $metrics,
+        private readonly StaffBillingKpiResolver $billingKpis,
     ) {}
 
     /**
@@ -31,19 +30,7 @@ final class StaffMobileService
         $tenantId = (int) $user->tenant_id;
         $from = now()->startOfMonth();
         $to = now()->endOfMonth();
-        $summary = $this->analytics->summary($from, $to, $tenantId);
-
-        $monthlyBill = (float) Invoice::withoutGlobalScopes()
-            ->where('tenant_id', $tenantId)
-            ->whereBetween('issue_date', [$from->toDateString(), $to->toDateString()])
-            ->whereNotIn('status', ['void', 'cancelled'])
-            ->sum('total');
-
-        $discount = (float) Invoice::withoutGlobalScopes()
-            ->where('tenant_id', $tenantId)
-            ->whereBetween('issue_date', [$from->toDateString(), $to->toDateString()])
-            ->sum(DB::raw('COALESCE(discount_amount, 0) + COALESCE(coupon_discount_amount, 0)'));
-
+        $billing = $this->billingKpis->resolve($tenantId);
         $snap = $this->metrics->snapshot($tenantId);
         $expiringToday = Customer::withoutGlobalScopes()
             ->where('tenant_id', $tenantId)
@@ -54,7 +41,7 @@ final class StaffMobileService
             'kpis' => [
                 'collected_today' => round((float) ($snap['collected_today'] ?? 0), 2),
                 'active_clients' => (int) ($snap['active_subscribers'] ?? 0),
-                'due_clients' => (int) ($snap['due_customers'] ?? 0),
+                'due_clients' => $this->billingKpis->dueClientsCount($tenantId),
                 'expiring_today' => $expiringToday,
                 'online_clients' => Customer::withoutGlobalScopes()
                     ->where('tenant_id', $tenantId)
@@ -74,15 +61,10 @@ final class StaffMobileService
                 'user_type' => $this->userTypeLabel($user),
                 'status' => $user->is_active ? 'Active' : 'Inactive',
             ],
-            'billing' => [
-                'monthly_bill' => round($monthlyBill, 2),
-                'collected_bill' => round((float) ($summary['collected'] ?? 0), 2),
-                'due' => round((float) ($summary['outstanding'] ?? 0), 2),
-                'discount' => round(abs($discount), 2),
-            ],
+            'billing' => $billing,
             'tickets' => $this->ticketStats($tenantId),
             'tasks' => $this->taskStats($tenantId),
-            'zone_collection_chart' => $this->zoneCollectionChart($tenantId, $from, $to),
+            'zone_collection_chart' => $this->zoneCollectionChartFromSynced($tenantId, $from, $to),
             'quick_actions' => $this->quickActions($user),
         ];
     }
@@ -126,31 +108,51 @@ final class StaffMobileService
     /**
      * @return list<array{zone: string, paid: float, unpaid: float}>
      */
-    private function zoneCollectionChart(int $tenantId, Carbon $from, Carbon $to): array
+    private function zoneCollectionChartFromSynced(int $tenantId, Carbon $from, Carbon $to): array
     {
         $zones = Zone::withoutGlobalScopes()
             ->where('tenant_id', $tenantId)
             ->orderBy('name')
-            ->limit(8)
+            ->limit(12)
             ->get(['id', 'name']);
 
         $rows = [];
+        $periodKey = now()->format('Y-m');
 
         foreach ($zones as $zone) {
-            $paid = (float) Payment::withoutGlobalScopes()
+            $customerIds = Customer::withoutGlobalScopes()
                 ->where('tenant_id', $tenantId)
-                ->where('status', 'completed')
-                ->whereBetween('paid_at', [$from, $to])
-                ->whereHas('customer', fn ($q) => $q->where('zone_id', $zone->id))
-                ->sum('amount');
+                ->where('zone_id', $zone->id)
+                ->pluck('id');
 
-            $unpaid = (float) Invoice::withoutGlobalScopes()
+            if ($customerIds->isEmpty()) {
+                continue;
+            }
+
+            $paid = (float) Invoice::withoutGlobalScopes()
                 ->where('tenant_id', $tenantId)
-                ->whereIn('status', ['open', 'partial', 'draft'])
-                ->whereRaw('(total - amount_paid) > 0')
-                ->whereHas('customer', fn ($q) => $q->where('zone_id', $zone->id))
-                ->selectRaw('COALESCE(SUM(total - amount_paid), 0) as due')
-                ->value('due');
+                ->whereIn('customer_id', $customerIds)
+                ->where('invoice_number', 'like', 'ISD-%-'.$periodKey)
+                ->sum('amount_paid');
+
+            $unpaid = (float) Customer::withoutGlobalScopes()
+                ->whereIn('id', $customerIds)
+                ->get()
+                ->sum(fn (Customer $c): float => (float) ($c->meta['isp_digital_balance_due'] ?? 0));
+
+            if ($paid <= 0 && $unpaid <= 0) {
+                $paid = (float) Payment::withoutGlobalScopes()
+                    ->where('tenant_id', $tenantId)
+                    ->where('status', 'completed')
+                    ->whereBetween('paid_at', [$from, $to])
+                    ->whereIn('customer_id', $customerIds)
+                    ->sum('amount');
+                $unpaid = (float) Invoice::withoutGlobalScopes()
+                    ->where('tenant_id', $tenantId)
+                    ->whereIn('customer_id', $customerIds)
+                    ->whereNotIn('status', ['paid', 'void', 'cancelled'])
+                    ->sum(DB::raw('GREATEST(total - amount_paid, 0)'));
+            }
 
             $rows[] = [
                 'zone' => $zone->name,

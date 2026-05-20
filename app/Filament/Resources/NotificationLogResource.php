@@ -5,6 +5,7 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\NotificationLogResource\Pages;
 use App\Models\NotificationLog;
 use App\Support\NotificationChannel;
+use App\Support\Rbac\StaffCapability;
 use App\Support\NotificationEvent;
 use Filament\Facades\Filament;
 use Filament\Resources\Resource;
@@ -31,11 +32,7 @@ class NotificationLogResource extends Resource
 
     public static function canViewAny(): bool
     {
-        return auth()->user()?->hasAnyRole([
-            'super-admin',
-            'isp-admin',
-            'isp-manager',
-        ]) ?? false;
+        return StaffCapability::for(auth()->user())->canSms();
     }
 
     public static function canCreate(): bool

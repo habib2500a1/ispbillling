@@ -9,9 +9,12 @@ use App\Models\MikrotikServer;
 use App\Models\Package;
 use App\Models\Subzone;
 use App\Models\Zone;
+use App\Support\BillingDefaults;
 use App\Support\CustomerStatus;
+use App\Support\IspDigitalPackageSpeed;
 use App\Support\SubscriberType;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Hash;
 final class IspDigitalCustomerImporter
 {
     public function __construct(
@@ -35,9 +38,12 @@ final class IspDigitalCustomerImporter
 
         $phone = $this->normalizePhone((string) ($row['MobileNumber'] ?? ''));
         $username = trim((string) ($row['UserName'] ?? $phone));
-        $packageId = $this->resolvePackageId($row);
+        $packageId = $this->resolvePackageIdForRow($row);
         $zoneIds = $this->resolveZoneIds($row);
         $mikrotikId = $this->resolveMikrotikServerId((string) ($row['Server'] ?? ''));
+
+        $online = $this->isPppOnline($row);
+        $portalPassword = $this->resolvePortalPassword($row);
 
         $attrs = [
             'tenant_id' => $this->tenantId,
@@ -53,11 +59,13 @@ final class IspDigitalCustomerImporter
             'package_id' => $packageId,
             'status' => $this->mapStatus($row),
             'subscriber_type' => ($row['IsVIPClient'] ?? false) ? SubscriberType::VIP : SubscriberType::STANDARD,
-            'billing_mode' => 'postpaid',
-            'billing_day' => is_numeric($row['BillingLastDate'] ?? null) ? (int) $row['BillingLastDate'] : 1,
+            'billing_mode' => $this->resolveBillingMode($row),
+            'billing_day' => $this->resolveBillingDay($row),
             'joined_at' => $this->parseDate($row['ClientJoiningDate'] ?? null)?->toDateString() ?? now()->toDateString(),
-            'service_expires_at' => $this->parseDate($row['EffectiveTo'] ?? null)?->toDateString(),
-            'network_access_state' => strtolower((string) ($row['ShortStatus'] ?? 'active')) === 'active' ? 'active' : 'suspended',
+            'service_expires_at' => $this->resolveServiceExpiresAt($row)?->toDateString(),
+            'network_access_state' => $this->mapNetworkAccessState($row),
+            'is_ppp_online' => $online,
+            'ppp_last_seen_at' => $online ? now() : null,
             'mikrotik_secret_name' => $username,
             'radius_username' => $username,
             'mikrotik_server_id' => $mikrotikId,
@@ -66,6 +74,10 @@ final class IspDigitalCustomerImporter
             'import_source' => 'isp_digital',
             'meta' => $this->buildMeta($row),
         ];
+
+        if ($portalPassword !== null) {
+            $attrs['portal_password'] = $portalPassword;
+        }
 
         $customer = Customer::withoutEvents(function () use ($existing, $attrs): Customer {
             if ($existing !== null) {
@@ -88,6 +100,9 @@ final class IspDigitalCustomerImporter
     {
         $zoneName = trim((string) ($row['ZoneName'] ?? ''));
         $subName = trim((string) ($row['SubZoneName'] ?? ''));
+        if ($subName === '') {
+            $subName = trim((string) ($row['BoxName'] ?? ''));
+        }
 
         $zone = $zoneName !== ''
             ? Zone::query()->whereRaw('LOWER(name) = ?', [strtolower($zoneName)])->first()
@@ -124,22 +139,42 @@ final class IspDigitalCustomerImporter
     }
 
     /**
+     * Resolve local package id from ISP Digital row (Package + PackageSpeed).
+     *
      * @param  array<string, mixed>  $row
      */
-    private function resolvePackageId(array $row): ?int
+    public function resolvePackageIdForRow(array $row): ?int
     {
-        $name = trim((string) ($row['Package'] ?? $row['PackageSpeed'] ?? ''));
+        $parsed = IspDigitalPackageSpeed::parse($row);
+        $name = $parsed['display_name'];
+        $profile = $parsed['mikrotik_profile'];
+
         if ($name === '') {
             return Package::query()->where('is_active', true)->value('id');
         }
 
-        $pkg = Package::query()
+        $package = Package::query()
             ->where('is_active', true)
             ->whereRaw('LOWER(name) = ?', [strtolower($name)])
-            ->value('id');
+            ->first();
 
-        if ($pkg !== null) {
-            return (int) $pkg;
+        if ($package !== null) {
+            if ($profile !== null && $package->mikrotik_profile_name !== $profile) {
+                $package->update(['mikrotik_profile_name' => $profile]);
+            }
+
+            return $package->id;
+        }
+
+        if ($profile !== null) {
+            $byProfile = Package::query()
+                ->where('is_active', true)
+                ->whereRaw('LOWER(mikrotik_profile_name) = ?', [strtolower($profile)])
+                ->first();
+
+            if ($byProfile !== null) {
+                return $byProfile->id;
+            }
         }
 
         $monthly = (float) ($row['MonthlyBill'] ?? 0);
@@ -152,6 +187,7 @@ final class IspDigitalCustomerImporter
         return Package::query()->create([
             'tenant_id' => $this->tenantId,
             'name' => $name,
+            'mikrotik_profile_name' => $profile,
             'type' => 'residential',
             'download_mbps' => $mbps,
             'upload_mbps' => $mbps,
@@ -196,9 +232,19 @@ final class IspDigitalCustomerImporter
             'house_no' => (string) ($row['HouseNo'] ?? ''),
             'thana' => (string) ($row['Thana'] ?? ''),
             'district' => (string) ($row['District'] ?? ''),
+            'package_speed' => (string) ($row['PackageSpeed'] ?? ''),
+            'mikrotik_profile' => IspDigitalPackageSpeed::parse($row)['mikrotik_profile'],
             'monthly_bill_snapshot' => $row['MonthlyBill'] ?? null,
             'is_online_snapshot' => $row['IsOnline'] ?? null,
+            'is_connected_to_mikrotik' => (bool) ($row['IsConnectedToMikrotik'] ?? false),
             'connectivity_status' => (string) ($row['ConnectivityStatus'] ?? ''),
+            'billing_last_date' => (string) ($row['BillingLastDate'] ?? ''),
+            'effective_to_remarks' => (string) ($row['EffectiveToRemarks'] ?? ''),
+            'portal_login_username' => (string) ($row['LoginUserName'] ?? ''),
+            'has_portal_access' => (bool) ($row['HasLoginAccess'] ?? false),
+            'device' => (string) ($row['Device'] ?? ''),
+            'purchase_date' => (string) ($row['PurchaseDate'] ?? ''),
+            'assigned_employee' => (string) ($row['AssignedEmployee'] ?? ''),
             'mac_bind_status' => (bool) ($row['MACBindStatus'] ?? false),
             'remote_address' => (string) ($row['RemoteAddress'] ?? ''),
             'notify_sms' => true,
@@ -233,20 +279,126 @@ final class IspDigitalCustomerImporter
      */
     private function mapStatus(array $row): string
     {
+        if ($this->isDisabled($row)) {
+            return CustomerStatus::SUSPENDED;
+        }
+
         $short = strtolower((string) ($row['ShortStatus'] ?? 'active'));
         $status = strtolower((string) ($row['Status'] ?? ''));
 
-        if (str_contains($status, 'suspend') || $short === 'suspended') {
+        if (str_contains($status, 'suspend') || $short === 'suspended' || $short === 'off') {
             return CustomerStatus::SUSPENDED;
         }
         if (str_contains($status, 'expir') || $short === 'expired') {
             return CustomerStatus::EXPIRED;
         }
-        if (str_contains($status, 'terminat')) {
+        if (str_contains($status, 'terminat') || str_contains($status, 'left')) {
             return CustomerStatus::TERMINATED;
         }
 
         return CustomerStatus::ACTIVE;
+    }
+
+    /**
+     * @param  array<string, mixed>  $row
+     */
+    private function mapNetworkAccessState(array $row): string
+    {
+        if ($this->isDisabled($row)) {
+            return 'suspended';
+        }
+
+        $short = strtolower((string) ($row['ShortStatus'] ?? 'active'));
+        if (in_array($short, ['suspended', 'off', 'disabled', 'expired'], true)) {
+            return 'suspended';
+        }
+
+        return 'active';
+    }
+
+    /**
+     * @param  array<string, mixed>  $row
+     */
+    private function isPppOnline(array $row): bool
+    {
+        if (filter_var($row['IsOnline'] ?? false, FILTER_VALIDATE_BOOLEAN)) {
+            return true;
+        }
+
+        $connectivity = strtolower((string) ($row['ConnectivityStatus'] ?? ''));
+
+        return str_contains($connectivity, 'online');
+    }
+
+    /**
+     * @param  array<string, mixed>  $row
+     */
+    private function isDisabled(array $row): bool
+    {
+        return filter_var($row['Disabled'] ?? false, FILTER_VALIDATE_BOOLEAN);
+    }
+
+    /**
+     * @param  array<string, mixed>  $row
+     */
+    /**
+     * @param  array<string, mixed>  $row
+     */
+    private function resolveBillingMode(array $row): string
+    {
+        $expires = $this->resolveServiceExpiresAt($row);
+        if ($expires !== null && $expires->isFuture() && $expires->year >= 2000 && $expires->year < 2038) {
+            return 'prepaid';
+        }
+
+        return 'postpaid';
+    }
+
+    /**
+     * @param  array<string, mixed>  $row
+     */
+    private function resolveBillingDay(array $row): int
+    {
+        $day = (int) preg_replace('/\D+/', '', (string) ($row['BillingLastDate'] ?? ''));
+
+        return ($day >= 1 && $day <= 28) ? $day : BillingDefaults::billingDay();
+    }
+
+    /**
+     * ISP Digital: EffectiveTo when set; otherwise expire day from BillingLastDate (day of month).
+     *
+     * @param  array<string, mixed>  $row
+     */
+    private function resolveServiceExpiresAt(array $row): ?Carbon
+    {
+        $effective = $this->parseDate($row['EffectiveTo'] ?? null);
+        if ($effective !== null) {
+            return $effective;
+        }
+
+        $expireDay = (int) preg_replace('/\D+/', '', (string) ($row['BillingLastDate'] ?? ''));
+        if ($expireDay >= 1 && $expireDay <= 31) {
+            return Carbon::parse(BillingDefaults::dateFromExpireDay($expireDay));
+        }
+
+        return null;
+    }
+
+    /**
+     * @param  array<string, mixed>  $row
+     */
+    private function resolvePortalPassword(array $row): ?string
+    {
+        if (! filter_var($row['HasLoginAccess'] ?? false, FILTER_VALIDATE_BOOLEAN)) {
+            return null;
+        }
+
+        $plain = trim((string) ($row['LoginPassword'] ?? ''));
+        if ($plain === '') {
+            return null;
+        }
+
+        return Hash::make($plain);
     }
 
     private function parseDate(mixed $value): ?Carbon

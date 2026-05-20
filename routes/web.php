@@ -50,6 +50,13 @@ Route::middleware(['web', 'auth'])->prefix('admin')->group(function (): void {
 Route::redirect('/admin/customers', '/admin/subscribers', 308);
 Route::redirect('/admin/customers/{path}', '/admin/subscribers/{path}', 308)->where('path', '.+');
 
+// Filament login is Livewire (GET only). Native POST (broken JS / Cloudflare Rocket Loader) → 405 without this.
+Route::post('/admin/login', function () {
+    return redirect()
+        ->to('/admin/login')
+        ->with('error', 'Login requires JavaScript (Livewire). Disable Cloudflare Rocket Loader for /admin/* or hard-refresh (Ctrl+F5), then try again.');
+})->middleware('web');
+
 // ISP Digital legacy URLs
 Route::redirect('/AutomaticProcess', '/admin/automatic-processes', 302);
 Route::redirect('/AutomaticProcess/Index', '/admin/automatic-processes', 302);

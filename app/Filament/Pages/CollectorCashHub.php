@@ -89,11 +89,8 @@ class CollectorCashHub extends Page
             return false;
         }
 
-        if ($user->hasRole(['super-admin', 'isp-admin', 'admin'])) {
-            return true;
-        }
-
-        return $user->can('collections.view')
+        return \App\Support\Rbac\StaffCapability::for($user)->isTenantAdmin()
+            || $user->can('collections.view')
             || $user->can('collections.settle')
             || $user->can('collections.approve')
             || $user->can('payments.reconcile');
@@ -121,7 +118,7 @@ class CollectorCashHub extends Page
         $user = auth()->user();
 
         return $user !== null
-            && ($user->hasRole(['super-admin', 'isp-admin', 'admin'])
+            && (\App\Support\Rbac\StaffCapability::for($user)->isTenantAdmin()
                 || $user->can('collections.approve')
                 || $user->can('payments.reconcile'));
     }
@@ -133,7 +130,7 @@ class CollectorCashHub extends Page
         return $user !== null
             && ($user->can('collections.settle')
                 || $user->can('payments.add')
-                || $user->hasRole(['cashier', 'branch-manager', 'isp-admin', 'admin']));
+                || \App\Support\Rbac\StaffCapability::for($user)->canCollect());
     }
 
     /**

@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources;
 
+use App\Filament\Concerns\ChecksIspPermission;
 use App\Filament\Resources\OltResource\Pages;
 use App\Filament\Resources\OltResource\RelationManagers;
 use App\Models\Device;
@@ -20,7 +21,14 @@ use Illuminate\Support\Str;
 
 class OltResource extends Resource
 {
+    use ChecksIspPermission;
+
     protected static ?string $model = Device::class;
+
+    protected static function permissionPrefix(): string
+    {
+        return 'olts';
+    }
 
     protected static ?string $navigationIcon = 'heroicon-o-server-stack';
 

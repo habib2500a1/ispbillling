@@ -108,9 +108,7 @@ final class MikrotikNetworkProvisioner implements NetworkAccessProvisioner
 
     private function pppSecretName(Customer $customer): string
     {
-        return filled($customer->radius_username)
-            ? (string) $customer->radius_username
-            : (string) $customer->customer_code;
+        return $customer->pppLoginName();
     }
 
 }

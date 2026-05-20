@@ -8,6 +8,8 @@ use App\Models\AutomaticProcess;
 use App\Services\Automation\AutomaticProcessScheduler;
 use App\Support\CompanyBranding;
 use App\Support\IspTimezone;
+use App\Support\SubscriberIdSettings;
+use App\Support\TenantResolver;
 use Filament\Forms\Components\Select;
 use Filament\Actions\Action;
 use Filament\Forms\Components\FileUpload;
@@ -87,6 +89,11 @@ class ManageCompanySetup extends Page
             'invoice_show_logo' => CompanyBranding::invoiceShowLogo(),
             'invoice_number_prefix' => (string) config('billing.invoice_number_prefix', 'INV'),
             'invoice_number_year_infix' => (bool) config('billing.invoice_number_year_infix', true),
+            'default_billing_day' => \App\Support\BillingDefaults::billingDay(),
+            'subscriber_auto_generate_customer_code' => SubscriberIdSettings::autoGenerateEnabled(),
+            'subscriber_code_format' => SubscriberIdSettings::codeFormat(),
+            'subscriber_code_prefix' => SubscriberIdSettings::codePrefix(),
+            'subscriber_numeric_start' => SubscriberIdSettings::numericStart(),
             'invoice_footer' => CompanyBranding::invoiceFooter(),
             'invoice_terms' => CompanyBranding::invoiceTerms(),
             'app_timezone' => IspTimezone::zone(),
@@ -179,6 +186,73 @@ class ManageCompanySetup extends Page
                                             now($zone)->format('Y-m-d g:i A'),
                                         );
                                     }),
+                            ])
+                            ->columns(2),
+                        Section::make('Monthly billing')
+                            ->description('Automatic process “Generate bills (monthly)” runs daily; invoices are created when each subscriber’s bill day matches today (typically the 1st).')
+                            ->schema([
+                                TextInput::make('default_billing_day')
+                                    ->label('Default bill day for new subscribers')
+                                    ->numeric()
+                                    ->minValue(1)
+                                    ->maxValue(28)
+                                    ->required()
+                                    ->default(1)
+                                    ->helperText('1 = first day of each month. Existing subscribers keep their own bill day until you edit them.'),
+                            ]),
+                        Section::make('Customer ID')
+                            ->description('How new subscriber codes (Customer ID) are assigned on web and mobile.')
+                            ->schema([
+                                Toggle::make('subscriber_auto_generate_customer_code')
+                                    ->label('Automatic Customer ID')
+                                    ->default(true)
+                                    ->helperText('On: leave blank when creating — system assigns next ID. Off: you must type Customer ID manually.'),
+                                Select::make('subscriber_code_format')
+                                    ->label('ID format (when automatic)')
+                                    ->options(SubscriberIdSettings::codeFormatOptions())
+                                    ->required()
+                                    ->native(false)
+                                    ->visible(fn (Get $get): bool => $this->formStateTruthy($get('subscriber_auto_generate_customer_code') ?? true)),
+                                TextInput::make('subscriber_code_prefix')
+                                    ->label('ID prefix')
+                                    ->maxLength(20)
+                                    ->required()
+                                    ->visible(fn (Get $get): bool => $this->formStateTruthy($get('subscriber_auto_generate_customer_code') ?? true)
+                                        && in_array((string) ($get('subscriber_code_format') ?? ''), ['prefixed_monthly', 'prefix_sequential'], true)),
+                                TextInput::make('subscriber_numeric_start')
+                                    ->label('First numeric ID')
+                                    ->numeric()
+                                    ->minValue(1)
+                                    ->required()
+                                    ->visible(fn (Get $get): bool => $this->formStateTruthy($get('subscriber_auto_generate_customer_code') ?? true)
+                                        && (string) ($get('subscriber_code_format') ?? '') === 'numeric'),
+                                Placeholder::make('subscriber_id_preview')
+                                    ->label('Next ID example')
+                                    ->content(function (Get $get): string {
+                                        if (! $this->formStateTruthy($get('subscriber_auto_generate_customer_code') ?? true)) {
+                                            return 'Manual mode — staff enters Customer ID on each new subscriber.';
+                                        }
+
+                                        $previous = [
+                                            'subscriber.code_format' => config('subscriber.code_format'),
+                                            'subscriber.code_prefix' => config('subscriber.code_prefix'),
+                                            'subscriber.numeric_start' => config('subscriber.numeric_start'),
+                                        ];
+                                        config([
+                                            'subscriber.code_format' => (string) ($get('subscriber_code_format') ?? SubscriberIdSettings::codeFormat()),
+                                            'subscriber.code_prefix' => (string) ($get('subscriber_code_prefix') ?? SubscriberIdSettings::codePrefix()),
+                                            'subscriber.numeric_start' => max(1, (int) ($get('subscriber_numeric_start') ?? SubscriberIdSettings::numericStart())),
+                                        ]);
+
+                                        try {
+                                            $tenantId = TenantResolver::requiredTenantId();
+
+                                            return SubscriberIdSettings::previewNext($tenantId);
+                                        } finally {
+                                            config($previous);
+                                        }
+                                    })
+                                    ->visible(fn (Get $get): bool => $this->formStateTruthy($get('subscriber_auto_generate_customer_code') ?? true)),
                             ])
                             ->columns(2),
                         Section::make('Invoice numbering')
@@ -276,6 +350,27 @@ class ManageCompanySetup extends Page
         AppSetting::putValue(
             'billing.invoice_number_year_infix',
             $this->formStateTruthy($state['invoice_number_year_infix'] ?? true) ? '1' : '0'
+        );
+        AppSetting::putValue(
+            'billing.default_billing_day',
+            (string) max(1, min(28, (int) ($state['default_billing_day'] ?? 1))),
+        );
+
+        AppSetting::putValue(
+            'subscriber.auto_generate_customer_code',
+            $this->formStateTruthy($state['subscriber_auto_generate_customer_code'] ?? true) ? '1' : '0',
+        );
+        AppSetting::putValue(
+            'subscriber.code_format',
+            (string) ($state['subscriber_code_format'] ?? SubscriberIdSettings::codeFormat()),
+        );
+        AppSetting::putValue(
+            'subscriber.code_prefix',
+            strtoupper(preg_replace('/[^A-Za-z0-9]/', '', (string) ($state['subscriber_code_prefix'] ?? 'CUST')) ?: 'CUST'),
+        );
+        AppSetting::putValue(
+            'subscriber.numeric_start',
+            (string) max(1, (int) ($state['subscriber_numeric_start'] ?? SubscriberIdSettings::numericStart())),
         );
 
         $logo = $state['company_logo'] ?? null;

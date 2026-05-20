@@ -8,9 +8,11 @@ use App\Models\CollectorVisit;
 use App\Models\Customer;
 use App\Models\Payment;
 use App\Services\Billing\BillCollectionSearchService;
+use App\Services\Billing\StaffCollectionPaymentService;
 use App\Services\Collector\CollectorLedgerQueryService;
 use App\Services\Collector\CollectorVisitService;
 use App\Services\Collector\CollectorWalletService;
+use App\Support\StaffPaymentApiPresenter;
 use App\Services\Collector\CollectorSettlementService;
 use App\Support\PaymentGateway;
 use App\Support\PaymentType;
@@ -54,15 +56,17 @@ class CollectorController extends Controller
         return response()->json(['data' => $visits]);
     }
 
-    public function storeCollection(Request $request, CollectorVisitService $visits): JsonResponse
+    public function storeCollection(Request $request, StaffCollectionPaymentService $collections): JsonResponse
     {
         $data = $request->validate([
             'customer_id' => ['required', 'integer', 'exists:customers,id'],
             'invoice_id' => ['nullable', 'integer', 'exists:invoices,id'],
-            'amount' => ['required', 'numeric', 'min:0.01'],
+            'amount' => ['required', 'numeric', 'min:0'],
             'method' => ['required', 'string', 'max:32'],
             'reference' => ['nullable', 'string', 'max:255'],
             'notes' => ['nullable', 'string', 'max:1000'],
+            'discount_preset' => ['nullable', 'string', 'max:64'],
+            'discount_custom' => ['nullable', 'numeric', 'min:0'],
             'latitude' => ['nullable', 'numeric', 'between:-90,90'],
             'longitude' => ['nullable', 'numeric', 'between:-180,180'],
             'accuracy_meters' => ['nullable', 'integer', 'min:0', 'max:100000'],
@@ -70,38 +74,17 @@ class CollectorController extends Controller
         ]);
 
         $customer = Customer::query()->findOrFail((int) $data['customer_id']);
+        $user = $request->user();
 
-        $payment = Payment::createTrusted([
-            'tenant_id' => $customer->tenant_id,
-            'customer_id' => $customer->id,
-            'invoice_id' => $data['invoice_id'] ?? null,
-            'payment_type' => PaymentType::PAYMENT,
-            'amount' => round((float) $data['amount'], 2),
-            'method' => $data['method'] ?: PaymentGateway::CASH,
-            'reference' => $data['reference'] ?? null,
-            'notes' => $data['notes'] ?? null,
-            'status' => 'completed',
-            'paid_at' => now(),
-            'recorded_by' => $request->user()->id,
-        ]);
-
-        $visit = $visits->recordCollection($request->user(), $customer, $payment, [
-            'latitude' => $data['latitude'] ?? null,
-            'longitude' => $data['longitude'] ?? null,
-            'accuracy_meters' => $data['accuracy_meters'] ?? null,
-            'location_text' => $data['location_text'] ?? null,
-            'notes' => $data['notes'] ?? null,
-            'device_meta' => ['source' => 'collector-api'],
-        ]);
+        $result = $collections->record($user, $customer, $data, 'collector-api');
+        $payment = $result['payment']->fresh(['invoice']);
 
         return response()->json([
-            'payment' => [
-                'id' => $payment->id,
-                'receipt_number' => $payment->receipt_number,
-                'amount' => $payment->amount,
-            ],
-            'visit_id' => $visit->id,
-            'wallet' => app(CollectorWalletService::class)->wallet((int) $request->user()->id),
+            'message' => $result['message'],
+            'payment' => app(StaffPaymentApiPresenter::class)->paymentPayload($payment),
+            'discount_bdt' => $result['discount_bdt'],
+            'visit_id' => $result['visit_id'],
+            'wallet' => app(CollectorWalletService::class)->wallet((int) $user->id),
         ], 201);
     }
 

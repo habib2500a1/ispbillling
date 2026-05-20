@@ -2,6 +2,8 @@
 
 namespace App\Filament\Pages;
 
+use App\Support\Rbac\StaffCapability;
+
 use App\Models\SnmpPollLog;
 use Filament\Pages\Page;
 
@@ -28,6 +30,6 @@ class SnmpMonitor extends Page
 
     public static function canAccess(): bool
     {
-        return auth()->check();
+        return \App\Support\Rbac\StaffCapability::for(auth()->user())->canMikrotik();
     }
 }

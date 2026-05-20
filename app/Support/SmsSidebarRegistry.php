@@ -129,6 +129,10 @@ final class SmsSidebarRegistry
         $items = [];
 
         foreach (self::definitions() as $entry) {
+            if (! self::canSeeEntry($entry['key'])) {
+                continue;
+            }
+
             $items[] = NavigationItem::make($entry['label'])
                 ->url($entry['url'])
                 ->icon($entry['icon'])
@@ -146,5 +150,20 @@ final class SmsSidebarRegistry
         }
 
         return $items;
+    }
+
+    public static function canSeeEntry(string $key): bool
+    {
+        return match ($key) {
+            'send_sms' => SendSms::canAccess(),
+            'send_bulk' => BulkSmsCampaign::canAccess(),
+            'sms_report', 'delivered', 'pending', 'failed' => NotificationLogResource::canViewAny(),
+            'templates' => SmsTemplateResource::canViewAny(),
+            'broadcast_outage' => BroadcastOutage::canAccess(),
+            'dlr' => SmsDeliveryReportResource::canViewAny(),
+            'gateway_tester' => SmsGatewaySetup::canAccess(),
+            'notification_settings' => ManageNotifications::canAccess(),
+            default => false,
+        };
     }
 }

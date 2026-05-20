@@ -4,16 +4,19 @@ import 'package:google_fonts/google_fonts.dart';
 
 /// ISP brand — light, colorful, pro-level (never black scaffold).
 class AppTheme {
-  static const Color primary = Color(0xFF3A5A8C);
-  static const Color primaryDark = Color(0xFF2D466D);
-  static const Color accent = Color(0xFFF5A623);
-  static const Color accentSoft = Color(0xFFFFE4B5);
-  static const Color background = Color(0xFFF4F6F9);
+  static const Color primary = Color(0xFF2563EB);
+  static const Color primaryDark = Color(0xFF1D4ED8);
+  static const Color accent = Color(0xFFF59E0B);
+  static const Color accentSoft = Color(0xFFFFF7ED);
+  static const Color background = Color(0xFFF0F4FF);
   static const Color card = Colors.white;
-  static const Color success = Color(0xFF10B981);
-  static const Color danger = Color(0xFFEF4444);
-  static const Color warning = Color(0xFFF59E0B);
-  static const Color info = Color(0xFF0EA5E9);
+  static const Color success = Color(0xFF059669);
+  static const Color danger = Color(0xFFDC2626);
+  static const Color warning = Color(0xFFD97706);
+  static const Color info = Color(0xFF0284C7);
+  static const Color purple = Color(0xFF7C3AED);
+  static const Color pink = Color(0xFFEC4899);
+  static const Color teal = Color(0xFF14B8A6);
 
   static ThemeData get light {
     final scheme = ColorScheme.light(
@@ -51,8 +54,9 @@ class AppTheme {
       ),
       navigationBarTheme: NavigationBarThemeData(
         backgroundColor: card,
-        indicatorColor: primary.withValues(alpha: 0.14),
-        elevation: 8,
+        indicatorColor: accent.withValues(alpha: 0.35),
+        elevation: 12,
+        shadowColor: primary.withValues(alpha: 0.15),
         height: 68,
         labelTextStyle: WidgetStateProperty.resolveWith((states) {
           final selected = states.contains(WidgetState.selected);
@@ -118,10 +122,12 @@ class AppTheme {
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [primary, Color(0xFF4A6FA5), accent],
+          colors: [primary, purple, pink],
         ),
         borderRadius: BorderRadius.all(Radius.circular(16)),
       );
+
+  static List<Color> get navBarColors => [primary, success, teal, purple, pink];
 
   static BoxDecoration tinted(Color c) => BoxDecoration(
         color: c.withValues(alpha: 0.12),

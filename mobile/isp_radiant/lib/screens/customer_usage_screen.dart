@@ -1,6 +1,9 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../services/api_service.dart';
+import '../widgets/usage_area_chart.dart';
 import '../theme/app_theme.dart';
 import '../utils/layout.dart';
 import '../widgets/state_views.dart';
@@ -23,17 +26,37 @@ class _CustomerUsageScreenState extends State<CustomerUsageScreen> {
   Map<String, dynamic>? _usage;
   bool _loading = true;
   String? _error;
+  Timer? _liveTimer;
 
   @override
   void initState() {
     super.initState();
     _load();
+    _liveTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (widget.active) _pollLive();
+    });
+  }
+
+  @override
+  void dispose() {
+    _liveTimer?.cancel();
+    super.dispose();
   }
 
   @override
   void didUpdateWidget(CustomerUsageScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.active && !oldWidget.active) _load();
+    if (widget.active && !oldWidget.active) {
+      _load();
+      _pollLive();
+    }
+  }
+
+  Future<void> _pollLive() async {
+    try {
+      final body = await widget.api.customerUsageLive();
+      if (mounted) setState(() => _usage = body['usage'] as Map<String, dynamic>? ?? body);
+    } catch (_) {}
   }
 
   Future<void> _load() async {
@@ -102,21 +125,41 @@ class _CustomerUsageScreenState extends State<CustomerUsageScreen> {
                       padding: const EdgeInsets.only(top: 6),
                       child: Text('IP ${u['framed_ip']}', style: const TextStyle(color: Colors.grey)),
                     ),
+                  if (online && u['connection_duration'] != null)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 6),
+                      child: Text('Uptime: ${u['connection_duration']}', style: const TextStyle(color: Colors.grey)),
+                    ),
+                  if (!online && u['last_disconnect_formatted'] != null)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 6),
+                      child: Text('Last disconnect: ${u['last_disconnect_formatted']}', style: const TextStyle(color: Colors.grey)),
+                    ),
                 ],
               ),
             ),
           ),
           const SizedBox(height: 12),
+          const SectionTitle('Live graph'),
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(12),
+              child: UsageAreaChart(chart: u['chart'] as Map<String, dynamic>?),
+            ),
+          ),
+          const SizedBox(height: 8),
           const SectionTitle('Live speed'),
           _metric('Download', u['download_human']?.toString() ?? '—', Icons.download),
           _metric('Upload', u['upload_human']?.toString() ?? '—', Icons.upload),
           const SectionTitle('Today'),
           _metric('Download today', '${u['today_download'] ?? '—'}'),
           _metric('Upload today', '${u['today_upload'] ?? '—'}'),
-          _metric('Session', u['session_started']?.toString() ?? '—'),
+          _metric('Connected since', u['session_started_formatted']?.toString() ?? u['session_started']?.toString() ?? '—'),
+          if (online) _metric('Duration', u['connection_duration']?.toString() ?? '—'),
+          if (!online) _metric('Last disconnect', u['last_disconnect_formatted']?.toString() ?? '—'),
           const SizedBox(height: 8),
           Text(
-            'Live data from your connection — pull to refresh',
+            'Graph updates every second while online — pull to refresh',
             style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
             textAlign: TextAlign.center,
           ),

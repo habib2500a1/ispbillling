@@ -2,6 +2,8 @@
 
 namespace App\Filament\Pages;
 
+use App\Support\Rbac\StaffCapability;
+
 use App\Filament\Widgets\BandwidthAbuseAlertsWidget;
 use App\Filament\Widgets\BandwidthDailyUsageWidget;
 use App\Filament\Widgets\BandwidthMonitorStatsWidget;
@@ -170,6 +172,6 @@ class BandwidthMonitor extends Page
 
     public static function canAccess(): bool
     {
-        return auth()->check();
+        return \App\Support\Rbac\StaffCapability::for(auth()->user())->canMikrotik();
     }
 }

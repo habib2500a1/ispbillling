@@ -31,11 +31,7 @@ class MikrotikDashboard extends Page
 
     public static function canAccess(): bool
     {
-        return static::userHasAnyRole([
-            'noc-engineer',
-            'network-engineer',
-            'isp-engineer',
-        ]);
+        return static::staff()->canMikrotik();
     }
 
     /**

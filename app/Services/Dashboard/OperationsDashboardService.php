@@ -21,9 +21,11 @@ use App\Models\Payment;
 use App\Models\PopBox;
 use App\Services\Billing\BillingAccountListCounts;
 use App\Services\Notifications\SmsBalanceFetcher;
+use App\Models\User;
 use App\Support\CompanyBranding;
 use App\Support\CustomerStatus;
 use App\Support\PaymentType;
+use App\Support\Rbac\StaffCapability;
 use App\Support\TenantResolver;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -40,21 +42,23 @@ final class OperationsDashboardService
     /**
      * @return array<string, mixed>
      */
-    public function payload(?int $tenantId = null): array
+    public function payload(?int $tenantId = null, ?User $user = null): array
     {
+        $user = $user ?? auth()->user();
         $tenantId = $tenantId ?? TenantResolver::requiredTenantId();
+        $userKey = $user?->getKey() ?? 0;
 
         return Cache::remember(
-            "ops_dashboard:{$tenantId}:".now()->format('Y-m-d-H-i'),
+            "ops_dashboard:{$tenantId}:{$userKey}:".now()->format('Y-m-d-H-i'),
             60,
-            fn (): array => $this->build($tenantId),
+            fn (): array => $this->build($tenantId, StaffCapability::for($user)),
         );
     }
 
     /**
      * @return array<string, mixed>
      */
-    private function build(int $tenantId): array
+    private function build(int $tenantId, StaffCapability $capability): array
     {
         $snap = $this->metrics->snapshot($tenantId);
         $c = $this->customerBreakdown($tenantId);
@@ -69,23 +73,55 @@ final class OperationsDashboardService
             ->where('is_active', true)
             ->count();
 
-        return [
+        $payload = [
             'updated_at' => now()->toIso8601String(),
             'company' => CompanyBranding::name(),
-            'highlights' => [
-                ['label' => 'SMS balance', 'value' => $sms['balance'] !== null ? number_format((float) $sms['balance'], 1).' BDT' : '—', 'url' => SmsGatewaySetup::getUrl()],
-                ['label' => 'Collected today', 'value' => number_format((float) ($snap['collected_today'] ?? 0), 0).' BDT', 'url' => BillCollectionDesk::getUrl()],
-                ['label' => 'Tenant', 'value' => '#'.$tenantId],
-            ],
-            'primary' => $this->primaryKpis($snap, $c, $online, $active),
-            'sections' => $this->groupedSections($tenantId, $snap, $c, $billingCounts, $sales, $online, $active, $pops),
-            'feeds' => [
-                'invoices' => $this->latestInvoices($tenantId),
-                'upcoming_expire' => $this->upcomingExpire($tenantId),
-                'latest_expired' => $this->latestExpired($tenantId),
-                'top_due' => $this->topDue($tenantId),
-            ],
-            'revenue_chart' => $this->metrics->revenueTrend(14, $tenantId),
+            'highlights' => $this->highlights($snap, $sms, $tenantId, $capability),
+            'primary' => $this->primaryKpis($snap, $c, $online, $active, $capability),
+            'sections' => $this->groupedSections($tenantId, $snap, $c, $billingCounts, $sales, $online, $active, $pops, $capability),
+            'feeds' => $this->feeds($tenantId, $capability),
+            'revenue_chart' => ($capability->canBilling() || $capability->canReports())
+                ? $this->metrics->revenueTrend(14, $tenantId)
+                : null,
+        ];
+
+        return $payload;
+    }
+
+    /**
+     * @param  array<string, mixed>  $snap
+     * @param  array{balance: float|null, provider?: string}  $sms
+     * @return list<array{label: string, value: string, url?: string}>
+     */
+    private function highlights(array $snap, array $sms, int $tenantId, StaffCapability $capability): array
+    {
+        $rows = [];
+
+        if ($capability->canSms()) {
+            $rows[] = ['label' => 'SMS balance', 'value' => $sms['balance'] !== null ? number_format((float) $sms['balance'], 1).' BDT' : '—', 'url' => SmsGatewaySetup::getUrl()];
+        }
+
+        if ($capability->canPayments() || $capability->canBilling()) {
+            $rows[] = ['label' => 'Collected today', 'value' => number_format((float) ($snap['collected_today'] ?? 0), 0).' BDT', 'url' => BillCollectionDesk::getUrl()];
+        }
+
+        if ($capability->isTenantAdmin()) {
+            $rows[] = ['label' => 'Tenant', 'value' => '#'.$tenantId];
+        }
+
+        return $rows;
+    }
+
+    /**
+     * @return array<string, list<mixed>>
+     */
+    private function feeds(int $tenantId, StaffCapability $capability): array
+    {
+        return [
+            'invoices' => $capability->canBilling() ? $this->latestInvoices($tenantId) : [],
+            'upcoming_expire' => $capability->canCustomers() ? $this->upcomingExpire($tenantId) : [],
+            'latest_expired' => $capability->canCustomers() ? $this->latestExpired($tenantId) : [],
+            'top_due' => ($capability->canBilling() || $capability->canCustomers()) ? $this->topDue($tenantId) : [],
         ];
     }
 
@@ -94,18 +130,30 @@ final class OperationsDashboardService
      * @param  array<string, int>  $c
      * @return list<array{label: string, value: string, hint: string, url?: string}>
      */
-    private function primaryKpis(array $snap, array $c, int $online, int $active): array
+    private function primaryKpis(array $snap, array $c, int $online, int $active, StaffCapability $capability): array
     {
         $n = fn (int|float $v): string => number_format((float) $v, 0);
+        $kpis = [];
 
-        return [
-            ['label' => 'Active subscribers', 'value' => $n($c['active']), 'hint' => 'Live accounts', 'url' => CustomerResource::getUrl('active'), 'tone' => 'teal'],
-            ['label' => 'Online now', 'value' => $n($online), 'hint' => 'PPPoE sessions', 'url' => OnlineClientsMonitoring::getUrl(), 'tone' => 'sky'],
-            ['label' => 'Collected today', 'value' => $n($snap['collected_today'] ?? 0), 'hint' => 'BDT', 'url' => BillCollectionDesk::getUrl(), 'tone' => 'green'],
-            ['label' => 'Outstanding', 'value' => $n($snap['outstanding'] ?? 0), 'hint' => 'BDT due', 'url' => BillCollectionDesk::getUrl(), 'tone' => 'amber'],
-            ['label' => 'Due accounts', 'value' => $n($snap['due_customers'] ?? 0), 'hint' => 'Open balance', 'url' => CustomerResource::getUrl('index'), 'tone' => 'rose'],
-            ['label' => 'Support open', 'value' => $n($snap['open_tickets'] ?? 0), 'hint' => 'Tickets', 'url' => SupportHub::getUrl(), 'tone' => 'violet'],
-        ];
+        if ($capability->canCustomers()) {
+            $kpis[] = ['label' => 'Active subscribers', 'value' => $n($c['active']), 'hint' => 'Live accounts', 'url' => CustomerResource::getUrl('active'), 'tone' => 'teal'];
+        }
+
+        if ($capability->canMikrotik()) {
+            $kpis[] = ['label' => 'Online now', 'value' => $n($online), 'hint' => 'PPPoE sessions', 'url' => OnlineClientsMonitoring::getUrl(), 'tone' => 'sky'];
+        }
+
+        if ($capability->canPayments() || $capability->canBilling()) {
+            $kpis[] = ['label' => 'Collected today', 'value' => $n($snap['collected_today'] ?? 0), 'hint' => 'BDT', 'url' => BillCollectionDesk::getUrl(), 'tone' => 'green'];
+            $kpis[] = ['label' => 'Outstanding', 'value' => $n($snap['outstanding'] ?? 0), 'hint' => 'BDT due', 'url' => BillCollectionDesk::getUrl(), 'tone' => 'amber'];
+            $kpis[] = ['label' => 'Due accounts', 'value' => $n($snap['due_customers'] ?? 0), 'hint' => 'Open balance', 'url' => CustomerResource::getUrl('index'), 'tone' => 'rose'];
+        }
+
+        if ($capability->canSupport()) {
+            $kpis[] = ['label' => 'Support open', 'value' => $n($snap['open_tickets'] ?? 0), 'hint' => 'Tickets', 'url' => SupportHub::getUrl(), 'tone' => 'violet'];
+        }
+
+        return $kpis;
     }
 
     /**
@@ -124,6 +172,7 @@ final class OperationsDashboardService
         int $online,
         int $active,
         int $pops,
+        StaffCapability $capability,
     ): array {
         $n = fn (int|float $v): string => number_format((float) $v, 0);
         $money = fn (float $v): string => number_format($v, 0);
@@ -133,8 +182,10 @@ final class OperationsDashboardService
             ->where('status', HotspotVoucher::STATUS_AVAILABLE)
             ->count();
 
-        return [
-            [
+        $sections = [];
+
+        if ($capability->canCustomers()) {
+            $sections[] = [
                 'title' => 'Subscribers',
                 'icon' => 'heroicon-o-users',
                 'accent' => 'teal',
@@ -150,8 +201,11 @@ final class OperationsDashboardService
                     ['label' => 'Suspended', 'value' => $n($c['suspended']), 'url' => ListSuspendedCustomers::getUrl(), 'tone' => 'rose'],
                     ['label' => 'Left', 'value' => $n($c['left']), 'url' => CustomerResource::getUrl('left'), 'tone' => 'slate'],
                 ],
-            ],
-            [
+            ];
+        }
+
+        if ($capability->canBilling() || $capability->canPayments()) {
+            $sections[] = [
                 'title' => 'Billing & collection',
                 'icon' => 'heroicon-o-banknotes',
                 'accent' => 'green',
@@ -163,22 +217,42 @@ final class OperationsDashboardService
                     ['label' => 'Outstanding', 'value' => $money((float) ($snap['outstanding'] ?? 0)).' BDT', 'url' => BillCollectionDesk::getUrl(), 'tone' => 'amber'],
                     ['label' => 'Due subscribers', 'value' => $n($snap['due_customers'] ?? 0), 'url' => BillCollectionDesk::getUrl(), 'tone' => 'rose'],
                 ],
-            ],
-            [
-                'title' => 'Network & messaging',
-                'icon' => 'heroicon-o-signal',
-                'accent' => 'violet',
-                'cards' => [
-                    ['label' => 'Online / Active', 'value' => $n($online).' / '.$n($active), 'url' => OnlineClientsMonitoring::getUrl(), 'tone' => 'sky'],
-                    ['label' => 'Offline (active)', 'value' => $n($offline), 'url' => OnlineClientsMonitoring::getUrl(), 'tone' => 'slate'],
-                    ['label' => 'POP sites', 'value' => $n($pops), 'url' => PopBoxResource::getUrl('index'), 'tone' => 'teal'],
-                    ['label' => 'MikroTik', 'value' => $n($snap['mikrotik_online'] ?? 0).'/'.$n($snap['mikrotik_total'] ?? 0), 'url' => MikrotikDashboard::getUrl(), 'tone' => 'orange'],
-                    ['label' => 'ONU online', 'value' => $n($snap['onus_online'] ?? 0).'/'.$n($snap['onus_total'] ?? 0), 'url' => OpticalMonitoringHub::getUrl(), 'tone' => 'violet'],
-                    ['label' => 'Vouchers ready', 'value' => $n($vouchers), 'url' => HotspotVoucherResource::getUrl('index'), 'tone' => 'amber'],
-                    ['label' => 'SMS sent today', 'value' => $n($snap['sms_today'] ?? 0), 'url' => SmsGatewaySetup::getUrl(), 'tone' => 'green'],
-                ],
-            ],
-        ];
+            ];
+        }
+
+        if ($capability->canNetwork() || $capability->canSms()) {
+            $networkCards = [];
+
+            if ($capability->canMikrotik()) {
+                $networkCards[] = ['label' => 'Online / Active', 'value' => $n($online).' / '.$n($active), 'url' => OnlineClientsMonitoring::getUrl(), 'tone' => 'sky'];
+                $networkCards[] = ['label' => 'Offline (active)', 'value' => $n($offline), 'url' => OnlineClientsMonitoring::getUrl(), 'tone' => 'slate'];
+                $networkCards[] = ['label' => 'POP sites', 'value' => $n($pops), 'url' => PopBoxResource::getUrl('index'), 'tone' => 'teal'];
+                $networkCards[] = ['label' => 'MikroTik', 'value' => $n($snap['mikrotik_online'] ?? 0).'/'.$n($snap['mikrotik_total'] ?? 0), 'url' => MikrotikDashboard::getUrl(), 'tone' => 'orange'];
+            }
+
+            if ($capability->canOlt()) {
+                $networkCards[] = ['label' => 'ONU online', 'value' => $n($snap['onus_online'] ?? 0).'/'.$n($snap['onus_total'] ?? 0), 'url' => OpticalMonitoringHub::getUrl(), 'tone' => 'violet'];
+            }
+
+            if ($capability->canMikrotik()) {
+                $networkCards[] = ['label' => 'Vouchers ready', 'value' => $n($vouchers), 'url' => HotspotVoucherResource::getUrl('index'), 'tone' => 'amber'];
+            }
+
+            if ($capability->canSms()) {
+                $networkCards[] = ['label' => 'SMS sent today', 'value' => $n($snap['sms_today'] ?? 0), 'url' => SmsGatewaySetup::getUrl(), 'tone' => 'green'];
+            }
+
+            if ($networkCards !== []) {
+                $sections[] = [
+                    'title' => 'Network & messaging',
+                    'icon' => 'heroicon-o-signal',
+                    'accent' => 'violet',
+                    'cards' => $networkCards,
+                ];
+            }
+        }
+
+        return $sections;
     }
 
     /**

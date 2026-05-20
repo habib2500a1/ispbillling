@@ -13,11 +13,11 @@ class PaymentReceiptController extends Controller
 {
     public function show(Payment $payment): Response
     {
-        $webUser = Auth::guard('web')->user();
+        $webUser = Auth::guard('web')->user() ?? Auth::guard('sanctum')->user();
         $customer = Auth::guard('customer')->user();
 
         if ($webUser) {
-            // Staff session
+            // Staff (Filament / mobile API token)
         } elseif ($customer instanceof Customer) {
             abort_unless((int) $payment->customer_id === (int) $customer->getAuthIdentifier(), 403);
         } else {

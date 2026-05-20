@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources;
 
+use App\Filament\Concerns\ChecksIspPermission;
 use App\Filament\Resources\ResellerResource\Pages;
 use App\Filament\Resources\ResellerResource\RelationManagers;
 use App\Models\Reseller;
@@ -19,7 +20,14 @@ use Filament\Tables\Table;
 
 class ResellerResource extends Resource
 {
+    use ChecksIspPermission;
+
     protected static ?string $model = Reseller::class;
+
+    protected static function permissionPrefix(): string
+    {
+        return 'resellers';
+    }
 
     protected static ?string $navigationIcon = 'heroicon-o-building-storefront';
 

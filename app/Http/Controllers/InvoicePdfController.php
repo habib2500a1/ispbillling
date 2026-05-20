@@ -13,11 +13,11 @@ class InvoicePdfController extends Controller
 {
     public function show(Invoice $invoice): Response
     {
-        $webUser = Auth::guard('web')->user();
+        $webUser = Auth::guard('web')->user() ?? Auth::guard('sanctum')->user();
         $customer = Auth::guard('customer')->user();
 
         if ($webUser) {
-            // Staff (Filament) session
+            // Staff (Filament / mobile API token)
         } elseif ($customer instanceof Customer) {
             abort_unless((int) $invoice->customer_id === (int) $customer->getAuthIdentifier(), 403);
         } elseif (

@@ -5,6 +5,7 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\UserResource\Pages;
 use App\Models\Branch;
 use App\Models\User;
+use App\Support\UserCollectionDiscount;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -78,6 +79,29 @@ class UserResource extends Resource
                         ->all())
                     ->required(),
             ])->columns(2),
+            Forms\Components\Section::make('Collection discount (this staff)')
+                ->description('Per-staff limits on top of global Collection discount settings. Staff also needs billing.discount permission (or admin role).')
+                ->schema([
+                    Forms\Components\Toggle::make('collection_discount_enabled')
+                        ->label('Allow collection discount')
+                        ->default(true)
+                        ->dehydrated(false),
+                    Forms\Components\TextInput::make('collection_discount_max_bdt')
+                        ->label('Max discount (BDT)')
+                        ->numeric()
+                        ->minValue(0)
+                        ->placeholder('Use global default')
+                        ->dehydrated(false),
+                    Forms\Components\TextInput::make('collection_discount_max_percent')
+                        ->label('Max % of due')
+                        ->numeric()
+                        ->minValue(0)
+                        ->maxValue(100)
+                        ->placeholder('Use global default')
+                        ->dehydrated(false),
+                ])
+                ->columns(3)
+                ->visibleOn('edit'),
             Forms\Components\Section::make('IP allowlist (optional)')->schema([
                 Forms\Components\TagsInput::make('allowed_ips')
                     ->label('Allowed IPs')

@@ -2,6 +2,8 @@
 
 namespace App\Filament\Pages;
 
+use App\Support\Rbac\StaffCapability;
+
 use App\Models\MikrotikServer;
 use App\Services\Mikrotik\MikrotikPppImportService;
 use Filament\Forms\Components\FileUpload;
@@ -38,7 +40,7 @@ class ImportClientsCsvPage extends Page implements HasForms
 
     public static function canAccess(): bool
     {
-        return auth()->check();
+        return \App\Support\Rbac\StaffCapability::for(auth()->user())->canCustomers();
     }
 
     public function mount(): void

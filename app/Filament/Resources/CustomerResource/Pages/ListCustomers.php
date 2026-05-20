@@ -5,14 +5,19 @@ namespace App\Filament\Resources\CustomerResource\Pages;
 use App\Filament\Resources\CustomerResource;
 use App\Models\Package;
 use App\Services\Clients\ClientsDashboardService;
+use App\Services\Import\IspDigitalCurrentBillingSyncService;
+use App\Services\Import\IspDigitalPriceSyncService;
+use App\Services\Import\IspDigitalSessionClient;
 use App\Support\CustomerStatus;
 use App\Support\TenantResolver;
 use Filament\Actions;
+use Filament\Notifications\Notification;
 use Filament\Resources\Pages\ListRecords;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Cache;
 use Livewire\Attributes\Url;
+use Throwable;
 
 class ListCustomers extends ListRecords
 {
@@ -121,6 +126,53 @@ class ListCustomers extends ListRecords
     protected function getHeaderActions(): array
     {
         return [
+            Actions\Action::make('syncIspDigitalPackages')
+                ->label('Sync packages & bills')
+                ->icon('heroicon-o-arrow-path')
+                ->color('gray')
+                ->requiresConfirmation()
+                ->modalHeading('Sync from ISP Digital')
+                ->modalDescription('Updates each client’s package, monthly bill, package prices, and current balance/due from pay.anetbd.com. Safe to run again.')
+                ->action(function (): void {
+                    $password = (string) config('isp_digital.password');
+                    if ($password === '') {
+                        Notification::make()
+                            ->title('ISP Digital password missing')
+                            ->body('Set ISP_DIGITAL_PASSWORD in .env')
+                            ->danger()
+                            ->send();
+
+                        return;
+                    }
+
+                    try {
+                        $client = new IspDigitalSessionClient(
+                            (string) config('isp_digital.base_url'),
+                            (string) config('isp_digital.username'),
+                            $password,
+                        );
+
+                        $prices = app(IspDigitalPriceSyncService::class)->syncAll($client);
+                        $billing = app(IspDigitalCurrentBillingSyncService::class)->syncAll($client);
+
+                        Notification::make()
+                            ->title('ISP Digital sync complete')
+                            ->body(sprintf(
+                                'Bills: %d users · Package prices: %d · Billing rows: %d',
+                                $prices['customers_updated'],
+                                $prices['packages_updated'],
+                                $billing['customers'],
+                            ))
+                            ->success()
+                            ->send();
+                    } catch (Throwable $e) {
+                        Notification::make()
+                            ->title('Sync failed')
+                            ->body($e->getMessage())
+                            ->danger()
+                            ->send();
+                    }
+                }),
             Actions\Action::make('export')
                 ->label('Export')
                 ->icon('heroicon-o-arrow-down-tray')

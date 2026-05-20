@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources;
 
+use App\Filament\Concerns\ChecksIspPermission;
 use App\Filament\Resources\MikrotikServerResource\Pages;
 use App\Models\MikrotikServer;
 use App\Services\Bandwidth\BandwidthCollectionService;
@@ -20,7 +21,14 @@ use Illuminate\Database\Eloquent\Collection;
 
 class MikrotikServerResource extends Resource
 {
+    use ChecksIspPermission;
+
     protected static ?string $model = MikrotikServer::class;
+
+    protected static function permissionPrefix(): string
+    {
+        return 'mikrotik';
+    }
 
     protected static ?string $navigationIcon = 'heroicon-o-signal';
 

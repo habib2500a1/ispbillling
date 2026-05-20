@@ -83,6 +83,7 @@ class PortalLoginController extends Controller
         }
 
         Auth::guard('customer')->login($customer, $remember);
+        $customer->recordPortalLogin();
 
         $request->session()->regenerate();
 
@@ -140,6 +141,7 @@ class PortalLoginController extends Controller
         $request->session()->forget(['portal_otp_customer_id', 'portal_otp_remember']);
 
         Auth::guard('customer')->login($customer, $remember);
+        $customer->recordPortalLogin();
         $request->session()->regenerate();
 
         return redirect()->intended(route('portal.dashboard'));
@@ -147,6 +149,11 @@ class PortalLoginController extends Controller
 
     public function destroy(Request $request): RedirectResponse
     {
+        $customer = Auth::guard('customer')->user();
+        if ($customer instanceof Customer) {
+            $customer->recordPortalLogout();
+        }
+
         Auth::guard('customer')->logout();
         $request->session()->regenerateToken();
 

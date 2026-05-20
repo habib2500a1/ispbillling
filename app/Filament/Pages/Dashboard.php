@@ -3,6 +3,7 @@
 namespace App\Filament\Pages;
 
 use App\Services\Dashboard\DashboardPreferencesService;
+use App\Support\Rbac\StaffCapability;
 use Filament\Notifications\Notification;
 use Filament\Pages\Dashboard as BaseDashboard;
 use Illuminate\Support\Facades\Log;
@@ -26,9 +27,32 @@ class Dashboard extends BaseDashboard
 
     public bool $layoutCompact = true;
 
+    public static function canAccess(): bool
+    {
+        $user = auth()->user();
+
+        if ($user === null) {
+            return false;
+        }
+
+        $capability = StaffCapability::for($user);
+
+        return $capability->allowedDashboardWidgets() !== []
+            || $capability->preferredHomeUrl() !== null;
+    }
+
     public function mount(): void
     {
         $user = auth()->user();
+        $capability = StaffCapability::for($user);
+        $home = $capability->preferredHomeUrl();
+
+        if ($home !== null) {
+            $this->redirect($home);
+
+            return;
+        }
+
         $service = app(DashboardPreferencesService::class);
         $service->repairUserPreferences($user);
         $this->layoutOrder = $service->widgetsFor($user);
@@ -66,7 +90,13 @@ class Dashboard extends BaseDashboard
      */
     public function layoutWidgetLabels(): array
     {
-        return DashboardPreferencesService::layoutWidgetLabels();
+        $capability = StaffCapability::for(auth()->user());
+
+        return array_filter(
+            DashboardPreferencesService::layoutWidgetLabels(),
+            fn (string $class): bool => $capability->canSeeWidget($class),
+            ARRAY_FILTER_USE_KEY,
+        );
     }
 
     /**

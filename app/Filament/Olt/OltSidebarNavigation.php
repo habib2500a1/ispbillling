@@ -31,7 +31,7 @@ final class OltSidebarNavigation
 
     public static function userCanSee(): bool
     {
-        return auth()->check();
+        return OltSidebarRegistry::hasVisibleEntries();
     }
 
     /**

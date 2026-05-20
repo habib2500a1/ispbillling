@@ -84,7 +84,16 @@ final class NetworkAccessCoordinator
         $desired = $this->desiredNetworkAccessState($customer);
         $current = $customer->network_access_state ?? 'active';
 
-        if ($desired === $current && config('sync.skip_unchanged_network_sync', true)) {
+        $mikrotikFieldsChanged = $customer->wasRecentlyCreated
+            || $customer->wasChanged([
+                'mikrotik_secret_name',
+                'mikrotik_ppp_password',
+                'mikrotik_server_id',
+                'radius_username',
+                'package_id',
+            ]);
+
+        if ($desired === $current && config('sync.skip_unchanged_network_sync', true) && ! $mikrotikFieldsChanged) {
             return;
         }
 

@@ -31,7 +31,7 @@ class RadiusUserAdmin extends Page
     {
         $user = auth()->user();
 
-        return $user !== null && ($user->hasRole('super-admin') || $user->hasRole('isp-admin'));
+        return $user !== null && \App\Support\Rbac\StaffCapability::for($user)->canMikrotik();
     }
 
     public static function shouldRegisterNavigation(): bool

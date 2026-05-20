@@ -119,4 +119,9 @@ class Payment extends Model
     {
         return $this->isRefund() ? -1 * (float) $this->amount : (float) $this->amount;
     }
+
+    public function isVoid(): bool
+    {
+        return $this->status === 'void';
+    }
 }

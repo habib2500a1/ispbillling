@@ -65,7 +65,8 @@ final class NotificationDispatcher
             $this->send($customer->tenant_id, $customer->id, $event, $channelName, $recipient, $message, $context);
         }
 
-        if ($this->telegramOpsEnabled($event)) {
+        // Dedicated ops handlers (e.g. PaymentNotificationService) send full Telegram templates.
+        if ($this->telegramOpsEnabled($event) && ! $this->hasDedicatedOpsHandler($event)) {
             $this->notifyOps((int) $customer->tenant_id, $event, array_merge(
                 ['name' => $customer->name],
                 $variables,
@@ -73,16 +74,33 @@ final class NotificationDispatcher
         }
     }
 
+    private function hasDedicatedOpsHandler(string $event): bool
+    {
+        return in_array($event, [
+            NotificationEvent::PAYMENT_SUCCESS,
+            NotificationEvent::PAYMENT_ADVANCE,
+        ], true);
+    }
+
     /**
      * Admin Telegram alert — not gated by customer SMS template toggles.
      *
      * @param  array<string, string|int|float|null>  $variables
      */
-    public function notifyOps(int $tenantId, string $event, array $variables = []): void
+    /**
+     * @param  array<string, mixed>  $context
+     */
+    public function notifyOps(int $tenantId, string $event, array $variables = [], array $context = []): void
     {
         if (! $this->telegramOpsEnabled($event)) {
             return;
         }
+
+        $variables = array_merge([
+            'count' => 0,
+            'customer_list' => '—',
+            'message' => '',
+        ], $variables);
 
         $message = MessageTemplateRenderer::render($event.'_ops', $variables);
         if ($message === '') {
@@ -94,7 +112,7 @@ final class NotificationDispatcher
             return;
         }
 
-        $this->send($tenantId, null, $event, NotificationChannel::TELEGRAM, $chatId, $message, []);
+        $this->send($tenantId, null, $event, NotificationChannel::TELEGRAM, $chatId, $message, $context);
     }
 
     /**
@@ -149,16 +167,25 @@ final class NotificationDispatcher
         }
 
         $count = 0;
+        $customerLines = [];
         foreach ($query->cursor() as $customer) {
             $this->notifyCustomer($customer, NotificationEvent::OUTAGE, [
                 'message' => $message,
             ], ['subject' => 'Service notice']);
+            $customerLines[] = sprintf(
+                '%s | Code: %s | User: %s | ID: %d',
+                $customer->name,
+                $customer->customer_code ?? '—',
+                $customer->pppLoginName(),
+                $customer->id,
+            );
             $count++;
         }
 
         $this->notifyOps($tenantId, NotificationEvent::OUTAGE, [
             'message' => $message,
             'count' => $count,
+            'customer_list' => $this->formatCustomerListForOps($customerLines),
         ]);
 
         return $count;
@@ -176,6 +203,10 @@ final class NotificationDispatcher
         string $message,
         array $context = [],
     ): void {
+        $logMeta = array_filter([
+            'payment_id' => isset($context['payment_id']) ? (int) $context['payment_id'] : null,
+        ], fn ($v) => $v !== null);
+
         $log = NotificationLog::query()->create([
             'tenant_id' => $tenantId,
             'customer_id' => $customerId,
@@ -184,6 +215,7 @@ final class NotificationDispatcher
             'recipient' => $recipient,
             'status' => 'pending',
             'message' => $message,
+            'meta' => $logMeta !== [] ? $logMeta : null,
         ]);
 
         if ((bool) config('notifications.log_delivery_only', false)) {
@@ -237,8 +269,34 @@ final class NotificationDispatcher
     private function channelsForEvent(string $event): array
     {
         $channels = config("notifications.events.{$event}.channels", ['email']);
+        if (! is_array($channels)) {
+            return ['email'];
+        }
 
-        return is_array($channels) ? array_values(array_filter($channels, 'is_string')) : ['email'];
+        // Telegram ops alerts use notifyOps(); customer loop has no per-subscriber chat id.
+        return array_values(array_filter(
+            $channels,
+            fn (mixed $channel): bool => is_string($channel) && $channel !== NotificationChannel::TELEGRAM,
+        ));
+    }
+
+    /**
+     * @param  list<string>  $lines
+     */
+    private function formatCustomerListForOps(array $lines): string
+    {
+        if ($lines === []) {
+            return '—';
+        }
+
+        $max = 25;
+        if (count($lines) <= $max) {
+            return implode("\n", $lines);
+        }
+
+        $shown = array_slice($lines, 0, $max);
+
+        return implode("\n", $shown)."\n… +".(count($lines) - $max).' more';
     }
 
     private function telegramOpsEnabled(string $event): bool

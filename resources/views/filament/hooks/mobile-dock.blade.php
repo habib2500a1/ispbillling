@@ -51,7 +51,11 @@
                 return { light: 'Light', dark: 'Dark', system: 'Auto' }[this.theme] || 'Theme';
             },
             syncSidebarBodyClass() {
-                document.body.classList.toggle('isp-admin-sidebar-open', $store.sidebar.isOpen);
+                const open = $store.sidebar.isOpen;
+                const desktop = window.matchMedia('(min-width: 1024px)').matches;
+                document.body.classList.toggle('isp-admin-sidebar-open', !desktop && open);
+                document.body.classList.toggle('isp-sidebar-desktop-collapsed', desktop && !open);
+                document.body.classList.toggle('isp-sidebar-desktop-expanded', desktop && open);
             },
         }"
         x-init="syncSidebarBodyClass(); $watch('$store.sidebar.isOpen', () => syncSidebarBodyClass())"

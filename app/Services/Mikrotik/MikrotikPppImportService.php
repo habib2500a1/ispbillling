@@ -5,6 +5,7 @@ namespace App\Services\Mikrotik;
 use App\Models\Customer;
 use App\Models\MikrotikServer;
 use App\Models\Package;
+use App\Support\BillingDefaults;
 use App\Support\CustomerCodeGenerator;
 use App\Support\CustomerPppLoginResolver;
 use App\Support\CustomerStatus;
@@ -371,6 +372,7 @@ final class MikrotikPppImportService
                 'package_id' => $this->resolvePackageId($tenantId, $server, $row, $options),
                 'area_id' => $options['default_area_id'] ?? null,
                 'joined_at' => now()->toDateString(),
+                'billing_day' => BillingDefaults::billingDay(),
                 'mikrotik_synced_at' => now(),
                 'import_source' => (string) ($options['import_source'] ?? 'mikrotik'),
             ]);

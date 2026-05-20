@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -7,6 +9,7 @@ import '../services/offline_sync_service.dart';
 import '../theme/app_theme.dart';
 import '../utils/app_nav.dart';
 import '../utils/layout.dart';
+import '../widgets/customer_search_result_tile.dart';
 import '../widgets/state_views.dart';
 import 'staff_billing_hub_screen.dart';
 import 'staff_customer_detail_screen.dart';
@@ -30,12 +33,32 @@ class _StaffCollectionScreenState extends State<StaffCollectionScreen> {
   late final OfflineSyncService _offline = OfflineSyncService(widget.api);
   int _pending = 0;
   String? _walletError;
+  Timer? _debounce;
 
   @override
   void initState() {
     super.initState();
     _loadWallet();
     _refreshPending();
+    _searchCtrl.addListener(_onSearchChanged);
+  }
+
+  @override
+  void dispose() {
+    _debounce?.cancel();
+    _searchCtrl.removeListener(_onSearchChanged);
+    _searchCtrl.dispose();
+    super.dispose();
+  }
+
+  void _onSearchChanged() {
+    _debounce?.cancel();
+    final q = _searchCtrl.text.trim();
+    if (q.length < 2) {
+      setState(() => _results = []);
+      return;
+    }
+    _debounce = Timer(const Duration(milliseconds: 400), () => _search(silent: true));
   }
 
   Future<void> _refreshPending() async {
@@ -63,10 +86,10 @@ class _StaffCollectionScreenState extends State<StaffCollectionScreen> {
     }
   }
 
-  Future<void> _search() async {
+  Future<void> _search({bool silent = false}) async {
     final q = _searchCtrl.text.trim();
     if (q.length < 2) {
-      showSnack(context, 'Type at least 2 characters', isError: true);
+      if (!silent) showSnack(context, 'Type at least 2 characters', isError: true);
       return;
     }
     setState(() => _searching = true);
@@ -74,7 +97,7 @@ class _StaffCollectionScreenState extends State<StaffCollectionScreen> {
       final list = await widget.api.searchCustomers(q);
       if (mounted) setState(() => _results = list);
     } on ApiException catch (e) {
-      if (mounted) showSnack(context, e.message, isError: true);
+      if (mounted && !silent) showSnack(context, e.message, isError: true);
     } finally {
       if (mounted) setState(() => _searching = false);
     }
@@ -154,13 +177,24 @@ class _StaffCollectionScreenState extends State<StaffCollectionScreen> {
               children: [
                 TextField(
                   controller: _searchCtrl,
-                  decoration: const InputDecoration(labelText: 'Search customer', prefixIcon: Icon(Icons.search)),
+                  decoration: InputDecoration(
+                    labelText: 'Search customer',
+                    prefixIcon: const Icon(Icons.search),
+                    suffixIcon: _searching
+                        ? const Padding(
+                            padding: EdgeInsets.all(12),
+                            child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)),
+                          )
+                        : (_searchCtrl.text.isNotEmpty
+                            ? IconButton(icon: const Icon(Icons.clear), onPressed: () => _searchCtrl.clear())
+                            : null),
+                  ),
                   onSubmitted: (_) => _search(),
                 ),
-                const SizedBox(height: 8),
-                FilledButton(
-                  onPressed: _searching ? null : _search,
-                  child: _searching ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2)) : const Text('Search'),
+                const SizedBox(height: 4),
+                Text(
+                  'Same name হলে automatically দেখাবে — code দিয়ে select করুন',
+                  style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
                 ),
               ],
             ),
@@ -168,17 +202,12 @@ class _StaffCollectionScreenState extends State<StaffCollectionScreen> {
         ),
         ..._results.map((c) {
           final id = (c['id'] as num).toInt();
-          final due = (c['balance_due'] as num?)?.toDouble() ?? 0;
-          return Card(
-            margin: const EdgeInsets.only(top: 8),
-            child: ListTile(
-              title: Text(c['name']?.toString() ?? ''),
-              subtitle: Text('${c['customer_code']} · Due ${fmt.format(due)} BDT'),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => StaffCustomerDetailScreen(api: widget.api, customerId: id)),
-              ),
+          return CustomerSearchResultTile(
+            customer: c,
+            showDue: true,
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => StaffCustomerDetailScreen(api: widget.api, customerId: id)),
             ),
           );
         }),

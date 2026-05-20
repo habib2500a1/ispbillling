@@ -4,6 +4,7 @@ namespace App\Services\Mobile;
 
 use App\Models\Customer;
 use App\Models\Invoice;
+use App\Services\Network\CustomerConnectionStatusService;
 use App\Services\Portal\CustomerPortalDashboardService;
 use App\Support\BandwidthDirection;
 
@@ -11,6 +12,7 @@ class CustomerMobileService
 {
     public function __construct(
         private readonly CustomerPortalDashboardService $portalDashboard,
+        private readonly CustomerConnectionStatusService $connectionStatus,
     ) {}
     /**
      * @return array<string, mixed>
@@ -48,7 +50,10 @@ class CustomerMobileService
                 'monthly_bill' => round($monthlyBill, 2),
                 'paid' => round($paidThisMonth, 2),
                 'package_name' => $customer->package?->name ?? '—',
-                'expire_date' => $customer->service_expires_at?->format('d-M-Y') ?? '—',
+                'expire_date' => \App\Support\BillingDefaults::expireDayLabel($customer->service_expires_at?->toDateString()),
+                'expire_day' => $customer->service_expires_at
+                    ? \App\Support\BillingDefaults::expireDayFromDate($customer->service_expires_at->toDateString())
+                    : null,
                 'status' => ($portal['connection']['online'] ?? false) ? 'Connected' : 'Disconnected',
             ],
             'connection' => $portal['connection'] ?? null,
@@ -108,9 +113,9 @@ class CustomerMobileService
      * @param  array<string, mixed>  $stats
      * @return array<string, mixed>
      */
-    public function usagePayload(array $stats): array
+    public function usagePayload(array $stats, ?Customer $customer = null): array
     {
-        return [
+        $payload = [
             'online' => $stats['online'],
             'download_bps' => $stats['download_bps'],
             'upload_bps' => $stats['upload_bps'],
@@ -123,6 +128,23 @@ class CustomerMobileService
             'framed_ip' => $stats['framed_ip'],
             'session_started' => $stats['session_started'],
             'chart' => $stats['chart'],
+            'chart_granularity' => is_array($stats['chart'] ?? null)
+                ? ($stats['chart']['granularity'] ?? 'per_second')
+                : 'per_second',
         ];
+
+        if ($customer !== null) {
+            $conn = $this->connectionStatus->summary($customer);
+            $payload['connection_duration'] = $conn['connection_duration'];
+            $payload['connection_duration_seconds'] = $conn['connection_duration_seconds'];
+            $payload['session_started_formatted'] = $conn['session_started_formatted'];
+            $payload['last_disconnect_at'] = $conn['last_disconnect_at'];
+            $payload['last_disconnect_formatted'] = $conn['last_disconnect_formatted'];
+            $payload['last_disconnect_human'] = $conn['last_disconnect_human'];
+            $payload['portal_last_logout_at'] = $customer->portal_last_logout_at?->toIso8601String();
+            $payload['portal_last_logout_formatted'] = $conn['portal_last_logout_at'];
+        }
+
+        return $payload;
     }
 }

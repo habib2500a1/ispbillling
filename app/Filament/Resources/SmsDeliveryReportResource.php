@@ -28,11 +28,7 @@ class SmsDeliveryReportResource extends Resource
 
     public static function canViewAny(): bool
     {
-        return auth()->user()?->hasAnyRole([
-            'super-admin',
-            'isp-admin',
-            'isp-manager',
-        ]) ?? false;
+        return \App\Support\Rbac\StaffCapability::for(auth()->user())->canSms();
     }
 
     public static function canCreate(): bool

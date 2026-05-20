@@ -39,12 +39,14 @@ class SyncCustomerNetworkAccessJob
 
             $coordinator->syncCustomer($customer);
 
-            $driver = (string) config('network.provisioner_driver', 'null');
             $mtPush = (bool) config('network.mikrotik_push_enabled', true);
             $alwaysMt = (bool) config('network.mikrotik_always_push_ppp_on_customer_save', true);
 
-            if ($mtPush && $alwaysMt && ! in_array($driver, ['mikrotik', 'both'], true)) {
-                $mikrotikProvisioner->syncAccessPolicy($customer->fresh() ?? $customer);
+            if ($mtPush && $alwaysMt) {
+                $fresh = $customer->fresh() ?? $customer;
+                if (filled($fresh->mikrotik_secret_name) || filled($fresh->radius_username)) {
+                    $mikrotikProvisioner->syncAccessPolicy($fresh);
+                }
             }
         } catch (\Throwable $e) {
             Log::channel('single')->error('network.sync_customer_job_failed', [

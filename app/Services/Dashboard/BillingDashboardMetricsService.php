@@ -7,6 +7,7 @@ use App\Models\Invoice;
 use App\Models\InvoiceItem;
 use App\Models\Payment;
 use App\Services\Accounting\AccountingReportService;
+use App\Services\Mobile\StaffBillingKpiResolver;
 use App\Support\CustomerStatus;
 use App\Support\PaymentType;
 use App\Support\TenantResolver;
@@ -53,32 +54,23 @@ final class BillingDashboardMetricsService
      */
     private function kpis(int $tenantId, Carbon $from, Carbon $to, array $pl): array
     {
-        $monthlyBill = (float) Customer::withoutGlobalScopes()
-            ->where('customers.tenant_id', $tenantId)
-            ->where('customers.status', CustomerStatus::ACTIVE)
-            ->whereNotNull('customers.package_id')
-            ->join('packages', 'packages.id', '=', 'customers.package_id')
-            ->sum('packages.price_monthly');
+        $billing = app(StaffBillingKpiResolver::class)->resolve($tenantId);
+        $fromIsp = ($billing['source'] ?? '') === 'isp_digital';
+        $ispHint = $fromIsp ? ' (ISP Digital)' : '';
 
-        $collected = (float) Payment::withoutGlobalScopes()
-            ->where('tenant_id', $tenantId)
-            ->where('status', 'completed')
-            ->whereIn('payment_type', [PaymentType::PAYMENT, PaymentType::WALLET_APPLY])
-            ->whereBetween('paid_at', [$from, $to])
-            ->sum('amount');
+        $monthlyBill = (float) $billing['monthly_bill'];
+        $collected = (float) $billing['collected_bill'];
+        $totalDue = (float) $billing['due'];
+        $discount = (float) $billing['discount'];
 
-        $discount = (float) Invoice::withoutGlobalScopes()
-            ->where('tenant_id', $tenantId)
-            ->whereBetween('issue_date', [$from->toDateString(), $to->toDateString()])
-            ->whereNotIn('status', ['void', 'cancelled'])
-            ->selectRaw('COALESCE(SUM(discount_amount + coupon_discount_amount), 0) as total')
-            ->value('total');
-
-        $totalDue = (float) Invoice::withoutGlobalScopes()
-            ->where('tenant_id', $tenantId)
-            ->whereNotIn('status', ['paid', 'void', 'cancelled', 'draft'])
-            ->selectRaw('COALESCE(SUM(total - amount_paid), 0) as due')
-            ->value('due');
+        if (! $fromIsp) {
+            $discount = (float) Invoice::withoutGlobalScopes()
+                ->where('tenant_id', $tenantId)
+                ->whereBetween('issue_date', [$from->toDateString(), $to->toDateString()])
+                ->whereNotIn('status', ['void', 'cancelled'])
+                ->selectRaw('COALESCE(SUM(discount_amount + coupon_discount_amount), 0) as total')
+                ->value('total');
+        }
 
         $serviceSales = (float) InvoiceItem::query()
             ->join('invoices', 'invoices.id', '=', 'invoice_items.invoice_id')
@@ -101,7 +93,7 @@ final class BillingDashboardMetricsService
                 'key' => 'monthly_bill',
                 'label' => 'Monthly Bill',
                 'value' => round($monthlyBill, 2),
-                'hint' => 'Current month total customer monthly bill',
+                'hint' => 'Current month total customer monthly bill'.$ispHint,
                 'tone' => 'blue',
                 'icon' => 'heroicon-o-calendar-days',
             ],
@@ -109,7 +101,7 @@ final class BillingDashboardMetricsService
                 'key' => 'collected',
                 'label' => 'Collected Bill',
                 'value' => round($collected, 2),
-                'hint' => 'Current month total received amount',
+                'hint' => 'Current month total received amount'.$ispHint,
                 'tone' => 'teal',
                 'icon' => 'heroicon-o-check-badge',
             ],
@@ -125,7 +117,7 @@ final class BillingDashboardMetricsService
                 'key' => 'total_due',
                 'label' => 'Total Due',
                 'value' => round(max(0, $totalDue), 2),
-                'hint' => 'Total due bill of clients',
+                'hint' => 'Total due bill of clients'.$ispHint,
                 'tone' => 'slate',
                 'icon' => 'heroicon-o-exclamation-circle',
             ],
@@ -201,7 +193,7 @@ final class BillingDashboardMetricsService
      */
     private function topDueClients(int $tenantId, int $limit): array
     {
-        $dueSql = <<<'SQL'
+        $invoiceDueSql = <<<'SQL'
 (SELECT COALESCE(SUM(invoices.total - invoices.amount_paid), 0)
  FROM invoices
  WHERE invoices.customer_id = customers.id
@@ -209,6 +201,16 @@ final class BillingDashboardMetricsService
    AND invoices.status IN ('open', 'partial', 'sent', 'overdue', 'draft')
    AND (invoices.total - invoices.amount_paid) > 0)
 SQL;
+
+        $ispDueSql = $this->ispDigitalDueSql();
+
+        $totalDueSql = $invoiceDueSql;
+        if ($ispDueSql !== null) {
+            $totalDueSql = match (Customer::query()->getConnection()->getDriverName()) {
+                'pgsql', 'mysql' => "GREATEST({$invoiceDueSql}, {$ispDueSql})",
+                default => "(CASE WHEN {$invoiceDueSql} > {$ispDueSql} THEN {$invoiceDueSql} ELSE {$ispDueSql} END)",
+            };
+        }
 
         $rows = Customer::withoutGlobalScopes()
             ->where('customers.tenant_id', $tenantId)
@@ -222,11 +224,11 @@ SQL;
                 'customers.radius_username',
                 'customers.customer_code',
                 DB::raw('COALESCE(packages.price_monthly, 0) as monthly_bill'),
-                DB::raw("{$dueSql} as total_due"),
+                DB::raw("{$totalDueSql} as total_due"),
             ])
             ->addBinding($tenantId, 'select')
-            ->whereRaw("{$dueSql} > 0", [$tenantId])
-            ->orderByDesc(DB::raw('total_due'))
+            ->whereRaw("({$totalDueSql}) > 0", [$tenantId])
+            ->orderByDesc('total_due')
             ->limit($limit)
             ->get();
 
@@ -244,5 +246,39 @@ SQL;
                 'url' => \App\Filament\Resources\CustomerResource::getUrl('edit', ['record' => $row->id]),
             ];
         })->all();
+    }
+
+    private function ispDigitalDueSql(): ?string
+    {
+        return match (Customer::query()->getConnection()->getDriverName()) {
+            'pgsql' => <<<'SQL'
+(CASE
+    WHEN customers.import_source = 'isp_digital'
+        AND COALESCE(customers.meta->>'isp_digital_billing_synced_at', '') <> ''
+    THEN GREATEST(0, COALESCE((customers.meta->>'isp_digital_balance_due')::numeric, 0))
+    ELSE 0
+END)
+SQL,
+            'sqlite' => <<<'SQL'
+(CASE
+    WHEN customers.import_source = 'isp_digital'
+        AND COALESCE(json_extract(customers.meta, '$.isp_digital_billing_synced_at'), '') <> ''
+    THEN CASE
+        WHEN CAST(COALESCE(json_extract(customers.meta, '$.isp_digital_balance_due'), '0') AS REAL) < 0 THEN 0
+        ELSE CAST(COALESCE(json_extract(customers.meta, '$.isp_digital_balance_due'), '0') AS REAL)
+    END
+    ELSE 0
+END)
+SQL,
+            'mysql' => <<<'SQL'
+(CASE
+    WHEN customers.import_source = 'isp_digital'
+        AND COALESCE(JSON_UNQUOTE(JSON_EXTRACT(customers.meta, '$.isp_digital_billing_synced_at')), '') <> ''
+    THEN GREATEST(0, CAST(COALESCE(JSON_UNQUOTE(JSON_EXTRACT(customers.meta, '$.isp_digital_balance_due')), '0') AS DECIMAL(12,2)))
+    ELSE 0
+END)
+SQL,
+            default => null,
+        };
     }
 }

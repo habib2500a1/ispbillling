@@ -77,14 +77,22 @@ class OutageResource extends Resource
                             $query->where('area_id', $record->area_id);
                         }
                         $count = 0;
+                        $customerLines = [];
                         $dispatcher = app(NotificationDispatcher::class);
                         foreach ($query->cursor() as $customer) {
                             $dispatcher->notifyCustomer($customer, NotificationEvent::OUTAGE, ['message' => $message]);
+                            $customerLines[] = $customer->name.' ('.($customer->customer_code ?? (string) $customer->id).')';
                             $count++;
                         }
+                        $areaName = $record->area?->name ?? 'All areas';
                         $dispatcher->notifyOps((int) $record->tenant_id, NotificationEvent::OUTAGE, [
-                            'message' => $message,
+                            'message' => $areaName.': '.$message,
                             'count' => $count,
+                            'customer_list' => $customerLines === []
+                                ? '—'
+                                : (count($customerLines) <= 25
+                                    ? implode("\n", $customerLines)
+                                    : implode("\n", array_slice($customerLines, 0, 25))."\n… +".(count($customerLines) - 25).' more'),
                         ]);
                         Notification::make()
                             ->title("Outage SMS sent to {$count} subscribers")

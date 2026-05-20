@@ -6,6 +6,8 @@ use App\Filament\Resources\PackageResource\Pages;
 use App\Filament\Resources\PackageResource\RelationManagers;
 use App\Models\Package;
 use App\Support\BillingCycleType;
+use App\Support\MikrotikProfileOptions;
+use Filament\Forms\Get;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -29,21 +31,31 @@ class PackageResource extends Resource
         return $form
             ->schema([
                 Forms\Components\TextInput::make('name')
+                    ->label('Package name (billing / display)')
+                    ->placeholder('e.g. 25 Mbps Home')
                     ->required()
-                    ->maxLength(255),
+                    ->maxLength(255)
+                    ->helperText('কাস্টমার ফর্মে এই নাম দেখা যাবে — MikroTik profile নাম নয়।'),
                 Forms\Components\Section::make('MikroTik link')
-                    ->description('PPP profile সিঙ্ক হলে এখানে সার্ভার ও প্রোফাইল নাম বসে; কাস্টমার অ্যাসাইনমেন্ট একই প্যাকেজ লিস্ট থেকে।')
+                    ->description('Package নাম আলাদা; নিচে Router-এর PPP profile বেছে নিন (যেমন Packages>>1)।')
                     ->schema([
                         Forms\Components\Select::make('mikrotik_server_id')
                             ->label('MikroTik server')
                             ->relationship('mikrotikServer', 'name')
                             ->searchable()
                             ->preload()
-                            ->nullable(),
-                        Forms\Components\TextInput::make('mikrotik_profile_name')
-                            ->label('RouterOS PPP profile name')
-                            ->maxLength(128)
-                            ->helperText('সিঙ্ক বাটন দিলে অটো ভরে; হাতে লিঙ্ক করতে পারেন।'),
+                            ->nullable()
+                            ->live()
+                            ->afterStateUpdated(function (Forms\Set $set): void {
+                                $set('mikrotik_profile_name', null);
+                            }),
+                        Forms\Components\Select::make('mikrotik_profile_name')
+                            ->label('MikroTik PPP profile (router)')
+                            ->options(fn (Get $get): array => MikrotikProfileOptions::forServer($get('mikrotik_server_id')))
+                            ->searchable()
+                            ->preload()
+                            ->nullable()
+                            ->helperText('রাউটারের /ppp/profile লিস্ট। Package নামের সাথে মিলিয়ে স্পিড/দাম এখানে সেট করুন।'),
                         Forms\Components\Placeholder::make('mikrotik_synced_display')
                             ->label('Last MikroTik sync')
                             ->content(fn (?Package $record): string => $record?->mikrotik_synced_at !== null
@@ -183,6 +195,10 @@ class PackageResource extends Resource
         return $table
             ->columns([
                 Tables\Columns\TextColumn::make('name')
+                    ->label('Package name')
+                    ->description(fn (Package $record): ?string => filled($record->mikrotik_profile_name)
+                        ? 'MT: '.$record->mikrotik_profile_name
+                        : null)
                     ->searchable(),
                 Tables\Columns\TextColumn::make('btrc_label')
                     ->label('BTRC name')

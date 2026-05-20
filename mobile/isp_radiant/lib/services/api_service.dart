@@ -184,6 +184,8 @@ class ApiService {
     String? joinedAt,
     String? serviceExpiresAt,
     bool provisionMikrotik = true,
+    String? firstBillCycle,
+    int? expireDay,
   }) =>
       _post('/staff/customers/create', {
         'name': name,
@@ -207,6 +209,8 @@ class ApiService {
         if (serviceExpiresAt != null) 'service_expires_at': serviceExpiresAt,
         'provision_mikrotik': provisionMikrotik,
         'network_access_state': 'active',
+        if (firstBillCycle != null) 'first_bill_cycle': firstBillCycle,
+        if (expireDay != null) 'expire_day': expireDay,
       });
 
   Future<Map<String, dynamic>> createStaffCustomer({
@@ -317,6 +321,11 @@ class ApiService {
     return body['customer'] as Map<String, dynamic>? ?? body;
   }
 
+  Future<Map<String, dynamic>> staffCustomerUsageLive(int customerId) async {
+    final body = await _get('/staff/customers/$customerId/usage/live');
+    return body['usage'] as Map<String, dynamic>? ?? body;
+  }
+
   Future<Map<String, dynamic>> collectorWallet() async {
     final body = await _get('/collector/wallet');
     return body['data'] as Map<String, dynamic>? ?? body;
@@ -393,6 +402,29 @@ class ApiService {
         if (macBinding != null) 'mac_binding': macBinding,
       });
 
+  Future<Map<String, dynamic>> staffCollectionOptions() async {
+    final body = await _get('/staff/billing/collection-options');
+    return Map<String, dynamic>.from(body['data'] as Map? ?? {});
+  }
+
+  Future<Map<String, dynamic>> staffTeamDiscounts() async {
+    final body = await _get('/staff/team/discounts');
+    return Map<String, dynamic>.from(body);
+  }
+
+  Future<void> updateStaffTeamDiscount(
+    int userId, {
+    required bool enabled,
+    double? maxBdt,
+    double? maxPercent,
+  }) async {
+    await _patch('/staff/team/$userId/discount', {
+      'enabled': enabled,
+      if (maxBdt != null) 'max_discount_bdt': maxBdt,
+      if (maxPercent != null) 'max_discount_percent_of_due': maxPercent,
+    });
+  }
+
   Future<Map<String, dynamic>> recordCollection({
     required int customerId,
     required double amount,
@@ -400,6 +432,8 @@ class ApiService {
     String method = 'cash',
     String? reference,
     String? notes,
+    String discountPreset = 'none',
+    double? discountCustom,
   }) async {
     return _post('/collector/collections', {
       'customer_id': customerId,
@@ -408,6 +442,8 @@ class ApiService {
       'method': method,
       if (reference != null) 'reference': reference,
       if (notes != null) 'notes': notes,
+      'discount_preset': discountPreset,
+      if (discountCustom != null && discountCustom > 0) 'discount_custom': discountCustom,
     });
   }
 

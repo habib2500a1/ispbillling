@@ -2,22 +2,23 @@
 
 namespace App\Filament\Pages\Concerns;
 
+use App\Support\Rbac\StaffCapability;
+
 trait HasRoleDashboard
 {
+    protected static function staff(): StaffCapability
+    {
+        return StaffCapability::for(auth()->user());
+    }
+
     /**
+     * Role slugs alone no longer grant access — only tenant admins bypass.
+     * Pages must check StaffCapability or Spatie permissions in canAccess().
+     *
      * @param  list<string>  $roles
      */
     protected static function userHasAnyRole(array $roles): bool
     {
-        $user = auth()->user();
-        if ($user === null) {
-            return false;
-        }
-
-        if ($user->hasRole(['super-admin', 'isp-admin', 'admin'])) {
-            return true;
-        }
-
-        return $user->hasAnyRole($roles);
+        return static::staff()->isTenantAdmin();
     }
 }

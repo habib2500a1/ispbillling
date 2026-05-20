@@ -66,19 +66,19 @@ final class IspSidebarNavigation
 
         static::appendIf($merged, ClientsSidebarNavigation::userCanSee(), ClientsSidebarRegistry::navigationItems());
         static::appendIf($merged, BillingSidebarNavigation::userCanSee(), BillingSidebarRegistry::navigationItems());
-        static::appendIf($merged, true, PaymentsSidebarRegistry::navigationItems());
+        static::appendIf($merged, PaymentsSidebarRegistry::hasVisibleEntries(), PaymentsSidebarRegistry::navigationItems());
         static::appendIf($merged, NetworkSidebarNavigation::userCanSee(), NetworkSidebarRegistry::navigationItems());
         static::appendIf($merged, OltSidebarNavigation::userCanSee(), OltSidebarRegistry::navigationItems());
         static::appendIf($merged, SmsSidebarNavigation::userCanSee(), SmsSidebarRegistry::navigationItems());
-        static::appendIf($merged, true, SupportSidebarRegistry::navigationItems());
+        static::appendIf($merged, SupportSidebarRegistry::hasVisibleEntries(), SupportSidebarRegistry::navigationItems());
         static::appendIf($merged, ReportsSidebarNavigation::userCanSee(), ReportsSidebarRegistry::navigationItems());
         static::appendIf($merged, AccountsSidebarNavigation::userCanSee(), AccountsSidebarRegistry::navigationItems());
         static::appendIf($merged, ResellerSidebarNavigation::userCanSee(), ResellerSidebarRegistry::navigationItems());
         static::appendIf($merged, HrmSidebarNavigation::userCanSee(), HrmSidebarRegistry::navigationItems());
         static::appendIf($merged, BwSidebarNavigation::userCanSee(), BwSidebarRegistry::navigationItems());
-        static::appendIf($merged, true, InventorySidebarRegistry::navigationItems());
+        static::appendIf($merged, InventorySidebarRegistry::hasVisibleEntries(), InventorySidebarRegistry::navigationItems());
         static::appendIf($merged, SettingsSidebarNavigation::userCanSee(), SettingsSidebarRegistry::navigationItems());
-        static::appendIf($merged, true, SystemSidebarRegistry::navigationItems());
+        static::appendIf($merged, SystemSidebarRegistry::hasVisibleEntries(), SystemSidebarRegistry::navigationItems());
 
         return $merged;
     }

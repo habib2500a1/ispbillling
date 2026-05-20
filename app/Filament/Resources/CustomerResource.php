@@ -138,19 +138,21 @@ class CustomerResource extends Resource
                                     ->formatStateUsing(fn ($state): string => number_format((float) $state, 2).' BDT'),
                                 Infolists\Components\TextEntry::make('billing_mode')->badge(),
                                 Infolists\Components\TextEntry::make('billing_day')->label('Billing day'),
-                                Infolists\Components\TextEntry::make('grace_period_days')
-                                    ->label('Grace period')
-                                    ->formatStateUsing(fn ($state): string => 'Grace: '.(int) $state.' days'),
                                 Infolists\Components\TextEntry::make('billing_status')
                                     ->label('Billing status')
                                     ->state(fn (Customer $record): string => $record->isServiceExpired() ? 'Expired' : 'Active')
                                     ->badge()
                                     ->color(fn (Customer $record): ?string => $record->isServiceExpired() ? 'danger' : 'success'),
                                 Infolists\Components\TextEntry::make('service_expires_at')
-                                    ->label('Valid until (শেষ বৈধ তারিখ)')
-                                    ->date()
+                                    ->label('Expire date')
+                                    ->date('d M Y')
                                     ->placeholder('—')
                                     ->color(fn (Customer $record): ?string => $record->isServiceExpired() ? 'danger' : null),
+                                Infolists\Components\TextEntry::make('expire_day_of_month')
+                                    ->label('Expire day (month)')
+                                    ->state(fn (Customer $record): string => $record->service_expires_at
+                                        ? (string) \App\Support\BillingDefaults::expireDayFromDate($record->service_expires_at)
+                                        : '—'),
                                 Infolists\Components\TextEntry::make('service_off_date')
                                     ->label('Off হবে (লাইন বন্ধ)')
                                     ->state(fn (Customer $record): string => $record->serviceOffDate()?->format('d M Y') ?? '—')
@@ -477,8 +479,8 @@ class CustomerResource extends Resource
                         'danger' => 'suspended',
                     ]),
                 Tables\Columns\TextColumn::make('service_expires_at')
-                    ->label('Valid until')
-                    ->date()
+                    ->label('Expire date')
+                    ->date('d M Y')
                     ->sortable()
                     ->placeholder('—')
                     ->color(fn (Customer $record): ?string => $record->isServiceExpired() ? 'danger' : null),
@@ -900,9 +902,17 @@ class CustomerResource extends Resource
                 ->copyable(),
             Tables\Columns\TextColumn::make('package.name')
                 ->label('Package')
-                ->sortable()
-                ->limit(24)
-                ->placeholder('—'),
+                ->sortable(query: function ($query, string $direction): void {
+                    $query->leftJoin('packages', 'packages.id', '=', 'customers.package_id')
+                        ->orderBy('packages.name', $direction)
+                        ->select('customers.*');
+                })
+                ->formatStateUsing(fn (Customer $record): string => \App\Support\CustomerPackageLabel::for($record))
+                ->limit(32)
+                ->placeholder('—')
+                ->tooltip(fn (Customer $record): ?string => filled($record->package?->mikrotik_profile_name)
+                    ? 'MikroTik: '.$record->package->mikrotik_profile_name
+                    : null),
             Tables\Columns\TextColumn::make('account_balance')
                 ->label('Balance')
                 ->money('BDT')

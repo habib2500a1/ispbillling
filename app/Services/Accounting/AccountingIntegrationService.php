@@ -3,6 +3,7 @@
 namespace App\Services\Accounting;
 
 use App\Models\Invoice;
+use App\Models\JournalEntry;
 use App\Models\Payment;
 use App\Services\Collector\CollectorSettlementService;
 
@@ -59,6 +60,51 @@ class AccountingIntegrationService
             $payment->id,
             (int) $payment->tenant_id,
         );
+    }
+
+    public function reverseCustomerPayment(Payment $payment): void
+    {
+        if (! config('accounting.auto_post_customer_payments', true)) {
+            return;
+        }
+
+        $entry = JournalEntry::withoutGlobalScopes()
+            ->where('tenant_id', $payment->tenant_id)
+            ->where('source_type', 'customer_payment')
+            ->where('source_id', $payment->id)
+            ->where('status', 'posted')
+            ->with('lines')
+            ->first();
+
+        if ($entry === null) {
+            return;
+        }
+
+        $lines = [];
+        foreach ($entry->lines as $line) {
+            $lines[] = [
+                'account_id' => $line->chart_account_id,
+                'bank_account_id' => $line->bank_account_id,
+                'debit' => (float) $line->credit,
+                'credit' => (float) $line->debit,
+                'description' => 'Void '.$payment->receipt_number,
+            ];
+        }
+
+        if ($lines === []) {
+            return;
+        }
+
+        $this->ledger->post(
+            'Void customer payment '.$payment->receipt_number,
+            $lines,
+            now(),
+            'customer_payment_void',
+            $payment->id,
+            (int) $payment->tenant_id,
+        );
+
+        $entry->update(['status' => 'reversed']);
     }
 
     public function postIssuedInvoice(Invoice $invoice): void

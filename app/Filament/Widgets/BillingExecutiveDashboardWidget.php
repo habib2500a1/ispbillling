@@ -2,11 +2,13 @@
 
 namespace App\Filament\Widgets;
 
+use App\Filament\Concerns\ChecksDashboardWidgetAccess;
 use App\Services\Dashboard\BillingDashboardMetricsService;
 use Filament\Widgets\Widget;
 
 class BillingExecutiveDashboardWidget extends Widget
 {
+    use ChecksDashboardWidgetAccess;
     protected static string $view = 'filament.widgets.billing-executive-dashboard';
 
     protected static bool $isDiscovered = false;

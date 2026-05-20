@@ -2,9 +2,10 @@
 
 return [
 
-    'connection_timeout' => (int) env('MIKROTIK_CONNECTION_TIMEOUT', 20),
+    /** WAN routers with 400+ PPP sessions may need 90–120s on slow links. */
+    'connection_timeout' => (int) env('MIKROTIK_CONNECTION_TIMEOUT', 30),
 
-    'socket_timeout' => (int) env('MIKROTIK_SOCKET_TIMEOUT', 45),
+    'socket_timeout' => (int) env('MIKROTIK_SOCKET_TIMEOUT', 120),
 
     'poll_enabled' => (bool) env('MIKROTIK_POLL_STATUS_ENABLED', true),
 

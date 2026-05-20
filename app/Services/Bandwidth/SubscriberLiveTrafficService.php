@@ -34,9 +34,11 @@ final class SubscriberLiveTrafficService
             'upload_mbps' => [],
         ]);
 
-        $chart['labels'][] = now()->format('H:i:s');
-        $chart['download_mbps'][] = round(($rxBps ?? 0) / 1_000_000, 4);
-        $chart['upload_mbps'][] = round(($txBps ?? 0) / 1_000_000, 4);
+        if ($rxBps !== null || $txBps !== null) {
+            $chart['labels'][] = now()->format('H:i:s');
+            $chart['download_mbps'][] = round(($rxBps ?? 0) / 1_000_000, 4);
+            $chart['upload_mbps'][] = round(($txBps ?? 0) / 1_000_000, 4);
+        }
 
         $maxPoints = max(30, (int) config('bandwidth.subscriber_chart_points', 120));
         foreach (['labels', 'download_mbps', 'upload_mbps'] as $key) {
@@ -85,16 +87,19 @@ final class SubscriberLiveTrafficService
         }
 
         $cacheKey = 'subscriber_mikrotik_rates:'.(int) $customer->getKey();
-        $ttlSeconds = max(2, (int) config('bandwidth.subscriber_live_min_interval_seconds', 5));
+        $ttlSeconds = max(1, (int) ceil((float) config('bandwidth.subscriber_live_min_interval_seconds', 1)));
         $cached = Cache::get($cacheKey);
-        if (is_array($cached) && isset($cached['rx_bps'], $cached['tx_bps'])) {
-            return [
-                'rx_bps' => $cached['rx_bps'],
-                'tx_bps' => $cached['tx_bps'],
-            ];
+        if (is_array($cached) && isset($cached['rx_bps'], $cached['tx_bps'], $cached['fetched_at'])) {
+            $age = microtime(true) - (float) $cached['fetched_at'];
+            if ($age < $ttlSeconds) {
+                return [
+                    'rx_bps' => $cached['rx_bps'],
+                    'tx_bps' => $cached['tx_bps'],
+                ];
+            }
         }
 
-        $fetch = app(MikrotikServerService::class)->fetchActivePppSessionForLogin($server, $login);
+        $fetch = app(MikrotikServerService::class)->fetchSubscriberLiveTraffic($server, $login);
         if ($fetch['error'] !== null || ! $fetch['found']) {
             return $this->ratesFromSessionOrSample($customer);
         }
@@ -105,7 +110,7 @@ final class SubscriberLiveTrafficService
         if ($rx !== null || $tx !== null) {
             $this->storeCounterState($customer->id, $fetch['download_bytes'], $fetch['upload_bytes']);
             $rates = ['rx_bps' => $rx, 'tx_bps' => $tx];
-            Cache::put($cacheKey, $rates, now()->addSeconds($ttlSeconds));
+            Cache::put($cacheKey, $rates + ['fetched_at' => microtime(true)], now()->addSeconds($ttlSeconds + 5));
 
             return $rates;
         }
@@ -115,7 +120,7 @@ final class SubscriberLiveTrafficService
             $fetch['download_bytes'],
             $fetch['upload_bytes'],
         );
-        Cache::put($cacheKey, $rates, now()->addSeconds($ttlSeconds));
+        Cache::put($cacheKey, $rates + ['fetched_at' => microtime(true)], now()->addSeconds($ttlSeconds + 5));
 
         return $rates;
     }
@@ -136,15 +141,15 @@ final class SubscriberLiveTrafficService
         ], now()->addMinutes(15));
 
         if (! is_array($prev)) {
-            return ['rx_bps' => 0, 'tx_bps' => 0];
+            return ['rx_bps' => null, 'tx_bps' => null];
         }
 
         $elapsed = $now - (float) ($prev['at'] ?? $now);
         $minInterval = max(0.5, (float) config('bandwidth.subscriber_live_min_interval_seconds', 1));
         if ($elapsed < $minInterval) {
             return [
-                'rx_bps' => $prev['rx_bps'] ?? 0,
-                'tx_bps' => $prev['tx_bps'] ?? 0,
+                'rx_bps' => isset($prev['rx_bps']) ? (int) $prev['rx_bps'] : null,
+                'tx_bps' => isset($prev['tx_bps']) ? (int) $prev['tx_bps'] : null,
             ];
         }
 

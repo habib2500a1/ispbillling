@@ -51,7 +51,7 @@ return [
     'monitor_collect_on_poll' => filter_var(env('BANDWIDTH_MONITOR_COLLECT_ON_POLL', false), FILTER_VALIDATE_BOOL),
 
     /** Per-subscriber traffic chart refresh (seconds). 0 = off. */
-    'subscriber_chart_poll_seconds' => (int) env('BANDWIDTH_SUBSCRIBER_CHART_POLL_SECONDS', 5),
+    'subscriber_chart_poll_seconds' => (int) env('BANDWIDTH_SUBSCRIBER_CHART_POLL_SECONDS', 1),
 
     /** Rolling chart points kept in memory (1 point per poll). */
     'subscriber_chart_points' => (int) env('BANDWIDTH_SUBSCRIBER_CHART_POINTS', 120),
@@ -62,8 +62,8 @@ return [
         FILTER_VALIDATE_BOOL,
     ),
 
-    /** Minimum seconds between byte-delta rate samples (subscriber live). */
-    'subscriber_live_min_interval_seconds' => (float) env('BANDWIDTH_SUBSCRIBER_LIVE_MIN_INTERVAL', 5),
+    /** Minimum seconds between byte-delta rate samples (subscriber live). Use 1 for per-second mobile graphs. */
+    'subscriber_live_min_interval_seconds' => (float) env('BANDWIDTH_SUBSCRIBER_LIVE_MIN_INTERVAL', 1),
 
     /** Write live rates to PPP session meta every N chart ticks. */
     'subscriber_session_persist_every_ticks' => (int) env('BANDWIDTH_SUBSCRIBER_SESSION_PERSIST_TICKS', 5),

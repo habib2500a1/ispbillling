@@ -32,12 +32,7 @@ class NocDashboard extends Page
 
     public static function canAccess(): bool
     {
-        return static::userHasAnyRole([
-            'noc-engineer',
-            'network-engineer',
-            'isp-engineer',
-            'isp-manager',
-        ]);
+        return static::staff()->canNetwork();
     }
 
     /**

@@ -52,6 +52,7 @@ class AdminPanelProvider extends PanelProvider
             ->darkMode(true)
             ->defaultThemeMode(ThemeMode::System)
             ->sidebarCollapsibleOnDesktop()
+            ->sidebarWidth('20rem')
             ->collapsedSidebarWidth('4.5rem')
             ->globalSearch(IspGlobalSearchProvider::class)
             ->globalSearchDebounce('300ms')
@@ -111,11 +112,19 @@ class AdminPanelProvider extends PanelProvider
             )
             ->renderHook(
                 PanelsRenderHook::SIDEBAR_NAV_START,
-                fn (): string => view('filament.hooks.sidebar-menu-search')->render(),
+                fn (): string => view('filament.hooks.sidebar-toolbar')->render(),
+            )
+            ->renderHook(
+                PanelsRenderHook::SIDEBAR_FOOTER,
+                fn (): string => view('filament.hooks.sidebar-footer-collapse')->render(),
             )
             ->renderHook(
                 PanelsRenderHook::USER_MENU_BEFORE,
                 fn (): string => view('filament.hooks.topbar-extras')->render(),
+            )
+            ->renderHook(
+                PanelsRenderHook::AUTH_LOGIN_FORM_BEFORE,
+                fn (): string => view('filament.hooks.auth-login-flash')->render(),
             )
             ->renderHook(
                 PanelsRenderHook::AUTH_LOGIN_FORM_AFTER,

@@ -2,6 +2,8 @@
 
 namespace App\Filament\Pages;
 
+use App\Support\Rbac\StaffCapability;
+
 use App\Services\Accounting\AccountingReportService;
 use Carbon\Carbon;
 use Filament\Forms\Components\DatePicker;
@@ -31,7 +33,7 @@ class AccountsIncomeVsExpensePage extends Page implements HasForms
 
     public static function canAccess(): bool
     {
-        return auth()->check();
+        return \App\Support\Rbac\StaffCapability::for(auth()->user())->canAccounting();
     }
 
     public function mount(): void

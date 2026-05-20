@@ -30,16 +30,8 @@ class SupportDashboard extends Page
 
     public static function canAccess(): bool
     {
-        if (SupportPanelAccess::viewTickets(auth()->user())) {
-            return true;
-        }
-
-        return static::userHasAnyRole([
-            'support-agent',
-            'support-manager',
-            'call-center',
-            'isp-support',
-        ]);
+        return static::staff()->canSupport()
+            || SupportPanelAccess::viewTickets(auth()->user());
     }
 
     /**

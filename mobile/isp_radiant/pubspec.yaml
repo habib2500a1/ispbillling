@@ -1,7 +1,7 @@
 name: isp_radiant
 description: ISP Platform unified mobile app for Admin, Staff, and Clients.
 publish_to: 'none'
-version: 2.3.0+13
+version: 2.3.8+21
 
 environment:
   sdk: ^3.12.0

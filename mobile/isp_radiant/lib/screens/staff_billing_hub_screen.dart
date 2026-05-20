@@ -119,6 +119,26 @@ class _StaffBillingHubScreenState extends State<StaffBillingHubScreen> with Sing
       child: ListView(
         padding: pagePadding(context),
         children: [
+          if ((b['paid_clients'] as num?) != null)
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  children: [
+                    Column(children: [
+                      Text('${b['paid_clients']}', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppTheme.success)),
+                      const Text('Paid clients', style: TextStyle(fontSize: 11)),
+                    ]),
+                    Column(children: [
+                      Text('${b['unpaid_clients']}', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppTheme.warning)),
+                      const Text('Unpaid clients', style: TextStyle(fontSize: 11)),
+                    ]),
+                  ],
+                ),
+              ),
+            ),
+          const SizedBox(height: 8),
           GridView.count(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
@@ -154,7 +174,9 @@ class _StaffBillingHubScreenState extends State<StaffBillingHubScreen> with Sing
           return Card(
             child: ListTile(
               title: Text(c['name']?.toString() ?? ''),
-              subtitle: Text('${c['customer_code']} · ${c['package'] ?? ''}'),
+              subtitle: Text(
+                '${c['customer_code']} · ${c['package'] ?? ''}${c['billing_mode'] != null ? ' · ${c['billing_mode']}' : ''}',
+              ),
               trailing: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.end,

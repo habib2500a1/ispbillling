@@ -45,6 +45,6 @@ class ResellersHub extends Page
 
     public static function canAccess(): bool
     {
-        return auth()->check();
+        return \App\Support\Rbac\StaffCapability::for(auth()->user())->canResellers();
     }
 }

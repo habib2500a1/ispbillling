@@ -3,6 +3,7 @@
 namespace App\Filament\Pages;
 
 use App\Services\Accounts\AccountsDashboardService;
+use App\Support\Rbac\StaffCapability;
 use Carbon\Carbon;
 use Filament\Pages\Page;
 
@@ -32,7 +33,7 @@ class AccountsHub extends Page
 
     public static function canAccess(): bool
     {
-        return auth()->check();
+        return StaffCapability::for(auth()->user())->canAccounting();
     }
 
     /**

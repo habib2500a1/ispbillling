@@ -30,6 +30,7 @@ import 'staff_packages_screen.dart';
 import 'staff_reports_screen.dart';
 import 'staff_comms_screen.dart';
 import 'staff_profile_screen.dart';
+import 'staff_team_discount_screen.dart';
 import '../widgets/module_tile.dart';
 
 class StaffHomeScreen extends StatefulWidget {
@@ -192,6 +193,9 @@ class _StaffHomeScreenState extends State<StaffHomeScreen> {
         final user = (_data?['user'] ?? widget.loginPayload['user']) as Map<String, dynamic>?;
         Navigator.push(context, MaterialPageRoute(builder: (_) => StaffProfileScreen(api: widget.api, user: user)));
         break;
+      case 'staff_discounts':
+        Navigator.push(context, MaterialPageRoute(builder: (_) => StaffTeamDiscountScreen(api: widget.api)));
+        break;
       default:
         break;
     }
@@ -221,12 +225,12 @@ class _StaffHomeScreenState extends State<StaffHomeScreen> {
         IconButton(icon: const Icon(Icons.refresh), onPressed: _load),
         IconButton(icon: const Icon(Icons.logout), onPressed: _logout),
       ],
-      destinations: const [
-        NavigationDestination(icon: Icon(Icons.grid_view), label: 'Home'),
-        NavigationDestination(icon: Icon(Icons.receipt_long), label: 'Billing'),
-        NavigationDestination(icon: Icon(Icons.account_balance_wallet), label: 'Collection'),
-        NavigationDestination(icon: Icon(Icons.confirmation_number), label: 'Support'),
-        NavigationDestination(icon: Icon(Icons.task_alt), label: 'Task'),
+      destinations: [
+        NavigationDestination(icon: Icon(Icons.grid_view, color: AppTheme.navBarColors[0]), label: 'Home'),
+        NavigationDestination(icon: Icon(Icons.receipt_long, color: AppTheme.navBarColors[1]), label: 'Billing'),
+        NavigationDestination(icon: Icon(Icons.account_balance_wallet, color: AppTheme.navBarColors[2]), label: 'Collection'),
+        NavigationDestination(icon: Icon(Icons.confirmation_number, color: AppTheme.navBarColors[3]), label: 'Support'),
+        NavigationDestination(icon: Icon(Icons.task_alt, color: AppTheme.navBarColors[4]), label: 'Task'),
       ],
       pages: [
         _buildHomeTab(user, billing, tickets, tasks, chart, actions, kpis, revenue7, modules),
@@ -280,6 +284,25 @@ class _StaffHomeScreenState extends State<StaffHomeScreen> {
                 title: const Text('Open NOC wall'),
                 trailing: const Icon(Icons.chevron_right),
                 onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => StaffNocScreen(api: widget.api))),
+              ),
+            ),
+          if (_mode == 'admin')
+            Card(
+              margin: const EdgeInsets.only(bottom: 10),
+              color: Colors.deepOrange.withValues(alpha: 0.08),
+              child: ListTile(
+                leading: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(colors: [Colors.deepOrange, AppTheme.accent]),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(Icons.percent, color: Colors.white),
+                ),
+                title: const Text('Staff collection discounts', style: TextStyle(fontWeight: FontWeight.w600)),
+                subtitle: const Text('Set max discount per collector / staff'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => StaffTeamDiscountScreen(api: widget.api))),
               ),
             ),
           _kpiRow(kpis),

@@ -1,12 +1,12 @@
 import 'dart:async';
 
-import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../services/api_service.dart';
 import '../theme/app_theme.dart';
 import '../utils/layout.dart';
+import '../widgets/live_bandwidth_chart.dart';
 import '../widgets/page_scaffold.dart';
 import '../widgets/state_views.dart';
 import 'staff_customer_detail_screen.dart';
@@ -25,9 +25,10 @@ class _StaffMonitoringScreenState extends State<StaffMonitoringScreen> {
   int _total = 0;
   bool _loading = true;
   Timer? _liveTimer;
-  final List<FlSpot> _chartSpots = [];
-  int _spotIndex = 0;
+  Map<String, dynamic>? _chartData;
   String? _bandwidthLabel;
+  String? _downloadLabel;
+  String? _uploadLabel;
 
   @override
   void initState() {
@@ -63,12 +64,12 @@ class _StaffMonitoringScreenState extends State<StaffMonitoringScreen> {
     try {
       final snap = await widget.api.staffMonitoringLive();
       if (!mounted) return;
-      final count = (snap['online_count'] as num?)?.toDouble() ?? 0;
       setState(() {
+        _total = (snap['online_count'] as num?)?.toInt() ?? _total;
         _bandwidthLabel = snap['bandwidth_human']?.toString();
-        _chartSpots.add(FlSpot(_spotIndex.toDouble(), count));
-        if (_chartSpots.length > 60) _chartSpots.removeAt(0);
-        _spotIndex++;
+        _downloadLabel = snap['download_human']?.toString();
+        _uploadLabel = snap['upload_human']?.toString();
+        _chartData = snap['chart'] as Map<String, dynamic>?;
       });
     } catch (_) {}
   }
@@ -97,7 +98,7 @@ class _StaffMonitoringScreenState extends State<StaffMonitoringScreen> {
                 children: [
                   _liveHeader(),
                   const SizedBox(height: 12),
-                  _liveChart(),
+                  _bandwidthChartCard(),
                   const SizedBox(height: 16),
                   Text('Online now ($_total)', style: Theme.of(context).textTheme.titleMedium),
                   const SizedBox(height: 8),
@@ -127,7 +128,9 @@ class _StaffMonitoringScreenState extends State<StaffMonitoringScreen> {
               children: [
                 Text('$_total online', style: const TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.bold)),
                 Text(
-                  _bandwidthLabel != null ? 'Total traffic $_bandwidthLabel' : 'Updating every 1 second…',
+                  _downloadLabel != null
+                      ? '↓ $_downloadLabel · ↑ ${_uploadLabel ?? '—'} (per sec)'
+                      : (_bandwidthLabel != null ? 'Total $_bandwidthLabel' : 'Updating every 1 second…'),
                   style: const TextStyle(color: Colors.white70, fontSize: 12),
                 ),
               ],
@@ -143,42 +146,16 @@ class _StaffMonitoringScreenState extends State<StaffMonitoringScreen> {
     );
   }
 
-  Widget _liveChart() {
-    if (_chartSpots.isEmpty) {
-      return const SizedBox(height: 120, child: Center(child: Text('Collecting live data…')));
-    }
-    final maxY = _chartSpots.map((s) => s.y).fold<double>(0, (a, b) => a > b ? a : b) + 2;
-
+  Widget _bandwidthChartCard() {
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(12),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Online users (last 60s)', style: TextStyle(fontWeight: FontWeight.w600)),
+            const Text('All users — Mbps per second', style: TextStyle(fontWeight: FontWeight.w600)),
             const SizedBox(height: 8),
-            SizedBox(
-              height: 140,
-              child: LineChart(
-                LineChartData(
-                  minY: 0,
-                  maxY: maxY,
-                  gridData: const FlGridData(show: false),
-                  titlesData: const FlTitlesData(show: false),
-                  borderData: FlBorderData(show: false),
-                  lineBarsData: [
-                    LineChartBarData(
-                      spots: _chartSpots,
-                      isCurved: true,
-                      color: AppTheme.accent,
-                      barWidth: 3,
-                      dotData: const FlDotData(show: false),
-                      belowBarData: BarAreaData(show: true, color: AppTheme.accent.withValues(alpha: 0.15)),
-                    ),
-                  ],
-                ),
-              ),
-            ),
+            LiveBandwidthChart(chart: _chartData),
           ],
         ),
       ),

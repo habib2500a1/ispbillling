@@ -23,10 +23,12 @@ class ProfileBanner extends StatelessWidget {
   Widget build(BuildContext context) {
     return Card(
       margin: EdgeInsets.zero,
-      elevation: 3,
-      shadowColor: AppTheme.primary.withValues(alpha: 0.35),
-      color: AppTheme.primary,
-      child: Padding(
+      elevation: 4,
+      shadowColor: AppTheme.purple.withValues(alpha: 0.35),
+      clipBehavior: Clip.antiAlias,
+      child: Container(
+        decoration: AppTheme.heroGradient,
+        child: Padding(
         padding: const EdgeInsets.all(16),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -67,6 +69,7 @@ class ProfileBanner extends StatelessWidget {
             ),
           ],
         ),
+      ),
       ),
     );
   }

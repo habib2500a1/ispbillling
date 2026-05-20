@@ -101,6 +101,6 @@ class AnalyticsReports extends Page implements HasForms
         $user = auth()->user();
 
         return $user !== null
-            && ($user->hasRole('super-admin') || $user->hasRole('isp-admin') || $user->hasRole('isp-manager'));
+            && \App\Support\Rbac\StaffCapability::for($user)->canReports();
     }
 }

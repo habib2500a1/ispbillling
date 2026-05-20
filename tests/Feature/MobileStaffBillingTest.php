@@ -186,6 +186,7 @@ class MobileStaffBillingTest extends TestCase
             'invoice_id' => $invoice->id,
             'amount' => 400,
             'method' => 'cash',
+            'notes' => 'Partial collection test — balance remains.',
         ]);
         $response
             ->assertCreated()

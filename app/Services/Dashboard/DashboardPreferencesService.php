@@ -3,6 +3,7 @@
 namespace App\Services\Dashboard;
 
 use App\Models\User;
+use App\Support\Rbac\StaffCapability;
 use Illuminate\Support\Facades\DB;
 
 final class DashboardPreferencesService
@@ -41,14 +42,20 @@ final class DashboardPreferencesService
     /** @return list<class-string> */
     public function widgetsFor(?User $user): array
     {
+        $capability = StaffCapability::for($user);
+        $permitted = array_flip($capability->allowedDashboardWidgets());
+
+        if ($permitted === []) {
+            return [];
+        }
+
         $prefs = $user?->dashboard_preferences ?? [];
         $saved = $prefs['widgets'] ?? null;
 
         if (! is_array($saved) || $saved === []) {
-            return self::DEFAULT_WIDGETS;
+            return array_values(array_intersect(self::DEFAULT_WIDGETS, array_keys($permitted)));
         }
 
-        $allowed = array_flip(self::DEFAULT_WIDGETS);
         $ordered = [];
 
         foreach ($saved as $class) {
@@ -62,24 +69,13 @@ final class DashboardPreferencesService
                 continue;
             }
 
-            if (isset($allowed[$class]) && ! in_array($class, $ordered, true)) {
+            if (isset($permitted[$class]) && ! in_array($class, $ordered, true)) {
                 $ordered[] = $class;
             }
         }
 
         if ($ordered === []) {
-            return self::DEFAULT_WIDGETS;
-        }
-
-        if (! in_array(\App\Filament\Widgets\BillingExecutiveDashboardWidget::class, $ordered, true)) {
-            array_unshift($ordered, \App\Filament\Widgets\BillingExecutiveDashboardWidget::class);
-        }
-
-        if (! in_array(\App\Filament\Widgets\OperationsCommandCenterWidget::class, $ordered, true)) {
-            $opsIndex = array_search(\App\Filament\Widgets\BillingExecutiveDashboardWidget::class, $ordered, true);
-            array_splice($ordered, $opsIndex === false ? 0 : $opsIndex + 1, 0, [
-                \App\Filament\Widgets\OperationsCommandCenterWidget::class,
-            ]);
+            return array_values(array_intersect(self::DEFAULT_WIDGETS, array_keys($permitted)));
         }
 
         return $ordered;
@@ -125,7 +121,8 @@ final class DashboardPreferencesService
      */
     public function normalizeWidgetList(array $widgets): array
     {
-        $allowed = array_flip(self::DEFAULT_WIDGETS);
+        $user = auth()->user();
+        $permitted = array_flip(StaffCapability::for($user)->allowedDashboardWidgets());
         $ordered = [];
 
         foreach ($widgets as $class) {
@@ -139,24 +136,13 @@ final class DashboardPreferencesService
                 continue;
             }
 
-            if (isset($allowed[$class]) && ! in_array($class, $ordered, true)) {
+            if (isset($permitted[$class]) && ! in_array($class, $ordered, true)) {
                 $ordered[] = $class;
             }
         }
 
         if ($ordered === []) {
-            return self::DEFAULT_WIDGETS;
-        }
-
-        if (! in_array(\App\Filament\Widgets\BillingExecutiveDashboardWidget::class, $ordered, true)) {
-            array_unshift($ordered, \App\Filament\Widgets\BillingExecutiveDashboardWidget::class);
-        }
-
-        if (! in_array(\App\Filament\Widgets\OperationsCommandCenterWidget::class, $ordered, true)) {
-            $opsIndex = array_search(\App\Filament\Widgets\BillingExecutiveDashboardWidget::class, $ordered, true);
-            array_splice($ordered, $opsIndex === false ? 0 : $opsIndex + 1, 0, [
-                \App\Filament\Widgets\OperationsCommandCenterWidget::class,
-            ]);
+            return StaffCapability::for($user)->allowedDashboardWidgets();
         }
 
         return array_values($ordered);
@@ -250,15 +236,13 @@ final class DashboardPreferencesService
                     }
                 }
 
-                if (! in_array(\App\Filament\Widgets\OperationsCommandCenterWidget::class, $newWidgets, true)) {
-                    array_unshift($newWidgets, \App\Filament\Widgets\OperationsCommandCenterWidget::class);
-                    $migrated = true;
-                }
-
-                $newWidgets = array_values(array_intersect($newWidgets, self::DEFAULT_WIDGETS));
+                $newWidgets = array_values(array_intersect(
+                    $newWidgets,
+                    StaffCapability::for($user)->allowedDashboardWidgets(),
+                ));
 
                 if ($newWidgets === []) {
-                    $newWidgets = self::DEFAULT_WIDGETS;
+                    $newWidgets = StaffCapability::for($user)->allowedDashboardWidgets();
                     $migrated = true;
                 }
 

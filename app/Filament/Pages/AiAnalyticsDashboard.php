@@ -20,7 +20,7 @@ class AiAnalyticsDashboard extends Page
 
     public static function canAccess(): bool
     {
-        return auth()->check();
+        return static::staff()->canReports();
     }
 
     /**

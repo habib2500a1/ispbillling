@@ -30,6 +30,11 @@ class RemoteConfig {
     return branding?['phone']?.toString() ?? '';
   }
 
+  static List<Map<String, dynamic>> get packages {
+    final list = _raw?['packages'] as List<dynamic>? ?? [];
+    return list.map((e) => Map<String, dynamic>.from(e as Map)).toList();
+  }
+
   static List<Map<String, dynamic>> get notices {
     final list = _raw?['notices'] as List<dynamic>? ?? [];
     return list.map((e) => Map<String, dynamic>.from(e as Map)).toList();

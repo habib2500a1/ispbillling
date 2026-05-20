@@ -6,10 +6,11 @@ use App\Http\Controllers\Controller;
 use App\Models\Customer;
 use App\Models\Payment;
 use App\Models\User;
-use App\Services\Collector\CollectorVisitService;
+use App\Services\Billing\PaymentVoidService;
+use App\Services\Billing\StaffCollectionPaymentService;
 use App\Services\Collector\CollectorWalletService;
 use App\Support\PaymentGateway;
-use App\Support\PaymentType;
+use App\Support\StaffPaymentApiPresenter;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -30,17 +31,19 @@ class StaffPaymentsController extends Controller
         ]);
     }
 
-    public function store(Request $request, CollectorVisitService $visits): JsonResponse
+    public function store(Request $request, StaffCollectionPaymentService $collections): JsonResponse
     {
         $user = $this->staff($request);
 
         $data = $request->validate([
             'customer_id' => ['required', 'integer', 'exists:customers,id'],
             'invoice_id' => ['nullable', 'integer', 'exists:invoices,id'],
-            'amount' => ['required', 'numeric', 'min:0.01'],
+            'amount' => ['required', 'numeric', 'min:0'],
             'method' => ['required', 'string', Rule::in(array_keys(PaymentGateway::options()))],
             'reference' => ['nullable', 'string', 'max:255'],
             'notes' => ['nullable', 'string', 'max:1000'],
+            'discount_preset' => ['nullable', 'string', 'max:64'],
+            'discount_custom' => ['nullable', 'numeric', 'min:0'],
         ]);
 
         $customer = Customer::withoutGlobalScopes()->whereKey($data['customer_id'])->firstOrFail();
@@ -49,24 +52,8 @@ class StaffPaymentsController extends Controller
             abort(404);
         }
 
-        $payment = Payment::createTrusted([
-            'tenant_id' => $customer->tenant_id,
-            'customer_id' => $customer->id,
-            'invoice_id' => $data['invoice_id'] ?? null,
-            'payment_type' => PaymentType::PAYMENT,
-            'amount' => round((float) $data['amount'], 2),
-            'method' => $data['method'],
-            'reference' => $data['reference'] ?? null,
-            'notes' => $data['notes'] ?? null,
-            'status' => 'completed',
-            'paid_at' => now(),
-            'recorded_by' => $user->id,
-        ]);
-
-        $visit = $visits->recordCollection($user, $customer, $payment, [
-            'notes' => $data['notes'] ?? null,
-            'device_meta' => ['source' => 'staff-mobile-api'],
-        ]);
+        $result = $collections->record($user, $customer, $data, 'staff-mobile-api');
+        $payment = $result['payment']->fresh(['invoice']);
 
         $wallet = null;
         if ($user->hasAnyRole(['cashier', 'collector', 'branch-manager', 'super-admin', 'isp-admin'])) {
@@ -74,16 +61,44 @@ class StaffPaymentsController extends Controller
         }
 
         return response()->json([
-            'message' => 'Payment recorded.',
-            'payment' => [
-                'id' => $payment->id,
-                'receipt_number' => $payment->receipt_number,
-                'amount' => (float) $payment->amount,
-                'method' => $payment->methodLabel(),
-            ],
-            'visit_id' => $visit->id,
+            'message' => $result['message'],
+            'payment' => app(StaffPaymentApiPresenter::class)->paymentPayload($payment),
+            'discount_bdt' => $result['discount_bdt'],
+            'visit_id' => $result['visit_id'],
             'wallet' => $wallet,
         ], 201);
+    }
+
+    public function destroy(Request $request, int $paymentId, PaymentVoidService $voids): JsonResponse
+    {
+        $user = $this->staff($request);
+
+        $data = $request->validate([
+            'reason' => ['nullable', 'string', 'max:500'],
+        ]);
+
+        $record = Payment::withoutGlobalScopes()->whereKey($paymentId)->firstOrFail();
+
+        if ($user->tenant_id !== null && (int) $record->tenant_id !== (int) $user->tenant_id) {
+            abort(404);
+        }
+
+        abort_unless(
+            $user->hasAnyRole(['super-admin', 'isp-admin', 'admin', 'cashier', 'branch-manager', 'isp-manager']),
+            403,
+            'Only admin or manager can void payments.',
+        );
+
+        $voided = $voids->void($record, $data['reason'] ?? null, $user->id);
+
+        return response()->json([
+            'message' => 'Payment voided. Balances adjusted.',
+            'payment' => [
+                'id' => $voided->id,
+                'status' => $voided->status,
+                'receipt_number' => $voided->receipt_number,
+            ],
+        ]);
     }
 
     private function staff(Request $request): User

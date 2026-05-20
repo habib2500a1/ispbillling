@@ -5,6 +5,8 @@ namespace App\Filament\Resources\CustomerResource\Pages;
 use App\Filament\Resources\CustomerResource;
 use App\Filament\Resources\CustomerResource\Pages\Concerns\HasMobileSubscriberFormLayout;
 use App\Models\Customer;
+use App\Support\BillingDefaults;
+use Illuminate\Support\Arr;
 use App\Services\Optical\CustomerOnuAutoProvisionService;
 use App\Services\Subscribers\CustomerDeletionService;
 use Filament\Actions;
@@ -29,6 +31,7 @@ class EditCustomer extends EditRecord
         $data['portal_password'] = null;
         $data['mikrotik_ppp_password'] = null;
         $data['onu_device_pick'] = $this->record->devices()->where('type', 'onu')->value('id');
+        $data['expire_day'] = BillingDefaults::expireDayFromDate($this->record->service_expires_at?->toDateString());
 
         return $data;
     }
@@ -43,9 +46,18 @@ class EditCustomer extends EditRecord
             unset($data['customer_code']);
         }
 
+        if (filled($data['mikrotik_secret_name'] ?? null) && blank($data['radius_username'] ?? null)) {
+            $data['radius_username'] = trim((string) $data['mikrotik_secret_name']);
+        }
+
         if (isset($data['meta']) && is_array($data['meta'])) {
             $existing = is_array($this->record->meta) ? $this->record->meta : [];
             $data['meta'] = array_replace($existing, $data['meta']);
+        }
+
+        $expireDay = (int) (Arr::get($this->form->getState(), 'expire_day') ?? 0);
+        if ($expireDay >= 1) {
+            $data['service_expires_at'] = BillingDefaults::dateFromExpireDay($expireDay);
         }
 
         return $data;

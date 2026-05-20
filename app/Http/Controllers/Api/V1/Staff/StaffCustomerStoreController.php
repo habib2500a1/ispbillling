@@ -41,6 +41,7 @@ class StaffCustomerStoreController extends Controller
                 'package' => $customer->package?->name,
             ],
             'network' => $result['network'],
+            'billing' => $result['billing'] ?? ['invoice' => null, 'message' => ''],
         ], 201);
     }
 

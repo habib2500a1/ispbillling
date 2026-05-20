@@ -29,12 +29,7 @@ class GponDashboard extends Page
 
     public static function canAccess(): bool
     {
-        return static::userHasAnyRole([
-            'noc-engineer',
-            'network-engineer',
-            'isp-engineer',
-            'gpon-engineer',
-        ]);
+        return static::staff()->canOlt();
     }
 
     /**

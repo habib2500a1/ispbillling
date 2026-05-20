@@ -1,7 +1,34 @@
 @php
     $snapshot = $snapshot ?? ['linked' => false, 'rows' => [], 'hint' => null];
     $rows = $snapshot['rows'] ?? [];
+    $onuBilling = $snapshot['onu_billing'] ?? [];
 @endphp
+
+<div class="mb-4 grid gap-3 md:grid-cols-2">
+    <div class="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm dark:border-slate-700 dark:bg-slate-900/40">
+        <p class="text-xs font-bold uppercase tracking-wide text-slate-500">ONU lease / device (local + ISP Digital)</p>
+        <dl class="mt-2 grid gap-1 text-sm">
+            @foreach ($onuBilling as $label => $value)
+                <div class="flex justify-between gap-2">
+                    <dt class="text-slate-600 dark:text-slate-400">{{ $label }}</dt>
+                    <dd class="font-mono text-xs font-semibold">{{ $value }}</dd>
+                </div>
+            @endforeach
+        </dl>
+        <p class="mt-2 text-xs text-slate-500">
+            ভাড়া/ডিপোজিট Edit client → Fees ট্যাবে। ISP Digital-এ খালি থাকলে header-এ «ISP Digital → Network/ONU» চাপুন।
+        </p>
+    </div>
+    <div class="rounded-lg border border-cyan-200 bg-cyan-50/80 px-4 py-3 text-sm text-cyan-950 dark:border-cyan-900/50 dark:bg-cyan-950/20 dark:text-cyan-100">
+        <p class="font-semibold">OLT থেকে optical power কীভাবে আসে</p>
+        <ol class="mt-2 list-decimal space-y-1 pl-4 text-xs">
+            <li>BDCOM OLT sync (inventory) — Optical NOC বা «Sync OLT & link ONU»</li>
+            <li>ONU description = PPP login (যেমন <span class="font-mono">{{ $rows[0]['username'] ?? ($snapshot['ppp_login'] ?? '—') }}</span>)</li>
+            <li>অথবা MikroTik secret comment-এ EPON0/4:29 বা ONU MAC</li>
+            <li>Router MAC (PPPoE caller-id) ≠ ONU MAC — OLT MAC table ব্যবহার করুন</li>
+        </ol>
+    </div>
+</div>
 
 @if (! ($snapshot['linked'] ?? false))
     <div class="space-y-3">

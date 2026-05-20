@@ -11,6 +11,12 @@
  */
 return [
 
+    /**
+     * When true, empty Customer ID on create is auto-generated (see code_format).
+     * When false, staff must enter Customer ID manually on web and mobile.
+     */
+    'auto_generate_customer_code' => (bool) env('SUBSCRIBER_AUTO_GENERATE_CODE', true),
+
     'code_format' => env('SUBSCRIBER_CODE_FORMAT', 'prefixed_monthly'),
 
     'code_prefix' => env('SUBSCRIBER_CODE_PREFIX', 'CUST'),

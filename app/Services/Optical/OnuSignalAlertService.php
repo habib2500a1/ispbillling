@@ -173,7 +173,7 @@ final class OnuSignalAlertService
                 app(NotificationDispatcher::class)->notifyOps(
                     (int) $onu->tenant_id,
                     NotificationEvent::OUTAGE,
-                    ['title' => $title, 'message' => $message, 'severity' => $severity],
+                    OpticalOpsAlertFormatter::variablesForOnu($onu, $message),
                 );
             } catch (\Throwable) {
                 //

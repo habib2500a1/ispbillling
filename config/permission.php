@@ -6,6 +6,11 @@ use Spatie\Permission\Models\Role;
 
 return [
 
+    /*
+     * SQLite tests: migration skips team columns when true (see create_permission_tables).
+     */
+    'testing' => (bool) env('PERMISSION_TESTING', false),
+
     'models' => [
 
         /*

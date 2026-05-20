@@ -2,11 +2,13 @@
 
 namespace App\Filament\Widgets;
 
+use App\Filament\Concerns\ChecksDashboardWidgetAccess;
 use App\Services\Dashboard\DashboardMetricsService;
 use Filament\Widgets\ChartWidget;
 
 class OnlineUsersChartWidget extends ChartWidget
 {
+    use ChecksDashboardWidgetAccess;
     protected static bool $isDiscovered = false;
 
     protected static bool $isLazy = true;

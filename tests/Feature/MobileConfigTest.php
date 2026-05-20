@@ -17,6 +17,7 @@ class MobileConfigTest extends TestCase
                 'staff_paths' => ['billing', 'collect', 'tickets'],
                 'features' => ['bkash', 'portal'],
                 'ticket' => ['departments', 'priorities', 'defaults'],
+                'packages',
             ]);
     }
 }

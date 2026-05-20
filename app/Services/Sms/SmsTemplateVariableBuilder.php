@@ -55,12 +55,18 @@ final class SmsTemplateVariableBuilder
         $customer = $payment->customer;
         $base = $customer ? self::forCustomer($customer) : self::defaults();
 
+        $walletCredit = (float) ($payment->meta['wallet_credit'] ?? 0);
+
         return array_merge($base, [
             'PaidAmount' => number_format((float) $payment->amount, 2),
             'amount' => number_format((float) $payment->amount, 2),
             'invoice_number' => (string) ($payment->invoice?->invoice_number ?? '—'),
             'receipt_number' => (string) ($payment->receipt_number ?? '—'),
             'Due' => $customer ? number_format($customer->openInvoiceBalance(), 2) : '0.00',
+            'payment_kind' => \App\Services\Billing\CollectionPaymentClassifier::isAdvancePayment($payment)
+                ? 'Advance (অগ্রিম)'
+                : 'Bill payment',
+            'wallet_credit' => $walletCredit > 0 ? number_format($walletCredit, 2) : '0.00',
         ]);
     }
 

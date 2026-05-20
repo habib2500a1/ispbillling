@@ -2,6 +2,8 @@
 
 namespace App\Filament\Pages;
 
+use App\Support\Rbac\StaffCapability;
+
 use App\Models\Payment;
 use Filament\Pages\Page;
 use Filament\Tables;
@@ -39,7 +41,7 @@ class AccountsIncomePage extends Page implements HasTable
 
     public static function canAccess(): bool
     {
-        return auth()->check();
+        return \App\Support\Rbac\StaffCapability::for(auth()->user())->canAccounting();
     }
 
     public function getTotalIncomeProperty(): float

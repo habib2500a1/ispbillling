@@ -2,6 +2,8 @@
 
 namespace App\Filament\Pages;
 
+use App\Support\Rbac\StaffCapability;
+
 use App\Filament\Resources\PayrollRunResource;
 use App\Models\Employee;
 use App\Models\PayrollItem;
@@ -23,7 +25,8 @@ class AccountsMySalaryPage extends Page
 
     public static function canAccess(): bool
     {
-        return auth()->check();
+        return \App\Support\Rbac\StaffCapability::for(auth()->user())->can('payroll.view')
+            || \App\Support\Rbac\StaffCapability::for(auth()->user())->canAccounting();
     }
 
     public function getEmployeeProperty(): ?Employee

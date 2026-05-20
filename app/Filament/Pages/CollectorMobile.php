@@ -77,8 +77,7 @@ class CollectorMobile extends Page
             return false;
         }
 
-        return $user->hasAnyRole(['super-admin', 'isp-admin', 'admin', 'cashier', 'branch-manager'])
-            || $user->can('payments.add')
+        return \App\Support\Rbac\StaffCapability::for($user)->canCollect()
             || $user->can('collections.view')
             || $user->can('collections.settle');
     }

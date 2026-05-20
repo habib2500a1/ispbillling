@@ -3,6 +3,7 @@
 namespace App\Filament\Pages;
 
 use App\Filament\Pages\Concerns\HidesHubNavigation;
+use App\Support\Rbac\StaffCapability;
 use App\Models\Invoice;
 use App\Models\Payment;
 use App\Services\Billing\BillingOpsMetricsService;
@@ -26,7 +27,7 @@ class BillingOverview extends Page
 
     public static function canAccess(): bool
     {
-        return auth()->check();
+        return StaffCapability::for(auth()->user())->canBilling();
     }
 
     /**

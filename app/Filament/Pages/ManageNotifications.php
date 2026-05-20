@@ -52,11 +52,7 @@ class ManageNotifications extends Page
 
     public static function canAccess(): bool
     {
-        return auth()->user()?->hasAnyRole([
-            'super-admin',
-            'isp-admin',
-            'isp-manager',
-        ]) ?? false;
+        return \App\Support\Rbac\StaffCapability::for(auth()->user())->canSms();
     }
 
     public function mount(): void

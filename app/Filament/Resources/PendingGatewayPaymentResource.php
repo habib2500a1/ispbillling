@@ -30,7 +30,7 @@ class PendingGatewayPaymentResource extends Resource
 
     public static function canViewAny(): bool
     {
-        return auth()->user()?->hasAnyRole(['super-admin', 'isp-admin', 'admin', 'cashier']) ?? false;
+        return \App\Support\Rbac\StaffCapability::for(auth()->user())->canPayments();
     }
 
     public static function canCreate(): bool

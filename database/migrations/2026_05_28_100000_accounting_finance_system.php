@@ -117,9 +117,12 @@ return new class extends Migration
             $table->string('employee_code', 32)->nullable();
             $table->string('name');
             $table->string('designation')->nullable();
+            $table->string('department', 80)->nullable();
+            $table->date('join_date')->nullable();
             $table->string('phone', 32)->nullable();
             $table->string('email')->nullable();
             $table->decimal('base_salary', 12, 2)->default(0);
+            $table->decimal('wallet_balance', 12, 2)->default(0);
             $table->boolean('is_active')->default(true);
             $table->timestamps();
         });

@@ -1,8 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../services/api_service.dart';
 import '../theme/app_theme.dart';
 import '../utils/app_nav.dart';
+import '../widgets/customer_search_result_tile.dart';
 import '../widgets/page_scaffold.dart';
 import 'staff_add_customer_screen.dart';
 import 'staff_customer_detail_screen.dart';
@@ -25,6 +28,8 @@ class _StaffClientsScreenState extends State<StaffClientsScreen> {
   bool _hasMore = true;
   String _statusFilter = '';
   bool _dueOnly = false;
+  Timer? _debounce;
+  bool _searchMode = false;
 
   Future<void> _load({String? q, bool reset = true}) async {
     if (reset) {
@@ -35,8 +40,12 @@ class _StaffClientsScreenState extends State<StaffClientsScreen> {
     try {
       if (q != null && q.length >= 2) {
         final list = await widget.api.searchCustomers(q);
-        if (mounted) setState(() => _list = list);
+        if (mounted) setState(() {
+          _list = list;
+          _searchMode = true;
+        });
       } else {
+        if (mounted) setState(() => _searchMode = false);
         final body = await widget.api.staffCustomers(
           page: _page,
           status: _statusFilter.isEmpty ? null : _statusFilter,
@@ -67,10 +76,23 @@ class _StaffClientsScreenState extends State<StaffClientsScreen> {
   void initState() {
     super.initState();
     _load();
+    _search.addListener(_onSearchChanged);
+  }
+
+  void _onSearchChanged() {
+    _debounce?.cancel();
+    final q = _search.text.trim();
+    if (q.length < 2) {
+      if (_searchMode) _load();
+      return;
+    }
+    _debounce = Timer(const Duration(milliseconds: 400), () => _load(q: q));
   }
 
   @override
   void dispose() {
+    _debounce?.cancel();
+    _search.removeListener(_onSearchChanged);
     _search.dispose();
     super.dispose();
   }
@@ -147,6 +169,18 @@ class _StaffClientsScreenState extends State<StaffClientsScreen> {
                 }
                 final c = _list[i];
                 final id = (c['id'] as num).toInt();
+                if (_searchMode) {
+                  return CustomerSearchResultTile(
+                    customer: c,
+                    showDue: true,
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => StaffCustomerDetailScreen(api: widget.api, customerId: id),
+                      ),
+                    ).then((_) => _load(q: _search.text.trim().length >= 2 ? _search.text.trim() : null)),
+                  );
+                }
                 final online = c['is_online'] == true;
                 return Card(
                   margin: const EdgeInsets.only(bottom: 8),

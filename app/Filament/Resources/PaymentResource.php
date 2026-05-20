@@ -6,6 +6,7 @@ use App\Filament\Resources\PaymentResource\Pages;
 use App\Models\Customer;
 use App\Models\Invoice;
 use App\Models\Payment;
+use App\Services\Billing\PaymentVoidService;
 use App\Services\Payments\PaymentProcessor;
 use App\Support\PaymentGateway;
 use App\Support\PaymentType;
@@ -98,6 +99,7 @@ class PaymentResource extends Resource
                                         'pending' => 'Pending (awaiting confirmation)',
                                         'completed' => 'Completed',
                                         'failed' => 'Failed',
+                                        'void' => 'Void (removed)',
                                     ])
                                     ->required()
                                     ->default('completed')
@@ -191,6 +193,7 @@ class PaymentResource extends Resource
                         'warning' => 'pending',
                         'success' => 'completed',
                         'danger' => 'failed',
+                        'gray' => 'void',
                     ]),
             ])
             ->filters([
@@ -199,6 +202,7 @@ class PaymentResource extends Resource
                         'pending' => 'Pending',
                         'completed' => 'Completed',
                         'failed' => 'Failed',
+                        'void' => 'Void',
                     ]),
                 Tables\Filters\SelectFilter::make('payment_type')
                     ->options(PaymentType::options()),
@@ -249,12 +253,26 @@ class PaymentResource extends Resource
                         );
                         Notification::make()->title('Refund recorded')->success()->send();
                     }),
-                Tables\Actions\EditAction::make(),
-            ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
-                ]),
+                Tables\Actions\Action::make('void')
+                    ->label('Void / delete')
+                    ->icon('heroicon-o-trash')
+                    ->color('danger')
+                    ->requiresConfirmation()
+                    ->modalHeading('Void this payment?')
+                    ->modalDescription('Invoice paid amount and customer wallet will be adjusted back. This cannot be undone.')
+                    ->form([
+                        Forms\Components\Textarea::make('reason')
+                            ->label('Reason')
+                            ->rows(2)
+                            ->placeholder('Wrong amount / wrong customer / duplicate entry'),
+                    ])
+                    ->visible(fn (Payment $record): bool => app(PaymentVoidService::class)->canVoid($record))
+                    ->action(function (Payment $record, array $data): void {
+                        app(PaymentVoidService::class)->void($record, $data['reason'] ?? null);
+                        Notification::make()->title('Payment voided')->success()->send();
+                    }),
+                Tables\Actions\EditAction::make()
+                    ->visible(fn (Payment $record): bool => $record->status !== 'void'),
             ]);
     }
 

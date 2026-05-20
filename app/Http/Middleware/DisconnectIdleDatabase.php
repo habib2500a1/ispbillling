@@ -14,6 +14,10 @@ final class DisconnectIdleDatabase
 {
     public function handle(Request $request, Closure $next): Response
     {
+        if (app()->environment('testing')) {
+            return $next($request);
+        }
+
         try {
             return $next($request);
         } finally {

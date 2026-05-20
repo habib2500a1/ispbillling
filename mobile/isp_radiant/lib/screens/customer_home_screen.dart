@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -35,12 +37,41 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
   Map<String, dynamic>? _dash;
   Map<String, dynamic>? _usage;
   bool _loading = true;
+  Timer? _usageTimer;
   final _fmt = NumberFormat('#,##0.00');
 
   @override
   void initState() {
     super.initState();
     _load();
+    _usageTimer = Timer.periodic(const Duration(seconds: 1), (_) => _pollUsage());
+  }
+
+  @override
+  void dispose() {
+    _usageTimer?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _pollUsage() async {
+    if (_tab != 0) return;
+    try {
+      final usage = await widget.api.customerUsageLive();
+      if (!mounted) return;
+      final live = usage['usage'] as Map<String, dynamic>?;
+      setState(() {
+        _usage = live;
+        if (live != null && _dash != null) {
+          _dash!['traffic'] = {
+            'download_bps': live['download_bps'],
+            'upload_bps': live['upload_bps'],
+            'download_human': live['download_human'],
+            'upload_human': live['upload_human'],
+            'chart': live['chart'],
+          };
+        }
+      });
+    } catch (_) {}
   }
 
   Future<void> _load() async {
@@ -79,7 +110,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
   Widget build(BuildContext context) {
     final customer = (_dash?['customer'] ?? widget.loginPayload['customer']) as Map<String, dynamic>?;
     final summary = _dash?['summary'] as Map<String, dynamic>? ?? {};
-    final traffic = _dash?['traffic'] as Map<String, dynamic>? ?? {};
+    final traffic = (_usage ?? _dash?['traffic']) as Map<String, dynamic>? ?? {};
     final connected = summary['status']?.toString() == 'Connected';
     final name = customer?['name']?.toString() ?? 'Client';
     final code = customer?['customer_code']?.toString() ?? '';
@@ -170,7 +201,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
                   _sumRow('Monthly Bill', _fmt.format(summary['monthly_bill'] ?? 0)),
                   _sumRow('Paid', _fmt.format(summary['paid'] ?? 0)),
                   _sumRow('Package', summary['package_name']?.toString() ?? '—'),
-                  _sumRow('Expire Date', summary['expire_date']?.toString() ?? '—'),
+                  _sumRow('Expire day', summary['expire_day']?.toString() ?? summary['expire_date']?.toString() ?? '—'),
                 ],
               ),
             ),
@@ -204,11 +235,17 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
                       Icon(Icons.sync, color: connected ? Colors.green : Colors.grey),
                       const SizedBox(height: 4),
                       Text(
-                        connected ? 'Up Time' : 'Offline',
+                        connected ? 'Connected' : 'Offline',
                         style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w600),
                       ),
                       Text(
-                        _usage?['session_started']?.toString() ?? '—',
+                        connected
+                            ? (_usage?['connection_duration']?.toString() ??
+                                (_dash?['connection']?['session_uptime']?.toString()) ??
+                                '—')
+                            : (_usage?['last_disconnect_human']?.toString() ??
+                                (_dash?['connection']?['last_disconnect']?.toString()) ??
+                                '—'),
                         style: const TextStyle(fontSize: 9, color: Colors.grey),
                       ),
                     ],
@@ -220,13 +257,37 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
           ),
           ListTile(
             leading: const Icon(Icons.speed, color: AppTheme.primary),
-            title: const Text('Live bandwidth & usage'),
+            title: const Text('Live bandwidth (per second)'),
             trailing: const Icon(Icons.chevron_right),
             onTap: () => Navigator.push(
               context,
               MaterialPageRoute(builder: (_) => CustomerUsageScreen(api: widget.api)),
             ),
           ),
+          if (_dash?['connection'] != null) ...[
+            const SizedBox(height: 8),
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('Connection details', style: TextStyle(fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 8),
+                    if (connected && (_dash!['connection']['session_started'] != null))
+                      Text('Since: ${_dash!['connection']['session_started']}', style: const TextStyle(fontSize: 12)),
+                    if (connected && (_dash!['connection']['session_uptime'] != null))
+                      Text('Uptime: ${_dash!['connection']['session_uptime']}', style: const TextStyle(fontSize: 12)),
+                    if (!connected && (_dash!['connection']['last_disconnect'] != null))
+                      Text('Last disconnect: ${_dash!['connection']['last_disconnect']}', style: const TextStyle(fontSize: 12)),
+                    if (_dash!['connection']['portal_last_logout_at'] != null &&
+                        _dash!['connection']['portal_last_logout_at'].toString() != '—')
+                      Text('App logout: ${_dash!['connection']['portal_last_logout_at']}', style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                  ],
+                ),
+              ),
+            ),
+          ],
           const SizedBox(height: 8),
           Card(
             child: Padding(

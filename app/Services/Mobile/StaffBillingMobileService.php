@@ -6,15 +6,13 @@ use App\Models\Customer;
 use App\Models\Invoice;
 use App\Models\Payment;
 use App\Models\User;
-use App\Services\Reports\AnalyticsReportService;
-use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 
 final class StaffBillingMobileService
 {
     public function __construct(
-        private readonly AnalyticsReportService $analytics,
+        private readonly StaffBillingKpiResolver $billingKpis,
     ) {}
 
     /**
@@ -23,28 +21,15 @@ final class StaffBillingMobileService
     public function summary(User $user): array
     {
         $tenantId = (int) $user->tenant_id;
-        $from = now()->startOfMonth();
-        $to = now()->endOfMonth();
-        $summary = $this->analytics->summary($from, $to, $tenantId);
-
-        $monthlyBill = (float) Invoice::withoutGlobalScopes()
-            ->where('tenant_id', $tenantId)
-            ->whereBetween('issue_date', [$from->toDateString(), $to->toDateString()])
-            ->whereNotIn('status', ['void', 'cancelled'])
-            ->sum('total');
-
-        $discount = (float) Invoice::withoutGlobalScopes()
-            ->where('tenant_id', $tenantId)
-            ->whereBetween('issue_date', [$from->toDateString(), $to->toDateString()])
-            ->sum(DB::raw('COALESCE(discount_amount, 0) + COALESCE(coupon_discount_amount, 0)'));
+        $billing = $this->billingKpis->resolve($tenantId);
+        $cached = app(\App\Services\Import\IspDigitalCurrentBillingSyncService::class)->cachedSummary($tenantId);
 
         return [
-            'billing' => [
-                'monthly_bill' => round($monthlyBill, 2),
-                'collected_bill' => round((float) ($summary['collected'] ?? 0), 2),
-                'due' => round((float) ($summary['outstanding'] ?? 0), 2),
-                'discount' => round(abs($discount), 2),
-            ],
+            'billing' => array_merge($billing, [
+                'paid_clients' => (int) ($cached['total_paid_clients'] ?? 0),
+                'unpaid_clients' => (int) ($cached['total_unpaid_clients'] ?? 0),
+                'synced_at' => $cached['synced_at'] ?? null,
+            ]),
         ];
     }
 
@@ -53,25 +38,44 @@ final class StaffBillingMobileService
      */
     public function dueList(int $tenantId, int $page = 1, int $perPage = 30): array
     {
+        $metaDueExpr = $this->metaBalanceDueSql();
+
         $customers = Customer::withoutGlobalScopes()
             ->where('tenant_id', $tenantId)
             ->with(['package:id,name'])
-            ->whereHas('invoices', function ($q) use ($tenantId): void {
-                $q->withoutGlobalScopes()
-                    ->where('tenant_id', $tenantId)
-                    ->whereIn('status', ['open', 'partial'])
-                    ->whereRaw('(total - COALESCE(amount_paid, 0)) > 0.009');
+            ->where(function ($q) use ($tenantId, $metaDueExpr): void {
+                $q->where(function ($isp) use ($metaDueExpr): void {
+                    $isp->where('import_source', 'isp_digital');
+                    if ($metaDueExpr !== null) {
+                        $isp->whereRaw($metaDueExpr);
+                    }
+                })->orWhere(function ($local) use ($tenantId): void {
+                    $local->where(function ($scope): void {
+                        $scope->where('import_source', '!=', 'isp_digital')
+                            ->orWhereNull('import_source');
+                    })->whereHas('invoices', function ($iq) use ($tenantId): void {
+                        $iq->withoutGlobalScopes()
+                            ->where('tenant_id', $tenantId)
+                            ->whereIn('status', ['open', 'partial'])
+                            ->whereRaw('(total - COALESCE(amount_paid, 0)) > 0.009');
+                    });
+                });
             })
             ->orderBy('name')
             ->paginate($perPage, ['*'], 'page', $page);
 
         $data = collect($customers->items())->map(function (Customer $c) use ($tenantId): array {
-            $due = (float) Invoice::withoutGlobalScopes()
-                ->where('tenant_id', $tenantId)
-                ->where('customer_id', $c->id)
-                ->whereIn('status', ['open', 'partial'])
-                ->get()
-                ->sum(fn (Invoice $inv) => $inv->balanceDue());
+            $meta = $c->meta ?? [];
+            $synced = filled($meta['isp_digital_billing_synced_at'] ?? null);
+            $ispDue = (float) ($meta['isp_digital_balance_due'] ?? 0);
+            $due = $synced
+                ? max(0, $ispDue)
+                : ((float) Invoice::withoutGlobalScopes()
+                    ->where('tenant_id', $tenantId)
+                    ->where('customer_id', $c->id)
+                    ->whereIn('status', ['open', 'partial'])
+                    ->get()
+                    ->sum(fn (Invoice $inv) => $inv->balanceDue()));
 
             return [
                 'id' => $c->id,
@@ -80,7 +84,10 @@ final class StaffBillingMobileService
                 'phone' => $c->phone,
                 'package' => $c->package?->name,
                 'status' => $c->status,
+                'billing_mode' => $c->billing_mode,
+                'payment_state' => $meta['isp_digital_payment_state'] ?? null,
                 'balance_due' => round($due, 2),
+                'monthly_payable' => round((float) ($meta['isp_digital_payable'] ?? 0), 2),
                 'is_online' => $c->isPppOnline(),
             ];
         })->values()->all();
@@ -221,5 +228,15 @@ final class StaffBillingMobileService
                 'total' => $payments->total(),
             ],
         ];
+    }
+
+    private function metaBalanceDueSql(): ?string
+    {
+        return match (Customer::query()->getConnection()->getDriverName()) {
+            'pgsql' => "(COALESCE(meta->>'isp_digital_balance_due', '0'))::numeric > 0.009",
+            'sqlite' => "CAST(COALESCE(json_extract(meta, '$.isp_digital_balance_due'), '0') AS REAL) > 0.009",
+            'mysql' => "CAST(COALESCE(JSON_UNQUOTE(JSON_EXTRACT(meta, '$.isp_digital_balance_due')), '0') AS DECIMAL(12,2)) > 0.009",
+            default => null,
+        };
     }
 }

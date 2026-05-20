@@ -1,5 +1,5 @@
 @php
-    $pollSeconds = (int) config('bandwidth.subscriber_chart_poll_seconds', 30);
+    $pollSeconds = (int) config('bandwidth.subscriber_chart_poll_seconds', 1);
     $collectOnPoll = config('bandwidth.subscriber_view_collect_on_poll', false);
 @endphp
 

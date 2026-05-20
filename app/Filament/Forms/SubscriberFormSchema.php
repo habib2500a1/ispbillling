@@ -8,7 +8,10 @@ use App\Models\CustomerContact;
 use App\Models\Package;
 use App\Models\User;
 use App\Support\BillingCycleType;
+use App\Support\BillingDefaults;
+use App\Support\CustomerCodeGenerator;
 use App\Support\CustomerStatus;
+use App\Support\SubscriberIdSettings;
 use App\Support\SubscriberType;
 use App\Support\TenantResolver;
 use Carbon\Carbon;
@@ -70,7 +73,7 @@ final class SubscriberFormSchema
             ->badge('Required')
             ->schema([
                 Forms\Components\Section::make('Must-have')
-                    ->description('Name · phone · package · dates · PPP login · status')
+                    ->description('Name · phone · package · dates · status (PPPoE on MikroTik tab)')
                     ->schema([
                         Forms\Components\TextInput::make('name')
                             ->label('Customer name')
@@ -115,11 +118,13 @@ final class SubscriberFormSchema
                             ->required()
                             ->live()
                             ->native(false)
-                            ->afterStateUpdated(function ($state, Forms\Set $set, Get $get): void {
-                                if (! $state || filled($get('service_expires_at'))) {
+                            ->afterStateUpdated(function ($state, Forms\Set $set): void {
+                                if (! $state) {
                                     return;
                                 }
-                                $set('service_expires_at', now()->addMonth()->endOfMonth()->toDateString());
+                                $day = BillingDefaults::defaultExpireDay();
+                                $set('expire_day', $day);
+                                $set('service_expires_at', BillingDefaults::dateFromExpireDay($day));
                             }),
                         Forms\Components\Select::make('status')
                             ->options(CustomerStatus::options())
@@ -132,37 +137,28 @@ final class SubscriberFormSchema
                             ->required()
                             ->native(false)
                             ->displayFormat('d M Y'),
-                        Forms\Components\DatePicker::make('service_expires_at')
-                            ->label('Expire date (valid until)')
-                            ->native(false)
-                            ->displayFormat('d M Y')
-                            ->closeOnDateSelection()
-                            ->helperText('Last day of service. Line off from the next day if expiry enforcement is on.'),
+                        ...self::expireDayFields(),
                         Forms\Components\TextInput::make('billing_day')
-                            ->label('Bill generate day')
+                            ->label('Bill day (monthly)')
                             ->required()
                             ->numeric()
-                            ->default(now()->day)
+                            ->default(BillingDefaults::billingDay())
                             ->minValue(1)
                             ->maxValue(28)
-                            ->helperText('Day of month for isp:generate-bills.'),
-                        Forms\Components\TextInput::make('mikrotik_secret_name')
-                            ->label('PPPoE username')
-                            ->maxLength(128)
-                            ->required()
-                            ->helperText('Router secret / login. Auto-filled from phone if empty.'),
-                        Forms\Components\TextInput::make('customer_code')
-                            ->label('Customer ID')
-                            ->maxLength(255)
-                            ->helperText('Leave empty for auto-generated subscriber code.')
-                            ->rules([
-                                fn (): \Closure => function (string $attribute, $value, \Closure $fail): void {
-                                    if (filled($value) && ! \App\Support\CustomerCodeGenerator::isValidManualCode((string) $value)) {
-                                        $fail('Invalid code for current format.');
-                                    }
-                                },
+                            ->helperText('All monthly bills on this day (default: 1st). Due or new — same date.'),
+                        Forms\Components\Select::make('billing_mode')
+                            ->label('Billing mode')
+                            ->options([
+                                'postpaid' => 'Postpaid',
+                                'prepaid' => 'Prepaid',
+                                'advance' => 'Advance',
                             ])
-                            ->dehydrated(fn (?string $state): bool => filled($state)),
+                            ->default('prepaid')
+                            ->required()
+                            ->live()
+                            ->native(false),
+                        ...self::locationFields(),
+                        self::customerCodeInput(),
                     ])
                     ->columns(self::grid()),
                 Forms\Components\Section::make('Quick preview')
@@ -190,10 +186,23 @@ final class SubscriberFormSchema
                                 'prepaid' => 'Prepaid',
                                 'advance' => 'Advance / hybrid',
                             ])
-                            ->default('postpaid')
+                            ->default('prepaid')
                             ->required()
                             ->native(false)
                             ->live(),
+                        Forms\Components\Select::make('first_bill_cycle')
+                            ->label('First bill')
+                            ->options([
+                                'this_month' => 'This month — bill today (see invoice on open day)',
+                                'next_month' => 'Next month — first bill on bill day next cycle',
+                            ])
+                            ->default(fn (Get $get): string => \App\Services\Billing\CustomerActivationBillingService::defaultFirstBillCycle(
+                                (string) ($get('billing_mode') ?? 'postpaid')
+                            ))
+                            ->dehydrated(false)
+                            ->native(false)
+                            ->live()
+                            ->helperText('Prepaid: “This month” = bill today when you open customer. Line off after expire day.'),
                         Forms\Components\Select::make('subscriber_type')
                             ->label('Billing category')
                             ->options(SubscriberType::options())
@@ -223,10 +232,12 @@ final class SubscriberFormSchema
                         Forms\Components\Placeholder::make('due_date_preview')
                             ->label('Typical due date')
                             ->content(fn (Get $get): HtmlString => self::dueDatePreview($get)),
-                        Forms\Components\DatePicker::make('service_expires_at')
-                            ->label('Expire date')
-                            ->native(false)
-                            ->displayFormat('d M Y'),
+                        Forms\Components\Placeholder::make('expire_day_display')
+                            ->label('Expire day')
+                            ->content(fn (Get $get): HtmlString => new HtmlString(
+                                '<strong>'.e((string) max(1, (int) ($get('expire_day') ?? BillingDefaults::defaultExpireDay()))).'</strong>'
+                                .' <span class="isp-sub-muted">(day of month, 1–31)</span>'
+                            )),
                         Forms\Components\TextInput::make('grace_period_days')
                             ->label('Grace days')
                             ->numeric()
@@ -234,9 +245,9 @@ final class SubscriberFormSchema
                             ->minValue(0)
                             ->maxValue(90)
                             ->live(),
-                        Forms\Components\Placeholder::make('grace_expire_preview')
-                            ->label('Grace expire date')
-                            ->content(fn (Get $get): HtmlString => self::graceExpirePreview($get)),
+                        Forms\Components\Placeholder::make('expire_date_preview')
+                            ->label('Expire date')
+                            ->content(fn (Get $get): HtmlString => self::expireDatePreview($get)),
                         Forms\Components\Placeholder::make('last_paid_preview')
                             ->label('Last paid month')
                             ->content(fn (?Customer $record): HtmlString => self::lastPaidPreview($record))
@@ -332,25 +343,9 @@ final class SubscriberFormSchema
         return Forms\Components\Tabs\Tab::make('MikroTik & ONU')
             ->icon('heroicon-o-server-stack')
             ->schema([
-                Forms\Components\Section::make('MikroTik / PPPoE')
+                self::pppCredentialsSection(),
+                Forms\Components\Section::make('Line & router')
                     ->schema([
-                        Forms\Components\Select::make('mikrotik_server_id')
-                            ->label('Router')
-                            ->relationship('mikrotikServer', 'name')
-                            ->searchable()
-                            ->preload()
-                            ->native(false),
-                        Forms\Components\TextInput::make('mikrotik_secret_name')
-                            ->label('PPPoE username')
-                            ->maxLength(128),
-                        Forms\Components\TextInput::make('mikrotik_ppp_password')
-                            ->label('PPPoE password')
-                            ->password()
-                            ->revealable()
-                            ->dehydrated(fn (?string $state): bool => filled($state)),
-                        Forms\Components\TextInput::make('radius_username')
-                            ->label('RADIUS username')
-                            ->maxLength(255),
                         Forms\Components\Select::make('network_access_state')
                             ->label('Line status')
                             ->options([
@@ -479,9 +474,7 @@ final class SubscriberFormSchema
                     ->columns(self::gridTwo()),
                 Forms\Components\Section::make('Identity (extended)')
                     ->schema([
-                        Forms\Components\TextInput::make('customer_code')
-                            ->label('Customer ID')
-                            ->dehydrated(fn (?string $state): bool => filled($state)),
+                        self::customerCodeInput(isCreateForm: false),
                         Forms\Components\TextInput::make('email')->email()->maxLength(255),
                         Forms\Components\TextInput::make('segment')->placeholder('residential, corporate, VIP'),
                         Forms\Components\Select::make('auto_suspend_override')
@@ -710,8 +703,8 @@ final class SubscriberFormSchema
             '<strong>Package:</strong> '.($pkg?->name ?? '—'),
             '<strong>Monthly:</strong> '.($pkg ? number_format((float) $pkg->price_monthly, 2).' BDT' : '—'),
             '<strong>PPP user:</strong> '.($get('mikrotik_secret_name') ?: '—'),
-            '<strong>Expire:</strong> '.($expires ? Carbon::parse($expires)->format('d M Y') : '—'),
-            '<strong>Grace expire:</strong> '.self::graceExpirePreview($get)->toHtml(),
+            '<strong>Expire day:</strong> '.e((string) ($get('expire_day') ?? ($expires ? BillingDefaults::expireDayFromDate($expires) : '—'))),
+            '<strong>Expire date:</strong> '.self::expireDatePreview($get)->toHtml(),
         ];
 
         return new HtmlString('<div class="isp-sub-preview">'.implode(' · ', $lines).'</div>');
@@ -762,16 +755,101 @@ final class SubscriberFormSchema
         return new HtmlString('<strong>'.$due->format('d M Y').'</strong> <span class="isp-sub-muted">(bill day + grace)</span>');
     }
 
-    private static function graceExpirePreview(Get $get): HtmlString
+    private static function expireDatePreview(Get $get): HtmlString
     {
         $expires = $get('service_expires_at');
         if (! $expires) {
-            return new HtmlString('<span class="isp-sub-muted">Set expire date</span>');
+            $day = (int) ($get('expire_day') ?? 0);
+            if ($day >= 1 && $day <= 31) {
+                $expires = BillingDefaults::dateFromExpireDay($day);
+            }
         }
-        $grace = (int) ($get('grace_period_days') ?? 0);
-        $date = Carbon::parse($expires)->addDays($grace);
+        if (! $expires) {
+            return new HtmlString('<span class="isp-sub-muted">Set expire day (Billing tab)</span>');
+        }
 
-        return new HtmlString('<strong>'.$date->format('d M Y').'</strong>');
+        $date = Carbon::parse($expires)->format('d M Y');
+        $dayNum = BillingDefaults::expireDayFromDate($expires);
+
+        return new HtmlString('<strong>'.$date.'</strong> <span class="isp-sub-muted">(day '.$dayNum.' of month)</span>');
+    }
+
+    /**
+     * Expire as day-of-month number (1–31); syncs hidden service_expires_at for enforcement.
+     *
+     * @return array<int, Forms\Components\Component>
+     */
+    /**
+     * @return array<int, int>
+     */
+    private static function expireDaySelectOptions(): array
+    {
+        return array_combine(
+            range(1, 31),
+            array_map(fn (int $d): string => 'Day '.$d, range(1, 31)),
+        ) ?: [];
+    }
+
+    private static function expireDayFields(): array
+    {
+        return [
+            Forms\Components\Hidden::make('service_expires_at')
+                ->default(fn (): string => BillingDefaults::dateFromExpireDay(BillingDefaults::defaultExpireDay())),
+            Forms\Components\Select::make('expire_day')
+                ->label('Expire day')
+                ->options(self::expireDaySelectOptions())
+                ->required()
+                ->dehydrated(false)
+                ->default(fn (?Customer $record): int => $record
+                    ? BillingDefaults::expireDayFromDate($record->service_expires_at?->toDateString())
+                    : BillingDefaults::defaultExpireDay())
+                ->native(false)
+                ->searchable()
+                ->live()
+                ->helperText('Day of month (1–31). Line off after this day each cycle.')
+                ->afterStateUpdated(function ($state, Forms\Set $set): void {
+                    if ($state === null || $state === '') {
+                        return;
+                    }
+                    $set('service_expires_at', BillingDefaults::dateFromExpireDay((int) $state));
+                }),
+        ];
+    }
+
+    /**
+     * Address, area, zone — required on create/edit.
+     *
+     * @return array<int, Forms\Components\Component>
+     */
+    private static function locationFields(): array
+    {
+        return [
+            Forms\Components\Textarea::make('address')
+                ->label('Address')
+                ->rows(2)
+                ->required()
+                ->maxLength(500)
+                ->columnSpan(['default' => 'full', 'lg' => 2]),
+            Forms\Components\Select::make('area_id')
+                ->label('Area')
+                ->relationship('area', 'name')
+                ->searchable()
+                ->preload()
+                ->required(fn (): bool => \App\Models\Area::query()->exists())
+                ->live()
+                ->native(false),
+            Forms\Components\Select::make('zone_id')
+                ->label('Zone')
+                ->options(fn (Get $get): array => \App\Models\Zone::query()
+                    ->when(filled($get('area_id')), fn ($q) => $q->where('area_id', (int) $get('area_id')))
+                    ->orderBy('name')
+                    ->pluck('name', 'id')
+                    ->all())
+                ->searchable()
+                ->preload()
+                ->required(fn (): bool => \App\Models\Zone::query()->exists())
+                ->native(false),
+        ];
     }
 
     private static function lastPaidPreview(?Customer $record): HtmlString
@@ -806,5 +884,193 @@ final class SubscriberFormSchema
             $onu->rx_power_dbm !== null ? number_format((float) $onu->rx_power_dbm, 1).' dBm' : '—',
             $onu->tx_power_dbm !== null ? number_format((float) $onu->tx_power_dbm, 1).' dBm' : '—',
         ));
+    }
+
+    /**
+     * Single place for PPP username + password (not duplicated on Essentials).
+     */
+    private static function pppCredentialsSection(): Forms\Components\Section
+    {
+        return Forms\Components\Section::make('PPPoE login')
+            ->description('Username and password for the router secret — enter here only.')
+            ->schema([
+                Forms\Components\Select::make('mikrotik_server_id')
+                    ->label('Router')
+                    ->relationship('mikrotikServer', 'name')
+                    ->searchable()
+                    ->preload()
+                    ->native(false),
+                Forms\Components\TextInput::make('mikrotik_secret_name')
+                    ->label('PPPoE username')
+                    ->maxLength(128)
+                    ->helperText('Optional — leave blank if not on router yet. Can match phone digits.'),
+                Forms\Components\TextInput::make('mikrotik_ppp_password')
+                    ->label('PPPoE password')
+                    ->password()
+                    ->revealable()
+                    ->maxLength(128)
+                    ->dehydrated(fn (?string $state): bool => filled($state))
+                    ->columnSpan(['default' => 'full', 'lg' => 1]),
+            ])
+            ->columns(self::gridTwo());
+    }
+
+    /**
+     * Two-step create: customer info → PPPoE (mobile-friendly flow on web).
+     */
+    public static function configureCreateWizard(Form $form): Form
+    {
+        return $form
+            ->extraAttributes(['class' => 'isp-subscriber-form isp-subscriber-create-wizard'])
+            ->schema([
+                Forms\Components\Wizard::make([
+                    Forms\Components\Wizard\Step::make('Customer')
+                        ->icon('heroicon-o-user')
+                        ->description('Name, phone, package')
+                        ->schema([
+                            Forms\Components\Section::make('Step 1 — Customer')
+                                ->schema([
+                                    Forms\Components\TextInput::make('name')
+                                        ->label('Customer name')
+                                        ->required()
+                                        ->maxLength(255)
+                                        ->columnSpan(['default' => 'full', 'lg' => 2]),
+                                    Forms\Components\TextInput::make('phone')
+                                        ->label('Phone number')
+                                        ->tel()
+                                        ->required()
+                                        ->maxLength(32)
+                                        ->live(onBlur: true)
+                                        ->dehydrateStateUsing(fn (?string $state): ?string => $state !== null ? CustomerContact::normalizePhone($state) : null)
+                                        ->afterStateUpdated(function (?string $state, Forms\Set $set, Get $get): void {
+                                            if (blank($get('mikrotik_secret_name')) && filled($state)) {
+                                                $digits = preg_replace('/\D+/', '', $state) ?? '';
+                                                if ($digits !== '') {
+                                                    $set('mikrotik_secret_name', $digits);
+                                                }
+                                            }
+                                        }),
+                                    Forms\Components\Select::make('package_id')
+                                        ->label('Package')
+                                        ->relationship('package', 'name', fn ($query) => $query->where('is_active', true))
+                                        ->searchable()
+                                        ->preload()
+                                        ->required()
+                                        ->live()
+                                        ->native(false)
+                                        ->afterStateUpdated(function ($state, Forms\Set $set): void {
+                                            if (! $state) {
+                                                return;
+                                            }
+                                            $day = BillingDefaults::defaultExpireDay();
+                                            $set('expire_day', $day);
+                                            $set('service_expires_at', BillingDefaults::dateFromExpireDay($day));
+                                        }),
+                                    Forms\Components\Select::make('status')
+                                        ->options(CustomerStatus::options())
+                                        ->required()
+                                        ->default(CustomerStatus::ACTIVE)
+                                        ->native(false),
+                                    Forms\Components\DatePicker::make('joined_at')
+                                        ->label('Activation date')
+                                        ->default(now())
+                                        ->required()
+                                        ->native(false)
+                                        ->displayFormat('d M Y'),
+                                    ...self::expireDayFields(),
+                                    Forms\Components\TextInput::make('billing_day')
+                                        ->label('Bill day (monthly)')
+                                        ->required()
+                                        ->numeric()
+                                        ->default(BillingDefaults::billingDay())
+                                        ->minValue(1)
+                                        ->maxValue(28),
+                                    Forms\Components\Select::make('billing_mode')
+                                        ->label('Billing mode')
+                                        ->options([
+                                            'postpaid' => 'Postpaid',
+                                            'prepaid' => 'Prepaid',
+                                            'advance' => 'Advance',
+                                        ])
+                                        ->default('prepaid')
+                                        ->required()
+                                        ->live()
+                                        ->native(false),
+                                    Forms\Components\Select::make('first_bill_cycle')
+                                        ->label('First bill')
+                                        ->options([
+                                            'this_month' => 'This month (bill today)',
+                                            'next_month' => 'Next month (on bill day)',
+                                        ])
+                                        ->default('this_month')
+                                        ->visible(fn (Get $get): bool => in_array((string) ($get('billing_mode') ?? ''), ['prepaid', 'advance'], true))
+                                        ->native(false),
+                                    ...self::locationFields(),
+                                    self::customerCodeInput(),
+                                ])
+                                ->columns(self::grid()),
+                        ]),
+                    Forms\Components\Wizard\Step::make('PPPoE & line')
+                        ->icon('heroicon-o-wifi')
+                        ->description('Optional PPP login')
+                        ->schema([
+                            self::pppCredentialsSection(),
+                            Forms\Components\Section::make('Line')
+                                ->schema([
+                                    Forms\Components\Select::make('network_access_state')
+                                        ->label('Line status')
+                                        ->options([
+                                            'active' => 'Active',
+                                            'suspended' => 'Suspended',
+                                        ])
+                                        ->default('active')
+                                        ->required()
+                                        ->native(false),
+                                ])
+                                ->columns(self::gridTwo()),
+                        ]),
+                ])
+                    ->columnSpanFull()
+                    ->persistStepInQueryString('create_step'),
+            ]);
+    }
+
+    private static function customerCodeInput(bool $isCreateForm = true): Forms\Components\TextInput
+    {
+        return Forms\Components\TextInput::make('customer_code')
+            ->label('Customer ID')
+            ->maxLength(64)
+            ->required(fn (): bool => $isCreateForm && ! SubscriberIdSettings::autoGenerateEnabled())
+            ->helperText(fn (): string => SubscriberIdSettings::autoGenerateEnabled()
+                ? 'Automatic: leave empty for next ID (format in Company setup). You can type a custom ID instead.'
+                : 'Manual: enter a unique Customer ID (automatic is off in Company setup).')
+            ->rules([
+                fn (?Customer $record): \Closure => function (string $attribute, $value, \Closure $fail) use ($record): void {
+                    if (! filled($value)) {
+                        if (! SubscriberIdSettings::autoGenerateEnabled()) {
+                            $fail('Customer ID is required when automatic ID is turned off.');
+                        }
+
+                        return;
+                    }
+                    if (! CustomerCodeGenerator::isValidManualCode((string) $value)) {
+                        $fail('Invalid Customer ID for the current format.');
+                    }
+                },
+                fn (?Customer $record): \Closure => function (string $attribute, $value, \Closure $fail) use ($record): void {
+                    if (! filled($value)) {
+                        return;
+                    }
+                    $exists = Customer::withoutGlobalScopes()
+                        ->where('tenant_id', TenantResolver::requiredTenantId())
+                        ->where('customer_code', trim((string) $value))
+                        ->when($record?->id, fn ($q, $id) => $q->where('id', '!=', $id))
+                        ->exists();
+                    if ($exists) {
+                        $fail('This Customer ID is already in use.');
+                    }
+                },
+            ])
+            ->dehydrated(fn (?string $state): bool => filled($state) || ! SubscriberIdSettings::autoGenerateEnabled());
     }
 }

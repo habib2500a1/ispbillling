@@ -2,6 +2,7 @@
 
 namespace App\Filament\Pages;
 
+use App\Support\Rbac\StaffCapability;
 use Filament\Pages\Page;
 
 class InventoryHub extends Page
@@ -22,6 +23,6 @@ class InventoryHub extends Page
 
     public static function canAccess(): bool
     {
-        return auth()->check();
+        return StaffCapability::for(auth()->user())->canInventory();
     }
 }
