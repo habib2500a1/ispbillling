@@ -6,6 +6,7 @@ use App\Models\Package;
 use App\Services\Portal\PortalContentCatalog;
 use App\Services\Portal\PortalMovieServerCatalog;
 use App\Support\CompanyBranding;
+use App\Support\MobileAppLinks;
 use Illuminate\View\View;
 
 class LandingPageController extends Controller
@@ -32,9 +33,12 @@ class LandingPageController extends Controller
             'packages' => $packages,
             'movieServers' => $movieServers,
             'adminUrl' => rtrim((string) config('app.url'), '/').'/admin',
+            'staffLoginUrl' => rtrim((string) config('app.url'), '/').'/admin/login',
             'payUrl' => url('/pay'),
             'portalUrl' => config('portal.enabled', true) ? route('portal.login') : null,
+            'portalDashboardUrl' => config('portal.enabled', true) ? route('portal.dashboard') : null,
             'signupUrl' => config('portal.signup.enabled', true) ? route('portal.signup') : null,
+            'appDownloadUrl' => MobileAppLinks::downloadUrl(),
         ]);
     }
 }

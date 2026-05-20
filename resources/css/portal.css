@@ -572,6 +572,8 @@ html.portal-dark {
 
 .portal-locale-link:hover { background: rgba(255, 255, 255, 0.12); color: #fff; }
 .portal-locale-link--active { background: rgba(124, 58, 237, 0.45); color: #fff; }
+.portal-locale-link--app { background: rgba(37, 99, 235, 0.35); color: #bfdbfe; }
+.portal-locale-bar__sep { opacity: 0.45; margin: 0 0.15rem; }
 
 .portal-header {
     position: sticky;

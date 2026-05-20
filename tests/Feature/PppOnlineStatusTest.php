@@ -71,6 +71,34 @@ class PppOnlineStatusTest extends TestCase
         $this->assertTrue($customer->is_ppp_online);
     }
 
+    public function test_collect_marks_offline_when_all_mikrotik_disabled(): void
+    {
+        $customer = Customer::createTrusted([
+            'tenant_id' => 1,
+            'customer_code' => 'offline_user_1',
+            'mikrotik_secret_name' => 'offline_user_1',
+            'name' => 'Was Online',
+            'phone' => '01733333333',
+            'status' => 'active',
+            'is_ppp_online' => true,
+        ]);
+
+        MikrotikServer::query()->create([
+            'tenant_id' => 1,
+            'name' => 'Disabled NAS',
+            'host' => '127.0.0.1',
+            'api_port' => 8728,
+            'api_username' => 'admin',
+            'api_password' => 'secret',
+            'is_enabled' => false,
+        ]);
+
+        app(BandwidthCollectionService::class)->collectForTenant(1);
+
+        $customer->refresh();
+        $this->assertFalse($customer->is_ppp_online);
+    }
+
     public function test_normalize_strips_realm_suffix(): void
     {
         $this->assertSame('user1', CustomerPppLoginResolver::normalize('user1@realm'));

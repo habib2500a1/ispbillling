@@ -58,6 +58,11 @@ class MikrotikServerResource extends Resource
                             ->required()
                             ->maxLength(255)
                             ->placeholder('192.168.88.1'),
+                        Forms\Components\TextInput::make('radius_nas_ip')
+                            ->label('RADIUS NAS IP')
+                            ->maxLength(45)
+                            ->placeholder('Same as API IP if blank')
+                            ->helperText('FreeRADIUS radacct NAS-IP-Address for this router. Used to map sessions to this server.'),
                         Forms\Components\Toggle::make('is_enabled')
                             ->label('Enabled')
                             ->default(true)

@@ -35,7 +35,7 @@ class DashboardStreamController extends Controller
                 }
                 flush();
 
-                sleep(15);
+                sleep((int) config('dashboard.stream_interval_seconds', 60));
                 $iterations++;
             }
         }, 200, [

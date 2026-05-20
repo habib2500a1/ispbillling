@@ -9,6 +9,8 @@ class RevenueTrendChartWidget extends ChartWidget
 {
     protected static bool $isDiscovered = false;
 
+    protected static bool $isLazy = true;
+
     protected static ?string $heading = 'Revenue trend (14 days)';
 
     protected static ?int $sort = 2;

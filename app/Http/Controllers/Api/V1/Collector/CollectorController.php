@@ -3,10 +3,12 @@
 namespace App\Http\Controllers\Api\V1\Collector;
 
 use App\Http\Controllers\Controller;
+use App\Models\CollectorExpense;
 use App\Models\CollectorVisit;
 use App\Models\Customer;
 use App\Models\Payment;
 use App\Services\Billing\BillCollectionSearchService;
+use App\Services\Collector\CollectorLedgerQueryService;
 use App\Services\Collector\CollectorVisitService;
 use App\Services\Collector\CollectorWalletService;
 use App\Services\Collector\CollectorSettlementService;
@@ -108,6 +110,40 @@ class CollectorController extends Controller
         return response()->json([
             'data' => $wallet->wallet((int) $request->user()->id),
             'alerts' => $wallet->fraudAlerts((int) $request->user()->id),
+        ]);
+    }
+
+    public function expenses(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        $expenses = CollectorExpense::withoutGlobalScopes()
+            ->where('collector_id', $user->id)
+            ->with('category:id,name')
+            ->orderByDesc('id')
+            ->limit(50)
+            ->get()
+            ->map(fn (CollectorExpense $e) => [
+                'id' => $e->id,
+                'expense_number' => $e->expense_number,
+                'amount' => (float) $e->amount,
+                'status' => $e->status,
+                'category' => $e->category?->name,
+                'expense_date' => $e->expense_date?->toDateString(),
+                'description' => $e->description,
+                'created_at' => $e->created_at?->toIso8601String(),
+            ]);
+
+        return response()->json(['data' => $expenses]);
+    }
+
+    public function expenseCategories(CollectorLedgerQueryService $ledger): JsonResponse
+    {
+        return response()->json([
+            'data' => $ledger->expenseCategories()->map(fn ($c) => [
+                'id' => $c->id,
+                'name' => $c->name,
+                'code' => $c->code,
+            ]),
         ]);
     }
 

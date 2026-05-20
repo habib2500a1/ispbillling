@@ -21,3 +21,6 @@ yarn-error.log
 /.nova
 /.vscode
 /.zed
+
+# Mobile APK binaries (serve from server; do not commit)
+/public/downloads/*.apk

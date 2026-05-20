@@ -19,6 +19,7 @@
 <script src="{{ asset('js/admin-theme.js') }}?v=4"></script>
 <script src="{{ asset('js/admin-sidebar-search.js') }}?v=1" defer></script>
 <script src="{{ asset('js/admin-sidebar-layout.js') }}?v=2" defer></script>
+<script src="{{ asset('js/isp-admin-resilience.js') }}?v={{ @filemtime(public_path('js/isp-admin-resilience.js')) ?: 1 }}" defer></script>
 @if (request()->routeIs('filament.admin.pages.dashboard*', 'filament.admin.pages.dashboard-hub*'))
 <script src="{{ asset('js/isp-dashboard-realtime.js') }}?v={{ @filemtime(public_path('js/isp-dashboard-realtime.js')) ?: 1 }}" defer></script>
 @endif

@@ -3,12 +3,15 @@
 namespace App\Filament\Resources\CustomerResource\Pages;
 
 use App\Filament\Resources\CustomerResource;
+use App\Models\Package;
 use App\Services\Clients\ClientsDashboardService;
 use App\Support\CustomerStatus;
+use App\Support\TenantResolver;
 use Filament\Actions;
 use Filament\Resources\Pages\ListRecords;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\Cache;
 use Livewire\Attributes\Url;
 
 class ListCustomers extends ListRecords
@@ -19,6 +22,17 @@ class ListCustomers extends ListRecords
 
     #[Url(as: 'preset')]
     public string $preset = 'all';
+
+    public function mount(): void
+    {
+        parent::mount();
+
+        $tenantId = TenantResolver::currentTenantId();
+        if ($tenantId !== null) {
+            app(\App\Services\Bandwidth\BandwidthCollectionService::class)
+                ->refreshOnlineFlagsForTenant($tenantId);
+        }
+    }
 
     public function getHeading(): string
     {
@@ -77,12 +91,31 @@ class ListCustomers extends ListRecords
             'home' => $query
                 ->where('status', '!=', CustomerStatus::TERMINATED)
                 ->whereNotNull('package_id')
-                ->whereHas('package', fn (Builder $q): Builder => $q->where('type', '!=', 'hotspot')),
+                ->whereIn('package_id', $this->homePackageIds()),
             'reseller' => $query
                 ->where('status', '!=', CustomerStatus::TERMINATED)
                 ->whereNotNull('reseller_id'),
             default => $query,
         };
+    }
+
+    /**
+     * @return list<int>
+     */
+    private function homePackageIds(): array
+    {
+        $tenantId = TenantResolver::currentTenantId() ?? 0;
+
+        return Cache::remember(
+            'clients_home_package_ids:'.$tenantId,
+            300,
+            fn (): array => Package::query()
+                ->where('tenant_id', $tenantId)
+                ->where('type', '!=', 'hotspot')
+                ->pluck('id')
+                ->map(fn ($id): int => (int) $id)
+                ->all(),
+        );
     }
 
     protected function getHeaderActions(): array

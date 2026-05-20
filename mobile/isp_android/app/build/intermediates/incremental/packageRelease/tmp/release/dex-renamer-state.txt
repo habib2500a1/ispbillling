@@ -1,0 +1,7 @@
+#Wed May 20 14:35:34 BST 2026
+base.1=/var/www/isp-platform/mobile/isp_android/app/build/intermediates/dex/release/mergeDexRelease/classes2.dex
+path.1=classes2.dex
+base.0=/var/www/isp-platform/mobile/isp_android/app/build/intermediates/dex/release/mergeDexRelease/classes.dex
+renamed.1=classes2.dex
+renamed.0=classes.dex
+path.0=classes.dex

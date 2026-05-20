@@ -43,6 +43,27 @@
         .btn-ghost:hover { background: #1e293b; }
         .btn-primary { background: var(--accent); color: #042f2e; }
         .btn-primary:hover { background: #2dd4bf; }
+        .btn-app {
+            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+            color: #fff;
+            border: none;
+        }
+        .btn-app:hover { filter: brightness(1.1); }
+        .app-banner {
+            margin: 2rem 0;
+            padding: 1.25rem 1.5rem;
+            border-radius: 1rem;
+            border: 1px solid #1e3a5f;
+            background: linear-gradient(135deg, #111b2e 0%, #172554 100%);
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+        }
+        .app-banner strong { display: block; font-size: 1.05rem; margin-bottom: .25rem; }
+        .app-banner p { font-size: .85rem; color: var(--muted); margin: 0; max-width: 28rem; }
+        .app-banner-actions { display: flex; flex-wrap: wrap; gap: .5rem; }
         .hero {
             text-align: center; padding: 2.5rem 1rem 3rem;
             border: 1px solid #1e293b; border-radius: 1rem;
@@ -145,14 +166,15 @@
                 </div>
             </div>
             <nav>
+                @if ($portalUrl)
+                    <a class="btn-primary" href="{{ $portalUrl }}">Portal login</a>
+                @endif
+                <a class="btn-app" href="{{ $appDownloadUrl }}">Mobile app</a>
                 @if ($signupUrl ?? null)
                     <a class="btn-ghost" href="{{ $signupUrl }}">New connection</a>
                 @endif
-                @if ($portalUrl)
-                    <a class="btn-ghost" href="{{ $portalUrl }}">Customer portal</a>
-                @endif
-                <a class="btn-primary" href="{{ $payUrl }}">Pay bill online</a>
-                <a class="btn-ghost" href="{{ $adminUrl }}">Staff</a>
+                <a class="btn-ghost" href="{{ $payUrl }}">Pay bill</a>
+                <a class="btn-ghost" href="{{ $staffLoginUrl ?? $adminUrl }}">Staff login</a>
             </nav>
         </header>
 
@@ -163,11 +185,28 @@
             <h2>Fast, reliable internet for home & business</h2>
             <p class="lead">{{ $tagline }}. Choose a package, pay online, and manage your connection from our customer portal.</p>
             <div class="hero-actions">
-                <a class="btn-primary" href="#packages" style="padding:.65rem 1.25rem;border-radius:.5rem;text-decoration:none;font-weight:600;">View packages</a>
+                @if ($portalUrl)
+                    <a class="btn-primary" href="{{ $portalUrl }}" style="padding:.65rem 1.25rem;border-radius:.5rem;text-decoration:none;font-weight:600;">Customer portal login</a>
+                @endif
+                <a class="btn-app" href="{{ $appDownloadUrl }}" style="padding:.65rem 1.25rem;border-radius:.5rem;text-decoration:none;font-weight:600;">Download mobile app</a>
+                <a class="btn-ghost" href="#packages" style="padding:.65rem 1.25rem;border-radius:.5rem;text-decoration:none;font-weight:600;">View packages</a>
                 @if ($signupUrl ?? null)
                     <a class="btn-ghost" href="{{ $signupUrl }}" style="padding:.65rem 1.25rem;border-radius:.5rem;text-decoration:none;font-weight:600;">Request new connection</a>
                 @endif
                 <a class="btn-ghost" href="{{ $payUrl }}" style="padding:.65rem 1.25rem;border-radius:.5rem;text-decoration:none;font-weight:600;">Quick bill pay</a>
+            </div>
+        </section>
+
+        <section class="app-banner" aria-label="Mobile app">
+            <div>
+                <strong>RADIANT ISP Mobile App</strong>
+                <p>Admin, staff ও subscriber — এক অ্যাপে বিল, usage, টিকেট ও collection। Android APK ডাউনলোড করে install করুন।</p>
+            </div>
+            <div class="app-banner-actions">
+                <a class="btn-app" href="{{ $appDownloadUrl }}" style="padding:.65rem 1.1rem;border-radius:.5rem;text-decoration:none;font-weight:600;">Download APK</a>
+                @if ($portalUrl)
+                    <a class="btn-ghost" href="{{ $portalUrl }}" style="padding:.65rem 1.1rem;border-radius:.5rem;text-decoration:none;font-weight:600;">Portal login</a>
+                @endif
             </div>
         </section>
 
@@ -178,7 +217,11 @@
             </div>
             <div class="feature">
                 <h3>Customer portal</h3>
-                <p>Invoices, usage, package change requests, and support tickets.</p>
+                <p>Invoices, usage, package change — @if ($portalUrl)<a href="{{ $portalUrl }}" style="color:var(--accent);">login here</a>@else online @endif.</p>
+            </div>
+            <div class="feature">
+                <h3>Mobile app</h3>
+                <p>Android app for clients & staff. <a href="{{ $appDownloadUrl }}" style="color:var(--accent);">Download APK</a>.</p>
             </div>
             <div class="feature">
                 <h3>PPPoE & fiber</h3>
@@ -225,7 +268,11 @@
             <p>{{ $company }} @if($address) · {{ $address }} @endif</p>
             @if ($phone)<p>Phone: <a href="tel:{{ $phone }}">{{ $phone }}</a></p>@endif
             @if ($email)<p>Email: <a href="mailto:{{ $email }}">{{ $email }}</a></p>@endif
-            <p style="margin-top:1rem;"><a href="{{ $adminUrl }}">Staff login</a></p>
+            <p style="margin-top:1rem;">
+                @if ($portalUrl)<a href="{{ $portalUrl }}">Customer portal login</a> · @endif
+                <a href="{{ $appDownloadUrl }}">Mobile app (APK)</a> ·
+                <a href="{{ $staffLoginUrl ?? $adminUrl }}">Staff login</a>
+            </p>
         </footer>
     </div>
 </body>

@@ -118,11 +118,14 @@ class AdminPanelProvider extends PanelProvider
                 fn (): string => view('filament.hooks.topbar-extras')->render(),
             )
             ->renderHook(
+                PanelsRenderHook::AUTH_LOGIN_FORM_AFTER,
+                fn (): string => view('components.mobile-app-promo', ['variant' => 'compact'])->render(),
+            )
+            ->renderHook(
                 PanelsRenderHook::BODY_END,
-                fn (): string => view('filament.hooks.livewire-session')->render()
-                    .view('filament.hooks.command-palette', [
-                        'commandItems' => AdminCommandPalette::items(),
-                    ])->render()
+                fn (): string => view('filament.hooks.command-palette', [
+                    'commandItems' => AdminCommandPalette::items(),
+                ])->render()
                     .view('filament.hooks.mobile-dock')->render(),
             );
     }

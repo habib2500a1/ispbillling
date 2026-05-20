@@ -11,11 +11,13 @@ class BillingExecutiveDashboardWidget extends Widget
 
     protected static bool $isDiscovered = false;
 
+    protected static bool $isLazy = true;
+
     protected static ?int $sort = -25;
 
     protected int|string|array $columnSpan = 'full';
 
-    protected static ?string $pollingInterval = '60s';
+    protected static ?string $pollingInterval = null;
 
     /** @return array<string, mixed> */
     protected function getViewData(): array

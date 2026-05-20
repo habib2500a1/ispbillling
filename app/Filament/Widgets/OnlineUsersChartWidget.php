@@ -9,6 +9,8 @@ class OnlineUsersChartWidget extends ChartWidget
 {
     protected static bool $isDiscovered = false;
 
+    protected static bool $isLazy = true;
+
     protected static ?string $heading = 'Online subscribers (24h)';
 
     protected static ?int $sort = 3;

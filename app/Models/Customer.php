@@ -269,6 +269,11 @@ class Customer extends Model implements AuthenticatableContract, AuthorizableCon
 
     public function isPppOnline(): bool
     {
+        if (! app(\App\Services\Bandwidth\BandwidthCollectionService::class)
+            ->tenantHasEnabledMikrotik((int) $this->tenant_id)) {
+            return (bool) $this->is_ppp_online;
+        }
+
         if ($this->is_ppp_online) {
             return true;
         }

@@ -847,8 +847,8 @@ class CustomerResource extends Resource
     {
         return static::table($table)
             ->columns(static::clientsDirectoryColumns())
-            ->defaultPaginationPageOption(50)
-            ->paginationPageOptions([25, 50, 100, 200])
+            ->defaultPaginationPageOption(25)
+            ->paginationPageOptions([25, 50, 100])
             ->emptyStateHeading('No clients found')
             ->emptyStateDescription('Add a client, change the tab preset, or clear filters.')
             ->filters([
@@ -857,23 +857,19 @@ class CustomerResource extends Resource
                 Tables\Filters\SelectFilter::make('package_id')
                     ->label('Package')
                     ->relationship('package', 'name')
-                    ->searchable()
-                    ->preload(),
+                    ->searchable(),
                 Tables\Filters\SelectFilter::make('mikrotik_server_id')
                     ->label('Router')
                     ->relationship('mikrotikServer', 'name')
-                    ->searchable()
-                    ->preload(),
+                    ->searchable(),
                 Tables\Filters\SelectFilter::make('area_id')
                     ->label('Area')
                     ->relationship('area', 'name')
-                    ->searchable()
-                    ->preload(),
+                    ->searchable(),
                 Tables\Filters\SelectFilter::make('zone_id')
                     ->label('Zone')
                     ->relationship('zone', 'name')
-                    ->searchable()
-                    ->preload(),
+                    ->searchable(),
             ])
             ->filtersLayout(FiltersLayout::AboveContentCollapsible)
             ->filtersFormColumns(['default' => 2, 'sm' => 3, 'lg' => 5]);
@@ -890,14 +886,6 @@ class CustomerResource extends Resource
                 ->searchable()
                 ->sortable()
                 ->fontFamily('mono'),
-            Tables\Columns\ImageColumn::make('photo_path')
-                ->label('Photo')
-                ->disk('local')
-                ->visibility('private')
-                ->circular()
-                ->height(36)
-                ->width(36)
-                ->defaultImageUrl(fn (): string => 'https://ui-avatars.com/api/?background=0d9488&color=fff&name=C'),
             Tables\Columns\TextColumn::make('name')
                 ->label('Name')
                 ->searchable(['name', 'phone', 'email'])

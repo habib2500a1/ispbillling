@@ -41,6 +41,9 @@ return [
 
     'olt_snmp_poll_enabled' => (bool) env('NETWORK_OLT_SNMP_POLL_ENABLED', true),
 
+    /**
+     * Legacy single-router env (unused). Use Filament → MikroTik servers (per-tenant DB credentials).
+     */
     'mikrotik' => [
         'base_url' => rtrim((string) env('MIKROTIK_API_URL', ''), '/'),
         'user' => env('MIKROTIK_API_USER'),

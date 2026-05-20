@@ -60,7 +60,7 @@ final class BandwidthCollectionService
 
         $merged = $this->mergeSessions($apiSessions, $radiusSessions);
 
-        $canUpdateOnlineFlags = $apiOk || $radiusSessions !== [];
+        $canUpdateOnlineFlags = $this->shouldSyncOnlineFlags($tenantId, $apiOk, $radiusSessions);
 
         $samples = 0;
         $seenKeys = [];
@@ -207,7 +207,7 @@ final class BandwidthCollectionService
             : [];
 
         $merged = $this->mergeSessions($apiSessions, $radiusSessions);
-        $canUpdateOnlineFlags = $apiOk || $radiusSessions !== [];
+        $canUpdateOnlineFlags = $this->shouldSyncOnlineFlags($tenantId, $apiOk, $radiusSessions);
 
         $serversById = MikrotikServer::query()
             ->withoutGlobalScopes()
@@ -613,13 +613,51 @@ final class BandwidthCollectionService
         ];
     }
 
-    private function tenantHasEnabledMikrotik(int $tenantId): bool
+    public function tenantHasEnabledMikrotik(int $tenantId): bool
     {
         return MikrotikServer::query()
             ->withoutGlobalScopes()
             ->where('tenant_id', $tenantId)
             ->where('is_enabled', true)
             ->exists();
+    }
+
+    /**
+     * Clear stale PPP online flags when MikroTik is disabled and RADIUS has no active sessions.
+     */
+    public function refreshOnlineFlagsForTenant(int $tenantId): void
+    {
+        if ($this->tenantHasEnabledMikrotik($tenantId)) {
+            return;
+        }
+
+        $radiusSessions = config('radius.merge_with_api', true)
+            ? $this->collectRadiusSessions($tenantId)
+            : [];
+
+        if ($radiusSessions !== []) {
+            return;
+        }
+
+        $now = now();
+        $this->syncCustomerOnlineFlags($tenantId, []);
+        $this->closeStaleSessions($tenantId, [], $now);
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $radiusSessions
+     */
+    private function shouldSyncOnlineFlags(int $tenantId, bool $apiOk, array $radiusSessions): bool
+    {
+        if ($radiusSessions !== []) {
+            return true;
+        }
+
+        if (! $this->tenantHasEnabledMikrotik($tenantId)) {
+            return true;
+        }
+
+        return $apiOk;
     }
 
     /**
@@ -632,7 +670,7 @@ final class BandwidthCollectionService
         }
 
         $sessions = [];
-        foreach ($this->radius->fetchActiveSessions() as $row) {
+        foreach ($this->radius->fetchActiveSessionsForTenant($tenantId) as $row) {
             $username = trim((string) $row['username']);
             if ($username === '') {
                 continue;
@@ -642,10 +680,11 @@ final class BandwidthCollectionService
                 (int) $row['bytes_in'],
                 (int) $row['bytes_out'],
             );
+            $serverId = isset($row['mikrotik_server_id']) ? (int) $row['mikrotik_server_id'] : null;
             $sessions[] = [
                 'username' => $username,
                 'session_key' => $this->radius->sessionKey((string) $row['acctsessionid']),
-                'mikrotik_server_id' => null,
+                'mikrotik_server_id' => $serverId > 0 ? $serverId : null,
                 'framed_ip' => (string) ($row['framedipaddress'] ?? ''),
                 'caller_id' => $this->normalizeMac((string) ($row['callingstationid'] ?? '')),
                 'download_bytes' => $counters['download_bytes'],

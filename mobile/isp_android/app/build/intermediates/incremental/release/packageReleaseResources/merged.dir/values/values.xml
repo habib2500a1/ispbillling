@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="accent">#F5A623</color>
+    <color name="background">#F4F6F9</color>
+    <color name="chart_paid">#22D3EE</color>
+    <color name="chart_unpaid">#F472B6</color>
+    <color name="danger">#EF4444</color>
+    <color name="primary">#3A5A8C</color>
+    <color name="primary_dark">#2D466D</color>
+    <color name="success">#10B981</color>
+    <color name="text_secondary">#64748B</color>
+    <color name="white">#FFFFFF</color>
+    <string name="admin_panel">Admin Panel</string>
+    <string name="app_name">ISP Management</string>
+    <string name="client_panel">Client Panel</string>
+    <string name="login">Sign in</string>
+    <string name="login_hint">Email (admin) or Phone / Client ID</string>
+    <string name="logout">Logout</string>
+    <string name="no_internet">No internet connection</string>
+    <string name="password">Password</string>
+    <style name="Theme.IspManagement" parent="Theme.Material3.Light.NoActionBar">
+        <item name="colorPrimary">@color/primary</item>
+        <item name="colorPrimaryDark">@color/primary_dark</item>
+        <item name="colorSecondary">@color/accent</item>
+        <item name="android:colorBackground">@color/background</item>
+        <item name="android:statusBarColor">@color/primary_dark</item>
+    </style>
+</resources>

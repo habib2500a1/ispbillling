@@ -11,11 +11,13 @@ class OperationsCommandCenterWidget extends Widget
 
     protected static bool $isDiscovered = true;
 
+    protected static bool $isLazy = true;
+
     protected static ?int $sort = -20;
 
     protected int|string|array $columnSpan = 'full';
 
-    protected static ?string $pollingInterval = '60s';
+    protected static ?string $pollingInterval = null;
 
     /** @return array<string, mixed> */
     protected function getViewData(): array

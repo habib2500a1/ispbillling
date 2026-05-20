@@ -210,14 +210,22 @@ if (filled($adminDomain)) {
 }
 
 Route::get('/', function () {
-    $landingHost = config('domains.landing');
-    if (filled($landingHost) && request()->getHost() === $landingHost) {
-        return app(LandingPageController::class)();
-    }
-
     if (auth()->check()) {
         return redirect('/admin');
     }
 
+    $host = request()->getHost();
+    $landingHost = (string) config('domains.landing');
+    $appHost = parse_url((string) config('app.url'), PHP_URL_HOST) ?: $host;
+    $isLandingHost = $landingHost !== ''
+        && ($host === $landingHost || $host === $appHost || str_ends_with($host, '.'.ltrim($landingHost, '.')));
+
+    if ($isLandingHost) {
+        return app(LandingPageController::class)();
+    }
+
     return redirect()->route('bill-payment.index');
 });
+
+Route::redirect('/app', '/downloads/isp-radiant.apk');
+Route::get('/mobile-app', fn () => redirect(\App\Support\MobileAppLinks::downloadUrl()))->name('mobile.app');

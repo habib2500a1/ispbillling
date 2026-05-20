@@ -46,5 +46,7 @@
                 <a href="{{ route('portal.signup') }}" class="font-semibold text-violet-600 hover:underline">{{ __('portal.request_connection') }}</a>
             </p>
         @endif
+
+        <x-mobile-app-promo variant="compact" class="mt-6" />
     </div>
 @endsection

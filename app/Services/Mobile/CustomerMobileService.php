@@ -4,10 +4,14 @@ namespace App\Services\Mobile;
 
 use App\Models\Customer;
 use App\Models\Invoice;
+use App\Services\Portal\CustomerPortalDashboardService;
 use App\Support\BandwidthDirection;
 
 class CustomerMobileService
 {
+    public function __construct(
+        private readonly CustomerPortalDashboardService $portalDashboard,
+    ) {}
     /**
      * @return array<string, mixed>
      */
@@ -28,10 +32,30 @@ class CustomerMobileService
             ->get()
             ->map(fn (Invoice $inv): array => $this->invoiceSummary($inv));
 
+        $portal = $this->portalDashboard->payload($customer);
+
+        $monthlyBill = (float) ($customer->package?->price_monthly ?? 0);
+        $paidThisMonth = (float) Invoice::query()
+            ->where('customer_id', $customer->id)
+            ->whereBetween('issue_date', [now()->startOfMonth()->toDateString(), now()->endOfMonth()->toDateString()])
+            ->sum('amount_paid');
+
         return [
             'customer' => $this->customerPayload($customer),
             'account_balance' => round((float) $customer->account_balance, 2),
             'total_due' => round($totalDue, 2),
+            'summary' => [
+                'monthly_bill' => round($monthlyBill, 2),
+                'paid' => round($paidThisMonth, 2),
+                'package_name' => $customer->package?->name ?? '—',
+                'expire_date' => $customer->service_expires_at?->format('d-M-Y') ?? '—',
+                'status' => ($portal['connection']['online'] ?? false) ? 'Connected' : 'Disconnected',
+            ],
+            'connection' => $portal['connection'] ?? null,
+            'traffic' => $portal['traffic'] ?? null,
+            'billing' => $portal['billing'] ?? null,
+            'onu' => $portal['onu'] ?? null,
+            'package' => $portal['package'] ?? null,
             'recent_bills' => $recentBills,
             'bkash_enabled' => (bool) config('bkash.enabled'),
         ];
@@ -75,6 +99,8 @@ class CustomerMobileService
                 'download_mbps' => $customer->package->download_mbps,
                 'price_monthly' => (float) $customer->package->price_monthly,
             ] : null,
+            'service_expires_at' => $customer->service_expires_at?->toIso8601String(),
+            'is_online' => $customer->isPppOnline(),
         ];
     }
 

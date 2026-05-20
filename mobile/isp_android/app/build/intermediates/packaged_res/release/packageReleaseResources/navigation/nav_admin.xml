@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/nav_admin"
+    app:startDestination="@id/adminHomeFragment">
+
+    <fragment
+        android:id="@+id/adminHomeFragment"
+        android:name="com.ispplatform.app.ui.admin.AdminHomeFragment"
+        android:label="Home" />
+    <fragment
+        android:id="@+id/adminBillingFragment"
+        android:name="com.ispplatform.app.ui.admin.AdminBillingFragment"
+        android:label="Billing" />
+    <fragment
+        android:id="@+id/adminCollectionFragment"
+        android:name="com.ispplatform.app.ui.admin.AdminCollectionFragment"
+        android:label="Collection" />
+    <fragment
+        android:id="@+id/adminSupportFragment"
+        android:name="com.ispplatform.app.ui.admin.AdminSupportFragment"
+        android:label="Support" />
+    <fragment
+        android:id="@+id/adminTaskFragment"
+        android:name="com.ispplatform.app.ui.admin.AdminTaskFragment"
+        android:label="Task" />
+</navigation>

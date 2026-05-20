@@ -102,6 +102,20 @@ return Application::configure(basePath: dirname(__DIR__))
                     ->withInput($request->except('password', '_token'));
             }
 
+            if ($request->is('admin') || $request->is('admin/*')) {
+                if ($request->expectsJson()
+                    || $request->header('X-Livewire')
+                    || $request->header('X-Livewire-Navigate')) {
+                    return response()->json([
+                        'message' => __('Your session expired. The page will refresh.'),
+                    ], 419);
+                }
+
+                return redirect()
+                    ->route('filament.admin.auth.login')
+                    ->with('session_expired', true);
+            }
+
             if (! $request->is('portal') && ! $request->is('portal/*')) {
                 return null;
             }

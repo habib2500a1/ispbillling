@@ -8,7 +8,7 @@
 @endphp
 
 <x-filament-widgets::widget>
-    <div class="isp-cmd-center isp-cmd-center--pro" wire:poll.60s>
+    <div class="isp-cmd-center isp-cmd-center--pro">
         <header class="isp-cmd-hero isp-cmd-hero--pro">
             <div class="isp-cmd-hero__main">
                 <div class="isp-cmd-hero__live">
@@ -45,7 +45,6 @@
             @foreach ($primary as $kpi)
                 <a
                     href="{{ $kpi['url'] ?? '#' }}"
-                    wire:navigate
                     @class([
                         'isp-cmd-primary__card',
                         'isp-cmd-primary__card--' . ($kpi['tone'] ?? 'teal'),
@@ -73,7 +72,6 @@
                         @foreach ($section['cards'] as $card)
                             <a
                                 href="{{ $card['url'] ?? '#' }}"
-                                wire:navigate
                                 @class([
                                     'isp-cmd-metric',
                                     'isp-cmd-metric--' . ($card['tone'] ?? 'slate'),

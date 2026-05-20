@@ -2,18 +2,10 @@
 
 namespace App\Filament\Pages;
 
-use App\Filament\Widgets\BandwidthLiveChartWidget;
-use App\Filament\Widgets\DashboardCommandStripWidget;
-use App\Filament\Widgets\DashboardHeroWidget;
-use App\Filament\Widgets\DashboardLayoutCustomizer;
-use App\Filament\Widgets\ExecutiveKpiGridWidget;
-use App\Filament\Widgets\FiberTopologyWidget;
-use App\Filament\Widgets\OnlineUsersChartWidget;
-use App\Filament\Widgets\RevenueTrendChartWidget;
-use App\Filament\Widgets\SubscriberLifecycleWidget;
-use App\Filament\Widgets\UnifiedOperationsWidget;
 use App\Services\Dashboard\DashboardPreferencesService;
+use Filament\Notifications\Notification;
 use Filament\Pages\Dashboard as BaseDashboard;
+use Illuminate\Support\Facades\Log;
 
 class Dashboard extends BaseDashboard
 {
@@ -27,12 +19,25 @@ class Dashboard extends BaseDashboard
 
     protected static ?int $navigationSort = -10;
 
+    protected static string $view = 'filament.pages.dashboard';
+
+    /** @var list<class-string> */
+    public array $layoutOrder = [];
+
+    public bool $layoutCompact = true;
+
+    public function mount(): void
+    {
+        $user = auth()->user();
+        $service = app(DashboardPreferencesService::class);
+        $service->repairUserPreferences($user);
+        $this->layoutOrder = $service->widgetsFor($user);
+        $this->layoutCompact = $service->isCompact($user);
+    }
+
     public function getWidgets(): array
     {
-        $widgets = app(DashboardPreferencesService::class)->widgetsFor(auth()->user());
-        $widgets[] = DashboardLayoutCustomizer::class;
-
-        return $widgets;
+        return app(DashboardPreferencesService::class)->widgetsFor(auth()->user());
     }
 
     public function getColumns(): int|string|array
@@ -54,5 +59,117 @@ class Dashboard extends BaseDashboard
                 ? 'isp-dashboard-compact'
                 : '',
         ];
+    }
+
+    /**
+     * @return array<class-string, string>
+     */
+    public function layoutWidgetLabels(): array
+    {
+        return DashboardPreferencesService::layoutWidgetLabels();
+    }
+
+    /**
+     * @return list<array{class: class-string, label: string, enabled: bool}>
+     */
+    public function layoutRows(): array
+    {
+        $labels = $this->layoutWidgetLabels();
+        $rows = [];
+
+        foreach ($this->layoutOrder as $class) {
+            if (isset($labels[$class])) {
+                $rows[] = ['class' => $class, 'label' => $labels[$class], 'enabled' => true];
+            }
+        }
+
+        foreach ($labels as $class => $label) {
+            if (! in_array($class, $this->layoutOrder, true)) {
+                $rows[] = ['class' => $class, 'label' => $label, 'enabled' => false];
+            }
+        }
+
+        return $rows;
+    }
+
+    public function toggleLayoutWidget(string $class): void
+    {
+        if (! array_key_exists($class, $this->layoutWidgetLabels())) {
+            return;
+        }
+
+        $index = array_search($class, $this->layoutOrder, true);
+
+        if ($index !== false) {
+            array_splice($this->layoutOrder, $index, 1);
+        } else {
+            $this->layoutOrder[] = $class;
+        }
+    }
+
+    public function moveLayoutWidgetUp(string $class): void
+    {
+        $index = array_search($class, $this->layoutOrder, true);
+
+        if ($index === false || $index === 0) {
+            return;
+        }
+
+        $tmp = $this->layoutOrder[$index - 1];
+        $this->layoutOrder[$index - 1] = $this->layoutOrder[$index];
+        $this->layoutOrder[$index] = $tmp;
+    }
+
+    public function moveLayoutWidgetDown(string $class): void
+    {
+        $index = array_search($class, $this->layoutOrder, true);
+
+        if ($index === false || $index >= count($this->layoutOrder) - 1) {
+            return;
+        }
+
+        $tmp = $this->layoutOrder[$index + 1];
+        $this->layoutOrder[$index + 1] = $this->layoutOrder[$index];
+        $this->layoutOrder[$index] = $tmp;
+    }
+
+    public function saveDashboardLayout(): void
+    {
+        $user = auth()->user();
+
+        if ($user === null) {
+            return;
+        }
+
+        try {
+            app(DashboardPreferencesService::class)->savePreferences(
+                $user,
+                $this->layoutOrder,
+                $this->layoutCompact,
+            );
+
+            Notification::make()
+                ->title('Dashboard layout saved')
+                ->body('Your widget order and spacing are stored safely.')
+                ->success()
+                ->send();
+
+            $this->redirect(static::getUrl(), navigate: false);
+        } catch (\Throwable $e) {
+            Log::error('dashboard_layout_save_failed', [
+                'user_id' => $user->getKey(),
+                'message' => $e->getMessage(),
+            ]);
+
+            $service = app(DashboardPreferencesService::class);
+            $this->layoutOrder = $service->widgetsFor($user);
+            $this->layoutCompact = $service->isCompact($user);
+
+            Notification::make()
+                ->title('Could not save layout')
+                ->body('Your previous dashboard settings were kept. Please try again.')
+                ->danger()
+                ->send();
+        }
     }
 }

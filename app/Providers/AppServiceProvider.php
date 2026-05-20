@@ -32,6 +32,8 @@ use App\Services\Network\MikrotikNetworkProvisioner;
 use App\Services\Network\NetworkAccessCoordinator;
 use App\Services\Network\NullNetworkProvisioner;
 use App\Services\Network\RadiusNetworkProvisioner;
+use App\Support\EnsureStorageWritable;
+use App\Support\MobileAppLinks;
 use App\Listeners\RecordStaffLogout;
 use App\Models\User;
 use App\View\Composers\BillPaymentViewComposer;
@@ -84,6 +86,13 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        if ($storageIssues = EnsureStorageWritable::findIssues()) {
+            Log::channel('single')->critical('storage_not_writable', [
+                'issues' => $storageIssues,
+                'hint' => 'Run: sudo scripts/fix-storage-permissions.sh',
+            ]);
+        }
+
         Auth::provider('customer', function ($app, array $config): CustomerUserProvider {
             return new CustomerUserProvider($app['hash'], $config['model']);
         });
@@ -106,6 +115,8 @@ class AppServiceProvider extends ServiceProvider
 
         View::composer('bill-payment.*', BillPaymentViewComposer::class);
         View::composer('portal.*', PortalViewComposer::class);
+
+        View::share('mobileAppDownloadUrl', MobileAppLinks::downloadUrl());
 
         try {
             if (Cache::remember('bootstrap.app_settings_table', 300, fn (): bool => Schema::hasTable('app_settings'))) {

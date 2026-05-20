@@ -10,6 +10,9 @@ return [
     /** Auto-sync MikroTik while Online clients page is open (seconds). 0 = off. */
     'live_page_poll_seconds' => (int) env('BANDWIDTH_LIVE_PAGE_POLL_SECONDS', 60),
 
+    /** Run full PPP collect on each Online clients poll (heavy). Default off — use scheduler + Sync now. */
+    'online_clients_collect_on_poll' => filter_var(env('BANDWIDTH_ONLINE_CLIENTS_COLLECT_ON_POLL', false), FILTER_VALIDATE_BOOL),
+
     /** Dashboard live bandwidth chart refresh (seconds). */
     'live_chart_poll_seconds' => (int) env('BANDWIDTH_LIVE_CHART_POLL_SECONDS', 2),
 

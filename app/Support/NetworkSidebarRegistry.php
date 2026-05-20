@@ -3,6 +3,7 @@
 namespace App\Support;
 
 use App\Filament\Pages\BandwidthMonitor;
+use App\Filament\Pages\ManageNetworkSettings;
 use App\Filament\Pages\ImportClientsCsvPage;
 use App\Filament\Pages\ImportFromMikrotikPage;
 use App\Filament\Pages\NetflowAnalysis;
@@ -31,6 +32,14 @@ final class NetworkSidebarRegistry
     public static function definitions(): array
     {
         return [
+            [
+                'key' => 'network_setup',
+                'label' => 'API & RADIUS setup',
+                'icon' => 'heroicon-o-adjustments-horizontal',
+                'sort' => 0,
+                'url' => ManageNetworkSettings::getUrl(),
+                'active_routes' => ['filament.admin.pages.network-settings'],
+            ],
             [
                 'key' => 'routers_list',
                 'label' => 'Routers list',

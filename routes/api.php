@@ -12,7 +12,39 @@ use App\Http\Controllers\Api\V1\Customer\PaymentController as CustomerPaymentCon
 use App\Http\Controllers\Api\V1\Customer\TicketController as CustomerTicketController;
 use App\Http\Controllers\Api\V1\Customer\UsageController as CustomerUsageController;
 use App\Http\Controllers\Api\V1\MeController;
+use App\Http\Controllers\Api\V1\Mobile\ApiIndexController;
+use App\Http\Controllers\Api\V1\Mobile\MobileConfigController;
+use App\Http\Controllers\Api\V1\Mobile\TokenRefreshController;
+use App\Http\Controllers\Api\V1\Mobile\UnifiedAuthController;
+use App\Http\Controllers\Api\V1\Staff\CustomerDetailController;
+use App\Http\Controllers\Api\V1\Staff\CustomerSearchController;
+use App\Http\Controllers\Api\V1\Staff\StaffOnlineController;
+use App\Http\Controllers\Api\V1\Staff\StaffTasksController;
+use App\Http\Controllers\Api\V1\Staff\StaffApprovalsController;
+use App\Http\Controllers\Api\V1\Staff\StaffBillingController;
+use App\Http\Controllers\Api\V1\Staff\StaffCustomerStoreController;
+use App\Http\Controllers\Api\V1\Staff\StaffCommsController;
+use App\Http\Controllers\Api\V1\Staff\StaffExpenseController;
+use App\Http\Controllers\Api\V1\Staff\StaffOnuController;
+use App\Http\Controllers\Api\V1\Staff\StaffPackagesController;
+use App\Http\Controllers\Api\V1\Staff\StaffPaymentsController;
+use App\Http\Controllers\Api\V1\Staff\StaffProfileController;
+use App\Http\Controllers\Api\V1\Staff\StaffReportsController;
+use App\Http\Controllers\Api\V1\Staff\StaffCustomerUpdateController;
+use App\Http\Controllers\Api\V1\Staff\StaffMonitoringController;
+use App\Http\Controllers\Api\V1\Staff\StaffTicketsController;
+use App\Http\Controllers\Api\V1\Customer\AiController as CustomerAiController;
+use App\Http\Controllers\Api\V1\Customer\OnuController as CustomerOnuController;
+use App\Http\Controllers\Api\V1\Customer\PackageController as CustomerPackageController;
+use App\Http\Controllers\Api\V1\Customer\ProfileController as CustomerProfileController;
+use App\Http\Controllers\Api\V1\Mobile\RealtimeController;
+use App\Http\Controllers\Api\V1\Mobile\SyncController;
+use App\Http\Controllers\Api\V1\Staff\NetworkController;
+use App\Http\Controllers\Api\V1\Staff\NocController;
+use App\Http\Controllers\Api\V1\Staff\StaffDeviceController;
+use App\Http\Controllers\Api\V1\Technician\InstallationController;
 use App\Http\Controllers\Api\V1\Staff\AuthController as StaffAuthController;
+use App\Http\Controllers\Api\V1\Staff\DashboardController as StaffDashboardController;
 use App\Http\Controllers\Api\V1\SupportTicketApiController;
 use App\Http\Controllers\Api\V1\Technician\DeviceController as TechnicianDeviceController;
 use App\Http\Controllers\Api\V1\Technician\FieldVisitController;
@@ -42,12 +74,66 @@ Route::middleware('throttle:webhooks')->group(function (): void {
 });
 
 Route::prefix('v1')->group(function (): void {
-  // Staff (legacy + technician)
+    Route::get('/health', [ApiIndexController::class, 'show']);
+    Route::get('/mobile/config', [MobileConfigController::class, 'show']);
+    Route::post('/login', [\App\Http\Controllers\Api\V1\Mobile\AppAuthController::class, 'login'])->middleware('throttle:15,1');
+    Route::post('/mobile/login', [UnifiedAuthController::class, 'login'])->middleware('throttle:15,1');
+
+    // Staff (legacy + technician)
     Route::post('/auth/login', [StaffAuthController::class, 'login'])->middleware('throttle:15,1');
 
     Route::middleware(['auth:sanctum', 'throttle:api'])->group(function (): void {
         Route::get('/me', [MeController::class, 'show']);
+        Route::get('/staff/dashboard', [StaffDashboardController::class, 'show']);
+        Route::get('/staff/noc/dashboard', [NocController::class, 'dashboard']);
+        Route::get('/staff/monitoring/online', [StaffMonitoringController::class, 'index']);
+        Route::get('/staff/monitoring/live', [StaffMonitoringController::class, 'live']);
+        Route::get('/staff/billing/summary', [StaffBillingController::class, 'summary']);
+        Route::get('/staff/billing/due', [StaffBillingController::class, 'due']);
+        Route::get('/staff/billing/invoices', [StaffBillingController::class, 'invoices']);
+        Route::get('/staff/billing/collections', [StaffBillingController::class, 'collections']);
+        Route::get('/staff/customers/search', [CustomerSearchController::class, 'search']);
+        Route::get('/staff/customers', [CustomerDetailController::class, 'index']);
+        Route::patch('/staff/customers/{customer}', [StaffCustomerUpdateController::class, 'update'])->whereNumber('customer');
+        Route::get('/staff/tickets', [StaffTicketsController::class, 'index']);
+        Route::post('/staff/tickets', [StaffTicketsController::class, 'store']);
+        Route::get('/staff/tickets/{ticket}', [StaffTicketsController::class, 'show'])->whereNumber('ticket');
+        Route::post('/staff/tickets/{ticket}/reply', [StaffTicketsController::class, 'reply'])->whereNumber('ticket');
+        Route::patch('/staff/tickets/{ticket}', [StaffTicketsController::class, 'update'])->whereNumber('ticket');
+        Route::get('/staff/tasks', [StaffTasksController::class, 'index']);
+        Route::patch('/staff/tasks/{task}', [StaffTasksController::class, 'update'])->whereNumber('task');
+        Route::get('/staff/approvals/pending', [StaffApprovalsController::class, 'index']);
+        Route::post('/staff/approvals/expenses/{expense}/approve', [StaffApprovalsController::class, 'approveExpense'])->whereNumber('expense');
+        Route::post('/staff/approvals/expenses/{expense}/reject', [StaffApprovalsController::class, 'rejectExpense'])->whereNumber('expense');
+        Route::get('/staff/customers/form-options', [StaffCustomerStoreController::class, 'formOptions']);
+        Route::get('/staff/customer-packages', [StaffCustomerStoreController::class, 'packages']);
+        Route::post('/staff/customers/create', [StaffCustomerStoreController::class, 'store']);
+        Route::get('/staff/expense-categories', [StaffExpenseController::class, 'categories']);
+        Route::get('/staff/expenses', [StaffExpenseController::class, 'index']);
+        Route::post('/staff/expenses', [StaffExpenseController::class, 'store']);
+        Route::get('/staff/payment-methods', [StaffPaymentsController::class, 'methods']);
+        Route::post('/staff/payments', [StaffPaymentsController::class, 'store']);
+        Route::get('/staff/packages', [StaffPackagesController::class, 'index']);
+        Route::post('/staff/packages', [StaffPackagesController::class, 'store']);
+        Route::patch('/staff/packages/{package}', [StaffPackagesController::class, 'update'])->whereNumber('package');
+        Route::get('/staff/reports/expiring', [StaffReportsController::class, 'expiring']);
+        Route::get('/staff/reports/collections', [StaffReportsController::class, 'collections']);
+        Route::get('/staff/reports/due', [StaffReportsController::class, 'due']);
+        Route::post('/staff/customers/{customer}/sms-reminder', [StaffCommsController::class, 'smsReminder'])->whereNumber('customer');
+        Route::post('/staff/sms/bulk-due', [StaffCommsController::class, 'smsBulkDue']);
+        Route::post('/staff/notices/broadcast', [StaffCommsController::class, 'broadcastNotice']);
+        Route::post('/staff/profile/password', [StaffProfileController::class, 'updatePassword']);
+        Route::get('/staff/customers/{customer}/onu', [StaffOnuController::class, 'show'])->whereNumber('customer');
+        Route::patch('/staff/customers/{customer}/onu', [StaffOnuController::class, 'update'])->whereNumber('customer');
+        Route::get('/staff/online-clients', [StaffOnlineController::class, 'index']);
+        Route::get('/staff/customers/{customer}', [CustomerDetailController::class, 'show'])->whereNumber('customer');
+        Route::post('/staff/network/suspend', [NetworkController::class, 'suspend']);
+        Route::post('/staff/network/reconnect', [NetworkController::class, 'reconnect']);
+        Route::post('/staff/devices', [StaffDeviceController::class, 'register']);
+        Route::post('/mobile/sync', [SyncController::class, 'push']);
+        Route::get('/mobile/realtime', [RealtimeController::class, 'config']);
         Route::post('/support-tickets', [SupportTicketApiController::class, 'store']);
+        Route::post('/auth/refresh', [TokenRefreshController::class, 'refreshStaff']);
         Route::post('/auth/logout', [StaffAuthController::class, 'logout']);
 
         Route::middleware(EnsureSanctumTechnician::class)->prefix('technician')->group(function (): void {
@@ -55,6 +141,7 @@ Route::prefix('v1')->group(function (): void {
             Route::get('/field-visits/{fieldVisit}', [FieldVisitController::class, 'show']);
             Route::patch('/field-visits/{fieldVisit}', [FieldVisitController::class, 'update']);
             Route::post('/devices', [TechnicianDeviceController::class, 'register']);
+            Route::post('/installations', [InstallationController::class, 'store']);
         });
 
         Route::middleware(EnsureSanctumCollector::class)->prefix('collector')->group(function (): void {
@@ -62,6 +149,8 @@ Route::prefix('v1')->group(function (): void {
             Route::get('/visits/today', [CollectorController::class, 'todayVisits']);
             Route::get('/wallet', [CollectorController::class, 'wallet']);
             Route::post('/collections', [CollectorController::class, 'storeCollection']);
+            Route::get('/expense-categories', [CollectorController::class, 'expenseCategories']);
+            Route::get('/expenses', [CollectorController::class, 'expenses']);
             Route::post('/expenses', [CollectorController::class, 'storeExpense']);
             Route::post('/settlements', [CollectorController::class, 'storeSettlement']);
             Route::post('/daily-closing', [CollectorController::class, 'storeDailyClosing']);
@@ -73,6 +162,7 @@ Route::prefix('v1')->group(function (): void {
         Route::post('/login', [CustomerAuthController::class, 'login'])->middleware('throttle:15,1');
 
         Route::middleware(['auth:sanctum', EnsureSanctumCustomer::class])->group(function (): void {
+            Route::post('/auth/refresh', [TokenRefreshController::class, 'refreshCustomer']);
             Route::post('/logout', [CustomerAuthController::class, 'logout']);
             Route::get('/me', [CustomerAuthController::class, 'me']);
             Route::get('/dashboard', [CustomerDashboardController::class, 'show']);
@@ -80,6 +170,12 @@ Route::prefix('v1')->group(function (): void {
             Route::get('/bills/{invoice}', [CustomerInvoiceController::class, 'show']);
             Route::post('/bills/{invoice}/pay', [CustomerPaymentController::class, 'initiate']);
             Route::get('/usage/live', [CustomerUsageController::class, 'live']);
+            Route::get('/onu/status', [CustomerOnuController::class, 'status']);
+            Route::post('/onu/reboot', [CustomerOnuController::class, 'reboot']);
+            Route::post('/ai/ask', [CustomerAiController::class, 'ask']);
+            Route::post('/profile/password', [CustomerProfileController::class, 'updatePassword']);
+            Route::get('/packages', [CustomerPackageController::class, 'index']);
+            Route::post('/packages/change', [CustomerPackageController::class, 'requestChange']);
             Route::get('/tickets', [CustomerTicketController::class, 'index']);
             Route::post('/tickets', [CustomerTicketController::class, 'store']);
             Route::get('/tickets/{ticket}', [CustomerTicketController::class, 'show']);

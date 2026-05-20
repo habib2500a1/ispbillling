@@ -49,5 +49,7 @@
         <p class="mt-6 text-center text-sm text-slate-600">
             {{ __('portal.already_customer') }} <a href="{{ route('portal.login') }}" class="font-semibold text-violet-600 hover:underline">{{ __('portal.login') }}</a>
         </p>
+
+        <x-mobile-app-promo variant="compact" class="mt-6" />
     </div>
 @endsection

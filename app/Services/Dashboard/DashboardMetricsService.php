@@ -38,6 +38,19 @@ class DashboardMetricsService
     public function snapshot(?int $tenantId = null): array
     {
         $tenantId = $tenantId ?? TenantResolver::requiredTenantId();
+
+        return Cache::remember(
+            'dashboard:snapshot:'.$tenantId,
+            now()->addSeconds((int) config('dashboard.snapshot_cache_seconds', 45)),
+            fn (): array => $this->buildSnapshot($tenantId),
+        );
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function buildSnapshot(int $tenantId): array
+    {
         $from = now()->startOfMonth();
         $to = now()->endOfMonth();
 
@@ -162,7 +175,7 @@ class DashboardMetricsService
 
         return Cache::remember(
             "dashboard:online_trend:{$tenantId}:{$hours}",
-            now()->addMinutes(2),
+            now()->addMinutes((int) config('dashboard.online_trend_cache_minutes', 5)),
             fn (): array => $this->buildOnlineUsersTrend($hours, $tenantId),
         );
     }

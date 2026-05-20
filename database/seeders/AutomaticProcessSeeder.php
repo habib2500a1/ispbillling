@@ -188,6 +188,7 @@ class AutomaticProcessSeeder extends Seeder
                 'execute_at' => '00:00',
                 'interval' => 'every_two_minutes',
                 'without_overlapping_minutes' => 3,
+                'when_config_key' => 'mikrotik.poll_enabled',
                 'sort_order' => 80,
             ],
             [
@@ -198,6 +199,7 @@ class AutomaticProcessSeeder extends Seeder
                 'execute_at' => '00:00',
                 'interval' => 'every_fifteen_minutes',
                 'without_overlapping_minutes' => 10,
+                'when_config_key' => 'mikrotik.fetch_details_poll_enabled',
                 'sort_order' => 82,
             ],
             [

@@ -1,11 +1,1 @@
-<script>
-    document.addEventListener('livewire:init', () => {
-        Livewire.hook('request', ({ fail }) => {
-            fail(({ status, preventDefault }) => {
-                if (status === 419) {
-                    preventDefault();
-                }
-            });
-        });
-    });
-</script>
+{{-- Session recovery handled in isp-admin-resilience.js (reload on 419 instead of silent blank page). --}}

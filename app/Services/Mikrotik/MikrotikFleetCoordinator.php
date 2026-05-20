@@ -88,8 +88,46 @@ final class MikrotikFleetCoordinator
         $anySuccess = false;
         $serverRows = [];
 
+        $breaker = app(MikrotikCircuitBreaker::class);
+
         foreach ($this->enabledServers($tenantId) as $server) {
-            $fetch = $this->mikrotik->fetchActivePppSessions($server);
+            if ($breaker->isOpen((int) $server->id)) {
+                $errors[] = "{$server->name} ({$server->host}): temporarily skipped (circuit open)";
+                $serverRows[] = [
+                    'id' => $server->id,
+                    'name' => $server->name,
+                    'host' => $server->host,
+                    'status' => $server->last_api_status,
+                    'sessions' => 0,
+                    'error' => 'Circuit open',
+                ];
+
+                continue;
+            }
+
+            try {
+                $fetch = MikrotikApiRetry::attempt(fn (): array => $this->mikrotik->fetchActivePppSessions($server));
+            } catch (\Throwable $e) {
+                $breaker->recordFailure((int) $server->id);
+                $errors[] = "{$server->name} ({$server->host}): {$e->getMessage()}";
+                $serverRows[] = [
+                    'id' => $server->id,
+                    'name' => $server->name,
+                    'host' => $server->host,
+                    'status' => $server->last_api_status,
+                    'sessions' => 0,
+                    'error' => $e->getMessage(),
+                ];
+
+                continue;
+            }
+
+            if ($fetch['error'] !== null) {
+                $breaker->recordFailure((int) $server->id);
+            } else {
+                $breaker->recordSuccess((int) $server->id);
+            }
+
             $serverRows[] = [
                 'id' => $server->id,
                 'name' => $server->name,
@@ -179,8 +217,37 @@ final class MikrotikFleetCoordinator
     {
         $stats = ['polled' => 0, 'online' => 0, 'offline' => 0, 'servers' => []];
 
+        $breaker = app(MikrotikCircuitBreaker::class);
+
         foreach ($this->enabledServers($tenantId, $onlyServerId) as $server) {
-            $this->mikrotik->probeAndPersist($server);
+            if ($breaker->isOpen((int) $server->id)) {
+                $stats['polled']++;
+                $stats['offline']++;
+                $stats['servers'][] = [
+                    'id' => $server->id,
+                    'name' => $server->name,
+                    'host' => $server->host,
+                    'status' => 'offline',
+                    'error' => 'Circuit open',
+                ];
+
+                continue;
+            }
+
+            try {
+                MikrotikApiRetry::attempt(function () use ($server): void {
+                    $this->mikrotik->probeAndPersist($server);
+                });
+                $breaker->recordSuccess((int) $server->id);
+            } catch (\Throwable $e) {
+                $breaker->recordFailure((int) $server->id);
+                $server->forceFill([
+                    'last_api_status' => 'offline',
+                    'last_error' => $e->getMessage(),
+                    'last_checked_at' => now(),
+                ])->saveQuietly();
+            }
+
             $server = $server->fresh() ?? $server;
             $stats['polled']++;
             if ($server->last_api_status === 'online') {

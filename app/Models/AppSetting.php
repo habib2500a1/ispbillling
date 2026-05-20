@@ -48,7 +48,33 @@ class AppSetting extends Model
         }
 
         self::syncPublicPaymentGatewayFlags();
+        self::applyRadiusDatabaseConnection();
         self::applyApplicationTimezone();
+    }
+
+    /**
+     * Overlay RADIUS DB credentials from panel (falls back to .env when keys empty).
+     */
+    public static function applyRadiusDatabaseConnection(): void
+    {
+        $host = (string) config('radius.db.host', '');
+        if ($host === '') {
+            return;
+        }
+
+        $connection = array_merge(
+            config('database.connections.radius', []),
+            array_filter([
+                'driver' => config('radius.db.driver', env('RADIUS_DB_DRIVER', 'mysql')),
+                'host' => $host,
+                'port' => (string) config('radius.db.port', '3306'),
+                'database' => (string) config('radius.db.database', 'radius'),
+                'username' => (string) config('radius.db.username', 'radius'),
+                'password' => (string) config('radius.db.password', ''),
+            ], fn ($v): bool => $v !== null && $v !== ''),
+        );
+
+        config(['database.connections.radius' => $connection]);
     }
 
     public static function applyApplicationTimezone(): void
@@ -174,8 +200,12 @@ class AppSetting extends Model
             return $value === '' ? null : $value;
         }
 
-        if ($key === 'network.mikrotik_push_enabled' || $key === 'network.radius_push_enabled' || $key === 'network.service_expiry_enforced' || $key === 'network.mikrotik_always_push_ppp_on_customer_save' || $key === 'network.auto_suspend_enabled') {
+        if ($key === 'network.mikrotik_push_enabled' || $key === 'network.radius_push_enabled' || $key === 'network.service_expiry_enforced' || $key === 'network.mikrotik_always_push_ppp_on_customer_save' || $key === 'network.auto_suspend_enabled' || $key === 'radius.accounting_enabled' || $key === 'radius.merge_with_api' || $key === 'bandwidth.collection_enabled' || $key === 'mikrotik.poll_enabled' || $key === 'radius_admin.enabled') {
             return in_array(strtolower($value), ['1', 'true', 'yes', 'on'], true);
+        }
+
+        if ($key === 'radius.db.port') {
+            return max(1, min(65535, (int) $value));
         }
 
         if (str_starts_with($key, 'optical.') && (
@@ -264,6 +294,16 @@ class AppSetting extends Model
             'network.service_expiry_enforced' => fn (): bool => (bool) config('network.env_defaults.service_expiry_enforced'),
             'network.mikrotik_always_push_ppp_on_customer_save' => fn (): bool => (bool) config('network.env_defaults.mikrotik_always_push_ppp_on_customer_save'),
             'network.auto_suspend_enabled' => fn (): bool => (bool) config('network.env_defaults.auto_suspend_enabled'),
+            'radius.accounting_enabled' => fn (): bool => (bool) env('RADIUS_ACCOUNTING_ENABLED', false),
+            'radius.merge_with_api' => fn (): bool => (bool) env('RADIUS_MERGE_WITH_API', true),
+            'bandwidth.collection_enabled' => fn (): bool => (bool) env('BANDWIDTH_COLLECTION_ENABLED', true),
+            'mikrotik.poll_enabled' => fn (): bool => (bool) env('MIKROTIK_POLL_STATUS_ENABLED', true),
+            'radius_admin.enabled' => fn (): bool => (bool) env('RADIUS_ADMIN_ENABLED', false),
+            'radius.db.host' => fn (): string => (string) env('RADIUS_DB_HOST', '127.0.0.1'),
+            'radius.db.port' => fn (): string => (string) env('RADIUS_DB_PORT', '3306'),
+            'radius.db.database' => fn (): string => (string) env('RADIUS_DB_DATABASE', 'radius'),
+            'radius.db.username' => fn (): string => (string) env('RADIUS_DB_USERNAME', 'radius'),
+            'radius.db.password' => fn (): string => (string) env('RADIUS_DB_PASSWORD', ''),
             'network.service_expiry_enforced' => fn (): bool => (bool) config('network.env_defaults.service_expiry_enforced'),
             'portal.enabled' => fn (): bool => (bool) config('portal.env_defaults.enabled', true),
             'portal.otp.enabled' => fn (): bool => (bool) config('portal.env_defaults.otp_enabled'),

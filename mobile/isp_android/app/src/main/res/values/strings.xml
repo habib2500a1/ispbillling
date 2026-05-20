@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">ISP Management</string>
+    <string name="login">Sign in</string>
+    <string name="login_hint">Email (admin) or Phone / Client ID</string>
+    <string name="password">Password</string>
+    <string name="no_internet">No internet connection</string>
+    <string name="logout">Logout</string>
+    <string name="client_panel">Client Panel</string>
+    <string name="admin_panel">Admin Panel</string>
+</resources>

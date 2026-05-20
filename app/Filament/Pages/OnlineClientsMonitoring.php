@@ -58,12 +58,18 @@ class OnlineClientsMonitoring extends Page implements HasForms, HasTable
             return;
         }
 
-        if (! config('bandwidth.collection_enabled', true)) {
-            return;
-        }
+        $tenantId = TenantResolver::requiredTenantId();
+        $service = app(BandwidthCollectionService::class);
 
         try {
-            app(BandwidthCollectionService::class)->collectForTenant(TenantResolver::requiredTenantId());
+            if (config('bandwidth.online_clients_collect_on_poll', false)
+                && config('bandwidth.collection_enabled', true)
+                && $service->tenantHasEnabledMikrotik($tenantId)) {
+                $service->collectForTenant($tenantId);
+            } else {
+                $service->refreshOnlineFlagsForTenant($tenantId);
+            }
+
             $this->resetTable();
         } catch (\Throwable) {
             // Keep last good data on transient MikroTik errors.

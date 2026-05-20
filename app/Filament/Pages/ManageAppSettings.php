@@ -7,7 +7,6 @@ use App\Models\IntegrationSettingsAudit;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Section;
-use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Forms\Form;
@@ -60,12 +59,6 @@ class ManageAppSettings extends Page
             'isp_tenant_base_domain' => (string) config('isp.tenant_base_domain', ''),
             'sms_reminders_enabled' => (bool) config('sms.reminders_enabled'),
             'sms_reminders_days_before' => (int) config('sms.reminders_days_before', 3),
-            'network_provisioner_driver' => (string) config('network.provisioner_driver', 'null'),
-            'network_mikrotik_push_enabled' => (bool) config('network.mikrotik_push_enabled', true),
-            'network_mikrotik_always_push_ppp_on_customer_save' => (bool) config('network.mikrotik_always_push_ppp_on_customer_save', true),
-            'network_radius_push_enabled' => (bool) config('network.radius_push_enabled', true),
-            'network_auto_suspend_enabled' => (bool) config('network.auto_suspend_enabled', false),
-            'network_service_expiry_enforced' => (bool) config('network.service_expiry_enforced', true),
         ]);
     }
 
@@ -94,35 +87,13 @@ class ManageAppSettings extends Page
                                     ->placeholder('e.g. isp.example.com')
                                     ->maxLength(255),
                             ]),
-                        Section::make('Network suspend / sync (MikroTik + RADIUS)')
-                            ->description('Overrides .env for this server. When driver is mikrotik, radius, or both, the toggles gate which backends receive suspend/unsuspend/sync (stubs log to Laravel until you wire real RouterOS/RADIUS in App\\Services\\Network).')
+                        Section::make('MikroTik API & RADIUS')
+                            ->description('Easy on/off, DB credentials, and connection tests — same style as Payment gateways.')
                             ->schema([
-                                Select::make('network_provisioner_driver')
-                                    ->label('Provisioner driver (runtime)')
-                                    ->options([
-                                        'null' => 'null (no network hooks)',
-                                        'log' => 'log (log only)',
-                                        'mikrotik' => 'mikrotik (API path)',
-                                        'radius' => 'radius (RADIUS path)',
-                                        'both' => 'both (API + RADIUS)',
-                                    ])
-                                    ->native(false)
-                                    ->required(),
-                                Toggle::make('network_mikrotik_push_enabled')
-                                    ->label('MikroTik API push enabled'),
-                                Toggle::make('network_mikrotik_always_push_ppp_on_customer_save')
-                                    ->label('Always push PPP to MikroTik on customer save')
-                                    ->helperText('When on, saving a customer still calls RouterOS /ppp/secret even if driver is null or radius-only (tenant must have an enabled MikroTik server in the panel).'),
-                                Toggle::make('network_radius_push_enabled')
-                                    ->label('RADIUS push enabled'),
-                                Toggle::make('network_auto_suspend_enabled')
-                                    ->label('Auto suspend line on overdue invoice')
-                                    ->helperText('When on, overdue bills turn PPP off (except Free/VIP). Runs hourly via isp:network-evaluate-access.'),
-                                Toggle::make('network_service_expiry_enforced')
-                                    ->label('Auto off when service date expires')
-                                    ->helperText('Past “valid until” → Expired status + line off (except Free/VIP).'),
-                            ])
-                            ->columns(1),
+                                Placeholder::make('network_settings_link')
+                                    ->label('Open network setup')
+                                    ->content(fn (): string => 'Configure at: '.\App\Filament\Pages\ManageNetworkSettings::getUrl()),
+                            ]),
                         Section::make('Invoice reminders')
                             ->description('Due-date reminders moved to System → Notifications (SMS, email, WhatsApp). Legacy keys below still sync when saved from the notifications page.')
                             ->schema([
@@ -177,20 +148,6 @@ class ManageAppSettings extends Page
             (string) max(1, min(30, (int) ($state['sms_reminders_days_before'] ?? 3)))
         );
 
-        $driver = (string) ($state['network_provisioner_driver'] ?? 'null');
-        if (! in_array($driver, ['null', 'log', 'mikrotik', 'radius', 'both'], true)) {
-            $driver = 'null';
-        }
-        AppSetting::putValue('network.provisioner_driver', $driver);
-        AppSetting::putValue('network.mikrotik_push_enabled', $this->formStateTruthy($state['network_mikrotik_push_enabled'] ?? false) ? '1' : '0');
-        AppSetting::putValue(
-            'network.mikrotik_always_push_ppp_on_customer_save',
-            $this->formStateTruthy($state['network_mikrotik_always_push_ppp_on_customer_save'] ?? false) ? '1' : '0'
-        );
-        AppSetting::putValue('network.radius_push_enabled', $this->formStateTruthy($state['network_radius_push_enabled'] ?? false) ? '1' : '0');
-        AppSetting::putValue('network.auto_suspend_enabled', $this->formStateTruthy($state['network_auto_suspend_enabled'] ?? false) ? '1' : '0');
-        AppSetting::putValue('network.service_expiry_enforced', $this->formStateTruthy($state['network_service_expiry_enforced'] ?? false) ? '1' : '0');
-
         AppSetting::syncToRuntimeConfig();
 
         $after = $this->integrationSnapshot();
@@ -225,12 +182,6 @@ class ManageAppSettings extends Page
             'isp.tenant_base_domain' => (string) config('isp.tenant_base_domain', ''),
             'sms.reminders_enabled' => (bool) config('sms.reminders_enabled'),
             'sms.reminders_days_before' => (int) config('sms.reminders_days_before', 3),
-            'network.provisioner_driver' => (string) config('network.provisioner_driver', 'null'),
-            'network.mikrotik_push_enabled' => (bool) config('network.mikrotik_push_enabled', true),
-            'network.mikrotik_always_push_ppp_on_customer_save' => (bool) config('network.mikrotik_always_push_ppp_on_customer_save', true),
-            'network.radius_push_enabled' => (bool) config('network.radius_push_enabled', true),
-            'network.auto_suspend_enabled' => (bool) config('network.auto_suspend_enabled', false),
-            'network.service_expiry_enforced' => (bool) config('network.service_expiry_enforced', true),
         ];
     }
 

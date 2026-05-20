@@ -10,10 +10,22 @@ class MikrotikServer extends Model
 {
     use BelongsToTenant;
 
+    protected static function booted(): void
+    {
+        static::saved(function (MikrotikServer $server): void {
+            \App\Services\Radius\RadiusNasResolver::forgetCache((int) $server->tenant_id);
+        });
+
+        static::deleted(function (MikrotikServer $server): void {
+            \App\Services\Radius\RadiusNasResolver::forgetCache((int) $server->tenant_id);
+        });
+    }
+
     protected $fillable = [
         'tenant_id',
         'name',
         'host',
+        'radius_nas_ip',
         'api_port',
         'use_ssl',
         'legacy_login',

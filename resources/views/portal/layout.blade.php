@@ -12,7 +12,7 @@
     @if (file_exists(public_path('build/manifest.json')) || file_exists(public_path('hot')))
         @vite(['resources/css/app.css', 'resources/css/portal.css', 'resources/js/app.js'])
     @endif
-    <link rel="stylesheet" href="{{ asset('css/portal.css') }}?v=8">
+    <link rel="stylesheet" href="{{ asset('css/portal.css') }}?v=9">
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = { corePlugins: { preflight: false } };
@@ -31,6 +31,10 @@
                 {{ $localeLabels[$code] ?? strtoupper($code) }}
             </a>
         @endforeach
+        @guest('customer')
+            <span class="portal-locale-bar__sep" aria-hidden="true">|</span>
+            <a href="{{ $mobileAppDownloadUrl ?? \App\Support\MobileAppLinks::downloadUrl() }}" class="portal-locale-link portal-locale-link--app">📱 Mobile app</a>
+        @endguest
     </div>
     @auth('customer')
         @php

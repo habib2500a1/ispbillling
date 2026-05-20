@@ -39,7 +39,7 @@
     @keydown.escape.window="open = false"
 >
     <template x-if="open">
-        <motion.div class="isp-cmd-palette" @click.self="open = false">
+        <div class="isp-cmd-palette" @click.self="open = false">
             <div class="isp-cmd-panel isp-cmd-panel--wide" role="dialog" aria-label="Smart search">
                 <input
                     x-ref="search"
@@ -97,7 +97,7 @@
                     <p x-show="filtered.length === 0 && entityResults.length === 0 && !searching && !searchError && q.length >= 2" class="px-4 py-6 text-sm text-gray-500">No matches.</p>
                     <p x-show="searching" class="px-4 py-4 text-sm text-gray-500">Searching…</p>
                 </div>
-            </motion.div>
-        </motion.div>
+            </div>
+        </div>
     </template>
-</motion.div>
+</div>

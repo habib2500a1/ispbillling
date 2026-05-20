@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Services\Dashboard\DashboardPreferencesService;
+use App\Support\EnsureStorageWritable;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\File;
@@ -17,6 +18,19 @@ class ProductionAuditCommand extends Command
     {
         $this->info('=== ISP Platform production audit ===');
         $issues = 0;
+
+        $storageIssues = EnsureStorageWritable::findIssues();
+
+        if ($storageIssues === []) {
+            $this->line('[ok] storage paths writable');
+        } else {
+            foreach ($storageIssues as $storageIssue) {
+                $this->error('[X] '.$storageIssue);
+            }
+
+            $this->warn('    Fix: sudo scripts/fix-storage-permissions.sh');
+            $issues++;
+        }
 
         if (config('app.debug')) {
             $this->warn('[!] APP_DEBUG=true — set false in production');

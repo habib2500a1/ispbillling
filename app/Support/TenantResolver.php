@@ -83,7 +83,7 @@ final class TenantResolver
             return self::resolveCustomerTenantIdFromSession();
         }
 
-        $user = auth('web')->user();
+        $user = auth('web')->user() ?? auth()->user();
         if ($user && $user->tenant_id !== null) {
             return (int) $user->tenant_id;
         }

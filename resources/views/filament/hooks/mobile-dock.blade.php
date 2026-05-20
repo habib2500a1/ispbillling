@@ -72,7 +72,6 @@
         <nav class="isp-mobile-bar__nav" aria-label="Quick navigation">
             <a
                 href="{{ \App\Filament\Pages\Dashboard::getUrl() }}"
-                wire:navigate
                 class="isp-mobile-bar__chip isp-mobile-bar__chip--home {{ $onDashboard ? 'isp-mobile-bar__chip--active' : '' }}"
             >
                 <span class="isp-mobile-bar__chip-icon">
@@ -82,7 +81,6 @@
             </a>
             <a
                 href="{{ \App\Filament\Pages\BillCollectionDesk::getUrl() }}"
-                wire:navigate
                 class="isp-mobile-bar__chip isp-mobile-bar__chip--collect {{ $onBilling ? 'isp-mobile-bar__chip--active' : '' }}"
             >
                 <span class="isp-mobile-bar__chip-icon">
@@ -92,7 +90,6 @@
             </a>
             <a
                 href="{{ $subscribersUrl }}"
-                wire:navigate
                 class="isp-mobile-bar__chip isp-mobile-bar__chip--users {{ $onSubscribers ? 'isp-mobile-bar__chip--active' : '' }}"
             >
                 <span class="isp-mobile-bar__chip-icon">
@@ -102,7 +99,6 @@
             </a>
             <a
                 href="{{ $smsUrl }}"
-                wire:navigate
                 class="isp-mobile-bar__chip isp-mobile-bar__chip--sms {{ $onSms ? 'isp-mobile-bar__chip--active' : '' }}"
             >
                 <span class="isp-mobile-bar__chip-icon">
@@ -112,7 +108,6 @@
             </a>
             <a
                 href="{{ $networkUrl }}"
-                wire:navigate
                 class="isp-mobile-bar__chip isp-mobile-bar__chip--net {{ $onNetwork ? 'isp-mobile-bar__chip--active' : '' }}"
             >
                 <span class="isp-mobile-bar__chip-icon">

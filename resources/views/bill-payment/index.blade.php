@@ -57,5 +57,7 @@
             Staff?
             <a href="{{ url('/admin/login') }}" class="bp-link">Admin panel</a>
         </p>
+
+        <x-mobile-app-promo variant="compact" class="mt-6" />
     </div>
 @endsection

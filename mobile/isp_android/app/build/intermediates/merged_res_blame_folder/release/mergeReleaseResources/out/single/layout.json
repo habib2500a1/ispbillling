@@ -1,0 +1,30 @@
+[
+    {
+        "merged": "com.ispplatform.app-mergeReleaseResources-50:/layout/activity_login.xml",
+        "source": "com.ispplatform.app-main-52:/layout/activity_login.xml"
+    },
+    {
+        "merged": "com.ispplatform.app-mergeReleaseResources-50:/layout/fragment_list_refresh.xml",
+        "source": "com.ispplatform.app-main-52:/layout/fragment_list_refresh.xml"
+    },
+    {
+        "merged": "com.ispplatform.app-mergeReleaseResources-50:/layout/fragment_admin_home.xml",
+        "source": "com.ispplatform.app-main-52:/layout/fragment_admin_home.xml"
+    },
+    {
+        "merged": "com.ispplatform.app-mergeReleaseResources-50:/layout/activity_main.xml",
+        "source": "com.ispplatform.app-main-52:/layout/activity_main.xml"
+    },
+    {
+        "merged": "com.ispplatform.app-mergeReleaseResources-50:/layout/fragment_client_home.xml",
+        "source": "com.ispplatform.app-main-52:/layout/fragment_client_home.xml"
+    },
+    {
+        "merged": "com.ispplatform.app-mergeReleaseResources-50:/layout/fragment_client_ping.xml",
+        "source": "com.ispplatform.app-main-52:/layout/fragment_client_ping.xml"
+    },
+    {
+        "merged": "com.ispplatform.app-mergeReleaseResources-50:/layout/activity_form.xml",
+        "source": "com.ispplatform.app-main-52:/layout/activity_form.xml"
+    }
+]

@@ -8,6 +8,7 @@ use App\Services\BillPayment\PaymentLinkService;
 use App\Services\Collector\CollectorSettlementService;
 use App\Services\Notifications\PaymentNotificationService;
 use App\Services\Payments\PaymentProcessor;
+use App\Services\Mobile\MobileBroadcastService;
 use App\Services\Resellers\ResellerCommissionService;
 
 class PaymentObserver
@@ -35,5 +36,6 @@ class PaymentObserver
         app(AccountingIntegrationService::class)->postCustomerPayment($payment);
         app(CollectorSettlementService::class)->recordCollectionFromPayment($payment->fresh());
         app(PaymentLinkService::class)->markConverted($payment->invoice_id, (int) $payment->id);
+        app(MobileBroadcastService::class)->paymentReceived($payment->fresh());
     }
 }
