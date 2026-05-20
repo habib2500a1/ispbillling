@@ -902,11 +902,7 @@ class CustomerResource extends Resource
                 ->copyable(),
             Tables\Columns\TextColumn::make('package.name')
                 ->label('Package')
-                ->sortable(query: function ($query, string $direction): void {
-                    $query->leftJoin('packages', 'packages.id', '=', 'customers.package_id')
-                        ->orderBy('packages.name', $direction)
-                        ->select('customers.*');
-                })
+                ->sortable()
                 ->formatStateUsing(fn (Customer $record): string => \App\Support\CustomerPackageLabel::for($record))
                 ->limit(32)
                 ->placeholder('—')
