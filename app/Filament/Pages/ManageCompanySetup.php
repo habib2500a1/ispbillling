@@ -158,16 +158,16 @@ class ManageCompanySetup extends Page
                                     ->disk('public')
                                     ->directory('company-branding')
                                     ->visibility('public')
-                                    ->maxSize(2048)
-                                    ->helperText('PNG or JPG, max 2 MB. Shown in admin sidebar, invoices, portal, and PDFs.'),
+                                    ->maxSize(10240)
+                                    ->helperText('PNG or JPG, max 10 MB. Shown in admin sidebar, invoices, portal, and PDFs.'),
                                 FileUpload::make('company_favicon')
                                     ->label('Favicon source (optional)')
                                     ->image()
                                     ->disk('public')
                                     ->directory('company-branding')
                                     ->visibility('public')
-                                    ->maxSize(2048)
-                                    ->helperText('Optional square PNG. If empty, company logo is cropped to 32×32 for the browser tab on Save.'),
+                                    ->maxSize(10240)
+                                    ->helperText('Optional square PNG, max 10 MB. If empty, company logo is cropped to 32×32 for the browser tab on Save.'),
                                 Toggle::make('invoice_show_logo')
                                     ->label('Show logo on invoice & payment receipt PDFs')
                                     ->default(true),

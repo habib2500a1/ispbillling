@@ -11,6 +11,8 @@ final class EnsureStorageWritable
     {
         return [
             storage_path('app'),
+            storage_path('app/livewire-tmp'),
+            storage_path('app/public'),
             storage_path('framework/cache'),
             storage_path('framework/sessions'),
             storage_path('framework/views'),

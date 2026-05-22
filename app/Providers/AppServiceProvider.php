@@ -150,5 +150,16 @@ class AppServiceProvider extends ServiceProvider
         Livewire::useScriptTagAttributes([
             'data-cfasync' => 'false',
         ]);
+
+        config([
+            'livewire.temporary_file_upload.disk' => 'local',
+            'livewire.temporary_file_upload.directory' => 'livewire-tmp',
+            'livewire.temporary_file_upload.rules' => ['file', 'mimes:jpg,jpeg,png,webp,gif,pdf', 'max:10240'],
+            'livewire.temporary_file_upload.max_upload_time' => 10,
+        ]);
+
+        if (! is_dir(storage_path('app/livewire-tmp'))) {
+            \Illuminate\Support\Facades\File::ensureDirectoryExists(storage_path('app/livewire-tmp'), 0775);
+        }
     }
 }
