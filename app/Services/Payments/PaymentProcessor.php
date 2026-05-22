@@ -98,7 +98,10 @@ final class PaymentProcessor
             return $existing->fresh();
         }
 
+        $tenantId = (int) (Customer::withoutGlobalScopes()->whereKey($customerId)->value('tenant_id') ?? 1);
+
         $payment = Payment::createTrusted([
+            'tenant_id' => $tenantId,
             'customer_id' => $customerId,
             'invoice_id' => $invoiceId,
             'amount' => round($amount, 2),
@@ -109,9 +112,7 @@ final class PaymentProcessor
             'status' => 'completed',
             'paid_at' => now(),
             'payment_type' => PaymentType::PAYMENT,
-            'receipt_number' => Payment::generateReceiptNumber(
-                (int) (Customer::withoutGlobalScopes()->whereKey($customerId)->value('tenant_id') ?? 1)
-            ),
+            'receipt_number' => Payment::generateReceiptNumber($tenantId),
             'meta' => array_merge($meta, ['source' => 'gateway_webhook']),
         ]);
 

@@ -311,7 +311,10 @@ class MfsSmsRecordResource extends Resource
             return 'No linked payment to transfer';
         }
 
-        $payment = \App\Models\Payment::query()->withoutGlobalScopes()->find($record->payment_id);
+        $payment = $record->relationLoaded('payment')
+            ? $record->payment
+            : \App\Models\Payment::query()->withoutGlobalScopes()->find($record->payment_id);
+
         if ($payment === null) {
             return 'Payment not found';
         }

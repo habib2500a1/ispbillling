@@ -6,6 +6,7 @@ use App\Models\Customer;
 use App\Models\MfsSmsRecord;
 use App\Models\Package;
 use App\Models\PendingGatewayPayment;
+use App\Models\User;
 use App\Services\Payments\GatewayPaymentVerificationService;
 use App\Services\Payments\MfsSmsAutoApprovalService;
 use App\Services\Payments\MfsUnmatchedPaymentQueue;
@@ -100,11 +101,13 @@ class MfsUnmatchedPaymentQueueTest extends TestCase
             ['customer' => null, 'customers' => [], 'token' => '8801', 'matched_by' => null, 'candidates' => ['8801']],
         );
 
+        $reviewer = User::factory()->create(['tenant_id' => 1]);
+
         $payment = app(GatewayPaymentVerificationService::class)->assignAndApprove(
             $pending,
             (int) $customer->id,
             null,
-            1,
+            (int) $reviewer->id,
         );
 
         $this->assertSame($customer->id, $payment->customer_id);
