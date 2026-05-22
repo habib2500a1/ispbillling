@@ -11,6 +11,9 @@ if [[ -z "$TOKEN" ]] && [[ -f "$APP_ROOT/.env" ]]; then
   TOKEN="$(grep -E '^GITHUB_TOKEN=' "$APP_ROOT/.env" | cut -d= -f2- | tr -d '"' | tr -d "'" || true)"
 fi
 
+# GH_TOKEN in the shell overrides gh login — clear so .env token is used.
+unset GH_TOKEN
+
 if [[ -z "$TOKEN" ]]; then
   echo "Missing GITHUB_TOKEN."
   echo "1. GitHub → Settings → Developer settings → Personal access tokens → Generate (classic)"
