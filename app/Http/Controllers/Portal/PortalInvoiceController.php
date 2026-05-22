@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Portal;
 use App\Http\Controllers\Controller;
 use App\Models\Invoice;
 use App\Support\PortalPaymentGateways;
+use App\Support\PublicPaymentMethod;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
@@ -34,12 +35,14 @@ class PortalInvoiceController extends Controller
 
         $due = round((float) $invoice->total - (float) $invoice->amount_paid, 2);
 
-        $gateways = PortalPaymentGateways::forCustomerPortal();
+        $paymentMethods = PortalPaymentGateways::methodsForCustomerPortal();
+        $gateways = PublicPaymentMethod::legacyFlags($paymentMethods);
 
         return view('portal.invoices.show', [
             'invoice' => $invoice,
             'balanceDue' => $due,
             'gateways' => $gateways,
+            'paymentMethods' => $paymentMethods,
             'bkashEnabled' => $gateways['bkash'],
             'sslcommerzEnabled' => $gateways['sslcommerz'],
             'nagadEnabled' => $gateways['nagad'],

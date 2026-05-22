@@ -60,54 +60,24 @@ class AdminPanelProvider extends PanelProvider
             ->globalSearchKeyBindings(['command+k', 'ctrl+k'])
             ->maxContentWidth('full')
             ->navigationGroups([
-                NavigationGroup::make('Overview')
-                    ->icon('heroicon-o-squares-2x2')
-                    ->collapsed(true),
-                NavigationGroup::make('Clients')
-                    ->icon('heroicon-o-user-group')
-                    ->collapsed(true),
-                NavigationGroup::make('Billing')
-                    ->icon('heroicon-o-document-text')
-                    ->collapsed(true),
-                NavigationGroup::make('Payments')
-                    ->icon('heroicon-o-banknotes')
-                    ->collapsed(true),
-                NavigationGroup::make('Inventory Pro')
-                    ->icon('heroicon-o-cube')
-                    ->collapsed(true),
-                NavigationGroup::make('OLT & Tools')
-                    ->icon('heroicon-o-cpu-chip')
-                    ->collapsed(true),
-                NavigationGroup::make('Network')
-                    ->icon('heroicon-o-signal')
-                    ->collapsed(true),
-                NavigationGroup::make('SMS Service')
-                    ->icon('heroicon-o-chat-bubble-left-right')
-                    ->collapsed(true),
-                NavigationGroup::make('Support')
-                    ->icon('heroicon-o-lifebuoy')
-                    ->collapsed(true),
-                NavigationGroup::make('Reports')
-                    ->icon('heroicon-o-chart-bar')
-                    ->collapsed(true),
-                NavigationGroup::make('BW Client')
-                    ->icon('heroicon-o-cloud')
-                    ->collapsed(true),
-                NavigationGroup::make('HRM')
-                    ->icon('heroicon-o-identification')
-                    ->collapsed(true),
-                NavigationGroup::make('Resellers')
-                    ->icon('heroicon-o-building-storefront')
-                    ->collapsed(true),
-                NavigationGroup::make('Accounts')
-                    ->icon('heroicon-o-calculator')
-                    ->collapsed(true),
-                NavigationGroup::make('Settings')
-                    ->icon('heroicon-o-cog-6-tooth')
-                    ->collapsed(true),
-                NavigationGroup::make('System')
-                    ->icon('heroicon-o-server-stack')
-                    ->collapsed(true),
+                // No group icons: Filament strips item icons and draws a second tree rail (grouped-border),
+                // which duplicated our custom sidebar dots in admin-saas.css.
+                NavigationGroup::make('Overview')->collapsed(true),
+                NavigationGroup::make('Clients')->collapsed(true),
+                NavigationGroup::make('Billing')->collapsed(true),
+                NavigationGroup::make('Payments')->collapsed(true),
+                NavigationGroup::make('Inventory Pro')->collapsed(true),
+                NavigationGroup::make('OLT & Tools')->collapsed(true),
+                NavigationGroup::make('Network')->collapsed(true),
+                NavigationGroup::make('SMS Service')->collapsed(true),
+                NavigationGroup::make('Support')->collapsed(true),
+                NavigationGroup::make('Reports')->collapsed(true),
+                NavigationGroup::make('BW Client')->collapsed(true),
+                NavigationGroup::make('HRM')->collapsed(true),
+                NavigationGroup::make('Resellers')->collapsed(true),
+                NavigationGroup::make('Accounts')->collapsed(true),
+                NavigationGroup::make('Settings')->collapsed(true),
+                NavigationGroup::make('System')->collapsed(true),
             ])
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\\Filament\\Resources')
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\\Filament\\Pages')
@@ -175,7 +145,7 @@ class AdminPanelProvider extends PanelProvider
                 fn (): string => view('filament.hooks.command-palette', [
                     'commandItems' => AdminCommandPalette::items(),
                 ])->render()
-                    .'<script src="'.asset('js/admin-sidebar-layout.js').'?v=20" data-cfasync="false"></script>'
+                    .'<script src="'.asset('js/admin-sidebar-layout.js').'?v=21" data-cfasync="false"></script>'
                     .view('filament.hooks.mobile-dock')->render(),
             );
     }

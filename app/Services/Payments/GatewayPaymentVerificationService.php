@@ -199,6 +199,7 @@ final class GatewayPaymentVerificationService
 
     /**
      * When a new SMS lands in the ledger, auto-complete matching pending TrxID rows.
+     * SMS Ref/Counter wins over the portal checkout customer (logged-in wrong ID).
      */
     public function matchPendingForSms(MfsSmsRecord $sms): int
     {
@@ -214,15 +215,65 @@ final class GatewayPaymentVerificationService
             ->orderBy('id')
             ->get();
 
+        if ($pendings->isEmpty()) {
+            return 0;
+        }
+
+        $explicitRef = isset($sms->meta['customer_reference'])
+            ? (string) $sms->meta['customer_reference']
+            : null;
+        $resolved = app(MfsCustomerReferenceMatcher::class)->resolve(
+            (int) $sms->tenant_id,
+            (string) ($sms->raw_message ?? ''),
+            $explicitRef !== '' ? $explicitRef : null,
+            $sms->transaction_id,
+            $sms->sender_phone,
+        );
+
         $matched = 0;
         foreach ($pendings as $pending) {
-            $result = $this->tryAutoApprovePending($pending);
+            $customerId = $this->customerIdForSmsPendingMatch($pending, $resolved);
+            if ($customerId === null) {
+                continue;
+            }
+
+            if ((int) ($pending->customer_id ?? 0) !== $customerId) {
+                $pending->forceFill([
+                    'customer_id' => $customerId,
+                    'meta' => array_merge($pending->meta ?? [], [
+                        'matched_by' => $resolved['matched_by'],
+                        'reference_token' => $resolved['token'],
+                        'sms_reference_override' => true,
+                        'previous_customer_id' => $pending->customer_id,
+                    ]),
+                ])->save();
+            }
+
+            $result = $this->tryAutoApprovePending($pending->fresh() ?? $pending);
             if (($result['status'] ?? '') === 'approved') {
                 $matched++;
             }
         }
 
         return $matched;
+    }
+
+    /**
+     * @param  array{customer: ?Customer, customers: list<Customer>, token: ?string, matched_by: ?string, candidates: list<string>}  $resolved
+     */
+    private function customerIdForSmsPendingMatch(PendingGatewayPayment $pending, array $resolved): ?int
+    {
+        $matchedBy = (string) ($resolved['matched_by'] ?? '');
+
+        if (str_starts_with($matchedBy, 'sms_reference')) {
+            return $resolved['customer']?->id;
+        }
+
+        if ($resolved['customer'] !== null) {
+            return (int) $resolved['customer']->id;
+        }
+
+        return $pending->customer_id !== null ? (int) $pending->customer_id : null;
     }
 
     /**

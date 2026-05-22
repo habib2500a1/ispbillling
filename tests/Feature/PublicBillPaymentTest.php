@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\AppSetting;
+use App\Support\BkashSettings;
 use App\Models\Customer;
 use App\Models\Invoice;
 use App\Models\Package;
@@ -96,7 +97,7 @@ class PublicBillPaymentTest extends TestCase
             ->assertOk()
             ->assertSee('TEST1001')
             ->assertSee('500.00')
-            ->assertSee('Pay amount')
+            ->assertSee('Pay full due')
             ->assertSee('Wallet top-up')
             ->assertSee('Payment link');
     }
@@ -175,9 +176,17 @@ class PublicBillPaymentTest extends TestCase
     public function test_public_gateway_flags_follow_panel_bkash_enabled(): void
     {
         AppSetting::putValue('bkash.enabled', '1');
+        AppSetting::putValue('bkash.gateway_type', BkashSettings::GATEWAY_PERSONAL);
+        AppSetting::putValue('bkash.personal_number', '01710000001');
         AppSetting::syncToRuntimeConfig();
+        config([
+            'bkash.channels' => [BkashSettings::CHANNEL_PUBLIC_PAY],
+            'bkash.gateway_type' => BkashSettings::GATEWAY_PERSONAL,
+            'bkash.personal_number' => '01710000001',
+        ]);
 
         $this->assertTrue(config('bkash.enabled'));
+        AppSetting::syncPublicPaymentGatewayFlags();
         $this->assertTrue(config('bill_payment.gateways.bkash'));
 
         config(['bill_payment.otp.enabled' => false]);

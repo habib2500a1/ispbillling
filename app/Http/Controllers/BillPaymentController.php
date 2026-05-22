@@ -12,6 +12,7 @@ use App\Services\BillPayment\PublicBillPaymentService;
 use App\Services\Payments\PublicPaymentOrchestrator;
 use App\Support\PaymentGateway;
 use App\Support\PortalPaymentGateways;
+use App\Support\PublicPaymentMethod;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -194,11 +195,13 @@ class BillPaymentController extends Controller
             ->limit(3)
             ->get();
 
-        $gateways = PortalPaymentGateways::forPublicBillPay();
+        $paymentMethods = PortalPaymentGateways::methodsForPublicBillPay();
+        $gateways = PublicPaymentMethod::legacyFlags($paymentMethods);
 
         return view('bill-payment.invoice', [
             'companyName' => config('isp.company_name'),
             'summary' => $summary,
+            'paymentMethods' => $paymentMethods,
             'bkashEnabled' => $gateways['bkash'],
             'sslcommerzEnabled' => $gateways['sslcommerz'],
             'nagadEnabled' => $gateways['nagad'],

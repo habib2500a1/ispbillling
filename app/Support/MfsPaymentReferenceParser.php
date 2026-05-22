@@ -8,9 +8,11 @@ namespace App\Support;
 final class MfsPaymentReferenceParser
 {
     /**
-     * @return list<string> Unique candidate tokens, longest first.
+     * Tokens from Ref/Counter/Reference labels and PPPoE logins only (no broad body scan).
+     *
+     * @return list<string>
      */
-    public static function extractFromMessage(string $message, ?string $knownTrxId = null): array
+    public static function extractLabeledReferences(string $message, ?string $knownTrxId = null): array
     {
         $body = trim($message);
         if ($body === '') {
@@ -36,6 +38,21 @@ final class MfsPaymentReferenceParser
             }
         }
 
+        return self::uniqueTokens($candidates);
+    }
+
+    /**
+     * @return list<string> Unique candidate tokens, longest first.
+     */
+    public static function extractFromMessage(string $message, ?string $knownTrxId = null): array
+    {
+        $body = trim($message);
+        if ($body === '') {
+            return [];
+        }
+
+        $candidates = self::extractLabeledReferences($message, $knownTrxId);
+
         $scrubbed = $body;
         if ($knownTrxId !== null && $knownTrxId !== '') {
             $scrubbed = str_ireplace($knownTrxId, ' ', $scrubbed);
@@ -57,6 +74,15 @@ final class MfsPaymentReferenceParser
             }
         }
 
+        return self::uniqueTokens($candidates);
+    }
+
+    /**
+     * @param  list<?string>  $candidates
+     * @return list<string>
+     */
+    private static function uniqueTokens(array $candidates): array
+    {
         $unique = [];
         foreach ($candidates as $token) {
             if ($token === null || $token === '') {

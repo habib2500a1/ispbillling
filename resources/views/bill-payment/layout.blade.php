@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{{ asset('css/bill-payment.css') }}?v=2">
+    <link rel="stylesheet" href="{{ asset('css/bill-payment.css') }}?v=5">
     <script src="{{ asset('js/portal-theme.js') }}?v=1"></script>
 </head>
 <body class="bp-bg antialiased">
@@ -38,7 +38,20 @@
                         <li>Verify mobile OTP</li>
                     @endif
                     <li>Review invoice &amp; due amount</li>
-                    <li>Pay via bKash, SSLCommerz or Nagad</li>
+                    @php
+                        $bpMethods = \App\Support\PortalPaymentGateways::methodsForPublicBillPay();
+                        $bpLabels = array_map(
+                            fn (array $m): string => $m['label'].' ('.$m['badge'].')',
+                            $bpMethods,
+                        );
+                    @endphp
+                    <li>
+                        @if ($bpLabels !== [])
+                            Pay via {{ implode(' · ', $bpLabels) }}
+                        @else
+                            Pay online when enabled by your ISP
+                        @endif
+                    </li>
                 </ol>
             </div>
             <p class="text-xs text-white/40">Secure bill payment · No login required</p>

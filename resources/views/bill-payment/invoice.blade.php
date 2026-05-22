@@ -84,22 +84,8 @@
                             <form method="post" action="{{ route('bill-payment.pay', $invoice) }}" class="bp-pay-form">
                                 @csrf
                                 <p class="text-sm font-semibold text-teal-800">Pay full due: {{ number_format($due, 2) }} BDT</p>
-                                <div class="mt-2 flex flex-col gap-2">
-                                    @if ($bkashEnabled ?? false)
-                                        <button type="submit" name="gateway" value="bkash" class="bp-btn bp-btn-bkash" style="width:auto;padding:0.625rem 1.25rem;margin:0;">bKash</button>
-                                    @endif
-                                    @if ($sslcommerzEnabled ?? false)
-                                        <button type="submit" name="gateway" value="sslcommerz" class="bp-btn" style="width:auto;padding:0.625rem 1.25rem;margin:0;background:linear-gradient(135deg,#1e3a5f,#2563eb);">Card / SSLCommerz</button>
-                                    @endif
-                                    @if ($nagadEnabled ?? false)
-                                        <button type="submit" name="gateway" value="nagad" class="bp-btn" style="width:auto;padding:0.625rem 1.25rem;margin:0;background:linear-gradient(135deg,#f59e0b,#ea580c);">Nagad</button>
-                                    @endif
-                                    @if ($rocketEnabled ?? false)
-                                        <button type="submit" name="gateway" value="rocket" class="bp-btn" style="width:auto;padding:0.625rem 1.25rem;margin:0;background:linear-gradient(135deg,#9333ea,#7c3aed);">Rocket</button>
-                                    @endif
-                                    @if ($piprapayEnabled ?? false)
-                                        <button type="submit" name="gateway" value="piprapay" class="bp-btn" style="width:auto;padding:0.625rem 1.25rem;margin:0;background:linear-gradient(135deg,#0d9488,#059669);">PipraPay</button>
-                                    @endif
+                                <div class="mt-3">
+                                    @include('bill-payment.partials.payment-methods', ['methods' => $paymentMethods ?? []])
                                 </div>
                             </form>
                         @elseif (! ($anyGatewayEnabled ?? false))
@@ -119,7 +105,7 @@
                         <strong class="text-rose-700">Line stays off until all invoice dues above are paid in full.</strong>
                     @endif
                 </p>
-                @if (($bkashEnabled ?? false) || ($sslcommerzEnabled ?? false) || ($nagadEnabled ?? false) || ($rocketEnabled ?? false) || ($piprapayEnabled ?? false))
+                @if (count($paymentMethods ?? []) > 0)
                     <form method="post" action="{{ route('bill-payment.wallet') }}" class="mt-4">
                         @csrf
                         <label class="text-sm font-medium text-slate-700">Amount (BDT)</label>
@@ -133,22 +119,8 @@
                             required
                         >
                         <p class="mt-1 text-xs text-slate-500">Minimum {{ number_format($walletMin, 0) }} BDT</p>
-                        <div class="mt-3 flex flex-wrap gap-2">
-                            @if ($bkashEnabled ?? false)
-                                <button type="submit" name="gateway" value="bkash" class="bp-btn bp-btn-bkash" style="width:auto;padding:0.625rem 1rem;">bKash</button>
-                            @endif
-                            @if ($sslcommerzEnabled ?? false)
-                                <button type="submit" name="gateway" value="sslcommerz" class="bp-btn" style="width:auto;padding:0.625rem 1rem;background:linear-gradient(135deg,#1e3a5f,#2563eb);">SSLCommerz</button>
-                            @endif
-                            @if ($nagadEnabled ?? false)
-                                <button type="submit" name="gateway" value="nagad" class="bp-btn" style="width:auto;padding:0.625rem 1rem;background:linear-gradient(135deg,#f59e0b,#ea580c);">Nagad</button>
-                            @endif
-                            @if ($rocketEnabled ?? false)
-                                <button type="submit" name="gateway" value="rocket" class="bp-btn" style="width:auto;padding:0.625rem 1rem;background:linear-gradient(135deg,#9333ea,#7c3aed);">Rocket</button>
-                            @endif
-                            @if ($piprapayEnabled ?? false)
-                                <button type="submit" name="gateway" value="piprapay" class="bp-btn" style="width:auto;padding:0.625rem 1rem;background:linear-gradient(135deg,#0d9488,#059669);">PipraPay</button>
-                            @endif
+                        <div class="mt-3">
+                            @include('bill-payment.partials.payment-methods', ['methods' => $paymentMethods ?? []])
                         </div>
                     </form>
                 @else

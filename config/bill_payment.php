@@ -26,11 +26,12 @@ return [
 
     'link_ttl_days' => (int) env('BILL_PAY_LINK_TTL_DAYS', 7),
 
-    // Synced from bkash/sslcommerz/nagad.enabled after AppSetting::syncToRuntimeConfig().
+    // Synced from admin gateways after AppSetting::syncPublicPaymentGatewayFlags().
     'gateways' => [
         'bkash' => (bool) env('BKASH_ENABLED', false),
         'sslcommerz' => (bool) env('SSLCOMMERZ_ENABLED', false),
         'nagad' => (bool) env('NAGAD_ENABLED', false),
         'rocket' => (bool) env('ROCKET_ENABLED', false),
+        'piprapay' => (bool) env('PIPRAPAY_ENABLED', false),
     ],
 ];

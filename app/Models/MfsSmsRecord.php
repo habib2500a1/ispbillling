@@ -86,7 +86,10 @@ class MfsSmsRecord extends Model
         }
 
         $this->forceFill([
-            'meta' => array_merge($this->meta ?? [], \App\Support\MfsSmsCustomerSnapshot::from($customer)),
+            'meta' => array_merge($this->meta ?? [], \App\Support\MfsSmsCustomerSnapshot::from($customer), [
+                'reference_match' => 'auto_approved',
+                'bill_payment_state' => \App\Support\MfsSmsBillPaymentState::LINKED,
+            ]),
         ])->save();
     }
 }

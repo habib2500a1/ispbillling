@@ -191,9 +191,6 @@
     border-inline-start: none !important;
   }
 
-  body.isp-sidebar-desktop-collapsed .fi-main-sidebar .fi-sidebar-group-items > li.fi-sidebar-item::before {
-    display: none !important;
-  }
 
   .fi-sidebar-close-overlay {
     display: none !important;
@@ -550,7 +547,7 @@ body.isp-sidebar-desktop-collapsed .isp-sidebar-footer__toggle--expand {
     scrollbar-color: rgba(255, 255, 255, 0.28) transparent;
 }
 
-/* Module tree line — subtle; only the active row is highlighted */
+/* Module tree indent — item icons are the markers (no extra dot rail) */
 .fi-sidebar-group-items {
     position: relative;
     margin-inline-start: 0.5rem !important;
@@ -558,26 +555,9 @@ body.isp-sidebar-desktop-collapsed .isp-sidebar-footer__toggle--expand {
     border-inline-start: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-.fi-sidebar-group-items > li.fi-sidebar-item {
-    position: relative;
-}
-
-.fi-sidebar-group-items > li.fi-sidebar-item::before {
-    content: '';
-    position: absolute;
-    inset-inline-start: -0.72rem;
-    top: 50%;
-    width: 0.35rem;
-    height: 0.35rem;
-    margin-top: -0.175rem;
-    border-radius: 9999px;
-    background: rgba(255, 255, 255, 0.2);
-}
-
-.fi-sidebar-group-items > li.fi-sidebar-item.fi-active::before,
-.fi-sidebar-group-items > li.fi-sidebar-item-active::before {
-    background: #5eead4;
-    box-shadow: 0 0 0 2px rgba(13, 148, 136, 0.45);
+/* Safety: if a group regains an icon, Filament grouped-border must not stack on our rail */
+.fi-sidebar-group-items .fi-sidebar-item-grouped-border {
+    display: none !important;
 }
 
 .fi-sidebar .fi-sidebar-group-button {

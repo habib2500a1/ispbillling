@@ -27,13 +27,24 @@ final class MfsCustomerReferenceMatcher
     ): array {
         $refIntent = MfsPaymentReferenceParser::messageHasReferenceIntent($message, $explicitReference);
 
-        $tokens = [];
         $explicitToken = MfsPaymentReferenceParser::normalizeReferenceToken($explicitReference, $knownTrxId);
-        if ($explicitToken !== null) {
-            $tokens[] = $explicitToken;
-        }
 
-        $tokens = array_values(array_unique([...$tokens, ...MfsPaymentReferenceParser::extractFromMessage($message, $knownTrxId)]));
+        if ($refIntent) {
+            $tokens = $explicitToken !== null ? [$explicitToken] : [];
+            $tokens = array_values(array_unique([
+                ...$tokens,
+                ...MfsPaymentReferenceParser::extractLabeledReferences($message, $knownTrxId),
+            ]));
+        } else {
+            $tokens = [];
+            if ($explicitToken !== null) {
+                $tokens[] = $explicitToken;
+            }
+            $tokens = array_values(array_unique([
+                ...$tokens,
+                ...MfsPaymentReferenceParser::extractFromMessage($message, $knownTrxId),
+            ]));
+        }
 
         $matches = collect();
 

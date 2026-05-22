@@ -5,31 +5,23 @@ namespace App\Support;
 final class PortalPaymentGateways
 {
     /**
+     * @return list<array{gateway: string, mode: string, label: string, badge: string, hint: string, tone: string}>
+     */
+    public static function methods(?string $bkashChannel = BkashSettings::CHANNEL_PORTAL): array
+    {
+        return PublicPaymentMethod::collect($bkashChannel);
+    }
+
+    /**
      * @return array{bkash: bool, sslcommerz: bool, nagad: bool, rocket: bool, piprapay: bool, any: bool}
      */
     public static function flags(?string $bkashChannel = BkashSettings::CHANNEL_PORTAL): array
     {
-        $bkash = $bkashChannel !== null
-            ? BkashSettings::isEnabledForChannel($bkashChannel)
-            : BkashSettings::isPaymentEnabled();
-        $ssl = (bool) config('sslcommerz.enabled');
-        $nagad = \App\Support\PersonalMfsGateway::nagadPersonalEnabled()
-            || ((bool) config('nagad.enabled') && (string) config('nagad.gateway_type', 'api') === 'api');
-        $rocket = (bool) config('bill_payment.gateways.rocket', config('rocket.enabled', false));
-        $piprapay = (bool) config('bill_payment.gateways.piprapay', \App\Services\Payments\PipraPayCheckoutService::isEnabled());
-
-        return [
-            'bkash' => $bkash,
-            'sslcommerz' => $ssl,
-            'nagad' => $nagad,
-            'rocket' => $rocket,
-            'piprapay' => $piprapay,
-            'any' => $bkash || $ssl || $nagad || $rocket || $piprapay,
-        ];
+        return PublicPaymentMethod::legacyFlags(self::methods($bkashChannel));
     }
 
     /**
-     * @return array{bkash: bool, sslcommerz: bool, nagad: bool, any: bool}
+     * @return array{bkash: bool, sslcommerz: bool, nagad: bool, rocket: bool, piprapay: bool, any: bool}
      */
     public static function forPublicBillPay(): array
     {
@@ -37,10 +29,26 @@ final class PortalPaymentGateways
     }
 
     /**
-     * @return array{bkash: bool, sslcommerz: bool, nagad: bool, any: bool}
+     * @return array{bkash: bool, sslcommerz: bool, nagad: bool, rocket: bool, piprapay: bool, any: bool}
      */
     public static function forCustomerPortal(): array
     {
         return self::flags(BkashSettings::CHANNEL_PORTAL);
+    }
+
+    /**
+     * @return list<array{gateway: string, mode: string, label: string, badge: string, hint: string, tone: string}>
+     */
+    public static function methodsForPublicBillPay(): array
+    {
+        return self::methods(BkashSettings::CHANNEL_PUBLIC_PAY);
+    }
+
+    /**
+     * @return list<array{gateway: string, mode: string, label: string, badge: string, hint: string, tone: string}>
+     */
+    public static function methodsForCustomerPortal(): array
+    {
+        return self::methods(BkashSettings::CHANNEL_PORTAL);
     }
 }

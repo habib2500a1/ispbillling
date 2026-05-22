@@ -338,3 +338,128 @@ html.portal-dark .bp-tab-active {
     background: rgba(13, 148, 136, 0.2);
     color: #5eead4;
 }
+
+/* Pro payment method picker — Personal vs Merchant badges */
+.bp-pay-methods {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(8.25rem, 1fr));
+    gap: 0.5rem;
+}
+
+@media (min-width: 480px) {
+    .bp-pay-methods {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+@media (min-width: 640px) {
+    .bp-pay-methods {
+        grid-template-columns: repeat(auto-fill, minmax(9.5rem, 1fr));
+        gap: 0.625rem;
+    }
+}
+
+.bp-pay-methods--compact {
+    grid-template-columns: repeat(auto-fill, minmax(7.5rem, 1fr));
+    gap: 0.5rem;
+}
+
+.bp-pay-method {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.2rem;
+    margin: 0;
+    width: 100%;
+    min-height: 3.5rem;
+    padding: 0.65rem 0.85rem;
+    border: 1px solid rgba(15, 23, 42, 0.08);
+    border-radius: 0.75rem;
+    font-family: inherit;
+    text-align: left;
+    color: #fff;
+    cursor: pointer;
+    transition: transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease;
+}
+
+.bp-pay-method:hover {
+    transform: translateY(-1px);
+    filter: brightness(1.06);
+    box-shadow: 0 8px 20px rgba(15, 23, 42, 0.18);
+}
+
+.bp-pay-method__brand {
+    font-size: 0.95rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+}
+
+.bp-pay-method__badge {
+    font-size: 0.62rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    padding: 0.12rem 0.45rem;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.22);
+}
+
+.bp-pay-method__badge--personal {
+    background: rgba(255, 255, 255, 0.28);
+}
+
+.bp-pay-method__badge--merchant {
+    background: rgba(0, 0, 0, 0.22);
+}
+
+.bp-pay-method__hint {
+    font-size: 0.65rem;
+    font-weight: 500;
+    line-height: 1.25;
+    color: rgba(255, 255, 255, 0.88);
+}
+
+.bp-pay-method--bkash {
+    background: linear-gradient(145deg, #e2136e, #b81052);
+    box-shadow: 0 4px 14px rgba(226, 19, 110, 0.32);
+}
+
+.bp-pay-method--nagad {
+    background: linear-gradient(145deg, #f59e0b, #c2410c);
+    box-shadow: 0 4px 14px rgba(234, 88, 12, 0.28);
+}
+
+.bp-pay-method--pipra {
+    background: linear-gradient(145deg, #0d9488, #047857);
+    box-shadow: 0 4px 14px rgba(13, 148, 136, 0.32);
+}
+
+.bp-pay-method--ssl {
+    background: linear-gradient(145deg, #1e3a5f, #2563eb);
+    box-shadow: 0 4px 14px rgba(37, 99, 235, 0.28);
+}
+
+.bp-pay-method--rocket {
+    background: linear-gradient(145deg, #9333ea, #6d28d9);
+    box-shadow: 0 4px 14px rgba(147, 51, 234, 0.28);
+}
+
+.portal-pay-form .bp-pay-methods {
+    margin-top: 0.35rem;
+}
+
+html.portal-dark .bp-pay-method {
+    border-color: rgba(255, 255, 255, 0.12);
+}
+
+.bp-pay-method--disabled {
+    opacity: 0.42;
+    cursor: not-allowed;
+    filter: grayscale(0.35);
+    box-shadow: none !important;
+}
+
+.bp-pay-method--disabled:hover {
+    transform: none;
+    filter: grayscale(0.35);
+}

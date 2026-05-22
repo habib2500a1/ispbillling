@@ -96,14 +96,20 @@ class AppSetting extends Model
      */
     public static function syncPublicPaymentGatewayFlags(): void
     {
+        $bkashOn = \App\Support\BkashSettings::isActiveForChannel(
+            \App\Support\BkashSettings::CHANNEL_PUBLIC_PAY,
+        );
+
+        $nagadApi = (bool) config('nagad.enabled', false)
+            && (string) config('nagad.gateway_type', 'api') === 'api'
+            && filled(config('nagad.merchant_id'))
+            && filled(config('nagad.merchant_private_key'));
+
         config([
-            'bill_payment.gateways.bkash' => \App\Support\BkashSettings::isEnabledForChannel(
-                \App\Support\BkashSettings::CHANNEL_PUBLIC_PAY
-            ),
+            'bill_payment.gateways.bkash' => $bkashOn,
             'bill_payment.gateways.sslcommerz' => (bool) config('sslcommerz.enabled', false),
-            'bill_payment.gateways.nagad' => (bool) config('nagad.enabled', false),
-            'bill_payment.gateways.rocket' => (bool) config('rocket.enabled', false)
-                && filled(config('rocket.merchant_number')),
+            'bill_payment.gateways.nagad' => \App\Support\PersonalMfsGateway::nagadPersonalEnabled() || $nagadApi,
+            'bill_payment.gateways.rocket' => (bool) config('rocket.enabled', false),
             'bill_payment.gateways.piprapay' => \App\Services\Payments\PipraPayCheckoutService::isEnabled(),
         ]);
     }
