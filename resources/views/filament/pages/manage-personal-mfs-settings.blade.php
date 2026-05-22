@@ -14,6 +14,17 @@
             bKash: {{ $bkashActive ? '✓ Active' : '○ Not configured' }} ·
             Nagad: {{ $nagadActive ? '✓ Active' : '○ Not configured' }}
         </p>
+        <p class="mt-2 flex flex-wrap gap-2 text-xs">
+            <a href="{{ \App\Filament\Pages\ManagePersonalMfsSettings::getUrl(['tab' => 'bkash']) }}"
+               class="rounded-lg px-2 py-1 font-semibold {{ ($activeTab ?? 'bkash') !== 'nagad' ? 'bg-emerald-600 text-white' : 'bg-white/80 text-emerald-900 underline dark:bg-emerald-950/50' }}">
+                bKash
+            </a>
+            <a href="{{ \App\Filament\Pages\ManagePersonalMfsSettings::getUrl(['tab' => 'nagad']) }}"
+               class="rounded-lg px-2 py-1 font-semibold {{ ($activeTab ?? 'bkash') === 'nagad' ? 'bg-emerald-600 text-white' : 'bg-white/80 text-emerald-900 underline dark:bg-emerald-950/50' }}">
+                Nagad
+            </a>
+            <span class="self-center opacity-75">— দুটো আলাদা; একটা ON করলে অন্যটা বন্ধ হবে না</span>
+        </p>
     </div>
 
     <form wire:submit="save">

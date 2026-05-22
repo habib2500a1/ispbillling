@@ -13,17 +13,17 @@ use App\Support\PersonalMfsSetup;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Radio;
-use Filament\Forms\Components\Section;
-use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Tabs;
+use Filament\Forms\Components\Tabs\Tab;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Forms\Form;
-use Filament\Forms\Get;
 use Filament\Notifications\Notification;
 use App\Filament\Pages\Concerns\HidesHubNavigation;
 use Filament\Pages\Concerns\InteractsWithFormActions;
 use Filament\Pages\Page;
+use Livewire\Attributes\Url;
 
 /**
  * PipraPay-style personal bKash / Nagad — Send Money + TrxID + SMS verify (not merchant API).
@@ -49,6 +49,10 @@ class ManagePersonalMfsSettings extends Page
 
     protected static ?int $navigationSort = 3;
 
+    /** Active gateway tab — synced to ?tab=bkash|nagad (survives Livewire save POST). */
+    #[Url(as: 'tab', except: 'bkash')]
+    public string $activeGatewayTab = 'bkash';
+
     /**
      * @var array<string, mixed>|null
      */
@@ -63,10 +67,9 @@ class ManagePersonalMfsSettings extends Page
     {
         abort_unless(static::canAccess(), 403);
 
-        $uiTab = request()->query('tab') === 'nagad' ? 'nagad' : 'bkash';
+        $this->activeGatewayTab = $this->activeGatewayTab === 'nagad' ? 'nagad' : 'bkash';
 
         $this->form->fill([
-            '_ui_tab' => $uiTab,
             'bkash_enabled' => config('bkash.enabled') ? '1' : '0',
             'bkash_personal_number' => (string) config('bkash.personal_number', ''),
             'bkash_personal_name' => (string) config('bkash.personal_name', ''),
@@ -91,27 +94,19 @@ class ManagePersonalMfsSettings extends Page
             'form' => $this->form(
                 $this->makeForm()
                     ->schema([
-                        Select::make('_ui_tab')
-                            ->label('Gateway')
-                            ->options([
-                                'bkash' => 'bKash Personal',
-                                'nagad' => 'Nagad Personal',
+                        Tabs::make('personal_mfs_gateways')
+                            ->activeTab(fn (): int => $this->activeGatewayTab === 'nagad' ? 2 : 1)
+                            ->persistTabInQueryString('tab')
+                            ->tabs([
+                                Tab::make('bKash Personal')
+                                    ->id('bkash')
+                                    ->icon('heroicon-o-device-phone-mobile')
+                                    ->schema($this->bkashPersonalSchema()),
+                                Tab::make('Nagad Personal')
+                                    ->id('nagad')
+                                    ->icon('heroicon-o-banknotes')
+                                    ->schema($this->nagadPersonalSchema()),
                             ])
-                            ->live()
-                            ->required()
-                            ->dehydrated(false)
-                            ->columnSpanFull(),
-                        Section::make('Personal bKash (Send Money)')
-                            ->description('Merchant bKash API নয় — ক্লায়েন্ট আপনার personal নম্বরে Send Money করবে, TrxID দেবে, SMS match হলে auto verify।')
-                            ->icon('heroicon-o-device-phone-mobile')
-                            ->schema($this->bkashPersonalSchema())
-                            ->visible(fn (Get $get): bool => $get('_ui_tab') !== 'nagad')
-                            ->columnSpanFull(),
-                        Section::make('Personal Nagad (Send Money)')
-                            ->description('Nagad merchant API checkout নয় — personal নম্বর + TrxID + SMS verify।')
-                            ->icon('heroicon-o-banknotes')
-                            ->schema($this->nagadPersonalSchema())
-                            ->visible(fn (Get $get): bool => $get('_ui_tab') === 'nagad')
                             ->columnSpanFull(),
                     ])
                     ->statePath('data'),
@@ -182,11 +177,18 @@ class ManagePersonalMfsSettings extends Page
         ];
     }
 
+    protected function activeUiTab(): string
+    {
+        return $this->activeGatewayTab === 'nagad' ? 'nagad' : 'bkash';
+    }
+
     protected function getFormActions(): array
     {
+        $tab = $this->activeUiTab();
+
         return [
             Action::make('save')
-                ->label('Save personal MFS settings')
+                ->label($tab === 'nagad' ? 'Save Nagad settings' : 'Save bKash settings')
                 ->submit('save'),
         ];
     }
@@ -195,29 +197,78 @@ class ManagePersonalMfsSettings extends Page
     {
         abort_unless(static::canAccess(), 403);
 
+        $tab = $this->activeUiTab();
         $state = $this->form->getState();
 
-        AppSetting::putValue('bkash.gateway_type', BkashSettings::GATEWAY_PERSONAL);
-        AppSetting::putValue('bkash.enabled', ($state['bkash_enabled'] ?? '0') === '1' ? '1' : '0');
-        AppSetting::putValue('bkash.personal_number', trim((string) ($state['bkash_personal_number'] ?? '')));
-        AppSetting::putValue('bkash.personal_name', trim((string) ($state['bkash_personal_name'] ?? '')));
-        AppSetting::putValue('bkash.instructions', trim((string) ($state['bkash_personal_instructions'] ?? '')));
-        AppSetting::putValue('mfs_personal.gateways.bkash.auto_verify', ($state['bkash_auto_verify'] ?? true) ? '1' : '0');
+        if ($tab === 'nagad') {
+            $this->persistNagadSettings($state);
+            $label = 'Nagad personal';
+        } else {
+            $this->persistBkashSettings($state);
+            $label = 'bKash personal';
+        }
 
-        AppSetting::putValue('nagad.gateway_type', 'personal');
-        AppSetting::putValue('nagad.enabled', ($state['nagad_enabled'] ?? '0') === '1' ? '1' : '0');
-        AppSetting::putValue('nagad.personal_number', trim((string) ($state['nagad_personal_number'] ?? '')));
-        AppSetting::putValue('nagad.personal_name', trim((string) ($state['nagad_personal_name'] ?? '')));
-        AppSetting::putValue('nagad.instructions', trim((string) ($state['nagad.instructions'] ?? '')));
-        AppSetting::putValue('mfs_personal.gateways.nagad.auto_verify', ($state['nagad_auto_verify'] ?? true) ? '1' : '0');
-
-        AppSetting::syncToRuntimeConfig();
+        AppSetting::syncPublicPaymentGatewayFlags();
 
         Notification::make()
-            ->title('Personal MFS settings saved')
-            ->body('bKash/Nagad personal mode is active. Configure SMS ingest next.')
+            ->title($label.' settings saved')
+            ->body('bKash ও Nagad আলাদা — অন্য gateway-এর ON/OFF অপরিবর্তিত।')
             ->success()
             ->send();
+    }
+
+    /**
+     * @param  array<string, mixed>  $state
+     */
+    private function persistBkashSettings(array $state): void
+    {
+        AppSetting::putValues([
+            'bkash.gateway_type' => BkashSettings::GATEWAY_PERSONAL,
+            'bkash.enabled' => $this->resolveEnabledFlag($state, 'bkash_enabled', 'bkash.enabled') ? '1' : '0',
+            'bkash.personal_number' => trim((string) ($state['bkash_personal_number'] ?? config('bkash.personal_number', ''))),
+            'bkash.personal_name' => trim((string) ($state['bkash_personal_name'] ?? config('bkash.personal_name', ''))),
+            'bkash.instructions' => trim((string) ($state['bkash_personal_instructions'] ?? config('bkash.instructions', ''))),
+            'mfs_personal.gateways.bkash.auto_verify' => $this->resolveToggleFlag($state, 'bkash_auto_verify', 'mfs_personal.gateways.bkash.auto_verify') ? '1' : '0',
+        ]);
+    }
+
+    /**
+     * @param  array<string, mixed>  $state
+     */
+    private function persistNagadSettings(array $state): void
+    {
+        AppSetting::putValues([
+            'nagad.gateway_type' => 'personal',
+            'nagad.enabled' => $this->resolveEnabledFlag($state, 'nagad_enabled', 'nagad.enabled') ? '1' : '0',
+            'nagad.personal_number' => trim((string) ($state['nagad_personal_number'] ?? config('nagad.personal_number', ''))),
+            'nagad.personal_name' => trim((string) ($state['nagad_personal_name'] ?? config('nagad.personal_name', ''))),
+            'nagad.instructions' => trim((string) ($state['nagad_personal_instructions'] ?? config('nagad.instructions', ''))),
+            'mfs_personal.gateways.nagad.auto_verify' => $this->resolveToggleFlag($state, 'nagad_auto_verify', 'mfs_personal.gateways.nagad.auto_verify') ? '1' : '0',
+        ]);
+    }
+
+    /**
+     * @param  array<string, mixed>  $state
+     */
+    private function resolveEnabledFlag(array $state, string $stateKey, string $configKey): bool
+    {
+        if (array_key_exists($stateKey, $state)) {
+            return ($state[$stateKey] ?? '0') === '1' || $state[$stateKey] === true;
+        }
+
+        return (bool) config($configKey, false);
+    }
+
+    /**
+     * @param  array<string, mixed>  $state
+     */
+    private function resolveToggleFlag(array $state, string $stateKey, string $configKey): bool
+    {
+        if (array_key_exists($stateKey, $state)) {
+            return (bool) ($state[$stateKey] ?? false);
+        }
+
+        return (bool) config($configKey, true);
     }
 
     /**
@@ -234,6 +285,7 @@ class ManagePersonalMfsSettings extends Page
             'bkashActive' => PersonalMfsGateway::bkashPersonalEnabled(),
             'nagadActive' => PersonalMfsGateway::nagadPersonalEnabled(),
             'mfsApk' => MobileApkRelease::mfsVerify(),
+            'activeTab' => $this->activeGatewayTab,
         ];
     }
 }

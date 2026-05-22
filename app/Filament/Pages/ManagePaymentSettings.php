@@ -389,51 +389,53 @@ class ManagePaymentSettings extends Page
             $environment = BkashSettings::ENV_SANDBOX;
         }
 
-        if ((string) config('bkash.gateway_type') !== BkashSettings::GATEWAY_PERSONAL) {
+        $bkashIsPersonal = (string) config('bkash.gateway_type') === BkashSettings::GATEWAY_PERSONAL;
+
+        if (! $bkashIsPersonal) {
             AppSetting::putValue('bkash.gateway_type', BkashSettings::GATEWAY_TOKENIZED_WEB);
-        }
-        AppSetting::putValue('bkash.environment', $environment);
-        AppSetting::putValue('bkash.base_url', BkashSettings::baseUrlForEnvironment($environment));
-        AppSetting::putValue('bkash.enabled', ($state['bkash_enabled'] ?? '0') === '1' ? '1' : '0');
-        AppSetting::putValue('bkash.app_key', trim((string) ($state['bkash_app_key'] ?? '')));
-        AppSetting::putValue('bkash.username', trim((string) ($state['bkash_username'] ?? '')));
-        AppSetting::putValue('bkash.http_timeout', (string) max(5, min(120, (int) ($state['bkash_http_timeout'] ?? 30))));
+            AppSetting::putValue('bkash.environment', $environment);
+            AppSetting::putValue('bkash.base_url', BkashSettings::baseUrlForEnvironment($environment));
+            AppSetting::putValue('bkash.enabled', ($state['bkash_enabled'] ?? '0') === '1' ? '1' : '0');
+            AppSetting::putValue('bkash.app_key', trim((string) ($state['bkash_app_key'] ?? '')));
+            AppSetting::putValue('bkash.username', trim((string) ($state['bkash_username'] ?? '')));
+            AppSetting::putValue('bkash.http_timeout', (string) max(5, min(120, (int) ($state['bkash_http_timeout'] ?? 30))));
 
-        $callbackUrl = rtrim(trim((string) ($state['bkash_callback_url'] ?? '')), '/');
-        if ($callbackUrl !== '') {
-            AppSetting::putValue('bkash.callback_url', $callbackUrl);
-        } else {
-            AppSetting::query()->where('key', 'bkash.callback_url')->delete();
-            AppSetting::restoreConfigKeyFromEnv('bkash.callback_url');
-        }
+            $callbackUrl = rtrim(trim((string) ($state['bkash_callback_url'] ?? '')), '/');
+            if ($callbackUrl !== '') {
+                AppSetting::putValue('bkash.callback_url', $callbackUrl);
+            } else {
+                AppSetting::query()->where('key', 'bkash.callback_url')->delete();
+                AppSetting::restoreConfigKeyFromEnv('bkash.callback_url');
+            }
 
-        $activation = $state['bkash_activation_date'] ?? null;
-        if ($activation) {
-            AppSetting::putValue('bkash.activation_date', $activation);
-        } else {
-            AppSetting::query()->where('key', 'bkash.activation_date')->delete();
-            AppSetting::restoreConfigKeyFromEnv('bkash.activation_date');
-        }
+            $activation = $state['bkash_activation_date'] ?? null;
+            if ($activation) {
+                AppSetting::putValue('bkash.activation_date', $activation);
+            } else {
+                AppSetting::query()->where('key', 'bkash.activation_date')->delete();
+                AppSetting::restoreConfigKeyFromEnv('bkash.activation_date');
+            }
 
-        $expiry = $state['bkash_expiry_date'] ?? null;
-        if ($expiry) {
-            AppSetting::putValue('bkash.expiry_date', $expiry);
-        } else {
-            AppSetting::query()->where('key', 'bkash.expiry_date')->delete();
-            AppSetting::restoreConfigKeyFromEnv('bkash.expiry_date');
-        }
+            $expiry = $state['bkash_expiry_date'] ?? null;
+            if ($expiry) {
+                AppSetting::putValue('bkash.expiry_date', $expiry);
+            } else {
+                AppSetting::query()->where('key', 'bkash.expiry_date')->delete();
+                AppSetting::restoreConfigKeyFromEnv('bkash.expiry_date');
+            }
 
-        $channels = is_array($state['bkash_channels'] ?? null) ? $state['bkash_channels'] : [];
-        AppSetting::putValue('bkash.channels', BkashSettings::channelsToStorage($channels));
+            $channels = is_array($state['bkash_channels'] ?? null) ? $state['bkash_channels'] : [];
+            AppSetting::putValue('bkash.channels', BkashSettings::channelsToStorage($channels));
 
-        $rawSecret = (string) ($this->data['bkash_app_secret'] ?? '');
-        if ($rawSecret !== '') {
-            AppSetting::putValue('bkash.app_secret', $rawSecret);
-        }
+            $rawSecret = (string) ($this->data['bkash_app_secret'] ?? '');
+            if ($rawSecret !== '') {
+                AppSetting::putValue('bkash.app_secret', $rawSecret);
+            }
 
-        $rawPass = (string) ($this->data['bkash_password'] ?? '');
-        if ($rawPass !== '') {
-            AppSetting::putValue('bkash.password', $rawPass);
+            $rawPass = (string) ($this->data['bkash_password'] ?? '');
+            if ($rawPass !== '') {
+                AppSetting::putValue('bkash.password', $rawPass);
+            }
         }
 
         AppSetting::putValue('rocket.enabled', ($state['rocket_enabled'] ?? '0') === '1' ? '1' : '0');
@@ -446,17 +448,19 @@ class ManagePaymentSettings extends Page
             'payments.gateways.rocket.enabled' => ($state['rocket_enabled'] ?? '0') === '1',
         ]);
 
-        if ((string) config('nagad.gateway_type') !== 'personal') {
+        $nagadIsPersonal = (string) config('nagad.gateway_type') === 'personal';
+
+        if (! $nagadIsPersonal) {
             AppSetting::putValue('nagad.gateway_type', 'api');
-        }
-        AppSetting::putValue('nagad.enabled', ($state['nagad_enabled'] ?? false) ? '1' : '0');
-        AppSetting::putValue('nagad.sandbox', ($state['nagad_sandbox'] ?? '1') === '1' ? '1' : '0');
-        AppSetting::putValue('nagad.merchant_id', trim((string) ($state['nagad_merchant_id'] ?? '')));
-        AppSetting::putValue('nagad.merchant_number', trim((string) ($state['nagad_merchant_number'] ?? '')));
-        AppSetting::putValue('nagad.pg_public_key', trim((string) ($state['nagad_pg_public_key'] ?? '')));
-        $nagadPrivate = trim((string) ($this->data['nagad_merchant_private_key'] ?? ''));
-        if ($nagadPrivate !== '') {
-            AppSetting::putValue('nagad.merchant_private_key', $nagadPrivate);
+            AppSetting::putValue('nagad.enabled', ($state['nagad_enabled'] ?? false) ? '1' : '0');
+            AppSetting::putValue('nagad.sandbox', ($state['nagad_sandbox'] ?? '1') === '1' ? '1' : '0');
+            AppSetting::putValue('nagad.merchant_id', trim((string) ($state['nagad_merchant_id'] ?? '')));
+            AppSetting::putValue('nagad.merchant_number', trim((string) ($state['nagad_merchant_number'] ?? '')));
+            AppSetting::putValue('nagad.pg_public_key', trim((string) ($state['nagad_pg_public_key'] ?? '')));
+            $nagadPrivate = trim((string) ($this->data['nagad_merchant_private_key'] ?? ''));
+            if ($nagadPrivate !== '') {
+                AppSetting::putValue('nagad.merchant_private_key', $nagadPrivate);
+            }
         }
 
         AppSetting::putValue('sslcommerz.enabled', ($state['sslcommerz_enabled'] ?? false) ? '1' : '0');

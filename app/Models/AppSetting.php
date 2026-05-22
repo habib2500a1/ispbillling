@@ -127,16 +127,26 @@ class AppSetting extends Model
 
     public static function putValue(string $key, ?string $plainValue): void
     {
-        if ($plainValue === null || $plainValue === '') {
-            static::query()->where('key', $key)->delete();
+        static::putValues([$key => $plainValue]);
+    }
 
-            return;
+    /**
+     * Persist multiple settings with a single config sync (avoids partial reloads mid-save).
+     *
+     * @param  array<string, ?string>  $pairs
+     */
+    public static function putValues(array $pairs): void
+    {
+        foreach ($pairs as $key => $plainValue) {
+            if ($plainValue === null || $plainValue === '') {
+                static::query()->where('key', $key)->delete();
+            } else {
+                static::query()->updateOrCreate(
+                    ['key' => $key],
+                    ['value' => $plainValue],
+                );
+            }
         }
-
-        static::query()->updateOrCreate(
-            ['key' => $key],
-            ['value' => $plainValue],
-        );
 
         Cache::forget('bootstrap.app_settings_sync');
         static::syncToRuntimeConfig();

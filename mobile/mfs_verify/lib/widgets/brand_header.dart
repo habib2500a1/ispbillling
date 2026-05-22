@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
 import '../config/app_branding.dart';
 
 /// Company logo + RCL SMS title (same branding as Radiant admin app).
 class BrandHeader extends StatelessWidget {
-  const BrandHeader({super.key, this.compact = false});
+  const BrandHeader({super.key, this.compact = false, this.versionLabel});
 
   final bool compact;
+  final String? versionLabel;
 
   static const _brandGreen = Color(0xFF059669);
 
@@ -47,8 +49,20 @@ class BrandHeader extends StatelessWidget {
             style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
           ),
         ],
+        if (versionLabel != null && versionLabel!.isNotEmpty) ...[
+          const SizedBox(height: 6),
+          Text(
+            'v$versionLabel',
+            style: TextStyle(fontSize: 11, color: Colors.grey.shade500, fontWeight: FontWeight.w600),
+          ),
+        ],
       ],
     );
+  }
+
+  static Future<String> loadVersionLabel() async {
+    final info = await PackageInfo.fromPlatform();
+    return '${info.version}+${info.buildNumber}';
   }
 
   Widget _logo(AppBranding b) {

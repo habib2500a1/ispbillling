@@ -50,6 +50,7 @@ class _MfsVerifyHomeState extends State<MfsVerifyHome> with WidgetsBindingObserv
   bool _configured = false;
   bool _auto = true;
   bool _loading = false;
+  String _versionLabel = '';
   MfsApiService? _api;
 
   @override
@@ -57,6 +58,9 @@ class _MfsVerifyHomeState extends State<MfsVerifyHome> with WidgetsBindingObserv
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _load();
+    unawaited(BrandHeader.loadVersionLabel().then((v) {
+      if (mounted) setState(() => _versionLabel = v);
+    }));
     SmsListenerService.instance.onUpdate = () {
       if (mounted) setState(() {});
     };
@@ -201,7 +205,7 @@ class _MfsVerifyHomeState extends State<MfsVerifyHome> with WidgetsBindingObserv
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          const BrandHeader(),
+          BrandHeader(versionLabel: _versionLabel.isEmpty ? null : _versionLabel),
           const SizedBox(height: 20),
           if (!_configured) ...[
             const Text(

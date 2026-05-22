@@ -40,18 +40,30 @@ final class PaymentsSidebarRegistry
                 'active_routes' => ['filament.admin.resources.payments.create'],
             ],
             [
-                'key' => 'personal_mfs',
-                'label' => 'Personal bKash / Nagad',
+                'key' => 'personal_bkash',
+                'label' => 'Personal bKash',
                 'icon' => 'heroicon-o-device-phone-mobile',
                 'sort' => 10,
                 'url' => ManagePersonalMfsSettings::getUrl(['tab' => 'bkash']),
                 'active_routes' => ['filament.admin.pages.personal-mfs-verify'],
+                'active_when' => fn (): bool => request()->routeIs('filament.admin.pages.personal-mfs-verify')
+                    && request()->query('tab') !== 'nagad',
+            ],
+            [
+                'key' => 'personal_nagad',
+                'label' => 'Personal Nagad',
+                'icon' => 'heroicon-o-banknotes',
+                'sort' => 11,
+                'url' => ManagePersonalMfsSettings::getUrl(['tab' => 'nagad']),
+                'active_routes' => ['filament.admin.pages.personal-mfs-verify'],
+                'active_when' => fn (): bool => request()->routeIs('filament.admin.pages.personal-mfs-verify')
+                    && request()->query('tab') === 'nagad',
             ],
             [
                 'key' => 'mfs_sms_apps',
                 'label' => 'RCL SMS & apps',
                 'icon' => 'heroicon-o-chat-bubble-left-ellipsis',
-                'sort' => 11,
+                'sort' => 12,
                 'url' => ManageMfsSmsSettings::getUrl(),
                 'active_routes' => ['filament.admin.pages.mfs-sms-verify'],
             ],
@@ -107,8 +119,8 @@ final class PaymentsSidebarRegistry
                 ->group('Payments')
                 ->sort($entry['sort'])
                 ->isActiveWhen(function () use ($entry): bool {
-                    if ($entry['key'] === 'personal_mfs') {
-                        return request()->routeIs('filament.admin.pages.personal-mfs-verify');
+                    if (isset($entry['active_when']) && is_callable($entry['active_when'])) {
+                        return (bool) ($entry['active_when'])();
                     }
                     if ($entry['key'] === 'merchant_gateways') {
                         return request()->routeIs('filament.admin.pages.payment-gateway-settings');
@@ -144,7 +156,7 @@ final class PaymentsSidebarRegistry
             'all', 'record' => PaymentResource::canViewAny(),
             'pending_gateway' => PendingGatewayPaymentResource::canViewAny(),
             'mfs_sms' => MfsSmsRecordResource::canViewAny(),
-            'personal_mfs' => ManagePersonalMfsSettings::canAccess(),
+            'personal_bkash', 'personal_nagad' => ManagePersonalMfsSettings::canAccess(),
             'mfs_sms_apps' => ManageMfsSmsSettings::canAccess(),
             'merchant_gateways' => ManagePaymentSettings::canAccess(),
             default => false,
