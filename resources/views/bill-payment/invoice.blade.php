@@ -41,6 +41,15 @@
             </div>
         </div>
 
+        @if ($summary['total_due'] > 0)
+            <div class="bp-alert bp-alert-err mt-4">
+                Pay each invoice in <strong>full</strong> (partial / manual amount is not allowed).
+                Your internet line turns on automatically only after <strong>all dues are cleared</strong>.
+            </div>
+        @else
+            <div class="bp-alert bp-alert-ok mt-4">No due invoices. Wallet top-up is available for advance credit.</div>
+        @endif
+
         <nav class="bp-tabs mt-6">
             <a href="{{ route('bill-payment.invoice', ['tab' => 'invoices']) }}" class="bp-tab {{ $activeTab === 'invoices' ? 'bp-tab-active' : '' }}">Pay bill</a>
             @if ($walletTopupEnabled)
@@ -74,20 +83,7 @@
                         @if (($anyGatewayEnabled ?? false) && $summary['can_pay'])
                             <form method="post" action="{{ route('bill-payment.pay', $invoice) }}" class="bp-pay-form">
                                 @csrf
-                                @if ($allowPartial && $due > $minAmount)
-                                    <label class="text-xs font-medium text-slate-600">Pay amount (BDT)</label>
-                                    <input
-                                        type="number"
-                                        name="amount"
-                                        class="bp-input"
-                                        step="0.01"
-                                        min="{{ $minAmount }}"
-                                        max="{{ $due }}"
-                                        value="{{ number_format($defaultAmount, 2, '.', '') }}"
-                                        required
-                                    >
-                                    <p class="mt-1 text-xs text-slate-500">Min {{ number_format($minAmount, 0) }} · Max {{ number_format($due, 2) }}</p>
-                                @endif
+                                <p class="text-sm font-semibold text-teal-800">Pay full due: {{ number_format($due, 2) }} BDT</p>
                                 <div class="mt-2 flex flex-col gap-2">
                                     @if ($bkashEnabled ?? false)
                                         <button type="submit" name="gateway" value="bkash" class="bp-btn bp-btn-bkash" style="width:auto;padding:0.625rem 1.25rem;margin:0;">bKash</button>
@@ -118,7 +114,10 @@
             <div class="mt-4 rounded-xl border border-teal-200 bg-teal-50/50 p-4">
                 <h3 class="font-semibold text-teal-900">Advance / wallet top-up</h3>
                 <p class="mt-1 text-sm text-slate-600">
-                    Add money to your account in advance. It will be applied to future bills automatically.
+                    Add money to your wallet in any amount. It is applied to bills automatically.
+                    @if ($summary['total_due'] > 0)
+                        <strong class="text-rose-700">Line stays off until all invoice dues above are paid in full.</strong>
+                    @endif
                 </p>
                 @if (($bkashEnabled ?? false) || ($sslcommerzEnabled ?? false) || ($nagadEnabled ?? false) || ($rocketEnabled ?? false) || ($piprapayEnabled ?? false))
                     <form method="post" action="{{ route('bill-payment.wallet') }}" class="mt-4">

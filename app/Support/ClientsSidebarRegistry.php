@@ -2,9 +2,7 @@
 
 namespace App\Support;
 
-use App\Filament\Pages\AreaWiseClientsReport;
 use App\Filament\Pages\ClientsHub;
-use App\Filament\Pages\ExportClientsReport;
 use App\Filament\Pages\ImportClientsCsvPage;
 use App\Filament\Pages\OnlineClientsMonitoring;
 use App\Filament\Resources\CustomerResource;
@@ -32,10 +30,18 @@ final class ClientsSidebarRegistry
 
         return [
             [
+                'key' => 'hub',
+                'label' => 'Clients center',
+                'icon' => 'heroicon-o-squares-2x2',
+                'sort' => 1,
+                'url' => ClientsHub::getUrl(),
+                'active_routes' => ['filament.admin.pages.clients-hub'],
+            ],
+            [
                 'key' => 'add',
                 'label' => 'Add client',
                 'icon' => 'heroicon-o-user-plus',
-                'sort' => 1,
+                'sort' => 2,
                 'url' => CustomerResource::getUrl('create'),
                 'active_routes' => ['filament.admin.resources.subscribers.create'],
             ],
@@ -43,7 +49,7 @@ final class ClientsSidebarRegistry
                 'key' => 'all',
                 'label' => 'All clients',
                 'icon' => 'heroicon-o-users',
-                'sort' => 2,
+                'sort' => 3,
                 'url' => $index,
                 'active_routes' => [
                     'filament.admin.resources.subscribers.index',
@@ -56,7 +62,7 @@ final class ClientsSidebarRegistry
                 'key' => 'online',
                 'label' => 'Online clients',
                 'icon' => 'heroicon-o-signal',
-                'sort' => 3,
+                'sort' => 4,
                 'url' => $index.'?preset=online',
                 'active_routes' => [],
                 'badge_key' => 'online',
@@ -65,16 +71,40 @@ final class ClientsSidebarRegistry
                 'key' => 'active',
                 'label' => 'Active clients',
                 'icon' => 'heroicon-o-check-circle',
-                'sort' => 4,
+                'sort' => 5,
                 'url' => CustomerResource::getUrl('active'),
                 'active_routes' => ['filament.admin.resources.subscribers.active'],
                 'badge_key' => 'active',
             ],
             [
+                'key' => 'today',
+                'label' => "Today's renewals",
+                'icon' => 'heroicon-o-calendar-days',
+                'sort' => 6,
+                'url' => CustomerResource::getUrl('today'),
+                'active_routes' => ['filament.admin.resources.subscribers.today'],
+            ],
+            [
+                'key' => 'pending',
+                'label' => 'Pending clients',
+                'icon' => 'heroicon-o-clock',
+                'sort' => 7,
+                'url' => CustomerResource::getUrl('pending'),
+                'active_routes' => ['filament.admin.resources.subscribers.pending'],
+            ],
+            [
+                'key' => 'expire_3',
+                'label' => 'Expire in 3 days',
+                'icon' => 'heroicon-o-bell-alert',
+                'sort' => 8,
+                'url' => CustomerResource::getUrl('expire-3'),
+                'active_routes' => ['filament.admin.resources.subscribers.expire-3'],
+            ],
+            [
                 'key' => 'expired',
                 'label' => 'Expired clients',
-                'icon' => 'heroicon-o-clock',
-                'sort' => 5,
+                'icon' => 'heroicon-o-exclamation-circle',
+                'sort' => 9,
                 'url' => CustomerResource::getUrl('expired'),
                 'active_routes' => ['filament.admin.resources.subscribers.expired'],
                 'badge_key' => 'expired',
@@ -83,7 +113,7 @@ final class ClientsSidebarRegistry
                 'key' => 'suspended',
                 'label' => 'Suspended',
                 'icon' => 'heroicon-o-pause-circle',
-                'sort' => 6,
+                'sort' => 10,
                 'url' => CustomerResource::getUrl('suspended'),
                 'active_routes' => ['filament.admin.resources.subscribers.suspended'],
                 'badge_key' => 'suspended',
@@ -92,7 +122,7 @@ final class ClientsSidebarRegistry
                 'key' => 'left',
                 'label' => 'Left clients',
                 'icon' => 'heroicon-o-archive-box',
-                'sort' => 7,
+                'sort' => 11,
                 'url' => CustomerResource::getUrl('left'),
                 'active_routes' => ['filament.admin.resources.subscribers.left'],
                 'badge_key' => 'left',
@@ -101,7 +131,7 @@ final class ClientsSidebarRegistry
                 'key' => 'monitor',
                 'label' => 'Live PPP monitor',
                 'icon' => 'heroicon-o-bolt',
-                'sort' => 8,
+                'sort' => 12,
                 'url' => OnlineClientsMonitoring::getUrl(),
                 'active_routes' => ['filament.admin.pages.online-clients-monitoring'],
             ],
@@ -109,7 +139,7 @@ final class ClientsSidebarRegistry
                 'key' => 'import',
                 'label' => 'Import CSV',
                 'icon' => 'heroicon-o-arrow-up-tray',
-                'sort' => 9,
+                'sort' => 13,
                 'url' => ImportClientsCsvPage::getUrl(),
                 'active_routes' => ['filament.admin.pages.import-clients-csv'],
             ],
@@ -184,6 +214,7 @@ final class ClientsSidebarRegistry
     public static function canSeeEntry(string $key): bool
     {
         return match ($key) {
+            'hub' => ClientsHub::canAccess(),
             'add' => CustomerResource::canCreate(),
             'monitor' => OnlineClientsMonitoring::canAccess(),
             'import' => ImportClientsCsvPage::canAccess(),

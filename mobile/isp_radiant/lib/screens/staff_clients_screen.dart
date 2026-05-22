@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../services/api_service.dart';
 import '../theme/app_theme.dart';
@@ -101,6 +102,7 @@ class _StaffClientsScreenState extends State<StaffClientsScreen> {
   Widget build(BuildContext context) {
     return PageScaffold(
       title: 'Client list',
+      useGradientBody: true,
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => Navigator.push(
           context,
@@ -182,20 +184,15 @@ class _StaffClientsScreenState extends State<StaffClientsScreen> {
                   );
                 }
                 final online = c['is_online'] == true;
+                final monthly = (c['monthly_bill'] as num?)?.toDouble() ?? 0;
+                final networkOn = c['network_on'] != false;
+                final phone = c['phone']?.toString() ?? '';
                 return Card(
                   margin: const EdgeInsets.only(bottom: 8),
-                  child: ListTile(
-                    leading: CircleAvatar(
-                      backgroundColor: (online ? AppTheme.success : Colors.grey).withValues(alpha: 0.15),
-                      child: Icon(Icons.person, color: online ? AppTheme.success : Colors.grey),
-                    ),
-                    title: Text(c['name']?.toString() ?? '', style: const TextStyle(fontWeight: FontWeight.w600)),
-                    subtitle: Text('${c['customer_code']} · ${c['package'] ?? c['phone'] ?? ''}'),
-                    trailing: Icon(
-                      Icons.circle,
-                      size: 12,
-                      color: online ? AppTheme.success : Colors.grey.shade400,
-                    ),
+                  clipBehavior: Clip.antiAlias,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  elevation: 2,
+                  child: InkWell(
                     onTap: () => Navigator.push(
                       context,
                       MaterialPageRoute(
@@ -213,6 +210,91 @@ class _StaffClientsScreenState extends State<StaffClientsScreen> {
                       );
                       if (ok == true) _load();
                     },
+                    child: Column(
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(12, 10, 12, 4),
+                          child: Row(
+                            children: [
+                              Icon(Icons.circle, size: 10, color: online ? AppTheme.success : Colors.grey.shade400),
+                              const SizedBox(width: 6),
+                              Expanded(
+                                child: Text(
+                                  c['name']?.toString() ?? '',
+                                  style: const TextStyle(fontWeight: FontWeight.w700),
+                                ),
+                              ),
+                              Text(
+                                '${monthly.toStringAsFixed(1)} M.bill',
+                                style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.red, fontSize: 13),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          child: Align(
+                            alignment: Alignment.centerLeft,
+                            child: Text(
+                              '${c['username'] ?? c['customer_code']} · ${c['package'] ?? ''} · ${c['customer_code']}',
+                              style: const TextStyle(fontSize: 11, color: Colors.black54),
+                            ),
+                          ),
+                        ),
+                        if ((c['zone']?.toString() ?? '').isNotEmpty)
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(12, 2, 12, 4),
+                            child: Align(
+                              alignment: Alignment.centerLeft,
+                              child: Text(
+                                c['zone'].toString(),
+                                style: const TextStyle(fontSize: 11, color: Colors.deepOrange, fontWeight: FontWeight.w600),
+                              ),
+                            ),
+                          ),
+                        Container(
+                          color: AppTheme.primary.withValues(alpha: 0.08),
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          child: Row(
+                            children: [
+                              const Text('MikroTik', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600)),
+                              Switch.adaptive(
+                                value: networkOn,
+                                onChanged: (_) async {
+                                  try {
+                                    await widget.api.staffToggleNetwork(id);
+                                    _load();
+                                  } on ApiException catch (e) {
+                                    if (context.mounted) showSnack(context, e.message, isError: true);
+                                  }
+                                },
+                              ),
+                              const Spacer(),
+                              if (phone.isNotEmpty)
+                                IconButton(
+                                  icon: const Icon(Icons.phone, color: AppTheme.success, size: 22),
+                                  onPressed: () async {
+                                    final uri = Uri.parse('tel:$phone');
+                                    if (await canLaunchUrl(uri)) await launchUrl(uri);
+                                  },
+                                  tooltip: phone,
+                                ),
+                              IconButton(
+                                icon: const Icon(Icons.chat_bubble_outline, size: 20),
+                                onPressed: () async {
+                                  try {
+                                    await widget.api.staffSmsReminder(id);
+                                    if (context.mounted) showSnack(context, 'SMS sent');
+                                  } on ApiException catch (e) {
+                                    if (context.mounted) showSnack(context, e.message, isError: true);
+                                  }
+                                },
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 );
               },

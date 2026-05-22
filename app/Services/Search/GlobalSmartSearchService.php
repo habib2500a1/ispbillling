@@ -134,7 +134,7 @@ final class GlobalSmartSearchService
                         .' · Phone '.($c->phone ?: '—')
                         .' · Address '.($address !== '—' ? $address : '—')
                         .' · PPP '.($c->mikrotik_secret_name ?: '—')
-                        .($c->is_ppp_online ? ' · online' : '')
+                        .($c->isPppOnline() ? ' · online' : '')
                         .' · '.($c->status ?? '—')
                     ),
                     ...$links,

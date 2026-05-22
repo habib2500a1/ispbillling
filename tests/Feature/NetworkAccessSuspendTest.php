@@ -109,4 +109,83 @@ class NetworkAccessSuspendTest extends TestCase
         $this->assertSame('paid', $invoice->fresh()->status);
         $this->assertSame('active', $customer->fresh()->network_access_state);
     }
+
+    public function test_suspends_when_balance_due_before_due_date(): void
+    {
+        config([
+            'network.auto_suspend_enabled' => true,
+            'network.suspend_on_any_balance_due' => true,
+        ]);
+
+        $package = Package::query()->create([
+            'name' => 'Net Plan C',
+            'type' => 'residential',
+            'download_mbps' => 10,
+            'price_monthly' => 500,
+            'setup_fee' => 0,
+            'vat_percent' => 0,
+            'billing_cycle_days' => 30,
+            'is_active' => true,
+        ]);
+
+        $customer = Customer::query()->create([
+            'name' => 'Net Customer C',
+            'phone' => '01600000097',
+            'status' => 'active',
+            'billing_day' => 1,
+            'package_id' => $package->id,
+            'network_access_state' => 'active',
+            'meta' => ['auto_suspend' => true],
+        ]);
+
+        Invoice::query()->create([
+            'customer_id' => $customer->id,
+            'issue_date' => now()->toDateString(),
+            'due_date' => now()->addDays(10)->toDateString(),
+            'period_start' => now()->toDateString(),
+            'period_end' => now()->addDays(30)->toDateString(),
+            'subtotal' => 500,
+            'tax_amount' => 0,
+            'discount_amount' => 0,
+            'total' => 500,
+            'amount_paid' => 0,
+            'status' => 'open',
+        ]);
+
+        app(\App\Services\Network\NetworkAccessCoordinator::class)->syncCustomer($customer->fresh());
+
+        $this->assertSame('suspended', $customer->fresh()->network_access_state);
+    }
+
+    public function test_meta_auto_suspend_off_keeps_active_with_due(): void
+    {
+        config([
+            'network.auto_suspend_enabled' => true,
+            'network.suspend_on_any_balance_due' => true,
+        ]);
+
+        $customer = Customer::query()->create([
+            'name' => 'No Auto Suspend',
+            'phone' => '01600000096',
+            'status' => 'active',
+            'network_access_state' => 'active',
+            'meta' => ['auto_suspend' => false],
+        ]);
+
+        Invoice::query()->create([
+            'customer_id' => $customer->id,
+            'issue_date' => now()->subDays(5)->toDateString(),
+            'due_date' => now()->subDay()->toDateString(),
+            'period_start' => now()->subDays(5)->toDateString(),
+            'period_end' => now()->toDateString(),
+            'subtotal' => 500,
+            'total' => 500,
+            'amount_paid' => 0,
+            'status' => 'open',
+        ]);
+
+        app(\App\Services\Network\NetworkAccessCoordinator::class)->syncCustomer($customer->fresh());
+
+        $this->assertSame('active', $customer->fresh()->network_access_state);
+    }
 }

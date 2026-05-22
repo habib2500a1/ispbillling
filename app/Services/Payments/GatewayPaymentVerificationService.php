@@ -2,26 +2,51 @@
 
 namespace App\Services\Payments;
 
+use App\Models\Customer;
+use App\Models\MfsSmsRecord;
 use App\Models\Payment;
 use App\Models\PendingGatewayPayment;
-use App\Support\PaymentGateway;
+use App\Support\PersonalMfsGateway;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
+
 final class GatewayPaymentVerificationService
 {
     /**
      * @param  array<string, mixed>  $session
-     * @return array{status: string, payment?: \App\Models\Payment, pending?: PendingGatewayPayment, message: string}
+     * @return array{status: string, payment?: Payment, pending?: PendingGatewayPayment, message: string}
      */
     public function submitRocketConfirmation(
         string $orderId,
         string $transactionId,
         array $session,
     ): array {
+        return $this->submitPersonalConfirmation(
+            \App\Support\PaymentGateway::ROCKET,
+            $orderId,
+            $transactionId,
+            $session,
+        );
+    }
+
+    /**
+     * Personal MFS (bKash / Nagad / Rocket): customer pays personal number, enters TrxID.
+     * Auto-approve when SMS ledger matches (PipraPay-style) or queue for admin.
+     *
+     * @param  array<string, mixed>  $session
+     * @return array{status: string, payment?: Payment, pending?: PendingGatewayPayment, message: string}
+     */
+    public function submitPersonalConfirmation(
+        string $gateway,
+        string $orderId,
+        string $transactionId,
+        array $session,
+    ): array {
+        $gateway = strtolower(trim($gateway));
         $customerId = (int) ($session['customer_id'] ?? 0);
         $amount = round((float) ($session['amount'] ?? 0), 2);
         $invoiceId = isset($session['invoice_id']) ? (int) $session['invoice_id'] : null;
-        $trxId = strtoupper(trim($transactionId));
-        $gateway = PaymentGateway::ROCKET;
+        $trxId = PersonalMfsGateway::normalizeTrxId($transactionId);
 
         if ($this->isDuplicateTransaction($gateway, $trxId)) {
             return [
@@ -30,51 +55,29 @@ final class GatewayPaymentVerificationService
             ];
         }
 
-        $customer = \App\Models\Customer::query()->withoutGlobalScopes()->find($customerId);
+        $customer = Customer::query()->withoutGlobalScopes()->find($customerId);
         if ($customer === null) {
             return ['status' => 'error', 'message' => 'Customer not found.'];
         }
 
-        $checks = $this->runRocketChecks($trxId, $amount, $session);
-        $autoApprove = (bool) config('rocket.auto_verify', false) && ($checks['auto_ok'] ?? false);
+        $checks = $this->runPersonalChecks($gateway, $trxId, $amount, $session, (int) $customer->tenant_id);
+        $autoApprove = PersonalMfsGateway::autoVerifyEnabled($gateway) && ($checks['auto_ok'] ?? false);
 
         if ($autoApprove) {
-            $payment = PaymentProcessor::recordGatewayPayment(
-                gateway: $gateway,
-                transactionId: $trxId,
-                customerId: $customerId,
-                invoiceId: $invoiceId,
-                amount: $amount,
-                reference: 'Rocket '.$trxId,
-                meta: [
-                    'rocket_order_id' => $orderId,
-                    'auto_verified' => true,
-                    'confirmed_at' => now()->toIso8601String(),
-                ],
-            );
-
-            PendingGatewayPayment::query()->create([
-                'tenant_id' => $customer->tenant_id,
-                'customer_id' => $customerId,
-                'invoice_id' => $invoiceId,
-                'gateway' => $gateway,
-                'transaction_id' => $trxId,
-                'amount' => $amount,
-                'status' => PendingGatewayPayment::STATUS_AUTO_APPROVED,
-                'checkout_order_id' => $orderId,
-                'payment_id' => $payment->id,
-                'reviewed_at' => now(),
-                'meta' => $checks,
-            ]);
-
-            return [
-                'status' => 'approved',
-                'payment' => $payment,
-                'message' => 'Payment verified and recorded. Thank you!',
-            ];
+            return DB::transaction(function () use ($gateway, $orderId, $trxId, $customer, $customerId, $invoiceId, $amount, $checks): array {
+                return $this->finalizeAutoApproval(
+                    gateway: $gateway,
+                    orderId: $orderId,
+                    trxId: $trxId,
+                    tenantId: (int) $customer->tenant_id,
+                    customerId: $customerId,
+                    invoiceId: $invoiceId,
+                    amount: $amount,
+                    checks: $checks,
+                );
+            });
         }
 
-        $customerName = $customer->name;
         $pending = PendingGatewayPayment::query()->updateOrCreate(
             ['gateway' => $gateway, 'transaction_id' => $trxId],
             [
@@ -94,15 +97,191 @@ final class GatewayPaymentVerificationService
                 $gateway,
                 $trxId,
                 $amount,
-                $customerName,
+                $customer->name,
             );
         }
+
+        // SMS may have landed in the ledger just before/after this submit (late scan, race).
+        $lateMatch = $this->tryAutoApprovePending($pending->fresh() ?? $pending);
+        if (($lateMatch['status'] ?? '') === 'approved') {
+            return [
+                'status' => 'approved',
+                'payment' => $lateMatch['payment'] ?? null,
+                'message' => $lateMatch['message'] ?? 'Payment verified and recorded. Thank you!',
+            ];
+        }
+
+        $reasonText = PersonalMfsGateway::pendingReasonMessage($checks['reasons'] ?? []);
+        $baseMessage = $reasonText !== 'Waiting for admin approval or SMS match.'
+            ? 'Could not auto-verify: '.$reasonText
+            : 'Payment submitted for verification. You will be notified once approved.';
 
         return [
             'status' => 'pending',
             'pending' => $pending,
-            'message' => 'Payment submitted for verification. You will be notified once approved.',
+            'message' => $baseMessage,
+            'merchant_number' => PersonalMfsGateway::merchantNumber($gateway),
+            'customer_notice' => PersonalMfsGateway::customerPendingNotice($gateway, ['message' => $baseMessage]),
+            'checks' => $checks,
         ];
+    }
+
+    /**
+     * Re-check SMS ledger for a pending row (customer submitted TrxID before SMS arrived).
+     *
+     * @return array{status: string, payment?: Payment, message: string}
+     */
+    public function tryAutoApprovePending(PendingGatewayPayment $pending): array
+    {
+        if ($pending->status !== PendingGatewayPayment::STATUS_PENDING) {
+            return ['status' => 'skipped', 'message' => 'Not pending.'];
+        }
+
+        if ($pending->customer_id === null) {
+            return ['status' => 'pending', 'message' => 'Assign subscriber ID first (SMS had no matching ID/phone).'];
+        }
+
+        if (! PersonalMfsGateway::autoVerifyEnabled($pending->gateway)) {
+            return ['status' => 'skipped', 'message' => 'Auto-verify is off for this gateway.'];
+        }
+
+        $checks = $this->runPersonalChecks(
+            $pending->gateway,
+            $pending->transaction_id,
+            (float) $pending->amount,
+            [
+                'amount' => (float) $pending->amount,
+                'customer_id' => $pending->customer_id,
+                'invoice_id' => $pending->invoice_id,
+            ],
+            (int) $pending->tenant_id,
+        );
+
+        if (! ($checks['auto_ok'] ?? false)) {
+            return [
+                'status' => 'pending',
+                'message' => PersonalMfsGateway::pendingReasonMessage($checks['reasons'] ?? []),
+            ];
+        }
+
+        return DB::transaction(function () use ($pending, $checks): array {
+            $locked = PendingGatewayPayment::query()->whereKey($pending->id)->lockForUpdate()->firstOrFail();
+            if ($locked->status !== PendingGatewayPayment::STATUS_PENDING) {
+                return ['status' => 'skipped', 'message' => 'Already processed.'];
+            }
+
+            return $this->finalizeAutoApproval(
+                gateway: $locked->gateway,
+                orderId: (string) ($locked->checkout_order_id ?? ''),
+                trxId: $locked->transaction_id,
+                tenantId: (int) $locked->tenant_id,
+                customerId: (int) $locked->customer_id,
+                invoiceId: $locked->invoice_id,
+                amount: (float) $locked->amount,
+                checks: $checks,
+                existingPending: $locked,
+            );
+        });
+    }
+
+    /**
+     * Auto-approve from SMS when subscriber ID / PPPoE appears in payment reference (no prior checkout).
+     */
+    public function autoApproveFromSmsReference(MfsSmsRecord $sms): int
+    {
+        return app(MfsSmsAutoApprovalService::class)->approveByReference($sms);
+    }
+
+    public function isDuplicateGatewayTransaction(string $gateway, string $trxId): bool
+    {
+        return $this->isDuplicateTransaction($gateway, $trxId);
+    }
+
+    /**
+     * When a new SMS lands in the ledger, auto-complete matching pending TrxID rows.
+     */
+    public function matchPendingForSms(MfsSmsRecord $sms): int
+    {
+        if ($sms->status !== MfsSmsRecord::STATUS_APPROVED) {
+            return 0;
+        }
+
+        $pendings = PendingGatewayPayment::query()
+            ->where('tenant_id', $sms->tenant_id)
+            ->where('gateway', $sms->gateway)
+            ->where('transaction_id', $sms->transaction_id)
+            ->where('status', PendingGatewayPayment::STATUS_PENDING)
+            ->orderBy('id')
+            ->get();
+
+        $matched = 0;
+        foreach ($pendings as $pending) {
+            $result = $this->tryAutoApprovePending($pending);
+            if (($result['status'] ?? '') === 'approved') {
+                $matched++;
+            }
+        }
+
+        return $matched;
+    }
+
+    /**
+     * Retry all pending rows against the SMS ledger (customer submitted TrxID before SMS, or APK already sent SMS once).
+     */
+    public function retryAllPendingMatches(?int $tenantId = null, int $limit = 150): int
+    {
+        if (! (bool) config('mfs_personal.sms_ingest.enabled', false)) {
+            return 0;
+        }
+
+        $query = PendingGatewayPayment::query()
+            ->where('status', PendingGatewayPayment::STATUS_PENDING)
+            ->orderBy('id');
+
+        if ($tenantId !== null) {
+            $query->where('tenant_id', $tenantId);
+        }
+
+        $matched = 0;
+        foreach ($query->limit($limit)->get() as $pending) {
+            $result = $this->tryAutoApprovePending($pending);
+            if (($result['status'] ?? '') === 'approved') {
+                $matched++;
+            }
+        }
+
+        return $matched;
+    }
+
+    /**
+     * Admin picks subscriber ID for an unmatched SMS payment, then records payment (FIFO bills + advance).
+     */
+    public function assignAndApprove(
+        PendingGatewayPayment $pending,
+        int $customerId,
+        ?int $invoiceId = null,
+        ?int $reviewerId = null,
+    ): Payment {
+        if ($pending->status !== PendingGatewayPayment::STATUS_PENDING) {
+            throw new \RuntimeException('Only pending payments can be assigned.');
+        }
+
+        if ($pending->customer_id !== null && (int) $pending->customer_id !== $customerId) {
+            throw new \RuntimeException('Payment is already linked to another subscriber.');
+        }
+
+        $pending->forceFill([
+            'customer_id' => $customerId,
+            'invoice_id' => $invoiceId,
+            'meta' => array_merge($pending->meta ?? [], [
+                'matched_by' => 'admin_assigned',
+                'fifo_multi_invoice' => true,
+                'assigned_by' => $reviewerId,
+                'assigned_at' => now()->toIso8601String(),
+            ]),
+        ])->save();
+
+        return $this->approve($pending->fresh() ?? $pending, $reviewerId);
     }
 
     public function approve(PendingGatewayPayment $pending, ?int $reviewerId = null): Payment
@@ -111,28 +290,55 @@ final class GatewayPaymentVerificationService
             return $pending->payment ?? Payment::query()->findOrFail($pending->payment_id);
         }
 
+        if ($pending->customer_id === null) {
+            throw new \RuntimeException('Select a subscriber ID before approving this payment.');
+        }
+
         if ($this->isDuplicateTransaction($pending->gateway, $pending->transaction_id, $pending->id)) {
             throw new \RuntimeException('Transaction ID already used on another payment.');
         }
 
-        $payment = PaymentProcessor::recordGatewayPayment(
-            gateway: $pending->gateway,
-            transactionId: $pending->transaction_id,
-            customerId: $pending->customer_id,
-            invoiceId: $pending->invoice_id,
-            amount: (float) $pending->amount,
-            reference: strtoupper($pending->gateway).' '.$pending->transaction_id,
-            meta: ['pending_id' => $pending->id, 'approved_at' => now()->toIso8601String()],
-        );
+        return DB::transaction(function () use ($pending, $reviewerId): Payment {
+            $locked = PendingGatewayPayment::query()->whereKey($pending->id)->lockForUpdate()->firstOrFail();
 
-        $pending->forceFill([
-            'status' => PendingGatewayPayment::STATUS_APPROVED,
-            'payment_id' => $payment->id,
-            'reviewed_by' => $reviewerId,
-            'reviewed_at' => now(),
-        ])->save();
+            $paymentMeta = [
+                'pending_id' => $locked->id,
+                'approved_at' => now()->toIso8601String(),
+                'matched_by' => $locked->meta['matched_by'] ?? 'manual',
+            ];
+            if (! empty($locked->meta['fifo_multi_invoice'])) {
+                $paymentMeta['fifo_multi_invoice'] = true;
+            }
 
-        return $payment;
+            $payment = PaymentProcessor::recordGatewayPayment(
+                gateway: $locked->gateway,
+                transactionId: $locked->transaction_id,
+                customerId: (int) $locked->customer_id,
+                invoiceId: $locked->invoice_id,
+                amount: (float) $locked->amount,
+                reference: strtoupper($locked->gateway).' '.$locked->transaction_id,
+                meta: $paymentMeta,
+            );
+
+            $locked->forceFill([
+                'status' => PendingGatewayPayment::STATUS_APPROVED,
+                'payment_id' => $payment->id,
+                'reviewed_by' => $reviewerId,
+                'reviewed_at' => now(),
+            ])->save();
+
+            $smsId = $locked->meta['sms_record_id'] ?? null;
+            if ($smsId !== null) {
+                $sms = MfsSmsRecord::query()->find($smsId);
+                if ($sms !== null && $sms->status !== MfsSmsRecord::STATUS_USED) {
+                    app(MfsSmsMatchingService::class)->markUsed($sms, (int) $locked->id, (int) $payment->id);
+                    $payment->loadMissing('customer');
+                    $sms->fresh()?->enrichMatchedCustomerMeta($payment->customer);
+                }
+            }
+
+            return $payment;
+        });
     }
 
     public function reject(PendingGatewayPayment $pending, ?string $reason = null, ?int $reviewerId = null): void
@@ -147,45 +353,146 @@ final class GatewayPaymentVerificationService
 
     /**
      * @param  array<string, mixed>  $session
-     * @return array{auto_ok: bool, trx_format_ok: bool, amount_ok: bool, remote_ok: bool|null, reasons: list<string>}
+     * @return array{auto_ok: bool, trx_format_ok: bool, amount_ok: bool, sms_matched: bool, sms_record_id: ?int, remote_ok: bool|null, reasons: list<string>}
      */
-    public function runRocketChecks(string $trxId, float $amount, array $session): array
+    public function runPersonalChecks(string $gateway, string $trxId, float $amount, array $session, int $tenantId): array
     {
         $reasons = [];
-        $minLen = max(4, (int) config('rocket.trx_id_min_length', 8));
-        $trxFormatOk = strlen($trxId) >= $minLen && (bool) preg_match('/^[A-Z0-9]+$/', $trxId);
+        $format = PersonalMfsGateway::validateTrxFormat($gateway, $trxId);
+        $trxFormatOk = $format['ok'];
         if (! $trxFormatOk) {
-            $reasons[] = 'invalid_trx_format';
+            $reasons = array_merge($reasons, $format['reasons']);
         }
 
         $sessionAmount = round((float) ($session['amount'] ?? 0), 2);
-        $tolerance = (float) config('rocket.amount_match_tolerance', 0.01);
+        $tolerance = (float) config('mfs_personal.amount_tolerance', 0.01);
         $amountOk = abs($sessionAmount - $amount) <= $tolerance;
         if (! $amountOk) {
             $reasons[] = 'amount_mismatch';
         }
 
-        $remoteOk = $this->verifyViaRemoteEndpoint($trxId, $amount);
+        $smsMatch = app(MfsSmsMatchingService::class)->matchForPayment($tenantId, $gateway, $trxId, $amount);
+        $smsMatched = $smsMatch['matched'];
+        $smsRecordId = $smsMatch['sms']?->id;
+        if (! $smsMatched && (bool) config('mfs_personal.sms_ingest.enabled', false)) {
+            $reasons = array_merge($reasons, $smsMatch['reasons']);
+        }
+
+        $remoteOk = $this->verifyViaRemoteEndpoint($gateway, $trxId, $amount);
         if ($remoteOk === false) {
             $reasons[] = 'remote_verify_failed';
         }
 
-        $requireRemote = filled(config('rocket.verify_url'));
-        $autoOk = $trxFormatOk && $amountOk && (! $requireRemote || $remoteOk === true);
+        $requireSms = (bool) config('mfs_personal.sms_ingest.enabled', false);
+        $requireRemote = filled(config('rocket.verify_url')) && $gateway === \App\Support\PaymentGateway::ROCKET;
+
+        $autoOk = $trxFormatOk && $amountOk
+            && (! $requireSms || $smsMatched)
+            && (! $requireRemote || $remoteOk === true);
 
         return [
             'auto_ok' => $autoOk,
             'trx_format_ok' => $trxFormatOk,
             'amount_ok' => $amountOk,
+            'sms_matched' => $smsMatched,
+            'sms_record_id' => $smsRecordId,
             'remote_ok' => $remoteOk,
             'reasons' => $reasons,
         ];
     }
 
-    private function verifyViaRemoteEndpoint(string $trxId, float $amount): ?bool
+    /**
+     * @param  array<string, mixed>  $session
+     * @return array{auto_ok: bool, trx_format_ok: bool, amount_ok: bool, remote_ok: bool|null, reasons: list<string>}
+     */
+    public function runRocketChecks(string $trxId, float $amount, array $session): array
+    {
+        $checks = $this->runPersonalChecks(\App\Support\PaymentGateway::ROCKET, $trxId, $amount, $session, 1);
+
+        return [
+            'auto_ok' => $checks['auto_ok'],
+            'trx_format_ok' => $checks['trx_format_ok'],
+            'amount_ok' => $checks['amount_ok'],
+            'remote_ok' => $checks['remote_ok'],
+            'reasons' => $checks['reasons'],
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $checks
+     * @return array{status: string, payment?: Payment, message: string}
+     */
+    public function finalizeAutoApproval(
+        string $gateway,
+        string $orderId,
+        string $trxId,
+        int $tenantId,
+        int $customerId,
+        ?int $invoiceId,
+        float $amount,
+        array $checks,
+        ?PendingGatewayPayment $existingPending = null,
+    ): array {
+        $payment = PaymentProcessor::recordGatewayPayment(
+            gateway: $gateway,
+            transactionId: $trxId,
+            customerId: $customerId,
+            invoiceId: $invoiceId,
+            amount: $amount,
+            reference: strtoupper($gateway).' '.$trxId,
+            meta: [
+                'checkout_order_id' => $orderId,
+                'auto_verified' => true,
+                'verification' => $checks,
+                'confirmed_at' => now()->toIso8601String(),
+                'fifo_multi_invoice' => (bool) ($checks['fifo_multi_invoice'] ?? false),
+                'matched_by' => $checks['matched_by'] ?? null,
+                'reference_token' => $checks['reference_token'] ?? null,
+            ],
+        );
+
+        if ($existingPending !== null) {
+            $existingPending->forceFill([
+                'status' => PendingGatewayPayment::STATUS_AUTO_APPROVED,
+                'payment_id' => $payment->id,
+                'reviewed_at' => now(),
+                'meta' => array_merge($existingPending->meta ?? [], $checks, ['auto_matched_late' => true]),
+            ])->save();
+            $pending = $existingPending;
+        } else {
+            $pending = PendingGatewayPayment::query()->create([
+                'tenant_id' => $tenantId,
+                'customer_id' => $customerId,
+                'invoice_id' => $invoiceId,
+                'gateway' => $gateway,
+                'transaction_id' => $trxId,
+                'amount' => $amount,
+                'status' => PendingGatewayPayment::STATUS_AUTO_APPROVED,
+                'checkout_order_id' => $orderId,
+                'payment_id' => $payment->id,
+                'reviewed_at' => now(),
+                'meta' => $checks,
+            ]);
+        }
+
+        if (($checks['sms_record_id'] ?? null) !== null) {
+            $sms = MfsSmsRecord::query()->find($checks['sms_record_id']);
+            if ($sms !== null) {
+                app(MfsSmsMatchingService::class)->markUsed($sms, (int) $pending->id, (int) $payment->id);
+            }
+        }
+
+        return [
+            'status' => 'approved',
+            'payment' => $payment,
+            'message' => 'Payment verified and recorded. Thank you!',
+        ];
+    }
+
+    private function verifyViaRemoteEndpoint(string $gateway, string $trxId, float $amount): ?bool
     {
         $url = trim((string) config('rocket.verify_url', ''));
-        if ($url === '') {
+        if ($url === '' || $gateway !== \App\Support\PaymentGateway::ROCKET) {
             return null;
         }
 
@@ -196,7 +503,7 @@ final class GatewayPaymentVerificationService
                     'transaction_id' => $trxId,
                     'amount' => $amount,
                     'secret' => config('rocket.verify_secret'),
-                    'gateway' => 'rocket',
+                    'gateway' => $gateway,
                 ]);
 
             if (! $response->successful()) {

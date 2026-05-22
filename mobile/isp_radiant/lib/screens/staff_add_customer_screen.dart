@@ -214,6 +214,7 @@ class _StaffAddCustomerScreenState extends State<StaffAddCustomerScreen> {
   Widget build(BuildContext context) {
     return PageScaffold(
       title: 'New customer',
+      useGradientBody: true,
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : _error != null

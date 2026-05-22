@@ -3,7 +3,7 @@
 namespace App\Filament\Resources\CustomerResource\Pages;
 
 use App\Filament\Resources\CustomerResource\Pages\Concerns\HasBillingAccountListPage;
-use App\Support\CustomerStatus;
+use App\Support\CustomerAccountScopes;
 use Illuminate\Database\Eloquent\Builder;
 
 class ListActiveCustomers extends ListFilteredCustomers
@@ -21,6 +21,6 @@ class ListActiveCustomers extends ListFilteredCustomers
 
     protected function applyFilter(Builder $query): Builder
     {
-        return $query->where('status', CustomerStatus::ACTIVE);
+        return CustomerAccountScopes::applyActive($query);
     }
 }

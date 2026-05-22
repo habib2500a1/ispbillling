@@ -6,6 +6,7 @@ use App\Models\AppSetting;
 use App\Models\IntegrationSettingsAudit;
 use App\Models\AutomaticProcess;
 use App\Services\Automation\AutomaticProcessScheduler;
+use App\Services\Branding\FaviconGenerator;
 use App\Support\CompanyBranding;
 use App\Support\IspTimezone;
 use App\Support\SubscriberIdSettings;
@@ -73,7 +74,8 @@ class ManageCompanySetup extends Page
     {
         abort_unless(static::canAccess(), 403);
 
-        $logoPath = (string) config('isp.company_logo_path', '');
+        $logoPath = (string) (config('isp.company_logo_path', '') ?: (CompanyBranding::resolveLogoStoragePath() ?? ''));
+        $faviconPath = (string) config('isp.company_favicon_path', '');
 
         $this->form->fill([
             'company_name' => CompanyBranding::name(),
@@ -85,6 +87,9 @@ class ManageCompanySetup extends Page
             'company_tax_id' => CompanyBranding::taxId(),
             'company_logo' => $logoPath !== '' && Storage::disk('public')->exists($logoPath)
                 ? [$logoPath]
+                : [],
+            'company_favicon' => $faviconPath !== '' && Storage::disk('public')->exists($faviconPath)
+                ? [$faviconPath]
                 : [],
             'invoice_show_logo' => CompanyBranding::invoiceShowLogo(),
             'invoice_number_prefix' => (string) config('billing.invoice_number_prefix', 'INV'),
@@ -144,7 +149,8 @@ class ManageCompanySetup extends Page
                                     ->maxLength(100),
                             ])
                             ->columns(2),
-                        Section::make('Logo & branding')
+                        Section::make('Logo & favicon')
+                            ->description('Admin sidebar, browser tab, invoices, and portal use these files. Wide logo is fine — Save builds a square tab icon automatically.')
                             ->schema([
                                 FileUpload::make('company_logo')
                                     ->label('Company logo')
@@ -153,7 +159,15 @@ class ManageCompanySetup extends Page
                                     ->directory('company-branding')
                                     ->visibility('public')
                                     ->maxSize(2048)
-                                    ->helperText('PNG or JPG, max 2 MB. Used on invoices, receipts, and admin login when enabled below.'),
+                                    ->helperText('PNG or JPG, max 2 MB. Shown in admin sidebar, invoices, portal, and PDFs.'),
+                                FileUpload::make('company_favicon')
+                                    ->label('Favicon source (optional)')
+                                    ->image()
+                                    ->disk('public')
+                                    ->directory('company-branding')
+                                    ->visibility('public')
+                                    ->maxSize(2048)
+                                    ->helperText('Optional square PNG. If empty, company logo is cropped to 32×32 for the browser tab on Save.'),
                                 Toggle::make('invoice_show_logo')
                                     ->label('Show logo on invoice & payment receipt PDFs')
                                     ->default(true),
@@ -375,12 +389,26 @@ class ManageCompanySetup extends Page
 
         $logo = $state['company_logo'] ?? null;
         $logoPath = is_array($logo) ? ($logo[0] ?? null) : $logo;
+
+        AppSetting::query()->whereIn('key', ['isp.platform_logo_path', 'isp.platform_favicon_path'])->delete();
+
         if (filled($logoPath)) {
             AppSetting::putValue('isp.company_logo_path', (string) $logoPath);
         } else {
             AppSetting::query()->where('key', 'isp.company_logo_path')->delete();
             AppSetting::restoreConfigKeyFromEnv('isp.company_logo_path');
         }
+
+        $favicon = $state['company_favicon'] ?? null;
+        $faviconPath = is_array($favicon) ? ($favicon[0] ?? null) : $favicon;
+        if (filled($faviconPath)) {
+            AppSetting::putValue('isp.company_favicon_path', (string) $faviconPath);
+        } else {
+            AppSetting::query()->where('key', 'isp.company_favicon_path')->delete();
+            AppSetting::restoreConfigKeyFromEnv('isp.company_favicon_path');
+        }
+
+        $this->regenerateFavicons($faviconPath, $logoPath);
 
         AppSetting::syncToRuntimeConfig();
 
@@ -466,5 +494,26 @@ class ManageCompanySetup extends Page
         }
 
         return false;
+    }
+
+    private function regenerateFavicons(?string $companyFaviconPath, ?string $companyLogoPath): void
+    {
+        $source = $companyFaviconPath ?? $companyLogoPath;
+
+        if (! filled($source) || ! Storage::disk('public')->exists($source)) {
+            return;
+        }
+
+        try {
+            $generated = app(FaviconGenerator::class)->generateFromPublicDisk((string) $source);
+            AppSetting::putValue('isp.company_favicon_path', $generated);
+        } catch (\Throwable $e) {
+            report($e);
+            Notification::make()
+                ->title('Favicon auto-resize failed')
+                ->body($e->getMessage())
+                ->warning()
+                ->send();
+        }
     }
 }

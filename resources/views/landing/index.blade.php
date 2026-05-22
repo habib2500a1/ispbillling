@@ -166,6 +166,9 @@
                 </div>
             </div>
             <nav>
+                @if (! empty($shopUrl))
+                    <a class="btn-ghost" href="{{ $shopUrl }}">Shop</a>
+                @endif
                 @if ($portalUrl)
                     <a class="btn-primary" href="{{ $portalUrl }}">Portal login</a>
                 @endif

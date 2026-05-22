@@ -9,7 +9,10 @@ use App\Services\Billing\BillingInvoiceCounts;
 use App\Services\Billing\CouponApplicator;
 use App\Services\Billing\InvoiceCalculator;
 use App\Services\Billing\LateFeeCalculator;
+use App\Services\Billing\StaffCollectionPaymentService;
 use App\Support\BillingSidebarRegistry;
+use App\Support\PaymentGateway;
+use App\Support\Rbac\StaffCapability;
 use Filament\Facades\Filament;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -92,104 +95,106 @@ class InvoiceResource extends Resource
     {
         return $form
             ->schema([
-                Forms\Components\Tabs::make('invoice_tabs')
-                    ->tabs([
-                        Forms\Components\Tabs\Tab::make('Details')
-                            ->icon('heroicon-o-document-text')
+                Forms\Components\Section::make('Invoice details')
+                    ->icon('heroicon-o-document-text')
+                    ->schema([
+                        Forms\Components\Select::make('customer_id')
+                            ->relationship('customer', 'name')
+                            ->searchable()
+                            ->preload()
+                            ->required()
+                            ->live(),
+                        Forms\Components\TextInput::make('invoice_number')
+                            ->maxLength(255)
+                            ->helperText('Leave empty for auto number.')
+                            ->dehydrateStateUsing(fn (?string $state): ?string => filled($state) ? $state : null),
+                        Forms\Components\Grid::make(2)
                             ->schema([
-                                Forms\Components\Select::make('customer_id')
-                                    ->relationship('customer', 'name')
-                                    ->searchable()
-                                    ->preload()
+                                Forms\Components\DatePicker::make('issue_date')->required(),
+                                Forms\Components\DatePicker::make('due_date')
                                     ->required()
-                                    ->live(),
-                                Forms\Components\TextInput::make('invoice_number')
-                                    ->maxLength(255)
-                                    ->helperText('Leave empty for auto number.')
-                                    ->dehydrateStateUsing(fn (?string $state): ?string => filled($state) ? $state : null),
-                                Forms\Components\Grid::make(2)
-                                    ->schema([
-                                        Forms\Components\DatePicker::make('issue_date')->required(),
-                                        Forms\Components\DatePicker::make('due_date')
-                                            ->required()
-                                            ->helperText('Payment due (grace for late fees is added after this).'),
-                                        Forms\Components\DatePicker::make('period_start')->required(),
-                                        Forms\Components\DatePicker::make('period_end')->required(),
-                                    ]),
-                                Forms\Components\Select::make('status')
-                                    ->options([
-                                        'draft' => 'Draft',
-                                        'open' => 'Open',
-                                        'partial' => 'Partially paid',
-                                        'paid' => 'Paid',
-                                        'void' => 'Void',
-                                        'cancelled' => 'Cancelled',
-                                    ])
-                                    ->required()
-                                    ->default('open')
-                                    ->native(false),
-                                Forms\Components\Textarea::make('notes')
-                                    ->rows(3)
-                                    ->columnSpanFull(),
+                                    ->helperText('Payment due (grace for late fees is added after this).'),
+                                Forms\Components\DatePicker::make('period_start')->required(),
+                                Forms\Components\DatePicker::make('period_end')->required(),
+                            ]),
+                        Forms\Components\Select::make('status')
+                            ->options([
+                                'draft' => 'Draft',
+                                'open' => 'Open',
+                                'partial' => 'Partially paid',
+                                'paid' => 'Paid',
+                                'void' => 'Void',
+                                'cancelled' => 'Cancelled',
                             ])
-                            ->columns(2),
-                        Forms\Components\Tabs\Tab::make('Amounts')
-                            ->icon('heroicon-o-calculator')
-                            ->schema([
-                                Forms\Components\Placeholder::make('calc_hint')
-                                    ->content('Line items drive subtotal. VAT/SD recalculate on save. Use Discount tab for manual + coupon.')
-                                    ->columnSpanFull(),
-                                Forms\Components\TextInput::make('discount_amount')
-                                    ->label('Manual discount (BDT)')
-                                    ->numeric()
-                                    ->default(0)
-                                    ->prefix('৳'),
-                                Forms\Components\Select::make('coupon_id')
-                                    ->relationship('coupon', 'code')
-                                    ->searchable()
-                                    ->preload()
-                                    ->nullable(),
-                                Forms\Components\TextInput::make('coupon_discount_amount')
-                                    ->label('Coupon discount')
-                                    ->numeric()
-                                    ->default(0)
-                                    ->disabled()
-                                    ->dehydrated(),
-                                Forms\Components\TextInput::make('subtotal')
-                                    ->numeric()
-                                    ->default(0)
-                                    ->disabled()
-                                    ->dehydrated(),
-                                Forms\Components\TextInput::make('tax_amount')
-                                    ->label('VAT / tax')
-                                    ->numeric()
-                                    ->default(0)
-                                    ->disabled()
-                                    ->dehydrated(),
-                                Forms\Components\TextInput::make('sd_amount')
-                                    ->label('Supplementary duty (SD)')
-                                    ->numeric()
-                                    ->default(0)
-                                    ->disabled()
-                                    ->dehydrated(),
-                                Forms\Components\TextInput::make('withholding_amount')
-                                    ->label('Withholding (reporting)')
-                                    ->numeric()
-                                    ->default(0)
-                                    ->disabled()
-                                    ->dehydrated(),
-                                Forms\Components\TextInput::make('total')
-                                    ->numeric()
-                                    ->default(0)
-                                    ->disabled()
-                                    ->dehydrated(),
-                                Forms\Components\TextInput::make('amount_paid')
-                                    ->numeric()
-                                    ->default(0)
-                                    ->prefix('৳'),
-                            ])
-                            ->columns(2),
+                            ->required()
+                            ->default('open')
+                            ->native(false),
+                        Forms\Components\Textarea::make('notes')
+                            ->rows(3)
+                            ->columnSpanFull(),
                     ])
+                    ->columns(2)
+                    ->columnSpanFull(),
+                Forms\Components\Section::make('Amounts & payment')
+                    ->icon('heroicon-o-calculator')
+                    ->description('Add line items below (Items tab). Record payment from the header button “Record payment” or Billing → Bill collection.')
+                    ->schema([
+                        Forms\Components\Placeholder::make('calc_hint')
+                            ->content('Line items drive subtotal. VAT/SD recalculate on save.')
+                            ->columnSpanFull(),
+                        Forms\Components\TextInput::make('discount_amount')
+                            ->label('Manual discount (BDT)')
+                            ->numeric()
+                            ->default(0)
+                            ->prefix('৳'),
+                        Forms\Components\Select::make('coupon_id')
+                            ->relationship('coupon', 'code')
+                            ->searchable()
+                            ->preload()
+                            ->nullable(),
+                        Forms\Components\TextInput::make('coupon_discount_amount')
+                            ->label('Coupon discount')
+                            ->numeric()
+                            ->default(0)
+                            ->disabled()
+                            ->dehydrated(),
+                        Forms\Components\TextInput::make('subtotal')
+                            ->numeric()
+                            ->default(0)
+                            ->disabled()
+                            ->dehydrated(),
+                        Forms\Components\TextInput::make('tax_amount')
+                            ->label('VAT / tax')
+                            ->numeric()
+                            ->default(0)
+                            ->disabled()
+                            ->dehydrated(),
+                        Forms\Components\TextInput::make('sd_amount')
+                            ->label('Supplementary duty (SD)')
+                            ->numeric()
+                            ->default(0)
+                            ->disabled()
+                            ->dehydrated(),
+                        Forms\Components\TextInput::make('withholding_amount')
+                            ->label('Withholding (reporting)')
+                            ->numeric()
+                            ->default(0)
+                            ->disabled()
+                            ->dehydrated(),
+                        Forms\Components\TextInput::make('total')
+                            ->numeric()
+                            ->default(0)
+                            ->disabled()
+                            ->dehydrated(),
+                        Forms\Components\TextInput::make('amount_paid')
+                            ->label('Amount paid (read-only — use Record payment)')
+                            ->numeric()
+                            ->default(0)
+                            ->disabled()
+                            ->dehydrated()
+                            ->prefix('৳'),
+                    ])
+                    ->columns(2)
                     ->columnSpanFull(),
             ]);
     }
@@ -286,6 +291,86 @@ class InvoiceResource extends Resource
                     ->preload(),
             ])
             ->actions([
+                Tables\Actions\Action::make('collect_payment')
+                    ->label('Paid')
+                    ->icon('heroicon-o-check-circle')
+                    ->color('success')
+                    ->visible(fn (Invoice $record): bool => static::canCollectPaymentOnInvoice($record))
+                    ->form(fn (Invoice $record): array => [
+                        Forms\Components\Placeholder::make('summary')
+                            ->label('Balance due')
+                            ->content(number_format($record->balanceDue(), 2).' BDT'),
+                        Forms\Components\TextInput::make('amount')
+                            ->label('Amount received')
+                            ->numeric()
+                            ->required()
+                            ->minValue(0.01)
+                            ->default($record->balanceDue())
+                            ->prefix('৳'),
+                        Forms\Components\Select::make('method')
+                            ->label('Payment method')
+                            ->options([
+                                PaymentGateway::CASH => 'Cash',
+                                PaymentGateway::BKASH => 'bKash',
+                                PaymentGateway::NAGAD => 'Nagad',
+                                PaymentGateway::ROCKET => 'Rocket',
+                                PaymentGateway::BANK => 'Bank transfer',
+                                PaymentGateway::WALLET => 'Wallet / balance',
+                                PaymentGateway::OTHER => 'Other',
+                            ])
+                            ->default(PaymentGateway::CASH)
+                            ->required()
+                            ->native(false),
+                        Forms\Components\TextInput::make('reference')
+                            ->label('Reference / Txn ID')
+                            ->maxLength(120),
+                        Forms\Components\Textarea::make('notes')
+                            ->label('Note')
+                            ->rows(2)
+                            ->helperText('Required for partial payment or discount.'),
+                    ])
+                    ->action(function (Invoice $record, array $data): void {
+                        $user = auth()->user();
+                        if ($user === null) {
+                            return;
+                        }
+
+                        $record->loadMissing('customer');
+                        $customer = $record->customer;
+                        if ($customer === null) {
+                            Notification::make()->title('Subscriber not found')->danger()->send();
+
+                            return;
+                        }
+
+                        try {
+                            $result = app(StaffCollectionPaymentService::class)->record(
+                                $user,
+                                $customer,
+                                [
+                                    'invoice_id' => $record->id,
+                                    'amount' => (float) ($data['amount'] ?? 0),
+                                    'method' => (string) ($data['method'] ?? PaymentGateway::CASH),
+                                    'reference' => $data['reference'] ?? null,
+                                    'notes' => (string) ($data['notes'] ?? ''),
+                                    'discount_preset' => 'none',
+                                ],
+                                'admin-invoice-list',
+                            );
+
+                            Notification::make()
+                                ->title('Payment recorded')
+                                ->body($result['message'])
+                                ->success()
+                                ->send();
+                        } catch (ValidationException $e) {
+                            Notification::make()
+                                ->title('Payment failed')
+                                ->body(collect($e->errors())->flatten()->first())
+                                ->danger()
+                                ->send();
+                        }
+                    }),
                 Tables\Actions\Action::make('apply_coupon')
                     ->label('Coupon')
                     ->icon('heroicon-o-ticket')
@@ -364,5 +449,23 @@ class InvoiceResource extends Resource
             'create' => Pages\CreateInvoice::route('/create'),
             'edit' => Pages\EditInvoice::route('/{record}/edit'),
         ];
+    }
+
+    public static function canCollectPaymentOnInvoice(Invoice $record): bool
+    {
+        $user = auth()->user();
+        if ($user === null) {
+            return false;
+        }
+
+        if (! StaffCapability::for($user)->canCollect()) {
+            return false;
+        }
+
+        if (in_array($record->status, ['paid', 'void', 'cancelled'], true)) {
+            return false;
+        }
+
+        return $record->balanceDue() > 0.009;
     }
 }

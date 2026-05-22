@@ -7,6 +7,7 @@ use App\Models\Customer;
 use App\Models\User;
 use App\Services\Notifications\NotificationDispatcher;
 use App\Support\NotificationChannel;
+use App\Support\StaffTenantScope;
 use App\Support\NotificationEvent;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -17,10 +18,7 @@ class StaffCommsController extends Controller
     {
         $user = $this->staff($request);
 
-        $model = Customer::withoutGlobalScopes()
-            ->where('tenant_id', $user->tenant_id)
-            ->whereKey($customer)
-            ->firstOrFail();
+        $model = StaffTenantScope::customerForStaff($user, $customer);
 
         $due = $model->openInvoiceBalance();
         if ($due <= 0) {
@@ -46,10 +44,10 @@ class StaffCommsController extends Controller
         $message = trim((string) ($data['message'] ?? ''));
         $count = 0;
         if ($message !== '') {
-            $count = $dispatcher->broadcastCustom((int) $user->tenant_id, $message, 'due', NotificationChannel::SMS);
+            $count = $dispatcher->broadcastCustom(StaffTenantScope::tenantIdFor($user), $message, 'due', NotificationChannel::SMS);
         } else {
             Customer::withoutGlobalScopes()
-                ->where('tenant_id', $user->tenant_id)
+                ->where('tenant_id', StaffTenantScope::tenantIdFor($user))
                 ->where('status', 'active')
                 ->whereHas('invoices', fn ($q) => $q
                     ->whereIn('status', ['open', 'partial'])
@@ -85,7 +83,7 @@ class StaffCommsController extends Controller
 
         $target = $data['target'] ?? 'active';
         $count = $dispatcher->broadcastCustom(
-            (int) $user->tenant_id,
+            StaffTenantScope::tenantIdFor($user),
             $data['message'],
             $target,
             NotificationChannel::SMS,

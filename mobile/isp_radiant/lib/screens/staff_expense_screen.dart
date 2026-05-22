@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import '../services/api_service.dart';
 import '../theme/app_theme.dart';
 import '../utils/app_nav.dart';
+import '../widgets/isp_ui_kit.dart';
 import '../widgets/page_scaffold.dart';
 import '../widgets/state_views.dart';
 
@@ -106,6 +107,7 @@ class _StaffExpenseScreenState extends State<StaffExpenseScreen> {
   Widget build(BuildContext context) {
     return PageScaffold(
       title: 'Expense',
+      useGradientBody: true,
       actions: [IconButton(icon: const Icon(Icons.refresh), onPressed: _load)],
       body: _loading
           ? const Center(child: CircularProgressIndicator())
@@ -116,14 +118,10 @@ class _StaffExpenseScreenState extends State<StaffExpenseScreen> {
                   child: ListView(
                     padding: const EdgeInsets.all(16),
                     children: [
-                      Card(
-                        color: AppTheme.accent.withValues(alpha: 0.12),
-                        child: const Padding(
-                          padding: EdgeInsets.all(12),
-                          child: Text('Submit travel, fuel, or field costs. Manager may approve before wallet updates.'),
-                        ),
-                      ),
-                      const SizedBox(height: 12),
+                      IspUiKit.formCard(
+                        title: 'New expense',
+                        subtitle: 'Travel, fuel, field costs — manager approves',
+                        children: [
                       DropdownButtonFormField<int>(
                         value: _categoryId,
                         decoration: const InputDecoration(labelText: 'Category', border: OutlineInputBorder()),
@@ -148,27 +146,28 @@ class _StaffExpenseScreenState extends State<StaffExpenseScreen> {
                         maxLines: 2,
                       ),
                       const SizedBox(height: 12),
-                      FilledButton(
-                        onPressed: _submitting ? null : _submit,
-                        child: _submitting
-                            ? const SizedBox(height: 22, width: 22, child: CircularProgressIndicator(strokeWidth: 2))
-                            : const Text('Submit expense'),
+                      IspUiKit.primaryButton(
+                        label: 'Submit expense',
+                        loading: _submitting,
+                        onPressed: _submit,
                       ),
-                      const SizedBox(height: 20),
-                      const Text('Recent expenses', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                        ],
+                      ),
+                      IspUiKit.sectionTitle('Recent expenses'),
                       const SizedBox(height: 8),
                       if (_history.isEmpty)
                         const Text('No expenses yet', style: TextStyle(color: Colors.grey)),
                       ..._history.map((e) {
                         final st = e['status']?.toString() ?? '';
-                        return Card(
-                          margin: const EdgeInsets.only(bottom: 6),
-                          child: ListTile(
-                            title: Text('৳${_fmt.format((e['amount'] as num?) ?? 0)} · ${e['category'] ?? ''}'),
-                            subtitle: Text('${e['expense_date'] ?? ''} · ${e['description'] ?? ''}'),
-                            trailing: Chip(
-                              label: Text(st, style: const TextStyle(fontSize: 10)),
-                              backgroundColor: _statusColor(st).withValues(alpha: 0.15),
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 8),
+                          child: Material(
+                            color: AppTheme.card,
+                            borderRadius: BorderRadius.circular(14),
+                            child: ListTile(
+                              title: Text('৳${_fmt.format((e['amount'] as num?) ?? 0)} · ${e['category'] ?? ''}', style: const TextStyle(fontWeight: FontWeight.w700)),
+                              subtitle: Text('${e['expense_date'] ?? ''} · ${e['description'] ?? ''}'),
+                              trailing: IspUiKit.statusBadge(st, _statusColor(st), compact: true),
                             ),
                           ),
                         );

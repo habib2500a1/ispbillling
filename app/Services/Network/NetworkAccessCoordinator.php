@@ -6,6 +6,7 @@ use App\Contracts\NetworkAccessProvisioner;
 use App\Models\Customer;
 use App\Models\Invoice;
 use App\Services\Subscribers\SubscriberPolicyService;
+use App\Support\CustomerBalanceDue;
 use App\Support\CustomerStatus;
 use Illuminate\Support\Facades\DB;
 
@@ -29,10 +30,41 @@ final class NetworkAccessCoordinator
             ->where('customer_id', $customer->id)
             ->when($customer->tenant_id !== null, fn ($q) => $q->where('tenant_id', $customer->tenant_id))
             ->whereNotIn('status', ['void', 'cancelled', 'paid', 'draft'])
+            ->whereIn('status', CustomerBalanceDue::OPEN_INVOICE_STATUSES)
             ->get()
             ->contains(fn (Invoice $invoice): bool => $invoice->balanceDue() >= $minBalance
                 && $invoice->due_date !== null
                 && $asOf->toDateString() > $invoice->due_date->toDateString());
+    }
+
+    public function hasCollectibleBalanceDue(Customer $customer): bool
+    {
+        $minBalance = max(0.0, (float) config('network.auto_suspend_min_balance', 1));
+
+        return CustomerBalanceDue::amount($customer->fresh() ?? $customer) >= $minBalance;
+    }
+
+    public function shouldSuspendForBilling(Customer $customer): bool
+    {
+        if (! $this->customerAutoSuspendEnabled($customer)) {
+            return false;
+        }
+
+        if (config('network.suspend_on_any_balance_due', true)) {
+            return $this->hasCollectibleBalanceDue($customer);
+        }
+
+        return $this->hasOverdueOpenBalance($customer);
+    }
+
+    public function customerAutoSuspendEnabled(Customer $customer): bool
+    {
+        $meta = is_array($customer->meta) ? $customer->meta : [];
+        if (array_key_exists('auto_suspend', $meta) && ! filter_var($meta['auto_suspend'], FILTER_VALIDATE_BOOLEAN)) {
+            return false;
+        }
+
+        return true;
     }
 
     public function desiredNetworkAccessState(Customer $customer): string
@@ -66,20 +98,12 @@ final class NetworkAccessCoordinator
             return 'suspended';
         }
 
-        return $this->hasOverdueOpenBalance($customer) ? 'suspended' : 'active';
+        return $this->shouldSuspendForBilling($customer) ? 'suspended' : 'active';
     }
 
     public function syncCustomer(Customer $customer): void
     {
         $customer = $this->applyServiceExpiryIfNeeded($customer);
-
-        if (! config('network.auto_suspend_enabled', false)) {
-            if (! config('sync.skip_unchanged_network_sync', true)) {
-                $this->provisioner->syncAccessPolicy($customer);
-            }
-
-            return;
-        }
 
         $desired = $this->desiredNetworkAccessState($customer);
         $current = $customer->network_access_state ?? 'active';
@@ -93,13 +117,21 @@ final class NetworkAccessCoordinator
                 'package_id',
             ]);
 
+        if (! config('network.auto_suspend_enabled', false)) {
+            if (! config('sync.skip_unchanged_network_sync', true) || $mikrotikFieldsChanged) {
+                $this->provisioner->syncAccessPolicy($customer);
+            }
+
+            return;
+        }
+
         if ($desired === $current && config('sync.skip_unchanged_network_sync', true) && ! $mikrotikFieldsChanged) {
             return;
         }
 
         DB::transaction(function () use ($customer, $desired, $current): void {
             if ($desired === 'suspended') {
-                $this->provisioner->suspendCustomer($customer, 'overdue_invoice');
+                $this->provisioner->suspendCustomer($customer, 'billing_balance_due');
             } else {
                 $this->provisioner->unsuspendCustomer($customer);
                 if ($current === 'suspended'

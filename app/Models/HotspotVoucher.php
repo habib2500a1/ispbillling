@@ -27,8 +27,13 @@ class HotspotVoucher extends Model
         'price',
         'status',
         'package_id',
+        'mikrotik_server_id',
+        'hotspot_username',
+        'hotspot_password',
         'customer_id',
         'used_at',
+        'provisioned_at',
+        'provision_error',
         'expires_at',
         'notes',
     ];
@@ -40,6 +45,7 @@ class HotspotVoucher extends Model
             'data_limit_mb' => 'integer',
             'price' => 'decimal:2',
             'used_at' => 'datetime',
+            'provisioned_at' => 'datetime',
             'expires_at' => 'datetime',
         ];
     }
@@ -47,6 +53,11 @@ class HotspotVoucher extends Model
     public function package(): BelongsTo
     {
         return $this->belongsTo(Package::class);
+    }
+
+    public function mikrotikServer(): BelongsTo
+    {
+        return $this->belongsTo(MikrotikServer::class);
     }
 
     public function customer(): BelongsTo

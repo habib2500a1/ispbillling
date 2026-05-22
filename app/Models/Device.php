@@ -14,6 +14,7 @@ class Device extends Model
 
     protected $fillable = [
         'tenant_id',
+        'product_id',
         'type',
         'connection_type',
         'vendor',
@@ -73,6 +74,11 @@ class Device extends Model
     public function customer(): BelongsTo
     {
         return $this->belongsTo(Customer::class);
+    }
+
+    public function catalogProduct(): BelongsTo
+    {
+        return $this->belongsTo(Product::class, 'product_id');
     }
 
     public function olt(): BelongsTo

@@ -32,6 +32,7 @@ use App\Http\Controllers\Api\V1\Staff\StaffPaymentsController;
 use App\Http\Controllers\Api\V1\Staff\StaffProfileController;
 use App\Http\Controllers\Api\V1\Staff\StaffReportsController;
 use App\Http\Controllers\Api\V1\Staff\StaffCustomerUpdateController;
+use App\Http\Controllers\Api\V1\Staff\StaffLineActivationController;
 use App\Http\Controllers\Api\V1\Staff\StaffMonitoringController;
 use App\Http\Controllers\Api\V1\Staff\StaffTicketsController;
 use App\Http\Controllers\Api\V1\Customer\AiController as CustomerAiController;
@@ -77,6 +78,10 @@ Route::middleware('throttle:webhooks')->group(function (): void {
 Route::prefix('v1')->group(function (): void {
     Route::get('/health', [ApiIndexController::class, 'show']);
     Route::get('/mobile/config', [MobileConfigController::class, 'show']);
+
+    Route::post('/mfs/sms/ingest', [\App\Http\Controllers\Api\V1\MfsSmsIngestController::class, 'ingest'])
+        ->middleware('throttle:120,1')
+        ->name('api.mfs.sms.ingest');
     Route::post('/login', [\App\Http\Controllers\Api\V1\Mobile\AppAuthController::class, 'login'])->middleware('throttle:15,1');
     Route::post('/mobile/login', [UnifiedAuthController::class, 'login'])->middleware('throttle:15,1');
 
@@ -86,6 +91,7 @@ Route::prefix('v1')->group(function (): void {
     Route::middleware(['auth:sanctum', 'throttle:api'])->group(function (): void {
         Route::get('/me', [MeController::class, 'show']);
         Route::get('/staff/dashboard', [StaffDashboardController::class, 'show']);
+        Route::post('/staff/mfs/sms/ingest', [\App\Http\Controllers\Api\V1\MfsSmsIngestController::class, 'ingestStaff']);
         Route::get('/staff/noc/dashboard', [NocController::class, 'dashboard']);
         Route::get('/staff/monitoring/online', [StaffMonitoringController::class, 'index']);
         Route::get('/staff/monitoring/live', [StaffMonitoringController::class, 'live']);
@@ -99,6 +105,9 @@ Route::prefix('v1')->group(function (): void {
         Route::get('/staff/customers/search', [CustomerSearchController::class, 'search']);
         Route::get('/staff/customers', [CustomerDetailController::class, 'index']);
         Route::patch('/staff/customers/{customer}', [StaffCustomerUpdateController::class, 'update'])->whereNumber('customer');
+        Route::post('/staff/customers/{customer}/extend-service', [\App\Http\Controllers\Api\V1\Staff\StaffCustomerQuickActionsController::class, 'extendService'])->whereNumber('customer');
+        Route::post('/staff/customers/{customer}/toggle-network', [\App\Http\Controllers\Api\V1\Staff\StaffCustomerQuickActionsController::class, 'toggleNetwork'])->whereNumber('customer');
+        Route::get('/staff/tickets/assignees', [StaffTicketsController::class, 'assignees']);
         Route::get('/staff/tickets', [StaffTicketsController::class, 'index']);
         Route::post('/staff/tickets', [StaffTicketsController::class, 'store']);
         Route::get('/staff/tickets/{ticket}', [StaffTicketsController::class, 'show'])->whereNumber('ticket');
@@ -109,6 +118,8 @@ Route::prefix('v1')->group(function (): void {
         Route::get('/staff/approvals/pending', [StaffApprovalsController::class, 'index']);
         Route::post('/staff/approvals/expenses/{expense}/approve', [StaffApprovalsController::class, 'approveExpense'])->whereNumber('expense');
         Route::post('/staff/approvals/expenses/{expense}/reject', [StaffApprovalsController::class, 'rejectExpense'])->whereNumber('expense');
+        Route::post('/staff/approvals/staff-expenses/{expense}/approve', [StaffApprovalsController::class, 'approveStaffExpense'])->whereNumber('expense');
+        Route::post('/staff/approvals/staff-expenses/{expense}/reject', [StaffApprovalsController::class, 'rejectStaffExpense'])->whereNumber('expense');
         Route::get('/staff/customers/form-options', [StaffCustomerStoreController::class, 'formOptions']);
         Route::get('/staff/customer-packages', [StaffCustomerStoreController::class, 'packages']);
         Route::post('/staff/customers/create', [StaffCustomerStoreController::class, 'store']);
@@ -120,6 +131,12 @@ Route::prefix('v1')->group(function (): void {
         Route::get('/staff/payments/{payment}/receipt-pdf', [\App\Http\Controllers\Api\V1\Staff\StaffDocumentController::class, 'paymentReceiptPdf'])->whereNumber('payment');
         Route::delete('/staff/payments/{payment}', [StaffPaymentsController::class, 'destroy'])->whereNumber('payment');
         Route::get('/staff/invoices/{invoice}/pdf', [\App\Http\Controllers\Api\V1\Staff\StaffDocumentController::class, 'invoicePdf'])->whereNumber('invoice');
+        Route::get('/staff/inventory/bootstrap', [\App\Http\Controllers\Api\V1\Staff\StaffInventoryController::class, 'bootstrap']);
+        Route::get('/staff/inventory/products', [\App\Http\Controllers\Api\V1\Staff\StaffInventoryController::class, 'products']);
+        Route::post('/staff/inventory/sales', [\App\Http\Controllers\Api\V1\Staff\StaffInventoryController::class, 'store']);
+        Route::get('/staff/invoices/{invoice}/hardware-options', [\App\Http\Controllers\Api\V1\Staff\StaffInvoiceHardwareController::class, 'options'])->whereNumber('invoice');
+        Route::get('/staff/invoices/{invoice}/hardware-product', [\App\Http\Controllers\Api\V1\Staff\StaffInvoiceHardwareController::class, 'lookupProduct'])->whereNumber('invoice');
+        Route::post('/staff/invoices/{invoice}/hardware-line', [\App\Http\Controllers\Api\V1\Staff\StaffInvoiceHardwareController::class, 'store'])->whereNumber('invoice');
         Route::get('/staff/packages', [StaffPackagesController::class, 'index']);
         Route::post('/staff/packages', [StaffPackagesController::class, 'store']);
         Route::patch('/staff/packages/{package}', [StaffPackagesController::class, 'update'])->whereNumber('package');
@@ -132,6 +149,7 @@ Route::prefix('v1')->group(function (): void {
         Route::post('/staff/profile/password', [StaffProfileController::class, 'updatePassword']);
         Route::get('/staff/customers/{customer}/onu', [StaffOnuController::class, 'show'])->whereNumber('customer');
         Route::patch('/staff/customers/{customer}/onu', [StaffOnuController::class, 'update'])->whereNumber('customer');
+        Route::post('/staff/customers/{customer}/activate-line', [StaffLineActivationController::class, 'store'])->whereNumber('customer');
         Route::get('/staff/online-clients', [StaffOnlineController::class, 'index']);
         Route::get('/staff/customers/{customer}', [CustomerDetailController::class, 'show'])->whereNumber('customer');
         Route::get('/staff/customers/{customer}/usage/live', [StaffCustomerUsageController::class, 'live'])->whereNumber('customer');
@@ -174,8 +192,10 @@ Route::prefix('v1')->group(function (): void {
             Route::post('/logout', [CustomerAuthController::class, 'logout']);
             Route::get('/me', [CustomerAuthController::class, 'me']);
             Route::get('/dashboard', [CustomerDashboardController::class, 'show']);
+            Route::get('/bills/payables', [CustomerPaymentController::class, 'payables']);
             Route::get('/bills', [CustomerInvoiceController::class, 'index']);
             Route::get('/bills/{invoice}', [CustomerInvoiceController::class, 'show']);
+            Route::get('/payments', [\App\Http\Controllers\Api\V1\Customer\PaymentHistoryController::class, 'index']);
             Route::post('/bills/{invoice}/pay', [CustomerPaymentController::class, 'initiate']);
             Route::get('/usage/live', [CustomerUsageController::class, 'live']);
             Route::get('/onu/status', [CustomerOnuController::class, 'status']);

@@ -10,6 +10,7 @@ use App\Services\Notifications\PaymentNotificationService;
 use App\Services\Payments\PaymentProcessor;
 use App\Services\Mobile\MobileBroadcastService;
 use App\Services\Resellers\ResellerCommissionService;
+use App\Support\CustomerBalanceDue;
 
 class PaymentObserver
 {
@@ -29,6 +30,11 @@ class PaymentObserver
         }
 
         PaymentProcessor::processCompletedPayment($payment);
+
+        $customer = $payment->customer?->fresh();
+        if ($customer !== null) {
+            CustomerBalanceDue::refreshMetaAfterPayment($customer);
+        }
 
         $payment->refresh();
         app(PaymentNotificationService::class)->onPaymentCompleted($payment);

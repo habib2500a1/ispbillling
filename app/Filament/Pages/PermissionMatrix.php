@@ -25,10 +25,7 @@ class PermissionMatrix extends Page
 
     protected static ?int $navigationSort = 2;
 
-    public static function shouldRegisterNavigation(): bool
-    {
-        return static::canAccess();
-    }
+    protected static bool $shouldRegisterNavigation = false;
 
     public string $search = '';
 

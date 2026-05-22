@@ -30,9 +30,23 @@ class SalesLeadResource extends Resource
 
     public static function canViewAny(): bool
     {
-        $u = auth()->user();
+        return \App\Support\SalesLeadPanelAccess::canView();
+    }
 
-        return $u !== null && ($u->hasRole('super-admin') || $u->hasRole('isp-admin'));
+    public static function getNavigationBadge(): ?string
+    {
+        if (! static::canViewAny()) {
+            return null;
+        }
+
+        $count = SalesLead::query()->where('status', SalesLead::STATUS_NEW)->count();
+
+        return $count > 0 ? (string) $count : null;
+    }
+
+    public static function getNavigationBadgeColor(): ?string
+    {
+        return 'warning';
     }
 
     public static function form(Form $form): Form
@@ -76,17 +90,35 @@ class SalesLeadResource extends Resource
                 Tables\Columns\TextColumn::make('name')->searchable()->sortable(),
                 Tables\Columns\TextColumn::make('phone')->searchable(),
                 Tables\Columns\TextColumn::make('status')->badge(),
-                Tables\Columns\TextColumn::make('source')->toggleable(),
+                Tables\Columns\TextColumn::make('source')
+                    ->badge()
+                    ->color(fn (?string $state): string => $state === 'website' ? 'warning' : 'gray')
+                    ->toggleable(),
+                Tables\Columns\TextColumn::make('created_at')->label('Requested')->dateTime()->sortable(),
                 Tables\Columns\TextColumn::make('assignee.name')->label('Assigned')->toggleable(),
                 Tables\Columns\TextColumn::make('next_follow_up_at')->dateTime()->sortable(),
             ])
             ->defaultSort('created_at', 'desc')
             ->filters([
-                Tables\Filters\SelectFilter::make('status')->options([
-                    SalesLead::STATUS_NEW => 'New',
-                    SalesLead::STATUS_CONTACTED => 'Contacted',
-                    SalesLead::STATUS_QUALIFIED => 'Qualified',
-                ]),
+                Tables\Filters\SelectFilter::make('status')
+                    ->options([
+                        SalesLead::STATUS_NEW => 'New',
+                        SalesLead::STATUS_CONTACTED => 'Contacted',
+                        SalesLead::STATUS_QUALIFIED => 'Qualified',
+                        SalesLead::STATUS_WON => 'Won',
+                        SalesLead::STATUS_LOST => 'Lost',
+                    ])
+                    ->default(SalesLead::STATUS_NEW),
+                Tables\Filters\SelectFilter::make('source')
+                    ->options([
+                        'website' => 'Portal / website',
+                        'phone' => 'Phone',
+                        'walk_in' => 'Walk-in',
+                        'facebook' => 'Facebook',
+                        'whatsapp' => 'WhatsApp',
+                        'referral' => 'Referral',
+                        'other' => 'Other',
+                    ]),
             ])
             ->actions([
                 Tables\Actions\Action::make('convert')

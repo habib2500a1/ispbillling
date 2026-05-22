@@ -25,5 +25,10 @@ yarn-error.log
 /.vscode
 /.zed
 
-# Mobile APK binaries (serve from server; do not commit)
+# Mobile APK binaries — GitHub Releases only (see public/downloads/README.md)
+*.apk
+/public/*.apk
 /public/downloads/*.apk
+/public/downloads/mfs-verify-version.json
+/mobile/**/build/
+/mobile/**/outputs/

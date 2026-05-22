@@ -1,8 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import 'config/remote_config.dart';
-import 'screens/customer_home_screen.dart';
 import 'screens/login_screen.dart';
+import 'screens/customer_home_screen.dart';
 import 'screens/staff_home_screen.dart';
 import 'services/api_service.dart';
 import 'theme/app_theme.dart';
@@ -44,32 +46,63 @@ class _SplashGateState extends State<SplashGate> {
     _boot();
   }
 
-  Future<void> _boot() async {
-    await _api.loadRemoteConfig();
-    final valid = await _api.validateSession();
+  void _goLogin() {
     if (!mounted) return;
-
-    final role = await _api.role;
-    if (!mounted) return;
-
-    if (valid && role == 'staff') {
-      final mode = await _api.staffMode ?? 'admin';
-      if (!mounted) return;
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => StaffHomeScreen(api: _api, loginPayload: {}, staffMode: mode)),
-      );
-      return;
-    }
-    if (valid && role == 'customer') {
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => CustomerHomeScreen(api: _api, loginPayload: {})),
-      );
-      return;
-    }
-
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(builder: (_) => LoginScreen(api: _api)),
     );
+  }
+
+  Future<void> _boot() async {
+    try {
+      if (mounted) setState(() => _status = 'Connecting…');
+      await _api.loadRemoteConfig().timeout(const Duration(seconds: 10));
+    } catch (_) {}
+
+    final token = await _api.token;
+    if (token == null || token.isEmpty) {
+      _goLogin();
+      return;
+    }
+
+    try {
+      if (mounted) setState(() => _status = 'Checking session…');
+      final valid = await _api.validateSession(quick: true).timeout(const Duration(seconds: 12));
+      if (!mounted) return;
+
+      if (!valid) {
+        await _api.clearSession();
+        _goLogin();
+        return;
+      }
+
+      final role = await _api.role;
+      if (!mounted) return;
+
+      if (role == 'staff') {
+        final mode = await _api.staffMode ?? 'admin';
+        if (!mounted) return;
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(
+            builder: (_) => StaffHomeScreen(api: _api, loginPayload: {}, staffMode: mode),
+          ),
+        );
+        return;
+      }
+
+      if (role == 'customer') {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (_) => CustomerHomeScreen(api: _api, loginPayload: {})),
+        );
+        return;
+      }
+
+      await _api.clearSession();
+      _goLogin();
+    } catch (_) {
+      await _api.clearSession();
+      _goLogin();
+    }
   }
 
   @override
@@ -91,6 +124,12 @@ class _SplashGateState extends State<SplashGate> {
               const CircularProgressIndicator(color: Colors.white),
               const SizedBox(height: 12),
               Text(_status, style: const TextStyle(color: Colors.white70)),
+              const SizedBox(height: 24),
+              TextButton(
+                onPressed: _goLogin,
+                style: TextButton.styleFrom(foregroundColor: Colors.white),
+                child: const Text('Sign in'),
+              ),
             ],
           ),
         ),

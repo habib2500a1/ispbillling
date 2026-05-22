@@ -14,8 +14,15 @@ return [
 
     'enabled' => (bool) env('BKASH_ENABLED', false),
 
-    /** tokenized_web — bKash Tokenized API (Web/URL) checkout */
+    /** tokenized_web | personal — personal = Send Money + TrxID + SMS verify (PipraPay-style) */
     'gateway_type' => env('BKASH_GATEWAY_TYPE', 'tokenized_web'),
+
+    /** Personal bKash number (01XXXXXXXXX) when gateway_type=personal */
+    'personal_number' => env('BKASH_PERSONAL_NUMBER'),
+
+    'personal_name' => env('BKASH_PERSONAL_NAME', env('ISP_COMPANY_NAME', 'ISP')),
+
+    'instructions' => env('BKASH_PERSONAL_INSTRUCTIONS'),
 
     /** sandbox | live — panel can override via app_settings */
     'environment' => env('BKASH_ENVIRONMENT', 'sandbox'),

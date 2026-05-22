@@ -40,6 +40,7 @@ class AdminPanelProvider extends PanelProvider
             ->brandName(fn (): string => CompanyBranding::name())
             ->brandLogo(fn (): ?string => CompanyBranding::logoUrl())
             ->brandLogoHeight('2.25rem')
+            ->favicon(fn (): ?string => CompanyBranding::faviconUrl())
             ->databaseNotificationsPolling('30s')
             ->colors([
                 'primary' => Color::Teal,
@@ -59,22 +60,54 @@ class AdminPanelProvider extends PanelProvider
             ->globalSearchKeyBindings(['command+k', 'ctrl+k'])
             ->maxContentWidth('full')
             ->navigationGroups([
-                NavigationGroup::make('Overview')->collapsed(false),
-                NavigationGroup::make('Clients')->collapsed(false),
-                NavigationGroup::make('Billing')->collapsed(false),
-                NavigationGroup::make('Payments')->collapsed(false),
-                NavigationGroup::make('OLT & Tools')->collapsed(false),
-                NavigationGroup::make('Network')->collapsed(false),
-                NavigationGroup::make('SMS Service')->collapsed(false),
-                NavigationGroup::make('Support')->collapsed(false),
-                NavigationGroup::make('Reports')->collapsed(false),
-                NavigationGroup::make('BW Client')->collapsed(false),
-                NavigationGroup::make('HRM')->collapsed(false),
-                NavigationGroup::make('Inventory')->collapsed(false),
-                NavigationGroup::make('Resellers')->collapsed(false),
-                NavigationGroup::make('Accounts')->collapsed(false),
-                NavigationGroup::make('Settings')->collapsed(false),
-                NavigationGroup::make('System')->collapsed(false),
+                NavigationGroup::make('Overview')
+                    ->icon('heroicon-o-squares-2x2')
+                    ->collapsed(true),
+                NavigationGroup::make('Clients')
+                    ->icon('heroicon-o-user-group')
+                    ->collapsed(true),
+                NavigationGroup::make('Billing')
+                    ->icon('heroicon-o-document-text')
+                    ->collapsed(true),
+                NavigationGroup::make('Payments')
+                    ->icon('heroicon-o-banknotes')
+                    ->collapsed(true),
+                NavigationGroup::make('Inventory Pro')
+                    ->icon('heroicon-o-cube')
+                    ->collapsed(true),
+                NavigationGroup::make('OLT & Tools')
+                    ->icon('heroicon-o-cpu-chip')
+                    ->collapsed(true),
+                NavigationGroup::make('Network')
+                    ->icon('heroicon-o-signal')
+                    ->collapsed(true),
+                NavigationGroup::make('SMS Service')
+                    ->icon('heroicon-o-chat-bubble-left-right')
+                    ->collapsed(true),
+                NavigationGroup::make('Support')
+                    ->icon('heroicon-o-lifebuoy')
+                    ->collapsed(true),
+                NavigationGroup::make('Reports')
+                    ->icon('heroicon-o-chart-bar')
+                    ->collapsed(true),
+                NavigationGroup::make('BW Client')
+                    ->icon('heroicon-o-cloud')
+                    ->collapsed(true),
+                NavigationGroup::make('HRM')
+                    ->icon('heroicon-o-identification')
+                    ->collapsed(true),
+                NavigationGroup::make('Resellers')
+                    ->icon('heroicon-o-building-storefront')
+                    ->collapsed(true),
+                NavigationGroup::make('Accounts')
+                    ->icon('heroicon-o-calculator')
+                    ->collapsed(true),
+                NavigationGroup::make('Settings')
+                    ->icon('heroicon-o-cog-6-tooth')
+                    ->collapsed(true),
+                NavigationGroup::make('System')
+                    ->icon('heroicon-o-server-stack')
+                    ->collapsed(true),
             ])
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\\Filament\\Resources')
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\\Filament\\Pages')
@@ -100,7 +133,14 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->renderHook(
                 PanelsRenderHook::HEAD_END,
-                fn (): string => view('filament.hooks.design-system')->render(),
+                function (): string {
+                    $html = '';
+                    if (request()->routeIs('filament.admin.auth.*')) {
+                        $html .= view('filament.hooks.auth-head')->render();
+                    }
+
+                    return $html.view('filament.hooks.design-system')->render();
+                },
             )
             ->renderHook(
                 PanelsRenderHook::BODY_START,
@@ -135,6 +175,7 @@ class AdminPanelProvider extends PanelProvider
                 fn (): string => view('filament.hooks.command-palette', [
                     'commandItems' => AdminCommandPalette::items(),
                 ])->render()
+                    .'<script src="'.asset('js/admin-sidebar-layout.js').'?v=20" data-cfasync="false"></script>'
                     .view('filament.hooks.mobile-dock')->render(),
             );
     }

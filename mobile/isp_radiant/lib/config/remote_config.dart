@@ -30,6 +30,15 @@ class RemoteConfig {
     return branding?['phone']?.toString() ?? '';
   }
 
+  static String? get websiteUrl {
+    final links = _raw?['links'] as Map?;
+    final landing = links?['landing']?.toString();
+    if (landing != null && landing.isNotEmpty) return landing;
+    final branding = _raw?['branding'] as Map?;
+    final site = branding?['website']?.toString();
+    return (site != null && site.isNotEmpty) ? site : null;
+  }
+
   static List<Map<String, dynamic>> get packages {
     final list = _raw?['packages'] as List<dynamic>? ?? [];
     return list.map((e) => Map<String, dynamic>.from(e as Map)).toList();
@@ -56,6 +65,13 @@ class RemoteConfig {
   static bool get realtimeWs => (_raw?['features'] as Map?)?['realtime_ws'] == true;
   static bool get aiAssistant => (_raw?['features'] as Map?)?['ai_assistant'] == true;
   static bool get networkControl => (_raw?['features'] as Map?)?['network_control'] == true;
+
+  static bool get mfsSmsStaff => (_raw?['features'] as Map?)?['mfs_sms_staff'] == true;
+
+  static String get mfsVerifyApkUrl {
+    final links = _raw?['links'] as Map?;
+    return links?['apk_mfs_verify']?.toString() ?? '';
+  }
 
   static Map<String, dynamic> get phases => Map<String, dynamic>.from((_raw?['phases'] as Map?) ?? {});
   static Map<String, dynamic> get branding => Map<String, dynamic>.from((_raw?['branding'] as Map?) ?? {});

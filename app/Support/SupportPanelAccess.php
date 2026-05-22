@@ -3,6 +3,7 @@
 namespace App\Support;
 
 use App\Models\User;
+use App\Support\Rbac\StaffCapability;
 
 /**
  * Ticket / support UI authorization without requiring Spatie permission rows
@@ -16,13 +17,18 @@ final class SupportPanelAccess
             return false;
         }
 
+        if ($user->hasRole(StaffCapability::FULL_ACCESS_ROLES)) {
+            return true;
+        }
+
         return $user->hasAnyRole([
             'super-admin',
             'isp-admin',
+            'admin',
             'isp-support',
             'isp-engineer',
             'isp-manager',
-        ]);
+        ]) || $user->can('support.view');
     }
 
     public static function manageTickets(?User $user): bool
@@ -31,13 +37,18 @@ final class SupportPanelAccess
             return false;
         }
 
+        if ($user->hasRole(StaffCapability::FULL_ACCESS_ROLES)) {
+            return true;
+        }
+
         return $user->hasAnyRole([
             'super-admin',
             'isp-admin',
+            'admin',
             'isp-support',
             'isp-manager',
             'isp-engineer',
-        ]);
+        ]) || $user->can('support.view');
     }
 
     public static function assignTickets(?User $user): bool

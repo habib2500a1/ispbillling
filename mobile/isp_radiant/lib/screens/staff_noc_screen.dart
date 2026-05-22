@@ -48,6 +48,7 @@ class _StaffNocScreenState extends State<StaffNocScreen> {
 
     return PageScaffold(
       title: 'NOC Dashboard',
+      useGradientBody: true,
       actions: [IconButton(icon: const Icon(Icons.refresh), onPressed: _load)],
       body: _loading
           ? const Center(child: CircularProgressIndicator())

@@ -4,6 +4,7 @@ namespace App\Services\Reports;
 
 use App\Models\Area;
 use App\Models\Customer;
+use App\Services\Bandwidth\BandwidthCollectionService;
 use App\Models\Invoice;
 use App\Models\Package;
 use App\Models\Payment;
@@ -27,7 +28,10 @@ class AnalyticsReportService
         $invoiced = $this->totalInvoiced($from, $to, $tenantId);
         $due = $this->totalOutstanding($tenantId);
         $active = Customer::withoutGlobalScopes()->where('tenant_id', $tenantId)->where('status', CustomerStatus::ACTIVE)->count();
-        $online = PppSessionLog::withoutGlobalScopes()->where('tenant_id', $tenantId)->where('status', 'active')->count();
+        $bandwidth = app(BandwidthCollectionService::class);
+        $online = $bandwidth->tenantOnlineFlagsTrustworthy($tenantId)
+            ? PppSessionLog::withoutGlobalScopes()->where('tenant_id', $tenantId)->where('status', 'active')->count()
+            : 0;
         $newSubs = Customer::withoutGlobalScopes()
             ->where('tenant_id', $tenantId)
             ->whereBetween('joined_at', [$from->toDateString(), $to->toDateString()])

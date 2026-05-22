@@ -4,7 +4,9 @@ namespace Tests\Feature;
 
 use App\Models\Customer;
 use App\Models\FieldVisit;
+use App\Models\Invoice;
 use App\Models\Package;
+use App\Models\Payment;
 use App\Models\SupportTicket;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -31,7 +33,49 @@ class MobileApiTest extends TestCase
         $this->withToken($token)
             ->getJson('/api/v1/customer/dashboard')
             ->assertOk()
-            ->assertJsonStructure(['customer', 'total_due', 'recent_bills']);
+            ->assertJsonStructure(['customer', 'total_due', 'recent_bills', 'notices', 'summary']);
+    }
+
+    public function test_customer_payment_history_and_invoice_detail(): void
+    {
+        $customer = $this->makeCustomer('pay-pass');
+        $token = $customer->createToken('test')->plainTextToken;
+
+        $invoice = Invoice::query()->create([
+            'tenant_id' => 1,
+            'customer_id' => $customer->id,
+            'invoice_number' => 'INV-MOB-1',
+            'status' => 'paid',
+            'issue_date' => now()->startOfMonth(),
+            'due_date' => now()->startOfMonth()->addDays(14),
+            'period_start' => now()->startOfMonth()->toDateString(),
+            'period_end' => now()->endOfMonth()->toDateString(),
+            'subtotal' => 500,
+            'total' => 500,
+            'amount_paid' => 500,
+        ]);
+
+        Payment::query()->create([
+            'tenant_id' => 1,
+            'customer_id' => $customer->id,
+            'invoice_id' => $invoice->id,
+            'amount' => 500,
+            'method' => 'bkash',
+            'status' => 'completed',
+            'paid_at' => now(),
+            'receipt_number' => 'RCP-001',
+        ]);
+
+        $this->withToken($token)
+            ->getJson('/api/v1/customer/payments')
+            ->assertOk()
+            ->assertJsonPath('data.0.amount', 500)
+            ->assertJsonPath('data.0.status', 'Paid');
+
+        $this->withToken($token)
+            ->getJson("/api/v1/customer/bills/{$invoice->id}")
+            ->assertOk()
+            ->assertJsonStructure(['invoice' => ['items', 'payments', 'balance_due'], 'customer']);
     }
 
     public function test_customer_live_usage_endpoint(): void

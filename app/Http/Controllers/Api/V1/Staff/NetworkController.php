@@ -70,7 +70,10 @@ class NetworkController extends Controller
         if (! $user instanceof User) {
             abort(401);
         }
-        if (! $user->hasAnyRole(['super-admin', 'isp-admin', 'isp-manager', 'branch-manager', 'isp-engineer', 'isp-support'])) {
+        if (! $user->hasAnyRole([
+            'super-admin', 'isp-admin', 'admin', 'isp-manager', 'branch-manager',
+            'isp-engineer', 'isp-support', 'cashier', 'collector',
+        ])) {
             abort(403, 'Network control not allowed for this role.');
         }
 

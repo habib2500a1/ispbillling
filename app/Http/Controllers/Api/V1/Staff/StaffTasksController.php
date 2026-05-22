@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\InternalTask;
 use App\Models\User;
 use App\Support\InternalTaskStatus;
+use App\Support\StaffTenantScope;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -16,7 +17,7 @@ class StaffTasksController extends Controller
     {
         /** @var User $user */
         $user = $request->user();
-        $tenantId = (int) $user->tenant_id;
+        $tenantId = StaffTenantScope::tenantIdFor($user);
 
         $tasks = InternalTask::withoutGlobalScopes()
             ->where('tenant_id', $tenantId)
@@ -39,7 +40,7 @@ class StaffTasksController extends Controller
         $user = $request->user();
 
         $model = InternalTask::withoutGlobalScopes()
-            ->where('tenant_id', $user->tenant_id)
+            ->where('tenant_id', StaffTenantScope::tenantIdFor($user))
             ->whereKey($task)
             ->firstOrFail();
 

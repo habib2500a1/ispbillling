@@ -6,6 +6,7 @@ use App\Models\BillingAuditLog;
 use App\Models\Invoice;
 use App\Services\Accounting\AccountingIntegrationService;
 use App\Services\Billing\PackageUpgradeApplicator;
+use App\Support\CustomerBalanceDue;
 
 class InvoiceObserver
 {
@@ -50,6 +51,13 @@ class InvoiceObserver
 
         if ($invoice->wasChanged('status') && $invoice->status === 'paid') {
             app(PackageUpgradeApplicator::class)->applyWhenInvoicePaid($invoice->fresh(['customer', 'items']));
+        }
+
+        if ($invoice->customer_id && ($invoice->wasChanged('status') || $invoice->wasChanged('amount_paid'))) {
+            $customer = $invoice->customer?->fresh();
+            if ($customer !== null) {
+                CustomerBalanceDue::refreshMetaAfterPayment($customer);
+            }
         }
     }
 }

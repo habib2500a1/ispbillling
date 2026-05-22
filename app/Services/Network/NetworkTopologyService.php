@@ -9,6 +9,7 @@ use App\Models\Area;
 use App\Models\Customer;
 use App\Models\Device;
 use App\Models\MikrotikServer;
+use App\Services\Bandwidth\BandwidthCollectionService;
 use Illuminate\Support\Collection;
 
 class NetworkTopologyService
@@ -27,22 +28,27 @@ class NetworkTopologyService
     {
         $onlineStatuses = ['online', 'active', 'up'];
 
+        $bandwidth = app(BandwidthCollectionService::class);
+
         $mikrotik = MikrotikServer::query()
             ->orderBy('name')
             ->get()
-            ->map(function (MikrotikServer $server): array {
+            ->map(function (MikrotikServer $server) use ($bandwidth): array {
                 $customers = Customer::query()->where('mikrotik_server_id', $server->id)->count();
-                $online = Customer::query()
-                    ->where('mikrotik_server_id', $server->id)
-                    ->where('is_ppp_online', true)
-                    ->count();
+                $trustworthy = $bandwidth->tenantOnlineFlagsTrustworthy((int) $server->tenant_id);
+                $online = $trustworthy && $server->last_api_status === 'online'
+                    ? Customer::query()
+                        ->where('mikrotik_server_id', $server->id)
+                        ->where('is_ppp_online', true)
+                        ->count()
+                    : 0;
 
                 return [
                     'id' => $server->id,
                     'name' => $server->name,
                     'host' => $server->host,
                     'enabled' => (bool) $server->is_enabled,
-                    'api_ok' => $server->last_api_status === 'ok',
+                    'api_ok' => $server->last_api_status === 'online',
                     'customers' => $customers,
                     'online' => $online,
                     'edit_url' => MikrotikServerResource::getUrl('edit', ['record' => $server]),

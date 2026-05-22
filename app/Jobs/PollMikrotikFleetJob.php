@@ -2,6 +2,8 @@
 
 namespace App\Jobs;
 
+use App\Models\MikrotikServer;
+use App\Services\Bandwidth\BandwidthCollectionService;
 use App\Services\Mikrotik\MikrotikFleetCoordinator;
 use App\Services\Notifications\NotificationDispatcher;
 use App\Support\NotificationEvent;
@@ -36,6 +38,23 @@ class PollMikrotikFleetJob implements ShouldQueue
             'online' => $stats['online'],
             'offline' => $stats['offline'],
         ]);
+
+        if (($stats['polled'] ?? 0) > 0 && ($stats['online'] ?? 0) === 0) {
+            $bandwidth = app(BandwidthCollectionService::class);
+            $tenantIds = $this->tenantId !== null
+                ? [(int) $this->tenantId]
+                : MikrotikServer::query()
+                    ->withoutGlobalScopes()
+                    ->where('is_enabled', true)
+                    ->distinct()
+                    ->pluck('tenant_id')
+                    ->map(fn ($id): int => (int) $id)
+                    ->all();
+
+            foreach ($tenantIds as $tenantId) {
+                $bandwidth->clearStaleOnlineFlagsWhenRoutersUnreachable($tenantId);
+            }
+        }
 
         if (($stats['offline'] ?? 0) > 0 && config('alerts.mikrotik_offline_enabled', true)) {
             $offlineNames = collect($stats['servers'] ?? [])

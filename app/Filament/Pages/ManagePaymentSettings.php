@@ -5,6 +5,7 @@ namespace App\Filament\Pages;
 use App\Models\AppSetting;
 use App\Models\IntegrationSettingsAudit;
 use App\Support\BkashSettings;
+use App\Support\PaymentAdminAccess;
 use Filament\Actions\Action;
 use Filament\Forms\Components\CheckboxList;
 use Filament\Forms\Components\DatePicker;
@@ -50,7 +51,7 @@ class ManagePaymentSettings extends Page
 
     public static function canAccess(): bool
     {
-        return auth()->user()?->hasRole('super-admin') ?? false;
+        return PaymentAdminAccess::canManageGateways();
     }
 
     public static function shouldRegisterNavigation(): bool
@@ -61,6 +62,13 @@ class ManagePaymentSettings extends Page
     public function mount(): void
     {
         abort_unless(static::canAccess(), 403);
+
+        $gateway = request()->query('gateway');
+        if (in_array($gateway, ['bkash', 'nagad'], true) && request()->query('merchant') !== '1') {
+            $this->redirect(ManagePersonalMfsSettings::getUrl(['tab' => $gateway]));
+
+            return;
+        }
 
         $this->fillBkashForm();
     }
@@ -77,23 +85,31 @@ class ManagePaymentSettings extends Page
                 $this->makeForm()
                     ->schema([
                         Tabs::make('gateways')
+                            ->activeTab(fn (): int => match (request()->query('gateway')) {
+                                'bkash' => 2,
+                                'nagad' => 3,
+                                'sslcommerz' => 4,
+                                'rocket' => 5,
+                                'piprapay' => 1,
+                                default => 1,
+                            })
                             ->tabs([
-                                Tab::make('bKash')
+                                Tab::make('PipraPay')
+                                    ->id('piprapay')
+                                    ->icon('heroicon-o-globe-alt')
+                                    ->schema($this->pipraPayFormSchema()),
+                                Tab::make('bKash Merchant API')
                                     ->id('bkash')
-                                    ->icon('heroicon-o-device-phone-mobile')
+                                    ->icon('heroicon-o-building-storefront')
                                     ->schema($this->bkashFormSchema()),
-                                Tab::make('Nagad')
+                                Tab::make('Nagad Merchant API')
                                     ->id('nagad')
-                                    ->icon('heroicon-o-banknotes')
+                                    ->icon('heroicon-o-building-library')
                                     ->schema($this->nagadFormSchema()),
                                 Tab::make('SSLCommerz')
                                     ->id('sslcommerz')
                                     ->icon('heroicon-o-credit-card')
                                     ->schema($this->sslCommerzFormSchema()),
-                                Tab::make('PipraPay')
-                                    ->id('piprapay')
-                                    ->icon('heroicon-o-globe-alt')
-                                    ->schema($this->pipraPayFormSchema()),
                                 Tab::make('Rocket')
                                     ->id('rocket')
                                     ->icon('heroicon-o-device-phone-mobile')
@@ -124,8 +140,7 @@ class ManagePaymentSettings extends Page
                                             ->content('POST /api/webhooks/payments/rocket with secret ROCKET_WEBHOOK_SECRET'),
                                     ])
                                     ->columns(2),
-                            ])
-                            ->persistTabInQueryString('gateway'),
+                            ]),
                     ])
                     ->statePath('data'),
             ),
@@ -182,8 +197,10 @@ class ManagePaymentSettings extends Page
     protected function nagadFormSchema(): array
     {
         return [
-            Section::make('Nagad checkout')->schema([
-                \Filament\Forms\Components\Toggle::make('nagad_enabled')->label('Enable Nagad'),
+            Section::make('Nagad merchant checkout (API)')
+                ->description('Personal Nagad + SMS verify: Payments → Personal bKash / Nagad verify')
+                ->schema([
+                \Filament\Forms\Components\Toggle::make('nagad_enabled')->label('Enable Nagad merchant checkout'),
                 Radio::make('nagad_sandbox')
                     ->label('Environment')
                     ->options(['1' => 'Sandbox', '0' => 'Live'])
@@ -200,7 +217,7 @@ class ManagePaymentSettings extends Page
                     ->dehydrated(false)
                     ->helperText('Leave blank to keep saved key.')
                     ->columnSpanFull(),
-            ])->columns(2),
+                ])->columns(2),
         ];
     }
 
@@ -233,17 +250,16 @@ class ManagePaymentSettings extends Page
     protected function bkashFormSchema(): array
     {
         return [
-            Section::make('bKash — payment gateway information')
-                ->description('bKash Tokenized API (Web/URL) — same flow as merchant checkout with callback URL.')
+            Placeholder::make('bkash_personal_link')
+                ->label('Personal bKash?')
+                ->content(new \Illuminate\Support\HtmlString(
+                    '<a class="text-primary-600 font-semibold underline" href="'
+                    .\App\Filament\Pages\ManagePersonalMfsSettings::getUrl(['tab' => 'bkash'])
+                    .'">Open Personal bKash / Nagad verify</a> (Send Money + SMS — not this merchant API).'
+                )),
+            Section::make('bKash Tokenized API (merchant checkout)')
+                ->description('Official bKash merchant API — callback URL must match bKash panel.')
                 ->schema([
-                    Select::make('bkash_gateway_type')
-                        ->label('Gateway type')
-                        ->options([
-                            BkashSettings::GATEWAY_TOKENIZED_WEB => 'bKash Tokenized API (Web/URL) Pay',
-                        ])
-                        ->disabled()
-                        ->dehydrated()
-                        ->default(BkashSettings::GATEWAY_TOKENIZED_WEB),
                     Radio::make('bkash_environment')
                         ->label('Sandbox / Live')
                         ->options([
@@ -373,7 +389,9 @@ class ManagePaymentSettings extends Page
             $environment = BkashSettings::ENV_SANDBOX;
         }
 
-        AppSetting::putValue('bkash.gateway_type', BkashSettings::GATEWAY_TOKENIZED_WEB);
+        if ((string) config('bkash.gateway_type') !== BkashSettings::GATEWAY_PERSONAL) {
+            AppSetting::putValue('bkash.gateway_type', BkashSettings::GATEWAY_TOKENIZED_WEB);
+        }
         AppSetting::putValue('bkash.environment', $environment);
         AppSetting::putValue('bkash.base_url', BkashSettings::baseUrlForEnvironment($environment));
         AppSetting::putValue('bkash.enabled', ($state['bkash_enabled'] ?? '0') === '1' ? '1' : '0');
@@ -428,6 +446,9 @@ class ManagePaymentSettings extends Page
             'payments.gateways.rocket.enabled' => ($state['rocket_enabled'] ?? '0') === '1',
         ]);
 
+        if ((string) config('nagad.gateway_type') !== 'personal') {
+            AppSetting::putValue('nagad.gateway_type', 'api');
+        }
         AppSetting::putValue('nagad.enabled', ($state['nagad_enabled'] ?? false) ? '1' : '0');
         AppSetting::putValue('nagad.sandbox', ($state['nagad_sandbox'] ?? '1') === '1' ? '1' : '0');
         AppSetting::putValue('nagad.merchant_id', trim((string) ($state['nagad_merchant_id'] ?? '')));
@@ -511,7 +532,6 @@ class ManagePaymentSettings extends Page
         }
 
         $this->form->fill([
-            'bkash_gateway_type' => (string) config('bkash.gateway_type', BkashSettings::GATEWAY_TOKENIZED_WEB),
             'bkash_environment' => $environment,
             'bkash_app_key' => (string) (config('bkash.app_key') ?? ''),
             'bkash_app_secret' => '',
@@ -529,7 +549,7 @@ class ManagePaymentSettings extends Page
             'rocket_instructions' => (string) config('rocket.instructions', ''),
             'rocket_auto_verify' => config('rocket.auto_verify') ? '1' : '0',
             'rocket_verify_url' => (string) config('rocket.verify_url', ''),
-            'nagad_enabled' => config('nagad.enabled') ? '1' : '0',
+            'nagad_enabled' => config('nagad.enabled') && (string) config('nagad.gateway_type') === 'api' ? '1' : '0',
             'nagad_sandbox' => config('nagad.sandbox') ? '1' : '0',
             'nagad_merchant_id' => (string) config('nagad.merchant_id', ''),
             'nagad_merchant_number' => (string) config('nagad.merchant_number', ''),

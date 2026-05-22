@@ -231,6 +231,8 @@ class PaymentResource extends Resource
                         $record->update(['status' => 'completed', 'paid_at' => $record->paid_at ?? now()]);
                         Notification::make()->title('Payment completed')->success()->send();
                     }),
+                \App\Filament\Support\TransferMfsPaymentAction::forPayment()
+                    ->label('Transfer ID'),
                 Tables\Actions\Action::make('refund')
                     ->label('Refund')
                     ->icon('heroicon-o-arrow-uturn-left')

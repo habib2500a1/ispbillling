@@ -41,11 +41,23 @@ final class PlatformBackupService
 
         $this->rotateOldBackups();
 
+        $mirrorResults = [];
+        if ($zipPath !== null) {
+            $mirrorResults = app(BackupDriveMirrorService::class)->mirrorZipToEnabledDrives($zipPath);
+        }
+
+        $googleDriveResult = null;
+        if ($zipPath !== null) {
+            $googleDriveResult = app(GoogleDriveBackupService::class)->uploadBackupZip($zipPath);
+        }
+
         return [
             'stamp' => $stamp,
             'directory' => $directory,
             'zip' => $zipPath,
             'manifest' => $manifest,
+            'mirror_results' => $mirrorResults,
+            'google_drive' => $googleDriveResult,
         ];
     }
 

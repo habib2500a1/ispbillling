@@ -14,7 +14,7 @@ final class MobileNocService
      */
     public function dashboard(User $user): array
     {
-        $tenantId = (int) $user->tenant_id;
+        $tenantId = \App\Support\StaffTenantScope::tenantIdFor($user);
 
         $oltCount = Device::withoutGlobalScopes()->where('tenant_id', $tenantId)->where('type', 'olt')->count();
         $onuCount = Device::withoutGlobalScopes()->where('tenant_id', $tenantId)->where('type', 'onu')->count();

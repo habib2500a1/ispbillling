@@ -4,8 +4,9 @@ namespace App\Support;
 
 use App\Filament\Pages\BroadcastOutage;
 use App\Filament\Pages\SalesLeadPipeline;
-use App\Filament\Pages\SupportHub;
 use App\Filament\Resources\KnowledgeArticleResource;
+use App\Models\SalesLead;
+use App\Support\SalesLeadPanelAccess;
 use App\Filament\Resources\OutageResource;
 use App\Filament\Resources\SalesLeadResource;
 use App\Filament\Resources\SupportAssignmentRuleResource;
@@ -22,10 +23,30 @@ final class SupportSidebarRegistry
     {
         return [
             [
+                'key' => 'leads',
+                'label' => 'New connections (portal)',
+                'icon' => 'heroicon-o-user-plus',
+                'sort' => 1,
+                'url' => SalesLeadResource::getUrl(),
+                'active_routes' => [
+                    'filament.admin.resources.sales-leads.index',
+                    'filament.admin.resources.sales-leads.create',
+                    'filament.admin.resources.sales-leads.edit',
+                ],
+            ],
+            [
+                'key' => 'pipeline',
+                'label' => 'Connection pipeline',
+                'icon' => 'heroicon-o-view-columns',
+                'sort' => 2,
+                'url' => SalesLeadPipeline::getUrl(),
+                'active_routes' => ['filament.admin.pages.sales-lead-pipeline'],
+            ],
+            [
                 'key' => 'tickets',
                 'label' => 'All tickets',
                 'icon' => 'heroicon-o-ticket',
-                'sort' => 1,
+                'sort' => 3,
                 'url' => SupportTicketResource::getUrl(),
                 'active_routes' => [
                     'filament.admin.resources.support-tickets.index',
@@ -38,29 +59,9 @@ final class SupportSidebarRegistry
                 'key' => 'new_ticket',
                 'label' => 'New ticket',
                 'icon' => 'heroicon-o-plus-circle',
-                'sort' => 2,
+                'sort' => 4,
                 'url' => SupportTicketResource::getUrl('create'),
                 'active_routes' => ['filament.admin.resources.support-tickets.create'],
-            ],
-            [
-                'key' => 'pipeline',
-                'label' => 'Connection pipeline',
-                'icon' => 'heroicon-o-funnel',
-                'sort' => 3,
-                'url' => SalesLeadPipeline::getUrl(),
-                'active_routes' => ['filament.admin.pages.sales-lead-pipeline'],
-            ],
-            [
-                'key' => 'leads',
-                'label' => 'New connections',
-                'icon' => 'heroicon-o-user-plus',
-                'sort' => 4,
-                'url' => SalesLeadResource::getUrl(),
-                'active_routes' => [
-                    'filament.admin.resources.sales-leads.index',
-                    'filament.admin.resources.sales-leads.create',
-                    'filament.admin.resources.sales-leads.edit',
-                ],
             ],
             [
                 'key' => 'broadcast_outage',
@@ -125,12 +126,20 @@ final class SupportSidebarRegistry
                 continue;
             }
 
-            $items[] = NavigationItem::make($entry['label'])
+            $item = NavigationItem::make($entry['label'])
                 ->url($entry['url'])
                 ->icon($entry['icon'])
                 ->group('Support')
-                ->sort($entry['sort'])
-                ->isActiveWhen(function () use ($entry): bool {
+                ->sort($entry['sort']);
+
+            if ($entry['key'] === 'leads') {
+                $newCount = SalesLead::query()->where('status', SalesLead::STATUS_NEW)->count();
+                if ($newCount > 0) {
+                    $item->badge((string) $newCount, 'warning');
+                }
+            }
+
+            $item->isActiveWhen(function () use ($entry): bool {
                     foreach ($entry['active_routes'] as $route) {
                         if (request()->routeIs($route)) {
                             return true;
@@ -139,6 +148,8 @@ final class SupportSidebarRegistry
 
                     return false;
                 });
+
+            $items[] = $item;
         }
 
         return $items;
@@ -164,8 +175,7 @@ final class SupportSidebarRegistry
 
         return match ($key) {
             'tickets', 'new_ticket' => SupportPanelAccess::viewTickets($user),
-            'pipeline' => SalesLeadPipeline::canAccess(),
-            'leads' => SalesLeadResource::canViewAny(),
+            'pipeline', 'leads' => SalesLeadPanelAccess::canView(),
             'broadcast_outage' => BroadcastOutage::canAccess(),
             'outages' => OutageResource::canViewAny(),
             'knowledge' => KnowledgeArticleResource::canViewAny(),

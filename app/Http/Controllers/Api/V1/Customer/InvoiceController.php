@@ -37,17 +37,6 @@ class InvoiceController extends Controller
         $customer = $request->user();
         abort_unless((int) $invoice->customer_id === (int) $customer->id, 404);
 
-        $invoice->load('items');
-
-        return response()->json([
-            'invoice' => array_merge($mobile->invoiceSummary($invoice), [
-                'items' => $invoice->items->map(fn ($line) => [
-                    'description' => $line->description,
-                    'quantity' => (float) $line->quantity,
-                    'unit_price' => (float) $line->unit_price,
-                    'line_total' => (float) $line->line_total,
-                ]),
-            ]),
-        ]);
+        return response()->json($mobile->invoiceDetail($customer, $invoice));
     }
 }

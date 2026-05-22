@@ -10,10 +10,12 @@ import '../theme/app_theme.dart';
 import '../utils/app_nav.dart';
 import '../utils/layout.dart';
 import '../widgets/customer_search_result_tile.dart';
+import '../widgets/isp_ui_kit.dart';
 import '../widgets/state_views.dart';
 import 'staff_billing_hub_screen.dart';
 import 'staff_customer_detail_screen.dart';
 import 'staff_expense_screen.dart';
+import 'staff_receive_bill_screen.dart';
 
 class StaffCollectionScreen extends StatefulWidget {
   const StaffCollectionScreen({super.key, required this.api, this.active = false});
@@ -86,6 +88,26 @@ class _StaffCollectionScreenState extends State<StaffCollectionScreen> {
     }
   }
 
+  Future<void> _openReceiveBill(BuildContext context, int customerId) async {
+    try {
+      final detail = await widget.api.staffCustomerDetail(customerId);
+      if (!mounted) return;
+      final ok = await Navigator.push<bool>(
+        context,
+        MaterialPageRoute(
+          builder: (_) => StaffReceiveBillScreen(api: widget.api, customer: detail),
+        ),
+      );
+      if (ok == true) {
+        _loadWallet();
+        _refreshPending();
+        if (_searchCtrl.text.trim().length >= 2) await _search(silent: true);
+      }
+    } on ApiException catch (e) {
+      if (mounted) showSnack(context, e.message, isError: true);
+    }
+  }
+
   Future<void> _search({bool silent = false}) async {
     final q = _searchCtrl.text.trim();
     if (q.length < 2) {
@@ -109,109 +131,151 @@ class _StaffCollectionScreenState extends State<StaffCollectionScreen> {
     final balance = (_wallet?['cash_in_hand'] as num?)?.toDouble() ?? (_wallet?['balance'] as num?)?.toDouble();
 
     return ListView(
-      padding: pagePadding(context),
+      padding: EdgeInsets.zero,
       children: [
-        if (_pending > 0 && RemoteConfig.offlineSync)
-          Card(
-            color: AppTheme.warning.withValues(alpha: 0.12),
-            child: ListTile(
-              title: Text('$_pending queued collection(s)'),
-              trailing: TextButton(
-                onPressed: () async {
-                  await _offline.flush();
-                  await _refreshPending();
-                  if (mounted) showSnack(context, 'Sync attempted');
-                },
-                child: const Text('Sync'),
-              ),
-            ),
-          ),
-        if (_walletError != null)
-          Card(
-            color: AppTheme.warning.withValues(alpha: 0.12),
-            child: ListTile(
-              leading: const Icon(Icons.info_outline, color: AppTheme.warning),
-              title: Text(_walletError!, style: const TextStyle(fontSize: 13)),
-              subtitle: const Text('Collection still works — search a client below'),
-            ),
-          )
-        else if (balance != null)
-          Card(
-            color: AppTheme.success.withValues(alpha: 0.1),
-            child: ListTile(
-              title: const Text('Collector wallet'),
-              trailing: Text('${fmt.format(balance)} BDT', style: const TextStyle(fontWeight: FontWeight.bold)),
-            ),
-          ),
-        Row(
-          children: [
-            Expanded(
-              child: OutlinedButton.icon(
-                onPressed: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => StaffBillingHubScreen(api: widget.api)),
-                ),
-                icon: const Icon(Icons.history),
-                label: const Text('All collections'),
-              ),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: OutlinedButton.icon(
-                onPressed: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => StaffExpenseScreen(api: widget.api)),
-                ),
-                icon: const Icon(Icons.receipt_long),
-                label: const Text('Expense'),
+        IspUiKit.gradientHeader(
+          title: 'Collection',
+          subtitle: 'Bill receive · daily cash',
+          trailing: [
+            IconButton(
+              icon: const Icon(Icons.history, color: Colors.white),
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => StaffBillingHubScreen(api: widget.api)),
               ),
             ),
           ],
+          child: Row(
+            children: [
+              Expanded(
+                child: _headerStat(
+                  'Cash on hand',
+                  balance != null ? '${fmt.format(balance)} BDT' : '—',
+                  Icons.account_balance_wallet,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _headerStat(
+                  'Queued',
+                  '$_pending',
+                  Icons.cloud_upload_outlined,
+                ),
+              ),
+            ],
+          ),
         ),
-        const SizedBox(height: 12),
-        const SectionTitle('Bill Receive'),
-        Card(
-          child: Padding(
-            padding: const EdgeInsets.all(12),
-            child: Column(
-              children: [
-                TextField(
-                  controller: _searchCtrl,
-                  decoration: InputDecoration(
-                    labelText: 'Search customer',
-                    prefixIcon: const Icon(Icons.search),
-                    suffixIcon: _searching
-                        ? const Padding(
-                            padding: EdgeInsets.all(12),
-                            child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)),
-                          )
-                        : (_searchCtrl.text.isNotEmpty
-                            ? IconButton(icon: const Icon(Icons.clear), onPressed: () => _searchCtrl.clear())
-                            : null),
+        Padding(
+          padding: pagePadding(context),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              if (_pending > 0 && RemoteConfig.offlineSync)
+                Card(
+                  color: AppTheme.warning.withValues(alpha: 0.12),
+                  child: ListTile(
+                    title: Text('$_pending queued collection(s)'),
+                    trailing: TextButton(
+                      onPressed: () async {
+                        await _offline.flush();
+                        await _refreshPending();
+                        if (mounted) showSnack(context, 'Sync attempted');
+                      },
+                      child: const Text('Sync'),
+                    ),
                   ),
-                  onSubmitted: (_) => _search(),
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  'Same name হলে automatically দেখাবে — code দিয়ে select করুন',
-                  style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+              if (_walletError != null)
+                Card(
+                  color: AppTheme.warning.withValues(alpha: 0.12),
+                  child: ListTile(
+                    leading: const Icon(Icons.info_outline, color: AppTheme.warning),
+                    title: Text(_walletError!, style: const TextStyle(fontSize: 13)),
+                    subtitle: const Text('Search a client below to receive payment'),
+                  ),
                 ),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => StaffBillingHubScreen(api: widget.api)),
+                      ),
+                      icon: const Icon(Icons.list_alt),
+                      label: const Text('Billing list'),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => StaffExpenseScreen(api: widget.api)),
+                      ),
+                      icon: const Icon(Icons.receipt_long),
+                      label: const Text('Expense'),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 14),
+              const SectionTitle('Bill receive'),
+              const SizedBox(height: 6),
+              IspUiKit.searchBar(
+                controller: _searchCtrl,
+                hint: 'Name, code, phone, username…',
+                loading: _searching,
+                onSearch: _search,
+                onClear: () => _searchCtrl.clear(),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                'Select customer → Receive Bill (cash / bKash / Nagad / bank)',
+                style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+              ),
+              const SizedBox(height: 10),
+              ..._results.map((c) {
+                final id = (c['id'] as num).toInt();
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: CustomerSearchResultTile(
+                    customer: c,
+                    showDue: true,
+                    selected: false,
+                    onTap: () => _openReceiveBill(context, id),
+                  ),
+                );
+              }),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _headerStat(String label, String value, IconData icon) {
+    return Container(
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.18),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, color: Colors.white, size: 22),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(label, style: const TextStyle(color: Colors.white70, fontSize: 10)),
+                Text(value, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
               ],
             ),
           ),
-        ),
-        ..._results.map((c) {
-          final id = (c['id'] as num).toInt();
-          return CustomerSearchResultTile(
-            customer: c,
-            showDue: true,
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => StaffCustomerDetailScreen(api: widget.api, customerId: id)),
-            ),
-          );
-        }),
-      ],
+        ],
+      ),
     );
   }
 }

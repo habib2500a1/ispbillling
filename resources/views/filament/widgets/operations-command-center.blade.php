@@ -4,6 +4,7 @@
     $feeds = $ops['feeds'] ?? [];
     $chart = $ops['revenue_chart'] ?? ['labels' => [], 'collected' => [], 'invoiced' => []];
     $highlights = $ops['highlights'] ?? [];
+    $mfsPending = $ops['mfs_pending_verify'] ?? ['count' => 0, 'url' => null, 'items' => []];
     $updated = $ops['updated_at'] ?? null;
 @endphp
 
@@ -40,6 +41,18 @@
                 <a href="{{ \App\Filament\Pages\OnlineClientsMonitoring::getUrl() }}" class="isp-quick-pill">Online users</a>
             </div>
         </header>
+
+        @if (($mfsPending['count'] ?? 0) > 0)
+            <div class="isp-mfs-pending-alert" role="alert">
+                <div class="isp-mfs-pending-alert__main">
+                    <strong>{{ $mfsPending['count'] }} টি MFS পেমেন্ট যাচাই বাকি</strong>
+                    <p>ক্লায়েন্ট ভুল TrxID দিয়েছে বা SMS মিলেনি — Pending gateway payments থেকে Approve করুন।</p>
+                </div>
+                @if (! empty($mfsPending['url']))
+                    <a href="{{ $mfsPending['url'] }}" class="isp-mfs-pending-alert__cta">Verify &amp; approve →</a>
+                @endif
+            </div>
+        @endif
 
         <div class="isp-cmd-primary">
             @foreach ($primary as $kpi)
@@ -91,6 +104,19 @@
         </div>
 
         <div class="isp-cmd-feeds">
+            @if (($mfsPending['count'] ?? 0) > 0)
+                @include('filament.widgets.partials.ops-feed-table', [
+                    'title' => 'MFS pending verify (wrong TrxID / SMS)',
+                    'columns' => ['Gateway', 'TrxID', 'BDT', 'Subscriber', 'When'],
+                    'rows' => collect($mfsPending['items'] ?? [])->map(fn ($r) => [
+                        ['text' => $r['gateway']],
+                        ['text' => $r['trx'], 'url' => $r['url'] ?? null],
+                        ['text' => $r['amount']],
+                        ['text' => $r['customer']],
+                        ['text' => $r['at']],
+                    ]),
+                ])
+            @endif
             @include('filament.widgets.partials.ops-feed-table', [
                 'title' => 'Recent invoices',
                 'columns' => ['Invoice', 'Subscriber', 'BDT'],

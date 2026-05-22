@@ -61,6 +61,8 @@ class ModuleTile extends StatelessWidget {
         return Colors.indigo;
       case 'pink':
         return Colors.pink;
+      case 'amber':
+        return Colors.amber.shade700;
       default:
         return AppTheme.primary;
     }

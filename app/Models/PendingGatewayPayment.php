@@ -57,4 +57,11 @@ class PendingGatewayPayment extends Model
     {
         return $this->belongsTo(Payment::class);
     }
+
+    public function needsCustomerAssignment(): bool
+    {
+        return $this->status === self::STATUS_PENDING
+            && $this->customer_id === null
+            && ! empty($this->meta['needs_customer_assignment']);
+    }
 }

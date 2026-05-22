@@ -4,11 +4,13 @@ namespace App\Filament\Resources\CustomerResource\Pages;
 
 use App\Filament\Forms\SubscriberFormSchema;
 use App\Filament\Resources\CustomerResource;
+use App\Filament\Resources\CustomerResource\Pages\Concerns\ActivatesSubscriberLine;
 use App\Filament\Resources\CustomerResource\Pages\Concerns\HasMobileSubscriberFormLayout;
 use App\Support\OpticalCustomerSync;
 use Filament\Forms\Form;
 use App\Services\Optical\CustomerOnuAutoProvisionService;
 use App\Services\Billing\CustomerActivationBillingService;
+use App\Services\Subscribers\CustomerLineActivationService;
 use App\Support\BillingDefaults;
 use App\Support\CustomerStatus;
 use Illuminate\Support\Arr;
@@ -18,6 +20,7 @@ use Filament\Resources\Pages\CreateRecord;
 
 class CreateCustomer extends CreateRecord
 {
+    use ActivatesSubscriberLine;
     use HasMobileSubscriberFormLayout;
 
     protected static string $resource = CustomerResource::class;
@@ -88,7 +91,16 @@ class CreateCustomer extends CreateRecord
             }
         }
 
-        $onuId = $this->form->getState()['onu_device_pick'] ?? null;
+        $formState = $this->form->getState();
+        $service = app(CustomerLineActivationService::class);
+
+        if ($service->shouldActivateFromRegisterForm($formState)) {
+            $this->runLineActivationAfterRegister($this->record->fresh(), $formState);
+
+            return;
+        }
+
+        $onuId = $formState['onu_device_pick'] ?? null;
 
         if ($onuId) {
             $onu = app(CustomerOnuAutoProvisionService::class)

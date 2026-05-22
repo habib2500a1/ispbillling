@@ -2,7 +2,10 @@
 
 namespace App\Support;
 
+use App\Filament\Pages\ManageMfsSmsSettings;
 use App\Filament\Pages\ManagePaymentSettings;
+use App\Filament\Pages\ManagePersonalMfsSettings;
+use App\Filament\Resources\MfsSmsRecordResource;
 use App\Filament\Resources\PaymentResource;
 use App\Filament\Resources\PendingGatewayPaymentResource;
 use Filament\Facades\Filament;
@@ -37,10 +40,34 @@ final class PaymentsSidebarRegistry
                 'active_routes' => ['filament.admin.resources.payments.create'],
             ],
             [
+                'key' => 'personal_mfs',
+                'label' => 'Personal bKash / Nagad',
+                'icon' => 'heroicon-o-device-phone-mobile',
+                'sort' => 10,
+                'url' => ManagePersonalMfsSettings::getUrl(['tab' => 'bkash']),
+                'active_routes' => ['filament.admin.pages.personal-mfs-verify'],
+            ],
+            [
+                'key' => 'mfs_sms_apps',
+                'label' => 'RCL SMS & apps',
+                'icon' => 'heroicon-o-chat-bubble-left-ellipsis',
+                'sort' => 11,
+                'url' => ManageMfsSmsSettings::getUrl(),
+                'active_routes' => ['filament.admin.pages.mfs-sms-verify'],
+            ],
+            [
+                'key' => 'mfs_sms',
+                'label' => 'RCL SMS ledger',
+                'icon' => 'heroicon-o-chat-bubble-left-right',
+                'sort' => 13,
+                'url' => MfsSmsRecordResource::getUrl(),
+                'active_routes' => ['filament.admin.resources.mfs-sms-records.index'],
+            ],
+            [
                 'key' => 'pending_gateway',
-                'label' => 'Pending gateway',
+                'label' => 'Pending verify',
                 'icon' => 'heroicon-o-clock',
-                'sort' => 3,
+                'sort' => 14,
                 'url' => PendingGatewayPaymentResource::getUrl(),
                 'active_routes' => [
                     'filament.admin.resources.pending-gateway-payments.index',
@@ -48,11 +75,11 @@ final class PaymentsSidebarRegistry
                 ],
             ],
             [
-                'key' => 'gateway_settings',
-                'label' => 'Gateway settings',
-                'icon' => 'heroicon-o-cog-6-tooth',
-                'sort' => 4,
-                'url' => ManagePaymentSettings::getUrl(),
+                'key' => 'merchant_gateways',
+                'label' => 'Merchant gateways',
+                'icon' => 'heroicon-o-building-storefront',
+                'sort' => 20,
+                'url' => ManagePaymentSettings::getUrl(['gateway' => 'piprapay', 'merchant' => '1']),
                 'active_routes' => ['filament.admin.pages.payment-gateway-settings'],
             ],
         ];
@@ -80,6 +107,13 @@ final class PaymentsSidebarRegistry
                 ->group('Payments')
                 ->sort($entry['sort'])
                 ->isActiveWhen(function () use ($entry): bool {
+                    if ($entry['key'] === 'personal_mfs') {
+                        return request()->routeIs('filament.admin.pages.personal-mfs-verify');
+                    }
+                    if ($entry['key'] === 'merchant_gateways') {
+                        return request()->routeIs('filament.admin.pages.payment-gateway-settings');
+                    }
+
                     foreach ($entry['active_routes'] as $route) {
                         if (request()->routeIs($route)) {
                             return true;
@@ -109,7 +143,10 @@ final class PaymentsSidebarRegistry
         return match ($key) {
             'all', 'record' => PaymentResource::canViewAny(),
             'pending_gateway' => PendingGatewayPaymentResource::canViewAny(),
-            'gateway_settings' => ManagePaymentSettings::canAccess(),
+            'mfs_sms' => MfsSmsRecordResource::canViewAny(),
+            'personal_mfs' => ManagePersonalMfsSettings::canAccess(),
+            'mfs_sms_apps' => ManageMfsSmsSettings::canAccess(),
+            'merchant_gateways' => ManagePaymentSettings::canAccess(),
             default => false,
         };
     }

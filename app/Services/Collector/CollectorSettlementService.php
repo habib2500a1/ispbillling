@@ -4,6 +4,7 @@ namespace App\Services\Collector;
 
 use App\Models\CollectorCollection;
 use App\Models\CollectorSettlement;
+use App\Models\InventorySale;
 use App\Models\Payment;
 use App\Models\User;
 use App\Services\Accounting\CashbookService;
@@ -90,6 +91,55 @@ final class CollectorSettlementService
         ]);
 
         return $collection;
+    }
+
+    public function recordCollectionFromInventorySale(InventorySale $sale, ?User $collector = null): ?CollectorCollection
+    {
+        if (! $this->isEnabled() || $sale->status !== 'completed') {
+            return null;
+        }
+
+        if (! in_array(
+            (string) $sale->payment_method,
+            config('inventory.staff_collector_cash_methods', ['cash', 'counter']),
+            true,
+        )) {
+            return null;
+        }
+
+        $existing = CollectorCollection::query()->where('inventory_sale_id', $sale->id)->first();
+        if ($existing !== null) {
+            return $existing;
+        }
+
+        $collector ??= User::query()->find($sale->recorded_by);
+        if ($collector === null) {
+            return null;
+        }
+
+        $amount = round((float) $sale->total, 2);
+        if ($amount <= 0.009) {
+            return null;
+        }
+
+        $notes = trim('Retail sale '.$sale->sale_number
+            .($sale->customer_name ? ' · '.$sale->customer_name : '')
+            .($sale->customer_phone ? ' · '.$sale->customer_phone : ''));
+
+        return CollectorCollection::query()->create([
+            'tenant_id' => $sale->tenant_id ?? TenantResolver::requiredTenantId(),
+            'payment_id' => null,
+            'inventory_sale_id' => $sale->id,
+            'customer_id' => null,
+            'collector_id' => $collector->id,
+            'branch_id' => $collector->branch_id,
+            'amount' => $amount,
+            'amount_settled' => 0,
+            'payment_method' => (string) $sale->payment_method,
+            'status' => 'open',
+            'collected_at' => $sale->sold_at ?? now(),
+            'notes' => $notes,
+        ]);
     }
 
     /**

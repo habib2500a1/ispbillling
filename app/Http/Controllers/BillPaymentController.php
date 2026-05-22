@@ -230,21 +230,10 @@ class BillPaymentController extends Controller
 
         $validated = $request->validate([
             'gateway' => ['required', 'in:'.implode(',', [PaymentGateway::BKASH, PaymentGateway::SSLCOMMERZ, PaymentGateway::NAGAD, PaymentGateway::ROCKET, PaymentGateway::PIPRAPAY])],
-            'amount' => ['nullable', 'numeric', 'min:'.$min, 'max:'.$balance],
+            'amount' => ['prohibited'],
         ]);
 
-        $amount = isset($validated['amount'])
-            ? round((float) $validated['amount'], 2)
-            : $balance;
-
-        if (! config('bill_payment.allow_partial', true)) {
-            $amount = $balance;
-        }
-
-        $linkAmount = session(self::SESSION_LINK_AMOUNT);
-        if ($linkAmount !== null && (int) session(self::SESSION_LINK_INVOICE) === (int) $invoice->id) {
-            $amount = round(min((float) $linkAmount, $balance), 2);
-        }
+        $amount = $balance;
 
         return $payments->startInvoicePayment($invoice, $amount, $validated['gateway']);
     }

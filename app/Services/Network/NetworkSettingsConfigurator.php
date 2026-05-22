@@ -3,6 +3,8 @@
 namespace App\Services\Network;
 
 use App\Models\AppSetting;
+use App\Services\Bandwidth\BandwidthCollectionService;
+use App\Support\TenantResolver;
 
 final class NetworkSettingsConfigurator
 {
@@ -118,6 +120,11 @@ final class NetworkSettingsConfigurator
         }
 
         AppSetting::syncToRuntimeConfig();
+
+        if (! (bool) config('mikrotik.poll_enabled', true) || ! (bool) config('bandwidth.collection_enabled', true)) {
+            $tenantId = TenantResolver::currentTenantId() ?? 1;
+            app(BandwidthCollectionService::class)->refreshOnlineFlagsForTenant((int) $tenantId);
+        }
     }
 
     /**

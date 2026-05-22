@@ -82,6 +82,7 @@ class CollectorController extends Controller
         return response()->json([
             'message' => $result['message'],
             'payment' => app(StaffPaymentApiPresenter::class)->paymentPayload($payment),
+            'customer' => $result['customer'] ?? null,
             'discount_bdt' => $result['discount_bdt'],
             'visit_id' => $result['visit_id'],
             'wallet' => app(CollectorWalletService::class)->wallet((int) $user->id),

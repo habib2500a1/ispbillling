@@ -2,6 +2,7 @@
 <x-filament-panels::page>
     <div class="mb-4 flex flex-wrap items-center gap-3">
         <a href="{{ \App\Filament\Pages\BillCollectionDesk::getUrl() }}" class="text-sm text-primary-600 hover:underline">← Bill collection desk</a>
+        <a href="{{ \App\Filament\Pages\BillingFundFlowReport::getUrl() }}" class="text-sm text-violet-600 hover:underline">Bill money trail (cost breakdown) →</a>
         <a href="{{ \App\Filament\Pages\CollectorVisitsReport::getUrl() }}" class="text-sm text-teal-600 hover:underline">Collector visits (GPS) →</a>
     </div>
 

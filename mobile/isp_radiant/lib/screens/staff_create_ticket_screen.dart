@@ -1,7 +1,12 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../services/api_service.dart';
 import '../utils/app_nav.dart';
+import '../utils/layout.dart';
+import '../widgets/customer_search_result_tile.dart';
+import '../widgets/form_field_card.dart';
 import '../widgets/page_scaffold.dart';
 
 class StaffCreateTicketScreen extends StatefulWidget {
@@ -22,12 +27,40 @@ class _StaffCreateTicketScreenState extends State<StaffCreateTicketScreen> {
   String _department = 'technical_support';
   String _priority = 'medium';
   bool _saving = false;
+  bool _searching = false;
+  Timer? _debounce;
 
-  Future<void> _search() async {
+  @override
+  void initState() {
+    super.initState();
+    _searchCtrl.addListener(_onSearchChanged);
+  }
+
+  void _onSearchChanged() {
+    _debounce?.cancel();
     final q = _searchCtrl.text.trim();
-    if (q.length < 2) return;
-    final list = await widget.api.searchCustomers(q);
-    if (mounted) setState(() => _results = list);
+    if (q.length < 2) {
+      setState(() => _results = []);
+      return;
+    }
+    _debounce = Timer(const Duration(milliseconds: 400), () => _search(silent: true));
+  }
+
+  Future<void> _search({bool silent = false}) async {
+    final q = _searchCtrl.text.trim();
+    if (q.length < 2) {
+      if (!silent) showSnack(context, 'Type at least 2 characters', isError: true);
+      return;
+    }
+    setState(() => _searching = true);
+    try {
+      final list = await widget.api.searchCustomers(q);
+      if (mounted) setState(() => _results = list);
+    } on ApiException catch (e) {
+      if (mounted && !silent) showSnack(context, e.message, isError: true);
+    } finally {
+      if (mounted) setState(() => _searching = false);
+    }
   }
 
   Future<void> _submit() async {
@@ -35,10 +68,15 @@ class _StaffCreateTicketScreenState extends State<StaffCreateTicketScreen> {
       showSnack(context, 'Select customer and fill subject/description', isError: true);
       return;
     }
+    final customerId = _selected!['id'];
+    if (customerId is! num) {
+      showSnack(context, 'Invalid customer — search again', isError: true);
+      return;
+    }
     setState(() => _saving = true);
     try {
       await widget.api.staffCreateTicket(
-        customerId: (_selected!['id'] as num).toInt(),
+        customerId: customerId.toInt(),
         subject: _subjectCtrl.text.trim(),
         description: _descCtrl.text.trim(),
         department: _department,
@@ -57,6 +95,8 @@ class _StaffCreateTicketScreenState extends State<StaffCreateTicketScreen> {
 
   @override
   void dispose() {
+    _debounce?.cancel();
+    _searchCtrl.removeListener(_onSearchChanged);
     _searchCtrl.dispose();
     _subjectCtrl.dispose();
     _descCtrl.dispose();
@@ -67,60 +107,108 @@ class _StaffCreateTicketScreenState extends State<StaffCreateTicketScreen> {
   Widget build(BuildContext context) {
     return PageScaffold(
       title: 'Create ticket',
+      useGradientBody: true,
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
+        padding: pagePadding(context),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            TextField(
-              controller: _searchCtrl,
-              decoration: const InputDecoration(labelText: 'Find customer', prefixIcon: Icon(Icons.search), border: OutlineInputBorder()),
-              onSubmitted: (_) => _search(),
+            FormFieldCard(
+              title: 'Find customer',
+              subtitle: 'Name, phone, or customer code — same search as Bill Collection',
+              children: [
+                TextField(
+                  controller: _searchCtrl,
+                  decoration: InputDecoration(
+                    labelText: 'Search customer',
+                    prefixIcon: const Icon(Icons.search),
+                    suffixIcon: _searching
+                        ? const Padding(
+                            padding: EdgeInsets.all(12),
+                            child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)),
+                          )
+                        : (_searchCtrl.text.isNotEmpty
+                            ? IconButton(icon: const Icon(Icons.clear), onPressed: () => _searchCtrl.clear())
+                            : null),
+                  ),
+                  onSubmitted: (_) => _search(),
+                ),
+              ],
             ),
-            TextButton(onPressed: _search, child: const Text('Search')),
             if (_selected != null)
-              Chip(
-                label: Text('${_selected!['name']} · ${_selected!['customer_code']}'),
-                onDeleted: () => setState(() => _selected = null),
+              SelectedCustomerChip(
+                name: _selected!['name']?.toString() ?? '',
+                code: _selected!['customer_code']?.toString() ?? '',
+                onClear: () => setState(() => _selected = null),
               ),
-            ..._results.take(5).map((c) => ListTile(
-                  title: Text(c['name']?.toString() ?? ''),
-                  subtitle: Text(c['customer_code']?.toString() ?? ''),
-                  onTap: () => setState(() {
-                    _selected = c;
-                    _results = [];
-                  }),
-                )),
-            const SizedBox(height: 12),
-            TextField(controller: _subjectCtrl, decoration: const InputDecoration(labelText: 'Subject', border: OutlineInputBorder())),
-            const SizedBox(height: 12),
-            TextField(controller: _descCtrl, decoration: const InputDecoration(labelText: 'Description', border: OutlineInputBorder()), maxLines: 4),
-            const SizedBox(height: 12),
-            DropdownButtonFormField<String>(
-              value: _department,
-              decoration: const InputDecoration(labelText: 'Department', border: OutlineInputBorder()),
-              items: const [
-                DropdownMenuItem(value: 'billing', child: Text('Billing')),
-                DropdownMenuItem(value: 'technical_support', child: Text('Technical')),
-                DropdownMenuItem(value: 'field_engineer', child: Text('Field engineer')),
-                DropdownMenuItem(value: 'network', child: Text('Network')),
+            ..._results.take(8).map((c) {
+              final id = (c['id'] as num).toInt();
+              final selected = _selected != null && (_selected!['id'] as num).toInt() == id;
+              return CustomerSearchResultTile(
+                customer: c,
+                showDue: true,
+                selected: selected,
+                onTap: () => setState(() {
+                  _selected = c;
+                  _results = [];
+                  _searchCtrl.clear();
+                }),
+              );
+            }),
+            FormFieldCard(
+              title: 'Ticket details',
+              children: [
+                TextField(
+                  controller: _subjectCtrl,
+                  decoration: const InputDecoration(labelText: 'Subject'),
+                  textCapitalization: TextCapitalization.sentences,
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: _descCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'Description',
+                    alignLabelWithHint: true,
+                  ),
+                  maxLines: 4,
+                  textCapitalization: TextCapitalization.sentences,
+                ),
+                const SizedBox(height: 12),
+                DropdownButtonFormField<String>(
+                  value: _department,
+                  decoration: const InputDecoration(labelText: 'Department'),
+                  items: const [
+                    DropdownMenuItem(value: 'billing', child: Text('Billing')),
+                    DropdownMenuItem(value: 'technical_support', child: Text('Technical')),
+                    DropdownMenuItem(value: 'field_engineer', child: Text('Field engineer')),
+                    DropdownMenuItem(value: 'network', child: Text('Network')),
+                  ],
+                  onChanged: (v) => setState(() => _department = v ?? _department),
+                ),
+                const SizedBox(height: 12),
+                DropdownButtonFormField<String>(
+                  value: _priority,
+                  decoration: const InputDecoration(labelText: 'Priority'),
+                  items: const [
+                    DropdownMenuItem(value: 'low', child: Text('Low')),
+                    DropdownMenuItem(value: 'medium', child: Text('Medium')),
+                    DropdownMenuItem(value: 'high', child: Text('High')),
+                    DropdownMenuItem(value: 'critical', child: Text('Critical')),
+                  ],
+                  onChanged: (v) => setState(() => _priority = v ?? _priority),
+                ),
               ],
-              onChanged: (v) => setState(() => _department = v ?? _department),
             ),
-            const SizedBox(height: 12),
-            DropdownButtonFormField<String>(
-              value: _priority,
-              decoration: const InputDecoration(labelText: 'Priority', border: OutlineInputBorder()),
-              items: const [
-                DropdownMenuItem(value: 'low', child: Text('Low')),
-                DropdownMenuItem(value: 'medium', child: Text('Medium')),
-                DropdownMenuItem(value: 'high', child: Text('High')),
-                DropdownMenuItem(value: 'critical', child: Text('Critical')),
-              ],
-              onChanged: (v) => setState(() => _priority = v ?? _priority),
+            const SizedBox(height: 8),
+            SizedBox(
+              height: 50,
+              child: FilledButton(
+                onPressed: _saving ? null : _submit,
+                child: _saving
+                    ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                    : const Text('Create ticket', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+              ),
             ),
-            const SizedBox(height: 20),
-            FilledButton(onPressed: _saving ? null : _submit, child: _saving ? const CircularProgressIndicator() : const Text('Create ticket')),
           ],
         ),
       ),

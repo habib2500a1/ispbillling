@@ -19,6 +19,7 @@ return [
     'company_tax_id' => env('ISP_COMPANY_TAX_ID', ''),
     'company_logo_url' => env('ISP_COMPANY_LOGO_URL', ''),
     'company_logo_path' => env('ISP_COMPANY_LOGO_PATH', ''),
+    'company_favicon_path' => env('ISP_COMPANY_FAVICON_PATH', ''),
 
     'invoice_show_logo' => env('ISP_INVOICE_SHOW_LOGO', true),
     'invoice_footer' => env('ISP_INVOICE_FOOTER', 'Thank you for your business. For billing questions, contact us with your invoice number.'),
@@ -44,6 +45,9 @@ return [
         'company_tax_id' => (string) env('ISP_COMPANY_TAX_ID', ''),
         'company_logo_url' => (string) env('ISP_COMPANY_LOGO_URL', ''),
         'company_logo_path' => (string) env('ISP_COMPANY_LOGO_PATH', ''),
+        'company_favicon_path' => (string) env('ISP_COMPANY_FAVICON_PATH', ''),
+        'platform_logo_path' => (string) env('ISP_PLATFORM_LOGO_PATH', ''),
+        'platform_favicon_path' => (string) env('ISP_PLATFORM_FAVICON_PATH', ''),
         'invoice_show_logo' => filter_var(env('ISP_INVOICE_SHOW_LOGO', true), FILTER_VALIDATE_BOOL),
         'invoice_footer' => (string) env('ISP_INVOICE_FOOTER', 'Thank you for your business. For billing questions, contact us with your invoice number.'),
         'invoice_terms' => (string) env('ISP_INVOICE_TERMS', ''),

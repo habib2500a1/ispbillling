@@ -18,8 +18,13 @@ return new class extends Migration
             $table->decimal('price', 10, 2)->default(0);
             $table->string('status', 16)->default('available');
             $table->foreignId('package_id')->nullable()->constrained()->nullOnDelete();
+            $table->foreignId('mikrotik_server_id')->nullable()->constrained()->nullOnDelete();
+            $table->string('hotspot_username', 64)->nullable();
+            $table->string('hotspot_password', 64)->nullable();
             $table->foreignId('customer_id')->nullable()->constrained()->nullOnDelete();
             $table->timestamp('used_at')->nullable();
+            $table->timestamp('provisioned_at')->nullable();
+            $table->text('provision_error')->nullable();
             $table->timestamp('expires_at')->nullable();
             $table->text('notes')->nullable();
             $table->timestamps();

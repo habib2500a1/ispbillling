@@ -1,8 +1,19 @@
 <?php
 
 return [
-    /** Public APK download URL (landing page, SMS, etc.). */
+    /** GitHub repo for APK releases (no large binaries in git). */
+    'github_repo' => env('MOBILE_GITHUB_REPO', 'habib2500a1/ispbillling'),
+
+    /** Release tags on GitHub (assets: isp-radiant.apk, isp-mfs-verify.apk). */
+    'radiant_github_tag' => env('MOBILE_RADIANT_GITHUB_TAG'),
+    'mfs_github_tag' => env('MOBILE_MFS_GITHUB_TAG'),
+
+    /** When true, download links point to GitHub Releases unless MOBILE_*_URL overrides. */
+    'use_github_releases' => (bool) env('MOBILE_USE_GITHUB_RELEASES', true),
+
+    /** Optional override URLs (landing page, admin panel). */
     'apk_download_url' => env('MOBILE_APK_URL'),
+    'mfs_verify_apk_url' => env('MOBILE_MFS_VERIFY_APK_URL'),
 
     'fcm_enabled' => (bool) env('FCM_ENABLED', false),
     'fcm_server_key' => env('FCM_SERVER_KEY'),

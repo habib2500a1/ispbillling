@@ -87,6 +87,7 @@ class _StaffPackagesScreenState extends State<StaffPackagesScreen> {
   Widget build(BuildContext context) {
     return PageScaffold(
       title: 'Packages',
+      useGradientBody: true,
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _addPackage,
         icon: const Icon(Icons.add),

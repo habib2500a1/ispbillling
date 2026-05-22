@@ -12,23 +12,26 @@ class PaymentSuccessSheet extends StatelessWidget {
     required this.api,
     required this.message,
     required this.payment,
+    this.customerDue,
   });
 
   final ApiService api;
   final String message;
   final Map<String, dynamic> payment;
+  final double? customerDue;
 
   static Future<void> show(
     BuildContext context, {
     required ApiService api,
     required String message,
     required Map<String, dynamic> payment,
+    double? customerDue,
   }) {
     return showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
-      builder: (_) => PaymentSuccessSheet(api: api, message: message, payment: payment),
+      builder: (_) => PaymentSuccessSheet(api: api, message: message, payment: payment, customerDue: customerDue),
     );
   }
 
@@ -80,8 +83,21 @@ class PaymentSuccessSheet extends StatelessWidget {
                         style: const TextStyle(fontWeight: FontWeight.w600),
                       ),
                       Text(
-                        'Paid ${fmt.format(invoice['amount_paid'] ?? 0)} / ${fmt.format(invoice['total'] ?? 0)} BDT · Due ${fmt.format(invoice['balance_due'] ?? 0)}',
+                        'Paid ${fmt.format(invoice['amount_paid'] ?? 0)} / ${fmt.format(invoice['total'] ?? 0)} BDT · Bill due ${fmt.format(invoice['balance_due'] ?? 0)}',
                         style: const TextStyle(fontSize: 12),
+                      ),
+                    ],
+                    if (customerDue != null) ...[
+                      const SizedBox(height: 8),
+                      Text(
+                        customerDue! <= 0.009
+                            ? 'Total due: ${fmt.format(customerDue)} BDT · Paid'
+                            : 'Total due: ${fmt.format(customerDue)} BDT',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: customerDue! <= 0.009 ? AppTheme.success : AppTheme.warning,
+                        ),
                       ),
                     ],
                   ],

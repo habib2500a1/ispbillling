@@ -12,6 +12,7 @@ use App\Models\MikrotikServer;
 use App\Models\PppSessionLog;
 use App\Services\Bandwidth\BandwidthCollectionService;
 use App\Services\Bandwidth\BandwidthSyncStatus;
+use App\Services\Mikrotik\MikrotikLiveOnlineChecker;
 use App\Support\BandwidthDirection;
 use App\Support\TenantResolver;
 use Filament\Actions\Action;
@@ -52,6 +53,12 @@ class OnlineClientsMonitoring extends Page implements HasForms, HasTable
         $this->tableFilters = [
             'online_status' => ['value' => 'all'],
         ];
+
+        $tenantId = TenantResolver::requiredTenantId();
+        $bandwidth = app(BandwidthCollectionService::class);
+        if (! $bandwidth->tenantOnlineFlagsTrustworthy($tenantId)) {
+            $bandwidth->refreshOnlineFlagsForTenant($tenantId);
+        }
     }
 
     public function refreshLiveData(): void
@@ -71,11 +78,12 @@ class OnlineClientsMonitoring extends Page implements HasForms, HasTable
             } else {
                 $service->refreshOnlineFlagsForTenant($tenantId);
             }
-
-            $this->resetTable();
         } catch (\Throwable) {
-            // Keep last good data on transient MikroTik errors.
+            // phpnuxbill marks API errors red, not "online" — clear stale flags when poll fails.
+            $service->clearStaleOnlineFlagsWhenRoutersUnreachable($tenantId);
         }
+
+        $this->resetTable();
     }
 
     /**
@@ -90,12 +98,20 @@ class OnlineClientsMonitoring extends Page implements HasForms, HasTable
             ->withMikrotikPpp();
 
         $total = (clone $base)->count();
-        $online = (clone $base)->where('is_ppp_online', true)->count();
 
-        $activeSessions = PppSessionLog::query()
-            ->where('tenant_id', $tenantId)
-            ->where('status', 'active')
-            ->count();
+        $bandwidth = app(BandwidthCollectionService::class);
+        $flagsTrustworthy = $bandwidth->tenantOnlineFlagsTrustworthy($tenantId);
+
+        $online = $flagsTrustworthy
+            ? (clone $base)->where('is_ppp_online', true)->count()
+            : 0;
+
+        $activeSessions = $flagsTrustworthy
+            ? PppSessionLog::query()
+                ->where('tenant_id', $tenantId)
+                ->where('status', 'active')
+                ->count()
+            : 0;
 
         $sync = BandwidthSyncStatus::get($tenantId);
         $apiSessions = (int) ($sync['api']['sessions'] ?? 0);
@@ -139,11 +155,17 @@ class OnlineClientsMonitoring extends Page implements HasForms, HasTable
             ->defaultSort('is_ppp_online', 'desc')
             ->searchPlaceholder('Search code, name, phone, PPP user, IP…')
             ->columns([
+                Tables\Columns\IconColumn::make('live_session')
+                    ->label('')
+                    ->icon(fn (Customer $record): string => $this->liveOnlineIcon($record))
+                    ->color(fn (Customer $record): string => $this->liveOnlineColor($record))
+                    ->tooltip(fn (Customer $record): string => $this->liveOnlineTooltip($record))
+                    ->visible(fn (): bool => app(MikrotikLiveOnlineChecker::class)->enabled()),
                 Tables\Columns\TextColumn::make('connection_status')
                     ->label('Status')
                     ->badge()
-                    ->state(fn (Customer $record): string => $record->isPppOnline() ? 'Online' : 'Offline')
-                    ->color(fn (Customer $record): string => $record->isPppOnline() ? 'success' : 'gray')
+                    ->state(fn (Customer $record): string => $this->connectionStatusLabel($record))
+                    ->color(fn (Customer $record): string => $this->connectionStatusColor($record))
                     ->icon(fn (Customer $record): string => $record->isPppOnline()
                         ? 'heroicon-o-signal'
                         : 'heroicon-o-signal-slash'),
@@ -273,8 +295,10 @@ class OnlineClientsMonitoring extends Page implements HasForms, HasTable
                         $value = $data['value'] ?? 'all';
 
                         return match ($value) {
-                            'offline' => $query->where('is_ppp_online', false),
-                            'online' => $query->where('is_ppp_online', true),
+                            'offline' => app(BandwidthCollectionService::class)
+                                ->applyDisplayedOnlineFilter($query, $tenantId, false),
+                            'online' => app(BandwidthCollectionService::class)
+                                ->applyDisplayedOnlineFilter($query, $tenantId, true),
                             default => $query,
                         };
                     }),
@@ -360,5 +384,74 @@ class OnlineClientsMonitoring extends Page implements HasForms, HasTable
     public static function canAccess(): bool
     {
         return \App\Support\Rbac\StaffCapability::for(auth()->user())->canMikrotik();
+    }
+
+    private function liveOnlineState(Customer $record): ?bool
+    {
+        return app(MikrotikLiveOnlineChecker::class)->checkCustomer($record);
+    }
+
+    private function liveOnlineIcon(Customer $record): string
+    {
+        $live = $this->liveOnlineState($record);
+
+        return match ($live) {
+            true => 'heroicon-o-signal',
+            false => 'heroicon-o-signal-slash',
+            default => 'heroicon-o-question-mark-circle',
+        };
+    }
+
+    private function liveOnlineColor(Customer $record): string
+    {
+        $live = $this->liveOnlineState($record);
+
+        return match ($live) {
+            true => 'success',
+            false => 'gray',
+            default => 'warning',
+        };
+    }
+
+    private function liveOnlineTooltip(Customer $record): string
+    {
+        $live = $this->liveOnlineState($record);
+        $polled = $record->isPppOnline() ? 'online' : 'offline';
+
+        return match ($live) {
+            true => "Live API: online (polled: {$polled})",
+            false => "Live API: offline (polled: {$polled})",
+            default => "Live API unreachable (polled: {$polled})",
+        };
+    }
+
+    private function connectionStatusLabel(Customer $record): string
+    {
+        if (app(MikrotikLiveOnlineChecker::class)->enabled()) {
+            $live = $this->liveOnlineState($record);
+
+            return match ($live) {
+                true => 'Online',
+                false => 'Offline',
+                default => $record->isPppOnline() ? 'Online (poll)' : 'Offline (poll)',
+            };
+        }
+
+        return $record->isPppOnline() ? 'Online' : 'Offline';
+    }
+
+    private function connectionStatusColor(Customer $record): string
+    {
+        if (app(MikrotikLiveOnlineChecker::class)->enabled()) {
+            $live = $this->liveOnlineState($record);
+
+            return match ($live) {
+                true => 'success',
+                false => 'gray',
+                default => $record->isPppOnline() ? 'success' : 'gray',
+            };
+        }
+
+        return $record->isPppOnline() ? 'success' : 'gray';
     }
 }

@@ -36,9 +36,11 @@ class AppShell extends StatelessWidget {
       child: Scaffold(
         backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         appBar: AppBar(
+          backgroundColor: const Color(0xFF1565C0),
+          foregroundColor: Colors.white,
           title: Text(title, maxLines: 1, overflow: TextOverflow.ellipsis),
           actions: actions,
-          centerTitle: false,
+          centerTitle: true,
         ),
         floatingActionButton: floatingActionButton,
         floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,

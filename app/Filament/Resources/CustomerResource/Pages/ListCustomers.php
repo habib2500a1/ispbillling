@@ -8,6 +8,7 @@ use App\Services\Clients\ClientsDashboardService;
 use App\Services\Import\IspDigitalCurrentBillingSyncService;
 use App\Services\Import\IspDigitalPriceSyncService;
 use App\Services\Import\IspDigitalSessionClient;
+use App\Support\CustomerBalanceDue;
 use App\Support\CustomerStatus;
 use App\Support\TenantResolver;
 use Filament\Actions;
@@ -31,12 +32,6 @@ class ListCustomers extends ListRecords
     public function mount(): void
     {
         parent::mount();
-
-        $tenantId = TenantResolver::currentTenantId();
-        if ($tenantId !== null) {
-            app(\App\Services\Bandwidth\BandwidthCollectionService::class)
-                ->refreshOnlineFlagsForTenant($tenantId);
-        }
     }
 
     public function getHeading(): string
@@ -86,12 +81,15 @@ class ListCustomers extends ListRecords
             return null;
         }
 
+        $tenantId = \App\Support\TenantResolver::requiredTenantId();
+        $bandwidth = app(\App\Services\Bandwidth\BandwidthCollectionService::class);
+
         return match ($this->preset) {
-            'online' => $query
-                ->where('is_ppp_online', true)
+            'online' => $bandwidth
+                ->applyDisplayedOnlineFilter($query, $tenantId, true)
                 ->where('status', '!=', CustomerStatus::TERMINATED),
-            'offline' => $query
-                ->where('is_ppp_online', false)
+            'offline' => $bandwidth
+                ->applyDisplayedOnlineFilter($query, $tenantId, false)
                 ->where('status', '!=', CustomerStatus::TERMINATED),
             'home' => $query
                 ->where('status', '!=', CustomerStatus::TERMINATED)

@@ -52,6 +52,7 @@ class _CustomerAiScreenState extends State<CustomerAiScreen> {
   Widget build(BuildContext context) {
     return PageScaffold(
       title: 'AI Assistant',
+      useGradientBody: true,
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [

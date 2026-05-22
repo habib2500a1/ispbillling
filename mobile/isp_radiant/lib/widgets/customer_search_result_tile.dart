@@ -3,18 +3,20 @@ import 'package:intl/intl.dart';
 
 import '../theme/app_theme.dart';
 
-/// Search result row with duplicate-name warning when same name exists.
+/// Search result row with due before opening customer (updates after payment).
 class CustomerSearchResultTile extends StatelessWidget {
   const CustomerSearchResultTile({
     super.key,
     required this.customer,
     required this.onTap,
     this.showDue = true,
+    this.selected = false,
   });
 
   final Map<String, dynamic> customer;
   final VoidCallback onTap;
   final bool showDue;
+  final bool selected;
 
   @override
   Widget build(BuildContext context) {
@@ -22,14 +24,21 @@ class CustomerSearchResultTile extends StatelessWidget {
     final name = customer['name']?.toString() ?? '';
     final code = customer['customer_code']?.toString() ?? '';
     final due = (customer['balance_due'] as num?)?.toDouble() ?? 0;
+    final hasDue = due > 0.009;
     final hasDup = customer['has_duplicate_name'] == true;
     final hint = customer['same_name_hint']?.toString();
     final dupCount = (customer['duplicate_name_count'] as num?)?.toInt() ?? 1;
-    final payState = customer['billing_payment_state']?.toString();
+    final openBills = (customer['open_invoices'] as num?)?.toInt() ?? 0;
     final billingMode = customer['billing_mode']?.toString();
 
     return Card(
       margin: const EdgeInsets.only(top: 8),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: selected
+            ? const BorderSide(color: AppTheme.primary, width: 2)
+            : BorderSide.none,
+      ),
       child: ListTile(
         onTap: onTap,
         title: Row(
@@ -52,15 +61,11 @@ class CustomerSearchResultTile extends StatelessWidget {
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              showDue
-                  ? '$code · Due ${fmt.format(due)} BDT${billingMode != null ? ' · ${billingMode.toUpperCase()}' : ''}'
-                  : '$code · ${customer['package'] ?? customer['phone'] ?? ''}',
-            ),
-            if (payState == 'paid' && due <= 0.009)
-              const Padding(
-                padding: EdgeInsets.only(top: 2),
-                child: Text('Paid (ISP Digital)', style: TextStyle(fontSize: 11, color: AppTheme.success, fontWeight: FontWeight.w600)),
+            Text('$code${billingMode != null ? ' · ${billingMode.toUpperCase()}' : ''}'),
+            if (showDue && openBills > 0)
+              Text(
+                '$openBills open bill(s)',
+                style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
               ),
             if (hasDup && hint != null && hint.isNotEmpty)
               Padding(
@@ -72,7 +77,31 @@ class CustomerSearchResultTile extends StatelessWidget {
               ),
           ],
         ),
-        trailing: const Icon(Icons.chevron_right),
+        trailing: showDue
+            ? Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    fmt.format(due),
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                      color: hasDue ? AppTheme.warning : AppTheme.success,
+                    ),
+                  ),
+                  Text(
+                    hasDue ? 'BDT due' : 'Paid',
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w600,
+                      color: hasDue ? AppTheme.warning : AppTheme.success,
+                    ),
+                  ),
+                  const Icon(Icons.chevron_right, size: 18),
+                ],
+              )
+            : const Icon(Icons.chevron_right),
       ),
     );
   }

@@ -4,6 +4,7 @@ namespace App\Filament\Widgets;
 
 use App\Filament\Resources\CustomerResource;
 use App\Models\Customer;
+use App\Services\Bandwidth\BandwidthCollectionService;
 use App\Support\CustomerStatus;
 use App\Support\SubscriberType;
 use App\Support\TenantResolver;
@@ -33,11 +34,12 @@ class SubscriberLifecycleWidget extends Widget
         $counts = Cache::remember(
             "subscriber_lifecycle:{$tenantId}:{$today}",
             60,
-            function (): array {
+            function () use ($tenantId): array {
                 $base = Customer::query();
+                $bandwidth = app(BandwidthCollectionService::class);
 
                 return [
-                    'online' => (clone $base)->where('is_ppp_online', true)->count(),
+                    'online' => $bandwidth->displayedOnlineCount($tenantId, $base),
                     'active' => (clone $base)->where('status', CustomerStatus::ACTIVE)->count(),
                     'free' => (clone $base)->where('subscriber_type', SubscriberType::FREE)
                         ->where('status', '!=', CustomerStatus::TERMINATED)->count(),

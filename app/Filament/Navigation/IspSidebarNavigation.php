@@ -66,6 +66,7 @@ final class IspSidebarNavigation
 
         static::appendIf($merged, ClientsSidebarNavigation::userCanSee(), ClientsSidebarRegistry::navigationItems());
         static::appendIf($merged, BillingSidebarNavigation::userCanSee(), BillingSidebarRegistry::navigationItems());
+        static::appendInventoryItems($merged);
         static::appendIf($merged, PaymentsSidebarRegistry::hasVisibleEntries(), PaymentsSidebarRegistry::navigationItems());
         static::appendIf($merged, NetworkSidebarNavigation::userCanSee(), NetworkSidebarRegistry::navigationItems());
         static::appendIf($merged, OltSidebarNavigation::userCanSee(), OltSidebarRegistry::navigationItems());
@@ -76,11 +77,40 @@ final class IspSidebarNavigation
         static::appendIf($merged, ResellerSidebarNavigation::userCanSee(), ResellerSidebarRegistry::navigationItems());
         static::appendIf($merged, HrmSidebarNavigation::userCanSee(), HrmSidebarRegistry::navigationItems());
         static::appendIf($merged, BwSidebarNavigation::userCanSee(), BwSidebarRegistry::navigationItems());
-        static::appendIf($merged, InventorySidebarRegistry::hasVisibleEntries(), InventorySidebarRegistry::navigationItems());
         static::appendIf($merged, SettingsSidebarNavigation::userCanSee(), SettingsSidebarRegistry::navigationItems());
         static::appendIf($merged, SystemSidebarRegistry::hasVisibleEntries(), SystemSidebarRegistry::navigationItems());
 
-        return $merged;
+        return static::dedupeNavigationItems($merged);
+    }
+
+    /**
+     * Prevent duplicate sidebar links (same URL from Filament discovery + registry).
+     *
+     * @param  array<\Filament\Navigation\NavigationItem>  $items
+     * @return array<\Filament\Navigation\NavigationItem>
+     */
+    private static function dedupeNavigationItems(array $items): array
+    {
+        $seen = [];
+        $out = [];
+
+        foreach ($items as $item) {
+            $url = (string) $item->getUrl();
+            $group = (string) ($item->getGroup() ?? '');
+            $key = $group.'|'.$url;
+
+            if ($url !== '' && isset($seen[$key])) {
+                continue;
+            }
+
+            if ($url !== '') {
+                $seen[$key] = true;
+            }
+
+            $out[] = $item;
+        }
+
+        return $out;
     }
 
     /**
@@ -90,6 +120,28 @@ final class IspSidebarNavigation
     private static function appendIf(array &$target, bool $condition, array $items): void
     {
         if ($condition && $items !== []) {
+            array_push($target, ...$items);
+        }
+    }
+
+    /**
+     * @param  array<\Filament\Navigation\NavigationItem>  $target
+     */
+    private static function appendInventoryItems(array &$target): void
+    {
+        if (! InventorySidebarRegistry::hasVisibleEntries()) {
+            return;
+        }
+
+        try {
+            $items = InventorySidebarRegistry::navigationItems();
+        } catch (\Throwable $e) {
+            report($e);
+
+            return;
+        }
+
+        if ($items !== []) {
             array_push($target, ...$items);
         }
     }

@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Concerns\BelongsToTenant;
+use App\Models\InventorySale;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -13,6 +14,7 @@ class CollectorCollection extends Model
     protected $fillable = [
         'tenant_id',
         'payment_id',
+        'inventory_sale_id',
         'customer_id',
         'collector_id',
         'branch_id',
@@ -36,6 +38,11 @@ class CollectorCollection extends Model
     public function payment(): BelongsTo
     {
         return $this->belongsTo(Payment::class);
+    }
+
+    public function inventorySale(): BelongsTo
+    {
+        return $this->belongsTo(InventorySale::class);
     }
 
     public function customer(): BelongsTo

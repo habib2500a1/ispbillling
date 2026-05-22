@@ -3,7 +3,7 @@
 namespace App\Filament\Resources\CustomerResource\Pages;
 
 use App\Filament\Resources\CustomerResource;
-use App\Support\CustomerStatus;
+use App\Support\CustomerAccountScopes;
 use Filament\Resources\Pages\ListRecords;
 use Illuminate\Database\Eloquent\Builder;
 
@@ -24,6 +24,8 @@ class ListLeftCustomers extends ListRecords
 
     protected function getTableQuery(): ?Builder
     {
-        return parent::getTableQuery()?->where('status', CustomerStatus::TERMINATED);
+        $query = parent::getTableQuery();
+
+        return $query === null ? null : CustomerAccountScopes::applyLeft($query);
     }
 }

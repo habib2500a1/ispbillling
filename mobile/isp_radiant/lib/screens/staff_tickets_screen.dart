@@ -3,15 +3,19 @@ import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 import '../theme/app_theme.dart';
 import '../utils/layout.dart';
+import '../widgets/isp_tab_screen.dart';
+import '../widgets/isp_ui_kit.dart';
 import '../widgets/state_views.dart';
+import '../widgets/support_ticket_ui.dart';
 import 'staff_create_ticket_screen.dart';
 import 'ticket_thread_screen.dart';
 
 class StaffTicketsScreen extends StatefulWidget {
-  const StaffTicketsScreen({super.key, required this.api, this.active = false});
+  const StaffTicketsScreen({super.key, required this.api, this.active = false, this.staffUserId});
 
   final ApiService api;
   final bool active;
+  final int? staffUserId;
 
   @override
   State<StaffTicketsScreen> createState() => _StaffTicketsScreenState();
@@ -21,21 +25,34 @@ class _StaffTicketsScreenState extends State<StaffTicketsScreen> {
   List<Map<String, dynamic>> _items = [];
   bool _loading = true;
   String? _error;
-  String _filter = 'all';
+  String _filter = 'active';
+  final _searchCtrl = TextEditingController();
+  String _query = '';
 
   static const _filters = [
-    ('all', 'All'),
     ('active', 'Active'),
+    ('all', 'All'),
     ('open', 'Open'),
     ('in_progress', 'In progress'),
-    ('complete', 'Complete'),
+    ('unassigned', 'Unassigned'),
+    ('mine', 'My tickets'),
     ('closed', 'Closed'),
   ];
 
   @override
   void initState() {
     super.initState();
+    _searchCtrl.addListener(() {
+      final q = _searchCtrl.text.trim().toLowerCase();
+      if (q != _query) setState(() => _query = q);
+    });
     _load();
+  }
+
+  @override
+  void dispose() {
+    _searchCtrl.dispose();
+    super.dispose();
   }
 
   @override
@@ -47,7 +64,10 @@ class _StaffTicketsScreenState extends State<StaffTicketsScreen> {
   Future<void> _load() async {
     setState(() => _loading = true);
     try {
-      final list = await widget.api.staffTickets(status: _filter);
+      final mine = _filter == 'mine';
+      final unassigned = _filter == 'unassigned';
+      final status = (mine || unassigned) ? 'all' : _filter;
+      final list = await widget.api.staffTickets(status: status, mine: mine, unassigned: unassigned);
       if (mounted) {
         setState(() {
           _items = list;
@@ -62,118 +82,101 @@ class _StaffTicketsScreenState extends State<StaffTicketsScreen> {
     if (mounted) setState(() => _loading = false);
   }
 
-  Color _statusColor(String? s) {
-    switch (s) {
-      case 'open':
-        return Colors.orange;
-      case 'in_progress':
-        return Colors.blue;
-      case 'resolved':
-      case 'closed':
-        return AppTheme.success;
-      default:
-        return Colors.grey;
-    }
+  List<Map<String, dynamic>> get _visible {
+    if (_query.isEmpty) return _items;
+    final q = _query;
+    return _items.where((t) {
+      final hay = [t['subject'], t['ticket_number'], t['customer_name'], t['customer_code'], t['assignee_name']]
+          .whereType<String>()
+          .join(' ')
+          .toLowerCase();
+      return hay.contains(q);
+    }).toList();
   }
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
-          child: Row(
-            children: [
-              Expanded(
-                child: SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Row(
-                    children: _filters
-                        .map((f) => Padding(
-                              padding: const EdgeInsets.only(right: 6),
-                              child: FilterChip(
-                                label: Text(f.$2),
-                                selected: _filter == f.$1,
-                                onSelected: (_) {
-                                  setState(() => _filter = f.$1);
-                                  _load();
-                                },
-                              ),
-                            ))
-                        .toList(),
-                  ),
-                ),
-              ),
-              IconButton(
-                icon: const Icon(Icons.add_circle, color: AppTheme.primary),
-                onPressed: () async {
-                  final ok = await Navigator.push<bool>(
-                    context,
-                    MaterialPageRoute(builder: (_) => StaffCreateTicketScreen(api: widget.api)),
-                  );
-                  if (ok == true) _load();
-                },
-              ),
-            ],
-          ),
-        ),
-        Expanded(child: _body()),
-      ],
-    );
-  }
+    final visible = _visible;
 
-  Widget _body() {
-    if (_loading) return const Center(child: CircularProgressIndicator());
-    if (_error != null) {
-      return Center(child: Padding(padding: const EdgeInsets.all(24), child: ErrorBanner(message: _error!, onRetry: _load)));
-    }
-    if (_items.isEmpty) {
-      return EmptyState(
-        icon: Icons.support_agent,
-        title: 'No tickets',
-        subtitle: 'Try another filter or create one',
-        action: () => Navigator.push(context, MaterialPageRoute(builder: (_) => StaffCreateTicketScreen(api: widget.api))).then((_) => _load()),
-        actionLabel: 'Create ticket',
-      );
-    }
-    return RefreshIndicator(
+    return IspTabScreen(
+      title: 'Support tickets',
+      subtitle: '${_items.length} in view',
+      loading: _loading,
+      error: _error,
+      onRetry: _load,
       onRefresh: _load,
-      child: ListView.separated(
-        padding: pagePadding(context, top: 8),
-        itemCount: _items.length,
-        separatorBuilder: (_, _) => const SizedBox(height: 6),
-        itemBuilder: (context, i) {
-          final t = _items[i];
-          final status = t['status']?.toString() ?? '';
-          return Card(
-            child: ListTile(
-              leading: CircleAvatar(
-                backgroundColor: _statusColor(status).withValues(alpha: 0.15),
-                child: Icon(Icons.confirmation_number, color: _statusColor(status), size: 20),
-              ),
-              title: Text(t['subject']?.toString() ?? ''),
-              subtitle: Text('#${t['ticket_number']} · ${t['customer_name'] ?? ''}'),
-              trailing: Chip(
-                label: Text(status, style: const TextStyle(fontSize: 10)),
-                backgroundColor: _statusColor(status).withValues(alpha: 0.12),
-              ),
-              onTap: () {
+      trailing: [
+        IconButton(
+          icon: const Icon(Icons.add_circle_outline, color: Colors.white),
+          onPressed: () async {
+            final ok = await Navigator.push<bool>(
+              context,
+              MaterialPageRoute(builder: (_) => StaffCreateTicketScreen(api: widget.api)),
+            );
+            if (ok == true) _load();
+          },
+        ),
+      ],
+      headerChild: Padding(
+        padding: const EdgeInsets.only(top: 4),
+        child: IspUiKit.searchBar(
+          controller: _searchCtrl,
+          hint: 'Search ticket, client…',
+          onClear: () => _searchCtrl.clear(),
+        ),
+      ),
+      empty: !_loading && _error == null && visible.isEmpty
+          ? EmptyState(
+              icon: Icons.support_agent,
+              title: 'No tickets',
+              subtitle: 'Try another filter or create one',
+              action: () => Navigator.push(context, MaterialPageRoute(builder: (_) => StaffCreateTicketScreen(api: widget.api))).then((_) => _load()),
+              actionLabel: 'Create ticket',
+            )
+          : null,
+      child: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+            child: SupportTicketUi.filterChips(
+              options: _filters,
+              selected: _filter,
+              onSelected: (v) {
+                setState(() => _filter = v);
+                _load();
+              },
+            ),
+          ),
+          Expanded(
+            child: ListView.separated(
+              padding: pagePadding(context, top: 10),
+              itemCount: visible.length,
+              separatorBuilder: (_, _) => const SizedBox(height: 10),
+              itemBuilder: (context, i) {
+                final t = visible[i];
                 final id = (t['id'] as num).toInt();
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => TicketThreadScreen(
-                      api: widget.api,
-                      ticketId: id,
-                      isStaff: true,
-                      ticketSummary: t,
-                    ),
-                  ),
+                return SupportTicketUi.ticketListCard(
+                  ticket: t,
+                  onTap: () async {
+                    await Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => TicketThreadScreen(
+                          api: widget.api,
+                          ticketId: id,
+                          isStaff: true,
+                          ticketSummary: t,
+                          staffUserId: widget.staffUserId,
+                        ),
+                      ),
+                    );
+                    _load();
+                  },
                 );
               },
             ),
-          );
-        },
+          ),
+        ],
       ),
     );
   }

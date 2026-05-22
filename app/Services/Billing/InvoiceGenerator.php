@@ -147,6 +147,8 @@ final class InvoiceGenerator
                     'unit_price' => $fee,
                     'line_total' => 0,
                     'sort_order' => $sort++,
+                    'device_id' => $device->id,
+                    'product_id' => $device->product_id,
                     'meta' => ['device_id' => $device->id],
                 ]);
             });
@@ -210,6 +212,20 @@ final class InvoiceGenerator
             }
         }
 
+        $meta = is_array($customer->meta) ? $customer->meta : [];
+        $installationCharge = round((float) ($meta['installation_charge'] ?? 0), 2);
+        if ($installationCharge > 0 && ! static::customerHasInstallationFee($customer)) {
+            InvoiceItem::query()->create([
+                'invoice_id' => $invoice->id,
+                'item_type' => 'installation_fee',
+                'description' => 'Installation / line charge',
+                'quantity' => 1,
+                'unit_price' => $installationCharge,
+                'line_total' => 0,
+                'sort_order' => $sort++,
+            ]);
+        }
+
         if (config('billing.reconnection_fee_enabled', true)
             && $customer->pending_reconnection_fee
             && (float) ($customer->reconnection_fee_amount ?? 0) > 0) {
@@ -230,6 +246,14 @@ final class InvoiceGenerator
     {
         return InvoiceItem::query()
             ->where('item_type', 'setup_fee')
+            ->whereHas('invoice', fn ($q) => $q->where('customer_id', $customer->id))
+            ->exists();
+    }
+
+    private static function customerHasInstallationFee(Customer $customer): bool
+    {
+        return InvoiceItem::query()
+            ->where('item_type', 'installation_fee')
             ->whereHas('invoice', fn ($q) => $q->where('customer_id', $customer->id))
             ->exists();
     }

@@ -18,6 +18,7 @@ use App\Models\PppSessionLog;
 use App\Models\SupportTicket;
 use App\Services\Optical\OpticalDashboardService;
 use App\Services\Reports\AnalyticsReportService;
+use App\Support\CustomerBalanceDue;
 use App\Support\CustomerStatus;
 use App\Support\PaymentType;
 use App\Support\SubscriberType;
@@ -60,8 +61,8 @@ class DashboardMetricsService
             ->where('tenant_id', $tenantId)
             ->where('status', CustomerStatus::ACTIVE)
             ->whereHas('invoices', fn ($q) => $q
-                ->whereIn('status', ['open', 'partial', 'draft'])
-                ->whereRaw('(total - amount_paid) > 0'))
+                ->whereIn('status', CustomerBalanceDue::OPEN_INVOICE_STATUSES)
+                ->whereRaw('(total - amount_paid) > 0.009'))
             ->count();
 
         $openTickets = SupportTicket::withoutGlobalScopes()
@@ -316,7 +317,7 @@ class DashboardMetricsService
             'partial_invoices' => $c['partial_invoices'],
             'open_invoices' => Invoice::withoutGlobalScopes()
                 ->where('tenant_id', $tenantId)
-                ->whereIn('status', ['open', 'partial', 'draft'])
+                ->whereIn('status', CustomerBalanceDue::OPEN_INVOICE_STATUSES)
                 ->count(),
         ]);
     }

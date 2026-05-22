@@ -104,9 +104,37 @@ class HotspotVoucherResource extends Resource
                         );
                         Notification::make()->title('Vouchers generated')->success()->send();
                     }),
+                Tables\Actions\Action::make('print_batch')
+                    ->label('Print batch PDF')
+                    ->icon('heroicon-o-printer')
+                    ->form([
+                        Forms\Components\TextInput::make('batch')
+                            ->label('Batch name')
+                            ->required(),
+                    ])
+                    ->action(function (array $data): void {
+                        redirect()->away(route('admin.hotspot-vouchers.print', [
+                            'batch' => $data['batch'],
+                        ]));
+                    }),
             ])
             ->actions([
+                Tables\Actions\Action::make('print')
+                    ->label('Print')
+                    ->icon('heroicon-o-printer')
+                    ->url(fn (HotspotVoucher $record): string => route('admin.hotspot-vouchers.print', ['ids' => $record->id]))
+                    ->openUrlInNewTab(),
                 Tables\Actions\EditAction::make(),
+            ])
+            ->bulkActions([
+                Tables\Actions\BulkAction::make('print_pdf')
+                    ->label('Print PDF')
+                    ->icon('heroicon-o-printer')
+                    ->url(fn (\Illuminate\Support\Collection $records): string => route('admin.hotspot-vouchers.print', [
+                        'ids' => $records->pluck('id')->join(','),
+                    ]))
+                    ->openUrlInNewTab()
+                    ->deselectRecordsAfterCompletion(),
             ]);
     }
 

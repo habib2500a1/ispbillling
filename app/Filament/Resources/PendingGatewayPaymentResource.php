@@ -3,6 +3,7 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\PendingGatewayPaymentResource\Pages;
+use App\Filament\Support\AssignSubscriberPaymentAction;
 use App\Models\PendingGatewayPayment;
 use App\Services\Payments\GatewayPaymentVerificationService;
 use App\Services\Payments\PipraPayCheckoutService;
@@ -30,7 +31,7 @@ class PendingGatewayPaymentResource extends Resource
 
     public static function canViewAny(): bool
     {
-        return \App\Support\Rbac\StaffCapability::for(auth()->user())->canPayments();
+        return \App\Support\PaymentAdminAccess::canViewPaymentOps();
     }
 
     public static function canCreate(): bool
@@ -50,14 +51,24 @@ class PendingGatewayPaymentResource extends Resource
                 Tables\Columns\TextColumn::make('created_at')->dateTime()->sortable(),
                 Tables\Columns\TextColumn::make('gateway')->badge(),
                 Tables\Columns\TextColumn::make('transaction_id')->fontFamily('mono')->searchable(),
-                Tables\Columns\TextColumn::make('customer.name')->label('Subscriber'),
+                Tables\Columns\TextColumn::make('customer.name')
+                    ->label('Subscriber')
+                    ->placeholder('— assign ID —')
+                    ->description(fn (PendingGatewayPayment $record): ?string => $record->needsCustomerAssignment()
+                        ? 'Ref: '.($record->meta['reference_token'] ?? '—').' · '.($record->meta['sender_phone'] ?? '—')
+                        : null),
                 Tables\Columns\TextColumn::make('amount')->money('BDT'),
-                Tables\Columns\TextColumn::make('status')->badge()->color(fn (?string $state): string => match ($state) {
-                    PendingGatewayPayment::STATUS_PENDING => 'warning',
-                    PendingGatewayPayment::STATUS_APPROVED, PendingGatewayPayment::STATUS_AUTO_APPROVED => 'success',
-                    PendingGatewayPayment::STATUS_REJECTED => 'danger',
-                    default => 'gray',
-                }),
+                Tables\Columns\TextColumn::make('status')
+                    ->badge()
+                    ->color(fn (?string $state): string => match ($state) {
+                        PendingGatewayPayment::STATUS_PENDING => 'warning',
+                        PendingGatewayPayment::STATUS_APPROVED, PendingGatewayPayment::STATUS_AUTO_APPROVED => 'success',
+                        PendingGatewayPayment::STATUS_REJECTED => 'danger',
+                        default => 'gray',
+                    })
+                    ->description(fn (PendingGatewayPayment $record): ?string => ($record->meta['matched_by'] ?? null) === 'sms_reference'
+                        ? 'Auto · ID/PPPoE from SMS'
+                        : (($record->meta['auto_matched_late'] ?? false) ? 'Auto · SMS TrxID' : null)),
             ])
             ->defaultSort('created_at', 'desc')
             ->filters([
@@ -69,11 +80,24 @@ class PendingGatewayPaymentResource extends Resource
                         PendingGatewayPayment::STATUS_REJECTED => 'Rejected',
                     ]),
                 Tables\Filters\SelectFilter::make('gateway')->options([
-                    'rocket' => 'Rocket',
+                    PaymentGateway::BKASH => 'bKash',
+                    PaymentGateway::NAGAD => 'Nagad',
+                    PaymentGateway::ROCKET => 'Rocket',
                     PaymentGateway::PIPRAPAY => 'PipraPay',
                 ]),
+                Tables\Filters\TernaryFilter::make('needs_assignment')
+                    ->label('Needs subscriber ID')
+                    ->queries(
+                        true: fn ($query) => $query
+                            ->whereNull('customer_id')
+                            ->where('status', PendingGatewayPayment::STATUS_PENDING)
+                            ->where('meta->needs_customer_assignment', true),
+                        false: fn ($query) => $query->whereNotNull('customer_id'),
+                    ),
             ])
             ->actions([
+                AssignSubscriberPaymentAction::make()
+                    ->visible(fn (PendingGatewayPayment $record): bool => $record->needsCustomerAssignment()),
                 Tables\Actions\Action::make('syncPipraPay')
                     ->label('Sync from PipraPay')
                     ->icon('heroicon-o-arrow-path')
@@ -115,11 +139,31 @@ class PendingGatewayPaymentResource extends Resource
                         app(PipraPayPaymentController::class)->success($request);
                         Notification::make()->title('Payment recorded from PipraPay')->success()->send();
                     }),
+                Tables\Actions\Action::make('autoMatch')
+                    ->label('Match SMS')
+                    ->icon('heroicon-o-bolt')
+                    ->color('info')
+                    ->visible(fn (PendingGatewayPayment $record): bool => $record->status === PendingGatewayPayment::STATUS_PENDING
+                        && in_array($record->gateway, [PaymentGateway::BKASH, PaymentGateway::NAGAD, PaymentGateway::ROCKET], true))
+                    ->action(function (PendingGatewayPayment $record): void {
+                        $result = app(GatewayPaymentVerificationService::class)->tryAutoApprovePending($record);
+                        if (($result['status'] ?? '') === 'approved') {
+                            Notification::make()->title('Auto-verified from SMS')->success()->send();
+
+                            return;
+                        }
+                        Notification::make()
+                            ->title('Still pending')
+                            ->body($result['message'] ?? 'No matching SMS')
+                            ->warning()
+                            ->send();
+                    }),
                 Tables\Actions\Action::make('approve')
                     ->label('Approve')
                     ->icon('heroicon-o-check-circle')
                     ->color('success')
-                    ->visible(fn (PendingGatewayPayment $record): bool => $record->status === PendingGatewayPayment::STATUS_PENDING)
+                    ->visible(fn (PendingGatewayPayment $record): bool => $record->status === PendingGatewayPayment::STATUS_PENDING
+                        && $record->customer_id !== null)
                     ->requiresConfirmation()
                     ->action(function (PendingGatewayPayment $record): void {
                         try {

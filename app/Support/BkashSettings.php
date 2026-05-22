@@ -10,6 +10,8 @@ final class BkashSettings
 {
     public const GATEWAY_TOKENIZED_WEB = 'tokenized_web';
 
+    public const GATEWAY_PERSONAL = 'personal';
+
     public const ENV_SANDBOX = 'sandbox';
 
     public const ENV_LIVE = 'live';
@@ -107,10 +109,18 @@ final class BkashSettings
         return in_array($channel, self::enabledChannels(), true);
     }
 
-    /** Enabled, in schedule, channel on, and API credentials present. */
+    /** Enabled, in schedule, channel on, and API credentials present (or personal MFS). */
     public static function isActiveForChannel(string $channel): bool
     {
-        return self::isEnabledForChannel($channel) && self::isConfigured();
+        if (! self::isEnabledForChannel($channel)) {
+            return false;
+        }
+
+        if ((string) config('bkash.gateway_type', self::GATEWAY_TOKENIZED_WEB) === self::GATEWAY_PERSONAL) {
+            return \App\Support\PersonalMfsGateway::bkashPersonalEnabled();
+        }
+
+        return self::isConfigured();
     }
 
     public static function isGloballyActive(): bool

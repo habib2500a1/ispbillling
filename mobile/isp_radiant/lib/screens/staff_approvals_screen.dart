@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../services/api_service.dart';
-import '../theme/app_theme.dart';
 import '../utils/app_nav.dart';
 import '../utils/layout.dart';
+import '../widgets/isp_ui_kit.dart';
 import '../widgets/page_scaffold.dart';
 import '../widgets/state_views.dart';
 
@@ -74,6 +74,7 @@ class _StaffApprovalsScreenState extends State<StaffApprovalsScreen> {
   Widget build(BuildContext context) {
     return PageScaffold(
       title: 'Pending approvals',
+      useGradientBody: true,
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : _error != null
@@ -87,49 +88,19 @@ class _StaffApprovalsScreenState extends State<StaffApprovalsScreen> {
                   : RefreshIndicator(
                       onRefresh: _load,
                       child: ListView.separated(
-                        padding: pagePadding(context, top: 8),
+                        padding: pagePadding(context, top: 12),
                         itemCount: _items.length,
-                        separatorBuilder: (_, _) => const SizedBox(height: 8),
+                        separatorBuilder: (_, _) => const SizedBox(height: 10),
                         itemBuilder: (context, i) {
                           final e = _items[i];
                           final id = (e['id'] as num).toInt();
                           final amount = (e['amount'] as num?)?.toDouble() ?? 0;
-                          return Card(
-                            child: Padding(
-                              padding: const EdgeInsets.all(12),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    '৳${_fmt.format(amount)} · ${e['category'] ?? 'Expense'}',
-                                    style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
-                                  ),
-                                  Text('${e['collector'] ?? ''} · ${e['number'] ?? ''}'),
-                                  if (e['description'] != null)
-                                    Text(e['description'].toString(), style: TextStyle(color: Colors.grey.shade700)),
-                                  const SizedBox(height: 10),
-                                  Row(
-                                    children: [
-                                      Expanded(
-                                        child: OutlinedButton(
-                                          onPressed: () => _reject(id),
-                                          style: OutlinedButton.styleFrom(foregroundColor: Colors.red),
-                                          child: const Text('Reject'),
-                                        ),
-                                      ),
-                                      const SizedBox(width: 8),
-                                      Expanded(
-                                        child: FilledButton(
-                                          onPressed: () => _approve(id),
-                                          style: FilledButton.styleFrom(backgroundColor: AppTheme.success),
-                                          child: const Text('Approve'),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              ),
-                            ),
+                          return IspUiKit.approvalCard(
+                            amountLine: '৳${_fmt.format(amount)} · ${e['category'] ?? 'Expense'}',
+                            metaLine: '${e['collector'] ?? ''} · ${e['number'] ?? ''}',
+                            description: e['description']?.toString(),
+                            onApprove: () => _approve(id),
+                            onReject: () => _reject(id),
                           );
                         },
                       ),

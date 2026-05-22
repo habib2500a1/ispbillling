@@ -60,6 +60,7 @@ class _CustomerOnuScreenState extends State<CustomerOnuScreen> {
 
     return PageScaffold(
       title: 'ONU Status',
+      useGradientBody: true,
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : ListView(

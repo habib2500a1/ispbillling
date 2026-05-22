@@ -3,12 +3,16 @@
 namespace App\Support;
 
 use App\Filament\Pages\BillCollectionDesk;
+use App\Filament\Pages\BillingFundFlowReport;
+use App\Filament\Pages\BillingOverview;
+use App\Support\Rbac\StaffCapability;
 use App\Filament\Pages\CollectionDeskReport;
 use App\Filament\Pages\CollectorMobile;
 use App\Filament\Pages\ManageCollectionDiscountSettings;
 use App\Filament\Pages\CollectorVisitsReport;
 use App\Filament\Resources\CouponResource;
 use App\Filament\Resources\InvoiceResource;
+use App\Filament\Resources\StaffExpenseResource;
 use App\Services\Billing\BillingInvoiceCounts;
 use Filament\Facades\Filament;
 use Filament\Navigation\NavigationItem;
@@ -48,6 +52,14 @@ final class BillingSidebarRegistry
     private static function definitions(): array
     {
         return [
+            [
+                'key' => 'billing_center',
+                'label' => 'Billing center',
+                'icon' => 'heroicon-o-squares-2x2',
+                'sort' => 0,
+                'url_target' => 'billing.overview',
+                'active_routes' => ['filament.admin.pages.billing-overview'],
+            ],
             [
                 'key' => 'all_bills',
                 'label' => 'All bills',
@@ -116,10 +128,30 @@ final class BillingSidebarRegistry
                 'active_routes' => ['filament.admin.pages.manage-collection-discount-settings'],
             ],
             [
+                'key' => 'bill_money_trail',
+                'label' => 'Bill money trail',
+                'icon' => 'heroicon-o-arrows-right-left',
+                'sort' => 8,
+                'url_target' => 'billing.fund_flow',
+                'active_routes' => ['filament.admin.pages.billing-fund-flow-report'],
+            ],
+            [
+                'key' => 'staff_expenses',
+                'label' => 'Staff expenses',
+                'icon' => 'heroicon-o-receipt-refund',
+                'sort' => 9,
+                'url_target' => 'billing.staff_expenses',
+                'active_routes' => [
+                    'filament.admin.resources.staff-expenses.index',
+                    'filament.admin.resources.staff-expenses.create',
+                    'filament.admin.resources.staff-expenses.view',
+                ],
+            ],
+            [
                 'key' => 'coupons',
                 'label' => 'Coupons',
                 'icon' => 'heroicon-o-ticket',
-                'sort' => 8,
+                'sort' => 10,
                 'url_target' => 'coupons.index',
                 'active_routes' => [
                     'filament.admin.resources.coupons.index',
@@ -131,7 +163,7 @@ final class BillingSidebarRegistry
                 'key' => 'today_collection',
                 'label' => "Today's collection",
                 'icon' => 'heroicon-o-calendar-days',
-                'sort' => 9,
+                'sort' => 11,
                 'count_key' => 'today_collection',
                 'url_target' => 'collection.today',
                 'active_routes' => [
@@ -142,7 +174,7 @@ final class BillingSidebarRegistry
                 'key' => 'all_collection',
                 'label' => 'All collection',
                 'icon' => 'heroicon-o-banknotes',
-                'sort' => 10,
+                'sort' => 12,
                 'url_target' => 'collection.month',
                 'active_routes' => [
                     'filament.admin.pages.collection-desk-report',
@@ -152,7 +184,7 @@ final class BillingSidebarRegistry
                 'key' => 'collector_visits',
                 'label' => 'Collector visits',
                 'icon' => 'heroicon-o-map-pin',
-                'sort' => 11,
+                'sort' => 13,
                 'url_target' => 'collector.visits',
                 'active_routes' => ['filament.admin.pages.collector-visits-report'],
             ],
@@ -217,7 +249,15 @@ final class BillingSidebarRegistry
 
     public static function canSeeEntry(string $key): bool
     {
+        $user = auth()->user();
+        if ($user && StaffCapability::for($user)->isTenantAdmin()) {
+            return true;
+        }
+
         return match ($key) {
+            'billing_center' => BillingOverview::canAccess(),
+            'bill_money_trail' => BillingFundFlowReport::canAccess(),
+            'staff_expenses' => StaffExpenseResource::canViewAny(),
             'collection_desk' => BillCollectionDesk::canAccess(),
             'collection_discount_settings' => ManageCollectionDiscountSettings::canAccess(),
             'collector_mobile' => CollectorMobile::canAccess(),
@@ -234,6 +274,9 @@ final class BillingSidebarRegistry
     private static function resolveUrl(array $item): string
     {
         return match ($item['url_target']) {
+            'billing.overview' => BillingOverview::getUrl(),
+            'billing.fund_flow' => BillingFundFlowReport::getUrl(),
+            'billing.staff_expenses' => StaffExpenseResource::getUrl(),
             'invoices.index' => InvoiceResource::getUrl('index'),
             'invoices.due' => InvoiceResource::getUrl('due'),
             'invoices.paid' => InvoiceResource::getUrl('paid'),

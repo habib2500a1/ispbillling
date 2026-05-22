@@ -38,7 +38,7 @@ class NextFeaturesTest extends TestCase
 
     public function test_hotspot_voucher_redeem(): void
     {
-        config(['hotspot.enabled' => true]);
+        config(['hotspot.enabled' => true, 'hotspot.provision_enabled' => false]);
 
         $voucher = HotspotVoucher::query()->create([
             'code' => 'ABCD-EFGH',

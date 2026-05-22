@@ -21,7 +21,16 @@ class LandingPageController extends Controller
 
         $movieServers = PortalMovieServerCatalog::forLanding();
 
+        $shopEnabled = config('inventory.shop_enabled', true)
+            && \App\Models\Product::withoutGlobalScopes()
+                ->where('tenant_id', (int) config('inventory.default_tenant_id', 1))
+                ->where('is_active', true)
+                ->where('show_on_shop', true)
+                ->where('stock_qty', '>', 0)
+                ->exists();
+
         return view('landing.index', [
+            'shopUrl' => $shopEnabled ? route('shop.index') : null,
             'portalNotices' => PortalContentCatalog::noticesForLanding(),
             'portalMarquee' => PortalContentCatalog::marqueeForLanding(),
             'company' => CompanyBranding::name(),

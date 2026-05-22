@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 
 import '../services/api_service.dart';
+import '../theme/app_theme.dart';
 import '../utils/app_nav.dart';
 import '../utils/layout.dart';
+import '../widgets/isp_tab_screen.dart';
+import '../widgets/support_ticket_ui.dart';
 import '../widgets/state_views.dart';
 import 'ticket_thread_screen.dart';
 
@@ -30,19 +33,32 @@ class CustomerTicketsScreen extends StatefulWidget {
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('New support ticket'),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Row(
+          children: [
+            Icon(Icons.support_agent, color: AppTheme.primary),
+            SizedBox(width: 8),
+            Text('New support ticket'),
+          ],
+        ),
         content: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               TextField(
                 controller: subjectCtrl,
-                decoration: const InputDecoration(labelText: 'Subject'),
+                decoration: const InputDecoration(
+                  labelText: 'Subject',
+                  border: OutlineInputBorder(),
+                ),
               ),
               const SizedBox(height: 12),
               TextField(
                 controller: descCtrl,
-                decoration: const InputDecoration(labelText: 'Describe your issue'),
+                decoration: const InputDecoration(
+                  labelText: 'Describe your issue',
+                  border: OutlineInputBorder(),
+                ),
                 maxLines: 4,
               ),
             ],
@@ -110,76 +126,52 @@ class _CustomerTicketsScreenState extends State<CustomerTicketsScreen> {
     }
   }
 
-  Color _statusColor(String? status) {
-    switch (status) {
-      case 'open':
-        return Colors.orange;
-      case 'in_progress':
-        return Colors.blue;
-      case 'resolved':
-      case 'closed':
-        return Colors.green;
-      default:
-        return Colors.grey;
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
-    if (_loading) {
-      return const Center(child: CircularProgressIndicator());
-    }
-    if (_error != null) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: ErrorBanner(message: _error!, onRetry: _load),
-        ),
-      );
-    }
-    if (_tickets.isEmpty) {
-      return EmptyState(
-        icon: Icons.support_agent,
-        title: 'No tickets yet',
-        subtitle: 'Create a support ticket from the app',
-        action: () => CustomerTicketsScreen.showCreateDialog(context, widget.api, onCreated: _load),
-        actionLabel: 'New ticket',
-      );
-    }
-
-    return RefreshIndicator(
+    return IspTabScreen(
+      title: 'Support',
+      subtitle: 'Tickets & help',
+      loading: _loading,
+      error: _error,
+      onRetry: _load,
       onRefresh: _load,
+      trailing: [
+        IconButton(
+          onPressed: () => CustomerTicketsScreen.showCreateDialog(context, widget.api, onCreated: _load),
+          icon: const Icon(Icons.add_comment_outlined, color: Colors.white),
+        ),
+      ],
+      empty: !_loading && _error == null && _tickets.isEmpty
+          ? EmptyState(
+              icon: Icons.support_agent,
+              title: 'No tickets yet',
+              subtitle: 'Create a support ticket — we will reply in the app',
+              action: () => CustomerTicketsScreen.showCreateDialog(context, widget.api, onCreated: _load),
+              actionLabel: 'New ticket',
+            )
+          : null,
       child: ListView.separated(
-        padding: pagePadding(context, top: 8),
+        padding: pagePadding(context, top: 10),
         itemCount: _tickets.length,
-        separatorBuilder: (_, _) => const SizedBox(height: 8),
+        separatorBuilder: (_, _) => const SizedBox(height: 10),
         itemBuilder: (context, i) {
           final t = _tickets[i];
-          final status = t['status']?.toString() ?? '';
-          return Card(
-            child: ListTile(
-              leading: CircleAvatar(
-                backgroundColor: _statusColor(status).withValues(alpha: 0.15),
-                child: Icon(Icons.confirmation_number, color: _statusColor(status), size: 20),
-              ),
-              title: Text(t['subject']?.toString() ?? 'Ticket'),
-              subtitle: Text('#${t['ticket_number'] ?? t['id']} · $status'),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () {
-                final id = (t['id'] as num).toInt();
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => TicketThreadScreen(
-                      api: widget.api,
-                      ticketId: id,
-                      isStaff: false,
-                      ticketSummary: t,
-                    ),
+          final id = (t['id'] as num).toInt();
+          return SupportTicketUi.ticketListCard(
+            ticket: {...t, 'customer_name': 'You'},
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => TicketThreadScreen(
+                    api: widget.api,
+                    ticketId: id,
+                    isStaff: false,
+                    ticketSummary: t,
                   ),
-                );
-              },
-            ),
+                ),
+              );
+            },
           );
         },
       ),

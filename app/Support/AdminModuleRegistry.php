@@ -7,6 +7,8 @@ use App\Filament\Pages\AccountingHub;
 use App\Filament\Pages\AnalyticsReports;
 use App\Filament\Pages\BandwidthMonitor;
 use App\Filament\Pages\BillCollectionDesk;
+use App\Filament\Pages\BillingFundFlowReport;
+use App\Filament\Resources\StaffExpenseResource;
 use App\Filament\Pages\BillingOverview;
 use App\Filament\Pages\BillingReports;
 use App\Filament\Pages\BroadcastOutage;
@@ -79,6 +81,8 @@ class AdminModuleRegistry
             // ── Billing ──
             ['group' => 'Billing', 'section' => 'Hub', 'label' => 'Billing center', 'description' => 'Open bills · overdue · collections', 'url' => BillingOverview::getUrl(), 'accent' => 'text-violet-600', 'icon' => 'heroicon-o-banknotes'],
             ['group' => 'Billing', 'section' => 'Collections', 'label' => 'Bill collection desk', 'description' => 'Search subscriber · collect payment', 'url' => BillCollectionDesk::getUrl(), 'accent' => 'text-emerald-600', 'icon' => 'heroicon-o-currency-bangladeshi'],
+            ['group' => 'Billing', 'section' => 'Collections', 'label' => 'Bill money trail', 'description' => 'Where collections went · invoice · wallet · expenses', 'url' => BillingFundFlowReport::getUrl(), 'accent' => 'text-violet-600', 'icon' => 'heroicon-o-arrows-right-left'],
+            ['group' => 'Billing', 'section' => 'Collections', 'label' => 'Staff expenses', 'description' => 'Submit · approve vendor / office / other costs', 'url' => StaffExpenseResource::getUrl(), 'accent' => 'text-rose-600', 'icon' => 'heroicon-o-receipt-refund'],
             ['group' => 'Billing', 'section' => 'Documents', 'label' => 'Invoices', 'description' => 'Generate, print, due dates', 'url' => InvoiceResource::getUrl('index'), 'accent' => 'text-violet-600', 'icon' => 'heroicon-o-document-text'],
             ['group' => 'Billing', 'section' => 'Promotions', 'label' => 'Coupons', 'description' => 'Discount codes', 'url' => CouponResource::getUrl('index'), 'accent' => 'text-violet-600', 'icon' => 'heroicon-o-ticket'],
 
@@ -117,9 +121,13 @@ class AdminModuleRegistry
             ['group' => 'HR & Payroll', 'section' => 'Staff', 'label' => 'Employees', 'description' => 'Staff profiles', 'url' => EmployeeResource::getUrl('index'), 'accent' => 'text-rose-600', 'icon' => 'heroicon-o-user'],
             ['group' => 'HR & Payroll', 'section' => 'Payroll', 'label' => 'Payroll runs', 'description' => 'Salary processing', 'url' => PayrollRunResource::getUrl('index'), 'accent' => 'text-rose-600', 'icon' => 'heroicon-o-currency-dollar'],
 
-            // ── Inventory ──
-            ['group' => 'Inventory', 'section' => 'Hub', 'label' => 'Inventory center', 'description' => 'Stock overview', 'url' => InventoryHub::getUrl(), 'accent' => 'text-orange-600', 'icon' => 'heroicon-o-cube'],
-            ['group' => 'Inventory', 'section' => 'Stock', 'label' => 'Products', 'description' => 'SKU & pricing', 'url' => ProductResource::getUrl('index'), 'accent' => 'text-orange-600', 'icon' => 'heroicon-o-shopping-bag'],
+            // ── Inventory Pro ──
+            ['group' => 'Inventory', 'section' => 'Hub', 'label' => 'Inventory center', 'description' => 'Stock · POS · warehouses', 'url' => InventoryHub::getUrl(), 'accent' => 'text-orange-600', 'icon' => 'heroicon-o-cube'],
+            ['group' => 'Inventory', 'section' => 'Stock', 'label' => 'Warehouses', 'description' => 'Multi-warehouse & transfer', 'url' => \App\Filament\Resources\WarehouseResource::getUrl('index'), 'accent' => 'text-orange-600', 'icon' => 'heroicon-o-building-library'],
+            ['group' => 'Inventory', 'section' => 'Stock', 'label' => 'Products · barcode', 'description' => 'SKU · scan · pricing', 'url' => ProductResource::getUrl('index'), 'accent' => 'text-orange-600', 'icon' => 'heroicon-o-shopping-bag'],
+            ['group' => 'Inventory', 'section' => 'POS', 'label' => 'New sale (POS)', 'description' => 'Barcode retail sale', 'url' => \App\Filament\Resources\InventorySaleResource::getUrl('create'), 'accent' => 'text-orange-600', 'icon' => 'heroicon-o-qr-code'],
+            ['group' => 'Inventory', 'section' => 'POS', 'label' => 'Retail sales', 'description' => 'POS history', 'url' => \App\Filament\Resources\InventorySaleResource::getUrl('index'), 'accent' => 'text-orange-600', 'icon' => 'heroicon-o-banknotes'],
+            ['group' => 'Inventory', 'section' => 'Stock', 'label' => 'Stock ledger', 'description' => 'In / out by warehouse', 'url' => \App\Filament\Resources\StockMovementResource::getUrl('index'), 'accent' => 'text-orange-600', 'icon' => 'heroicon-o-arrow-path'],
             ['group' => 'Inventory', 'section' => 'Stock', 'label' => 'Devices / ONU', 'description' => 'CPE inventory', 'url' => DeviceResource::getUrl('index'), 'accent' => 'text-orange-600', 'icon' => 'heroicon-o-wifi'],
             ['group' => 'Inventory', 'section' => 'Purchasing', 'label' => 'Purchase orders', 'description' => 'PO & GRN', 'url' => PurchaseOrderResource::getUrl('index'), 'accent' => 'text-orange-600', 'icon' => 'heroicon-o-truck'],
             ['group' => 'Inventory', 'section' => 'Purchasing', 'label' => 'Vendors', 'description' => 'Suppliers', 'url' => VendorResource::getUrl('index'), 'accent' => 'text-orange-600', 'icon' => 'heroicon-o-building-storefront'],

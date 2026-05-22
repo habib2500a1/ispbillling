@@ -90,7 +90,7 @@ final class IspDigitalCurrentBillingSyncService
                     return;
                 }
 
-                $due = (float) ($customer->meta['isp_digital_balance_due'] ?? 0);
+                $due = \App\Support\CustomerBalanceDue::invoiceBalanceDue($customer);
                 if ($due <= 0.009) {
                     $reconciler->reconcile($customer, 'ISD-'.$customer->customer_code.'-'.$periodKey, 0, 0, 0);
                 }

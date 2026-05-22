@@ -7,6 +7,8 @@ use App\Filament\Pages\Concerns\HandlesCollectionDiscountAndNotes;
 use App\Models\Invoice;
 use App\Models\Payment;
 use App\Services\Billing\BillCollectionSearchService;
+use App\Services\Billing\BillingDueRealtimeSync;
+use App\Services\Billing\OpenInvoiceResolver;
 use App\Services\Billing\CollectionPaymentClassifier;
 use App\Services\Collector\CollectorStaffResolver;
 use App\Services\Collector\CollectorVisitService;
@@ -291,7 +293,38 @@ class BillCollectionDesk extends Page
             return;
         }
 
+        // Reset so Livewire re-renders due amount/colour immediately after payment.
+        $this->selectedCustomer = null;
         $this->selectedCustomer = app(BillCollectionSearchService::class)->find($this->selectedCustomerId);
+    }
+
+    private function refreshDueAfterPayment(\App\Models\Customer $customer): void
+    {
+        $due = BillingDueRealtimeSync::afterPayment($customer, queueNetwork: true);
+        $this->search = $customer->customer_code;
+        $this->runSearch();
+        $this->reloadCustomer();
+        $this->syncSearchResultDue((int) $customer->id, $due);
+
+        if (($this->selectedCustomer['balance_due'] ?? 0) <= 0.009) {
+            $this->amount = '';
+            $this->invoiceId = null;
+        }
+    }
+
+    private function syncSearchResultDue(int $customerId, float $due): void
+    {
+        $this->results = $this->results->map(function (array $row) use ($customerId, $due): array {
+            if ((int) ($row['id'] ?? 0) !== $customerId) {
+                return $row;
+            }
+
+            $row['balance_due'] = $due;
+            $row['billing_payment_state'] = $due <= 0.009 ? 'paid' : ($row['billing_payment_state'] ?? 'partial');
+            $row['open_invoices'] = $due <= 0.009 ? 0 : max(1, (int) ($row['open_invoices'] ?? 0));
+
+            return $row;
+        });
     }
 
     public function setGps(?float $lat, ?float $lng, ?int $accuracy = null): void
@@ -317,11 +350,15 @@ class BillCollectionDesk extends Page
         ]);
 
         $customer = \App\Models\Customer::query()->findOrFail($this->selectedCustomerId);
-        $invoice = null;
-        if ($this->invoiceId) {
-            $invoice = Invoice::query()
-                ->where('customer_id', $customer->id)
-                ->findOrFail($this->invoiceId);
+
+        $payAmount = round((float) $this->amount, 2);
+        $invoice = OpenInvoiceResolver::forCustomer($customer, $this->invoiceId);
+        if ($invoice !== null) {
+            $this->invoiceId = $invoice->id;
+        } elseif ($payAmount > 0.009) {
+            throw ValidationException::withMessages([
+                'amount' => 'No open bill with balance due for this customer.',
+            ]);
         }
 
         $collectorId = $this->resolveCollectorIdForPayment();
@@ -353,7 +390,6 @@ class BillCollectionDesk extends Page
             }
         }
 
-        $payAmount = round((float) $this->amount, 2);
         $discountBdt = $this->validateCollectionPayment($invoice, $payAmount, $this->notes);
 
         if ($payAmount <= 0 && $walletApplied <= 0 && $discountBdt <= 0) {
@@ -452,12 +488,10 @@ class BillCollectionDesk extends Page
             ]);
         }
 
-        $notification->send();
-
         $this->resetCollectionDiscountFields();
-        $this->search = $customer->customer_code;
-        $this->runSearch();
-        $this->reloadCustomer();
+        $this->refreshDueAfterPayment($customer);
+
+        $notification->send();
     }
 
     /**

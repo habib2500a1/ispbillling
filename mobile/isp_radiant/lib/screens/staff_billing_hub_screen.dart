@@ -5,6 +5,8 @@ import '../services/api_service.dart';
 import '../theme/app_theme.dart';
 import '../utils/layout.dart';
 import '../widgets/page_scaffold.dart';
+import '../widgets/billing_client_card.dart';
+import '../widgets/isp_ui_kit.dart';
 import '../widgets/stat_card.dart';
 import '../widgets/state_views.dart';
 import 'staff_customer_detail_screen.dart';
@@ -85,7 +87,8 @@ class _StaffBillingHubScreenState extends State<StaffBillingHubScreen> with Sing
   @override
   Widget build(BuildContext context) {
     return PageScaffold(
-      title: 'Billing & collection',
+      title: 'Billing list',
+      useGradientBody: true,
       bottom: TabBar(
         controller: _tabs,
         isScrollable: true,
@@ -159,41 +162,47 @@ class _StaffBillingHubScreenState extends State<StaffBillingHubScreen> with Sing
   }
 
   Widget _dueTab() {
-    if (_due.isEmpty) {
-      return const EmptyState(icon: Icons.check_circle, title: 'No due customers', subtitle: 'All caught up');
-    }
+    final b = _billing ?? {};
     return RefreshIndicator(
       onRefresh: _loadAll,
-      child: ListView.separated(
+      child: ListView(
         padding: pagePadding(context, top: 8),
-        itemCount: _due.length,
-        separatorBuilder: (_, _) => const SizedBox(height: 6),
-        itemBuilder: (context, i) {
-          final c = _due[i];
-          final due = (c['balance_due'] as num?)?.toDouble() ?? 0;
-          return Card(
-            child: ListTile(
-              title: Text(c['name']?.toString() ?? ''),
-              subtitle: Text(
-                '${c['customer_code']} · ${c['package'] ?? ''}${c['billing_mode'] != null ? ' · ${c['billing_mode']}' : ''}',
-              ),
-              trailing: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text('৳${_fmt.format(due)}', style: const TextStyle(fontWeight: FontWeight.bold, color: AppTheme.warning)),
-                  if (c['is_online'] == true) const Text('Online', style: TextStyle(fontSize: 10, color: AppTheme.success)),
-                ],
-              ),
-              onTap: () => Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => StaffCustomerDetailScreen(api: widget.api, customerId: (c['id'] as num).toInt()),
-                ),
+        children: [
+          IspUiKit.billingSummaryStrip(
+            paidCount: '${b['paid_clients'] ?? 0}',
+            unpaidCount: '${b['unpaid_clients'] ?? 0}',
+            received: _fmt.format(b['collected_bill'] ?? 0),
+            due: _fmt.format(b['due'] ?? 0),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 6),
+            child: Text(
+              'Showing ${_due.length} due client(s)',
+              style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+            ),
+          ),
+          if (_due.isEmpty)
+            const EmptyState(icon: Icons.check_circle, title: 'No due customers', subtitle: 'All caught up')
+          else
+            ..._due.map(
+              (c) => BillingClientCard(
+                api: widget.api,
+                client: c,
+                onChanged: _loadAll,
               ),
             ),
-          );
-        },
+        ],
+      ),
+    );
+  }
+
+  Widget _dueStat(String label, String value, Color color) {
+    return Expanded(
+      child: Column(
+        children: [
+          Text(value, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: color)),
+          Text(label, style: const TextStyle(fontSize: 10)),
+        ],
       ),
     );
   }
@@ -229,14 +238,19 @@ class _StaffBillingHubScreenState extends State<StaffBillingHubScreen> with Sing
                     final inv = _invoices[i];
                     final due = (inv['balance_due'] as num?)?.toDouble() ?? 0;
                     return Card(
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                       child: ListTile(
-                        title: Text(inv['invoice_number']?.toString() ?? ''),
+                        leading: CircleAvatar(
+                          backgroundColor: AppTheme.warning.withValues(alpha: 0.15),
+                          child: const Icon(Icons.receipt, color: AppTheme.warning, size: 22),
+                        ),
+                        title: Text(inv['invoice_number']?.toString() ?? '', style: const TextStyle(fontWeight: FontWeight.w700)),
                         subtitle: Text('${inv['customer_name']} · Due ${inv['due_date'] ?? ''}'),
                         trailing: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           crossAxisAlignment: CrossAxisAlignment.end,
                           children: [
-                            Text('৳${_fmt.format(due)}', style: const TextStyle(fontWeight: FontWeight.w700)),
+                            Text('৳${_fmt.format(due)}', style: const TextStyle(fontWeight: FontWeight.w700, color: AppTheme.danger)),
                             Text(inv['status']?.toString() ?? '', style: const TextStyle(fontSize: 10)),
                           ],
                         ),
@@ -268,9 +282,11 @@ class _StaffBillingHubScreenState extends State<StaffBillingHubScreen> with Sing
           padding: const EdgeInsets.all(12),
           child: Row(
             children: [
-              Expanded(child: _miniStat('This month', s['month_collected'])),
+              Expanded(child: _miniStat('Transactions', s['transaction_count'] ?? _collections.length)),
               const SizedBox(width: 8),
-              Expanded(child: _miniStat('Discount', s['month_discount'])),
+              Expanded(child: _miniStat('Collected', s['period_collected'] ?? s['month_collected'])),
+              const SizedBox(width: 8),
+              Expanded(child: _miniStat('This month', s['month_collected'])),
             ],
           ),
         ),
@@ -283,33 +299,12 @@ class _StaffBillingHubScreenState extends State<StaffBillingHubScreen> with Sing
                   separatorBuilder: (_, _) => const SizedBox(height: 6),
                   itemBuilder: (context, i) {
                     final p = _collections[i];
-                    return Card(
-                      child: Padding(
-                        padding: const EdgeInsets.all(12),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: Text(
-                                    p['customer_name']?.toString() ?? '',
-                                    style: const TextStyle(fontWeight: FontWeight.w700),
-                                  ),
-                                ),
-                                Text(
-                                  '৳${_fmt.format((p['amount'] as num?) ?? 0)}',
-                                  style: const TextStyle(fontWeight: FontWeight.bold, color: AppTheme.success),
-                                ),
-                              ],
-                            ),
-                            Text('${p['customer_code']} · ${p['receipt_number'] ?? ''}', style: const TextStyle(fontSize: 12)),
-                            const SizedBox(height: 4),
-                            Text('Bill ${p['bill_date'] ?? '—'} · ${p['method'] ?? ''}', style: TextStyle(fontSize: 11, color: Colors.grey.shade700)),
-                            Text('${p['paid_at'] ?? ''} · Staff: ${p['recorded_by'] ?? '—'}', style: TextStyle(fontSize: 11, color: Colors.grey.shade700)),
-                          ],
-                        ),
-                      ),
+                    return IspUiKit.collectionRowCard(
+                      name: p['customer_name']?.toString() ?? '',
+                      codeLine: '${p['customer_code']} · ${p['receipt_number'] ?? ''}',
+                      amount: '৳${_fmt.format((p['amount'] as num?) ?? 0)}',
+                      meta: 'Bill ${p['bill_date'] ?? '—'} · ${p['method'] ?? ''}',
+                      dateLine: '${p['paid_at'] ?? ''} · ${p['recorded_by'] ?? '—'}',
                     );
                   },
                 ),

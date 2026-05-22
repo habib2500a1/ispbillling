@@ -74,40 +74,43 @@
                 </ul>
             </div>
         @else
-            @if ($selectedCustomerId === null)
-                @if ($canPick && count($staffOptions) > 0)
-                    <div class="rounded-xl border border-violet-200 bg-violet-50/50 p-4 dark:border-violet-900/40 dark:bg-violet-950/20">
-                        <label class="mb-1 block text-xs font-bold uppercase text-violet-800 dark:text-violet-200">Collection credited to</label>
-                        <select wire:model.live="collectorUserId" class="w-full rounded-lg border border-violet-200 px-3 py-2 text-sm dark:border-violet-800 dark:bg-gray-900">
-                            @foreach ($staffOptions as $id => $label)
-                                <option value="{{ $id }}">{{ $label }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-                @endif
+            @if ($canPick && count($staffOptions) > 0 && $selectedCustomerId === null)
+                <div class="rounded-xl border border-violet-200 bg-violet-50/50 p-4 dark:border-violet-900/40 dark:bg-violet-950/20">
+                    <label class="mb-1 block text-xs font-bold uppercase text-violet-800 dark:text-violet-200">Collection credited to</label>
+                    <select wire:model.live="collectorUserId" class="w-full rounded-lg border border-violet-200 px-3 py-2 text-sm dark:border-violet-800 dark:bg-gray-900">
+                        @foreach ($staffOptions as $id => $label)
+                            <option value="{{ $id }}">{{ $label }}</option>
+                        @endforeach
+                    </select>
+                </div>
+            @endif
 
-                <div class="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-900">
-                    <label class="mb-1 block text-xs font-bold uppercase text-gray-500">Search subscriber</label>
-                    <input type="search" wire:model.live.debounce.400ms="search" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-800" placeholder="Code, phone, name…" />
-                    <ul class="mt-2 max-h-64 overflow-y-auto text-sm">
-                        @forelse ($results as $row)
+            <div class="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-900">
+                <label class="mb-1 block text-xs font-bold uppercase text-gray-500">Search subscriber (due shows here)</label>
+                <input type="search" wire:model.live.debounce.400ms="search" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-800" placeholder="Code, phone, name…" />
+                @if ($results->isNotEmpty())
+                    <ul class="mt-2 {{ $selectedCustomerId !== null ? 'max-h-36' : 'max-h-64' }} overflow-y-auto text-sm">
+                        @foreach ($results as $row)
                             <li>
-                                <button type="button" wire:click="selectCustomer({{ $row['id'] }})" class="w-full rounded-lg px-2 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-800">
-                                    <span class="font-semibold">{{ $row['name'] }}</span>
-                                    <span class="text-gray-500">· {{ $row['customer_code'] ?? $row['id'] }}</span>
-                                    @if (($row['balance_due'] ?? 0) > 0)
-                                        <span class="block text-xs text-teal-600">{{ number_format($row['balance_due'], 2) }} BDT due</span>
-                                    @endif
+                                <button type="button" wire:click="selectCustomer({{ $row['id'] }})" class="flex w-full items-center justify-between gap-2 rounded-lg px-2 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-800 {{ (int) $selectedCustomerId === (int) $row['id'] ? 'ring-2 ring-teal-500' : '' }}">
+                                    <span>
+                                        <span class="font-semibold">{{ $row['name'] }}</span>
+                                        <span class="text-gray-500">· {{ $row['customer_code'] ?? $row['id'] }}</span>
+                                    </span>
+                                    <span class="shrink-0 text-right font-bold tabular-nums {{ ($row['balance_due'] ?? 0) > 0.009 ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400' }}">
+                                        {{ number_format((float) ($row['balance_due'] ?? 0), 0) }}
+                                        <span class="block text-[10px] font-semibold uppercase">{{ ($row['balance_due'] ?? 0) > 0.009 ? 'BDT due' : 'Paid' }}</span>
+                                    </span>
                                 </button>
                             </li>
-                        @empty
-                            @if (strlen($search) >= 2)
-                                <li class="px-2 py-2 text-gray-500">No matches</li>
-                            @endif
-                        @endforelse
+                        @endforeach
                     </ul>
-                </div>
-            @else
+                @elseif (strlen($search) >= 2)
+                    <p class="mt-2 text-sm text-gray-500">No matches</p>
+                @endif
+            </div>
+
+            @if ($selectedCustomerId !== null)
                 <form wire:submit="collectPayment" class="space-y-3 rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-900">
                     @if ($canPick && count($staffOptions) > 0)
                         <div>
@@ -125,9 +128,18 @@
                         </p>
                     @endif
 
-                    <div class="flex items-center justify-between">
-                        <p class="font-bold">{{ $selectedCustomer['name'] ?? '' }}</p>
-                        <button type="button" wire:click="$set('selectedCustomerId', null)" class="text-xs text-gray-500 hover:underline">Change</button>
+                    <div class="flex items-center justify-between gap-2">
+                        <div>
+                            <p class="font-bold">{{ $selectedCustomer['name'] ?? '' }}</p>
+                            <p class="font-mono text-xs text-gray-500">{{ $selectedCustomer['customer_code'] ?? '' }}</p>
+                        </div>
+                        <div class="text-right">
+                            <p class="text-lg font-bold tabular-nums {{ ($selectedCustomer['balance_due'] ?? 0) > 0.009 ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400' }}">
+                                {{ number_format((float) ($selectedCustomer['balance_due'] ?? 0), 0) }}
+                                <span class="text-xs font-semibold">{{ ($selectedCustomer['balance_due'] ?? 0) > 0.009 ? 'BDT due' : 'Paid' }}</span>
+                            </p>
+                            <button type="button" wire:click="$set('selectedCustomerId', null)" class="text-xs text-gray-500 hover:underline">Change</button>
+                        </div>
                     </div>
                     @if (! empty($selectedCustomer['invoices']))
                         <div>

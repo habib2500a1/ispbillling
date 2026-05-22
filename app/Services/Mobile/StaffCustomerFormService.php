@@ -10,6 +10,7 @@ use App\Models\Package;
 use App\Models\User;
 use App\Models\Zone;
 use App\Services\Billing\CustomerActivationBillingService;
+use App\Services\Subscribers\CustomerLineActivationService;
 use App\Services\Mikrotik\MikrotikServerService;
 use App\Support\BillingDefaults;
 use App\Support\CustomerCodeGenerator;
@@ -234,7 +235,49 @@ final class StaffCustomerFormService
             ];
         }
 
-        return ['customer' => $customer, 'network' => $network, 'billing' => $billing];
+        $lineActivation = ['applied' => false, 'message' => ''];
+        $activationService = app(CustomerLineActivationService::class);
+        $registerPayload = array_merge($data, [
+            'apply_line_charges' => $request->boolean('apply_line_charges', false),
+            'meta' => array_merge(
+                is_array($data['meta'] ?? null) ? $data['meta'] : [],
+                ['installation_charge' => $data['installation_charge'] ?? $data['line_charge'] ?? 0],
+            ),
+            'onu_device_pick' => $data['device_id'] ?? $data['onu_device_id'] ?? null,
+            'line_device_charge' => $data['device_charge'] ?? $data['line_device_charge'] ?? 0,
+            'use_wallet_on_register' => $request->boolean('use_wallet', true),
+            'line_cash_amount' => $data['cash_amount'] ?? 0,
+            'line_cash_method' => $data['cash_method'] ?? 'cash',
+        ]);
+
+        if ($activationService->shouldActivateFromRegisterForm($registerPayload)) {
+            try {
+                $activation = $activationService->activate(
+                    $customer->fresh(),
+                    $activationService->inputFromRegisterForm($registerPayload),
+                );
+                $lineActivation = [
+                    'applied' => true,
+                    'message' => $activation['message'],
+                    'invoice_id' => $activation['invoice']?->id,
+                    'wallet_applied' => $activation['wallet_applied'],
+                    'cash_collected' => $activation['cash_collected'],
+                    'remaining_due' => $activation['remaining_due'],
+                ];
+            } catch (\Illuminate\Validation\ValidationException $e) {
+                $lineActivation = [
+                    'applied' => false,
+                    'message' => collect($e->errors())->flatten()->first() ?? $e->getMessage(),
+                ];
+            }
+        }
+
+        return [
+            'customer' => $customer->fresh(),
+            'network' => $network,
+            'billing' => $billing,
+            'line_activation' => $lineActivation,
+        ];
     }
 
     private function assertValidCustomerCode(int $tenantId, mixed $rawCode): void

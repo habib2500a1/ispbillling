@@ -26,9 +26,7 @@ class SalesLeadPipeline extends Page
 
     public static function canAccess(): bool
     {
-        $user = auth()->user();
-
-        return $user !== null && ($user->hasRole('super-admin') || $user->hasRole('isp-admin'));
+        return \App\Support\SalesLeadPanelAccess::canView();
     }
 
     /**

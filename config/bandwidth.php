@@ -10,6 +10,15 @@ return [
     /** Auto-sync MikroTik while Online clients page is open (seconds). 0 = off. */
     'live_page_poll_seconds' => (int) env('BANDWIDTH_LIVE_PAGE_POLL_SECONDS', 60),
 
+    /**
+     * Per-row RouterOS /ppp/active check on Online clients (heavy — uses short cache).
+     * Shows live session dot separate from polled is_ppp_online flags.
+     */
+    'live_online_check' => filter_var(env('BANDWIDTH_LIVE_ONLINE_CHECK', false), FILTER_VALIDATE_BOOL),
+
+    /** Seconds to cache each subscriber live API probe when live_online_check is on. */
+    'live_online_cache_seconds' => (int) env('BANDWIDTH_LIVE_ONLINE_CACHE_SECONDS', 5),
+
     /** Run full PPP collect on each Online clients poll (heavy). Default off — use scheduler + Sync now. */
     'online_clients_collect_on_poll' => filter_var(env('BANDWIDTH_ONLINE_CLIENTS_COLLECT_ON_POLL', false), FILTER_VALIDATE_BOOL),
 

@@ -7,6 +7,7 @@ use App\Models\Invoice;
 use App\Models\Payment;
 use App\Models\User;
 use App\Services\Collector\CollectorVisitService;
+use App\Services\Billing\BillingDueRealtimeSync;
 use App\Support\PaymentGateway;
 use App\Support\PaymentType;
 use Illuminate\Validation\ValidationException;
@@ -15,7 +16,7 @@ final class StaffCollectionPaymentService
 {
     /**
      * @param  array<string, mixed>  $data
-     * @return array{payment: Payment, visit_id: int|null, discount_bdt: float, message: string}
+     * @return array{payment: Payment, visit_id: int|null, discount_bdt: float, message: string, customer: array<string, mixed>}
      */
     public function record(User $user, Customer $customer, array $data, string $source = 'mobile-api'): array
     {
@@ -25,33 +26,30 @@ final class StaffCollectionPaymentService
         $notes = trim((string) ($data['notes'] ?? ''));
         $invoiceId = isset($data['invoice_id']) ? (int) $data['invoice_id'] : null;
 
-        $invoice = null;
-        if ($invoiceId) {
-            $invoice = Invoice::withoutGlobalScopes()
-                ->where('customer_id', $customer->id)
-                ->whereKey($invoiceId)
-                ->first();
-            if ($invoice === null) {
-                throw ValidationException::withMessages(['invoice_id' => 'Invoice not found for this customer.']);
-            }
-        } elseif ($amount > 0) {
-            $invoice = Invoice::withoutGlobalScopes()
-                ->where('customer_id', $customer->id)
-                ->whereIn('status', ['open', 'partial', 'sent', 'overdue'])
-                ->orderBy('due_date')
-                ->orderBy('id')
-                ->get()
-                ->first(fn (Invoice $inv): bool => $inv->balanceDue() > 0.009);
+        $invoice = OpenInvoiceResolver::forCustomer($customer, $invoiceId);
+        if ($invoice === null && $invoiceId) {
+            throw ValidationException::withMessages(['invoice_id' => 'Invoice not found for this customer.']);
+        }
+        if ($invoice === null && $amount > 0.009) {
+            throw ValidationException::withMessages([
+                'amount' => 'No open bill with balance due for this customer.',
+            ]);
         }
 
         if ($amount > 0) {
             $duplicate = $this->findRecentDuplicatePayment($user, $customer, $invoice?->id, $amount);
             if ($duplicate !== null) {
+                $due = BillingDueRealtimeSync::afterPayment($customer, queueNetwork: true);
+
                 return [
                     'payment' => $duplicate->fresh(),
                     'visit_id' => null,
                     'discount_bdt' => (float) ($duplicate->meta['discount'] ?? 0),
                     'message' => 'Payment already recorded (duplicate submit ignored).',
+                    'customer' => array_merge(
+                        BillingDueRealtimeSync::customerPayload($customer),
+                        ['balance_due' => $due],
+                    ),
                 ];
             }
         }
@@ -113,11 +111,17 @@ final class StaffCollectionPaymentService
             $message .= ' Discount '.number_format($discountBdt, 2).' BDT.';
         }
 
+        $due = BillingDueRealtimeSync::afterPayment($customer, queueNetwork: true);
+
         return [
             'payment' => $payment->fresh(),
             'visit_id' => $visit->id,
             'discount_bdt' => $discountBdt,
             'message' => $message,
+            'customer' => array_merge(
+                BillingDueRealtimeSync::customerPayload($customer),
+                ['balance_due' => $due],
+            ),
         ];
     }
 

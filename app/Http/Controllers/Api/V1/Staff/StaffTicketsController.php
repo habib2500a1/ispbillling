@@ -3,10 +3,10 @@
 namespace App\Http\Controllers\Api\V1\Staff;
 
 use App\Http\Controllers\Controller;
-use App\Models\Customer;
 use App\Models\SupportTicket;
 use App\Models\SupportTicketMessage;
 use App\Models\User;
+use App\Support\StaffTenantScope;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -20,11 +20,11 @@ class StaffTicketsController extends Controller
     public function index(Request $request): JsonResponse
     {
         $user = $this->staffUser($request);
-        $tenantId = (int) $user->tenant_id;
+        $tenantId = StaffTenantScope::tenantIdFor($user);
 
         $query = SupportTicket::withoutGlobalScopes()
             ->where('tenant_id', $tenantId)
-            ->with(['customer:id,name,customer_code'])
+            ->with(['customer:id,name,customer_code', 'assignee:id,name'])
             ->orderByDesc('id');
 
         $status = $request->query('status');
@@ -36,6 +36,14 @@ class StaffTicketsController extends Controller
             } else {
                 $query->where('status', $status);
             }
+        }
+
+        if ($request->boolean('mine')) {
+            $query->where('assigned_to', $user->id);
+        }
+
+        if ($request->boolean('unassigned')) {
+            $query->whereNull('assigned_to');
         }
 
         $tickets = $query->paginate(25);
@@ -56,6 +64,7 @@ class StaffTicketsController extends Controller
         $model = $this->findTicket($user, $ticket);
         $model->load([
             'customer:id,name,customer_code,phone',
+            'assignee:id,name',
             'messages' => fn ($q) => $q->with(['user:id,name', 'customer:id,name'])->orderBy('created_at'),
         ]);
 
@@ -109,13 +118,10 @@ class StaffTicketsController extends Controller
             'priority' => ['nullable', Rule::in(array_keys(SupportTicket::PRIORITIES))],
         ]);
 
-        $customer = Customer::withoutGlobalScopes()
-            ->where('tenant_id', $user->tenant_id)
-            ->whereKey($data['customer_id'])
-            ->firstOrFail();
+        $customer = StaffTenantScope::customerForStaff($user, (int) $data['customer_id']);
 
         $ticket = SupportTicket::query()->create([
-            'tenant_id' => $user->tenant_id,
+            'tenant_id' => $customer->tenant_id,
             'customer_id' => $customer->id,
             'channel' => 'app',
             'department' => $data['department'],
@@ -139,14 +145,54 @@ class StaffTicketsController extends Controller
         $data = $request->validate([
             'status' => ['nullable', Rule::in(array_keys(SupportTicket::STATUSES))],
             'priority' => ['nullable', Rule::in(array_keys(SupportTicket::PRIORITIES))],
+            'assigned_to' => ['nullable', 'integer'],
         ]);
 
-        $model->update(array_filter([
-            'status' => $data['status'] ?? null,
-            'priority' => $data['priority'] ?? null,
-        ], fn ($v) => $v !== null));
+        $updates = [];
+        if (isset($data['status'])) {
+            $updates['status'] = $data['status'];
+        }
+        if (isset($data['priority'])) {
+            $updates['priority'] = $data['priority'];
+        }
+        if (array_key_exists('assigned_to', $data)) {
+            if ($data['assigned_to'] !== null) {
+                $assignee = User::query()
+                    ->whereKey((int) $data['assigned_to'])
+                    ->where('is_active', true)
+                    ->first();
+                if ($assignee === null || (int) $assignee->tenant_id !== (int) $model->tenant_id) {
+                    abort(422, 'Invalid assignee for this tenant.');
+                }
+            }
+            $updates['assigned_to'] = $data['assigned_to'];
+        }
 
-        return response()->json(['ticket' => $this->detailRow($model->fresh())]);
+        if ($updates !== []) {
+            $model->update($updates);
+        }
+
+        return response()->json(['ticket' => $this->detailRow($model->fresh()->load(['customer:id,name,customer_code,phone', 'assignee:id,name']))]);
+    }
+
+    public function assignees(Request $request): JsonResponse
+    {
+        $user = $this->staffUser($request);
+        $tenantId = StaffTenantScope::tenantIdFor($user);
+
+        $staff = User::query()
+            ->where('tenant_id', $tenantId)
+            ->where('is_active', true)
+            ->whereHas('roles', fn ($q) => $q->whereIn('name', self::ACCESS_ROLES))
+            ->orderBy('name')
+            ->get(['id', 'name']);
+
+        return response()->json([
+            'data' => $staff->map(fn (User $u) => [
+                'id' => $u->id,
+                'name' => $u->name,
+            ])->values(),
+        ]);
     }
 
     private function staffUser(Request $request): User
@@ -162,7 +208,7 @@ class StaffTicketsController extends Controller
     private function findTicket(User $user, int $id): SupportTicket
     {
         return SupportTicket::withoutGlobalScopes()
-            ->where('tenant_id', $user->tenant_id)
+            ->where('tenant_id', StaffTenantScope::tenantIdFor($user))
             ->whereKey($id)
             ->firstOrFail();
     }
@@ -181,7 +227,10 @@ class StaffTicketsController extends Controller
             'department' => $t->department,
             'customer_name' => $t->customer?->name,
             'customer_code' => $t->customer?->customer_code,
+            'assigned_to' => $t->assigned_to,
+            'assignee_name' => $t->assignee?->name,
             'created_at' => $t->created_at?->toIso8601String(),
+            'updated_at' => $t->updated_at?->toIso8601String(),
         ];
     }
 

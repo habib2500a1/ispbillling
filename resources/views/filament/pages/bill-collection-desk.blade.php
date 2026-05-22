@@ -22,6 +22,8 @@
                 <a href="{{ \App\Filament\Pages\CollectorCashHub::getUrl() }}" class="font-semibold text-teal-600 hover:underline">Collector settlement</a>
                 until deposited to admin ·
                 <a href="{{ \App\Filament\Pages\CollectionDeskReport::getUrl() }}" class="font-semibold text-teal-600 hover:underline">Collection report (date · user · customer)</a>
+                ·
+                <a href="{{ \App\Filament\Pages\BillingFundFlowReport::getUrl() }}" class="font-semibold text-violet-600 hover:underline">Bill money trail (কোথায় গেল টাকা)</a>
             </p>
         </div>
 
@@ -32,18 +34,18 @@
             </div>
         @endif
 
-        @if ($results->isNotEmpty() && $selectedCustomerId === null)
-            <div class="isp-collection-results">
+        @if ($results->isNotEmpty())
+            <div class="isp-collection-results {{ $selectedCustomer ? 'isp-collection-results--with-panel' : '' }}">
                 <p class="mb-2 text-xs font-bold uppercase tracking-wide text-gray-500">
-                    {{ $results->count() }} result(s) — tap to collect
+                    {{ $results->count() }} result(s) — due shown before select · tap to collect
                 </p>
-                <ul class="space-y-2">
+                <ul class="space-y-2 {{ $selectedCustomer ? 'max-h-48 overflow-y-auto' : '' }}">
                     @foreach ($results as $row)
                         <li>
                             <button
                                 type="button"
                                 wire:click="selectCustomer({{ $row['id'] }})"
-                                class="isp-collection-result-card w-full text-left"
+                                class="isp-collection-result-card w-full text-left {{ (int) $selectedCustomerId === (int) $row['id'] ? 'ring-2 ring-teal-500 dark:ring-teal-400' : '' }}"
                             >
                                 <div class="flex flex-wrap items-start justify-between gap-2">
                                     <div class="min-w-0 flex-1">
@@ -60,9 +62,10 @@
                                             @endif
                                         </div>
                                     </div>
-                                    <div class="shrink-0 text-right">
-                                        <p class="text-lg font-bold {{ $row['balance_due'] > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600' }}">
-                                            {{ number_format($row['balance_due'], 0) }} <span class="text-xs font-semibold">BDT due</span>
+                                    <div class="shrink-0 text-right" wire:key="search-due-{{ $row['id'] }}-{{ $row['balance_due'] }}">
+                                        <p class="text-lg font-bold {{ ($row['balance_due'] ?? 0) > 0.009 ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400' }}">
+                                            {{ number_format((float) ($row['balance_due'] ?? 0), 0) }}
+                                            <span class="text-xs font-semibold">{{ ($row['balance_due'] ?? 0) > 0.009 ? 'BDT due' : 'Paid' }}</span>
                                         </p>
                                         @if ($row['open_invoices'] > 0)
                                             <p class="text-xs text-gray-500">{{ $row['open_invoices'] }} open bill(s)</p>
@@ -103,7 +106,15 @@
                         <div><dt class="font-semibold text-gray-500">Last disconnect</dt>
                             <dd>{{ $conn['last_disconnect_formatted'] ?? '—' }}</dd>
                         </div>
-                        <div><dt class="font-semibold text-gray-500">Total due</dt><dd class="font-bold text-rose-600">{{ number_format($selectedCustomer['balance_due'], 2) }} BDT</dd></div>
+                        <div wire:key="customer-due-{{ $selectedCustomerId }}-{{ $selectedCustomer['balance_due'] }}">
+                            <dt class="font-semibold text-gray-500">Total due</dt>
+                            <dd class="font-bold {{ ($selectedCustomer['balance_due'] ?? 0) > 0.009 ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400' }}">
+                                {{ number_format((float) ($selectedCustomer['balance_due'] ?? 0), 2) }} BDT
+                                @if (($selectedCustomer['balance_due'] ?? 0) <= 0.009)
+                                    <span class="text-xs font-semibold">· Paid</span>
+                                @endif
+                            </dd>
+                        </div>
                         <div><dt class="font-semibold text-gray-500">Wallet</dt><dd>{{ number_format($selectedCustomer['account_balance'], 2) }} BDT</dd></div>
                     </dl>
                 </div>

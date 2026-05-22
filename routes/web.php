@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Controllers\Admin\AdminSessionLoginController;
+use App\Http\Controllers\Admin\GoogleDriveOAuthController;
 use App\Http\Controllers\Admin\PlatformBackupDownloadController;
 use App\Http\Controllers\HotspotPortalController;
 use App\Http\Controllers\LocaleController;
@@ -33,6 +35,7 @@ use App\Http\Controllers\Reseller\ResellerDashboardController;
 use App\Http\Controllers\Reseller\ResellerLoginController;
 use App\Http\Controllers\PipraPayPaymentController;
 use App\Http\Controllers\RocketPaymentController;
+use App\Http\Controllers\InventoryShopController;
 use App\Http\Controllers\LandingPageController;
 use App\Http\Controllers\Webhooks\KhudeBartaDlrController;
 use Illuminate\Support\Facades\Route;
@@ -45,17 +48,19 @@ $adminDomain = config('domains.admin');
 Route::middleware(['web', 'auth'])->prefix('admin')->group(function (): void {
     Route::get('/system/backups/{id}/download', PlatformBackupDownloadController::class)
         ->name('admin.backups.download');
+    Route::get('/google-drive/connect', [GoogleDriveOAuthController::class, 'connect'])
+        ->name('admin.google-drive.connect');
+    Route::get('/google-drive/callback', [GoogleDriveOAuthController::class, 'callback'])
+        ->name('admin.google-drive.callback');
 });
 
 Route::redirect('/admin/customers', '/admin/subscribers', 308);
 Route::redirect('/admin/customers/{path}', '/admin/subscribers/{path}', 308)->where('path', '.+');
 
-// Filament login is Livewire (GET only). Native POST (broken JS / Cloudflare Rocket Loader) → 405 without this.
-Route::post('/admin/login', function () {
-    return redirect()
-        ->to('/admin/login')
-        ->with('error', 'Login requires JavaScript (Livewire). Disable Cloudflare Rocket Loader for /admin/* or hard-refresh (Ctrl+F5), then try again.');
-})->middleware('web');
+// Primary admin login (HTML form — does not depend on Livewire / Rocket Loader).
+Route::post('/admin/login', AdminSessionLoginController::class)
+    ->middleware(['web', 'throttle:20,1'])
+    ->name('admin.login.session');
 
 // ISP Digital legacy URLs
 Route::redirect('/AutomaticProcess', '/admin/automatic-processes', 302);
@@ -63,6 +68,11 @@ Route::redirect('/AutomaticProcess/Index', '/admin/automatic-processes', 302);
 Route::redirect('/AutomaticProcess/{path}', '/admin/automatic-processes', 302)->where('path', '.*');
 
 Route::get('/locale/{locale}', [LocaleController::class, 'switch'])->name('locale.switch');
+
+Route::middleware('throttle:60,1')->prefix('shop')->name('shop.')->group(function (): void {
+    Route::get('/', [InventoryShopController::class, 'index'])->name('index');
+    Route::post('/checkout', [InventoryShopController::class, 'checkout'])->name('checkout');
+});
 
 Route::get('/webhooks/sms/khudebarta/dlr', KhudeBartaDlrController::class)
     ->name('webhooks.sms.khudebarta.dlr');
@@ -72,6 +82,11 @@ Route::middleware('throttle:30,1')->prefix('rocket')->name('rocket.')->group(fun
     Route::post('/confirm', [RocketPaymentController::class, 'confirm'])->name('confirm');
 });
 
+Route::middleware('throttle:30,1')->prefix('mfs')->name('mfs.personal.')->group(function (): void {
+    Route::get('/{gateway}/pay', [\App\Http\Controllers\PersonalMfsPaymentController::class, 'checkout'])->name('checkout');
+    Route::post('/{gateway}/confirm', [\App\Http\Controllers\PersonalMfsPaymentController::class, 'confirm'])->name('confirm');
+});
+
 Route::middleware(['web', 'auth'])->prefix('admin')->group(function (): void {
     Route::get('/smart-search', \App\Http\Controllers\Admin\SmartSearchController::class)->name('admin.smart-search');
     Route::get('/dashboard-stream', \App\Http\Controllers\Admin\DashboardStreamController::class)->name('admin.dashboard-stream');
@@ -79,6 +94,9 @@ Route::middleware(['web', 'auth'])->prefix('admin')->group(function (): void {
 
 Route::middleware('auth')->get('/admin/reseller-commissions/{commission}/statement', [\App\Http\Controllers\ResellerCommissionStatementController::class, 'show'])
     ->name('admin.reseller-commissions.statement');
+
+Route::middleware('auth')->get('/admin/hotspot-vouchers/print', [\App\Http\Controllers\HotspotVoucherPrintController::class, 'show'])
+    ->name('admin.hotspot-vouchers.print');
 
 Route::middleware('auth')->get('/admin/invoices/{invoice}/pdf', [InvoicePdfController::class, 'show'])
     ->name('invoices.pdf');
@@ -234,5 +252,5 @@ Route::get('/', function () {
     return redirect()->route('bill-payment.index');
 });
 
-Route::redirect('/app', '/downloads/isp-radiant.apk');
+Route::redirect('/app', \App\Support\MobileAppLinks::downloadUrl());
 Route::get('/mobile-app', fn () => redirect(\App\Support\MobileAppLinks::downloadUrl()))->name('mobile.app');

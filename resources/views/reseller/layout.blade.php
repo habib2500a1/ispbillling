@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title', 'Reseller portal') — {{ config('app.name') }}</title>
+    @include('partials.site-favicon')
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="{{ asset('css/reseller-portal.css') }}?v=2">
     <script src="{{ asset('js/portal-theme.js') }}?v=1"></script>
@@ -15,7 +16,12 @@
         <header class="rsl-header">
             <div class="rsl-header-inner">
                 <a href="{{ route('reseller.dashboard') }}" class="flex items-center gap-3">
-                    <span class="rsl-brand-mark">R</span>
+                    @php $rslLogo = \App\Support\CompanyBranding::logoUrl(); @endphp
+                    @if ($rslLogo)
+                        <img src="{{ $rslLogo }}" alt="" class="rsl-brand-logo" />
+                    @else
+                        <span class="rsl-brand-mark">{{ \App\Support\CompanyBranding::brandInitial() }}</span>
+                    @endif
                     <div>
                         <p class="rsl-brand-title">{{ $reseller->brand_name ?: $reseller->name }}</p>
                         <p class="rsl-brand-sub">{{ $reseller->code }}</p>

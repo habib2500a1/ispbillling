@@ -1,6 +1,7 @@
 @php
     $links = [
         ['eyebrow' => 'Desk', 'label' => 'Bill collection', 'hint' => 'Search & pay', 'url' => \App\Filament\Pages\BillCollectionDesk::getUrl(), 'icon' => 'heroicon-o-currency-dollar'],
+        ['eyebrow' => 'Trail', 'label' => 'Bill money trail', 'hint' => 'Where cash went · costs', 'url' => \App\Filament\Pages\BillingFundFlowReport::getUrl(), 'icon' => 'heroicon-o-arrows-right-left'],
         ['eyebrow' => 'Hub', 'label' => 'Billing overview', 'hint' => 'Modules & reports', 'url' => \App\Filament\Pages\BillingOverview::getUrl(), 'icon' => 'heroicon-o-receipt-percent'],
         ['eyebrow' => 'Invoices', 'label' => 'All invoices', 'hint' => 'Open & partial', 'url' => \App\Filament\Resources\InvoiceResource::getUrl('index'), 'icon' => 'heroicon-o-document-text'],
         ['eyebrow' => 'Payments', 'label' => 'Payments', 'hint' => 'Gateway & manual', 'url' => \App\Filament\Resources\PaymentResource::getUrl('index'), 'icon' => 'heroicon-o-credit-card'],

@@ -8,6 +8,7 @@ use App\Models\Customer;
 use App\Models\Invoice;
 use App\Models\Payment;
 use App\Services\Billing\BillCollectionSearchService;
+use App\Services\Billing\BillingDueRealtimeSync;
 use App\Services\Collector\CollectorCollectionReportService;
 use App\Services\Collector\CollectorStaffResolver;
 use App\Services\Collector\CollectorVisitService;
@@ -235,8 +236,17 @@ class CollectorMobile extends Page
             ->success()
             ->send();
 
-        $this->reset(['selectedCustomerId', 'selectedCustomer', 'amount', 'search', 'invoiceId', 'notes']);
+        $due = BillingDueRealtimeSync::afterPayment($customer, queueNetwork: true);
+        $this->selectedCustomer = app(BillCollectionSearchService::class)->find((int) $customer->id);
+        $this->runSearch();
         $this->resetCollectionDiscountFields();
+
+        if ($due <= 0.009) {
+            $this->amount = '';
+            $this->invoiceId = null;
+        } elseif ($this->selectedCustomer !== null) {
+            $this->amount = (string) round((float) ($this->selectedCustomer['balance_due'] ?? $due), 2);
+        }
         $this->results = collect();
         $this->panelTab = 'activity';
     }

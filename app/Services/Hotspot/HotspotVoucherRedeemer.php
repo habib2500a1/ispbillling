@@ -7,6 +7,10 @@ use Illuminate\Support\Facades\DB;
 
 final class HotspotVoucherRedeemer
 {
+    public function __construct(
+        private readonly MikrotikHotspotProvisioner $provisioner,
+    ) {}
+
     /**
      * @return array{ok: bool, message: string, voucher?: array<string, mixed>}
      */
@@ -37,14 +41,24 @@ final class HotspotVoucherRedeemer
             ]);
         });
 
+        $voucher->refresh();
+        $provision = $this->provisioner->provisionForVoucher($voucher);
+
+        $message = $provision['ok']
+            ? ($provision['message'].' Login: '.$provision['username'].' / '.$provision['password'])
+            : 'Voucher activated in billing. '.$provision['message'];
+
         return [
             'ok' => true,
-            'message' => 'Voucher activated. You may connect to Wi‑Fi now.',
+            'message' => $message,
             'voucher' => [
                 'code' => $voucher->code,
                 'duration_hours' => $voucher->duration_hours,
                 'data_limit_mb' => $voucher->data_limit_mb,
                 'expires_at' => $voucher->expires_at?->toIso8601String(),
+                'hotspot_username' => $provision['username'] ?? $voucher->hotspot_username,
+                'hotspot_password' => $provision['password'] ?? $voucher->hotspot_password,
+                'router_provisioned' => $provision['ok'],
             ],
         ];
     }

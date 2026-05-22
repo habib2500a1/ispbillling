@@ -59,6 +59,7 @@ class _StaffProfileScreenState extends State<StaffProfileScreen> {
     final u = widget.user ?? {};
     return PageScaffold(
       title: 'Profile',
+      useGradientBody: true,
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [

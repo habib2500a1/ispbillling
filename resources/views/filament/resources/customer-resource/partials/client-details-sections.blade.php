@@ -1,14 +1,18 @@
-@props(['sections' => [], 'keys' => []])
+@props(['sections' => [], 'keys' => [], 'compact' => false])
 
-<div class="isp-client-details__panels isp-client-details__panels--full">
+<div @class([
+    'isp-cv-panels',
+    'isp-cv-panels--compact' => $compact,
+])>
     @foreach ($keys as $key)
         @php $fields = $sections[$key] ?? []; @endphp
         @if ($fields !== [])
-            <section class="isp-cd-panel">
-                <h2 class="isp-cd-panel__heading">{{ str_replace('_', ' ', ucfirst($key)) }}</h2>
-                <dl class="isp-cd-fields">
+            <section class="isp-cv-card">
+                <h3 class="isp-cv-card__title">{{ str_replace('_', ' ', ucfirst($key)) }}</h3>
+                <dl class="isp-cv-fields">
                     @foreach ($fields as $label => $value)
-                        <div class="isp-cd-field">
+                        @continue($value === '—' || $value === '' || $value === null)
+                        <div class="isp-cv-field">
                             <dt>{{ $label }}</dt>
                             <dd>{{ $value }}</dd>
                         </div>

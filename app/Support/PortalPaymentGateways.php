@@ -13,7 +13,8 @@ final class PortalPaymentGateways
             ? BkashSettings::isEnabledForChannel($bkashChannel)
             : BkashSettings::isPaymentEnabled();
         $ssl = (bool) config('sslcommerz.enabled');
-        $nagad = (bool) config('nagad.enabled');
+        $nagad = \App\Support\PersonalMfsGateway::nagadPersonalEnabled()
+            || ((bool) config('nagad.enabled') && (string) config('nagad.gateway_type', 'api') === 'api');
         $rocket = (bool) config('bill_payment.gateways.rocket', config('rocket.enabled', false));
         $piprapay = (bool) config('bill_payment.gateways.piprapay', \App\Services\Payments\PipraPayCheckoutService::isEnabled());
 

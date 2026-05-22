@@ -21,6 +21,8 @@ class CustomerSearchController extends Controller
         'collector',
         'branch-manager',
         'isp-manager',
+        'isp-support',
+        'isp-engineer',
     ];
 
     public function search(Request $request, BillCollectionSearchService $search): JsonResponse

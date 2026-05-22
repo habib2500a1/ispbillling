@@ -16,7 +16,7 @@ class VendorResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-truck';
 
-    protected static ?string $navigationGroup = 'Inventory';
+    protected static ?string $navigationGroup = 'Inventory Pro';
 
     protected static bool $shouldRegisterNavigation = false;
 

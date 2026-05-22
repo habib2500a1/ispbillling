@@ -6,6 +6,7 @@ use App\Models\Customer;
 use App\Models\Invoice;
 use App\Models\Payment;
 use App\Services\Import\IspDigitalCurrentBillingSyncService;
+use App\Support\CustomerBalanceDue;
 use App\Support\CustomerStatus;
 use App\Support\PaymentType;
 use Illuminate\Support\Facades\DB;
@@ -22,7 +23,7 @@ final class StaffBillingKpiResolver
             return [
                 'monthly_bill' => round((float) $cached['monthly_bill'], 2),
                 'collected_bill' => round((float) $cached['collected_bill'], 2),
-                'due' => round((float) $cached['due'], 2),
+                'due' => round(max(0, CustomerBalanceDue::tenantOpenInvoiceDueSum($tenantId)), 2),
                 'discount' => round((float) ($cached['discount'] ?? 0), 2),
                 'source' => 'isp_digital',
             ];
@@ -57,19 +58,7 @@ final class StaffBillingKpiResolver
                 ->sum('amount_paid');
         }
 
-        $due = (float) Customer::withoutGlobalScopes()
-            ->where('tenant_id', $tenantId)
-            ->where('import_source', 'isp_digital')
-            ->get()
-            ->sum(fn (Customer $c): float => (float) ($c->meta['isp_digital_balance_due'] ?? 0));
-
-        if ($due <= 0) {
-            $due = (float) Invoice::withoutGlobalScopes()
-                ->where('tenant_id', $tenantId)
-                ->whereNotIn('status', ['paid', 'void', 'cancelled', 'draft'])
-                ->get()
-                ->sum(fn (Invoice $inv): float => max(0, $inv->balanceDue()));
-        }
+        $due = CustomerBalanceDue::tenantOpenInvoiceDueSum($tenantId);
 
         $discount = (float) Invoice::withoutGlobalScopes()
             ->where('tenant_id', $tenantId)
@@ -87,23 +76,23 @@ final class StaffBillingKpiResolver
 
     public function dueClientsCount(int $tenantId): int
     {
-        $fromMeta = Customer::withoutGlobalScopes()
+        $fromInvoices = Customer::withoutGlobalScopes()
             ->where('tenant_id', $tenantId)
-            ->where('import_source', 'isp_digital')
-            ->get()
-            ->filter(fn (Customer $c): bool => (float) ($c->meta['isp_digital_balance_due'] ?? 0) > 0.009)
+            ->whereHas('invoices', fn ($q) => $q->withoutGlobalScopes()
+                ->where('tenant_id', $tenantId)
+                ->whereIn('status', CustomerBalanceDue::OPEN_INVOICE_STATUSES)
+                ->whereRaw('(total - amount_paid) > 0.009'))
             ->count();
 
-        if ($fromMeta > 0) {
-            return $fromMeta;
+        if ($fromInvoices > 0) {
+            return $fromInvoices;
         }
 
         return Customer::withoutGlobalScopes()
             ->where('tenant_id', $tenantId)
-            ->whereHas('invoices', fn ($q) => $q->withoutGlobalScopes()
-                ->where('tenant_id', $tenantId)
-                ->whereNotIn('status', ['paid', 'void', 'cancelled'])
-                ->whereRaw('(total - amount_paid) > 0.009'))
+            ->where('import_source', 'isp_digital')
+            ->get()
+            ->filter(fn (Customer $c): bool => CustomerBalanceDue::amount($c) > 0.009)
             ->count();
     }
 }

@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 
 import '../services/api_service.dart';
+import '../theme/app_theme.dart';
 import '../utils/app_nav.dart';
+import '../widgets/isp_ui_kit.dart';
 import '../widgets/page_scaffold.dart';
 
 class StaffCommsScreen extends StatefulWidget {
@@ -58,41 +60,51 @@ class _StaffCommsScreenState extends State<StaffCommsScreen> {
   Widget build(BuildContext context) {
     return PageScaffold(
       title: 'SMS & Notice',
+      useGradientBody: true,
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          const Text('Due reminder (bulk)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-          const SizedBox(height: 8),
-          const Text('Sends invoice-due template to all customers with balance due.', style: TextStyle(fontSize: 12, color: Colors.grey)),
-          const SizedBox(height: 8),
-          TextField(
-            controller: _bulkMsgCtrl,
-            decoration: const InputDecoration(
-              labelText: 'Custom SMS (optional)',
-              hintText: 'Leave empty for default due template',
-              border: OutlineInputBorder(),
-            ),
-            maxLines: 2,
+          IspUiKit.formCard(
+            title: 'Due reminder (bulk)',
+            subtitle: 'SMS to all customers with balance due',
+            children: [
+              TextField(
+                controller: _bulkMsgCtrl,
+                decoration: const InputDecoration(
+                  labelText: 'Custom SMS (optional)',
+                  hintText: 'Leave empty for default template',
+                  border: OutlineInputBorder(),
+                ),
+                maxLines: 2,
+              ),
+              const SizedBox(height: 10),
+              IspUiKit.primaryButton(
+                label: 'Send due reminders',
+                icon: Icons.sms,
+                loading: _sending,
+                onPressed: _bulkDue,
+              ),
+            ],
           ),
-          const SizedBox(height: 8),
-          FilledButton.icon(
-            onPressed: _sending ? null : _bulkDue,
-            icon: const Icon(Icons.sms),
-            label: const Text('Send due reminders'),
-          ),
-          const Divider(height: 32),
-          const Text('Notice to all active', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-          const SizedBox(height: 8),
-          TextField(
-            controller: _noticeCtrl,
-            decoration: const InputDecoration(labelText: 'Notice message', border: OutlineInputBorder()),
-            maxLines: 4,
-          ),
-          const SizedBox(height: 8),
-          FilledButton.icon(
-            onPressed: _sending ? null : _broadcast,
-            icon: const Icon(Icons.campaign),
-            label: const Text('Broadcast notice'),
+          const SizedBox(height: 12),
+          IspUiKit.formCard(
+            title: 'Broadcast notice',
+            subtitle: 'All active subscribers',
+            children: [
+              TextField(
+                controller: _noticeCtrl,
+                decoration: const InputDecoration(labelText: 'Notice message', border: OutlineInputBorder()),
+                maxLines: 4,
+              ),
+              const SizedBox(height: 10),
+              IspUiKit.primaryButton(
+                label: 'Broadcast notice',
+                icon: Icons.campaign,
+                color: AppTheme.purple,
+                loading: _sending,
+                onPressed: _broadcast,
+              ),
+            ],
           ),
         ],
       ),

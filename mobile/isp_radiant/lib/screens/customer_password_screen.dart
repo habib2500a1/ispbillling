@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 import '../theme/app_theme.dart';
 import '../utils/app_nav.dart';
+import '../widgets/isp_ui_kit.dart';
 import '../widgets/page_scaffold.dart';
 
 class CustomerPasswordScreen extends StatefulWidget {
@@ -47,32 +48,36 @@ class _CustomerPasswordScreenState extends State<CustomerPasswordScreen> {
   Widget build(BuildContext context) {
     return PageScaffold(
       title: 'Change password',
+      useGradientBody: true,
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                children: [
-                  const Icon(Icons.lock_reset, size: 48, color: AppTheme.primary),
-                  const SizedBox(height: 16),
-                  TextField(controller: _current, obscureText: true, decoration: const InputDecoration(labelText: 'Current password')),
-                  const SizedBox(height: 12),
-                  TextField(controller: _pass, obscureText: true, decoration: const InputDecoration(labelText: 'New password')),
-                  const SizedBox(height: 12),
-                  TextField(controller: _confirm, obscureText: true, decoration: const InputDecoration(labelText: 'Confirm password')),
-                  const SizedBox(height: 20),
-                  FilledButton(
-                    onPressed: _loading ? null : _submit,
-                    style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(48)),
-                    child: _loading
-                        ? const SizedBox(height: 22, width: 22, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                        : const Text('Update password'),
-                  ),
-                ],
+          IspUiKit.formCard(
+            title: 'Account security',
+            subtitle: 'Use a strong password you do not share',
+            children: [
+              const Icon(Icons.lock_reset, size: 48, color: AppTheme.primary),
+              const SizedBox(height: 16),
+              TextField(
+                controller: _current,
+                obscureText: true,
+                decoration: const InputDecoration(labelText: 'Current password', border: OutlineInputBorder()),
               ),
-            ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: _pass,
+                obscureText: true,
+                decoration: const InputDecoration(labelText: 'New password', border: OutlineInputBorder()),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: _confirm,
+                obscureText: true,
+                decoration: const InputDecoration(labelText: 'Confirm password', border: OutlineInputBorder()),
+              ),
+              const SizedBox(height: 16),
+              IspUiKit.primaryButton(label: 'Update password', loading: _loading, onPressed: _submit),
+            ],
           ),
         ],
       ),

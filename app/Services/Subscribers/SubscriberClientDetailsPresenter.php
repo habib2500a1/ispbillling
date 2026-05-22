@@ -128,12 +128,14 @@ final class SubscriberClientDetailsPresenter
             'header' => [
                 'client_code' => $customer->customer_code ?: (string) $customer->id,
                 'client_name' => $customer->name,
+                'phone' => $customer->phone ?: '—',
                 'username' => $username,
+                'initial' => mb_strtoupper(mb_substr($customer->name, 0, 1)),
                 'status' => $customer->statusLabel(),
                 'status_color' => $customer->statusColor(),
                 'subscriber_type' => $customer->subscriberTypeLabel(),
                 'subscriber_type_color' => $customer->subscriberTypeColor(),
-                'online' => $customer->is_ppp_online,
+                'online' => $customer->isPppOnline(),
                 'connection_duration' => $conn['connection_duration'] ?? '—',
                 'last_disconnect' => $conn['last_disconnect_formatted'],
                 'portal_last_logout' => $conn['portal_last_logout_at'] ?? '—',
@@ -152,6 +154,7 @@ final class SubscriberClientDetailsPresenter
                 'off_date' => $customer->serviceOffDate()?->format('d-M-Y') ?? '—',
                 'expired' => $customer->isServiceExpired(),
             ],
+            'sections_overview' => $this->sectionsOverview($customer, $meta, $ppp, $clientMac, $username, $conn, $openBalance, $lastPayment),
             'sections' => [
                 'identity' => $this->sectionIdentity($customer, $meta),
                 'location' => $this->sectionLocation($customer, $meta),
@@ -194,6 +197,76 @@ final class SubscriberClientDetailsPresenter
                 ]),
             ],
             'sms_event_labels' => NotificationEvent::labels(),
+        ];
+    }
+
+    /**
+     * Essential fields for the default subscriber overview (no duplicate header stats).
+     *
+     * @param  array<string, mixed>  $meta
+     * @param  array<string, mixed>  $conn
+     * @return array<string, array<string, string>>
+     */
+    private function sectionsOverview(
+        Customer $customer,
+        array $meta,
+        mixed $ppp,
+        ?string $clientMac,
+        string $username,
+        array $conn,
+        float $openBalance,
+        ?Payment $lastPayment,
+    ): array {
+        $pkg = $customer->package;
+        $location = collect([
+            $customer->area?->name,
+            $customer->zone?->name,
+            $customer->subzone?->name,
+        ])->filter()->implode(' · ');
+
+        return [
+            'account' => array_filter([
+                'Phone' => $customer->phone ?: null,
+                'Email' => $customer->email ?: null,
+                'Address' => $customer->address ?: null,
+                'Area / Zone' => $location !== '' ? $location : null,
+                'Reseller' => $customer->reseller?->name,
+                'NID' => $customer->nid_number ?: null,
+            ], fn ($v) => filled($v)),
+            'billing' => array_filter([
+                'Package' => $pkg?->name,
+                'Speed' => $pkg
+                    ? ($pkg->download_mbps ?? '?').' / '.($pkg->upload_mbps ?? '?').' Mbps'
+                    : null,
+                'Monthly bill' => $pkg?->price_monthly
+                    ? number_format((float) $pkg->price_monthly, 2).' BDT'
+                    : null,
+                'Open due' => $openBalance > 0 ? number_format($openBalance, 2).' BDT' : null,
+                'Wallet' => number_format((float) $customer->account_balance, 2).' BDT',
+                'Service expires' => $customer->service_expires_at?->format('d M Y'),
+                'Billing day' => $customer->billing_day ? 'Day '.$customer->billing_day : null,
+                'Last payment' => $lastPayment
+                    ? number_format((float) $lastPayment->amount, 2).' BDT · '.$lastPayment->paid_at?->format('d M Y')
+                    : null,
+                'Pending package' => $customer->pendingPackage?->name,
+            ], fn ($v) => filled($v)),
+            'connection' => array_filter([
+                'PPP user' => $username,
+                'Online' => $customer->isPppOnline() ? 'Yes' : 'No',
+                'Client IP' => $this->firstFilled($ppp?->framed_ip, $meta['static_ip'] ?? null),
+                'MAC' => $clientMac
+                    ? (MacAddress::normalizeColon($clientMac) ?? $clientMac)
+                    : null,
+                'Router' => $customer->mikrotikServer?->name,
+                'Network access' => ucfirst((string) ($customer->network_access_state ?? 'active')),
+                'Uptime' => $customer->isPppOnline() ? ($conn['connection_duration'] ?? null) : null,
+                'Last disconnect' => ($conn['last_disconnect_formatted'] ?? '—') !== '—'
+                    ? $conn['last_disconnect_formatted']
+                    : null,
+                'ONU / EPON' => filled($meta['epon_port'] ?? null)
+                    ? (string) $meta['epon_port']
+                    : (filled($meta['onu_mac'] ?? null) ? (string) $meta['onu_mac'] : null),
+            ], fn ($v) => filled($v)),
         ];
     }
 
@@ -259,7 +332,7 @@ final class SubscriberClientDetailsPresenter
             'MikroTik Server' => $customer->mikrotikServer?->name ?? '—',
             'Router Host' => $customer->mikrotikServer?->host ?? '—',
             'Network Access' => ucfirst((string) ($customer->network_access_state ?? 'active')),
-            'PPP Online' => $customer->is_ppp_online ? 'Yes' : 'No',
+            'PPP Online' => $customer->isPppOnline() ? 'Yes' : 'No',
             'Connected Since' => $conn['session_started_formatted'] ?? '—',
             'Connection Duration' => $conn['connection_duration'] ?? '—',
             'Last Disconnect (PPPoE)' => $conn['last_disconnect_formatted'],

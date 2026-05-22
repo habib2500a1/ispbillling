@@ -62,6 +62,78 @@ class MobileStaffExtrasTest extends TestCase
             ->assertJsonPath('task.status', 'done');
     }
 
+    public function test_staff_can_assign_and_close_ticket_via_api(): void
+    {
+        Role::findOrCreate('isp-support');
+        Role::findOrCreate('isp-admin');
+        $admin = User::factory()->create(['tenant_id' => 1, 'name' => 'Admin One']);
+        $admin->assignRole('isp-admin');
+        $support = User::factory()->create(['tenant_id' => 1, 'name' => 'Tech Two']);
+        $support->assignRole('isp-support');
+        $token = $admin->createToken('test', ['staff'])->plainTextToken;
+
+        $customer = Customer::query()->create([
+            'tenant_id' => 1,
+            'name' => 'Client',
+            'phone' => '01700000002',
+            'status' => 'active',
+        ]);
+
+        $ticket = SupportTicket::query()->create([
+            'tenant_id' => 1,
+            'customer_id' => $customer->id,
+            'channel' => 'app',
+            'department' => 'technical_support',
+            'priority' => 'high',
+            'subject' => 'Wrong trx',
+            'description' => 'Need help',
+            'status' => 'open',
+        ]);
+
+        $this->withToken($token)
+            ->getJson('/api/v1/staff/tickets/assignees')
+            ->assertOk()
+            ->assertJsonFragment(['name' => 'Tech Two']);
+
+        $this->withToken($token)
+            ->patchJson("/api/v1/staff/tickets/{$ticket->id}", ['assigned_to' => $support->id])
+            ->assertOk()
+            ->assertJsonPath('ticket.assignee_name', 'Tech Two');
+
+        $this->withToken($token)
+            ->patchJson("/api/v1/staff/tickets/{$ticket->id}", ['status' => 'closed'])
+            ->assertOk()
+            ->assertJsonPath('ticket.status', 'closed');
+
+        $this->assertNotNull($ticket->fresh()->closed_at);
+    }
+
+    public function test_super_admin_can_create_ticket_for_customer(): void
+    {
+        Role::findOrCreate('super-admin');
+        $user = User::factory()->create(['tenant_id' => null]);
+        $user->assignRole('super-admin');
+        $token = $user->createToken('test', ['staff'])->plainTextToken;
+
+        $customer = Customer::query()->create([
+            'tenant_id' => 1,
+            'name' => 'Sabbir Islam',
+            'phone' => '01700000099',
+            'status' => 'active',
+        ]);
+
+        $this->withToken($token)
+            ->postJson('/api/v1/staff/tickets', [
+                'customer_id' => $customer->id,
+                'subject' => 'Line down',
+                'description' => 'No internet since morning',
+                'department' => 'technical_support',
+                'priority' => 'medium',
+            ])
+            ->assertCreated()
+            ->assertJsonPath('ticket.customer_name', 'Sabbir Islam');
+    }
+
     public function test_collector_expense_categories_endpoint(): void
     {
         Role::findOrCreate('cashier');

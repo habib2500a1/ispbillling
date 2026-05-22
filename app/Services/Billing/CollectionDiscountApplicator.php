@@ -4,6 +4,7 @@ namespace App\Services\Billing;
 
 use App\Models\Invoice;
 use App\Models\Payment;
+use App\Support\CustomerBalanceDue;
 use Illuminate\Support\Facades\DB;
 
 final class CollectionDiscountApplicator
@@ -63,6 +64,11 @@ final class CollectionDiscountApplicator
                 $meta['collection_discount_preset'] = $presetId;
             }
             $payment->forceFill(['meta' => $meta])->saveQuietly();
+
+            $customer = $invoice->customer?->fresh();
+            if ($customer !== null) {
+                CustomerBalanceDue::refreshMetaAfterPayment($customer);
+            }
         });
     }
 

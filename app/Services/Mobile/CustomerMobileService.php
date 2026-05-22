@@ -4,9 +4,12 @@ namespace App\Services\Mobile;
 
 use App\Models\Customer;
 use App\Models\Invoice;
+use App\Models\Payment;
 use App\Services\Network\CustomerConnectionStatusService;
 use App\Services\Portal\CustomerPortalDashboardService;
+use App\Services\Portal\PortalContentCatalog;
 use App\Support\BandwidthDirection;
+use App\Support\PortalPaymentGateways;
 
 class CustomerMobileService
 {
@@ -21,11 +24,7 @@ class CustomerMobileService
     {
         $customer->loadMissing('package');
 
-        $totalDue = Invoice::query()
-            ->where('customer_id', $customer->id)
-            ->whereIn('status', ['open', 'partial', 'draft'])
-            ->get()
-            ->sum(fn (Invoice $inv) => max(0, round((float) $inv->total - (float) $inv->amount_paid, 2)));
+        $totalDue = app(\App\Services\BillPayment\PublicBillPaymentService::class)->totalDue($customer);
 
         $recentBills = Invoice::query()
             ->where('customer_id', $customer->id)
@@ -62,8 +61,114 @@ class CustomerMobileService
             'onu' => $portal['onu'] ?? null,
             'package' => $portal['package'] ?? null,
             'recent_bills' => $recentBills,
-            'bkash_enabled' => (bool) config('bkash.enabled'),
+            'notices' => $this->noticesFor($customer),
+            'gateways' => PortalPaymentGateways::forCustomerPortal(),
+            'require_full_payment' => ! config('bill_payment.allow_partial', false),
+            'line_on_when_due_cleared' => true,
         ];
+    }
+
+    /**
+     * @return array{data: list<array<string, mixed>>, meta: array<string, int>}
+     */
+    public function paymentHistory(Customer $customer, int $page = 1, int $perPage = 30): array
+    {
+        $payments = Payment::query()
+            ->where('customer_id', $customer->id)
+            ->where('status', 'completed')
+            ->with('invoice:id,invoice_number,due_date')
+            ->orderByDesc('paid_at')
+            ->paginate($perPage, ['*'], 'page', $page);
+
+        $data = collect($payments->items())->map(fn (Payment $p): array => [
+            'id' => $p->id,
+            'amount' => round((float) $p->amount, 2),
+            'method' => $p->methodLabel(),
+            'paid_at' => $p->paid_at?->format('d-M-Y'),
+            'paid_at_iso' => $p->paid_at?->toIso8601String(),
+            'receipt_number' => $p->receipt_number,
+            'invoice_id' => $p->invoice_id,
+            'invoice_number' => $p->invoice?->invoice_number,
+            'status' => 'Paid',
+            'title' => $p->invoice_id ? 'Monthly Bill' : 'Payment',
+        ])->values()->all();
+
+        return [
+            'data' => $data,
+            'meta' => [
+                'current_page' => $payments->currentPage(),
+                'last_page' => $payments->lastPage(),
+                'total' => $payments->total(),
+            ],
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function invoiceDetail(Customer $customer, Invoice $invoice): array
+    {
+        $invoice->load(['items', 'payments' => fn ($q) => $q->where('status', 'completed')->orderByDesc('paid_at')]);
+
+        $subtotal = round((float) $invoice->subtotal, 2);
+        $total = round((float) $invoice->total, 2);
+        $paid = round((float) $invoice->amount_paid, 2);
+        $balance = round(max(0, $total - $paid), 2);
+
+        $customer->loadMissing('package', 'mikrotikServer');
+
+        return [
+            'invoice' => array_merge($this->invoiceSummary($invoice), [
+                'subtotal' => $subtotal,
+                'previous_due' => 0,
+                'balance_due' => $balance,
+                'generation_date' => $invoice->issue_date?->format('d M Y'),
+                'expire_date' => $invoice->due_date?->format('d M Y'),
+                'period_label' => $invoice->issue_date?->format('M-y'),
+                'note' => 'নিরবিচ্ছিন্ন সংযোগের জন্য সময় মতো বিল পরিশোধ করুন',
+                'items' => $invoice->items->map(fn ($line) => [
+                    'description' => $line->description,
+                    'subtitle' => $customer->package?->download_mbps
+                        ? $customer->package->download_mbps.'Mbps'
+                        : null,
+                    'quantity' => (float) $line->quantity,
+                    'unit_price' => round((float) $line->unit_price, 2),
+                    'line_total' => round((float) $line->line_total, 2),
+                ])->values()->all(),
+                'payments' => $invoice->payments->map(fn (Payment $p) => [
+                    'id' => $p->id,
+                    'amount' => round((float) $p->amount, 2),
+                    'method' => $p->methodLabel(),
+                    'paid_at' => $p->paid_at?->format('d M Y'),
+                ])->values()->all(),
+            ]),
+            'customer' => [
+                'name' => $customer->name,
+                'customer_code' => $customer->customer_code,
+                'phone' => $customer->phone,
+                'username' => $customer->pppLoginName(),
+                'server' => $customer->mikrotikServer?->name ?? $customer->pppLoginName(),
+            ],
+        ];
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    private function noticesFor(Customer $customer): array
+    {
+        try {
+            return PortalContentCatalog::noticesForPortal((int) $customer->tenant_id)
+                ->map(fn ($n) => [
+                    'title' => $n->title,
+                    'body' => $n->body,
+                    'created_at' => $n->created_at?->toIso8601String(),
+                ])
+                ->values()
+                ->all();
+        } catch (\Throwable) {
+            return [];
+        }
     }
 
     /**
@@ -82,7 +187,10 @@ class CustomerMobileService
             'total' => round((float) $invoice->total, 2),
             'amount_paid' => round((float) $invoice->amount_paid, 2),
             'balance_due' => $due,
-            'can_pay' => $due > 0 && ! in_array($invoice->status, ['void', 'cancelled', 'paid'], true) && config('bkash.enabled'),
+            'can_pay' => $due > 0
+                && ! in_array($invoice->status, ['void', 'cancelled', 'paid'], true)
+                && (PortalPaymentGateways::forCustomerPortal()['any'] ?? false),
+            'pay_full_only' => ! config('bill_payment.allow_partial', false),
             'pdf_url' => route('portal.invoices.pdf', $invoice),
         ];
     }

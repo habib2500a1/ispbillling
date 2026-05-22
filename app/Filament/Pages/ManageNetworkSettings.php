@@ -58,11 +58,6 @@ class ManageNetworkSettings extends Page
         return auth()->user()?->hasRole('super-admin') ?? false;
     }
 
-    public static function shouldRegisterNavigation(): bool
-    {
-        return static::canAccess();
-    }
-
     public function mount(): void
     {
         abort_unless(static::canAccess(), 403);

@@ -4,8 +4,8 @@ import 'package:google_fonts/google_fonts.dart';
 
 /// ISP brand — light, colorful, pro-level (never black scaffold).
 class AppTheme {
-  static const Color primary = Color(0xFF2563EB);
-  static const Color primaryDark = Color(0xFF1D4ED8);
+  static const Color primary = Color(0xFF1565C0);
+  static const Color primaryDark = Color(0xFF0D47A1);
   static const Color accent = Color(0xFFF59E0B);
   static const Color accentSoft = Color(0xFFFFF7ED);
   static const Color background = Color(0xFFF0F4FF);

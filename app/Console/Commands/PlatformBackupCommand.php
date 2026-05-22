@@ -21,6 +21,11 @@ class PlatformBackupCommand extends Command
         }
         $this->line('Directory: '.$result['directory']);
 
+        foreach ($result['mirror_results'] ?? [] as $mirror) {
+            $icon = ($mirror['status'] ?? '') === 'ok' ? '✓' : '✗';
+            $this->line("  {$icon} {$mirror['drive_name']}: {$mirror['message']}");
+        }
+
         return self::SUCCESS;
     }
 }

@@ -8,6 +8,7 @@ use App\Models\InvoiceItem;
 use App\Models\Payment;
 use App\Services\Accounting\AccountingReportService;
 use App\Services\Mobile\StaffBillingKpiResolver;
+use App\Support\CustomerBalanceDue;
 use App\Support\CustomerStatus;
 use App\Support\PaymentType;
 use App\Support\TenantResolver;
@@ -193,24 +194,8 @@ final class BillingDashboardMetricsService
      */
     private function topDueClients(int $tenantId, int $limit): array
     {
-        $invoiceDueSql = <<<'SQL'
-(SELECT COALESCE(SUM(invoices.total - invoices.amount_paid), 0)
- FROM invoices
- WHERE invoices.customer_id = customers.id
-   AND invoices.tenant_id = ?
-   AND invoices.status IN ('open', 'partial', 'sent', 'overdue', 'draft')
-   AND (invoices.total - invoices.amount_paid) > 0)
-SQL;
-
-        $ispDueSql = $this->ispDigitalDueSql();
-
-        $totalDueSql = $invoiceDueSql;
-        if ($ispDueSql !== null) {
-            $totalDueSql = match (Customer::query()->getConnection()->getDriverName()) {
-                'pgsql', 'mysql' => "GREATEST({$invoiceDueSql}, {$ispDueSql})",
-                default => "(CASE WHEN {$invoiceDueSql} > {$ispDueSql} THEN {$invoiceDueSql} ELSE {$ispDueSql} END)",
-            };
-        }
+        $driver = Customer::query()->getConnection()->getDriverName();
+        $totalDueSql = CustomerBalanceDue::resolvedBalanceDueExpression('customers', $driver);
 
         $rows = Customer::withoutGlobalScopes()
             ->where('customers.tenant_id', $tenantId)
@@ -226,8 +211,7 @@ SQL;
                 DB::raw('COALESCE(packages.price_monthly, 0) as monthly_bill'),
                 DB::raw("{$totalDueSql} as total_due"),
             ])
-            ->addBinding($tenantId, 'select')
-            ->whereRaw("({$totalDueSql}) > 0", [$tenantId])
+            ->whereRaw("({$totalDueSql}) > 0.009")
             ->orderByDesc('total_due')
             ->limit($limit)
             ->get();
@@ -248,37 +232,4 @@ SQL;
         })->all();
     }
 
-    private function ispDigitalDueSql(): ?string
-    {
-        return match (Customer::query()->getConnection()->getDriverName()) {
-            'pgsql' => <<<'SQL'
-(CASE
-    WHEN customers.import_source = 'isp_digital'
-        AND COALESCE(customers.meta->>'isp_digital_billing_synced_at', '') <> ''
-    THEN GREATEST(0, COALESCE((customers.meta->>'isp_digital_balance_due')::numeric, 0))
-    ELSE 0
-END)
-SQL,
-            'sqlite' => <<<'SQL'
-(CASE
-    WHEN customers.import_source = 'isp_digital'
-        AND COALESCE(json_extract(customers.meta, '$.isp_digital_billing_synced_at'), '') <> ''
-    THEN CASE
-        WHEN CAST(COALESCE(json_extract(customers.meta, '$.isp_digital_balance_due'), '0') AS REAL) < 0 THEN 0
-        ELSE CAST(COALESCE(json_extract(customers.meta, '$.isp_digital_balance_due'), '0') AS REAL)
-    END
-    ELSE 0
-END)
-SQL,
-            'mysql' => <<<'SQL'
-(CASE
-    WHEN customers.import_source = 'isp_digital'
-        AND COALESCE(JSON_UNQUOTE(JSON_EXTRACT(customers.meta, '$.isp_digital_billing_synced_at')), '') <> ''
-    THEN GREATEST(0, CAST(COALESCE(JSON_UNQUOTE(JSON_EXTRACT(customers.meta, '$.isp_digital_balance_due')), '0') AS DECIMAL(12,2)))
-    ELSE 0
-END)
-SQL,
-            default => null,
-        };
-    }
 }

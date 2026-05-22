@@ -31,6 +31,11 @@ return Application::configure(basePath: dirname(__DIR__))
             ->withoutOverlapping(30)
             ->onOneServer();
 
+        $schedule->command('mfs:match-pending-payments')
+            ->everyMinute()
+            ->withoutOverlapping(2)
+            ->when(fn (): bool => (bool) config('mfs_personal.sms_ingest.enabled', false));
+
         foreach ($schedule->events() as $event) {
             $event->appendOutputTo(storage_path('logs/scheduler.log'));
         }

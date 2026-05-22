@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -31,6 +33,10 @@ import 'staff_reports_screen.dart';
 import 'staff_comms_screen.dart';
 import 'staff_profile_screen.dart';
 import 'staff_team_discount_screen.dart';
+import 'staff_inventory_pos_screen.dart';
+import 'staff_mfs_sms_screen.dart';
+import '../services/mfs_sms_listener.dart';
+import '../widgets/isp_ui_kit.dart';
 import '../widgets/module_tile.dart';
 
 class StaffHomeScreen extends StatefulWidget {
@@ -68,6 +74,9 @@ class _StaffHomeScreenState extends State<StaffHomeScreen> {
     _realtime.onTick = () => _load(silent: true);
     await _realtime.start();
     await _flushOffline();
+    if (RemoteConfig.mfsSmsStaff && (_mode == 'admin' || _mode == 'collector')) {
+      unawaited(MfsSmsListener.instance.start(widget.api));
+    }
     await _load();
   }
 
@@ -189,12 +198,18 @@ class _StaffHomeScreenState extends State<StaffHomeScreen> {
       case 'comms':
         Navigator.push(context, MaterialPageRoute(builder: (_) => StaffCommsScreen(api: widget.api)));
         break;
+      case 'inventory':
+        Navigator.push(context, MaterialPageRoute(builder: (_) => StaffInventoryPosScreen(api: widget.api)));
+        break;
       case 'profile':
         final user = (_data?['user'] ?? widget.loginPayload['user']) as Map<String, dynamic>?;
         Navigator.push(context, MaterialPageRoute(builder: (_) => StaffProfileScreen(api: widget.api, user: user)));
         break;
       case 'staff_discounts':
         Navigator.push(context, MaterialPageRoute(builder: (_) => StaffTeamDiscountScreen(api: widget.api)));
+        break;
+      case 'mfs_sms':
+        Navigator.push(context, MaterialPageRoute(builder: (_) => StaffMfsSmsScreen(api: widget.api)));
         break;
       default:
         break;
@@ -236,7 +251,11 @@ class _StaffHomeScreenState extends State<StaffHomeScreen> {
         _buildHomeTab(user, billing, tickets, tasks, chart, actions, kpis, revenue7, modules),
         _buildBillingTab(billing),
         StaffCollectionScreen(api: widget.api, active: _tab == 2),
-        StaffTicketsScreen(api: widget.api, active: _tab == 3),
+        StaffTicketsScreen(
+          api: widget.api,
+          active: _tab == 3,
+          staffUserId: (_data?['user'] ?? widget.loginPayload['user'])?['id'] as int?,
+        ),
         StaffTasksScreen(api: widget.api, active: _tab == 4),
       ],
     );
@@ -258,8 +277,22 @@ class _StaffHomeScreenState extends State<StaffHomeScreen> {
     return RefreshIndicator(
       onRefresh: _load,
       child: ListView(
-        padding: pagePadding(context),
+        padding: EdgeInsets.zero,
         children: [
+          if (_mode == 'admin')
+            IspUiKit.gradientHeader(
+              title: 'Admin dashboard',
+              subtitle: '${user?['name'] ?? 'Staff'} · ${RemoteConfig.appName}',
+              trailing: [
+                IconButton(icon: const Icon(Icons.search, color: Colors.white), onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => StaffClientsScreen(api: widget.api)))),
+              ],
+            ),
+          Padding(
+            padding: pagePadding(context),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+          if (_mode != 'admin')
           ProfileBanner(
             name: user?['name']?.toString() ?? 'Staff',
             subtitle: '${user?['user_type'] ?? 'Staff'} · Mode ${_mode.toUpperCase()}',
@@ -305,6 +338,12 @@ class _StaffHomeScreenState extends State<StaffHomeScreen> {
                 onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => StaffTeamDiscountScreen(api: widget.api))),
               ),
             ),
+          if (actions.isNotEmpty) ...[
+            const Text('Quick actions', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 8),
+            QuickActionGrid(actions: actions.map((e) => Map<String, dynamic>.from(e as Map)).toList(), onAction: _onQuickAction),
+            const SizedBox(height: 12),
+          ],
           _kpiRow(kpis),
           const SizedBox(height: 12),
           _revenueChart7d(revenue7),
@@ -354,6 +393,9 @@ class _StaffHomeScreenState extends State<StaffHomeScreen> {
             ],
           ),
           if (chart.isNotEmpty) ...[const SizedBox(height: 12), _zoneChart(chart)],
+              ],
+            ),
+          ),
         ],
       ),
     );
@@ -363,24 +405,44 @@ class _StaffHomeScreenState extends State<StaffHomeScreen> {
     return ListView(
       padding: pagePadding(context),
       children: [
-        StatCard(label: 'Monthly Bill', value: '${_fmt.format(billing['monthly_bill'] ?? 0)} BDT', icon: Icons.receipt_long, color: AppTheme.primary),
-        const SizedBox(height: 8),
-        StatCard(label: 'Collected', value: '${_fmt.format(billing['collected_bill'] ?? 0)} BDT', icon: Icons.savings, color: AppTheme.success),
-        const SizedBox(height: 8),
-        StatCard(label: 'Due', value: '${_fmt.format(billing['due'] ?? 0)} BDT', icon: Icons.warning_amber, color: AppTheme.warning),
-        const SizedBox(height: 8),
-        StatCard(label: 'Discount', value: '${_fmt.format(billing['discount'] ?? 0)} BDT', icon: Icons.percent, color: Colors.deepOrange),
-        const SizedBox(height: 16),
-        FilledButton.icon(
-          onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => StaffBillingHubScreen(api: widget.api))),
-          icon: const Icon(Icons.analytics),
-          label: const Text('Full billing & collections'),
+        GridView.count(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          crossAxisCount: 2,
+          mainAxisSpacing: 10,
+          crossAxisSpacing: 10,
+          childAspectRatio: 1.35,
+          children: [
+            StatCard(label: 'Monthly Bill', value: _fmt.format(billing['monthly_bill'] ?? 0), icon: Icons.receipt_long, color: AppTheme.primary),
+            StatCard(label: 'Collected', value: _fmt.format(billing['collected_bill'] ?? 0), icon: Icons.savings, color: AppTheme.success),
+            StatCard(label: 'Due', value: _fmt.format(billing['due'] ?? 0), icon: Icons.warning_amber, color: AppTheme.warning),
+            StatCard(label: 'Discount', value: _fmt.format(billing['discount'] ?? 0), icon: Icons.percent, color: Colors.deepOrange),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Card(
+          child: ListTile(
+            leading: Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(color: AppTheme.primary.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(10)),
+              child: const Icon(Icons.list_alt, color: AppTheme.primary),
+            ),
+            title: const Text('Billing list', style: TextStyle(fontWeight: FontWeight.w700)),
+            subtitle: const Text('Due clients, invoices, daily collections'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => StaffBillingHubScreen(api: widget.api))),
+          ),
         ),
         const SizedBox(height: 8),
-        OutlinedButton.icon(
-          onPressed: () => _go(2),
-          icon: const Icon(Icons.payments),
-          label: const Text('Receive payment'),
+        Card(
+          color: AppTheme.success.withValues(alpha: 0.08),
+          child: ListTile(
+            leading: const Icon(Icons.payments, color: AppTheme.success),
+            title: const Text('Receive bill', style: TextStyle(fontWeight: FontWeight.w700)),
+            subtitle: const Text('Search & collect payment'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => _go(2),
+          ),
         ),
       ],
     );
@@ -405,11 +467,13 @@ class _StaffHomeScreenState extends State<StaffHomeScreen> {
       crossAxisCount: 2,
       mainAxisSpacing: 8,
       crossAxisSpacing: 8,
-      childAspectRatio: 1.55,
+      childAspectRatio: 1.45,
       children: [
         StatCard(label: "Today's collection", value: _fmt.format(kpis['collected_today'] ?? 0), icon: Icons.payments, color: AppTheme.success),
-        StatCard(label: 'Active clients', value: '${kpis['active_clients'] ?? 0}', icon: Icons.people, color: AppTheme.primary),
+        StatCard(label: 'Cash on hand', value: _fmt.format(kpis['cash_on_hand'] ?? kpis['collected_today'] ?? 0), icon: Icons.account_balance_wallet, color: AppTheme.primary),
+        StatCard(label: 'Online PPP', value: '${kpis['online_clients'] ?? 0}', icon: Icons.wifi, color: AppTheme.success),
         StatCard(label: 'Due clients', value: '${kpis['due_clients'] ?? 0}', icon: Icons.warning_amber, color: AppTheme.warning),
+        StatCard(label: 'Active clients', value: '${kpis['active_clients'] ?? 0}', icon: Icons.people, color: AppTheme.primary),
         StatCard(label: 'Expire today', value: '${kpis['expiring_today'] ?? 0}', icon: Icons.event_busy, color: Colors.deepOrange),
       ],
     );

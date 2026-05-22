@@ -12,6 +12,8 @@ use App\Models\Zone;
 use App\Services\Dashboard\DashboardMetricsService;
 use App\Support\CustomerStatus;
 use App\Support\InternalTaskStatus;
+use App\Support\StaffTenantScope;
+use App\Support\Rbac\StaffCapability;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 
@@ -27,7 +29,7 @@ final class StaffMobileService
      */
     public function dashboard(User $user): array
     {
-        $tenantId = (int) $user->tenant_id;
+        $tenantId = StaffTenantScope::tenantIdFor($user);
         $from = now()->startOfMonth();
         $to = now()->endOfMonth();
         $billing = $this->billingKpis->resolve($tenantId);
@@ -40,6 +42,7 @@ final class StaffMobileService
         return [
             'kpis' => [
                 'collected_today' => round((float) ($snap['collected_today'] ?? 0), 2),
+                'cash_on_hand' => round((float) ($snap['collected_today'] ?? 0), 2),
                 'active_clients' => (int) ($snap['active_subscribers'] ?? 0),
                 'due_clients' => $this->billingKpis->dueClientsCount($tenantId),
                 'expiring_today' => $expiringToday,
@@ -138,7 +141,7 @@ final class StaffMobileService
             $unpaid = (float) Customer::withoutGlobalScopes()
                 ->whereIn('id', $customerIds)
                 ->get()
-                ->sum(fn (Customer $c): float => (float) ($c->meta['isp_digital_balance_due'] ?? 0));
+                ->sum(fn (Customer $c): float => \App\Support\CustomerBalanceDue::amount($c));
 
             if ($paid <= 0 && $unpaid <= 0) {
                 $paid = (float) Payment::withoutGlobalScopes()
@@ -213,6 +216,27 @@ final class StaffMobileService
                 'icon' => 'payments',
                 'color' => 'green',
             ]]);
+        }
+
+        if (StaffCapability::for($user)->canInventory()) {
+            $modules[] = [
+                'key' => 'inventory',
+                'title' => 'Retail POS',
+                'subtitle' => 'Barcode · warehouse · cash sale',
+                'icon' => 'inventory',
+                'color' => 'amber',
+            ];
+        }
+
+        if (StaffCapability::for($user)->canPayments()
+            && (bool) config('mfs_personal.sms_ingest.enabled', false)) {
+            $modules[] = [
+                'key' => 'mfs_sms',
+                'title' => 'MFS SMS verify',
+                'subtitle' => 'bKash · Nagad TrxID',
+                'icon' => 'payments',
+                'color' => 'green',
+            ];
         }
 
         return $modules;

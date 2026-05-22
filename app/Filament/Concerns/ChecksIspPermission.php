@@ -38,7 +38,7 @@ trait ChecksIspPermission
         if ($user === null) {
             return false;
         }
-        if ($user->hasRole(['super-admin', 'isp-admin'])) {
+        if (\App\Support\Rbac\StaffCapability::for($user)->isTenantAdmin()) {
             return true;
         }
 

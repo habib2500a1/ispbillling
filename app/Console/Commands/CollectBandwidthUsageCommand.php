@@ -15,7 +15,15 @@ class CollectBandwidthUsageCommand extends Command
     public function handle(BandwidthCollectionService $collector): int
     {
         if (! config('bandwidth.collection_enabled', true)) {
-            $this->info('Bandwidth collection disabled (BANDWIDTH_COLLECTION_ENABLED).');
+            $this->info('Bandwidth collection disabled — clearing stale PPP online flags.');
+
+            $tenantIds = $this->option('tenant')
+                ? [(int) $this->option('tenant')]
+                : Tenant::query()->pluck('id')->all();
+
+            foreach ($tenantIds as $tenantId) {
+                $collector->refreshOnlineFlagsForTenant((int) $tenantId);
+            }
 
             return self::SUCCESS;
         }

@@ -146,6 +146,7 @@ class _StaffCustomerEditScreenState extends State<StaffCustomerEditScreen> {
   Widget build(BuildContext context) {
     return PageScaffold(
       title: 'Edit customer',
+      useGradientBody: true,
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : SingleChildScrollView(

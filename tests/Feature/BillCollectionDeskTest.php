@@ -127,6 +127,45 @@ class BillCollectionDeskTest extends TestCase
         ]);
     }
 
+    public function test_full_payment_without_invoice_id_clears_due_in_ui(): void
+    {
+        $customer = Customer::query()->create([
+            'name' => 'Auto Invoice Pay',
+            'phone' => '01730000054',
+            'status' => 'active',
+            'billing_day' => 1,
+        ]);
+
+        $invoice = Invoice::query()->create([
+            'customer_id' => $customer->id,
+            'issue_date' => now()->toDateString(),
+            'due_date' => now()->addDays(7)->toDateString(),
+            'period_start' => now()->toDateString(),
+            'period_end' => now()->toDateString(),
+            'subtotal' => 400,
+            'tax_amount' => 0,
+            'discount_amount' => 0,
+            'total' => 400,
+            'amount_paid' => 0,
+            'status' => 'open',
+        ]);
+
+        Role::findOrCreate('isp-admin');
+        $user = User::factory()->create();
+        $user->assignRole('isp-admin');
+
+        Livewire::actingAs($user)
+            ->test(BillCollectionDesk::class)
+            ->call('selectCustomer', $customer->id)
+            ->set('amount', '400')
+            ->set('method', 'cash')
+            ->call('collectPayment')
+            ->assertHasNoErrors()
+            ->assertSet('selectedCustomer.balance_due', 0.0);
+
+        $this->assertSame('paid', $invoice->fresh()->status);
+    }
+
     public function test_partial_payment_leaves_invoice_balance_and_stores_notes(): void
     {
         $customer = Customer::query()->create([

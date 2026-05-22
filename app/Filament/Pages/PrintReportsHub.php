@@ -48,6 +48,12 @@ class PrintReportsHub extends Page
                 'icon' => 'heroicon-o-banknotes',
             ],
             [
+                'label' => 'Bill money trail',
+                'hint' => 'Where collections went · bills · wallet · expenses',
+                'url' => BillingFundFlowReport::getUrl(['print' => 1]),
+                'icon' => 'heroicon-o-arrows-right-left',
+            ],
+            [
                 'label' => 'Area-wise clients',
                 'hint' => 'Subscribers and dues by area',
                 'url' => AreaWiseClientsReport::getUrl(['print' => 1]),

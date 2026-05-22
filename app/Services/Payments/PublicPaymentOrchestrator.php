@@ -9,6 +9,7 @@ use App\Models\Invoice;
 use App\Support\PaymentGateway;
 use App\Support\PaymentType;
 use App\Services\Payments\RocketCheckoutService;
+use App\Support\PersonalMfsGateway;
 use Illuminate\Http\RedirectResponse;
 
 final class PublicPaymentOrchestrator
@@ -26,11 +27,15 @@ final class PublicPaymentOrchestrator
         $customer = $invoice->customer;
 
         return match ($gateway) {
-            PaymentGateway::BKASH => $returnTo === 'bill_payment'
-                ? $bkash->initiatePublic($invoice, $amount)
-                : $bkash->initiatePortal(request(), $invoice),
+            PaymentGateway::BKASH => PersonalMfsGateway::bkashPersonalEnabled()
+                ? $this->startPersonalMfs(PaymentGateway::BKASH, $invoice, $customer, $amount, $returnTo, PaymentType::PAYMENT)
+                : ($returnTo === 'bill_payment'
+                    ? $bkash->initiatePublic($invoice, $amount)
+                    : $bkash->initiatePortal(request(), $invoice)),
             PaymentGateway::SSLCOMMERZ => $this->startSslCommerz($invoice, null, $amount, $returnTo, PaymentType::PAYMENT),
-            PaymentGateway::NAGAD => $this->startNagad($invoice, $customer, $amount, $returnTo, PaymentType::PAYMENT),
+            PaymentGateway::NAGAD => PersonalMfsGateway::nagadPersonalEnabled()
+                ? $this->startPersonalMfs(PaymentGateway::NAGAD, $invoice, $customer, $amount, $returnTo, PaymentType::PAYMENT)
+                : $this->startNagad($invoice, $customer, $amount, $returnTo, PaymentType::PAYMENT),
             PaymentGateway::ROCKET => $this->startRocket($invoice, $customer, $amount, $returnTo, PaymentType::PAYMENT),
             PaymentGateway::PIPRAPAY => $this->startPipraPay($invoice, $customer, $amount, $returnTo, PaymentType::PAYMENT),
             default => redirect()->route('bill-payment.invoice')->with('danger', 'Unknown payment method.'),
@@ -44,9 +49,13 @@ final class PublicPaymentOrchestrator
         $bkash = app(BkashPaymentController::class);
 
         return match ($gateway) {
-            PaymentGateway::BKASH => $bkash->initiatePublicWallet($customer, $amount),
+            PaymentGateway::BKASH => PersonalMfsGateway::bkashPersonalEnabled()
+                ? $this->startPersonalMfs(PaymentGateway::BKASH, null, $customer, $amount, 'bill_payment', PaymentType::WALLET_DEPOSIT)
+                : $bkash->initiatePublicWallet($customer, $amount),
             PaymentGateway::SSLCOMMERZ => $this->startSslCommerz(null, $customer, $amount, 'bill_payment', PaymentType::WALLET_DEPOSIT),
-            PaymentGateway::NAGAD => $this->startNagad(null, $customer, $amount, 'bill_payment', PaymentType::WALLET_DEPOSIT),
+            PaymentGateway::NAGAD => PersonalMfsGateway::nagadPersonalEnabled()
+                ? $this->startPersonalMfs(PaymentGateway::NAGAD, null, $customer, $amount, 'bill_payment', PaymentType::WALLET_DEPOSIT)
+                : $this->startNagad(null, $customer, $amount, 'bill_payment', PaymentType::WALLET_DEPOSIT),
             PaymentGateway::ROCKET => $this->startRocket(null, $customer, $amount, 'bill_payment', PaymentType::WALLET_DEPOSIT),
             PaymentGateway::PIPRAPAY => $this->startPipraPay(null, $customer, $amount, 'bill_payment', PaymentType::WALLET_DEPOSIT),
             default => redirect()->route('bill-payment.invoice', ['tab' => 'wallet'])
@@ -229,6 +238,27 @@ final class PublicPaymentOrchestrator
 
         return app(RocketCheckoutService::class)
             ->startCheckout($invoice, $customer, $amount, $returnTo, $paymentType)['redirect'];
+    }
+
+    private function startPersonalMfs(
+        string $gateway,
+        ?Invoice $invoice,
+        ?Customer $customer,
+        float $amount,
+        string $returnTo,
+        string $paymentType,
+    ): RedirectResponse {
+        if (! PersonalMfsGateway::isPersonalEnabled($gateway)) {
+            return $this->fail($invoice, $returnTo, PaymentGateway::label($gateway).' personal payment is not configured.');
+        }
+
+        $customer ??= $invoice?->customer;
+        if ($customer === null) {
+            return $this->fail($invoice, $returnTo, 'Customer not found.');
+        }
+
+        return app(PersonalMfsCheckoutService::class)
+            ->startCheckout($gateway, $invoice, $customer, $amount, $returnTo, $paymentType)['redirect'];
     }
 
     private function fail(?Invoice $invoice, string $returnTo, string $message): RedirectResponse

@@ -1029,6 +1029,72 @@ final class SubscriberFormSchema
                                 ])
                                 ->columns(self::gridTwo()),
                         ]),
+                    Forms\Components\Wizard\Step::make('Charges & device')
+                        ->icon('heroicon-o-banknotes')
+                        ->description('Line charge, device, wallet & cash')
+                        ->schema([
+                            Forms\Components\Section::make('Line charges on register')
+                                ->description('ইনভয়েস তৈরি হবে। ওয়ালেট থেকে কাটা যাবে; বাকি টাকা নগদ নিন।')
+                                ->schema([
+                                    Forms\Components\Toggle::make('apply_line_charges')
+                                        ->label('লাইন চার্জ ও ডিভাইস এখনই প্রয়োগ করুন')
+                                        ->default(true)
+                                        ->live()
+                                        ->columnSpanFull(),
+                                    Forms\Components\TextInput::make('account_balance')
+                                        ->label('Opening wallet balance (BDT)')
+                                        ->numeric()
+                                        ->minValue(0)
+                                        ->default(0)
+                                        ->helperText('আগে থেকে wallet টাকা থাকলে এখানে দিন — তারপর চার্জ থেকে কাটা হবে।'),
+                                    Forms\Components\TextInput::make('meta.installation_charge')
+                                        ->label('লাইন / সংযোগ চার্জ (BDT)')
+                                        ->numeric()
+                                        ->minValue(0)
+                                        ->default(0)
+                                        ->visible(fn (Get $get): bool => (bool) $get('apply_line_charges')),
+                                    Forms\Components\Select::make('onu_device_pick')
+                                        ->label('ডিভাইস ইস্যু (ONU / CPE)')
+                                        ->searchable()
+                                        ->options(fn (): array => CustomerResource::onuInventoryOptions())
+                                        ->dehydrated(false)
+                                        ->visible(fn (Get $get): bool => (bool) $get('apply_line_charges')),
+                                    Forms\Components\TextInput::make('line_device_charge')
+                                        ->label('ডিভাইস বিক্রয় চার্জ (BDT)')
+                                        ->numeric()
+                                        ->minValue(0)
+                                        ->default(0)
+                                        ->dehydrated(false)
+                                        ->visible(fn (Get $get): bool => (bool) $get('apply_line_charges')),
+                                    Forms\Components\Toggle::make('use_wallet_on_register')
+                                        ->label('ওয়ালেট থেকে কাটুন')
+                                        ->default(true)
+                                        ->dehydrated(false)
+                                        ->visible(fn (Get $get): bool => (bool) $get('apply_line_charges')),
+                                    Forms\Components\TextInput::make('line_cash_amount')
+                                        ->label('নগদ সংগ্রহ (BDT) — wallet-এর পর বাকি')
+                                        ->numeric()
+                                        ->minValue(0)
+                                        ->default(0)
+                                        ->dehydrated(false)
+                                        ->helperText('Wallet যথেষ্ট না হলে বাকি টাকা এখানে লিখুন।')
+                                        ->visible(fn (Get $get): bool => (bool) $get('apply_line_charges')),
+                                    Forms\Components\Select::make('line_cash_method')
+                                        ->label('নগদ পেমেন্ট মাধ্যম')
+                                        ->options([
+                                            'cash' => 'Cash',
+                                            'bkash' => 'bKash',
+                                            'nagad' => 'Nagad',
+                                            'bank' => 'Bank',
+                                            'other' => 'Other',
+                                        ])
+                                        ->default('cash')
+                                        ->dehydrated(false)
+                                        ->native(false)
+                                        ->visible(fn (Get $get): bool => (bool) $get('apply_line_charges')),
+                                ])
+                                ->columns(self::gridTwo()),
+                        ]),
                 ])
                     ->columnSpanFull()
                     ->persistStepInQueryString('create_step'),

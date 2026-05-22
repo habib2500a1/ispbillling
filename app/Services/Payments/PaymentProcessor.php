@@ -7,6 +7,9 @@ use App\Models\Customer;
 use App\Models\Invoice;
 use App\Models\Payment;
 use App\Services\Billing\InvoiceCalculator;
+use App\Services\Billing\OpenInvoiceResolver;
+use App\Services\Billing\BillingDueRealtimeSync;
+use App\Support\CustomerBalanceDue;
 use App\Support\PaymentGateway;
 use App\Support\PaymentType;
 use Illuminate\Support\Facades\DB;
@@ -21,10 +24,15 @@ final class PaymentProcessor
         }
 
         if (($payment->meta['processed'] ?? false) === true) {
+            static::syncCustomerDueMeta($payment);
+
             return;
         }
 
-        DB::transaction(function () use ($payment): void {
+        $tenantId = null;
+        $customerId = null;
+
+        DB::transaction(function () use ($payment, &$tenantId, &$customerId): void {
             $payment = $payment->fresh(['customer', 'invoice']);
             if ($payment === null) {
                 return;
@@ -39,8 +47,29 @@ final class PaymentProcessor
             };
 
             static::markProcessed($payment);
-            static::maybeSyncNetwork($payment);
+            static::syncCustomerDueMeta($payment);
+
+            $tenantId = (int) $payment->tenant_id;
+            $customerId = $payment->customer_id ? (int) $payment->customer_id : null;
         });
+
+        if ($tenantId > 0 && $customerId > 0) {
+            $customer = Customer::withoutGlobalScopes()->find($customerId);
+            if ($customer !== null) {
+                BillingDueRealtimeSync::flushCaches($tenantId);
+                SyncCustomerNetworkAccessJob::dispatch($tenantId, $customerId)->afterResponse();
+            }
+        }
+    }
+
+    private static function syncCustomerDueMeta(Payment $payment): void
+    {
+        $customer = $payment->customer?->fresh();
+        if ($customer === null) {
+            return;
+        }
+
+        CustomerBalanceDue::refreshMetaAfterPayment($customer);
     }
 
     /**
@@ -128,6 +157,20 @@ final class PaymentProcessor
             return;
         }
 
+        if (($payment->meta['fifo_multi_invoice'] ?? false) === true) {
+            static::allocateFifoOpenInvoices($payment);
+
+            return;
+        }
+
+        if (! $payment->invoice_id && $amount > 0.009) {
+            $invoice = OpenInvoiceResolver::forCustomer($customer);
+            if ($invoice !== null) {
+                $payment->forceFill(['invoice_id' => $invoice->id])->saveQuietly();
+                $payment->setRelation('invoice', $invoice);
+            }
+        }
+
         if ($payment->invoice_id && $payment->invoice) {
             $invoice = $payment->invoice->fresh();
             $due = $invoice->balanceDue();
@@ -153,6 +196,67 @@ final class PaymentProcessor
         }
 
         static::addWallet($customer, $amount, $payment, 'unallocated');
+    }
+
+    /**
+     * SMS / MFS auto-pay: apply amount across open bills (FIFO), surplus → wallet advance.
+     */
+    private static function allocateFifoOpenInvoices(Payment $payment): void
+    {
+        $customer = $payment->customer;
+        if ($customer === null) {
+            return;
+        }
+
+        $remaining = round((float) $payment->amount, 2);
+        $allocations = [];
+        $firstInvoiceId = null;
+
+        foreach (OpenInvoiceResolver::openInvoicesWithBalance($customer) as $invoice) {
+            if ($remaining <= 0.009) {
+                break;
+            }
+
+            $due = round($invoice->balanceDue(), 2);
+            $apply = round(min($remaining, $due), 2);
+            if ($apply <= 0.009) {
+                continue;
+            }
+
+            $invoice->forceFill([
+                'amount_paid' => round((float) $invoice->amount_paid + $apply, 2),
+            ])->save();
+            InvoiceCalculator::recalculate($invoice->fresh());
+
+            $firstInvoiceId ??= $invoice->id;
+            $allocations[] = [
+                'invoice_id' => $invoice->id,
+                'invoice_number' => $invoice->invoice_number ?? null,
+                'amount' => $apply,
+            ];
+            $remaining = round($remaining - $apply, 2);
+        }
+
+        $meta = $payment->meta ?? [];
+        $meta['invoice_allocations'] = $allocations;
+        $meta['invoice_applied'] = round((float) collect($allocations)->sum('amount'), 2);
+
+        if ($firstInvoiceId !== null) {
+            $payment->forceFill([
+                'invoice_id' => $firstInvoiceId,
+                'meta' => $meta,
+            ])->saveQuietly();
+            $payment->setRelation('invoice', Invoice::withoutGlobalScopes()->find($firstInvoiceId));
+        } else {
+            $payment->forceFill(['meta' => $meta])->saveQuietly();
+        }
+
+        if ($remaining > 0.009) {
+            $reason = $allocations === [] ? 'advance' : 'overpayment';
+            if (config('payments.overpayment_to_wallet', true)) {
+                static::addWallet($customer, $remaining, $payment, $reason);
+            }
+        }
     }
 
     private static function processRefund(Payment $payment): void
@@ -262,10 +366,4 @@ final class PaymentProcessor
         $payment->forceFill(['meta' => $meta])->saveQuietly();
     }
 
-    private static function maybeSyncNetwork(Payment $payment): void
-    {
-        if ($payment->invoice_id && $payment->customer_id) {
-            SyncCustomerNetworkAccessJob::dispatch((int) $payment->tenant_id, (int) $payment->customer_id)->afterResponse();
-        }
-    }
 }

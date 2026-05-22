@@ -7,6 +7,7 @@ use App\Models\Customer;
 use App\Models\User;
 use App\Services\Mobile\StaffBillingMobileService;
 use App\Services\Reports\AnalyticsReportService;
+use App\Support\StaffTenantScope;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -22,7 +23,7 @@ class StaffReportsController extends Controller
         $until = now()->addDays($days)->endOfDay();
 
         $customers = Customer::withoutGlobalScopes()
-            ->where('tenant_id', $user->tenant_id)
+            ->where('tenant_id', StaffTenantScope::tenantIdFor($user))
             ->whereNotNull('service_expires_at')
             ->where('service_expires_at', '<=', $until)
             ->where('service_expires_at', '>=', now()->startOfDay())
@@ -56,7 +57,7 @@ class StaffReportsController extends Controller
             ? Carbon::parse((string) $request->query('to'))->endOfMonth()
             : now()->endOfMonth();
 
-        $report = $analytics->collectionReport($from, $to, (int) $user->tenant_id);
+        $report = $analytics->collectionReport($from, $to, StaffTenantScope::tenantIdFor($user));
 
         return response()->json(['report' => $report]);
     }
@@ -66,6 +67,6 @@ class StaffReportsController extends Controller
         $user = $request->user();
         abort_unless($user instanceof User, 403);
 
-        return response()->json($billing->dueList((int) $user->tenant_id, max(1, (int) $request->query('page', 1))));
+        return response()->json($billing->dueList(StaffTenantScope::tenantIdFor($user), max(1, (int) $request->query('page', 1))));
     }
 }

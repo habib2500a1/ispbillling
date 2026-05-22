@@ -59,6 +59,7 @@ class _StaffReportsScreenState extends State<StaffReportsScreen> with SingleTick
   Widget build(BuildContext context) {
     return PageScaffold(
       title: 'Reports',
+      useGradientBody: true,
       bottom: TabBar(
         controller: _tabs,
         tabs: const [Tab(text: 'Collection'), Tab(text: 'Due'), Tab(text: 'Expiring')],

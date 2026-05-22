@@ -6,6 +6,7 @@ use App\Filament\Pages\AccountingHub;
 use App\Filament\Pages\AnalyticsReports;
 use App\Filament\Pages\BandwidthMonitor;
 use App\Filament\Pages\BillCollectionDesk;
+use App\Filament\Pages\BillingFundFlowReport;
 use App\Filament\Pages\BillingOverview;
 use App\Filament\Pages\BillingReports;
 use App\Filament\Pages\ChurnZoneReports;
@@ -22,7 +23,9 @@ use App\Filament\Pages\ManagePlatformBackups;
 use App\Filament\Pages\InventoryHub;
 use App\Filament\Auth\EditAdminProfile;
 use App\Filament\Pages\ManageAppSettings;
+use App\Filament\Pages\ManageMfsSmsSettings;
 use App\Filament\Pages\ManageOpticalLaserSettings;
+use App\Filament\Pages\ManagePersonalMfsSettings;
 use App\Filament\Pages\ManageCompanySetup;
 use App\Filament\Pages\ManageMovieServerList;
 use App\Filament\Pages\NetworkIntelligenceHub;
@@ -52,11 +55,14 @@ class AdminCommandPalette
             ['group' => 'Overview', 'label' => 'Dashboard hub (NOC / Billing / Support)', 'url' => DashboardHub::getUrl()],
             ['group' => 'Billing', 'label' => 'Billing overview', 'url' => BillingOverview::getUrl()],
             ['group' => 'Billing', 'label' => 'Bill collection desk', 'url' => BillCollectionDesk::getUrl()],
+            ['group' => 'Billing', 'label' => 'Bill money trail', 'url' => BillingFundFlowReport::getUrl()],
             ['group' => 'Billing', 'label' => 'Collection discount settings', 'url' => \App\Filament\Pages\ManageCollectionDiscountSettings::getUrl()],
             ['group' => 'Billing', 'label' => 'Collection report', 'url' => CollectionDeskReport::getUrl()],
             ['group' => 'Billing', 'label' => 'Collector visits (GPS map)', 'url' => CollectorVisitsReport::getUrl()],
             ['group' => 'Billing', 'label' => 'Collector mobile (GPS)', 'url' => CollectorMobile::getUrl()],
             ['group' => 'Billing', 'label' => 'Dunning report', 'url' => DunningReport::getUrl()],
+            ['group' => 'Payments', 'label' => 'Personal bKash / Nagad verify', 'url' => ManagePersonalMfsSettings::getUrl(['tab' => 'bkash'])],
+            ['group' => 'Payments', 'label' => 'MFS SMS & apps', 'url' => ManageMfsSmsSettings::getUrl()],
             ['group' => 'Payments', 'label' => 'Gateway reconciliation', 'url' => GatewayReconciliationReport::getUrl()],
             ['group' => 'Billing', 'label' => 'Invoices', 'url' => InvoiceResource::getUrl('index')],
             ['group' => 'Billing', 'label' => 'Payments', 'url' => PaymentResource::getUrl('index')],
@@ -70,7 +76,12 @@ class AdminCommandPalette
             ['group' => 'Network', 'label' => 'Network topology', 'url' => NetworkTopology::getUrl()],
             ['group' => 'Network', 'label' => 'OLT / ONU', 'url' => OltResource::getUrl('index')],
             ['group' => 'HR', 'label' => 'HR & payroll', 'url' => HrPayrollHub::getUrl()],
-            ['group' => 'Inventory', 'label' => 'Inventory hub', 'url' => InventoryHub::getUrl()],
+            ['group' => 'Inventory', 'label' => 'Inventory center', 'url' => InventoryHub::getUrl()],
+            ['group' => 'Inventory', 'label' => 'Warehouses', 'url' => \App\Filament\Resources\WarehouseResource::getUrl()],
+            ['group' => 'Inventory', 'label' => 'Products · barcode', 'url' => \App\Filament\Resources\ProductResource::getUrl()],
+            ['group' => 'Inventory', 'label' => 'New sale (POS)', 'url' => \App\Filament\Resources\InventorySaleResource::getUrl('create')],
+            ['group' => 'Inventory', 'label' => 'Invoices · hardware', 'url' => \App\Filament\Resources\InvoiceResource::getUrl()],
+            ['group' => 'Inventory', 'label' => 'Public shop', 'url' => route('shop.index')],
             ['group' => 'Reports', 'label' => 'Reports hub', 'url' => ReportsHub::getUrl()],
             ['group' => 'Reports', 'label' => 'Monthly billing reports', 'url' => BillingReports::getUrl()],
             ['group' => 'Reports', 'label' => 'Zone churn & collection', 'url' => ChurnZoneReports::getUrl()],

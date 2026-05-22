@@ -2,7 +2,7 @@
 
 namespace App\Services\Billing;
 
-use App\Jobs\SyncCustomerNetworkAccessJob;
+use App\Services\Billing\BillingDueRealtimeSync;
 use App\Models\CollectorCollection;
 use App\Models\Payment;
 use App\Models\ResellerCommission;
@@ -73,7 +73,7 @@ final class PaymentVoidService
 
         $voidedBy ??= auth()->id();
 
-        return DB::transaction(function () use ($payment, $reason, $voidedBy): Payment {
+        $payment = DB::transaction(function () use ($payment, $reason, $voidedBy): Payment {
             $payment = $payment->fresh(['customer', 'invoice']);
 
             CollectionDiscountApplicator::reverseFromPayment($payment);
@@ -99,14 +99,16 @@ final class PaymentVoidService
                 'meta' => $meta,
             ])->save();
 
-            if ($payment->customer_id) {
-                SyncCustomerNetworkAccessJob::dispatch(
-                    (int) $payment->tenant_id,
-                    (int) $payment->customer_id,
-                )->afterResponse();
-            }
-
             return $payment->fresh(['invoice', 'customer', 'recorder']);
         });
+
+        if ($payment->customer_id) {
+            $customer = $payment->customer?->fresh();
+            if ($customer !== null) {
+                BillingDueRealtimeSync::afterPayment($customer, queueNetwork: true);
+            }
+        }
+
+        return $payment;
     }
 }

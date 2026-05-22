@@ -5,6 +5,7 @@ namespace App\Services\BillPayment;
 use App\Models\Customer;
 use App\Models\Invoice;
 use App\Models\Payment;
+use App\Support\CustomerBalanceDue;
 use App\Support\CustomerStatus;
 use Illuminate\Support\Collection;
 
@@ -39,7 +40,7 @@ class PublicBillPaymentService
             ->withoutGlobalScopes()
             ->where('tenant_id', $customer->tenant_id)
             ->where('customer_id', $customer->id)
-            ->whereIn('status', ['open', 'partial', 'draft'])
+            ->whereIn('status', CustomerBalanceDue::OPEN_INVOICE_STATUSES)
             ->whereRaw('(total - amount_paid) > 0')
             ->orderBy('due_date')
             ->get();

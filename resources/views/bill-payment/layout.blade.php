@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title', 'Bill payment') — {{ $companyName ?? config('isp.company_name') }}</title>
+    @include('partials.site-favicon')
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -24,6 +25,10 @@
     <div class="bp-split">
         <aside class="bp-brand">
             <div>
+                @php $bpLogo = \App\Support\CompanyBranding::logoUrl(); @endphp
+                @if ($bpLogo)
+                    <img src="{{ $bpLogo }}" alt="{{ $companyName ?? config('isp.company_name') }}" class="bp-brand-logo mb-4 max-h-14 w-auto object-contain" />
+                @endif
                 <p class="text-sm uppercase tracking-widest text-teal-300/80">Online payment</p>
                 <h1>{{ $companyName ?? config('isp.company_name') }}</h1>
                 <p class="mt-2 text-sm text-white/65">{{ config('isp.company_tagline') }}</p>

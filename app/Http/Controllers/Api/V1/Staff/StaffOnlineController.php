@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1\Staff;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Services\Mobile\StaffMonitoringService;
+use App\Support\StaffTenantScope;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -16,6 +17,6 @@ class StaffOnlineController extends Controller
         /** @var User $user */
         $user = $request->user();
 
-        return response()->json($monitoring->onlineClients((int) $user->tenant_id));
+        return response()->json($monitoring->onlineClients(StaffTenantScope::tenantIdFor($user)));
     }
 }

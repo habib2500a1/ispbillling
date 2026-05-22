@@ -50,11 +50,6 @@ class ManageOpticalLaserSettings extends Page
         return \App\Support\Rbac\StaffCapability::for($user)->canOlt();
     }
 
-    public static function shouldRegisterNavigation(): bool
-    {
-        return static::canAccess();
-    }
-
     public function mount(): void
     {
         abort_unless(static::canAccess(), 403);

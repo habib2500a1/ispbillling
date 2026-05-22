@@ -240,6 +240,7 @@ final class NetworkSidebarRegistry
     public static function canSeeEntry(string $key): bool
     {
         return match ($key) {
+            'network_setup' => ManageNetworkSettings::canAccess(),
             'routers_list', 'add_router' => MikrotikServerResource::canViewAny(),
             'import_mikrotik' => ImportFromMikrotikPage::canAccess(),
             'areas' => AreaResource::canViewAny(),

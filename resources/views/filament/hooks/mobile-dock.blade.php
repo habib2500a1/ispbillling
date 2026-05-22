@@ -26,6 +26,14 @@
             'filament.admin.pages.optical-monitoring-hub',
             'filament.admin.resources.mikrotik-servers.*',
         );
+        $onConnections = request()->routeIs(
+            'filament.admin.resources.sales-leads.*',
+            'filament.admin.pages.sales-lead-pipeline',
+        );
+        $newConnections = \App\Models\SalesLead::query()->where('status', \App\Models\SalesLead::STATUS_NEW)->count();
+        $connectionsUrl = \App\Support\SalesLeadPanelAccess::canView()
+            ? \App\Filament\Resources\SalesLeadResource::getUrl()
+            : null;
         $smsUrl = \App\Support\AdminNavUrl::for(\App\Filament\Pages\SmsGatewaySetup::class);
         $networkUrl = \App\Support\AdminNavUrl::for(\App\Filament\Pages\OperationsHub::class);
         $subscribersUrl = \App\Support\AdminNavUrl::for(\App\Filament\Pages\SubscriberListsHub::class);
@@ -101,6 +109,21 @@
                 </span>
                 <span class="isp-mobile-bar__chip-label">Users</span>
             </a>
+            @if ($connectionsUrl)
+                <a
+                    href="{{ $connectionsUrl }}"
+                    class="isp-mobile-bar__chip isp-mobile-bar__chip--leads {{ $onConnections ? 'isp-mobile-bar__chip--active' : '' }}"
+                    title="Portal new connection requests"
+                >
+                    <span class="isp-mobile-bar__chip-icon" style="position:relative">
+                        <x-filament::icon icon="heroicon-o-user-plus" class="h-5 w-5" />
+                        @if ($newConnections > 0)
+                            <span class="isp-mobile-bar__badge">{{ $newConnections > 9 ? '9+' : $newConnections }}</span>
+                        @endif
+                    </span>
+                    <span class="isp-mobile-bar__chip-label">Leads</span>
+                </a>
+            @endif
             <a
                 href="{{ $smsUrl }}"
                 class="isp-mobile-bar__chip isp-mobile-bar__chip--sms {{ $onSms ? 'isp-mobile-bar__chip--active' : '' }}"

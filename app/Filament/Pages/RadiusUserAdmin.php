@@ -34,11 +34,6 @@ class RadiusUserAdmin extends Page
         return $user !== null && \App\Support\Rbac\StaffCapability::for($user)->canMikrotik();
     }
 
-    public static function shouldRegisterNavigation(): bool
-    {
-        return static::canAccess() && app(RadiusUserManagementService::class)->isAvailable();
-    }
-
     public function mount(): void
     {
         $this->refreshUsernames();

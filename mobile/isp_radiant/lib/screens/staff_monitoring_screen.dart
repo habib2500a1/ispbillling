@@ -88,6 +88,7 @@ class _StaffMonitoringScreenState extends State<StaffMonitoringScreen> {
   Widget build(BuildContext context) {
     return PageScaffold(
       title: 'Live monitoring',
+      useGradientBody: true,
       actions: [IconButton(icon: const Icon(Icons.refresh), onPressed: _load)],
       body: _loading
           ? const Center(child: CircularProgressIndicator())

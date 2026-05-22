@@ -6,6 +6,7 @@ use App\Filament\Resources\InvoiceResource;
 use App\Filament\Resources\PaymentResource;
 use App\Models\Customer;
 use App\Support\BillingDefaults;
+use App\Support\CustomerBalanceDue;
 use App\Models\Invoice;
 use App\Models\Payment;
 use App\Services\Network\CustomerConnectionStatusService;
@@ -74,7 +75,19 @@ final class BillCollectionSearchService
             })
             ->take($limit);
 
-        $rows = $customers->map(fn (Customer $customer): array => $this->present($customer));
+        if ($customers->isEmpty()) {
+            return collect();
+        }
+
+        $customersWithDue = CustomerBalanceDue::augmentTableQuery(
+            Customer::query()
+                ->with(['area', 'zone', 'subzone', 'package'])
+                ->whereIn('id', $customers->pluck('id')),
+        )->get()->keyBy('id');
+
+        $rows = $customers
+            ->map(fn (Customer $customer): Customer => $customersWithDue->get($customer->id) ?? $customer)
+            ->map(fn (Customer $customer): array => $this->present($customer));
 
         return $this->searchPresenter->annotateDuplicateNames($rows)->values();
     }
@@ -82,10 +95,17 @@ final class BillCollectionSearchService
     public function find(int $customerId): ?array
     {
         $customer = Customer::query()
+            ->withoutGlobalScopes()
             ->with(['area', 'zone', 'subzone', 'package'])
             ->find($customerId);
 
-        return $customer ? $this->present($customer, detailed: true) : null;
+        if ($customer === null) {
+            return null;
+        }
+
+        $customer->refresh();
+
+        return $this->present($customer, detailed: true);
     }
 
     /**
@@ -93,19 +113,17 @@ final class BillCollectionSearchService
      */
     private function present(Customer $customer, bool $detailed = false): array
     {
-        $openInvoices = Invoice::query()
+        $openInvoices = Invoice::withoutGlobalScopes()
             ->where('customer_id', $customer->id)
-            ->whereIn('status', ['open', 'partial'])
+            ->whereIn('status', CustomerBalanceDue::OPEN_INVOICE_STATUSES)
             ->orderBy('due_date')
-            ->get();
+            ->get()
+            ->filter(fn (Invoice $inv): bool => $inv->balanceDue() > 0.009)
+            ->values();
 
-        $meta = $customer->meta ?? [];
-        $synced = filled($meta['isp_digital_billing_synced_at'] ?? null);
-        $ispDue = (float) ($meta['isp_digital_balance_due'] ?? 0);
-        $invoiceDue = round($openInvoices->sum(fn (Invoice $inv): float => $inv->balanceDue()), 2);
-        $balanceDue = $synced && $ispDue > 0.009
-            ? round(max($ispDue, $invoiceDue), 2)
-            : ($synced ? round(max(0, $ispDue), 2) : $invoiceDue);
+        $balanceDue = CustomerBalanceDue::displayAmount($customer);
+        $due = CustomerBalanceDue::resolve($customer);
+        $due['balance_due'] = $balanceDue;
 
         $row = [
             'id' => $customer->id,
@@ -126,8 +144,12 @@ final class BillCollectionSearchService
             'status' => $customer->status,
             'package' => $customer->package?->name,
             'package_id' => $customer->package_id,
+            'monthly_bill' => $customer->package?->price_monthly !== null
+                ? round((float) $customer->package->price_monthly, 2)
+                : null,
+            'package_speed' => $customer->package?->download_mbps,
             'balance_due' => $balanceDue,
-            'billing_payment_state' => $meta['isp_digital_payment_state'] ?? null,
+            'billing_payment_state' => $due['payment_state'],
             'open_invoices' => $openInvoices->count(),
             'account_balance' => (float) $customer->account_balance,
             'is_online' => $customer->isPppOnline(),
@@ -137,7 +159,7 @@ final class BillCollectionSearchService
         if ($detailed) {
             $row['invoices'] = $openInvoices->map(fn (Invoice $inv): array => $this->invoiceRow($inv))->values()->all();
 
-            $allInvoices = Invoice::query()
+            $allInvoices = Invoice::withoutGlobalScopes()
                 ->where('customer_id', $customer->id)
                 ->orderByDesc('issue_date')
                 ->orderByDesc('id')

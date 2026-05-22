@@ -42,7 +42,7 @@ class PppOnlineStatusTest extends TestCase
         $this->assertSame($customer->id, $found->id);
     }
 
-    public function test_collect_keeps_online_flag_when_mikrotik_api_unreachable(): void
+    public function test_collect_marks_offline_when_mikrotik_api_unreachable(): void
     {
         $customer = Customer::createTrusted([
             'tenant_id' => 1,
@@ -62,13 +62,15 @@ class PppOnlineStatusTest extends TestCase
             'api_username' => 'admin',
             'api_password' => 'secret',
             'is_enabled' => true,
+            'last_api_status' => 'offline',
         ]);
 
         $result = app(BandwidthCollectionService::class)->collectForTenant(1);
 
         $this->assertFalse($result['api_ok']);
         $customer->refresh();
-        $this->assertTrue($customer->is_ppp_online);
+        $this->assertFalse($customer->is_ppp_online);
+        $this->assertFalse($customer->isPppOnline());
     }
 
     public function test_collect_marks_offline_when_all_mikrotik_disabled(): void
@@ -102,5 +104,42 @@ class PppOnlineStatusTest extends TestCase
     public function test_normalize_strips_realm_suffix(): void
     {
         $this->assertSame('user1', CustomerPppLoginResolver::normalize('user1@realm'));
+    }
+
+    public function test_poll_disabled_shows_offline_despite_stale_db_flags(): void
+    {
+        config([
+            'mikrotik.poll_enabled' => false,
+            'bandwidth.collection_enabled' => false,
+        ]);
+
+        $customer = Customer::createTrusted([
+            'tenant_id' => 1,
+            'customer_code' => 'stale_online_1',
+            'mikrotik_secret_name' => 'stale_online_1',
+            'name' => 'Stale Online',
+            'phone' => '01744444444',
+            'status' => 'active',
+            'is_ppp_online' => true,
+        ]);
+
+        MikrotikServer::query()->create([
+            'tenant_id' => 1,
+            'name' => 'Stale NAS',
+            'host' => '127.0.0.1',
+            'api_port' => 8728,
+            'api_username' => 'admin',
+            'api_password' => 'secret',
+            'is_enabled' => true,
+            'last_api_status' => 'online',
+        ]);
+
+        $this->assertFalse($customer->isPppOnline());
+
+        app(BandwidthCollectionService::class)->refreshOnlineFlagsForTenant(1);
+
+        $customer->refresh();
+        $this->assertFalse($customer->is_ppp_online);
+        $this->assertFalse($customer->isPppOnline());
     }
 }

@@ -7,6 +7,10 @@ use App\Filament\Resources\PurchaseOrderResource\Pages;
 use App\Models\Product;
 use App\Models\PurchaseOrder;
 use App\Models\Vendor;
+use App\Filament\Support\InventoryWarehouseSelect;
+use App\Services\Inventory\InventoryAccountingService;
+use App\Services\Inventory\InventoryStockService;
+use Filament\Notifications\Notification;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Forms\Set;
@@ -22,7 +26,7 @@ class PurchaseOrderResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-shopping-cart';
 
-    protected static ?string $navigationGroup = 'Inventory';
+    protected static ?string $navigationGroup = 'Inventory Pro';
 
     protected static ?string $navigationLabel = 'Purchase orders';
 
@@ -37,6 +41,7 @@ class PurchaseOrderResource extends Resource
                 ->label('PO number')
                 ->default(fn () => 'PO-'.now()->format('Ymd-His'))
                 ->required(),
+            InventoryWarehouseSelect::make(),
             Forms\Components\Select::make('vendor_id')
                 ->options(fn () => Vendor::query()->orderBy('name')->pluck('name', 'id'))
                 ->searchable()
@@ -64,7 +69,7 @@ class PurchaseOrderResource extends Resource
                             if ($state) {
                                 $p = Product::find($state);
                                 if ($p) {
-                                    $set('unit_price', $p->unit_price);
+                                    $set('unit_price', $p->cost_price > 0 ? $p->cost_price : $p->unit_price);
                                     $set('description', $p->name);
                                 }
                             }
@@ -103,14 +108,17 @@ class PurchaseOrderResource extends Resource
                 ->icon('heroicon-o-check')
                 ->color('success')
                 ->requiresConfirmation()
-                ->visible(fn (PurchaseOrder $record): bool => $record->status !== 'received')
+                ->visible(fn (PurchaseOrder $record): bool => ! in_array($record->status, ['received', 'cancelled'], true))
                 ->action(function (PurchaseOrder $record): void {
-                    $record->update(['status' => 'received', 'received_at' => now()]);
-                    foreach ($record->items as $item) {
-                        if ($item->product_id && $item->product) {
-                            $item->product->increment('stock_qty', $item->quantity);
-                        }
-                    }
+                    $record->load('items');
+                    app(InventoryStockService::class)->receivePurchaseOrder($record, auth()->user());
+                    app(InventoryAccountingService::class)->postPurchaseReceive($record->fresh());
+
+                    Notification::make()
+                        ->title('Stock received')
+                        ->body('Inventory updated · accounting posted (inventory + AP).')
+                        ->success()
+                        ->send();
                 }),
         ]);
     }

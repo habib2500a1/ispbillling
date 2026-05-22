@@ -5,6 +5,7 @@ namespace App\Services\Clients;
 use App\Models\Customer;
 use App\Models\Package;
 use App\Services\Billing\BillingAccountListCounts;
+use App\Support\CustomerAccountScopes;
 use App\Support\CustomerStatus;
 use App\Support\TenantResolver;
 use Illuminate\Database\Eloquent\Builder;
@@ -45,8 +46,11 @@ final class ClientsDashboardService
                 $tenantId = TenantResolver::currentTenantId() ?? 0;
                 $homePackageIds = $this->homePackageIds($tenantId);
 
-                $online = (clone $notTerminated())->where('is_ppp_online', true)->count();
-                $active = (clone $base)->where('status', CustomerStatus::ACTIVE)->count();
+                $bandwidth = app(\App\Services\Bandwidth\BandwidthCollectionService::class);
+                $online = $bandwidth->tenantOnlineFlagsTrustworthy($tenantId)
+                    ? (clone $notTerminated())->where('is_ppp_online', true)->count()
+                    : 0;
+                $active = CustomerAccountScopes::applyActive(clone $base)->count();
                 $total = (clone $notTerminated())->count();
 
                 $homeQuery = (clone $notTerminated())->whereNotNull('package_id');
@@ -65,7 +69,7 @@ final class ClientsDashboardService
                     'reseller' => (clone $notTerminated())->whereNotNull('reseller_id')->count(),
                     'suspended' => (clone $base)->where('status', CustomerStatus::SUSPENDED)->count(),
                     'expired' => app(BillingAccountListCounts::class)->get('expired'),
-                    'left' => (clone $base)->where('status', CustomerStatus::TERMINATED)->count(),
+                    'left' => CustomerAccountScopes::applyLeft(clone $base)->count(),
                 ];
             },
         );

@@ -13,8 +13,10 @@ use App\Filament\Resources\HotspotVoucherResource;
 use App\Filament\Resources\CustomerResource;
 use App\Filament\Resources\CustomerResource\Pages\ListSuspendedCustomers;
 use App\Filament\Resources\InvoiceResource;
+use App\Filament\Resources\PendingGatewayPaymentResource;
 use App\Filament\Resources\PopBoxResource;
 use App\Models\Customer;
+use App\Models\PendingGatewayPayment;
 use App\Models\HotspotVoucher;
 use App\Models\Invoice;
 use App\Models\Payment;
@@ -80,6 +82,7 @@ final class OperationsDashboardService
             'primary' => $this->primaryKpis($snap, $c, $online, $active, $capability),
             'sections' => $this->groupedSections($tenantId, $snap, $c, $billingCounts, $sales, $online, $active, $pops, $capability),
             'feeds' => $this->feeds($tenantId, $capability),
+            'mfs_pending_verify' => $this->mfsPendingVerify($tenantId, $capability),
             'revenue_chart' => ($capability->canBilling() || $capability->canReports())
                 ? $this->metrics->revenueTrend(14, $tenantId)
                 : null,
@@ -103,6 +106,14 @@ final class OperationsDashboardService
 
         if ($capability->canPayments() || $capability->canBilling()) {
             $rows[] = ['label' => 'Collected today', 'value' => number_format((float) ($snap['collected_today'] ?? 0), 0).' BDT', 'url' => BillCollectionDesk::getUrl()];
+            $pendingMfs = $this->pendingMfsCount($tenantId);
+            if ($pendingMfs > 0 && PendingGatewayPaymentResource::canViewAny()) {
+                $rows[] = [
+                    'label' => 'MFS verify pending',
+                    'value' => (string) $pendingMfs,
+                    'url' => PendingGatewayPaymentResource::getUrl(),
+                ];
+            }
         }
 
         if ($capability->isTenantAdmin()) {
@@ -115,6 +126,50 @@ final class OperationsDashboardService
     /**
      * @return array<string, list<mixed>>
      */
+    /**
+     * @return array{count: int, url: ?string, items: list<array{gateway: string, trx: string, amount: string, customer: string, at: string, url: string}>}
+     */
+    private function mfsPendingVerify(int $tenantId, StaffCapability $capability): array
+    {
+        if (! $capability->canPayments() && ! $capability->canBilling()) {
+            return ['count' => 0, 'url' => null, 'items' => []];
+        }
+
+        if (! PendingGatewayPaymentResource::canViewAny()) {
+            return ['count' => 0, 'url' => null, 'items' => []];
+        }
+
+        $count = $this->pendingMfsCount($tenantId);
+        $url = PendingGatewayPaymentResource::getUrl();
+
+        $items = PendingGatewayPayment::withoutGlobalScopes()
+            ->where('tenant_id', $tenantId)
+            ->where('status', PendingGatewayPayment::STATUS_PENDING)
+            ->with('customer:id,name')
+            ->orderByDesc('created_at')
+            ->limit(8)
+            ->get()
+            ->map(fn (PendingGatewayPayment $row): array => [
+                'gateway' => strtoupper((string) $row->gateway),
+                'trx' => (string) $row->transaction_id,
+                'amount' => number_format((float) $row->amount, 2),
+                'customer' => (string) ($row->customer?->name ?? '—'),
+                'at' => $row->created_at?->diffForHumans() ?? '',
+                'url' => $url,
+            ])
+            ->all();
+
+        return ['count' => $count, 'url' => $url, 'items' => $items];
+    }
+
+    private function pendingMfsCount(int $tenantId): int
+    {
+        return (int) PendingGatewayPayment::withoutGlobalScopes()
+            ->where('tenant_id', $tenantId)
+            ->where('status', PendingGatewayPayment::STATUS_PENDING)
+            ->count();
+    }
+
     private function feeds(int $tenantId, StaffCapability $capability): array
     {
         return [

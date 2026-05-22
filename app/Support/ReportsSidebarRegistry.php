@@ -7,7 +7,6 @@ use App\Filament\Pages\AreaWiseClientsReport;
 use App\Filament\Pages\BillingReports;
 use App\Filament\Pages\BtrcReport;
 use App\Filament\Pages\ChurnZoneReports;
-use App\Filament\Pages\CollectionDeskReport;
 use App\Filament\Pages\DueReportPage;
 use App\Filament\Pages\DueReportProPage;
 use App\Filament\Pages\ExportClientsReport;
@@ -100,18 +99,10 @@ final class ReportsSidebarRegistry
                 'active_routes' => ['filament.admin.pages.analytics-reports'],
             ],
             [
-                'key' => 'collection',
-                'label' => 'Collection report',
-                'icon' => 'heroicon-o-chart-bar-square',
-                'sort' => 11,
-                'url' => CollectionDeskReport::getUrl(),
-                'active_routes' => ['filament.admin.pages.collection-desk-report'],
-            ],
-            [
                 'key' => 'monthly',
                 'label' => 'Monthly revenue',
                 'icon' => 'heroicon-o-chart-bar',
-                'sort' => 12,
+                'sort' => 11,
                 'url' => BillingReports::getUrl(),
                 'active_routes' => ['filament.admin.pages.billing-reports'],
             ],
@@ -119,7 +110,7 @@ final class ReportsSidebarRegistry
                 'key' => 'gateway',
                 'label' => 'Gateway reconciliation',
                 'icon' => 'heroicon-o-scale',
-                'sort' => 13,
+                'sort' => 12,
                 'url' => GatewayReconciliationReport::getUrl(),
                 'active_routes' => ['filament.admin.pages.gateway-reconciliation-report'],
             ],
@@ -127,7 +118,7 @@ final class ReportsSidebarRegistry
                 'key' => 'churn_zone',
                 'label' => 'Churn & zone collection',
                 'icon' => 'heroicon-o-map',
-                'sort' => 14,
+                'sort' => 13,
                 'url' => ChurnZoneReports::getUrl(),
                 'active_routes' => ['filament.admin.pages.churn-zone-reports'],
             ],

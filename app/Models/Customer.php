@@ -273,16 +273,14 @@ class Customer extends Model implements AuthenticatableContract, AuthorizableCon
 
     public function isPppOnline(): bool
     {
-        if (! app(\App\Services\Bandwidth\BandwidthCollectionService::class)
-            ->tenantHasEnabledMikrotik((int) $this->tenant_id)) {
-            return (bool) $this->is_ppp_online;
+        $bandwidth = app(\App\Services\Bandwidth\BandwidthCollectionService::class);
+        $tenantId = (int) $this->tenant_id;
+
+        if (! $bandwidth->tenantOnlineFlagsTrustworthy($tenantId)) {
+            return false;
         }
 
-        if ($this->is_ppp_online) {
-            return true;
-        }
-
-        return $this->pppSessions()->where('status', 'active')->exists();
+        return (bool) $this->is_ppp_online;
     }
 
     /**
@@ -344,6 +342,11 @@ class Customer extends Model implements AuthenticatableContract, AuthorizableCon
     public function devices(): HasMany
     {
         return $this->hasMany(Device::class);
+    }
+
+    public function lineActivations(): HasMany
+    {
+        return $this->hasMany(CustomerLineActivation::class)->latest();
     }
 
     public function onuDevice(): HasOne

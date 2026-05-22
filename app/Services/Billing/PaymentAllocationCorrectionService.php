@@ -92,8 +92,27 @@ final class PaymentAllocationCorrectionService
     private function reverseStandard(Payment $payment): void
     {
         $amount = (float) $payment->amount;
+        $allocations = $payment->meta['invoice_allocations'] ?? null;
 
-        if ($payment->invoice_id && $payment->invoice) {
+        if (is_array($allocations) && $allocations !== []) {
+            foreach ($allocations as $row) {
+                $invoiceId = (int) ($row['invoice_id'] ?? 0);
+                $slice = round((float) ($row['amount'] ?? 0), 2);
+                if ($invoiceId <= 0 || $slice <= 0.009) {
+                    continue;
+                }
+
+                $invoice = \App\Models\Invoice::query()->withoutGlobalScopes()->find($invoiceId);
+                if ($invoice === null) {
+                    continue;
+                }
+
+                $invoice->forceFill([
+                    'amount_paid' => max(0.0, round((float) $invoice->amount_paid - $slice, 2)),
+                ])->save();
+                InvoiceCalculator::recalculate($invoice->fresh());
+            }
+        } elseif ($payment->invoice_id && $payment->invoice) {
             $invoice = $payment->invoice->fresh();
             $applied = (float) ($payment->meta['invoice_applied'] ?? min($amount, (float) $invoice->amount_paid));
             $toReverse = round(min($applied, (float) $invoice->amount_paid), 2);

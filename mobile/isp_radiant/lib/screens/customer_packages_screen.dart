@@ -4,7 +4,8 @@ import 'package:intl/intl.dart';
 import '../services/api_service.dart';
 import '../theme/app_theme.dart';
 import '../utils/app_nav.dart';
-import '../widgets/page_scaffold.dart';
+import '../widgets/isp_ui_kit.dart';
+import '../widgets/state_views.dart';
 
 class CustomerPackagesScreen extends StatefulWidget {
   const CustomerPackagesScreen({super.key, required this.api});
@@ -18,7 +19,8 @@ class CustomerPackagesScreen extends StatefulWidget {
 class _CustomerPackagesScreenState extends State<CustomerPackagesScreen> {
   List<Map<String, dynamic>> _packages = [];
   bool _loading = true;
-  final _fmt = NumberFormat('#,##0.00');
+  String? _error;
+  final _fmt = NumberFormat('#,##0');
 
   @override
   void initState() {
@@ -27,11 +29,18 @@ class _CustomerPackagesScreenState extends State<CustomerPackagesScreen> {
   }
 
   Future<void> _load() async {
-    setState(() => _loading = true);
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
     try {
       final list = await widget.api.customerPackages();
       if (mounted) setState(() => _packages = list);
-    } catch (_) {}
+    } on ApiException catch (e) {
+      if (mounted) setState(() => _error = e.message);
+    } catch (_) {
+      if (mounted) setState(() => _error = 'Could not load packages');
+    }
     if (mounted) setState(() => _loading = false);
   }
 
@@ -59,41 +68,52 @@ class _CustomerPackagesScreenState extends State<CustomerPackagesScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return PageScaffold(
-      title: 'Internet packages',
+    return Scaffold(
+      backgroundColor: AppTheme.background,
+      appBar: AppBar(title: const Text('Package'), centerTitle: true),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
-          : ListView.separated(
-              padding: const EdgeInsets.all(14),
-              itemCount: _packages.length,
-              separatorBuilder: (_, _) => const SizedBox(height: 10),
-              itemBuilder: (context, i) {
-                final p = _packages[i];
-                final current = p['is_current'] == true;
-                return Card(
-                  color: current ? AppTheme.accentSoft : AppTheme.card,
-                  child: ListTile(
-                    leading: CircleAvatar(
-                      backgroundColor: (current ? AppTheme.accent : AppTheme.primary).withValues(alpha: 0.15),
-                      child: Icon(Icons.speed, color: current ? AppTheme.accent : AppTheme.primary),
-                    ),
-                    title: Text('${p['name']} · ${p['download_mbps']} Mbps', style: const TextStyle(fontWeight: FontWeight.bold)),
-                    subtitle: Text('${_fmt.format(p['price_monthly'])} BDT/month'),
-                    trailing: current
-                        ? Chip(
-                            label: const Text('Current'),
-                            backgroundColor: AppTheme.success.withValues(alpha: 0.2),
-                            labelStyle: const TextStyle(color: AppTheme.success, fontWeight: FontWeight.bold),
-                          )
-                        : FilledButton(
-                            onPressed: () => _request((p['id'] as num).toInt(), p['name'].toString()),
-                            style: FilledButton.styleFrom(backgroundColor: AppTheme.primary),
-                            child: const Text('Select'),
-                          ),
+          : _error != null
+              ? Center(child: ErrorBanner(message: _error!, onRetry: _load))
+              : RefreshIndicator(
+                  onRefresh: _load,
+                  child: ListView(
+                    padding: EdgeInsets.zero,
+                    children: [
+                      IspUiKit.gradientHeader(
+                        title: 'Internet packages',
+                        subtitle: 'View plans · request upgrade',
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.all(14),
+                        child: _packages.isEmpty
+                            ? const EmptyState(icon: Icons.inventory_2, title: 'No packages available')
+                            : Column(
+                                children: [
+                                  for (var i = 0; i < _packages.length; i++) ...[
+                                    if (i > 0) const SizedBox(height: 12),
+                                    _packageCard(_packages[i]),
+                                  ],
+                                ],
+                              ),
+                      ),
+                    ],
                   ),
-                );
-              },
-            ),
+                ),
+    );
+  }
+
+  Widget _packageCard(Map<String, dynamic> p) {
+    final current = p['is_current'] == true;
+    final speed = p['download_mbps'] != null ? '${p['download_mbps']} Mbps' : p['name']?.toString() ?? 'Package';
+    final price = '৳ ${_fmt.format(p['price_monthly'] ?? 0)}';
+
+    return IspUiKit.packageCard(
+      title: p['name']?.toString() ?? speed,
+      speedLine: 'Download ${p['download_mbps'] ?? 'N/A'} Mbps · Upload ${p['upload_mbps'] ?? 'N/A'} Mbps',
+      price: price,
+      isCurrent: current,
+      onRequest: current ? null : () => _request((p['id'] as num).toInt(), p['name'].toString()),
     );
   }
 }

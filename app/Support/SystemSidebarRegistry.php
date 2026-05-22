@@ -71,6 +71,14 @@ final class SystemSidebarRegistry
                 'active_routes' => ['filament.admin.pages.manage-platform-backups'],
             ],
             [
+                'key' => 'backups-google',
+                'label' => 'Google Drive backup',
+                'icon' => 'heroicon-o-cloud',
+                'sort' => 5.5,
+                'url' => ManagePlatformBackups::getUrl(['tab' => 'google']),
+                'active_routes' => ['filament.admin.pages.manage-platform-backups'],
+            ],
+            [
                 'key' => 'integrations',
                 'label' => 'Integrations',
                 'icon' => 'heroicon-o-puzzle-piece',
@@ -154,6 +162,7 @@ final class SystemSidebarRegistry
             'permissions' => PermissionMatrix::canAccess(),
             'activity' => ActivityLogResource::canViewAny(),
             'backups' => ManagePlatformBackups::canAccess(),
+            'backups-google' => ManagePlatformBackups::canAccess(),
             'integrations' => ManageAppSettings::canAccess(),
             'automatic' => AutomaticProcessResource::canViewAny(),
             'security' => SecurityDashboard::canAccess(),

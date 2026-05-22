@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Customer;
 use App\Models\User;
 use App\Services\Billing\BillCollectionSearchService;
+use App\Services\Mobile\MobileCustomerListSerializer;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -44,8 +45,7 @@ class CustomerDetailController extends Controller
         $q = trim((string) $request->query('q', ''));
 
         $query = Customer::query()
-            ->select(['id', 'customer_code', 'name', 'phone', 'status', 'package_id'])
-            ->with('package:id,name')
+            ->with(['package:id,name,download_mbps,price_monthly', 'zone:id,name', 'subzone:id,name', 'area:id,name'])
             ->orderBy('name');
 
         if ($q !== '') {
@@ -83,15 +83,8 @@ class CustomerDetailController extends Controller
 
         $paginated = $query->paginate($perPage, ['*'], 'page', $page);
 
-        $customers = collect($paginated->items())->map(fn (Customer $c) => [
-            'id' => $c->id,
-            'customer_code' => $c->customer_code,
-            'name' => $c->name,
-            'phone' => $c->phone,
-            'status' => $c->status,
-            'package' => $c->package?->name,
-            'is_online' => $c->isPppOnline(),
-        ]);
+        $customers = collect($paginated->items())
+            ->map(fn (Customer $c) => MobileCustomerListSerializer::row($c));
 
         return response()->json([
             'data' => $customers,

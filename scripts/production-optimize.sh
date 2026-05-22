@@ -15,6 +15,8 @@ run_artisan config:clear
 run_artisan route:clear
 run_artisan view:clear
 run_artisan cache:clear
+run_artisan optimize:clear 2>/dev/null || true
+run_artisan filament:optimize-clear 2>/dev/null || true
 
 echo "==> Building production caches..."
 run_artisan config:cache

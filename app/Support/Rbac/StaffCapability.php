@@ -29,9 +29,12 @@ final class StaffCapability
         return new self($user);
     }
 
+    /** Roles that bypass permission checks (full ISP admin access). */
+    public const FULL_ACCESS_ROLES = ['super-admin', 'isp-admin', 'admin'];
+
     public function isTenantAdmin(): bool
     {
-        return $this->user !== null && $this->user->hasRole(['super-admin', 'isp-admin']);
+        return $this->user !== null && $this->user->hasRole(self::FULL_ACCESS_ROLES);
     }
 
     public function can(string $permission): bool
@@ -168,6 +171,7 @@ final class StaffCapability
             'Support' => $this->canSupport(),
             'HR & Payroll' => $this->canHrm(),
             'Inventory' => $this->canInventory(),
+            'Inventory Pro' => $this->canInventory(),
             'Finance' => $this->canAccounting(),
             'Resellers' => $this->canResellers(),
             'Reports' => $this->canReports(),
@@ -211,6 +215,7 @@ final class StaffCapability
     public function canSeeWidget(string $widgetClass): bool
     {
         return match ($widgetClass) {
+            \App\Filament\Widgets\PendingMfsVerifyAlertWidget::class => $this->canSeeBillingWidget() || $this->canPayments(),
             \App\Filament\Widgets\BillingExecutiveDashboardWidget::class => $this->canSeeBillingWidget(),
             \App\Filament\Widgets\OperationsCommandCenterWidget::class => $this->canSeeOperationsWidget(),
             \App\Filament\Widgets\DashboardCommandStripWidget::class => $this->canSeeCommandStrip(),

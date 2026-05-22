@@ -20,7 +20,7 @@ final class StaffBillingMobileService
      */
     public function summary(User $user): array
     {
-        $tenantId = (int) $user->tenant_id;
+        $tenantId = \App\Support\StaffTenantScope::tenantIdFor($user);
         $billing = $this->billingKpis->resolve($tenantId);
         $cached = app(\App\Services\Import\IspDigitalCurrentBillingSyncService::class)->cachedSummary($tenantId);
 
@@ -38,59 +38,26 @@ final class StaffBillingMobileService
      */
     public function dueList(int $tenantId, int $page = 1, int $perPage = 30): array
     {
-        $metaDueExpr = $this->metaBalanceDueSql();
+        $driver = Customer::query()->getConnection()->getDriverName();
+        $dueExpr = \App\Support\CustomerBalanceDue::resolvedBalanceDueExpression('customers', $driver);
 
         $customers = Customer::withoutGlobalScopes()
             ->where('tenant_id', $tenantId)
-            ->with(['package:id,name'])
-            ->where(function ($q) use ($tenantId, $metaDueExpr): void {
-                $q->where(function ($isp) use ($metaDueExpr): void {
-                    $isp->where('import_source', 'isp_digital');
-                    if ($metaDueExpr !== null) {
-                        $isp->whereRaw($metaDueExpr);
-                    }
-                })->orWhere(function ($local) use ($tenantId): void {
-                    $local->where(function ($scope): void {
-                        $scope->where('import_source', '!=', 'isp_digital')
-                            ->orWhereNull('import_source');
-                    })->whereHas('invoices', function ($iq) use ($tenantId): void {
-                        $iq->withoutGlobalScopes()
-                            ->where('tenant_id', $tenantId)
-                            ->whereIn('status', ['open', 'partial'])
-                            ->whereRaw('(total - COALESCE(amount_paid, 0)) > 0.009');
-                    });
-                });
-            })
+            ->with(['package:id,name,download_mbps,price_monthly', 'zone:id,name', 'subzone:id,name', 'area:id,name'])
+            ->whereRaw("{$dueExpr} > 0.009")
             ->orderBy('name')
             ->paginate($perPage, ['*'], 'page', $page);
 
-        $data = collect($customers->items())->map(function (Customer $c) use ($tenantId): array {
-            $meta = $c->meta ?? [];
-            $synced = filled($meta['isp_digital_billing_synced_at'] ?? null);
-            $ispDue = (float) ($meta['isp_digital_balance_due'] ?? 0);
-            $due = $synced
-                ? max(0, $ispDue)
-                : ((float) Invoice::withoutGlobalScopes()
-                    ->where('tenant_id', $tenantId)
-                    ->where('customer_id', $c->id)
-                    ->whereIn('status', ['open', 'partial'])
-                    ->get()
-                    ->sum(fn (Invoice $inv) => $inv->balanceDue()));
+        $data = collect($customers->items())
+            ->map(function (Customer $c): array {
+                $row = MobileCustomerListSerializer::row($c);
+                $meta = is_array($c->meta) ? $c->meta : [];
+                $row['monthly_payable'] = round((float) ($meta['isp_digital_payable'] ?? 0), 2);
 
-            return [
-                'id' => $c->id,
-                'customer_code' => $c->customer_code,
-                'name' => $c->name,
-                'phone' => $c->phone,
-                'package' => $c->package?->name,
-                'status' => $c->status,
-                'billing_mode' => $c->billing_mode,
-                'payment_state' => $meta['isp_digital_payment_state'] ?? null,
-                'balance_due' => round($due, 2),
-                'monthly_payable' => round((float) ($meta['isp_digital_payable'] ?? 0), 2),
-                'is_online' => $c->isPppOnline(),
-            ];
-        })->values()->all();
+                return $row;
+            })
+            ->values()
+            ->all();
 
         return [
             'data' => $data,
@@ -217,6 +184,7 @@ final class StaffBillingMobileService
 
         return [
             'summary' => [
+                'transaction_count' => count($data),
                 'period_collected' => round($periodCollected, 2),
                 'month_collected' => round($monthCollected, 2),
                 'month_discount' => round(abs($monthDiscount), 2),
@@ -230,13 +198,4 @@ final class StaffBillingMobileService
         ];
     }
 
-    private function metaBalanceDueSql(): ?string
-    {
-        return match (Customer::query()->getConnection()->getDriverName()) {
-            'pgsql' => "(COALESCE(meta->>'isp_digital_balance_due', '0'))::numeric > 0.009",
-            'sqlite' => "CAST(COALESCE(json_extract(meta, '$.isp_digital_balance_due'), '0') AS REAL) > 0.009",
-            'mysql' => "CAST(COALESCE(JSON_UNQUOTE(JSON_EXTRACT(meta, '$.isp_digital_balance_due')), '0') AS DECIMAL(12,2)) > 0.009",
-            default => null,
-        };
-    }
 }

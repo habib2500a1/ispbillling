@@ -1,60 +1,65 @@
 import 'dart:convert';
 
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 
 import '../config/app_config.dart';
 import '../config/remote_config.dart';
+import 'session_storage.dart';
 
 class ApiService {
-  ApiService({FlutterSecureStorage? storage, http.Client? client})
-      : _storage = storage ?? const FlutterSecureStorage(),
+  ApiService({SessionStorage? storage, http.Client? client})
+      : _storage = storage ?? SessionStorage(),
         _client = client ?? http.Client();
 
-  final FlutterSecureStorage _storage;
+  final SessionStorage _storage;
   final http.Client _client;
   static const _tokenKey = 'auth_token';
   static const _roleKey = 'user_role';
   static const _staffModeKey = 'staff_mode';
   static const _timeout = Duration(seconds: 30);
+  static const _bootTimeout = Duration(seconds: 8);
 
-  Future<String?> get token => _storage.read(key: _tokenKey);
-  Future<String?> get role => _storage.read(key: _roleKey);
-  Future<String?> get staffMode => _storage.read(key: _staffModeKey);
+  Future<String?> get token => _storage.read(_tokenKey);
+  Future<String?> get role => _storage.read(_roleKey);
+  Future<String?> get staffMode => _storage.read(_staffModeKey);
 
-  Future<void> saveStaffMode(String mode) => _storage.write(key: _staffModeKey, value: mode);
+  Future<void> saveStaffMode(String mode) => _storage.write(_staffModeKey, mode);
 
   Future<void> saveSession(String token, String role) async {
-    await _storage.write(key: _tokenKey, value: token);
-    await _storage.write(key: _roleKey, value: role);
+    await _storage.write(_tokenKey, token);
+    await _storage.write(_roleKey, role);
   }
 
   Future<void> clearSession() async {
-    await _storage.delete(key: _tokenKey);
-    await _storage.delete(key: _roleKey);
-    await _storage.delete(key: _staffModeKey);
+    await _storage.delete(_tokenKey);
+    await _storage.delete(_roleKey);
+    await _storage.delete(_staffModeKey);
   }
 
-  Future<void> loadRemoteConfig() async {
+  Future<void> loadRemoteConfig({Duration? timeout}) async {
+    final limit = timeout ?? _bootTimeout;
     try {
       final res = await _client
           .get(Uri.parse('${AppConfig.apiBaseUrl}/mobile/config'), headers: {'Accept': 'application/json'})
-          .timeout(_timeout);
+          .timeout(limit);
       if (res.statusCode == 200) {
         await RemoteConfig.loadFrom(_decode(res));
       }
     } catch (_) {}
   }
 
-  Future<bool> validateSession() async {
+  /// [quick] skips token refresh retry — used at cold start so splash never hangs.
+  Future<bool> validateSession({bool quick = false}) async {
     final t = await token;
     final r = await role;
-    if (t == null || r == null) return false;
+    if (t == null || t.isEmpty || r == null || r.isEmpty) return false;
+
+    final limit = quick ? _bootTimeout : _timeout;
     try {
       if (r == 'customer') {
-        await _get('/customer/me');
+        await _get('/customer/me', skipRefresh: quick).timeout(limit);
       } else {
-        await _get('/me');
+        await _get('/me', skipRefresh: quick).timeout(limit);
       }
       return true;
     } on ApiException catch (e) {
@@ -97,6 +102,76 @@ class ApiService {
   }
 
   Future<Map<String, dynamic>> staffDashboard() => _get('/staff/dashboard');
+
+  Future<Map<String, dynamic>> staffInventoryBootstrap() => _get('/staff/inventory/bootstrap');
+
+  Future<List<Map<String, dynamic>>> staffInventoryProducts({
+    String? barcode,
+    String? query,
+    int? warehouseId,
+  }) async {
+    final parts = <String>[];
+    if (barcode != null && barcode.isNotEmpty) {
+      parts.add('barcode=${Uri.encodeQueryComponent(barcode)}');
+    }
+    if (query != null && query.isNotEmpty) {
+      parts.add('q=${Uri.encodeQueryComponent(query)}');
+    }
+    if (warehouseId != null) parts.add('warehouse_id=$warehouseId');
+    final qs = parts.isEmpty ? '' : '?${parts.join('&')}';
+    final body = await _get('/staff/inventory/products$qs');
+    return _listFrom(body['data']);
+  }
+
+  Future<Map<String, dynamic>> staffInvoiceHardwareOptions(int invoiceId) =>
+      _get('/staff/invoices/$invoiceId/hardware-options');
+
+  Future<Map<String, dynamic>> staffInvoiceHardwareLookup(
+    int invoiceId, {
+    required String barcode,
+    int? warehouseId,
+  }) async {
+    final parts = ['barcode=${Uri.encodeQueryComponent(barcode)}'];
+    if (warehouseId != null) parts.add('warehouse_id=$warehouseId');
+    return _get('/staff/invoices/$invoiceId/hardware-product?${parts.join('&')}');
+  }
+
+  Future<Map<String, dynamic>> staffInvoiceAddHardwareLine(
+    int invoiceId, {
+    required int productId,
+    int quantity = 1,
+    double? unitPrice,
+    int? warehouseId,
+    bool issueStock = false,
+  }) =>
+      _post('/staff/invoices/$invoiceId/hardware-line', {
+        'product_id': productId,
+        'quantity': quantity,
+        if (unitPrice != null) 'unit_price': unitPrice,
+        if (warehouseId != null) 'warehouse_id': warehouseId,
+        'issue_stock': issueStock,
+      });
+
+  Future<Map<String, dynamic>> staffInventorySale({
+    required int warehouseId,
+    required String paymentMethod,
+    required List<Map<String, dynamic>> lines,
+    double discount = 0,
+    String? customerName,
+    String? customerPhone,
+    String? notes,
+    String? barcodeScan,
+  }) =>
+      _post('/staff/inventory/sales', {
+        'warehouse_id': warehouseId,
+        'payment_method': paymentMethod,
+        'discount': discount,
+        'lines': lines,
+        if (customerName != null) 'customer_name': customerName,
+        if (customerPhone != null) 'customer_phone': customerPhone,
+        if (notes != null) 'notes': notes,
+        if (barcodeScan != null && barcodeScan.isNotEmpty) 'barcode_scan': barcodeScan,
+      });
   Future<Map<String, dynamic>> customerDashboard() => _get('/customer/dashboard');
   Future<Map<String, dynamic>> customerUsageLive() => _get('/customer/usage/live');
 
@@ -105,10 +180,18 @@ class ApiService {
     return _listFrom(body['data']);
   }
 
+  /// All due invoices + total due + gateways (full payment only).
+  Future<Map<String, dynamic>> customerPayables() => _get('/customer/bills/payables');
+
+  Future<List<Map<String, dynamic>>> customerPayments({int page = 1}) async {
+    final body = await _get('/customer/payments?page=$page');
+    return _listFrom(body['data']);
+  }
+
   Future<Map<String, dynamic>> customerBillDetail(int id) => _get('/customer/bills/$id');
 
-  Future<Map<String, dynamic>> initiateBillPayment(int invoiceId) =>
-      _post('/customer/bills/$invoiceId/pay', {});
+  Future<Map<String, dynamic>> initiateBillPayment(int invoiceId, {required String gateway}) =>
+      _post('/customer/bills/$invoiceId/pay', {'gateway': gateway});
 
   Future<List<Map<String, dynamic>>> customerTickets() async {
     final body = await _get('/customer/tickets');
@@ -137,11 +220,36 @@ class ApiService {
   Future<Map<String, dynamic>> staffReplyTicket(int id, String body, {bool internal = false}) =>
       _post('/staff/tickets/$id/reply', {'body': body, 'is_internal': internal});
 
-  Future<Map<String, dynamic>> staffUpdateTicket(int id, {String? status, String? priority}) =>
+  Future<Map<String, dynamic>> staffUpdateTicket(
+    int id, {
+    String? status,
+    String? priority,
+    int? assignedTo,
+    bool clearAssignee = false,
+  }) =>
       _patch('/staff/tickets/$id', {
         if (status != null) 'status': status,
         if (priority != null) 'priority': priority,
+        if (clearAssignee) 'assigned_to': null,
+        if (assignedTo != null) 'assigned_to': assignedTo,
       });
+
+  Future<List<Map<String, dynamic>>> staffTicketAssignees() async {
+    final body = await _get('/staff/tickets/assignees');
+    return _listFrom(body['data']);
+  }
+
+  Future<List<Map<String, dynamic>>> staffTickets({
+    String status = 'all',
+    bool mine = false,
+    bool unassigned = false,
+  }) async {
+    final q = <String>['status=${Uri.encodeComponent(status)}'];
+    if (mine) q.add('mine=1');
+    if (unassigned) q.add('unassigned=1');
+    final body = await _get('/staff/tickets?${q.join('&')}');
+    return _listFrom(body['data']);
+  }
 
   Future<Map<String, dynamic>> staffUpdateTask(int id, String status) =>
       _patch('/staff/tasks/$id', {'status': status});
@@ -378,6 +486,26 @@ class ApiService {
 
   Future<Map<String, dynamic>> staffCollectionsReport() => _get('/staff/reports/collections');
 
+  Future<Map<String, dynamic>> staffMfsSmsIngest({
+    required String gateway,
+    required String transactionId,
+    required double amount,
+    String? senderPhone,
+    String? customerReference,
+    String? rawMessage,
+    String? deviceName,
+  }) =>
+      _post('/staff/mfs/sms/ingest', {
+        'gateway': gateway,
+        'transaction_id': transactionId,
+        'amount': amount,
+        if (senderPhone != null && senderPhone.isNotEmpty) 'sender_phone': senderPhone,
+        if (customerReference != null && customerReference.isNotEmpty)
+          'customer_reference': customerReference,
+        if (rawMessage != null && rawMessage.isNotEmpty) 'raw_message': rawMessage,
+        if (deviceName != null && deviceName.isNotEmpty) 'device_name': deviceName,
+      });
+
   Future<void> staffSmsReminder(int customerId) => _post('/staff/customers/$customerId/sms-reminder', {});
 
   Future<Map<String, dynamic>> staffSmsBulkDue({String? message}) =>
@@ -447,12 +575,6 @@ class ApiService {
     });
   }
 
-  Future<List<Map<String, dynamic>>> staffTickets({String status = 'all'}) async {
-    final encoded = Uri.encodeQueryComponent(status);
-    final body = await _get('/staff/tickets?status=$encoded');
-    return _listFrom(body['data']);
-  }
-
   Future<List<Map<String, dynamic>>> staffTasks() async {
     final body = await _get('/staff/tasks');
     return _listFrom(body['data']);
@@ -520,6 +642,12 @@ class ApiService {
   Future<Map<String, dynamic>> reconnectCustomer(int customerId) =>
       _post('/staff/network/reconnect', {'customer_id': customerId});
 
+  Future<Map<String, dynamic>> staffExtendService(int customerId, {int days = 30}) =>
+      _post('/staff/customers/$customerId/extend-service', {'days': days});
+
+  Future<Map<String, dynamic>> staffToggleNetwork(int customerId) =>
+      _post('/staff/customers/$customerId/toggle-network', {});
+
   Future<Map<String, dynamic>> customerOnuStatus() => _get('/customer/onu/status');
 
   Future<Map<String, dynamic>> customerOnuReboot() => _post('/customer/onu/reboot', {});
@@ -553,10 +681,10 @@ class ApiService {
     await clearSession();
   }
 
-  Future<Map<String, dynamic>> _get(String path, {bool retried = false}) async {
+  Future<Map<String, dynamic>> _get(String path, {bool retried = false, bool skipRefresh = false}) async {
     final res = await _client.get(Uri.parse('${AppConfig.apiBaseUrl}$path'), headers: await _headers()).timeout(_timeout);
-    if (res.statusCode == 401 && !retried && await refreshToken()) {
-      return _get(path, retried: true);
+    if (res.statusCode == 401 && !retried && !skipRefresh && await refreshToken()) {
+      return _get(path, retried: true, skipRefresh: skipRefresh);
     }
     return _handle(res);
   }
@@ -603,7 +731,14 @@ class ApiService {
 
   String _messageFrom(Map<String, dynamic> body) {
     final msg = body['message']?.toString();
-    if (msg != null && msg.isNotEmpty) return msg;
+    if (msg != null && msg.isNotEmpty) {
+      if (msg.contains('No query results for model')) {
+        if (msg.contains('Customer')) return 'Customer not found. Search again and select.';
+        if (msg.contains('SupportTicket')) return 'Ticket not found.';
+        return 'Record not found.';
+      }
+      return msg;
+    }
     final errors = body['errors'];
     if (errors is Map) {
       final first = errors.values.first;

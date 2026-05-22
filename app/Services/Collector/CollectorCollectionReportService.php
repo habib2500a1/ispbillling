@@ -55,7 +55,12 @@ final class CollectorCollectionReportService
         $q = CollectorCollection::query()
             ->withoutGlobalScopes()
             ->where('tenant_id', $tenantId)
-            ->with(['customer:id,name,customer_code', 'collector:id,name', 'payment:id,receipt_number,meta,recorded_by'])
+            ->with([
+                'customer:id,name,customer_code',
+                'collector:id,name',
+                'payment:id,receipt_number,meta,recorded_by',
+                'inventorySale:id,sale_number,customer_name',
+            ])
             ->orderByDesc('collected_at')
             ->limit($limit);
 
@@ -75,11 +80,14 @@ final class CollectorCollectionReportService
                 'collected_at' => $row->collected_at?->format('Y-m-d H:i'),
                 'collector_name' => $row->collector?->name ?? '—',
                 'entered_by_name' => $enteredByName,
-                'customer_name' => $row->customer?->name ?? '—',
+                'customer_name' => $row->customer?->name
+                    ?? $row->inventorySale?->customer_name
+                    ?? ($row->inventory_sale_id ? 'Retail sale' : '—'),
                 'customer_code' => $row->customer?->customer_code,
                 'amount' => round((float) $row->amount, 2),
                 'method' => $row->payment_method,
-                'receipt' => $row->payment?->receipt_number,
+                'receipt' => $row->payment?->receipt_number
+                    ?? $row->inventorySale?->sale_number,
                 'status' => $row->status,
             ];
         });

@@ -15,7 +15,8 @@ return [
         'otp_digits' => max(4, min(8, (int) env('BILL_PAY_OTP_DIGITS', 6))),
     ],
 
-    'allow_partial' => (bool) env('BILL_PAY_ALLOW_PARTIAL', true),
+    /** Client self-pay must clear full invoice balance (no manual partial amount). */
+    'allow_partial' => (bool) env('BILL_PAY_ALLOW_PARTIAL', false),
 
     'min_amount' => (float) env('BILL_PAY_MIN_AMOUNT', 10),
 

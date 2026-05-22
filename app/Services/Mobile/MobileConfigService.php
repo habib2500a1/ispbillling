@@ -5,7 +5,9 @@ namespace App\Services\Mobile;
 use App\Models\Package;
 use App\Models\PortalNotice;
 use App\Support\CompanyBranding;
+use App\Support\MobileApkRelease;
 use App\Support\MobileAppLinks;
+use App\Support\PersonalMfsSetup;
 
 /**
  * Mobile app ↔ website sync: URLs and feature flags match the web portal/admin.
@@ -25,7 +27,12 @@ class MobileConfigService
         return [
             'app_name' => CompanyBranding::name(),
             'api_version' => 'v1',
-            'app_version' => '2.3.0',
+            'app_version' => '2.6.0',
+            'rcl_sms' => [
+                'app_name' => 'RCL SMS',
+                'company_name' => CompanyBranding::name(),
+                'logo_url' => CompanyBranding::logoUrl(),
+            ],
             'branding' => [
                 'company_name' => CompanyBranding::name(),
                 'tagline' => CompanyBranding::tagline(),
@@ -49,8 +56,12 @@ class MobileConfigService
                 'portal_login' => MobileAppLinks::portalLoginUrl() ?? $base.'/login',
                 'landing' => MobileAppLinks::landingUrl(),
                 'apk' => MobileAppLinks::downloadUrl(),
+                'apk_mfs_verify' => MobileAppLinks::mfsVerifyDownloadUrl(),
+                'apk_mfs_verify_update' => MobileAppLinks::mfsVerifyUpdateUrl(),
+                'apk_mfs_verify_version' => MobileApkRelease::mfsVerify()['version_label'],
                 'admin' => $base.'/admin',
                 'admin_login' => MobileAppLinks::staffLoginUrl(),
+                'personal_mfs' => PersonalMfsSetup::mobileConfigLinks(),
             ],
             'staff_paths' => $this->staffPaths($base),
             'features' => [
@@ -64,6 +75,7 @@ class MobileConfigService
                 'ai_assistant' => true,
                 'anomaly_detection' => true,
                 'network_control' => true,
+                'mfs_sms_staff' => (bool) config('mfs_personal.sms_ingest.enabled', false),
                 'biometric_login' => true,
                 'ssl_pinning' => (bool) config('mobile.ssl_pinning', false),
                 'crash_reporting' => (bool) config('mobile.crash_reporting', true),

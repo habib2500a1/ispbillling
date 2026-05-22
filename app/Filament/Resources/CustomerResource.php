@@ -11,6 +11,7 @@ use App\Models\Customer;
 use App\Models\CustomerContact;
 use App\Models\Device;
 use App\Services\Mikrotik\MikrotikServerService;
+use App\Support\CustomerBalanceDue;
 use App\Support\CustomerStatus;
 use App\Support\SubscriberType;
 use App\Services\Optical\CustomerOnuAutoProvisionService;
@@ -444,13 +445,16 @@ class CustomerResource extends Resource
                 Tables\Columns\IconColumn::make('is_ppp_online')
                     ->label('Online')
                     ->boolean()
+                    ->state(fn (Customer $record): bool => $record->isPppOnline())
                     ->trueIcon('heroicon-o-signal')
                     ->falseIcon('heroicon-o-signal-slash')
                     ->trueColor('success')
                     ->falseColor('gray')
-                    ->tooltip(fn (Customer $record): string => $record->ppp_last_seen_at
-                        ? 'Last seen: '.$record->ppp_last_seen_at->diffForHumans()
-                        : 'Not online (run Bandwidth → Sync now)'),
+                    ->tooltip(fn (Customer $record): string => $record->isPppOnline()
+                        ? ($record->ppp_last_seen_at
+                            ? 'Last seen: '.$record->ppp_last_seen_at->diffForHumans()
+                            : 'Online')
+                        : 'Offline (MikroTik unreachable or no active PPP session)'),
                 Tables\Columns\TextColumn::make('status')
                     ->badge()
                     ->formatStateUsing(fn (Customer $record): string => $record->statusLabel())
@@ -466,11 +470,18 @@ class CustomerResource extends Resource
                     ->limit(24)
                     ->sortable()
                     ->toggleable(),
+                Tables\Columns\TextColumn::make('resolved_balance_due')
+                    ->label('Due')
+                    ->formatStateUsing(fn ($state, Customer $record): float => \App\Support\CustomerBalanceDue::displayAmount($record))
+                    ->money('BDT')
+                    ->alignEnd()
+                    ->color(fn ($state, Customer $record): ?string => \App\Support\CustomerBalanceDue::displayAmount($record) > 0.009 ? 'danger' : 'success'),
                 Tables\Columns\TextColumn::make('account_balance')
-                    ->label('Balance')
+                    ->label('Wallet')
                     ->money('BDT')
                     ->sortable()
-                    ->alignEnd(),
+                    ->alignEnd()
+                    ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\TextColumn::make('network_access_state')
                     ->label('Line')
                     ->badge()
@@ -909,11 +920,18 @@ class CustomerResource extends Resource
                 ->tooltip(fn (Customer $record): ?string => filled($record->package?->mikrotik_profile_name)
                     ? 'MikroTik: '.$record->package->mikrotik_profile_name
                     : null),
+            Tables\Columns\TextColumn::make('resolved_balance_due')
+                ->label('Due')
+                ->formatStateUsing(fn ($state, Customer $record): float => \App\Support\CustomerBalanceDue::displayAmount($record))
+                ->money('BDT')
+                ->alignEnd()
+                ->color(fn ($state, Customer $record): ?string => \App\Support\CustomerBalanceDue::displayAmount($record) > 0.009 ? 'danger' : 'success'),
             Tables\Columns\TextColumn::make('account_balance')
-                ->label('Balance')
+                ->label('Wallet')
                 ->money('BDT')
                 ->sortable()
-                ->alignEnd(),
+                ->alignEnd()
+                ->toggleable(isToggledHiddenByDefault: true),
             Tables\Columns\TextColumn::make('status')
                 ->label('Status')
                 ->badge()
@@ -930,6 +948,7 @@ class CustomerResource extends Resource
             Tables\Columns\IconColumn::make('is_ppp_online')
                 ->label('Online')
                 ->boolean()
+                ->state(fn (Customer $record): bool => $record->isPppOnline())
                 ->trueIcon('heroicon-o-signal')
                 ->falseIcon('heroicon-o-signal-slash')
                 ->trueColor('success')
@@ -979,7 +998,7 @@ class CustomerResource extends Resource
 
     public static function getEloquentQuery(): Builder
     {
-        return parent::getEloquentQuery()
+        return CustomerBalanceDue::augmentTableQuery(parent::getEloquentQuery())
             ->with([
                 'package:id,name,download_mbps,price_monthly',
                 'area:id,name',
@@ -1057,6 +1076,7 @@ class CustomerResource extends Resource
             RelationManagers\SupportTicketsRelationManager::class,
             RelationManagers\DocumentsRelationManager::class,
             RelationManagers\NotesRelationManager::class,
+            RelationManagers\LineActivationsRelationManager::class,
         ];
     }
 

@@ -16,6 +16,9 @@ class InvoiceItem extends Model
 
     protected $fillable = [
         'invoice_id',
+        'product_id',
+        'device_id',
+        'warehouse_id',
         'item_type',
         'description',
         'quantity',
@@ -23,6 +26,7 @@ class InvoiceItem extends Model
         'line_total',
         'sort_order',
         'meta',
+        'stock_issued',
     ];
 
     protected function casts(): array
@@ -32,11 +36,27 @@ class InvoiceItem extends Model
             'unit_price' => 'decimal:2',
             'line_total' => 'decimal:2',
             'meta' => 'array',
+            'stock_issued' => 'boolean',
         ];
     }
 
     public function invoice(): BelongsTo
     {
         return $this->belongsTo(Invoice::class);
+    }
+
+    public function product(): BelongsTo
+    {
+        return $this->belongsTo(Product::class);
+    }
+
+    public function device(): BelongsTo
+    {
+        return $this->belongsTo(Device::class);
+    }
+
+    public function warehouse(): BelongsTo
+    {
+        return $this->belongsTo(Warehouse::class);
     }
 }

@@ -121,6 +121,7 @@ class _StaffTeamDiscountScreenState extends State<StaffTeamDiscountScreen> {
   Widget build(BuildContext context) {
     return PageScaffold(
       title: 'Staff discounts',
+      useGradientBody: true,
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : _error != null

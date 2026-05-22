@@ -218,4 +218,40 @@ class MobileStaffBillingTest extends TestCase
         $this->getJson('/api/v1/staff/billing/invoices')->assertUnauthorized();
         $this->getJson('/api/v1/staff/billing/collections')->assertUnauthorized();
     }
+
+    public function test_staff_can_extend_service_via_api(): void
+    {
+        $tenant = Tenant::query()->create(['name' => 'Ext ISP', 'slug' => 'ext-isp', 'is_active' => true]);
+        $user = $this->staffUser($tenant);
+        $seed = $this->seedBillingScenario($tenant);
+        $customer = $seed['dueCustomer'];
+        $customer->update(['service_expires_at' => now()->subDay()->toDateString()]);
+
+        Sanctum::actingAs($user, ['staff']);
+
+        $this->postJson("/api/v1/staff/customers/{$customer->id}/extend-service", ['days' => 30])
+            ->assertOk()
+            ->assertJsonStructure(['service_expires_at', 'expire_day']);
+
+        $customer->refresh();
+        $this->assertTrue($customer->service_expires_at->isFuture());
+    }
+
+    public function test_due_list_includes_mobile_card_fields(): void
+    {
+        $tenant = Tenant::query()->create(['name' => 'Due ISP', 'slug' => 'due-isp', 'is_active' => true]);
+        $user = $this->staffUser($tenant);
+        $this->seedBillingScenario($tenant);
+
+        Sanctum::actingAs($user, ['staff']);
+
+        $row = $this->getJson('/api/v1/staff/billing/due')
+            ->assertOk()
+            ->json('data.0');
+
+        $this->assertArrayHasKey('username', $row);
+        $this->assertArrayHasKey('expire_day', $row);
+        $this->assertArrayHasKey('network_on', $row);
+        $this->assertArrayHasKey('monthly_bill', $row);
+    }
 }

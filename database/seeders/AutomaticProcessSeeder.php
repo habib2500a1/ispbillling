@@ -129,6 +129,16 @@ class AutomaticProcessSeeder extends Seeder
                 'sort_order' => 68,
             ],
             [
+                'slug' => 'refresh-customer-due-balances',
+                'name' => 'Refresh customer due balances',
+                'description' => 'Sync collection search due from paid/open invoices (fixes stale 500 BDT after payment).',
+                'artisan_command' => 'isp:refresh-customer-due-balance',
+                'command_options' => [],
+                'execute_at' => '00:00',
+                'interval' => 'every_fifteen_minutes',
+                'sort_order' => 69,
+            ],
+            [
                 'slug' => 'disable-unpaid-customers',
                 'name' => 'Disable unpaid customers (daily sweep)',
                 'description' => 'Extra daily pass for overdue suspension rules.',

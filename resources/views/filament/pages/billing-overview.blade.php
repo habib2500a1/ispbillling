@@ -74,6 +74,30 @@
                     </div>
                 </div>
             </a>
+            <a href="{{ \App\Filament\Pages\BillingFundFlowReport::getUrl() }}" class="isp-module-card group border-violet-300/80 dark:border-violet-800/50">
+                <div class="flex items-start gap-3">
+                    <span class="isp-module-icon text-violet-600">
+                        <x-filament::icon icon="heroicon-o-arrows-right-left" class="h-5 w-5" />
+                    </span>
+                    <div class="min-w-0 flex-1">
+                        <p class="text-xs font-bold uppercase text-violet-700 dark:text-violet-300">Report</p>
+                        <p class="mt-0.5 font-semibold text-gray-900 dark:text-white">Bill money trail</p>
+                        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Where cash went · print · CSV</p>
+                    </div>
+                </div>
+            </a>
+            <a href="{{ \App\Filament\Resources\StaffExpenseResource::getUrl('index') }}" class="isp-module-card group border-rose-200/80 dark:border-rose-900/40">
+                <div class="flex items-start gap-3">
+                    <span class="isp-module-icon text-rose-600">
+                        <x-filament::icon icon="heroicon-o-receipt-refund" class="h-5 w-5" />
+                    </span>
+                    <div class="min-w-0 flex-1">
+                        <p class="text-xs font-bold uppercase text-rose-700 dark:text-rose-300">Expenses</p>
+                        <p class="mt-0.5 font-semibold text-gray-900 dark:text-white">Staff expenses</p>
+                        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Vendor · office · approve</p>
+                    </div>
+                </div>
+            </a>
             <a href="{{ \App\Filament\Resources\InvoiceResource::getUrl('index') }}" class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm transition hover:border-violet-400 dark:border-gray-700 dark:bg-gray-900">
                 <p class="text-xs font-bold uppercase text-gray-500">Invoices</p>
                 <p class="mt-1 font-semibold text-gray-900 dark:text-white">All bills</p>

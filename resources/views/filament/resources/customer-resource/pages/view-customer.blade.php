@@ -4,6 +4,7 @@
         'fi-resource-subscribers',
         'fi-resource-record-' . $record->getKey(),
         'isp-client-details-page',
+        'isp-cv-page',
     ])
 >
     @php
@@ -11,131 +12,261 @@
         $h = $details['header'];
         $optical = $details['optical'];
         $sections = $details['sections'];
+        $overview = $details['sections_overview'];
+        $moreKeys = ['fees', 'installation', 'staff', 'onu_billing', 'notifications', 'automation', 'tags', 'kyc', 'system'];
+        if (($sections['legacy_meta'] ?? []) !== []) {
+            $moreKeys[] = 'legacy_meta';
+        }
     @endphp
 
-    <div class="isp-client-details" wire:key="client-details-{{ $record->getKey() }}">
-        <div class="isp-client-details__store-note">
-            সব তথ্য <strong>database-এ সংরক্ষিত</strong> — Edit client থেকে যেকোনো ফিল্ড আপডেট করুন। পুরনো সিস্টেমের extra ফিল্ড <code>meta</code> JSON-এ রাখা আছে।
-        </div>
+    <style>
+        [x-cloak] { display: none !important; }
+        .isp-cv-page .fi-header-heading,
+        .isp-cv-page .fi-header-subheading { display: none !important; }
+        .isp-cv-page .fi-page-header-actions {
+            flex-wrap: wrap;
+            gap: 0.35rem;
+            margin-bottom: 0.5rem;
+        }
+        @media (max-width: 1023px) {
+            .isp-cv-hero { flex-direction: column; }
+            .isp-cv-hero__actions { width: 100%; }
+            .isp-cv-hero__actions .isp-cv-btn { flex: 1; justify-content: center; text-align: center; }
+            .isp-cv-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+            .isp-cv-overview { grid-template-columns: 1fr; }
+            .isp-cv-split { grid-template-columns: 1fr; }
+            .isp-cv-recent { grid-template-columns: 1fr; }
+            .isp-cv-tabs { overflow-x: auto; flex-wrap: nowrap; -webkit-overflow-scrolling: touch; }
+            .isp-cv-tabs__btn { flex-shrink: 0; white-space: nowrap; }
+            .isp-cv-mobile-bar {
+                display: flex;
+                position: sticky;
+                bottom: 0;
+                z-index: 20;
+                gap: 0.35rem;
+                padding: 0.5rem;
+                margin: 0 -0.5rem;
+                background: var(--isp-card-bg, #fff);
+                border-top: 1px solid var(--isp-card-border, #e5e7eb);
+                box-shadow: 0 -4px 12px rgba(15, 23, 42, 0.08);
+            }
+            .dark .isp-cv-mobile-bar {
+                background: rgb(17 24 39);
+                border-color: rgb(55 65 81);
+            }
+            .isp-cv-mobile-bar__btn {
+                flex: 1;
+                padding: 0.55rem 0.4rem;
+                border-radius: 0.5rem;
+                font-size: 0.72rem;
+                font-weight: 600;
+                text-align: center;
+                border: 1px solid #e2e8f0;
+                background: #f8fafc;
+                color: #0f172a;
+            }
+            .isp-cv-mobile-bar__btn--primary { background: #0d9488; color: #fff; border-color: #0d9488; }
+        }
+        @media (min-width: 1024px) {
+            .isp-cv-mobile-bar { display: none !important; }
+        }
+    </style>
 
-        <div class="isp-client-details__titlebar">
-            <div>
-                <h1 class="isp-client-details__title">Client Details</h1>
-                <p class="isp-client-details__subtitle">
-                    <span class="font-mono font-semibold">{{ $h['client_code'] }}</span>
-                    · {{ $h['client_name'] }}
-                    · <span class="font-mono text-sm opacity-90">UserName: {{ $h['username'] }}</span>
-                </p>
+    <div class="isp-cv" wire:key="client-view-{{ $record->getKey() }}" x-data="{ tab: 'overview' }">
+        <header class="isp-cv-hero">
+            <div class="isp-cv-hero__main">
+                <span class="isp-cv-avatar" aria-hidden="true">{{ $h['initial'] }}</span>
+                <div class="isp-cv-hero__text">
+                    <h1 class="isp-cv-hero__name">{{ $h['client_name'] }}</h1>
+                    <p class="isp-cv-hero__meta">
+                        <span class="font-mono">{{ $h['client_code'] }}</span>
+                        @if ($h['phone'] !== '—')
+                            · <a href="tel:{{ preg_replace('/\D+/', '', $h['phone']) }}" class="isp-cv-hero__phone">{{ $h['phone'] }}</a>
+                        @endif
+                        · <span class="font-mono text-xs opacity-80">{{ $h['username'] }}</span>
+                    </p>
+                    <div class="isp-cv-hero__badges">
+                        <span class="isp-cv-pill isp-cv-pill--{{ $h['status_color'] }}">{{ $h['status'] }}</span>
+                        <span class="isp-cv-pill isp-cv-pill--{{ $h['subscriber_type_color'] }}">{{ $h['subscriber_type'] }}</span>
+                        <span class="isp-cv-pill {{ $h['online'] ? 'isp-cv-pill--online' : 'isp-cv-pill--offline' }}">
+                            {{ $h['online'] ? 'Online' : 'Offline' }}
+                        </span>
+                        <span class="isp-cv-pill {{ $h['network'] === 'suspended' ? 'isp-cv-pill--danger' : 'isp-cv-pill--muted' }}">
+                            Net {{ $h['network'] }}
+                        </span>
+                    </div>
+                </div>
             </div>
-            <div class="isp-client-details__titlebar-actions">
-                <button type="button" onclick="window.print()" class="isp-cd-btn isp-cd-btn--ghost">Print / PDF</button>
-                <a href="{{ $details['urls']['collect'] }}" class="isp-cd-btn isp-cd-btn--primary">Collect payment</a>
-                <a href="{{ $details['urls']['edit'] }}" class="isp-cd-btn isp-cd-btn--secondary">Edit client</a>
-                <a href="{{ $details['urls']['invoices'] }}" class="isp-cd-btn isp-cd-btn--ghost">Invoices</a>
+            <div class="isp-cv-hero__actions no-print">
+                <a href="{{ $details['urls']['collect'] }}" class="isp-cv-btn isp-cv-btn--primary">Collect payment</a>
+                <a href="{{ $details['urls']['edit'] }}" class="isp-cv-btn isp-cv-btn--soft">Edit</a>
+                <a href="{{ $details['urls']['invoices'] }}" class="isp-cv-btn isp-cv-btn--ghost">Invoices</a>
             </div>
-        </div>
+        </header>
 
-        <div class="isp-client-details__summary">
-            <div class="isp-cd-stat">
-                <span class="isp-cd-stat__label">Status</span>
-                <span class="isp-cd-badge isp-cd-badge--{{ $h['status_color'] }}">{{ $h['status'] }}</span>
+        <div class="isp-cv-kpis">
+            <div class="isp-cv-kpi {{ $h['open_balance'] > 0 ? 'isp-cv-kpi--warn' : '' }}">
+                <span class="isp-cv-kpi__label">Open due</span>
+                <strong class="isp-cv-kpi__value">{{ number_format($h['open_balance'], 2) }}</strong>
+                <span class="isp-cv-kpi__unit">BDT</span>
             </div>
-            <div class="isp-cd-stat">
-                <span class="isp-cd-stat__label">Type</span>
-                <span class="isp-cd-badge isp-cd-badge--{{ $h['subscriber_type_color'] }}">{{ $h['subscriber_type'] }}</span>
+            <div class="isp-cv-kpi {{ $h['expired'] ? 'isp-cv-kpi--danger' : '' }}">
+                <span class="isp-cv-kpi__label">Expires</span>
+                <strong class="isp-cv-kpi__value">{{ $h['valid_until'] }}</strong>
             </div>
-            <div class="isp-cd-stat">
-                <span class="isp-cd-stat__label">PPP</span>
-                <span class="isp-cd-stat__value {{ $h['online'] ? 'text-emerald-600' : 'text-gray-500' }}">
-                    {{ $h['online'] ? '● Online' : '○ Offline' }}
-                </span>
-                @if ($h['online'] && ! empty($h['connection_duration']))
-                    <span class="text-xs text-gray-500">{{ $h['connection_duration'] }}</span>
-                @endif
+            <div class="isp-cv-kpi">
+                <span class="isp-cv-kpi__label">Package</span>
+                <strong class="isp-cv-kpi__value isp-cv-kpi__value--sm">{{ $h['package'] }}</strong>
+                <span class="isp-cv-kpi__sub">{{ $h['speed'] }}</span>
             </div>
-            <div class="isp-cd-stat">
-                <span class="isp-cd-stat__label">Last disconnect</span>
-                <span class="isp-cd-stat__value text-sm">{{ $h['last_disconnect'] ?? '—' }}</span>
+            <div class="isp-cv-kpi">
+                <span class="isp-cv-kpi__label">Monthly</span>
+                <strong class="isp-cv-kpi__value isp-cv-kpi__value--sm">{{ $h['monthly_bill'] }}</strong>
             </div>
-            @if (! empty($h['portal_last_logout']) && $h['portal_last_logout'] !== '—')
-            <div class="isp-cd-stat">
-                <span class="isp-cd-stat__label">Portal logout</span>
-                <span class="isp-cd-stat__value text-sm">{{ $h['portal_last_logout'] }}</span>
+            <div class="isp-cv-kpi">
+                <span class="isp-cv-kpi__label">Wallet</span>
+                <strong class="isp-cv-kpi__value">{{ number_format($h['balance'], 2) }}</strong>
+                <span class="isp-cv-kpi__unit">BDT</span>
+            </div>
+            @if ($h['online'] && ! empty($h['connection_duration']))
+            <div class="isp-cv-kpi isp-cv-kpi--ok">
+                <span class="isp-cv-kpi__label">Uptime</span>
+                <strong class="isp-cv-kpi__value isp-cv-kpi__value--sm">{{ $h['connection_duration'] }}</strong>
+            </div>
+            @elseif (! empty($h['last_disconnect']) && $h['last_disconnect'] !== '—')
+            <div class="isp-cv-kpi">
+                <span class="isp-cv-kpi__label">Last off</span>
+                <strong class="isp-cv-kpi__value isp-cv-kpi__value--sm">{{ $h['last_disconnect'] }}</strong>
             </div>
             @endif
-            <div class="isp-cd-stat">
-                <span class="isp-cd-stat__label">Network</span>
-                <span class="isp-cd-stat__value capitalize {{ $h['network'] === 'suspended' ? 'text-rose-600' : 'text-emerald-600' }}">{{ $h['network'] }}</span>
-            </div>
-            <div class="isp-cd-stat">
-                <span class="isp-cd-stat__label">Package</span>
-                <span class="isp-cd-stat__value">{{ $h['package'] }}</span>
-                <span class="text-xs text-gray-500">{{ $h['speed'] }} · {{ $h['monthly_bill'] }}/mo</span>
-            </div>
-            <div class="isp-cd-stat">
-                <span class="isp-cd-stat__label">Activation</span>
-                <span class="isp-cd-stat__value">{{ $h['activation_date'] }}</span>
-            </div>
-            <div class="isp-cd-stat">
-                <span class="isp-cd-stat__label">Expire</span>
-                <span class="isp-cd-stat__value {{ $h['expired'] ? 'text-rose-600 font-bold' : '' }}">{{ $h['valid_until'] }}</span>
-            </div>
-            <div class="isp-cd-stat">
-                <span class="isp-cd-stat__label">Open due</span>
-                <span class="isp-cd-stat__value {{ $h['open_balance'] > 0 ? 'text-amber-700 font-bold' : '' }}">{{ number_format($h['open_balance'], 2) }} BDT</span>
-            </div>
-            <div class="isp-cd-stat">
-                <span class="isp-cd-stat__label">Wallet</span>
-                <span class="isp-cd-stat__value">{{ number_format($h['balance'], 2) }} BDT</span>
+        </div>
+
+        <nav class="isp-cv-tabs no-print" role="tablist">
+            <button type="button" @click="tab = 'overview'" :class="tab === 'overview' && 'isp-cv-tabs__btn--active'" class="isp-cv-tabs__btn">Overview</button>
+            <button type="button" @click="tab = 'billing'" :class="tab === 'billing' && 'isp-cv-tabs__btn--active'" class="isp-cv-tabs__btn">Billing</button>
+            <button type="button" @click="tab = 'network'" :class="tab === 'network' && 'isp-cv-tabs__btn--active'" class="isp-cv-tabs__btn">Network</button>
+            <button type="button" @click="tab = 'more'" :class="tab === 'more' && 'isp-cv-tabs__btn--active'" class="isp-cv-tabs__btn">More</button>
+        </nav>
+
+        <div x-show="tab === 'overview'" x-cloak class="isp-cv-pane">
+            @include('filament.resources.customer-resource.partials.client-details-overview', [
+                'sections' => $overview,
+                'optical' => $optical,
+                'urls' => $details['urls'],
+            ])
+            @if ($details['recent_payments']->isNotEmpty() || $details['recent_invoices']->isNotEmpty())
+                <div class="isp-cv-recent">
+                    @if ($details['recent_payments']->isNotEmpty())
+                        <section class="isp-cv-card">
+                            <div class="isp-cv-card__head">
+                                <h3 class="isp-cv-card__title">Recent payments</h3>
+                                <button type="button" class="isp-cv-link" @click="tab = 'billing'">All →</button>
+                            </div>
+                            <table class="isp-cv-table">
+                                <tbody>
+                                    @foreach ($details['recent_payments']->take(3) as $pay)
+                                        <tr>
+                                            <td>{{ $pay->paid_at?->format('d M Y') }}</td>
+                                            <td>{{ ucfirst((string) $pay->method) }}</td>
+                                            <td class="text-right font-mono font-semibold">{{ number_format((float) $pay->amount, 2) }}</td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </section>
+                    @endif
+                    @if ($details['recent_invoices']->isNotEmpty())
+                        <section class="isp-cv-card">
+                            <div class="isp-cv-card__head">
+                                <h3 class="isp-cv-card__title">Recent invoices</h3>
+                                <button type="button" class="isp-cv-link" @click="tab = 'billing'">All →</button>
+                            </div>
+                            <table class="isp-cv-table">
+                                <tbody>
+                                    @foreach ($details['recent_invoices']->take(3) as $inv)
+                                        <tr>
+                                            <td class="font-mono text-xs">#{{ $inv->id }}</td>
+                                            <td>{{ $inv->issue_date?->format('d M Y') }}</td>
+                                            <td class="text-right font-mono">{{ number_format((float) $inv->total, 2) }}</td>
+                                            <td><span class="isp-cv-pill isp-cv-pill--muted text-xs">{{ ucfirst((string) $inv->status) }}</span></td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </section>
+                    @endif
+                </div>
+            @endif
+        </div>
+
+        <div x-show="tab === 'billing'" x-cloak class="isp-cv-pane">
+            <div class="isp-cv-split">
+                <section class="isp-cv-card isp-cv-card--full">
+                    <h3 class="isp-cv-card__title">Payments</h3>
+                    @if ($details['recent_payments']->isEmpty())
+                        <p class="isp-cv-muted text-sm">No payments yet.</p>
+                    @else
+                        <div class="isp-cv-table-wrap">
+                            <table class="isp-cv-table isp-cv-table--head">
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>By</th>
+                                        <th>Method</th>
+                                        <th class="text-right">Amount</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach ($details['recent_payments'] as $pay)
+                                        <tr>
+                                            <td>{{ $pay->paid_at?->format('d M Y H:i') }}</td>
+                                            <td>{{ $pay->recorder?->name ?? 'Online' }}</td>
+                                            <td>{{ ucfirst((string) $pay->method) }}</td>
+                                            <td class="text-right font-mono font-semibold">{{ number_format((float) $pay->amount, 2) }}</td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                    @endif
+                </section>
+                <section class="isp-cv-card isp-cv-card--full">
+                    <h3 class="isp-cv-card__title">Invoices</h3>
+                    @if ($details['recent_invoices']->isEmpty())
+                        <p class="isp-cv-muted text-sm">No invoices.</p>
+                    @else
+                        <div class="isp-cv-table-wrap">
+                            <table class="isp-cv-table isp-cv-table--head">
+                                <thead>
+                                    <tr>
+                                        <th>#</th>
+                                        <th>Issue</th>
+                                        <th>Due</th>
+                                        <th class="text-right">Total</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach ($details['recent_invoices'] as $inv)
+                                        <tr>
+                                            <td class="font-mono text-xs">{{ $inv->id }}</td>
+                                            <td>{{ $inv->issue_date?->format('d M Y') }}</td>
+                                            <td>{{ $inv->due_date?->format('d M Y') }}</td>
+                                            <td class="text-right font-mono">{{ number_format((float) $inv->total, 2) }}</td>
+                                            <td>{{ ucfirst((string) $inv->status) }}</td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                    @endif
+                </section>
             </div>
         </div>
 
-        <div x-data="{ tab: 'all' }" class="isp-client-details__tabs" id="onu-tab">
-            @php
-                $onuLease = $sections['onu_billing'] ?? [];
-            @endphp
-            <div class="mb-4 rounded-xl border border-violet-200 bg-violet-50/60 px-4 py-3 dark:border-violet-900/40 dark:bg-violet-950/20">
-                <div class="flex flex-wrap items-start justify-between gap-3">
-                    <div>
-                        <p class="text-xs font-bold uppercase text-violet-700 dark:text-violet-300">ONU / Optical summary</p>
-                        <p class="mt-1 text-sm text-violet-950 dark:text-violet-100">
-                            OLT RX/TX: <strong>{{ ($optical['linked'] ?? false) ? 'Linked — ONU / Optical tab' : 'Not linked yet' }}</strong>
-                            · ISP Digital optical = OLT SNMP sync (এই panel-এ একই পদ্ধতি)
-                        </p>
-                    </div>
-                    <button type="button" @click="tab = 'onu'" class="isp-cd-btn isp-cd-btn--secondary text-xs">Open ONU tab</button>
-                </div>
-                <div class="mt-2 flex flex-wrap gap-4 text-xs font-mono">
-                    @foreach (array_slice($onuLease, 0, 4) as $label => $val)
-                        <span><span class="text-violet-600 dark:text-violet-400">{{ $label }}:</span> {{ $val }}</span>
-                    @endforeach
-                </div>
-            </div>
-            <div class="isp-client-details__tablist" role="tablist">
-                <button type="button" @click="tab = 'all'" :class="tab === 'all' && 'isp-cd-tab--active'" class="isp-cd-tab">All details</button>
-                <button type="button" @click="tab = 'onu'" :class="tab === 'onu' && 'isp-cd-tab--active'" class="isp-cd-tab">ONU / Optical</button>
-                <button type="button" @click="tab = 'payments'" :class="tab === 'payments' && 'isp-cd-tab--active'" class="isp-cd-tab">Payments</button>
-                <button type="button" @click="tab = 'invoices'" :class="tab === 'invoices' && 'isp-cd-tab--active'" class="isp-cd-tab">Invoices</button>
-                <button type="button" @click="tab = 'contacts'" :class="tab === 'contacts' && 'isp-cd-tab--active'" class="isp-cd-tab">Contacts</button>
-                <button type="button" @click="tab = 'sms'" :class="tab === 'sms' && 'isp-cd-tab--active'" class="isp-cd-tab">SMS log</button>
-                <button type="button" @click="tab = 'traffic'" :class="tab === 'traffic' && 'isp-cd-tab--active'" class="isp-cd-tab">Live traffic</button>
-            </div>
-
-            <div x-show="tab === 'all'" x-cloak>
-                @include('filament.resources.customer-resource.partials.client-details-sections', [
-                    'sections' => $sections,
-                    'keys' => ['identity', 'location', 'connection', 'billing', 'fees', 'installation', 'staff', 'onu_billing', 'notifications', 'automation', 'tags', 'kyc', 'system'],
-                ])
-                @if (($sections['legacy_meta'] ?? []) !== [])
-                    @include('filament.resources.customer-resource.partials.client-details-sections', [
-                        'sections' => $sections,
-                        'keys' => ['legacy_meta'],
-                    ])
-                @endif
-            </div>
-
-            <div x-show="tab === 'onu'" x-cloak class="isp-cd-panel isp-cd-panel--full" wire:poll.60s>
-                <h2 class="isp-cd-panel__heading">ONU optical power (ISP Digital table)</h2>
+        <div x-show="tab === 'network'" x-cloak class="isp-cv-pane">
+            <section class="isp-cv-card isp-cv-card--full" wire:poll.60s>
+                <h3 class="isp-cv-card__title">ONU / Optical</h3>
                 @include('filament.resources.customer-resource.partials.client-details-onu-table', [
                     'snapshot' => $optical,
                     'optical_noc_url' => \App\Filament\Pages\OpticalMonitoringHub::getUrl(),
@@ -143,134 +274,71 @@
                         ? \App\Filament\Pages\ManageOpticalLaserSettings::getUrl()
                         : null,
                 ])
-            </div>
-
-            <div x-show="tab === 'payments'" x-cloak class="isp-cd-panel isp-cd-panel--full">
-                <h2 class="isp-cd-panel__heading">Payment history</h2>
-                @if ($details['recent_payments']->isEmpty())
-                    <p class="text-sm text-gray-500">No payments recorded.</p>
-                @else
-                    <div class="isp-optical-power-wrap overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700">
-                        <table class="isp-optical-power-table min-w-full">
-                            <thead>
-                                <tr>
-                                    <th>Date</th>
-                                    <th>Collected by</th>
-                                    <th>Method</th>
-                                    <th>Amount (BDT)</th>
-                                    <th>Receipt</th>
-                                    <th>Reference</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach ($details['recent_payments'] as $pay)
-                                    <tr>
-                                        <td>{{ $pay->paid_at?->format('d-M-Y H:i') }}</td>
-                                        <td>{{ $pay->recorder?->name ?? 'Online' }}</td>
-                                        <td>{{ ucfirst((string) $pay->method) }}</td>
-                                        <td class="font-mono text-right font-semibold">{{ number_format((float) $pay->amount, 2) }}</td>
-                                        <td class="font-mono text-xs">{{ $pay->receipt_number ?? '—' }}</td>
-                                        <td class="font-mono text-xs">{{ $pay->reference ?? $pay->gateway_transaction_id ?? '—' }}</td>
-                                    </tr>
-                                @endforeach
-                            </tbody>
-                        </table>
-                    </div>
-                @endif
-            </div>
-
-            <div x-show="tab === 'invoices'" x-cloak class="isp-cd-panel isp-cd-panel--full">
-                <h2 class="isp-cd-panel__heading">Invoice history</h2>
-                @if ($details['recent_invoices']->isEmpty())
-                    <p class="text-sm text-gray-500">No invoices.</p>
-                @else
-                    <div class="isp-optical-power-wrap overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700">
-                        <table class="isp-optical-power-table min-w-full">
-                            <thead>
-                                <tr>
-                                    <th>Invoice</th>
-                                    <th>Issue</th>
-                                    <th>Due</th>
-                                    <th>Total</th>
-                                    <th>Paid</th>
-                                    <th>Status</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach ($details['recent_invoices'] as $inv)
-                                    <tr>
-                                        <td class="font-mono text-xs">#{{ $inv->id }}</td>
-                                        <td>{{ $inv->issue_date?->format('d-M-Y') }}</td>
-                                        <td>{{ $inv->due_date?->format('d-M-Y') }}</td>
-                                        <td class="font-mono text-right">{{ number_format((float) $inv->total, 2) }}</td>
-                                        <td class="font-mono text-right">{{ number_format((float) $inv->amount_paid, 2) }}</td>
-                                        <td>{{ ucfirst((string) $inv->status) }}</td>
-                                    </tr>
-                                @endforeach
-                            </tbody>
-                        </table>
-                    </div>
-                @endif
-            </div>
-
-            <div x-show="tab === 'contacts'" x-cloak class="isp-cd-panel isp-cd-panel--full">
-                <h2 class="isp-cd-panel__heading">Contact numbers</h2>
-                <p class="mb-2 text-sm text-gray-500">Primary phone: <strong>{{ $details['customer']->phone }}</strong></p>
-                @if (count($details['contacts']) === 0)
-                    <p class="text-sm text-gray-500">No extra contacts — add from Edit → Contacts tab below.</p>
-                @else
-                    <table class="isp-optical-power-table min-w-full">
-                        <thead>
-                            <tr>
-                                <th>Label</th>
-                                <th>Phone</th>
-                                <th>Primary</th>
-                                <th>WhatsApp</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach ($details['contacts'] as $c)
-                                <tr>
-                                    <td>{{ $c['label'] }}</td>
-                                    <td class="font-mono">{{ $c['phone'] }}</td>
-                                    <td>{{ $c['primary'] ? 'Yes' : '—' }}</td>
-                                    <td>{{ $c['whatsapp'] ? 'Yes' : '—' }}</td>
-                                </tr>
-                            @endforeach
-                        </tbody>
-                    </table>
-                @endif
-            </div>
-
-            <div x-show="tab === 'sms'" x-cloak class="isp-cd-panel isp-cd-panel--full">
-                <h2 class="isp-cd-panel__heading">SMS details log</h2>
-                @include('filament.resources.customer-resource.partials.client-details-sms-log', [
-                    'logs' => $details['recent_sms_logs'],
-                    'stats' => $details['sms_stats'],
-                    'eventLabels' => $details['sms_event_labels'],
-                    'fullLogUrl' => $details['urls']['sms_log'] ?? null,
-                ])
-            </div>
-
-            <div x-show="tab === 'traffic'" x-cloak class="isp-cd-panel isp-cd-panel--full">
+            </section>
+            <section class="isp-cv-card isp-cv-card--full">
+                <h3 class="isp-cv-card__title">Live traffic</h3>
                 @livewire(\App\Filament\Resources\CustomerResource\Widgets\SubscriberLiveTrafficWidget::class, ['record' => $record], key('traffic-'.$record->getKey()))
+            </section>
+        </div>
+
+        <div x-show="tab === 'more'" x-cloak class="isp-cv-pane">
+            <div class="isp-cv-more-grid">
+                <section class="isp-cv-card">
+                    <h3 class="isp-cv-card__title">Contacts</h3>
+                    <p class="text-sm mb-2">Primary: <strong class="font-mono">{{ $details['customer']->phone }}</strong></p>
+                    @forelse ($details['contacts'] as $c)
+                        <p class="text-sm"><span class="isp-cv-muted">{{ $c['label'] }}:</span> <span class="font-mono">{{ $c['phone'] }}</span></p>
+                    @empty
+                        <p class="isp-cv-muted text-sm">No extra contacts.</p>
+                    @endforelse
+                </section>
+                <section class="isp-cv-card isp-cv-card--full">
+                    <h3 class="isp-cv-card__title">SMS log</h3>
+                    @include('filament.resources.customer-resource.partials.client-details-sms-log', [
+                        'logs' => $details['recent_sms_logs']->take(20),
+                        'stats' => $details['sms_stats'],
+                        'eventLabels' => $details['sms_event_labels'],
+                        'fullLogUrl' => $details['urls']['sms_log'] ?? null,
+                    ])
+                </section>
             </div>
+            <p class="isp-cv-muted text-sm mb-2">Extra billing, install, automation &amp; system fields (Edit client for changes).</p>
+            @include('filament.resources.customer-resource.partials.client-details-sections', [
+                'sections' => $sections,
+                'keys' => $moreKeys,
+                'compact' => true,
+            ])
+        </div>
+
+        <div class="isp-cv-mobile-bar no-print lg:hidden">
+            <a href="{{ $details['urls']['collect'] }}" class="isp-cv-mobile-bar__btn isp-cv-mobile-bar__btn--primary">Collect</a>
+            <button type="button" class="isp-cv-mobile-bar__btn" wire:click="extendThirtyDays" wire:loading.attr="disabled">Extend 30d</button>
+            <button type="button" class="isp-cv-mobile-bar__btn" wire:click="toggleNetworkAccess" wire:loading.attr="disabled">
+                {{ ($h['network'] ?? 'active') === 'suspended' ? 'Net ON' : 'Net OFF' }}
+            </button>
+            <a href="{{ $details['urls']['edit'] }}" class="isp-cv-mobile-bar__btn">Edit</a>
         </div>
     </div>
 
     @php $relationManagers = $this->getRelationManagers(); @endphp
     @if (count($relationManagers))
-        <div class="mt-6 no-print">
-            <x-filament-panels::resources.relation-managers
-                :active-locale="isset($activeLocale) ? $activeLocale : null"
-                :active-manager="$this->activeRelationManager ?? array_key_first($relationManagers)"
-                :content-tab-label="$this->getContentTabLabel()"
-                :content-tab-icon="$this->getContentTabIcon()"
-                :content-tab-position="$this->getContentTabPosition()"
-                :managers="$relationManagers"
-                :owner-record="$record"
-                :page-class="static::class"
-            />
+        <div class="isp-cv-records no-print" x-data="{ open: false }">
+            <button type="button" class="isp-cv-records__toggle" @click="open = !open">
+                <span x-text="open ? 'Hide related records' : 'Show related records (contacts, devices, tickets…)'"></span>
+                <svg class="h-4 w-4 transition" :class="open && 'rotate-180'" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" /></svg>
+            </button>
+            <div x-show="open" x-collapse class="isp-cv-records__body">
+                <x-filament-panels::resources.relation-managers
+                    :active-locale="isset($activeLocale) ? $activeLocale : null"
+                    :active-manager="$this->activeRelationManager ?? array_key_first($relationManagers)"
+                    :content-tab-label="$this->getContentTabLabel()"
+                    :content-tab-icon="$this->getContentTabIcon()"
+                    :content-tab-position="$this->getContentTabPosition()"
+                    :managers="$relationManagers"
+                    :owner-record="$record"
+                    :page-class="static::class"
+                />
+            </div>
         </div>
     @endif
 </x-filament-panels::page>

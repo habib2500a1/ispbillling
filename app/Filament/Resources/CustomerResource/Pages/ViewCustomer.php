@@ -18,6 +18,8 @@ use App\Services\Optical\IspDigitalOnuPipelineService;
 use App\Services\Optical\CustomerOnuSmartLinkService;
 use App\Services\Import\IspDigitalCustomerDetailsSyncService;
 use App\Services\Optical\OnuSignalCollectionService;
+use App\Services\Subscribers\CustomerLineActivationService;
+use App\Services\Subscribers\CustomerServiceRenewalService;
 use App\Services\Subscribers\SubscriberClientDetailsPresenter;
 use Filament\Actions;
 use Filament\Forms;
@@ -32,6 +34,53 @@ class ViewCustomer extends ViewRecord
     protected static string $resource = CustomerResource::class;
 
     protected static string $view = 'filament.resources.customer-resource.pages.view-customer';
+
+    public function getTitle(): string
+    {
+        /** @var Customer $record */
+        $record = $this->record;
+
+        return $record->name;
+    }
+
+    public function getSubheading(): ?string
+    {
+        /** @var Customer $record */
+        $record = $this->record;
+        $code = $record->customer_code ?: '#'.$record->getKey();
+
+        return $code.($record->phone ? ' · '.$record->phone : '');
+    }
+
+    public function extendThirtyDays(): void
+    {
+        /** @var Customer $record */
+        $record = $this->record;
+        $result = app(CustomerServiceRenewalService::class)->extendDays($record, 30);
+        Notification::make()
+            ->title('Service extended')
+            ->body('New expiry: '.$result['expires_at'])
+            ->success()
+            ->send();
+    }
+
+    public function toggleNetworkAccess(): void
+    {
+        /** @var Customer $record */
+        $record = $this->record;
+        $suspend = ($record->network_access_state ?? 'active') !== 'suspended';
+
+        if ($suspend) {
+            $record->update(['network_access_state' => 'suspended']);
+            Notification::make()->title('Network suspended')->warning()->send();
+        } else {
+            $record->update(['status' => 'active', 'network_access_state' => 'active']);
+            Notification::make()->title('Network active')->success()->send();
+        }
+
+        SyncCustomerNetworkAccessJob::dispatch((int) $record->tenant_id, (int) $record->id)->afterResponse();
+        $this->record->refresh();
+    }
 
     public function mount(int|string $record): void
     {
@@ -96,6 +145,147 @@ class ViewCustomer extends ViewRecord
     protected function getHeaderActions(): array
     {
         return [
+            Actions\Action::make('extend_30_days')
+                ->label('Extend 30 days')
+                ->icon('heroicon-o-calendar')
+                ->color('success')
+                ->requiresConfirmation()
+                ->modalHeading('Quick recharge — extend 30 days')
+                ->modalDescription('Extends service expiry by 30 days and syncs MikroTik/RADIUS access (no invoice).')
+                ->action(function (): void {
+                    $this->extendThirtyDays();
+                    $this->redirect(static::getUrl(['record' => $this->record]));
+                }),
+            Actions\ActionGroup::make($this->subscriberToolsHeaderActions())
+                ->label('More tools')
+                ->icon('heroicon-o-ellipsis-horizontal')
+                ->button()
+                ->color('gray'),
+            Actions\EditAction::make(),
+        ];
+    }
+
+    /**
+     * @return array<int, Actions\Action>
+     */
+    protected function subscriberToolsHeaderActions(): array
+    {
+        return [
+            Actions\Action::make('assign_line')
+                ->label('নতুন লাইন / চার্জ')
+                ->icon('heroicon-o-bolt')
+                ->color('warning')
+                ->modalHeading('নতুন লাইন — চার্জ ও ডিভাইস')
+                ->modalDescription(fn (): string => 'লাইন চার্জ ইনভয়েসে যোগ হবে। ডিভাইস সিলেক্ট করলে সাবস্ক্রাইবারের কাছে লিংক হবে। ওয়ালেট থেকে বাকি টাকা কাটা যাবে।')
+                ->form([
+                    Forms\Components\Placeholder::make('wallet_hint')
+                        ->label('Wallet balance')
+                        ->content(function (): string {
+                            /** @var Customer $record */
+                            $record = $this->record;
+                            $balance = (float) $record->account_balance;
+
+                            return number_format($balance, 2).' BDT available';
+                        }),
+                    Forms\Components\TextInput::make('line_charge')
+                        ->label('লাইন / সংযোগ চার্জ (BDT)')
+                        ->numeric()
+                        ->minValue(0)
+                        ->default(fn (): float => app(CustomerLineActivationService::class)->defaultLineCharge($this->record))
+                        ->required(),
+                    Forms\Components\Select::make('device_id')
+                        ->label('ডিভাইস (ঐচ্ছিক)')
+                        ->searchable()
+                        ->options(function (): array {
+                            /** @var Customer $record */
+                            $record = $this->record;
+
+                            return Device::query()
+                                ->where('tenant_id', $record->tenant_id)
+                                ->where('type', '!=', 'olt')
+                                ->where(function ($q) use ($record): void {
+                                    $q->whereNull('customer_id')
+                                        ->orWhere('customer_id', $record->id);
+                                })
+                                ->whereIn('status', ['in_stock', 'assigned'])
+                                ->orderBy('display_name')
+                                ->limit(400)
+                                ->get()
+                                ->mapWithKeys(fn (Device $d): array => [
+                                    $d->id => trim(sprintf(
+                                        '%s · %s · %s',
+                                        $d->display_name ?: strtoupper((string) $d->type),
+                                        $d->serial_number ?: $d->mac_address ?: '—',
+                                        $d->status,
+                                    )),
+                                ])
+                                ->all();
+                        }),
+                    Forms\Components\TextInput::make('device_charge')
+                        ->label('ডিভাইস বিক্রয় / ইস্যু চার্জ (BDT)')
+                        ->numeric()
+                        ->minValue(0)
+                        ->default(0)
+                        ->helperText('ডিভাইস সিলেক্ট করলে খালি রাখলে ক্যাটালগ/লিজ মূল্য নেবে'),
+                    Forms\Components\Toggle::make('use_wallet')
+                        ->label('ওয়ালেট থেকে ইনভয়েস কাটুন')
+                        ->default(true)
+                        ->live()
+                        ->helperText('সাবস্ক্রাইবারের wallet থেকে due amount কাটা হবে'),
+                    Forms\Components\TextInput::make('cash_amount')
+                        ->label('নগদ সংগ্রহ (BDT)')
+                        ->numeric()
+                        ->minValue(0)
+                        ->default(0)
+                        ->helperText('Wallet-এর পর যে টাকা বাকি, staff এখনই নগদ নিলে লিখুন।'),
+                    Forms\Components\Select::make('cash_method')
+                        ->label('পেমেন্ট মাধ্যম')
+                        ->options([
+                            'cash' => 'Cash',
+                            'bkash' => 'bKash',
+                            'nagad' => 'Nagad',
+                            'bank' => 'Bank',
+                            'other' => 'Other',
+                        ])
+                        ->default('cash')
+                        ->native(false),
+                    Forms\Components\Textarea::make('notes')
+                        ->label('বিবরণ')
+                        ->rows(2)
+                        ->maxLength(500),
+                ])
+                ->action(function (array $data): void {
+                    /** @var Customer $record */
+                    $record = $this->record;
+
+                    try {
+                        $result = app(CustomerLineActivationService::class)->activate($record, [
+                            'line_charge' => (float) ($data['line_charge'] ?? 0),
+                            'device_id' => $data['device_id'] ?? null,
+                            'device_charge' => (float) ($data['device_charge'] ?? 0),
+                            'use_wallet' => (bool) ($data['use_wallet'] ?? true),
+                            'cash_amount' => (float) ($data['cash_amount'] ?? 0),
+                            'cash_method' => (string) ($data['cash_method'] ?? 'cash'),
+                            'notes' => $data['notes'] ?? null,
+                        ]);
+
+                        Notification::make()
+                            ->title('লাইন সক্রিয় হয়েছে')
+                            ->body($result['message'])
+                            ->success()
+                            ->send();
+                    } catch (\Illuminate\Validation\ValidationException $e) {
+                        Notification::make()
+                            ->title('সক্রিয় করা যায়নি')
+                            ->body(collect($e->errors())->flatten()->first() ?? $e->getMessage())
+                            ->danger()
+                            ->send();
+
+                        throw $e;
+                    }
+
+                    $this->redirect(static::getUrl(['record' => $record]));
+                }),
             Actions\Action::make('extend_validity_no_charge')
                 ->label('মেয়াদ বাড়ান (চার্জ ছাড়া)')
                 ->icon('heroicon-o-calendar-days')
@@ -631,7 +821,6 @@ class ViewCustomer extends ViewRecord
                     SyncCustomerNetworkAccessJob::dispatch((int) $record->tenant_id, (int) $record->id)->afterResponse();
                     Notification::make()->title('Network suspended')->success()->send();
                 }),
-            Actions\EditAction::make(),
         ];
     }
 

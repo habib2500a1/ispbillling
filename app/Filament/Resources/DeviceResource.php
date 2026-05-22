@@ -21,7 +21,7 @@ class DeviceResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-cpu-chip';
 
-    protected static ?string $navigationGroup = 'Inventory';
+    protected static ?string $navigationGroup = 'Inventory Pro';
 
     protected static ?int $navigationSort = 11;
 
@@ -72,6 +72,12 @@ class DeviceResource extends Resource
                     ->maxLength(255),
                 Forms\Components\TextInput::make('model')
                     ->maxLength(255),
+                Forms\Components\Select::make('product_id')
+                    ->label('Catalog product (stock link)')
+                    ->relationship('catalogProduct', 'name')
+                    ->searchable()
+                    ->nullable()
+                    ->helperText('Links CPE to inventory product for invoice hardware lines.'),
                 Forms\Components\Select::make('olt_id')
                     ->label('Parent OLT')
                     ->relationship(

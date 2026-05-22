@@ -3,10 +3,11 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../services/api_service.dart';
-import '../widgets/usage_area_chart.dart';
 import '../theme/app_theme.dart';
 import '../utils/layout.dart';
-import '../widgets/state_views.dart';
+import '../widgets/isp_tab_screen.dart';
+import '../widgets/isp_ui_kit.dart';
+import '../widgets/usage_area_chart.dart';
 
 class CustomerUsageScreen extends StatefulWidget {
   const CustomerUsageScreen({
@@ -80,101 +81,81 @@ class _CustomerUsageScreenState extends State<CustomerUsageScreen> {
 
   @override
   Widget build(BuildContext context) {
-    if (_loading) {
-      return const Center(child: CircularProgressIndicator());
-    }
-    if (_error != null) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: ErrorBanner(message: _error!, onRetry: _load),
-        ),
-      );
-    }
-
     final u = _usage ?? {};
     final online = u['online'] == true;
 
-    return RefreshIndicator(
+    return IspTabScreen(
+      title: 'Live usage',
+      subtitle: online ? 'Connected' : 'Offline',
+      loading: _loading,
+      error: _error,
+      onRetry: _load,
       onRefresh: _load,
       child: ListView(
-        padding: pagePadding(context),
+        padding: pagePadding(context, top: 10),
         children: [
-          Card(
-            color: online ? Colors.green.shade50 : Colors.grey.shade100,
-            child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                children: [
-                  Icon(
-                    online ? Icons.wifi : Icons.wifi_off,
-                    size: 56,
-                    color: online ? AppTheme.success : Colors.grey,
+          Container(
+            decoration: IspUiKit.cardDecoration(
+              tint: online ? const Color(0xFFECFDF5) : const Color(0xFFF1F5F9),
+            ),
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              children: [
+                Icon(
+                  online ? Icons.wifi_tethering : Icons.wifi_off,
+                  size: 56,
+                  color: online ? AppTheme.success : const Color(0xFF94A3B8),
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  online ? 'Online' : 'Offline',
+                  style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                    color: online ? AppTheme.success : const Color(0xFF64748B),
                   ),
-                  const SizedBox(height: 10),
-                  Text(
-                    online ? 'Connected' : 'Offline',
-                    style: TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
-                      color: online ? AppTheme.success : Colors.grey.shade700,
-                    ),
-                  ),
-                  if (u['framed_ip'] != null)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 6),
-                      child: Text('IP ${u['framed_ip']}', style: const TextStyle(color: Colors.grey)),
-                    ),
-                  if (online && u['connection_duration'] != null)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 6),
-                      child: Text('Uptime: ${u['connection_duration']}', style: const TextStyle(color: Colors.grey)),
-                    ),
-                  if (!online && u['last_disconnect_formatted'] != null)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 6),
-                      child: Text('Last disconnect: ${u['last_disconnect_formatted']}', style: const TextStyle(color: Colors.grey)),
-                    ),
-                ],
-              ),
+                ),
+                if (u['framed_ip'] != null)
+                  Text('IP ${u['framed_ip']}', style: const TextStyle(color: Color(0xFF64748B), fontSize: 12)),
+                if (online && u['connection_duration'] != null)
+                  Text('Uptime: ${u['connection_duration']}', style: const TextStyle(color: Color(0xFF64748B), fontSize: 12)),
+              ],
             ),
           ),
-          const SizedBox(height: 12),
-          const SectionTitle('Live graph'),
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(12),
-              child: UsageAreaChart(chart: u['chart'] as Map<String, dynamic>?),
-            ),
+          IspUiKit.sectionTitle('Live graph'),
+          Container(
+            decoration: IspUiKit.cardDecoration(),
+            padding: const EdgeInsets.all(12),
+            child: UsageAreaChart(chart: u['chart'] as Map<String, dynamic>?),
           ),
+          IspUiKit.sectionTitle('Speed'),
+          _metricCard('Download', u['download_human']?.toString() ?? '—', Icons.download_rounded, AppTheme.primary),
+          _metricCard('Upload', u['upload_human']?.toString() ?? '—', Icons.upload_rounded, AppTheme.teal),
+          IspUiKit.sectionTitle('Today'),
+          _metricCard('Download today', '${u['today_download'] ?? '—'}', Icons.arrow_downward),
+          _metricCard('Upload today', '${u['today_upload'] ?? '—'}', Icons.arrow_upward),
           const SizedBox(height: 8),
-          const SectionTitle('Live speed'),
-          _metric('Download', u['download_human']?.toString() ?? '—', Icons.download),
-          _metric('Upload', u['upload_human']?.toString() ?? '—', Icons.upload),
-          const SectionTitle('Today'),
-          _metric('Download today', '${u['today_download'] ?? '—'}'),
-          _metric('Upload today', '${u['today_upload'] ?? '—'}'),
-          _metric('Connected since', u['session_started_formatted']?.toString() ?? u['session_started']?.toString() ?? '—'),
-          if (online) _metric('Duration', u['connection_duration']?.toString() ?? '—'),
-          if (!online) _metric('Last disconnect', u['last_disconnect_formatted']?.toString() ?? '—'),
-          const SizedBox(height: 8),
-          Text(
-            'Graph updates every second while online — pull to refresh',
-            style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+          const Text(
+            'Updates every second while online',
             textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 11, color: Color(0xFF94A3B8)),
           ),
         ],
       ),
     );
   }
 
-  Widget _metric(String label, String value, [IconData? icon]) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 8),
-      child: ListTile(
-        leading: icon != null ? Icon(icon, color: AppTheme.primary) : null,
-        title: Text(label, style: const TextStyle(fontSize: 13, color: Colors.grey)),
-        trailing: Text(value, style: const TextStyle(fontWeight: FontWeight.bold)),
+  Widget _metricCard(String label, String value, IconData icon, [Color? color]) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Material(
+        color: AppTheme.card,
+        borderRadius: BorderRadius.circular(14),
+        child: ListTile(
+          leading: Icon(icon, color: color ?? AppTheme.primary),
+          title: Text(label, style: const TextStyle(fontSize: 13, color: Color(0xFF64748B))),
+          trailing: Text(value, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+        ),
       ),
     );
   }

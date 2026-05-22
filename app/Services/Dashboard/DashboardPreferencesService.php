@@ -10,6 +10,7 @@ final class DashboardPreferencesService
 {
     /** @var list<class-string> */
     public const DEFAULT_WIDGETS = [
+        \App\Filament\Widgets\PendingMfsVerifyAlertWidget::class,
         \App\Filament\Widgets\BillingExecutiveDashboardWidget::class,
         \App\Filament\Widgets\OperationsCommandCenterWidget::class,
         \App\Filament\Widgets\DashboardCommandStripWidget::class,
@@ -21,6 +22,7 @@ final class DashboardPreferencesService
     public static function layoutWidgetLabels(): array
     {
         return [
+            \App\Filament\Widgets\PendingMfsVerifyAlertWidget::class => 'MFS pending verify alert',
             \App\Filament\Widgets\BillingExecutiveDashboardWidget::class => 'Billing overview (KPIs + chart)',
             \App\Filament\Widgets\OperationsCommandCenterWidget::class => 'Operations command center',
             \App\Filament\Widgets\DashboardCommandStripWidget::class => 'Quick tools strip',

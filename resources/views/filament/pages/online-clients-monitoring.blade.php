@@ -2,6 +2,8 @@
     $stats = $this->getMonitoringStats();
     $sync = $this->getSyncStatus();
     $pollSeconds = (int) config('bandwidth.live_page_poll_seconds', 60);
+    $liveCheck = (bool) config('bandwidth.live_online_check', false);
+    $livePollSeconds = $liveCheck ? max(5, (int) config('bandwidth.live_online_cache_seconds', 5)) : 0;
     $syncAt = ! empty($sync['updated_at'])
         ? rescue(fn () => \Carbon\Carbon::parse($sync['updated_at'])->format('d M Y h:i A'), $sync['updated_at'])
         : null;
@@ -12,6 +14,9 @@
         class="space-y-4"
         @if ($pollSeconds > 0)
             wire:poll.{{ $pollSeconds }}s="refreshLiveData"
+        @endif
+        @if ($livePollSeconds > 0)
+            wire:poll.{{ $livePollSeconds }}s="$refresh"
         @endif
     >
         <section class="isp-online-clients-hero">
@@ -65,9 +70,14 @@
             </div>
         @endif
 
-        @if ($pollSeconds > 0)
+        @if ($pollSeconds > 0 || $livePollSeconds > 0)
             <p class="text-xs text-gray-500 dark:text-gray-400">
-                Auto-refresh every {{ $pollSeconds }}s while this page is open.
+                @if ($pollSeconds > 0)
+                    Session sync every {{ $pollSeconds }}s.
+                @endif
+                @if ($livePollSeconds > 0)
+                    Live RouterOS check every {{ $livePollSeconds }}s (set <code>BANDWIDTH_LIVE_ONLINE_CHECK=true</code>).
+                @endif
                 Use filter <strong>Online only</strong> to hide offline users.
             </p>
         @endif
