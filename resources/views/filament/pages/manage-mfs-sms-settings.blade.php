@@ -11,11 +11,13 @@
             <div>
                 <dt class="font-medium text-gray-600 dark:text-gray-400">Version</dt>
                 <dd class="mt-0.5 font-semibold text-emerald-700 dark:text-emerald-300">{{ $mfsApk['version_label'] }}
+                    @php $apkSource = \App\Support\MobileAppLinks::mfsVerifySource(); @endphp
+                    · {{ $apkSource === 'server' ? 'Server APK' : ($apkSource === 'github' ? 'GitHub release' : 'Custom URL') }}
                     @if($mfsApk['file_exists'])
                         · {{ $mfsApk['file_size_mb'] }} MB
                         @if($mfsApk['updated_at']) · {{ $mfsApk['updated_at'] }} @endif
                     @else
-                        · <span class="text-warning-600">APK not on server — run build script</span>
+                        · <span class="text-warning-600">No file in public/downloads — using fallback link</span>
                     @endif
                 </dd>
             </div>

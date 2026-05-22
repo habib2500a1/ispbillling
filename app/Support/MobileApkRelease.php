@@ -37,9 +37,9 @@ final class MobileApkRelease
         $build = (int) ($manifest['build'] ?? $fromPubspec['build'] ?? config('mobile.mfs_verify_build', 1));
         $name = (string) ($manifest['name'] ?? 'RCL SMS');
 
-        $baseUrl = MobileAppLinks::mfsVerifyDownloadUrl();
         $apkPath = public_path('downloads/isp-mfs-verify.apk');
-        $fileExists = is_file($apkPath); // optional local copy; production uses GitHub Releases
+        $fileExists = is_file($apkPath) && filesize($apkPath) > 1000;
+        $baseUrl = MobileAppLinks::mfsVerifyDownloadUrl();
         $fileSizeMb = $fileExists ? round(filesize($apkPath) / 1024 / 1024, 1) : null;
         $updatedAt = $fileExists ? date('Y-m-d H:i', filemtime($apkPath)) : null;
 
@@ -122,10 +122,11 @@ final class MobileApkRelease
 
         $payload = [
             'app' => 'mfs_verify',
-            'name' => $meta['name'] ?? 'MFS SMS Verify',
+            'name' => $meta['name'] ?? 'RCL SMS',
             'version' => $meta['version'],
             'build' => $meta['build'],
-            'download_url' => MobileApkGithub::mfsVerifyDownloadUrl(),
+            'download_url' => MobileAppLinks::mfsVerifyDownloadUrl(),
+            'source' => MobileAppLinks::mfsVerifySource(),
             'github_tag' => MobileApkGithub::mfsVerifyTag(),
             'published_at' => now()->toIso8601String(),
         ];

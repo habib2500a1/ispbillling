@@ -6,8 +6,12 @@ final class MobileAppLinks
 {
     public static function downloadUrl(): string
     {
-        $configured = config('mobile.apk_download_url');
+        $local = public_path('downloads/isp-radiant.apk');
+        if (self::localApkUsable($local)) {
+            return self::cacheBustedLocalUrl('/downloads/isp-radiant.apk', 'mobile/isp_radiant/pubspec.yaml');
+        }
 
+        $configured = config('mobile.apk_download_url');
         if (filled($configured)) {
             return (string) $configured;
         }
@@ -16,15 +20,17 @@ final class MobileAppLinks
             return MobileApkGithub::radiantDownloadUrl();
         }
 
-        $local = public_path('downloads/isp-radiant.apk');
-
-        return is_file($local) ? url('/downloads/isp-radiant.apk') : MobileApkGithub::radiantDownloadUrl();
+        return MobileApkGithub::radiantDownloadUrl();
     }
 
     public static function mfsVerifyDownloadUrl(): string
     {
-        $configured = config('mobile.mfs_verify_apk_url');
+        $local = public_path('downloads/isp-mfs-verify.apk');
+        if (self::localApkUsable($local)) {
+            return self::cacheBustedLocalUrl('/downloads/isp-mfs-verify.apk', MobileApkRelease::MFS_VERIFY_PUBSPEC);
+        }
 
+        $configured = config('mobile.mfs_verify_apk_url');
         if (filled($configured)) {
             return (string) $configured;
         }
@@ -33,9 +39,23 @@ final class MobileAppLinks
             return MobileApkGithub::mfsVerifyDownloadUrl();
         }
 
-        $local = public_path('downloads/isp-mfs-verify.apk');
+        return MobileApkGithub::mfsVerifyDownloadUrl();
+    }
 
-        return is_file($local) ? url('/downloads/isp-mfs-verify.apk') : MobileApkGithub::mfsVerifyDownloadUrl();
+    /**
+     * @return 'server'|'github'|'configured'
+     */
+    public static function mfsVerifySource(): string
+    {
+        if (self::localApkUsable(public_path('downloads/isp-mfs-verify.apk'))) {
+            return 'server';
+        }
+
+        if (filled(config('mobile.mfs_verify_apk_url'))) {
+            return 'configured';
+        }
+
+        return 'github';
     }
 
     /**
@@ -47,7 +67,7 @@ final class MobileAppLinks
     }
 
     /**
-     * @return array{unified: string, mfs_verify: string, mfs_verify_update: string, mfs_verify_version: string, unified_label: string, mfs_verify_label: string}
+     * @return array{unified: string, mfs_verify: string, mfs_verify_update: string, mfs_verify_version: string, unified_label: string, mfs_verify_label: string, mfs_verify_source: string}
      */
     public static function downloadCards(): array
     {
@@ -58,6 +78,7 @@ final class MobileAppLinks
             'mfs_verify' => $mfs['download_url'],
             'mfs_verify_update' => $mfs['update_url'],
             'mfs_verify_version' => $mfs['version_label'],
+            'mfs_verify_source' => self::mfsVerifySource(),
             'unified_label' => 'Radiant ISP (Admin + Client)',
             'mfs_verify_label' => 'RCL SMS (payment phone) v'.$mfs['version_label'],
         ];
@@ -88,5 +109,23 @@ final class MobileAppLinks
         }
 
         return url('/');
+    }
+
+    private static function localApkUsable(string $absolutePath): bool
+    {
+        return is_file($absolutePath) && filesize($absolutePath) > 1000;
+    }
+
+    private static function cacheBustedLocalUrl(string $publicPath, string $pubspecRelative): string
+    {
+        $url = url($publicPath);
+        $meta = MobileApkRelease::parsePubspecVersion($pubspecRelative);
+        if ($meta === null) {
+            return $url;
+        }
+
+        $separator = str_contains($url, '?') ? '&' : '?';
+
+        return $url.$separator.'v='.$meta['version'].'_'.$meta['build'];
     }
 }
