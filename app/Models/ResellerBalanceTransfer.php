@@ -18,6 +18,8 @@ class ResellerBalanceTransfer extends Model
 
     public const TYPE_COMMISSION_PAYOUT = 'commission_payout';
 
+    public const TYPE_PARENT_SHARE = 'parent_share';
+
     protected $fillable = [
         'tenant_id',
         'from_reseller_id',

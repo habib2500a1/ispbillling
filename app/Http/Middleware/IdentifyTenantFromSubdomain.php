@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\Reseller;
 use App\Models\Tenant;
 use App\Services\Tenant\TenantScopedConfig;
 use App\Support\TenantResolver;
@@ -39,6 +40,25 @@ class IdentifyTenantFromSubdomain
         if ($tenant) {
             TenantResolver::setSubdomainTenantId((int) $tenant->id);
             TenantScopedConfig::apply((int) $tenant->id);
+
+            return $next($request);
+        }
+
+        $reseller = Reseller::query()
+            ->withoutGlobalScopes()
+            ->where('portal_subdomain', $sub)
+            ->where('white_label_enabled', true)
+            ->where('is_active', true)
+            ->first();
+
+        if ($reseller !== null) {
+            TenantResolver::setSubdomainTenantId((int) $reseller->tenant_id);
+            TenantScopedConfig::apply((int) $reseller->tenant_id);
+            app()->instance('reseller.white_label', $reseller);
+
+            if ($request->is('/') && ! $request->is('reseller*')) {
+                return redirect('/reseller/login');
+            }
         }
 
         return $next($request);

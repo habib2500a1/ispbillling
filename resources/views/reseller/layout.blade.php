@@ -7,12 +7,27 @@
     <title>@yield('title', 'Reseller portal') — {{ config('app.name') }}</title>
     @include('partials.site-favicon')
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="{{ asset('css/reseller-portal.css') }}?v=2">
+    <link rel="stylesheet" href="{{ asset('css/reseller-portal.css') }}?v=3">
     <script src="{{ asset('js/portal-theme.js') }}?v=1"></script>
 </head>
 <body class="rsl-bg antialiased text-slate-900">
     @auth('reseller')
-        @php $reseller = auth('reseller')->user(); @endphp
+        @php
+            $reseller = auth('reseller')->user();
+            $nav = array_filter([
+                ['reseller.dashboard', 'Home', null],
+                $reseller->canPortal(\App\Support\ResellerPortalPermission::CUSTOMER_VIEW)
+                    ? ['reseller.customers.index', 'Subs', \App\Support\ResellerPortalPermission::CUSTOMER_VIEW] : null,
+                $reseller->canPortal(\App\Support\ResellerPortalPermission::COMMISSION_VIEW)
+                    ? ['reseller.commissions.index', 'Pay', \App\Support\ResellerPortalPermission::COMMISSION_VIEW] : null,
+                $reseller->canPortal(\App\Support\ResellerPortalPermission::WALLET_VIEW)
+                    ? ['reseller.wallet.index', 'Wallet', \App\Support\ResellerPortalPermission::WALLET_VIEW] : null,
+                $reseller->canPortal(\App\Support\ResellerPortalPermission::SETTLEMENT_MANAGE)
+                    ? ['reseller.settlements.index', 'Settle', \App\Support\ResellerPortalPermission::SETTLEMENT_MANAGE] : null,
+                $reseller->canPortal(\App\Support\ResellerPortalPermission::ONU_VIEW)
+                    ? ['reseller.onu.index', 'ONU', \App\Support\ResellerPortalPermission::ONU_VIEW] : null,
+            ]);
+        @endphp
         <header class="rsl-header">
             <div class="rsl-header-inner">
                 <a href="{{ route('reseller.dashboard') }}" class="flex items-center gap-3">
@@ -24,12 +39,14 @@
                     @endif
                     <div>
                         <p class="rsl-brand-title">{{ $reseller->brand_name ?: $reseller->name }}</p>
-                        <p class="rsl-brand-sub">{{ $reseller->code }}</p>
+                        <p class="rsl-brand-sub">{{ $reseller->code }} · {{ $reseller->franchiseTypeLabel() }}</p>
                     </div>
                 </a>
                 <div class="flex items-center gap-2">
                     <button type="button" class="rsl-theme-btn" onclick="portalCycleTheme()" id="rsl-theme-btn">◐</button>
-                    <span class="rsl-wallet-pill">{{ number_format((float) $reseller->wallet_balance, 0) }} BDT</span>
+                    @if ($reseller->canPortal(\App\Support\ResellerPortalPermission::WALLET_VIEW))
+                        <a href="{{ route('reseller.wallet.index') }}" class="rsl-wallet-pill">{{ number_format((float) $reseller->wallet_balance, 0) }} BDT</a>
+                    @endif
                     <form method="post" action="{{ route('reseller.logout') }}">
                         @csrf
                         <button type="submit" class="rsl-nav-link text-sm">Log out</button>
@@ -38,20 +55,12 @@
             </div>
         </header>
         <nav class="rsl-dock lg:hidden">
-            @foreach ([
-                ['reseller.dashboard', 'Home'],
-                ['reseller.customers.index', 'Subs'],
-                ['reseller.commissions.index', 'Pay'],
-            ] as [$route, $label])
+            @foreach ($nav as [$route, $label])
                 <a href="{{ route($route) }}" class="rsl-dock-link {{ request()->routeIs($route) ? 'rsl-dock-link--active' : '' }}">{{ $label }}</a>
             @endforeach
         </nav>
         <nav class="rsl-nav-desktop hidden lg:flex">
-            @foreach ([
-                ['reseller.dashboard', 'Dashboard'],
-                ['reseller.customers.index', 'Subscribers'],
-                ['reseller.commissions.index', 'Commissions'],
-            ] as [$route, $label])
+            @foreach ($nav as [$route, $label])
                 <a href="{{ route($route) }}" class="rsl-nav-link {{ request()->routeIs($route) ? 'rsl-nav-active' : '' }}">{{ $label }}</a>
             @endforeach
         </nav>
@@ -63,6 +72,25 @@
         @endif
         @yield('content')
     </main>
+    @auth('reseller')
+        <script>
+            (function () {
+                const pollUrl = @json(route('reseller.realtime.poll'));
+                let since = new Date().toISOString();
+                setInterval(async () => {
+                    try {
+                        const r = await fetch(pollUrl + '?since=' + encodeURIComponent(since), { headers: { 'Accept': 'application/json' } });
+                        if (!r.ok) return;
+                        const data = await r.json();
+                        since = data.server_time || since;
+                        if ((data.payments || []).length > 0) {
+                            document.dispatchEvent(new CustomEvent('reseller:payment', { detail: data }));
+                        }
+                    } catch (e) {}
+                }, 20000);
+            })();
+        </script>
+    @endauth
     <script>
         function portalCycleTheme() {
             const order = ['light', 'dark', 'system'];

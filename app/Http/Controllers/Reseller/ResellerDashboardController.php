@@ -4,15 +4,16 @@ namespace App\Http\Controllers\Reseller;
 
 use App\Http\Controllers\Controller;
 use App\Models\ResellerCommission;
+use App\Services\Resellers\ResellerPortalDashboardService;
 use Illuminate\View\View;
 
 class ResellerDashboardController extends Controller
 {
-    public function index(): View
+    public function index(ResellerPortalDashboardService $dashboard): View
     {
         /** @var \App\Models\Reseller $reseller */
         $reseller = auth('reseller')->user();
-        $stats = $reseller->dashboardStats();
+        $metrics = $dashboard->metrics($reseller);
 
         $recentCommissions = ResellerCommission::query()
             ->where('reseller_id', $reseller->id)
@@ -21,24 +22,9 @@ class ResellerDashboardController extends Controller
             ->limit(8)
             ->get();
 
-        $activeCustomers = $reseller->customers()
-            ->where('status', 'active')
-            ->count();
-
-        $overdueInvoices = $reseller->customers()
-            ->whereHas('invoices', fn ($q) => $q->whereIn('status', ['open', 'partial']))
-            ->count();
-
-        $onlineCustomers = $reseller->customers()
-            ->where('is_ppp_online', true)
-            ->count();
-
         return view('reseller.dashboard', [
             'reseller' => $reseller,
-            'stats' => $stats,
-            'activeCustomers' => $activeCustomers,
-            'onlineCustomers' => $onlineCustomers,
-            'overdueInvoices' => $overdueInvoices,
+            'metrics' => $metrics,
             'recentCommissions' => $recentCommissions,
         ]);
     }

@@ -33,6 +33,14 @@ use App\Http\Controllers\Reseller\ResellerCommissionController;
 use App\Http\Controllers\Reseller\ResellerCustomerController;
 use App\Http\Controllers\Reseller\ResellerDashboardController;
 use App\Http\Controllers\Reseller\ResellerLoginController;
+use App\Http\Controllers\Reseller\ResellerCustomerManageController;
+use App\Http\Controllers\Reseller\ResellerOnuController;
+use App\Http\Controllers\Reseller\ResellerPaymentController;
+use App\Http\Controllers\Reseller\ResellerRealtimeController;
+use App\Http\Controllers\Reseller\ResellerSettlementController;
+use App\Http\Controllers\Reseller\ResellerTwoFactorController;
+use App\Http\Controllers\Reseller\ResellerWalletController;
+use App\Support\ResellerPortalPermission;
 use App\Http\Controllers\PipraPayPaymentController;
 use App\Http\Controllers\RocketPaymentController;
 use App\Http\Controllers\InventoryShopController;
@@ -113,10 +121,57 @@ Route::middleware(['guest:reseller', 'throttle:15,1'])->group(function () {
     Route::post('/reseller/login', [ResellerLoginController::class, 'store'])->name('reseller.login.store');
 });
 
-Route::middleware('auth:reseller')->prefix('reseller')->name('reseller.')->group(function () {
+Route::middleware(['auth:reseller', 'reseller.2fa'])->prefix('reseller')->name('reseller.')->group(function () {
+    Route::get('/two-factor/challenge', [ResellerTwoFactorController::class, 'challenge'])->name('two-factor.challenge');
+    Route::post('/two-factor/challenge', [ResellerTwoFactorController::class, 'verifyChallenge'])->name('two-factor.verify');
+    Route::get('/two-factor/setup', [ResellerTwoFactorController::class, 'setup'])->name('two-factor.setup');
+    Route::post('/two-factor/setup', [ResellerTwoFactorController::class, 'confirmSetup'])->name('two-factor.confirm');
+
     Route::get('/', [ResellerDashboardController::class, 'index'])->name('dashboard');
-    Route::get('/customers', [ResellerCustomerController::class, 'index'])->name('customers.index');
-    Route::get('/commissions', [ResellerCommissionController::class, 'index'])->name('commissions.index');
+    Route::get('/realtime/config', [ResellerRealtimeController::class, 'config'])->name('realtime.config');
+    Route::get('/realtime/poll', [ResellerRealtimeController::class, 'poll'])->name('realtime.poll');
+    Route::get('/customers', [ResellerCustomerController::class, 'index'])
+        ->middleware('reseller.permission:'.ResellerPortalPermission::CUSTOMER_VIEW)
+        ->name('customers.index');
+    Route::get('/customers/create', [ResellerCustomerManageController::class, 'create'])
+        ->middleware('reseller.permission:'.ResellerPortalPermission::CUSTOMER_CREATE)
+        ->name('customers.create');
+    Route::post('/customers', [ResellerCustomerManageController::class, 'store'])
+        ->middleware('reseller.permission:'.ResellerPortalPermission::CUSTOMER_CREATE)
+        ->name('customers.store');
+    Route::get('/customers/{customer}', [ResellerCustomerManageController::class, 'show'])
+        ->middleware('reseller.permission:'.ResellerPortalPermission::CUSTOMER_VIEW)
+        ->name('customers.show');
+    Route::get('/customers/{customer}/edit', [ResellerCustomerManageController::class, 'edit'])
+        ->middleware('reseller.permission:'.ResellerPortalPermission::CUSTOMER_EDIT)
+        ->name('customers.edit');
+    Route::put('/customers/{customer}', [ResellerCustomerManageController::class, 'update'])
+        ->middleware('reseller.permission:'.ResellerPortalPermission::CUSTOMER_EDIT)
+        ->name('customers.update');
+    Route::get('/customers/{customer}/collect', [ResellerPaymentController::class, 'create'])
+        ->middleware('reseller.permission:'.ResellerPortalPermission::PAYMENT_COLLECT)
+        ->name('customers.collect');
+    Route::post('/customers/{customer}/collect', [ResellerPaymentController::class, 'store'])
+        ->middleware('reseller.permission:'.ResellerPortalPermission::PAYMENT_COLLECT)
+        ->name('customers.collect.store');
+    Route::get('/onu', [ResellerOnuController::class, 'index'])
+        ->middleware('reseller.permission:'.ResellerPortalPermission::ONU_VIEW)
+        ->name('onu.index');
+    Route::get('/onu/{customer}', [ResellerOnuController::class, 'show'])
+        ->middleware('reseller.permission:'.ResellerPortalPermission::ONU_VIEW)
+        ->name('onu.show');
+    Route::get('/commissions', [ResellerCommissionController::class, 'index'])
+        ->middleware('reseller.permission:'.ResellerPortalPermission::COMMISSION_VIEW)
+        ->name('commissions.index');
+    Route::get('/wallet', [ResellerWalletController::class, 'index'])
+        ->middleware('reseller.permission:'.ResellerPortalPermission::WALLET_VIEW)
+        ->name('wallet.index');
+    Route::get('/settlements', [ResellerSettlementController::class, 'index'])
+        ->middleware('reseller.permission:'.ResellerPortalPermission::SETTLEMENT_MANAGE)
+        ->name('settlements.index');
+    Route::post('/settlements', [ResellerSettlementController::class, 'store'])
+        ->middleware('reseller.permission:'.ResellerPortalPermission::SETTLEMENT_MANAGE)
+        ->name('settlements.store');
     Route::post('/logout', [ResellerLoginController::class, 'destroy'])->name('logout');
 });
 

@@ -7,6 +7,7 @@ use App\Filament\Resources\ResellerResource\Pages;
 use App\Filament\Resources\ResellerResource\RelationManagers;
 use App\Models\Reseller;
 use App\Models\User;
+use App\Support\ResellerPortalPermission;
 use App\Support\ResellerType;
 use Filament\Forms;
 use Filament\Forms\Get;
@@ -132,6 +133,30 @@ class ResellerResource extends Resource
                             ->visibleOn('edit'),
                     ])
                     ->columns(3),
+                Forms\Components\Section::make('Automation')
+                    ->schema([
+                        Forms\Components\Toggle::make('auto_invoice_enabled')
+                            ->label('Auto first invoice on new subscriber')
+                            ->default(true),
+                        Forms\Components\Toggle::make('auto_suspend_enabled')
+                            ->label('Auto suspend on due (via system jobs)')
+                            ->default(true)
+                            ->helperText('Uses global billing automation; flagged on subscriber meta.'),
+                    ])
+                    ->columns(2)
+                    ->collapsed(),
+                Forms\Components\Section::make('Portal permissions')
+                    ->description('Only checked capabilities are available in the partner portal (/reseller). Leave empty to use defaults for partner type.')
+                    ->icon('heroicon-o-shield-check')
+                    ->schema([
+                        Forms\Components\CheckboxList::make('portal_permissions')
+                            ->label('Allowed portal actions')
+                            ->options(ResellerPortalPermission::labels())
+                            ->columns(2)
+                            ->bulkToggleable()
+                            ->helperText('Unchecked list with no selection = automatic defaults by partner type.'),
+                    ])
+                    ->collapsed(),
                 Forms\Components\Section::make('Portal login')
                     ->description('Credentials for /reseller/login partner portal.')
                     ->icon('heroicon-o-key')
@@ -264,6 +289,7 @@ class ResellerResource extends Resource
             RelationManagers\TerritoriesRelationManager::class,
             RelationManagers\CustomersRelationManager::class,
             RelationManagers\CommissionsRelationManager::class,
+            RelationManagers\SettlementsRelationManager::class,
             RelationManagers\BalanceTransfersRelationManager::class,
         ];
     }

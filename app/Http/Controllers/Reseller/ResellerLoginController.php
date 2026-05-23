@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Reseller;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Reseller\ResellerLoginRequest;
 use App\Models\Reseller;
+use App\Services\Resellers\ResellerPortalDeviceTracker;
+use App\Services\Resellers\ResellerTwoFactorService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -26,7 +28,7 @@ class ResellerLoginController extends Controller
         return view('reseller.login');
     }
 
-    public function store(ResellerLoginRequest $request): RedirectResponse
+    public function store(ResellerLoginRequest $request, ResellerTwoFactorService $twoFactor, ResellerPortalDeviceTracker $devices): RedirectResponse
     {
         if (! config('reseller_portal.enabled', true)) {
             abort(404);
@@ -46,7 +48,13 @@ class ResellerLoginController extends Controller
 
         $request->session()->regenerate();
         Auth::guard('reseller')->login($reseller, $remember);
-        $reseller->forceFill(['portal_last_login_at' => now()])->save();
+        $devices->recordLogin($reseller, $request);
+
+        if ($reseller->requiresTwoFactor()) {
+            $request->session()->forget('reseller.2fa_passed');
+
+            return redirect()->route('reseller.two-factor.challenge');
+        }
 
         return redirect()->intended(route('reseller.dashboard'));
     }

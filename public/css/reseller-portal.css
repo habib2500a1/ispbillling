@@ -17,6 +17,63 @@
     padding: 1.25rem;
 }
 
+.rsl-kpi-grid {
+    display: grid;
+    gap: 1rem;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+@media (min-width: 768px) {
+    .rsl-kpi-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+}
+
+@media (min-width: 1280px) {
+    .rsl-kpi-grid {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+}
+
+.rsl-metric-label {
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #64748b;
+}
+
+.rsl-metric-value {
+    margin-top: 0.5rem;
+    font-size: 1.75rem;
+    font-weight: 800;
+    line-height: 1.1;
+}
+
+.rsl-metric-sub {
+    margin-top: 0.35rem;
+    font-size: 0.7rem;
+    color: #64748b;
+}
+
+.rsl-btn-sm {
+    display: inline-flex;
+    align-items: center;
+    border-radius: 0.5rem;
+    padding: 0.35rem 0.75rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #fff;
+    background: linear-gradient(135deg, #4f46e5, #7c3aed);
+    text-decoration: none;
+}
+
+.rsl-btn-sm--outline {
+    background: transparent;
+    border: 1px solid #cbd5e1;
+    color: #334155;
+}
+
 .rsl-nav-link {
     border-radius: 0.5rem;
     padding: 0.5rem 0.875rem;

@@ -183,6 +183,23 @@ Route::prefix('v1')->group(function (): void {
         });
     });
 
+    // Reseller partner API (Sanctum token on Reseller model)
+    Route::post('/reseller/login', [\App\Http\Controllers\Api\V1\Reseller\ResellerAuthController::class, 'login'])
+        ->middleware('throttle:15,1');
+
+    Route::middleware(['auth:sanctum', 'reseller.api', 'throttle:api'])->prefix('reseller')->group(function (): void {
+        Route::get('/me', [\App\Http\Controllers\Api\V1\Reseller\ResellerAuthController::class, 'me']);
+        Route::post('/logout', [\App\Http\Controllers\Api\V1\Reseller\ResellerAuthController::class, 'logout']);
+        Route::get('/dashboard', [\App\Http\Controllers\Api\V1\Reseller\ResellerApiDashboardController::class, 'show']);
+        Route::get('/customers', [\App\Http\Controllers\Api\V1\Reseller\ResellerApiCustomerController::class, 'index']);
+        Route::post('/customers', [\App\Http\Controllers\Api\V1\Reseller\ResellerApiCustomerController::class, 'store']);
+        Route::get('/customers/{customer}', [\App\Http\Controllers\Api\V1\Reseller\ResellerApiCustomerController::class, 'show'])->whereNumber('customer');
+        Route::patch('/customers/{customer}', [\App\Http\Controllers\Api\V1\Reseller\ResellerApiCustomerController::class, 'update'])->whereNumber('customer');
+        Route::post('/customers/{customer}/payments', [\App\Http\Controllers\Api\V1\Reseller\ResellerApiPaymentController::class, 'store'])->whereNumber('customer');
+        Route::get('/onu', [\App\Http\Controllers\Api\V1\Reseller\ResellerApiOnuController::class, 'index']);
+        Route::get('/onu/{customer}', [\App\Http\Controllers\Api\V1\Reseller\ResellerApiOnuController::class, 'show'])->whereNumber('customer');
+    });
+
     // Customer mobile app
     Route::prefix('customer')->group(function (): void {
         Route::post('/login', [CustomerAuthController::class, 'login'])->middleware('throttle:15,1');

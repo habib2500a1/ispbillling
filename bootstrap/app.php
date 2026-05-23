@@ -54,7 +54,12 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->alias([
             'portal.enabled' => EnsureCustomerPortalEnabled::class,
+            'reseller.permission' => \App\Http\Middleware\EnsureResellerPortalPermission::class,
+            'reseller.2fa' => \App\Http\Middleware\EnsureResellerTwoFactorVerified::class,
+            'reseller.api' => \App\Http\Middleware\EnsureSanctumReseller::class,
         ]);
+
+        $middleware->appendToGroup('web', \App\Http\Middleware\ResolveResellerWhiteLabel::class);
 
         $middleware->appendToGroup('web', SecurityHeaders::class);
         $middleware->appendToGroup('api', SecurityHeaders::class);

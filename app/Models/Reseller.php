@@ -4,16 +4,18 @@ namespace App\Models;
 
 use App\Models\Concerns\BelongsToTenant;
 use App\Models\User;
+use App\Support\ResellerPortalPermission;
 use App\Support\ResellerType;
 use Illuminate\Auth\Authenticatable as AuthenticatableTrait;
 use Illuminate\Contracts\Auth\Authenticatable as AuthenticatableContract;
 use Illuminate\Database\Eloquent\Model;
+use Laravel\Sanctum\HasApiTokens;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Reseller extends Model implements AuthenticatableContract
 {
-    use AuthenticatableTrait, BelongsToTenant;
+    use AuthenticatableTrait, BelongsToTenant, HasApiTokens;
 
     public static function findForPortalLogin(string $login): ?self
     {
@@ -94,11 +96,19 @@ class Reseller extends Model implements AuthenticatableContract
         'wallet_balance',
         'is_active',
         'notes',
+        'portal_permissions',
+        'auto_invoice_enabled',
+        'auto_suspend_enabled',
+        'two_factor_secret',
+        'two_factor_recovery_codes',
+        'portal_devices',
     ];
 
     protected $hidden = [
         'portal_password',
         'remember_token',
+        'two_factor_secret',
+        'two_factor_recovery_codes',
     ];
 
     public function getAuthPassword(): string
@@ -120,7 +130,35 @@ class Reseller extends Model implements AuthenticatableContract
             'commission_value' => 'decimal:2',
             'revenue_share_percent' => 'decimal:2',
             'wallet_balance' => 'decimal:2',
+            'portal_permissions' => 'array',
+            'auto_invoice_enabled' => 'boolean',
+            'auto_suspend_enabled' => 'boolean',
+            'two_factor_confirmed_at' => 'datetime',
+            'portal_devices' => 'array',
         ];
+    }
+
+    public function requiresTwoFactor(): bool
+    {
+        return $this->two_factor_confirmed_at !== null;
+    }
+
+    /**
+     * @return list<string>
+     */
+    public function portalPermissions(): array
+    {
+        $custom = $this->portal_permissions;
+        if (is_array($custom) && $custom !== []) {
+            return array_values(array_intersect($custom, ResellerPortalPermission::all()));
+        }
+
+        return ResellerPortalPermission::defaultsFor((string) ($this->franchise_type ?: ResellerType::RESELLER));
+    }
+
+    public function canPortal(string $permission): bool
+    {
+        return in_array($permission, $this->portalPermissions(), true);
     }
 
     public function parent(): BelongsTo
@@ -166,6 +204,11 @@ class Reseller extends Model implements AuthenticatableContract
     public function commissions(): HasMany
     {
         return $this->hasMany(ResellerCommission::class);
+    }
+
+    public function settlements(): HasMany
+    {
+        return $this->hasMany(ResellerSettlement::class);
     }
 
     public function isSubReseller(): bool

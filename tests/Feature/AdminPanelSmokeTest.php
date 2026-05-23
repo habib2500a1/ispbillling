@@ -43,7 +43,7 @@ class AdminPanelSmokeTest extends TestCase
             'invoices' => ['/admin/invoices', 'Invoice'],
             'payments' => ['/admin/payments', 'Payment'],
             'resellers hub' => ['/admin/resellers-hub', 'Reseller'],
-            'resellers create' => ['/admin/resellers/create', 'Partner profile'],
+            'resellers create' => ['/admin/resellers/create', 'Add reseller'],
             'accounting hub' => ['/admin/accounting-hub', 'Accounting'],
             'financial reports' => ['/admin/financial-reports', 'Profit'],
             'reports hub' => ['/admin/reports-hub', 'Reporting'],

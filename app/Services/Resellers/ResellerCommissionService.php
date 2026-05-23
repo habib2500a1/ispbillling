@@ -105,5 +105,36 @@ final class ResellerCommissionService
         ]);
 
         app(ResellerCommissionNotifier::class)->notifyPaid($commission->fresh());
+
+        $this->payoutParentShare($commission->fresh());
+    }
+
+    public function payoutParentShare(ResellerCommission $commission): void
+    {
+        $parentShare = (float) $commission->parent_share_amount;
+        if ($parentShare <= 0) {
+            return;
+        }
+
+        $reseller = $commission->reseller;
+        $parent = $reseller?->parent;
+        if ($parent === null || ! $parent->is_active) {
+            return;
+        }
+
+        if (ResellerBalanceTransfer::query()
+            ->where('transfer_type', ResellerBalanceTransfer::TYPE_PARENT_SHARE)
+            ->where('reference', 'PARENT-'.$commission->id)
+            ->exists()) {
+            return;
+        }
+
+        app(ResellerBalanceService::class)->credit(
+            $parent,
+            $parentShare,
+            ResellerBalanceTransfer::TYPE_PARENT_SHARE,
+            'PARENT-'.$commission->id,
+            'Revenue share from '.$reseller->code.' · commission #'.$commission->id,
+        );
     }
 }
