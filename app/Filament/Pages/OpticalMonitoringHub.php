@@ -16,6 +16,7 @@ use App\Services\Network\OltSnmpMonitorService;
 use App\Services\Olt\OltHealthHistoryService;
 use App\Services\Olt\OltNocDashboardService;
 use App\Services\Olt\OltProvisioningService;
+use App\Services\Optical\OpticalDatabasePresenter;
 use App\Services\Optical\OpticalTopologyService;
 use App\Services\Optical\OpticalNocDashboardService;
 use App\Services\Optical\OpticalSignalHistoryService;
@@ -33,7 +34,6 @@ use Filament\Tables\Concerns\InteractsWithTable;
 use Filament\Tables\Contracts\HasTable;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
-
 class OpticalMonitoringHub extends Page implements HasForms, HasTable
 {
     use InteractsWithForms;
@@ -55,7 +55,13 @@ class OpticalMonitoringHub extends Page implements HasForms, HasTable
 
     protected static ?string $slug = 'optical-noc';
 
-    public string $monitorTab = 'onus';
+    public string $monitorTab = 'database';
+
+    public string $opticalDbSearch = '';
+
+    public int $opticalDbPerPage = 25;
+
+    public int $opticalDbPage = 1;
 
     /**
      * @return array<string, mixed>
@@ -131,12 +137,46 @@ class OpticalMonitoringHub extends Page implements HasForms, HasTable
 
     public function setMonitorTab(string $tab): void
     {
-        if (! in_array($tab, ['onus', 'alerts', 'charts', 'pon', 'ai', 'olt', 'topology'], true)) {
+        if (! in_array($tab, ['database', 'onus', 'alerts', 'charts', 'pon', 'ai', 'olt', 'topology'], true)) {
             return;
         }
 
         $this->monitorTab = $tab;
         $this->resetTable();
+    }
+
+    public function updatedOpticalDbSearch(): void
+    {
+        $this->opticalDbPage = 1;
+    }
+
+    public function updatedOpticalDbPerPage(): void
+    {
+        $this->opticalDbPage = 1;
+    }
+
+    public function gotoOpticalDbPage(int $page): void
+    {
+        $this->opticalDbPage = max(1, $page);
+    }
+
+    /**
+     * @return array{summary: array<string, int>, rows: \Illuminate\Contracts\Pagination\LengthAwarePaginator}
+     */
+    public function getOpticalDatabasePayload(): array
+    {
+        $tenantId = TenantResolver::requiredTenantId();
+        $presenter = app(OpticalDatabasePresenter::class);
+
+        return [
+            'summary' => $presenter->summary($tenantId),
+            'rows' => $presenter->paginate(
+                $tenantId,
+                $this->opticalDbSearch !== '' ? $this->opticalDbSearch : null,
+                $this->opticalDbPerPage,
+                max(1, $this->opticalDbPage),
+            ),
+        ];
     }
 
     public function table(Table $table): Table

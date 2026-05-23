@@ -1,0 +1,80 @@
+<?php
+
+namespace App\Services\Optical;
+
+use App\Models\Customer;
+use App\Models\Device;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Database\Eloquent\Builder;
+
+/**
+ * ISP Digital–style optical database grid (all ONUs for tenant).
+ */
+final class OpticalDatabasePresenter
+{
+    public function __construct(
+        private readonly SubscriberOpticalPowerPresenter $rows,
+    ) {}
+
+    public function paginate(int $tenantId, ?string $search = null, int $perPage = 25, int $page = 1): LengthAwarePaginator
+    {
+        $perPage = in_array($perPage, [10, 25, 50, 100, 200], true) ? $perPage : 25;
+        $page = max(1, $page);
+
+        $query = Device::query()
+            ->withoutGlobalScopes()
+            ->where('tenant_id', $tenantId)
+            ->where('type', 'onu')
+            ->with([
+                'customer.activePppSession',
+                'customer.devices',
+                'olt',
+                'oltPort',
+            ])
+            ->orderByDesc('last_polled_at')
+            ->orderBy('serial_number');
+
+        if (filled($search)) {
+            $term = '%'.trim($search).'%';
+            $query->where(function (Builder $q) use ($term): void {
+                $q->where('serial_number', 'like', $term)
+                    ->orWhere('mac_address', 'like', $term)
+                    ->orWhere('display_name', 'like', $term)
+                    ->orWhereHas('customer', function (Builder $c) use ($term): void {
+                        $c->where('name', 'like', $term)
+                            ->orWhere('customer_code', 'like', $term)
+                            ->orWhere('mikrotik_secret_name', 'like', $term)
+                            ->orWhere('radius_username', 'like', $term);
+                    })
+                    ->orWhereHas('olt', function (Builder $o) use ($term): void {
+                        $o->where('display_name', 'like', $term)
+                            ->orWhere('serial_number', 'like', $term);
+                    });
+            });
+        }
+
+        $paginator = $query->paginate(perPage: $perPage, page: $page);
+
+        $start = ($paginator->currentPage() - 1) * $paginator->perPage();
+
+        $paginator->getCollection()->transform(function (Device $onu, int $offset) use ($start): array {
+            return $this->rows->rowForOnu($onu, $start + $offset + 1);
+        });
+
+        return $paginator;
+    }
+
+    /**
+     * @return array{total: int, with_rx: int, linked: int}
+     */
+    public function summary(int $tenantId): array
+    {
+        $base = Device::query()->withoutGlobalScopes()->where('tenant_id', $tenantId)->where('type', 'onu');
+
+        return [
+            'total' => (clone $base)->count(),
+            'with_rx' => (clone $base)->whereNotNull('rx_power_dbm')->count(),
+            'linked' => (clone $base)->whereNotNull('customer_id')->count(),
+        ];
+    }
+}

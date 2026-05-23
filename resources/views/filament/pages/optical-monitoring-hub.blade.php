@@ -57,13 +57,17 @@
         </div>
 
         <div class="flex flex-wrap gap-2">
-            @foreach (['onus' => 'Live ONU dBm', 'olt' => 'OLT health', 'topology' => 'Topology map', 'charts' => 'Signal graphs', 'pon' => 'PON ports', 'ai' => 'AI warnings', 'alerts' => 'Alerts'] as $tab => $label)
+            @foreach (['database' => 'Optical Database', 'onus' => 'Compact ONU', 'olt' => 'OLT health', 'topology' => 'Topology map', 'charts' => 'Signal graphs', 'pon' => 'PON ports', 'ai' => 'AI warnings', 'alerts' => 'Alerts'] as $tab => $label)
                 <button type="button" wire:click="setMonitorTab('{{ $tab }}')"
                     @class(['rounded-lg px-4 py-2 text-sm font-semibold', 'bg-cyan-600 text-white shadow' => $monitorTab === $tab, 'bg-gray-100 dark:bg-gray-800' => $monitorTab !== $tab])>
                     {{ $label }}
                 </button>
             @endforeach
         </div>
+
+        @if ($monitorTab === 'database')
+            @include('filament.pages.partials.optical-database-table')
+        @endif
 
         @if ($monitorTab === 'olt')
             <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-5 mb-4">

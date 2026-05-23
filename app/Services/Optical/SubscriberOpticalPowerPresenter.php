@@ -68,7 +68,7 @@ final class SubscriberOpticalPowerPresenter
         }
 
         $rows = $onus->values()->map(
-            fn (Device $onu, int $index): array => $this->row($customer, $onu, $index + 1),
+            fn (Device $onu, int $index): array => $this->rowForOnu($onu, $index + 1),
         )->all();
 
         return [
@@ -126,6 +126,76 @@ final class SubscriberOpticalPowerPresenter
     /**
      * @return array<string, mixed>
      */
+    public function rowForOnu(Device $onu, int $index): array
+    {
+        $customer = $onu->customer;
+        if ($customer === null && $onu->customer_id) {
+            $customer = Customer::query()->withoutGlobalScopes()->find($onu->customer_id);
+        }
+
+        if ($customer === null) {
+            return $this->rowUnlinked($onu, $index);
+        }
+
+        $customer->loadMissing(['activePppSession', 'devices']);
+
+        return $this->row($customer, $onu, $index);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function rowUnlinked(Device $onu, int $index): array
+    {
+        $meta = is_array($onu->meta) ? $onu->meta : [];
+        $rx = $onu->rx_power_dbm !== null ? (float) $onu->rx_power_dbm : null;
+        $oper = strtolower((string) ($onu->onu_oper_status ?? ''));
+        $rxLevel = OnuSignalLevel::classifyRx($rx, $oper);
+
+        $lastSync = $onu->last_polled_at
+            ?? ($meta['last_bdcom_sync'] ?? null ? Carbon::parse((string) $meta['last_bdcom_sync']) : null);
+
+        $distance = $meta['distance_m'] ?? $meta['bdcom_distance'] ?? $onu->oltPort?->fiber_distance_m;
+
+        return [
+            'index' => $index,
+            'onu_id' => $onu->id,
+            'customer_id' => null,
+            'client_code' => '—',
+            'username' => $meta['ppp_login'] ?? $meta['bdcom_description'] ?? '—',
+            'client_name' => '—',
+            'mac_address' => '—',
+            'ip_address' => $onu->framed_ip_address ?: '—',
+            'olt_name' => $onu->olt?->display_name ?? $onu->olt?->serial_number ?? '—',
+            'optical_power' => $rx !== null ? number_format($rx, 4, '.', '') : '—',
+            'optical_power_raw' => $rx,
+            'optical_level' => $rxLevel,
+            'optical_level_label' => OnuSignalLevel::labels()[$rxLevel] ?? $rxLevel,
+            'optical_color' => OnuSignalLevel::filamentColor($rxLevel),
+            'tx_power' => $onu->tx_power_dbm !== null ? number_format((float) $onu->tx_power_dbm, 4, '.', '') : '—',
+            'onu_mac' => $onu->mac_address
+                ? (MacAddress::normalizeColon($onu->mac_address) ?? $onu->mac_address)
+                : '—',
+            'olt_port' => $this->oltPortLabel($onu),
+            'onu_status' => $this->formatStatus((string) ($onu->onu_oper_status ?? 'unknown')),
+            'description' => $this->firstFilled(
+                $meta['bdcom_description'] ?? null,
+                $meta['ppp_login'] ?? null,
+                $onu->notes,
+            ) ?: '—',
+            'last_deregister_time' => $this->formatDeregisterTime($meta, $oper),
+            'distance' => $distance !== null && $distance !== '' ? (string) $distance : '—',
+            'deregister_reason' => $this->formatDeregisterReason($onu, $meta, $oper),
+            'last_synced_time' => $lastSync?->format('n/j/Y, g:i:s A') ?? '—',
+            'is_high_laser' => OpticalThresholds::isHighRx($rx) || OpticalThresholds::isHighTx(
+                $onu->tx_power_dbm !== null ? (float) $onu->tx_power_dbm : null,
+            ),
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
     private function row(Customer $customer, Device $onu, int $index): array
     {
         $meta = is_array($onu->meta) ? $onu->meta : [];
@@ -164,6 +234,8 @@ final class SubscriberOpticalPowerPresenter
 
         return [
             'index' => $index,
+            'onu_id' => $onu->id,
+            'customer_id' => $customer->id,
             'client_code' => $customer->customer_code ?: (string) $customer->id,
             'username' => $customer->mikrotik_secret_name ?: $customer->radius_username ?: '—',
             'client_name' => $customer->name,
