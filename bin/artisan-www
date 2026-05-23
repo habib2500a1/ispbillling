@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+# Always run Artisan as www-data so storage/framework/views stays writable by PHP-FPM.
+set -euo pipefail
+cd "$(dirname "$0")/.."
+exec sudo -u www-data /usr/bin/php artisan "$@"
