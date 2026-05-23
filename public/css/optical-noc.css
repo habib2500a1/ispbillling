@@ -193,12 +193,26 @@
     position: sticky;
     left: 0;
     z-index: 2;
-    background: inherit;
+    background: #fff;
     box-shadow: 2px 0 6px rgba(0, 0, 0, 0.06);
+}
+
+.dark .isp-optical-power-col--sticky {
+    background: rgb(17 24 39);
+    color: #e5e7eb;
 }
 
 .isp-optical-power-table thead .isp-optical-power-col--sticky {
     background: linear-gradient(180deg, #1e3a5f 0%, #152a45 100%);
+    color: #fff;
+}
+
+.isp-optical-power-table tbody tr:nth-child(even) .isp-optical-power-col--sticky {
+    background: #f8fafc;
+}
+
+.dark .isp-optical-power-table tbody tr:nth-child(even) .isp-optical-power-col--sticky {
+    background: rgba(255, 255, 255, 0.03);
 }
 
 .isp-optical-power-value {

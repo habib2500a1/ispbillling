@@ -15,8 +15,10 @@ class DashboardStreamController extends Controller
         $tenantId = TenantResolver::requiredTenantId();
 
         return response()->stream(function () use ($metrics, $tenantId): void {
+            // Keep SSE short so PHP-FPM workers are not held for hours (pool max_children is small).
+            $maxIterations = max(1, min(12, (int) config('dashboard.stream_max_iterations', 6)));
             $iterations = 0;
-            while ($iterations < 120) {
+            while ($iterations < $maxIterations) {
                 if (connection_aborted()) {
                     break;
                 }

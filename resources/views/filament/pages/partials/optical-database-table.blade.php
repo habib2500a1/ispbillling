@@ -5,7 +5,7 @@
     $rows = $paginator->items();
 @endphp
 
-<div class="space-y-3" wire:poll.120s>
+<div class="space-y-3">
     <div class="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 dark:border-slate-700 dark:bg-slate-900">
         <div class="flex flex-wrap gap-4 text-sm">
             <span><strong>{{ number_format($summary['total']) }}</strong> ONU</span>
@@ -113,7 +113,7 @@
     <div class="flex flex-wrap items-center justify-between gap-2 text-sm text-gray-600 dark:text-gray-400">
         <p>
             Showing {{ $paginator->firstItem() ?? 0 }}–{{ $paginator->lastItem() ?? 0 }} of {{ number_format($paginator->total()) }}
-            · OpticalPower = RX dBm · 60s refresh
+            · OpticalPower = RX dBm · refresh page to update
         </p>
         <div class="flex items-center gap-2">
             <button type="button" wire:click="gotoOpticalDbPage({{ max(1, $paginator->currentPage() - 1) }})"
