@@ -39,7 +39,7 @@ final class OltSidebarRegistry
             ],
             [
                 'key' => 'optical_noc',
-                'label' => 'Optical NOC',
+                'label' => 'Optical Database',
                 'icon' => 'heroicon-o-light-bulb',
                 'sort' => 3,
                 'url' => OpticalMonitoringHub::getUrl(),

@@ -3,9 +3,9 @@
 @endphp
 
 <x-filament-panels::page>
-    <link rel="stylesheet" href="{{ asset('css/optical-noc.css') }}?v=2">
+    <link rel="stylesheet" href="{{ asset('css/optical-noc.css') }}?v=3">
 
-    <div class="isp-optical-noc space-y-4">
+    <div class="isp-optical-noc space-y-4" wire:key="optical-database-v3">
         <div class="isp-optical-db-banner">
             <div>
                 <p class="text-xs font-bold uppercase tracking-widest text-blue-200">ISP Digital style</p>
@@ -115,9 +115,7 @@
         @endif
 
         @if ($monitorTab === 'alerts')
-            <div class="rounded-xl border bg-white p-4 dark:bg-gray-900">
-                {{ $this->table }}
-            </div>
+            @include('filament.pages.partials.optical-alerts-table')
         @endif
     </div>
 </x-filament-panels::page>

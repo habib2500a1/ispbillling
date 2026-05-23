@@ -164,7 +164,7 @@ class OpticalMonitoringTest extends TestCase
         $this->actingAs($user)
             ->get('/admin/optical-noc')
             ->assertOk()
-            ->assertSee('ONU optical');
+            ->assertSee('Optical Database');
     }
 
     public function test_optical_noc_livewire_renders_onu_without_health_score(): void
