@@ -70,7 +70,7 @@ final class OnuSignalCollectionService
         }
 
         $this->rollupHourlyLogs($tenantId, $now);
-        $this->pruneOldLogs($tenantId);
+        app(OpticalDatabaseMaintenanceService::class)->prune($tenantId);
 
         return [
             'onus' => Device::query()->withoutGlobalScopes()->where('tenant_id', $tenantId)->where('type', 'onu')->count(),
@@ -145,21 +145,4 @@ final class OnuSignalCollectionService
         }
     }
 
-    private function pruneOldLogs(int $tenantId): void
-    {
-        $snapDays = (int) config('optical.snapshot_retention_days', 14);
-        $hourDays = (int) config('optical.hourly_retention_days', 90);
-
-        OnuSignalLog::query()
-            ->where('tenant_id', $tenantId)
-            ->where('granularity', 'snapshot')
-            ->where('sampled_at', '<', now()->subDays($snapDays))
-            ->delete();
-
-        OnuSignalLog::query()
-            ->where('tenant_id', $tenantId)
-            ->where('granularity', 'hourly')
-            ->where('sampled_at', '<', now()->subDays($hourDays))
-            ->delete();
-    }
 }

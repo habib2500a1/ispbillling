@@ -121,6 +121,14 @@ class Device extends Model
         return $query->where('type', 'olt');
     }
 
+    /** ONUs with at least one optical power reading stored. */
+    public function scopeWithOpticalPower(Builder $query): Builder
+    {
+        return $query->where(function (Builder $q): void {
+            $q->whereNotNull('rx_power_dbm')->orWhereNotNull('tx_power_dbm');
+        });
+    }
+
     public function scopeNonOlts(Builder $query): Builder
     {
         return $query->where('type', '!=', 'olt');

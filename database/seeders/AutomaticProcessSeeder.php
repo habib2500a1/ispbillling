@@ -280,6 +280,17 @@ class AutomaticProcessSeeder extends Seeder
                 'sort_order' => 130,
             ],
             [
+                'slug' => 'prune-optical-database',
+                'name' => 'Prune optical DB history (retention)',
+                'artisan_command' => 'isp:prune-optical-database',
+                'command_options' => [],
+                'execute_at' => '03:30',
+                'interval' => 'daily',
+                'when_config_key' => 'optical.enabled',
+                'without_overlapping_minutes' => 30,
+                'sort_order' => 131,
+            ],
+            [
                 'slug' => 'auto-link-customer-onus',
                 'name' => 'Auto-link customer ONUs by MAC',
                 'artisan_command' => 'isp:auto-link-customer-onus',
