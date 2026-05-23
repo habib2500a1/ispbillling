@@ -8,6 +8,7 @@ use App\Models\OnuSignalLog;
 use App\Services\Optical\Analysis\OpticalSignalAnalyzer;
 use App\Services\Optical\Normalization\OpticalPowerNormalizer;
 use App\Services\Optical\Validation\OpticalSignalValidator;
+use App\Services\Mobile\MobileBroadcastService;
 use App\Support\OnuSignalLevel;
 use Carbon\Carbon;
 
@@ -127,7 +128,23 @@ final class OpticalReadingPipeline
             ],
         );
 
-        return ['device' => $onu->fresh(), 'log' => $log];
+        $fresh = $onu->fresh();
+
+        if (config('broadcasting.default') !== 'log') {
+            app(MobileBroadcastService::class)->onuSignalChanged(
+                (int) $fresh->tenant_id,
+                (int) $fresh->id,
+                [
+                    'rx_dbm' => $smoothed['rx_dbm'],
+                    'tx_dbm' => $smoothed['tx_dbm'],
+                    'rx_level' => $rxLevel,
+                    'oper_status' => $oper,
+                    'health_score' => OnuSignalLevel::healthScoreFromRxLevel($rxLevel),
+                ],
+            );
+        }
+
+        return ['device' => $fresh, 'log' => $log];
     }
 
     private function toFloat(mixed $value): ?float

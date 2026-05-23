@@ -1,0 +1,67 @@
+/* Optical NOC — enterprise monitoring UI */
+.isp-optical-noc {
+    --isp-noc-glass: rgba(15, 23, 42, 0.72);
+    --isp-noc-accent: #22d3ee;
+    --isp-noc-warn: #fbbf24;
+    --isp-noc-crit: #fb7185;
+}
+
+.isp-optical-noc__hero {
+    border-radius: 1rem;
+    padding: 1.5rem;
+    background: linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(30, 27, 75, 0.9) 50%, rgba(6, 78, 99, 0.85) 100%);
+    border: 1px solid rgba(34, 211, 238, 0.25);
+    box-shadow: 0 20px 50px -20px rgba(0, 0, 0, 0.5);
+    color: #f8fafc;
+}
+
+.isp-optical-noc__health-ring {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 5.5rem;
+    height: 5.5rem;
+    border-radius: 50%;
+    border: 4px solid var(--isp-noc-accent);
+    font-size: 1.25rem;
+    font-weight: 800;
+    background: rgba(0, 0, 0, 0.25);
+}
+
+.isp-optical-noc__kpi {
+    border-radius: 0.75rem;
+    padding: 1rem;
+    background: rgba(255, 255, 255, 0.06);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.isp-optical-noc__kpi-value {
+    font-size: 1.75rem;
+    font-weight: 800;
+    line-height: 1.1;
+}
+
+.isp-optical-noc__chart-card {
+    border-radius: 1rem;
+    padding: 1rem;
+    background: white;
+    border: 1px solid #e2e8f0;
+}
+
+.dark .isp-optical-noc__chart-card {
+    background: rgb(17 24 39);
+    border-color: rgb(55 65 81);
+}
+
+.isp-optical-noc__ai-row {
+    border-left: 3px solid var(--isp-noc-warn);
+    padding: 0.75rem 1rem;
+    border-radius: 0 0.5rem 0.5rem 0;
+    background: rgba(251, 191, 36, 0.08);
+}
+
+.isp-optical-noc__ai-row--critical {
+    border-left-color: var(--isp-noc-crit);
+    background: rgba(251, 113, 133, 0.1);
+}

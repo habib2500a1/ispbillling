@@ -12,6 +12,8 @@ use App\Models\SignalAlert;
 use App\Services\Optical\CustomerOnuAutoProvisionService;
 use App\Services\Optical\OnuSignalCollectionService;
 use App\Services\Optical\OpticalDashboardService;
+use App\Services\Optical\OpticalNocDashboardService;
+use App\Services\Optical\OpticalSignalHistoryService;
 use App\Support\OnuSignalLevel;
 use App\Support\OpticalThresholds;
 use App\Support\TenantResolver;
@@ -49,6 +51,18 @@ class OpticalMonitoringHub extends Page implements HasForms, HasTable
     protected static ?string $slug = 'optical-noc';
 
     public string $monitorTab = 'onus';
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function getNocPayload(): array
+    {
+        try {
+            return app(OpticalNocDashboardService::class)->fullSnapshot(TenantResolver::requiredTenantId());
+        } catch (\Throwable) {
+            return $this->getOpticalStatsSafe();
+        }
+    }
 
     public function mount(): void
     {
@@ -88,7 +102,7 @@ class OpticalMonitoringHub extends Page implements HasForms, HasTable
 
     public function setMonitorTab(string $tab): void
     {
-        if (! in_array($tab, ['onus', 'alerts'], true)) {
+        if (! in_array($tab, ['onus', 'alerts', 'charts', 'pon', 'ai'], true)) {
             return;
         }
 
@@ -264,6 +278,19 @@ class OpticalMonitoringHub extends Page implements HasForms, HasTable
                     ->icon('heroicon-o-user')
                     ->visible(fn (Device $r): bool => $r->customer_id !== null)
                     ->url(fn (Device $r): string => CustomerResource::getUrl('view', ['record' => $r->customer_id])),
+                Tables\Actions\Action::make('signal_chart')
+                    ->label('Optical graph')
+                    ->icon('heroicon-o-chart-bar')
+                    ->color('info')
+                    ->modalHeading('ONU optical power graph')
+                    ->modalWidth('3xl')
+                    ->modalContent(fn (Device $record): \Illuminate\Contracts\View\View => view(
+                        'filament.pages.partials.onu-signal-chart-modal',
+                        [
+                            'device' => $record->loadMissing('customer'),
+                            'series' => app(OpticalSignalHistoryService::class)->series((int) $record->id, '24h'),
+                        ],
+                    )),
             ])
             ->paginated([25, 50, 100]);
     }
