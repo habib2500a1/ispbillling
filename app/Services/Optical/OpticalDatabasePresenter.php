@@ -27,9 +27,11 @@ final class OpticalDatabasePresenter
             ->where('type', 'onu')
             ->with([
                 'customer.activePppSession',
-                'customer.devices',
-                'olt',
-                'oltPort',
+                'customer.devices' => fn ($q) => $q->whereIn('type', ['router', 'onu'])->select([
+                    'id', 'customer_id', 'type', 'mac_address', 'framed_ip_address',
+                ]),
+                'olt:id,tenant_id,display_name,serial_number',
+                'oltPort:id,olt_id,card_no,pon_no,fiber_distance_m',
             ])
             ->orderByDesc('last_polled_at')
             ->orderBy('serial_number');

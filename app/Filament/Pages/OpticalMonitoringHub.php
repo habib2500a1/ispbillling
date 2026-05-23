@@ -164,6 +164,57 @@ class OpticalMonitoringHub extends Page implements HasForms, HasTable
     }
 
     /**
+     * @return array{labels: list<string>, avg_rx: list<float|null>, weak_count: list<int>}
+     */
+    public function getTrend24hPayload(): array
+    {
+        try {
+            return app(OpticalSignalHistoryService::class)->tenantAverageTrend(
+                TenantResolver::requiredTenantId(),
+                24,
+            );
+        } catch (\Throwable) {
+            return ['labels' => [], 'avg_rx' => [], 'weak_count' => []];
+        }
+    }
+
+    /**
+     * @return \Illuminate\Support\Collection<int, mixed>
+     */
+    public function getPonPortsPayload(): \Illuminate\Support\Collection
+    {
+        try {
+            return app(OpticalSignalHistoryService::class)->ponPortStats(
+                TenantResolver::requiredTenantId(),
+                20,
+            );
+        } catch (\Throwable) {
+            return collect();
+        }
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    public function getAiWarningsPayload(): array
+    {
+        try {
+            return \App\Models\SignalPrediction::query()
+                ->where('tenant_id', TenantResolver::requiredTenantId())
+                ->whereIn('risk_level', ['high', 'critical', 'warning'])
+                ->orderByDesc('risk_score')
+                ->limit(15)
+                ->get()
+                ->map(fn (\App\Models\SignalPrediction $p): array => [
+                    'summary' => $p->summary,
+                ])
+                ->all();
+        } catch (\Throwable) {
+            return [];
+        }
+    }
+
+    /**
      * @return array{summary: array<string, int>, rows: \Illuminate\Contracts\Pagination\LengthAwarePaginator}
      */
     public function getOpticalDatabasePayload(): array

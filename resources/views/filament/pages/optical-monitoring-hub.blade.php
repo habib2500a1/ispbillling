@@ -1,9 +1,5 @@
 @php
     $stats = $this->getOpticalStatsSafe();
-    $noc = $this->getNocPayload();
-    $oltHealth = $noc['olt_health'] ?? $this->getOltHealthPayload();
-    $topology = $this->getTopologyPayload();
-    $trend = $noc['trend_24h'] ?? ['labels' => [], 'avg_rx' => [], 'weak_count' => []];
 @endphp
 
 <x-filament-panels::page>
@@ -22,7 +18,6 @@
             </div>
         </div>
 
-        {{-- Main grid — always visible (not hidden behind a tab) --}}
         @include('filament.pages.partials.optical-database-table')
 
         <div class="flex flex-wrap gap-2 border-t border-gray-200 pt-4 dark:border-gray-700">
@@ -36,6 +31,7 @@
         </div>
 
         @if ($monitorTab === 'olt')
+            @php $oltHealth = $this->getOltHealthPayload(); @endphp
             <div class="isp-optical-noc__chart-card overflow-x-auto">
                 <table class="w-full text-left text-sm">
                     <thead><tr class="border-b text-xs uppercase text-gray-500">
@@ -60,10 +56,11 @@
         @endif
 
         @if ($monitorTab === 'topology')
-            @include('filament.pages.partials.optical-topology-tab', ['topology' => $topology])
+            @include('filament.pages.partials.optical-topology-tab', ['topology' => $this->getTopologyPayload()])
         @endif
 
         @if ($monitorTab === 'charts')
+            @php $trend = $this->getTrend24hPayload(); @endphp
             <div class="grid gap-4 lg:grid-cols-2 isp-optical-noc__chart-card">
                 <div><p class="mb-2 text-sm font-semibold">Avg RX 24h</p><canvas id="isp-tenant-rx-chart" height="180"></canvas></div>
                 <div><p class="mb-2 text-sm font-semibold">Weak ONU 24h</p><canvas id="isp-tenant-weak-chart" height="180"></canvas></div>
@@ -88,13 +85,14 @@
         @endif
 
         @if ($monitorTab === 'pon')
+            @php $ponPorts = $this->getPonPortsPayload(); @endphp
             <div class="isp-optical-noc__chart-card overflow-x-auto text-sm">
                 <table class="w-full">
                     <thead><tr class="border-b text-xs uppercase text-gray-500">
                         <th class="py-2">OLT</th><th>PON</th><th>ONUs</th><th>Avg RX</th>
                     </tr></thead>
                     <tbody>
-                        @foreach ($noc['pon_ports'] ?? [] as $pon)
+                        @foreach ($ponPorts as $pon)
                             <tr class="border-b"><td class="py-2">{{ $pon->olt?->display_name }}</td>
                                 <td>C{{ $pon->card_no }}/P{{ $pon->pon_no }}</td>
                                 <td>{{ $pon->onu_online }}/{{ $pon->onu_total }}</td>
@@ -106,8 +104,9 @@
         @endif
 
         @if ($monitorTab === 'ai')
+            @php $aiWarnings = $this->getAiWarningsPayload(); @endphp
             <div class="space-y-2">
-                @forelse ($noc['ai_warnings'] ?? [] as $warn)
+                @forelse ($aiWarnings as $warn)
                     <div class="isp-optical-noc__ai-row"><p class="text-sm">{{ $warn['summary'] }}</p></div>
                 @empty
                     <p class="text-sm text-gray-500">No AI warnings.</p>
