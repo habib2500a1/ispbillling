@@ -91,7 +91,9 @@
             @endif
         </div>
     @empty
-        <p class="rounded-xl border border-dashed p-8 text-center text-gray-500">No OLT topology data — add OLTs and poll SNMP.</p>
+        <p class="rounded-xl border border-dashed p-8 text-center text-gray-500">
+            No OLT yet — Optical NOC header থেকে <strong>Add OLT</strong> দিন, তারপর Poll OLT health।
+        </p>
     @endforelse
 
     <p class="text-xs text-gray-500">

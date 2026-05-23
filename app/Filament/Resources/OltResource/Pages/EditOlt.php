@@ -4,6 +4,7 @@ namespace App\Filament\Resources\OltResource\Pages;
 
 use App\Filament\Resources\OltResource;
 use App\Services\Network\BdcomEponOnuSyncService;
+use App\Services\Network\HuaweiGponOnuSyncService;
 use App\Services\Network\GponIntelligenceService;
 use App\Services\Optical\OnuSignalCollectionService;
 use Filament\Actions;
@@ -17,6 +18,24 @@ class EditOlt extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
+            Actions\Action::make('sync_huawei_gpon')
+                ->label('Sync Huawei ONUs')
+                ->icon('heroicon-o-cloud-arrow-down')
+                ->color('success')
+                ->visible(fn (): bool => app(HuaweiGponOnuSyncService::class)->supportsDriver($this->getRecord()))
+                ->requiresConfirmation()
+                ->action(function (): void {
+                    $olt = $this->getRecord();
+                    $result = app(HuaweiGponOnuSyncService::class)->syncOlt($olt->fresh());
+                    $n = Notification::make()
+                        ->title($result['success'] ? 'Huawei GPON synced' : 'Sync failed')
+                        ->body($result['success']
+                            ? "{$result['discovered']} ONUs · +{$result['created']} new · {$result['updated']} updated"
+                            : ($result['error'] ?? ''));
+                    $result['success'] ? $n->success() : $n->danger();
+                    $n->send();
+                    $this->dispatch('refresh');
+                }),
             Actions\Action::make('sync_bdcom_epon')
                 ->label('Sync BDCOM ONUs')
                 ->icon('heroicon-o-cloud-arrow-down')

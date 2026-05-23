@@ -77,7 +77,7 @@ class OltResource extends Resource
                             ->options($driverOptions)
                             ->searchable()
                             ->required()
-                            ->default('bdcom_epon')
+                            ->default('huawei_gpon')
                             ->live()
                             ->afterStateUpdated(function (?string $state, Set $set): void {
                                 if ($state === null || $state === '') {
@@ -126,8 +126,8 @@ class OltResource extends Resource
                             ->maxLength(255)
                             ->helperText('Site or rack reference.'),
                         Forms\Components\TextInput::make('serial_number')
-                            ->required()
-                            ->maxLength(255),
+                            ->maxLength(255)
+                            ->helperText('খালি রাখলে IP থেকে auto (যেমন OLT-103-29-127-90)।'),
                         Forms\Components\TextInput::make('mac_address')
                             ->maxLength(255),
                         Forms\Components\TextInput::make('model')
@@ -265,6 +265,9 @@ class OltResource extends Resource
                                 : ($result['error'] ?? 'Unknown error');
                             if (! empty($result['bdcom_onu_discovered'])) {
                                 $body .= " BDCOM: {$result['bdcom_onu_discovered']} ONUs ({$result['bdcom_onu_created']} new).";
+                            }
+                            if (! empty($result['huawei_onu_discovered'])) {
+                                $body .= " Huawei: {$result['huawei_onu_discovered']} ONUs ({$result['huawei_onu_created']} new).";
                             }
                             $notification = Notification::make()
                                 ->title($result['success'] ? 'SNMP poll OK' : 'SNMP poll failed')

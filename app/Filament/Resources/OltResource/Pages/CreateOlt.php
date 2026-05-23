@@ -13,6 +13,45 @@ class CreateOlt extends CreateRecord
     {
         $data['type'] = 'olt';
         $data = $this->applyVendorFromOltDriver($data);
+        $data = $this->applyGponProfile($data);
+        $data = $this->applyDefaultSerial($data);
+
+        return $data;
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    private function applyDefaultSerial(array $data): array
+    {
+        if (filled($data['serial_number'] ?? null)) {
+            return $data;
+        }
+
+        $ip = trim((string) ($data['management_ip'] ?? ''));
+        if ($ip !== '') {
+            $data['serial_number'] = 'OLT-'.str_replace('.', '-', $ip);
+        }
+
+        return $data;
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    private function applyGponProfile(array $data): array
+    {
+        $driver = $data['olt_driver'] ?? null;
+        if (! is_string($driver) || $driver === '') {
+            return $data;
+        }
+
+        $profile = config("gpon.driver_to_profile.{$driver}");
+        if (is_string($profile) && $profile !== '') {
+            $data['gpon_profile'] = $profile;
+        }
 
         return $data;
     }

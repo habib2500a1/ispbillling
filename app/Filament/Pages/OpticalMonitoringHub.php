@@ -15,6 +15,7 @@ use App\Services\Optical\OpticalDashboardService;
 use App\Services\Network\OltSnmpMonitorService;
 use App\Services\Olt\OltHealthHistoryService;
 use App\Services\Olt\OltNocDashboardService;
+use App\Services\Olt\OltProvisioningService;
 use App\Services\Optical\OpticalTopologyService;
 use App\Services\Optical\OpticalNocDashboardService;
 use App\Services\Optical\OpticalSignalHistoryService;
@@ -325,7 +326,98 @@ class OpticalMonitoringHub extends Page implements HasForms, HasTable
 
     protected function getHeaderActions(): array
     {
+        $driverOptions = collect(config('olt_drivers.drivers', []))
+            ->mapWithKeys(fn (array $cfg, string $key): array => [$key => (string) ($cfg['label'] ?? $key)])
+            ->all();
+
         return [
+            Action::make('add_olt')
+                ->label('Add OLT')
+                ->icon('heroicon-o-plus-circle')
+                ->color('success')
+                ->visible(fn (): bool => OltResource::canCreate())
+                ->modalHeading('নতুন OLT যোগ করুন')
+                ->modalDescription('Huawei GPON / BDCOM — IP + SNMP community দিন। Save এর পর প্রথম SNMP poll চলবে (ONU dBm auto)।')
+                ->modalWidth('lg')
+                ->form([
+                    Forms\Components\TextInput::make('display_name')
+                        ->label('OLT name')
+                        ->required()
+                        ->maxLength(255)
+                        ->placeholder('e.g. Core-OLT-Dhk'),
+                    Forms\Components\TextInput::make('management_ip')
+                        ->label('IP address')
+                        ->required()
+                        ->maxLength(45)
+                        ->placeholder('103.29.127.90'),
+                    Forms\Components\TextInput::make('snmp_community')
+                        ->label('SNMP community (v2c)')
+                        ->required()
+                        ->maxLength(255)
+                        ->placeholder('your_read_community'),
+                    Forms\Components\Select::make('olt_driver')
+                        ->label('OLT type')
+                        ->options($driverOptions)
+                        ->default('huawei_gpon')
+                        ->required()
+                        ->searchable(),
+                    Forms\Components\TextInput::make('serial_number')
+                        ->label('Serial (optional)')
+                        ->maxLength(255)
+                        ->helperText('খালি = IP থেকে auto'),
+                    Forms\Components\TextInput::make('location')
+                        ->label('Location')
+                        ->maxLength(255),
+                    Forms\Components\Toggle::make('poll_after_create')
+                        ->label('Poll SNMP immediately (ONU dBm + OLT health)')
+                        ->default(true),
+                ])
+                ->action(function (array $data): void {
+                    try {
+                        $result = app(OltProvisioningService::class)->createQuick(
+                            TenantResolver::requiredTenantId(),
+                            $data,
+                            (bool) ($data['poll_after_create'] ?? true),
+                        );
+                        $olt = $result['olt'];
+                        $poll = $result['poll'];
+                        $body = 'OLT #'.$olt->id.' · '.$olt->management_ip;
+                        if (is_array($poll)) {
+                            if ($poll['success'] ?? false) {
+                                $body .= sprintf(
+                                    ' · ONUs %d online',
+                                    (int) ($poll['onus_online'] ?? 0),
+                                );
+                                if (! empty($poll['huawei_onu_discovered'])) {
+                                    $body .= ' · Huawei '.$poll['huawei_onu_discovered'].' ONU';
+                                }
+                                if (! empty($poll['bdcom_onu_discovered'])) {
+                                    $body .= ' · BDCOM '.$poll['bdcom_onu_discovered'].' ONU';
+                                }
+                            } else {
+                                $body .= ' · SNMP: '.($poll['error'] ?? 'failed');
+                            }
+                        }
+                        Notification::make()
+                            ->title('OLT added ✓')
+                            ->body($body)
+                            ->success()
+                            ->send();
+                        $this->monitorTab = 'olt';
+                    } catch (\Throwable $e) {
+                        Notification::make()
+                            ->title('Could not add OLT')
+                            ->body($e->getMessage())
+                            ->danger()
+                            ->send();
+                    }
+                }),
+            Action::make('manage_olts')
+                ->label('All OLTs')
+                ->icon('heroicon-o-server-stack')
+                ->color('gray')
+                ->url(fn (): string => OltResource::getUrl('index'))
+                ->visible(fn (): bool => OltResource::canViewAny()),
             Action::make('laser_thresholds')
                 ->label('Laser thresholds')
                 ->icon('heroicon-o-adjustments-vertical')

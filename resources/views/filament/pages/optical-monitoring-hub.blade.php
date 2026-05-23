@@ -120,7 +120,9 @@
                                 </td>
                             </tr>
                         @empty
-                            <tr><td colspan="11" class="py-8 text-center text-gray-500">No OLTs — add OLTs under Network → OLTs, then click <strong>Poll OLT health</strong>.</td></tr>
+                            <tr><td colspan="11" class="py-8 text-center text-gray-500">
+                                No OLTs yet — header এ <strong>Add OLT</strong> ক্লিক করুন (IP + SNMP community), তারপর <strong>Poll OLT health</strong>।
+                            </td></tr>
                         @endforelse
                     </tbody>
                 </table>
