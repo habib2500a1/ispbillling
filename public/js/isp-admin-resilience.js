@@ -66,6 +66,14 @@
     };
 
     function mainContentIsEmpty() {
+        if (document.querySelector('[wire\\:id]') || document.querySelector('.isp-optical-noc')) {
+            return false;
+        }
+
+        if (document.querySelector('[wire\\:loading], .fi-loading-section')) {
+            return false;
+        }
+
         const main = document.querySelector('.fi-main')
             || document.querySelector('.fi-page')
             || document.querySelector('[role="main"]');
@@ -82,7 +90,7 @@
             if (document.querySelector('.fi-body') && mainContentIsEmpty()) {
                 safeReload('empty admin content on first paint');
             }
-        }, 2500);
+        }, 8000);
     });
 
     document.addEventListener('livewire:navigated', () => {

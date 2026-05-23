@@ -1,4 +1,14 @@
 /* Optical NOC — enterprise monitoring UI */
+.isp-optical-page-shell {
+    min-height: 12rem;
+    padding: 0.25rem 0;
+    color: #0f172a;
+}
+
+.dark .isp-optical-page-shell {
+    color: #f1f5f9;
+}
+
 .isp-optical-noc {
     --isp-noc-glass: rgba(15, 23, 42, 0.72);
     --isp-noc-accent: #22d3ee;

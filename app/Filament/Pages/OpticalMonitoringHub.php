@@ -222,18 +222,27 @@ class OpticalMonitoringHub extends Page implements HasForms
      */
     public function getOpticalDatabasePayload(): array
     {
-        $tenantId = TenantResolver::requiredTenantId();
-        $presenter = app(OpticalDatabasePresenter::class);
+        try {
+            $tenantId = TenantResolver::requiredTenantId();
+            $presenter = app(OpticalDatabasePresenter::class);
 
-        return [
-            'summary' => $presenter->summary($tenantId),
-            'rows' => $presenter->paginate(
-                $tenantId,
-                $this->opticalDbSearch !== '' ? $this->opticalDbSearch : null,
-                $this->opticalDbPerPage,
-                max(1, $this->opticalDbPage),
-            ),
-        ];
+            return [
+                'summary' => $presenter->summary($tenantId),
+                'rows' => $presenter->paginate(
+                    $tenantId,
+                    $this->opticalDbSearch !== '' ? $this->opticalDbSearch : null,
+                    $this->opticalDbPerPage,
+                    max(1, $this->opticalDbPage),
+                ),
+            ];
+        } catch (\Throwable $e) {
+            report($e);
+
+            return [
+                'summary' => ['total' => 0, 'with_rx' => 0, 'linked' => 0],
+                'rows' => new \Illuminate\Pagination\LengthAwarePaginator([], 0, 25),
+            ];
+        }
     }
 
     protected function getHeaderActions(): array

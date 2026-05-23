@@ -77,7 +77,8 @@ class Dashboard extends BaseDashboard
     {
         return [
             'data-isp-dashboard' => '1',
-            'data-dashboard-stream' => route('admin.dashboard-stream'),
+            // SSE disabled — was blocking all PHP-FPM workers and causing blank/black admin screens.
+            // 'data-dashboard-stream' => route('admin.dashboard-stream'),
             'data-tenant-id' => (string) auth()->user()?->tenant_id,
             'class' => app(DashboardPreferencesService::class)->isCompact(auth()->user())
                 ? 'isp-dashboard-compact'
