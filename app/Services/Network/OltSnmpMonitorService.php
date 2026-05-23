@@ -4,6 +4,7 @@ namespace App\Services\Network;
 
 use App\Models\Device;
 use App\Models\SnmpPollLog;
+use App\Services\Olt\OltHealthProbeService;
 use App\Services\Olt\OltSnmpProbeService;
 use App\Support\SnmpClient;
 use Illuminate\Support\Facades\Log;
@@ -14,6 +15,7 @@ class OltSnmpMonitorService
         private readonly OltSnmpProbeService $probe,
         private readonly GponIntelligenceService $gpon,
         private readonly BdcomEponOnuSyncService $bdcomEpon,
+        private readonly OltHealthProbeService $healthProbe,
     ) {}
 
     /**
@@ -88,6 +90,20 @@ class OltSnmpMonitorService
             $onus = $olt->fresh()->onus()->get(['onu_oper_status']);
             $result['onus_online'] = $onus->whereIn('onu_oper_status', ['online', 'active', 'up'])->count();
             $result['onus_offline'] = $onus->count() - $result['onus_online'];
+        }
+
+        $healthContext = [
+            'sys_uptime_ticks' => $result['sys_uptime_ticks'],
+            'interfaces_up' => $result['interfaces_up'],
+            'interfaces_total' => $result['interfaces_total'],
+            'onus_online' => $result['onus_online'],
+            'onus_offline' => $result['onus_offline'],
+            'pon_ports' => $result['pon_ports'],
+        ];
+
+        if (config('network.olt_health_poll_enabled', true)) {
+            $this->healthProbe->probeAndPersist($olt, $healthContext);
+            $olt->refresh();
         }
 
         $health = array_merge(is_array($olt->olt_health) ? $olt->olt_health : [], [

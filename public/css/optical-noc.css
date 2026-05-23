@@ -65,3 +65,15 @@
     border-left-color: var(--isp-noc-crit);
     background: rgba(251, 113, 133, 0.1);
 }
+
+.isp-optical-noc__olt-row--warn td {
+    background: rgba(251, 191, 36, 0.06);
+}
+
+.isp-optical-noc__olt-cpu-bar {
+    display: inline-block;
+    height: 4px;
+    border-radius: 2px;
+    background: linear-gradient(90deg, #22d3ee, #a78bfa);
+    max-width: 4rem;
+}

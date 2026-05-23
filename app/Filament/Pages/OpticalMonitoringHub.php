@@ -12,6 +12,9 @@ use App\Models\SignalAlert;
 use App\Services\Optical\CustomerOnuAutoProvisionService;
 use App\Services\Optical\OnuSignalCollectionService;
 use App\Services\Optical\OpticalDashboardService;
+use App\Services\Network\OltSnmpMonitorService;
+use App\Services\Olt\OltHealthHistoryService;
+use App\Services\Olt\OltNocDashboardService;
 use App\Services\Optical\OpticalNocDashboardService;
 use App\Services\Optical\OpticalSignalHistoryService;
 use App\Support\OnuSignalLevel;
@@ -100,9 +103,21 @@ class OpticalMonitoringHub extends Page implements HasForms, HasTable
         }
     }
 
+    /**
+     * @return array<string, mixed>
+     */
+    public function getOltHealthPayload(): array
+    {
+        try {
+            return app(OltNocDashboardService::class)->snapshot(TenantResolver::requiredTenantId());
+        } catch (\Throwable) {
+            return ['olt_total' => 0, 'olts' => []];
+        }
+    }
+
     public function setMonitorTab(string $tab): void
     {
-        if (! in_array($tab, ['onus', 'alerts', 'charts', 'pon', 'ai'], true)) {
+        if (! in_array($tab, ['onus', 'alerts', 'charts', 'pon', 'ai', 'olt'], true)) {
             return;
         }
 
@@ -304,6 +319,31 @@ class OpticalMonitoringHub extends Page implements HasForms, HasTable
                 ->color('gray')
                 ->url(fn (): string => ManageOpticalLaserSettings::getUrl())
                 ->visible(fn (): bool => ManageOpticalLaserSettings::canAccess()),
+            Action::make('poll_olts')
+                ->label('Poll OLT health')
+                ->icon('heroicon-o-server-stack')
+                ->color('warning')
+                ->action(function (): void {
+                    $tenantId = TenantResolver::requiredTenantId();
+                    $olts = Device::query()
+                        ->where('tenant_id', $tenantId)
+                        ->olts()
+                        ->where('status', '!=', 'decommissioned')
+                        ->get();
+                    $monitor = app(OltSnmpMonitorService::class);
+                    $ok = 0;
+                    foreach ($olts as $olt) {
+                        $r = $monitor->pollOlt($olt);
+                        if ($r['success']) {
+                            $ok++;
+                        }
+                    }
+                    Notification::make()
+                        ->title('OLT poll complete')
+                        ->body("{$ok}/{$olts->count()} OLT(s) responded via SNMP")
+                        ->success()
+                        ->send();
+                }),
             Action::make('sync')
                 ->label('Sync optical data')
                 ->icon('heroicon-o-arrow-path')

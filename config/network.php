@@ -47,6 +47,9 @@ return [
 
     'olt_snmp_poll_enabled' => (bool) env('NETWORK_OLT_SNMP_POLL_ENABLED', true),
 
+    /** CPU/RAM/temperature SNMP during isp:poll-olt-intelligence */
+    'olt_health_poll_enabled' => (bool) env('NETWORK_OLT_HEALTH_POLL_ENABLED', true),
+
     /**
      * Legacy single-router env (unused). Use Filament → MikroTik servers (per-tenant DB credentials).
      */

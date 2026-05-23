@@ -106,6 +106,11 @@ class Device extends Model
         return $this->hasMany(OnuSignalLog::class);
     }
 
+    public function oltHealthLogs(): HasMany
+    {
+        return $this->hasMany(OltHealthLog::class);
+    }
+
     public function onuHealthScore(): \Illuminate\Database\Eloquent\Relations\HasOne
     {
         return $this->hasOne(OnuHealthScore::class);

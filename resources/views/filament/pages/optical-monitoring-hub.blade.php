@@ -1,6 +1,7 @@
 @php
     $stats = $this->getOpticalStatsSafe();
     $noc = $this->getNocPayload();
+    $oltHealth = $noc['olt_health'] ?? $this->getOltHealthPayload();
     $trend = $noc['trend_24h'] ?? ['labels' => [], 'avg_rx' => [], 'weak_count' => []];
     $unlinkedCount = \App\Models\Device::withoutGlobalScopes()->where('type', 'onu')->whereNull('customer_id')->count();
     $linkedCount = \App\Models\Device::withoutGlobalScopes()->where('type', 'onu')->whereNotNull('customer_id')->count();
@@ -55,13 +56,76 @@
         </div>
 
         <div class="flex flex-wrap gap-2">
-            @foreach (['onus' => 'Live ONU dBm', 'charts' => 'Signal graphs', 'pon' => 'PON ports', 'ai' => 'AI warnings', 'alerts' => 'Alerts'] as $tab => $label)
+            @foreach (['onus' => 'Live ONU dBm', 'olt' => 'OLT health', 'charts' => 'Signal graphs', 'pon' => 'PON ports', 'ai' => 'AI warnings', 'alerts' => 'Alerts'] as $tab => $label)
                 <button type="button" wire:click="setMonitorTab('{{ $tab }}')"
                     @class(['rounded-lg px-4 py-2 text-sm font-semibold', 'bg-cyan-600 text-white shadow' => $monitorTab === $tab, 'bg-gray-100 dark:bg-gray-800' => $monitorTab !== $tab])>
                     {{ $label }}
                 </button>
             @endforeach
         </div>
+
+        @if ($monitorTab === 'olt')
+            <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-5 mb-4">
+                @foreach ([
+                    ['OLTs', $oltHealth['olt_total'] ?? 0, ''],
+                    ['Online', $oltHealth['olt_online'] ?? 0, 'text-emerald-600'],
+                    ['High CPU', $oltHealth['olt_high_cpu'] ?? 0, 'text-amber-600'],
+                    ['High RAM', $oltHealth['olt_high_memory'] ?? 0, 'text-violet-600'],
+                    ['Avg health', ($oltHealth['avg_health_score'] ?? '—').(isset($oltHealth['avg_health_score']) ? '%' : ''), 'text-cyan-600'],
+                ] as [$label, $value, $color])
+                    <div class="isp-optical-noc__kpi dark:bg-gray-900/80">
+                        <p class="text-[10px] font-bold uppercase text-gray-500">{{ $label }}</p>
+                        <p class="isp-optical-noc__kpi-value {{ $color }}">{{ $value }}</p>
+                    </div>
+                @endforeach
+            </div>
+            <div class="isp-optical-noc__chart-card overflow-x-auto">
+                <table class="w-full text-left text-sm">
+                    <thead><tr class="border-b text-xs uppercase text-gray-500">
+                        <th class="py-2">OLT</th><th>IP</th><th>CPU</th><th>RAM</th><th>Temp</th><th>ONUs</th><th>Fan</th><th>PSU</th><th>Health</th><th>Status</th><th></th>
+                    </tr></thead>
+                    <tbody>
+                        @forelse ($oltHealth['olts'] ?? [] as $olt)
+                            @php
+                                $cpu = $olt['cpu_percent'] ?? null;
+                                $mem = $olt['memory_percent'] ?? null;
+                                $score = $olt['health_score'] ?? null;
+                            @endphp
+                            <tr class="border-b border-gray-100 dark:border-gray-800">
+                                <td class="py-2 font-medium">{{ $olt['name'] }}</td>
+                                <td class="py-2 text-gray-500">{{ $olt['management_ip'] ?? '—' }}</td>
+                                <td class="py-2 @if($cpu !== null && $cpu >= 75) text-amber-600 font-semibold @endif">{{ $cpu !== null ? $cpu.'%' : '—' }}</td>
+                                <td class="py-2 @if($mem !== null && $mem >= 80) text-violet-600 font-semibold @endif">{{ $mem !== null ? $mem.'%' : '—' }}</td>
+                                <td class="py-2">{{ isset($olt['temperature_c']) ? $olt['temperature_c'].'°C' : '—' }}</td>
+                                <td class="py-2">{{ $olt['onus_online'] ?? 0 }}/{{ $olt['onus_total'] ?? 0 }}</td>
+                                <td class="py-2">{{ $olt['fan_status'] ?? '—' }}</td>
+                                <td class="py-2">{{ $olt['power_supply_status'] ?? '—' }}</td>
+                                <td class="py-2">
+                                    <span @class([
+                                        'rounded-full px-2 py-0.5 text-xs font-bold',
+                                        'bg-emerald-100 text-emerald-800' => $score !== null && $score >= 85,
+                                        'bg-amber-100 text-amber-800' => $score !== null && $score >= 50 && $score < 85,
+                                        'bg-rose-100 text-rose-800' => $score !== null && $score < 50,
+                                        'bg-gray-100 text-gray-600' => $score === null,
+                                    ])>{{ $score !== null ? $score.'%' : '—' }}</span>
+                                </td>
+                                <td class="py-2">
+                                    <span @class(['text-xs font-semibold', 'text-emerald-600' => ($olt['status'] ?? '') === 'active', 'text-rose-600' => ($olt['status'] ?? '') === 'offline'])>
+                                        {{ ucfirst($olt['status'] ?? 'unknown') }}
+                                    </span>
+                                </td>
+                                <td class="py-2">
+                                    <a href="{{ \App\Filament\Resources\OltResource::getUrl('edit', ['record' => $olt['id']]) }}" class="text-cyan-600 text-xs font-semibold hover:underline">Manage</a>
+                                </td>
+                            </tr>
+                        @empty
+                            <tr><td colspan="11" class="py-8 text-center text-gray-500">No OLTs — add OLTs under Network → OLTs, then click <strong>Poll OLT health</strong>.</td></tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+            <p class="text-xs text-gray-500 mt-2">CPU/RAM via SNMP HOST-RESOURCES + Huawei/ZTE vendor MIBs. Use header <strong>Poll OLT health</strong> or cron <code>isp:poll-olt-intelligence</code>.</p>
+        @endif
 
         @if ($monitorTab === 'charts')
             <div class="grid gap-4 lg:grid-cols-2">

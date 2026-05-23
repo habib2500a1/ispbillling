@@ -4,6 +4,7 @@ namespace App\Services\Optical;
 
 use App\Models\Device;
 use App\Models\SignalPrediction;
+use App\Services\Olt\OltNocDashboardService;
 use Illuminate\Support\Facades\Schema;
 
 final class OpticalNocDashboardService
@@ -12,6 +13,7 @@ final class OpticalNocDashboardService
         private readonly OpticalDashboardService $dashboard,
         private readonly OpticalSignalHistoryService $history,
         private readonly OpticalAiRiskService $ai,
+        private readonly OltNocDashboardService $oltNoc,
     ) {}
 
     /**
@@ -40,9 +42,12 @@ final class OpticalNocDashboardService
             ? $this->ai->refreshTenantPredictions($tenantId, 15)
             : collect();
 
+        $oltSnapshot = $this->oltNoc->snapshot($tenantId);
+
         return array_merge($base, [
             'olt_total' => $oltCount,
             'olt_online' => $oltsOnline,
+            'olt_health' => $oltSnapshot,
             'network_health_score' => $networkHealth,
             'network_health_label' => $this->healthLabel($networkHealth),
             'trend_24h' => $this->history->tenantAverageTrend($tenantId, 24),
