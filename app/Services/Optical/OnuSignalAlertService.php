@@ -170,11 +170,7 @@ final class OnuSignalAlertService
     {
         if (config('optical.notify_ops', true)) {
             try {
-                app(NotificationDispatcher::class)->notifyOps(
-                    (int) $onu->tenant_id,
-                    NotificationEvent::OUTAGE,
-                    OpticalOpsAlertFormatter::variablesForOnu($onu, $message),
-                );
+                app(OpticalTelegramAlertService::class)->notifyOnuAlert($onu, $severity, $title, $message);
             } catch (\Throwable) {
                 //
             }

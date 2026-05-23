@@ -147,6 +147,13 @@ return [
     /** Notify ops via Telegram template. */
     'notify_ops' => (bool) env('OPTICAL_NOTIFY_OPS', true),
 
+    'telegram' => [
+        'enabled' => (bool) env('OPTICAL_TELEGRAM_ENABLED', true),
+        'cooldown_minutes' => (int) env('OPTICAL_TELEGRAM_COOLDOWN_MINUTES', 15),
+        'olt_health_enabled' => (bool) env('OPTICAL_TELEGRAM_OLT_HEALTH', true),
+        'severities' => ['warning', 'critical', 'emergency'],
+    ],
+
     /**
      * UI colors (Tailwind / Filament).
      */

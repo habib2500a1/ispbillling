@@ -16,6 +16,7 @@ class OltSnmpMonitorService
         private readonly GponIntelligenceService $gpon,
         private readonly BdcomEponOnuSyncService $bdcomEpon,
         private readonly OltHealthProbeService $healthProbe,
+        private readonly HuaweiGponOnuSyncService $huaweiGpon,
     ) {}
 
     /**
@@ -86,6 +87,21 @@ class OltSnmpMonitorService
             $result['bdcom_onu_updated'] = $bdcom['updated'];
             if ($bdcom['error']) {
                 $result['bdcom_sync_error'] = $bdcom['error'];
+            }
+            $onus = $olt->fresh()->onus()->get(['onu_oper_status']);
+            $result['onus_online'] = $onus->whereIn('onu_oper_status', ['online', 'active', 'up'])->count();
+            $result['onus_offline'] = $onus->count() - $result['onus_online'];
+        }
+
+        if ($result['success']
+            && ! config('sync.skip_huawei_in_olt_poll', false)
+            && $this->huaweiGpon->supportsDriver($olt)) {
+            $hw = $this->huaweiGpon->syncOlt($olt->fresh());
+            $result['huawei_onu_discovered'] = $hw['discovered'];
+            $result['huawei_onu_created'] = $hw['created'];
+            $result['huawei_onu_updated'] = $hw['updated'];
+            if ($hw['error']) {
+                $result['huawei_sync_error'] = $hw['error'];
             }
             $onus = $olt->fresh()->onus()->get(['onu_oper_status']);
             $result['onus_online'] = $onus->whereIn('onu_oper_status', ['online', 'active', 'up'])->count();

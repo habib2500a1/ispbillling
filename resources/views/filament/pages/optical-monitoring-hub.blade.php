@@ -2,6 +2,7 @@
     $stats = $this->getOpticalStatsSafe();
     $noc = $this->getNocPayload();
     $oltHealth = $noc['olt_health'] ?? $this->getOltHealthPayload();
+    $topology = $this->getTopologyPayload();
     $trend = $noc['trend_24h'] ?? ['labels' => [], 'avg_rx' => [], 'weak_count' => []];
     $unlinkedCount = \App\Models\Device::withoutGlobalScopes()->where('type', 'onu')->whereNull('customer_id')->count();
     $linkedCount = \App\Models\Device::withoutGlobalScopes()->where('type', 'onu')->whereNotNull('customer_id')->count();
@@ -56,7 +57,7 @@
         </div>
 
         <div class="flex flex-wrap gap-2">
-            @foreach (['onus' => 'Live ONU dBm', 'olt' => 'OLT health', 'charts' => 'Signal graphs', 'pon' => 'PON ports', 'ai' => 'AI warnings', 'alerts' => 'Alerts'] as $tab => $label)
+            @foreach (['onus' => 'Live ONU dBm', 'olt' => 'OLT health', 'topology' => 'Topology map', 'charts' => 'Signal graphs', 'pon' => 'PON ports', 'ai' => 'AI warnings', 'alerts' => 'Alerts'] as $tab => $label)
                 <button type="button" wire:click="setMonitorTab('{{ $tab }}')"
                     @class(['rounded-lg px-4 py-2 text-sm font-semibold', 'bg-cyan-600 text-white shadow' => $monitorTab === $tab, 'bg-gray-100 dark:bg-gray-800' => $monitorTab !== $tab])>
                     {{ $label }}
@@ -125,6 +126,10 @@
                 </table>
             </div>
             <p class="text-xs text-gray-500 mt-2">CPU/RAM via SNMP HOST-RESOURCES + Huawei/ZTE vendor MIBs. Use header <strong>Poll OLT health</strong> or cron <code>isp:poll-olt-intelligence</code>.</p>
+        @endif
+
+        @if ($monitorTab === 'topology')
+            @include('filament.pages.partials.optical-topology-tab', ['topology' => $topology])
         @endif
 
         @if ($monitorTab === 'charts')

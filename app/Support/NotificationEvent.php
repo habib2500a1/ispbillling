@@ -26,6 +26,8 @@ final class NotificationEvent
 
     public const OUTAGE = 'outage';
 
+    public const OPTICAL_ALERT = 'optical_alert';
+
     public const PENDING_GATEWAY_PAYMENT = 'pending_gateway_payment';
 
     public const SESSION_INTEGRITY = 'session_integrity';
@@ -49,6 +51,7 @@ final class NotificationEvent
             self::FUP_WARNING => 'FUP usage warning (80%+)',
             self::FUP_CRITICAL => 'FUP limit reached',
             self::OUTAGE => 'Outage / maintenance',
+            self::OPTICAL_ALERT => 'Optical signal alert (Telegram NOC)',
             self::PENDING_GATEWAY_PAYMENT => 'Pending gateway payment (ops)',
             self::SESSION_INTEGRITY => 'MikroTik session integrity (ops)',
             self::PORTAL_OTP => 'Portal login OTP',

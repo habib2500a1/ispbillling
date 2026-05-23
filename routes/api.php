@@ -97,6 +97,7 @@ Route::prefix('v1')->group(function (): void {
         Route::get('/staff/optical/onu/{device}/signals', [\App\Http\Controllers\Api\V1\Staff\StaffOpticalNocController::class, 'signalHistory'])->whereNumber('device');
         Route::get('/staff/optical/predictions', [\App\Http\Controllers\Api\V1\Staff\StaffOpticalNocController::class, 'predictions']);
         Route::get('/staff/optical/pon-ports', [\App\Http\Controllers\Api\V1\Staff\StaffOpticalNocController::class, 'ponPorts']);
+        Route::get('/staff/optical/topology', [\App\Http\Controllers\Api\V1\Staff\StaffOpticalNocController::class, 'topology']);
         Route::get('/staff/optical/olts', [\App\Http\Controllers\Api\V1\Staff\StaffOpticalNocController::class, 'oltHealth']);
         Route::get('/staff/optical/olt/{device}/health', [\App\Http\Controllers\Api\V1\Staff\StaffOpticalNocController::class, 'oltHealthHistory'])->whereNumber('device');
         Route::get('/staff/monitoring/online', [StaffMonitoringController::class, 'index']);

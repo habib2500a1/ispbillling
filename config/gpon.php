@@ -19,7 +19,13 @@ return [
         'huawei_gpon' => [
             'label' => 'Huawei GPON',
             'extends' => 'generic_gpon',
-            'notes' => 'Use U2000/NCE export to meta or HUAWEI-XPON-MIB walk when available.',
+            'notes' => 'SNMP walk via HUAWEI-GPON-MIB (MA5800 / MA5600 family).',
+            /** Index suffix: frame.slot.port.onu */
+            'huawei_gpon_onu_rx' => '1.3.6.1.4.1.2011.6.128.1.1.2.46.1.14',
+            'huawei_gpon_onu_tx' => '1.3.6.1.4.1.2011.6.128.1.1.2.46.1.15',
+            'huawei_gpon_onu_run_state' => '1.3.6.1.4.1.2011.6.128.1.1.2.46.1.24',
+            'huawei_gpon_onu_sn' => '1.3.6.1.4.1.2011.6.128.1.1.2.46.1.2',
+            'huawei_gpon_onu_distance' => '1.3.6.1.4.1.2011.6.128.1.1.2.46.1.18',
         ],
         'zte_gpon' => [
             'label' => 'ZTE GPON',
@@ -56,6 +62,9 @@ return [
 
     /** BDCOM EPON SNMP walks can take 30–120s on busy OLTs. */
     'bdcom_epon_walk_timeout_us' => (int) env('BDCOM_EPON_SNMP_TIMEOUT_US', 8000000),
+
+    /** Huawei GPON optical walk timeout (µs). */
+    'huawei_gpon_walk_timeout_us' => (int) env('HUAWEI_GPON_SNMP_TIMEOUT_US', 12000000),
 
     'driver_to_profile' => [
         'huawei_gpon' => 'huawei_gpon',

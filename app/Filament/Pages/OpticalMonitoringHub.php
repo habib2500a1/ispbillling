@@ -15,6 +15,7 @@ use App\Services\Optical\OpticalDashboardService;
 use App\Services\Network\OltSnmpMonitorService;
 use App\Services\Olt\OltHealthHistoryService;
 use App\Services\Olt\OltNocDashboardService;
+use App\Services\Optical\OpticalTopologyService;
 use App\Services\Optical\OpticalNocDashboardService;
 use App\Services\Optical\OpticalSignalHistoryService;
 use App\Support\OnuSignalLevel;
@@ -115,9 +116,21 @@ class OpticalMonitoringHub extends Page implements HasForms, HasTable
         }
     }
 
+    /**
+     * @return array<string, mixed>
+     */
+    public function getTopologyPayload(): array
+    {
+        try {
+            return app(OpticalTopologyService::class)->buildForTenant(TenantResolver::requiredTenantId());
+        } catch (\Throwable) {
+            return ['summary' => ['olts' => 0, 'onus' => 0], 'olts' => []];
+        }
+    }
+
     public function setMonitorTab(string $tab): void
     {
-        if (! in_array($tab, ['onus', 'alerts', 'charts', 'pon', 'ai', 'olt'], true)) {
+        if (! in_array($tab, ['onus', 'alerts', 'charts', 'pon', 'ai', 'olt', 'topology'], true)) {
             return;
         }
 

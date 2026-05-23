@@ -122,6 +122,16 @@ return [
             'channels' => ['email', 'sms', 'whatsapp'],
             'telegram_ops' => true,
         ],
+        'optical_alert' => [
+            'enabled' => true,
+            'channels' => [],
+            'telegram_ops' => true,
+        ],
+        'optical_olt_health' => [
+            'enabled' => true,
+            'channels' => [],
+            'telegram_ops' => true,
+        ],
         'pending_gateway_payment' => [
             'enabled' => true,
             'channels' => [],
@@ -167,6 +177,8 @@ return [
         'support_token_created_ops' => "🎫 {title}\n#{ticket_number} — {name} ({ClientID})\nProblem: {Problem}\nAssignee: {assignee}\nTime: {time}",
         'support_solved_ops' => "✔️ {title}\n#{ticket_number} — {name} ({ClientID})\nProblem: {Problem}\nTime: {time}",
         'outage_ops' => "⚠️ Outage / optical alert ({count} client(s))\n{message}\n\n{customer_list}",
+        'optical_alert_ops' => "{emoji} <b>{severity}</b> · {title}\n{message}\n\n{customer_list}\n<i>{time}</i>",
+        'optical_olt_health_ops' => "🖥️ <b>OLT health</b> · {severity}\n{olt_name} ({olt_ip})\nCPU {cpu}% · RAM {memory}% · Temp {temp}\n{message}\n<i>{time}</i>",
         'pending_gateway_payment_ops' => 'Pending {gateway} payment: {transaction_id} — {amount} BDT ({name}). Approve in admin.',
         'session_integrity_ops' => 'Session alert [{alert_type}] {login}: {message}',
         'reseller_commission_accrued' => 'Reseller commission {amount} BDT earned (payment {gross} BDT). Your code: {code}',

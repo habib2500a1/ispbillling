@@ -77,3 +77,38 @@
     background: linear-gradient(90deg, #22d3ee, #a78bfa);
     max-width: 4rem;
 }
+
+.isp-topology-node {
+    border-radius: 0.5rem;
+    padding: 0.35rem 0.75rem;
+    font-size: 0.65rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.isp-topology-node--olt {
+    background: linear-gradient(135deg, #7c3aed, #22d3ee);
+    color: #fff;
+}
+
+.isp-topology-vline {
+    width: 2px;
+    height: 1.25rem;
+    background: linear-gradient(180deg, #a78bfa, #22d3ee);
+}
+
+.isp-topology-port--ok {
+    border-color: rgba(16, 185, 129, 0.35);
+    background: rgba(16, 185, 129, 0.06);
+}
+
+.isp-topology-port--warn {
+    border-color: rgba(251, 191, 36, 0.45);
+    background: rgba(251, 191, 36, 0.08);
+}
+
+.isp-topology-port--crit {
+    border-color: rgba(251, 113, 133, 0.45);
+    background: rgba(251, 113, 133, 0.08);
+}

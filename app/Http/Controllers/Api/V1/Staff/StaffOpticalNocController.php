@@ -7,6 +7,7 @@ use App\Models\Device;
 use App\Services\Olt\OltHealthHistoryService;
 use App\Services\Olt\OltNocDashboardService;
 use App\Services\Optical\OpticalAiRiskService;
+use App\Services\Optical\OpticalTopologyService;
 use App\Services\Optical\OpticalNocDashboardService;
 use App\Services\Optical\OpticalSignalHistoryService;
 use App\Support\TenantResolver;
@@ -56,6 +57,13 @@ class StaffOpticalNocController extends Controller
     {
         return response()->json([
             'snapshot' => $olt->snapshot(TenantResolver::requiredTenantId()),
+        ]);
+    }
+
+    public function topology(OpticalTopologyService $topology): JsonResponse
+    {
+        return response()->json([
+            'topology' => $topology->buildForTenant(TenantResolver::requiredTenantId()),
         ]);
     }
 

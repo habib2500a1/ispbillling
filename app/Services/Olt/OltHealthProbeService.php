@@ -4,6 +4,7 @@ namespace App\Services\Olt;
 
 use App\Models\Device;
 use App\Models\OltHealthLog;
+use App\Services\Optical\OpticalTelegramAlertService;
 use App\Support\SnmpClient;
 use Illuminate\Support\Facades\Schema;
 
@@ -87,6 +88,8 @@ final class OltHealthProbeService
         ], fn ($v) => $v !== null));
 
         $olt->forceFill(['olt_health' => $health])->save();
+
+        $this->maybeNotifyOltHealth($olt->fresh(), $result);
 
         if (Schema::hasTable('olt_health_logs')) {
             OltHealthLog::query()->create([
@@ -394,5 +397,34 @@ final class OltHealthProbeService
         }
 
         return 'ok';
+    }
+
+    /**
+     * @param  array<string, mixed>  $metrics
+     */
+    private function maybeNotifyOltHealth(Device $olt, array $metrics): void
+    {
+        $thresholds = config('olt_health.thresholds', []);
+        $cpu = $metrics['cpu_percent'] ?? null;
+        $mem = $metrics['memory_percent'] ?? null;
+        $score = $metrics['health_score'] ?? null;
+
+        $severity = null;
+        $message = null;
+
+        if ($cpu !== null && $cpu >= ($thresholds['cpu_critical'] ?? 90)) {
+            $severity = 'critical';
+            $message = "OLT CPU at {$cpu}%";
+        } elseif ($mem !== null && $mem >= ($thresholds['memory_critical'] ?? 92)) {
+            $severity = 'critical';
+            $message = "OLT memory at {$mem}%";
+        } elseif ($score !== null && $score < 50) {
+            $severity = 'warning';
+            $message = "OLT health score {$score}%";
+        }
+
+        if ($severity !== null && $message !== null) {
+            app(OpticalTelegramAlertService::class)->notifyOltHealth($olt, $severity, $message);
+        }
     }
 }
