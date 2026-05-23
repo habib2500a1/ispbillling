@@ -635,6 +635,25 @@ body.isp-sidebar-desktop-collapsed .isp-sidebar-footer__toggle--expand {
 
 .fi-main {
     background: var(--isp-surface) !important;
+    color: var(--isp-text) !important;
+    min-height: 50vh;
+}
+
+/* Prevent blank/black main panel when Livewire navigation is slow */
+.fi-main .fi-page,
+.fi-main .fi-ta,
+.fi-main .fi-section,
+.fi-main .fi-wi-widget {
+    visibility: visible !important;
+    opacity: 1 !important;
+}
+
+.fi-main .fi-page:empty::before {
+    content: 'Loading…';
+    display: block;
+    padding: 2rem;
+    color: var(--isp-text-muted);
+    font-size: 0.875rem;
 }
 
 /* Stat cards — Filament overview widgets */

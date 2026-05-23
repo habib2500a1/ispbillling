@@ -16,11 +16,11 @@
     document.documentElement.dataset.themeMode = pref;
 })();
 </script>
-<link rel="stylesheet" href="{{ asset('css/admin-saas.css') }}?v={{ @filemtime(public_path('css/admin-saas.css')) ?: '24' }}">
+<link rel="stylesheet" href="{{ asset('css/admin-saas.css') }}?v={{ @filemtime(public_path('css/admin-saas.css')) ?: '25' }}">
 <script src="{{ asset('js/admin-theme.js') }}?v=4" data-cfasync="false"></script>
 @unless (request()->routeIs('filament.admin.auth.*'))
 <script src="{{ asset('js/admin-sidebar-search.js') }}?v=1" defer data-cfasync="false"></script>
-<script src="{{ asset('js/isp-admin-resilience.js') }}?v=2" defer data-cfasync="false"></script>
+{{-- Resilience script disabled: was causing blank/black main panel after Livewire navigation. --}}
 @if (request()->routeIs('filament.admin.pages.dashboard*', 'filament.admin.pages.dashboard-hub*'))
 <script src="{{ asset('js/isp-dashboard-realtime.js') }}?v={{ @filemtime(public_path('js/isp-dashboard-realtime.js')) ?: 1 }}" defer data-cfasync="false"></script>
 @endif
