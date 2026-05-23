@@ -77,6 +77,7 @@ class OpticalMonitoringHub extends Page implements HasForms, HasTable
 
     public function mount(): void
     {
+        $this->monitorTab = 'database';
         $this->mountInteractsWithTable();
     }
 
@@ -137,12 +138,14 @@ class OpticalMonitoringHub extends Page implements HasForms, HasTable
 
     public function setMonitorTab(string $tab): void
     {
-        if (! in_array($tab, ['database', 'onus', 'alerts', 'charts', 'pon', 'ai', 'olt', 'topology'], true)) {
+        if (! in_array($tab, ['database', 'olt', 'topology', 'charts', 'pon', 'ai', 'alerts'], true)) {
             return;
         }
 
         $this->monitorTab = $tab;
-        $this->resetTable();
+        if ($tab === 'alerts') {
+            $this->resetTable();
+        }
     }
 
     public function updatedOpticalDbSearch(): void
@@ -182,6 +185,10 @@ class OpticalMonitoringHub extends Page implements HasForms, HasTable
     public function table(Table $table): Table
     {
         $tenantId = TenantResolver::requiredTenantId();
+
+        if ($this->monitorTab === 'database') {
+            return $table->query(Device::query()->whereRaw('1 = 0'));
+        }
 
         if ($this->monitorTab === 'alerts') {
             return $table

@@ -193,8 +193,10 @@ class OpticalMonitoringTest extends TestCase
         $this->actingAs($user);
 
         \Livewire\Livewire::test(\App\Filament\Pages\OpticalMonitoringHub::class)
-            ->call('setMonitorTab', 'onus')
             ->assertOk()
-            ->assertSee('ONU-NO-HEALTH');
+            ->assertSee('Optical Database')
+            ->assertSee('Client Code')
+            ->set('opticalDbSearch', 'ONU-NO-HEALTH')
+            ->assertSee('-20.0000');
     }
 }

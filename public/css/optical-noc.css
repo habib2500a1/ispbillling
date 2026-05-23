@@ -112,3 +112,111 @@
     border-color: rgba(251, 113, 133, 0.45);
     background: rgba(251, 113, 133, 0.08);
 }
+
+/* ISP Digital optical database banner */
+.isp-optical-db-banner {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1rem 1.25rem;
+    border-radius: 0.75rem;
+    background: linear-gradient(135deg, #1e40af 0%, #1e3a8a 50%, #172554 100%);
+    border: 1px solid #3b82f6;
+    box-shadow: 0 8px 24px rgba(30, 64, 175, 0.35);
+}
+
+/* Legacy OLT panel table (must load on optical-noc — not only admin-saas.css) */
+.isp-optical-power-wrap {
+    background: #fff;
+    border-radius: 0.5rem;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+}
+
+.dark .isp-optical-power-wrap {
+    background: rgb(17 24 39);
+}
+
+.isp-optical-power-table {
+    border-collapse: collapse;
+    font-size: 0.8125rem;
+    width: 100%;
+}
+
+.isp-optical-power-table thead tr {
+    background: linear-gradient(180deg, #1e3a5f 0%, #152a45 100%);
+    color: #fff;
+}
+
+.isp-optical-power-table th {
+    padding: 0.55rem 0.65rem;
+    font-weight: 600;
+    font-size: 0.7rem;
+    white-space: nowrap;
+    border-right: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.isp-optical-power-table th:last-child {
+    border-right: none;
+}
+
+.isp-optical-power-table td {
+    padding: 0.45rem 0.65rem;
+    border-bottom: 1px solid #e5e7eb;
+    vertical-align: middle;
+}
+
+.dark .isp-optical-power-table td {
+    border-color: #374151;
+    color: #e5e7eb;
+}
+
+.isp-optical-power-table tbody tr:nth-child(even) {
+    background: #f8fafc;
+}
+
+.dark .isp-optical-power-table tbody tr:nth-child(even) {
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.isp-optical-power-table tbody tr:hover {
+    background: #eff6ff;
+}
+
+.isp-optical-power-col {
+    font-weight: 700;
+    min-width: 6.5rem;
+}
+
+.isp-optical-power-value {
+    font-family: ui-monospace, monospace;
+    font-weight: 700;
+}
+
+.isp-optical-power-value--success { color: #059669; }
+.isp-optical-power-value--warning { color: #d97706; }
+.isp-optical-power-value--danger { color: #dc2626; }
+.isp-optical-power-value--gray { color: #6b7280; }
+
+.isp-optical-power-row--high {
+    background: #fffbeb !important;
+}
+
+.isp-optical-status {
+    display: inline-block;
+    padding: 0.15rem 0.5rem;
+    border-radius: 0.25rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.isp-optical-status--online {
+    background: #d1fae5;
+    color: #065f46;
+}
+
+.isp-optical-status--offline {
+    background: #fee2e2;
+    color: #991b1b;
+}
