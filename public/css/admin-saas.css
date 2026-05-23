@@ -2150,6 +2150,37 @@ a.isp-lifecycle-card:hover {
     .isp-mobile-bar__pill {
         min-height: 44px;
     }
+
+    /*
+     * Filament modals use z-40; bottom bar is z-55 — bar was covering modal
+     * footers and stealing touch scroll on phones (e.g. Link SMS payment).
+     */
+    body:has(.fi-modal.fi-modal-open) .isp-mobile-bar {
+        display: none !important;
+    }
+
+    .fi-modal.fi-modal-open .fi-modal-close-overlay,
+    .fi-modal.fi-modal-open > div > .fixed.inset-0 {
+        z-index: 110 !important;
+    }
+
+    .fi-modal.fi-modal-open .fi-modal-window {
+        max-height: min(
+            92dvh,
+            calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 1.25rem)
+        );
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+        overscroll-behavior: contain;
+    }
+
+    .fi-modal.fi-modal-open .fi-modal-content {
+        touch-action: pan-y;
+    }
+
+    body:has(.fi-modal.fi-modal-open) .choices__list--dropdown {
+        z-index: 120 !important;
+    }
 }
 
 /* Hub link cards — force dark-friendly */
