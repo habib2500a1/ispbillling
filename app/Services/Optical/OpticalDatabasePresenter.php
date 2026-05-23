@@ -38,21 +38,39 @@ final class OpticalDatabasePresenter
             ->orderBy('serial_number');
 
         if (filled($search)) {
-            $term = '%'.trim($search).'%';
-            $query->where(function (Builder $q) use ($term): void {
+            $needle = trim($search);
+            $term = '%'.$needle.'%';
+            $query->where(function (Builder $q) use ($term, $needle): void {
                 $q->where('serial_number', 'like', $term)
                     ->orWhere('mac_address', 'like', $term)
                     ->orWhere('display_name', 'like', $term)
+                    ->orWhere('notes', 'like', $term)
+                    ->orWhere('onu_external_id', 'like', $term)
                     ->orWhereHas('customer', function (Builder $c) use ($term): void {
                         $c->where('name', 'like', $term)
                             ->orWhere('customer_code', 'like', $term)
                             ->orWhere('mikrotik_secret_name', 'like', $term)
-                            ->orWhere('radius_username', 'like', $term);
+                            ->orWhere('radius_username', 'like', $term)
+                            ->orWhere('phone', 'like', $term);
                     })
                     ->orWhereHas('olt', function (Builder $o) use ($term): void {
                         $o->where('display_name', 'like', $term)
-                            ->orWhere('serial_number', 'like', $term);
+                            ->orWhere('serial_number', 'like', $term)
+                            ->orWhere('management_ip', 'like', $term);
                     });
+
+                if (preg_match('/^C?\s*(\d+)\s*\/\s*P?\s*(\d+)$/i', $needle, $ponMatch)) {
+                    $q->orWhere(function (Builder $pon) use ($ponMatch): void {
+                        $pon->where('card_no', (int) $ponMatch[1])
+                            ->where('pon_no', (int) $ponMatch[2]);
+                    });
+                }
+
+                if (ctype_digit($needle)) {
+                    $q->orWhere('onu_index', (int) $needle)
+                        ->orWhere('pon_no', (int) $needle)
+                        ->orWhere('card_no', (int) $needle);
+                }
             });
         }
 

@@ -396,19 +396,19 @@ final class SubscriberOpticalPowerPresenter
 
     private function resolveRxDbm(Device $onu, array $meta): ?float
     {
+        if ($onu->rx_power_dbm !== null && $onu->rx_power_dbm !== '') {
+            return (float) $onu->rx_power_dbm;
+        }
+
         $optical = is_array($meta['optical'] ?? null) ? $meta['optical'] : [];
 
-        // BDCOM: prefer fresh SNMP integer (0.1 dBm) → matches OLT "received power(DBm)".
+        // BDCOM: SNMP integer (0.1 dBm) in meta when devices.rx_power_dbm not set yet.
         if (isset($optical['snmp_rx_raw']) && $optical['snmp_rx_raw'] !== '' && $optical['snmp_rx_raw'] !== null) {
             $vendor = (string) ($optical['vendor_profile'] ?? $onu->gpon_profile ?? $onu->olt?->olt_driver ?? 'bdcom_epon');
             $fromSnmp = app(OpticalPowerNormalizer::class)->normalizeRx($optical['snmp_rx_raw'], $vendor);
             if ($fromSnmp !== null) {
                 return $fromSnmp;
             }
-        }
-
-        if ($onu->rx_power_dbm !== null && $onu->rx_power_dbm !== '') {
-            return (float) $onu->rx_power_dbm;
         }
 
         $raw = $optical['raw_rx_dbm'] ?? $optical['rx_dbm'] ?? $meta['rx_dbm'] ?? null;

@@ -3,7 +3,9 @@
 namespace App\Providers;
 
 use App\Auth\CustomerUserProvider;
+use App\Filament\Navigation\IspNavigationManager;
 use App\Filament\Billing\BillingSidebarNavigation;
+use Filament\Navigation\NavigationManager;
 use App\Filament\Bw\BwSidebarNavigation;
 use App\Filament\Hrm\HrmSidebarNavigation;
 use App\Filament\Olt\OltSidebarNavigation;
@@ -59,6 +61,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
+        $this->app->bind(NavigationManager::class, IspNavigationManager::class);
+
         // Laravel picks resources/lang when that folder exists; app strings live in /lang.
         if (is_dir($lang = base_path('lang'))) {
             $this->app->useLangPath($lang);

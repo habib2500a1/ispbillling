@@ -97,8 +97,25 @@ return [
 
     'vsol_gpon_walk_timeout_us' => (int) env('VSOL_GPON_SNMP_TIMEOUT_US', 10000000),
 
-    /** Aveis RX column mode: negative_tenth | tenth_dbm | skip */
-    'aveis_rx_mode' => env('AVEIS_RX_MODE', 'skip'),
+    /** Aveis ONU table column for receive power (MIB …3.3.2.1.{col}). XE08 uses col 15. */
+    'aveis_onu_rx_column' => (int) env('AVEIS_ONU_RX_COLUMN', 15),
+
+    /**
+     * Aveis RX decode: col15_divisor (default, matches OLT “Receive Power”) | negative_tenth | tenth_dbm | skip
+     * col15_divisor: RX dBm ≈ −(raw / aveis_rx_divisor), e.g. 841 → −14.67 dBm
+     */
+    'aveis_rx_mode' => env('AVEIS_RX_MODE', 'col15_divisor'),
+
+    'aveis_rx_divisor' => (float) env('AVEIS_RX_DIVISOR', 57.3),
+
+    /** Ignore col15 below/above valid window (outside OLT “Receive Power” range). */
+    'aveis_rx_raw_min' => (int) env('AVEIS_RX_RAW_MIN', 400),
+
+    /** Ignore col15 above this (OLT “N/A” / fault codes — not real dBm). */
+    'aveis_rx_raw_max' => (int) env('AVEIS_RX_RAW_MAX', 2000),
+
+    /** Reject decoded RX weaker than this (below typical ONU sensitivity). */
+    'aveis_rx_dbm_floor' => (float) env('AVEIS_RX_DBM_FLOOR', -35),
 
     'driver_to_profile' => [
         'huawei_gpon' => 'huawei_gpon',

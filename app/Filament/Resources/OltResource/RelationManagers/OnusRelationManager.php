@@ -5,6 +5,7 @@ namespace App\Filament\Resources\OltResource\RelationManagers;
 use App\Filament\Resources\CustomerResource;
 use App\Models\Device;
 use App\Models\OltPort;
+use App\Services\Network\AveisGponOnuSyncService;
 use App\Services\Network\BdcomEponOnuSyncService;
 use App\Services\Network\GponIntelligenceService;
 use App\Services\Optical\OnuBulkTicketService;
@@ -123,8 +124,9 @@ class OnusRelationManager extends RelationManager
     {
         return $table
             ->recordTitleAttribute('serial_number')
-            ->heading('BDCOM EPON — all ONUs')
-            ->description('Sync from OLT SNMP (MAC, RX/TX dBm, online/offline). Offline MAC rows can be bulk-deleted from inventory.')
+            ->heading('ONU inventory — optical power')
+            ->description('SNMP sync: MAC, receive power (RX dBm), online/offline. Search by ONU name (ONU07/05), MAC, or subscriber.')
+            ->searchPlaceholder('ONU07/05, MAC, client, PPP login…')
             ->modifyQueryUsing(fn (Builder $query) => $query
                 ->where('type', 'onu')
                 ->select([
@@ -139,9 +141,10 @@ class OnusRelationManager extends RelationManager
             ->defaultSort('rx_power_dbm', 'asc')
             ->columns([
                 Tables\Columns\TextColumn::make('display_name')
-                    ->label('PON port')
+                    ->label('ONU')
                     ->placeholder('—')
-                    ->searchable(),
+                    ->searchable()
+                    ->sortable(),
                 Tables\Columns\TextColumn::make('mac_address')
                     ->label('MAC')
                     ->copyable()
@@ -261,6 +264,28 @@ class OnusRelationManager extends RelationManager
                     ->query(fn (Builder $query): Builder => $query->whereIn('onu_oper_status', ['offline', 'los', 'power_fail'])),
             ])
             ->headerActions([
+                Tables\Actions\Action::make('sync_aveis_gpon')
+                    ->label('Sync Aveis ONUs')
+                    ->icon('heroicon-o-cloud-arrow-down')
+                    ->color('primary')
+                    ->visible(fn (): bool => app(AveisGponOnuSyncService::class)->supportsDriver($this->getOwnerRecord()))
+                    ->requiresConfirmation()
+                    ->modalDescription('SNMP sync from Aveis OLT — receive power (RX), MAC, status. May take 1–2 minutes.')
+                    ->action(function (): void {
+                        $olt = $this->getOwnerRecord();
+                        try {
+                            $result = app(AveisGponOnuSyncService::class)->syncOlt($olt->fresh(), false);
+                            $notification = Notification::make()
+                                ->title($result['success'] ? 'Aveis sync complete' : 'Aveis sync failed')
+                                ->body($result['success']
+                                    ? "Found {$result['discovered']} ONUs · updated {$result['updated']}"
+                                    : ($result['error'] ?? 'Unknown error'));
+                            $result['success'] ? $notification->success() : $notification->danger();
+                            $notification->send();
+                        } catch (\Throwable $e) {
+                            Notification::make()->title('Sync error')->body($e->getMessage())->danger()->send();
+                        }
+                    }),
                 Tables\Actions\Action::make('sync_bdcom_epon')
                     ->label('Sync from BDCOM EPON')
                     ->icon('heroicon-o-cloud-arrow-down')

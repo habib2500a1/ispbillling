@@ -25,7 +25,7 @@
             <label class="flex items-center gap-2 text-xs font-semibold uppercase text-gray-500">
                 Search
                 <input type="search" wire:model.live.debounce.400ms="opticalDbSearch"
-                    placeholder="Client, user, MAC, ONU…"
+                    placeholder="OLT, ONU07/05, C1/P7, MAC, client…"
                     class="w-48 rounded border-gray-300 text-sm dark:border-gray-600 dark:bg-gray-800 sm:w-64" />
             </label>
         </div>

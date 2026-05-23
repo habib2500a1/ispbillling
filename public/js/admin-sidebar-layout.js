@@ -30,11 +30,86 @@
         return document.querySelector('.fi-main-sidebar .fi-sidebar-nav-groups');
     }
 
+    function removeRetiredSidebarGroups() {
+        const root = groupsRoot();
+        if (!root) {
+            return;
+        }
+
+        mergeLegacyOltSidebarGroup(root);
+        moveOltLinksOutOfInventoryPro(root);
+    }
+
+    /** Move OLT pages out of Inventory Pro (legacy cache / old registry). */
+    function moveOltLinksOutOfInventoryPro(root) {
+        const inventory = root.querySelector(':scope > .fi-sidebar-group[data-group-label="Inventory Pro"]');
+        const target = root.querySelector(':scope > .fi-sidebar-group[data-group-label="OLT & Tools"]');
+
+        if (!inventory || !target) {
+            return;
+        }
+
+        const inventoryList = inventory.querySelector('.fi-sidebar-group-items');
+        const targetList = target.querySelector('.fi-sidebar-group-items');
+
+        if (!inventoryList || !targetList) {
+            return;
+        }
+
+        const oltPath = /\/olts|olt-hub|optical-noc|olt-mac-table|optical-laser-settings|network-topology/;
+
+        [...inventoryList.querySelectorAll('.fi-sidebar-item')].forEach((item) => {
+            const anchor = item.querySelector('a[href]');
+            const href = anchor?.getAttribute('href') || '';
+            const text = (anchor?.textContent || '').trim().toLowerCase();
+
+            const isOlt =
+                oltPath.test(href)
+                || text === 'olts'
+                || text === 'olt'
+                || text === 'olt list'
+                || text === 'optical database';
+
+            if (isOlt) {
+                targetList.appendChild(item);
+            }
+        });
+    }
+
+    /** Collapse duplicate bare «OLT» group into «OLT & Tools». */
+    function mergeLegacyOltSidebarGroup(root) {
+        const legacy = root.querySelector(':scope > .fi-sidebar-group[data-group-label="OLT"]');
+        const target = root.querySelector(':scope > .fi-sidebar-group[data-group-label="OLT & Tools"]');
+
+        if (!legacy) {
+            return;
+        }
+
+        if (target) {
+            const legacyList = legacy.querySelector('.fi-sidebar-group-items');
+            const targetList = target.querySelector('.fi-sidebar-group-items');
+            if (legacyList && targetList) {
+                [...legacyList.children].forEach((node) => targetList.appendChild(node));
+            }
+            legacy.remove();
+
+            return;
+        }
+
+        legacy.dataset.groupLabel = 'OLT & Tools';
+        const labelEl = legacy.querySelector('.fi-sidebar-group-label');
+        if (labelEl) {
+            labelEl.textContent = 'OLT & Tools';
+        }
+    }
+
     function reorderSidebarGroups() {
         const root = groupsRoot();
         if (!root) {
             return;
         }
+
+        removeRetiredSidebarGroups();
 
         const groups = [...root.querySelectorAll(':scope > .fi-sidebar-group[data-group-label]')];
 
@@ -171,16 +246,15 @@
         );
     }
 
-    function pathSuggestsInventoryGroup() {
+    function pathSuggestsOltGroup() {
         const path = window.location.pathname || '';
 
         return (
-            path.includes('inventory-hub')
-            || path.includes('inventory-sales')
-            || path.includes('stock-movements')
-            || path.includes('warehouses')
-            || path.includes('purchase-orders')
-            || path.includes('/products')
+            path.includes('olt-hub')
+            || path.includes('/olts')
+            || path.includes('optical-noc')
+            || path.includes('olt-mac-table')
+            || path.includes('optical-laser-settings')
         );
     }
 
@@ -198,17 +272,35 @@
         );
     }
 
-    function inventoryGroupLabel(labels) {
-        return labels.find((label) => label === 'Inventory Pro') ?? null;
-    }
-
     function preferredOpenLabel() {
         const labels = groupLabels();
         if (!labels.length) {
             return null;
         }
 
+        // OLT pages: always open «OLT & Tools», never Inventory Pro (legacy OLTs link cache).
+        if (pathSuggestsOltGroup()) {
+            try {
+                sessionStorage.setItem(OPEN_GROUP_KEY, 'OLT & Tools');
+            } catch (e) {
+                /* ignore */
+            }
+
+            if (labels.includes('OLT & Tools')) {
+                return 'OLT & Tools';
+            }
+
+            if (labels.includes('OLT')) {
+                return 'OLT';
+            }
+        }
+
         const active = activeGroupLabel();
+
+        if (active === 'Inventory Pro' && pathSuggestsOltGroup() && labels.includes('OLT & Tools')) {
+            return 'OLT & Tools';
+        }
+
         if (active) {
             return active;
         }
@@ -223,11 +315,6 @@
 
         if (pathSuggestsPaymentsGroup() && labels.includes('Payments')) {
             return 'Payments';
-        }
-
-        const inventoryLabel = inventoryGroupLabel(labels);
-        if (pathSuggestsInventoryGroup() && inventoryLabel) {
-            return inventoryLabel;
         }
 
         if (pathSuggestsSupportGroup() && labels.includes('Support')) {
@@ -337,13 +424,15 @@
     }
 
     function init() {
-        if (!groupsRoot()) {
+        const root = groupsRoot();
+        if (!root) {
             return false;
         }
 
         patchToggle();
         bindClicks();
         reorderSidebarGroups();
+        moveOltLinksOutOfInventoryPro(root);
         applyAccordion(preferredOpenLabel());
         scrollActiveItemIntoView();
 

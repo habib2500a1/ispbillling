@@ -46,6 +46,11 @@ class OltResource extends Resource
 
     protected static bool $shouldRegisterNavigation = false;
 
+    public static function registerNavigationItems(): void
+    {
+        // Sidebar: {@see OltSidebarRegistry} under «OLT & Tools» only — never Inventory Pro / Network.
+    }
+
     public static function getEloquentQuery(): Builder
     {
         return parent::getEloquentQuery()->olts();

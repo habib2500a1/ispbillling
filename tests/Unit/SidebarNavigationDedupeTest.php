@@ -9,23 +9,23 @@ use ReflectionMethod;
 
 class SidebarNavigationDedupeTest extends TestCase
 {
-    public function test_prefers_olt_tools_group_for_duplicate_urls(): void
+    public function test_prefers_olt_group_for_duplicate_urls(): void
     {
-        $inventory = NavigationItem::make('OLTs')
+        $network = NavigationItem::make('OLTs')
             ->url('/admin/olts')
-            ->group('Inventory Pro');
-        $oltTools = NavigationItem::make('OLT manage')
+            ->group('Network');
+        $olt = NavigationItem::make('OLT list')
             ->url('/admin/olts')
-            ->group('OLT & Tools');
+            ->group(\App\Support\OltSidebarRegistry::GROUP_LABEL);
 
         $method = new ReflectionMethod(IspSidebarNavigation::class, 'dedupeNavigationItems');
         $method->setAccessible(true);
 
         /** @var array<NavigationItem> $deduped */
-        $deduped = $method->invoke(null, [$inventory, $oltTools]);
+        $deduped = $method->invoke(null, [$network, $olt]);
 
         $this->assertCount(1, $deduped);
-        $this->assertSame('OLT manage', $deduped[0]->getLabel());
-        $this->assertSame('OLT & Tools', $deduped[0]->getGroup());
+        $this->assertSame('OLT list', $deduped[0]->getLabel());
+        $this->assertSame(\App\Support\OltSidebarRegistry::GROUP_LABEL, $deduped[0]->getGroup());
     }
 }

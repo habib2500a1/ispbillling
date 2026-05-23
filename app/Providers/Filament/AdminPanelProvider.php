@@ -67,7 +67,7 @@ class AdminPanelProvider extends PanelProvider
                 NavigationGroup::make('Billing')->collapsed(true),
                 NavigationGroup::make('Payments')->collapsed(true),
                 NavigationGroup::make('Inventory Pro')->collapsed(true),
-                NavigationGroup::make('OLT & Tools')->collapsed(true),
+                NavigationGroup::make('OLT & Tools')->collapsed(false),
                 NavigationGroup::make('Network')->collapsed(true),
                 NavigationGroup::make('SMS Service')->collapsed(true),
                 NavigationGroup::make('Support')->collapsed(true),
@@ -145,7 +145,7 @@ class AdminPanelProvider extends PanelProvider
                 fn (): string => view('filament.hooks.command-palette', [
                     'commandItems' => AdminCommandPalette::items(),
                 ])->render()
-                    .'<script src="'.asset('js/admin-sidebar-layout.js').'?v=21" data-cfasync="false"></script>'
+                    .'<script src="'.asset('js/admin-sidebar-layout.js').'?v=28" data-cfasync="false"></script>'
                     .view('filament.hooks.mobile-dock')->render(),
             );
     }

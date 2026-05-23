@@ -60,8 +60,9 @@ final class AveisGponOnuSyncService
             $statuses = $this->walkColumn($peer, $community, $table.'.3', $timeoutUs, $retries);
             $macs = $this->walkColumn($peer, $community, $table.'.7', $timeoutUs, $retries);
             $serials = $this->walkColumn($peer, $community, $table.'.12', $timeoutUs, $retries);
-            $distances = $this->walkColumn($peer, $community, $table.'.15', $timeoutUs, $retries);
-            $rxRaw = $this->walkColumn($peer, $community, $table.'.16', $timeoutUs, $retries);
+            $rxColumn = max(1, (int) config('gpon.aveis_onu_rx_column', 15));
+            $rxRaw = $this->walkColumn($peer, $community, $table.'.'.$rxColumn, $timeoutUs, $retries);
+            $distances = [];
 
             $indices = array_unique(array_merge(
                 array_keys($labels),
@@ -88,8 +89,8 @@ final class AveisGponOnuSyncService
                     $serial = 'AV-'.str_replace(':', '', strtoupper($mac));
                 }
 
-                $distance = $this->parseNumber($distances[$idx] ?? null);
-                $rx = $this->parseAveisRx($rxRaw[$idx] ?? null);
+                $distance = null;
+                $rx = self::decodeAveisRx($this->parseNumber($rxRaw[$idx] ?? null));
 
                 $discovered[] = [
                     'index' => (string) $idx,
@@ -208,23 +209,44 @@ final class AveisGponOnuSyncService
     }
 
     /**
-     * Aveis col.16 — tentatively 0.1 dBm (negative RX); tune via OPTICAL_AVEIS_RX_MODE if needed.
+     * Decode Aveis SNMP receive-power integer (OLT UI “Receive Power” column).
      */
-    private function parseAveisRx(?string $raw): ?float
+    public static function decodeAveisRx(?int $raw): ?float
     {
-        $n = $this->parseNumber($raw);
-        if ($n === null || $n === 0) {
+        if ($raw === null || $raw === 0) {
             return null;
         }
 
-        $mode = (string) config('gpon.aveis_rx_mode', 'negative_tenth');
+        $rawMin = (int) config('gpon.aveis_rx_raw_min', 400);
+        if ($rawMin > 0 && $raw < $rawMin) {
+            return null;
+        }
 
-        return match ($mode) {
-            'negative_tenth' => ($n > 0 && $n < 150) ? round(-$n / 10, 2) : null,
-            'tenth_dbm' => round($n / 10, 2),
+        $rawMax = (int) config('gpon.aveis_rx_raw_max', 2000);
+        if ($rawMax > 0 && $raw > $rawMax) {
+            return null;
+        }
+
+        $mode = (string) config('gpon.aveis_rx_mode', 'col15_divisor');
+
+        $dbm = match ($mode) {
+            'col15_divisor', 'divisor' => round(-$raw / (float) config('gpon.aveis_rx_divisor', 57.3), 2),
+            'negative_tenth' => ($raw > 0 && $raw < 150) ? round(-$raw / 10, 2) : null,
+            'tenth_dbm' => round($raw / 10, 2),
             'skip' => null,
             default => null,
         };
+
+        if ($dbm === null) {
+            return null;
+        }
+
+        $floor = (float) config('gpon.aveis_rx_dbm_floor', -35);
+        if ($dbm < $floor) {
+            return null;
+        }
+
+        return $dbm;
     }
 
     private function mapStatus(?int $code): string
@@ -308,6 +330,13 @@ final class AveisGponOnuSyncService
                 'source' => 'aveis_snmp',
                 'bypass_smoothing' => true,
             ]);
+        } elseif ($onu->rx_power_dbm !== null || $onu->tx_power_dbm !== null || isset($meta['optical'])) {
+            unset($meta['optical']);
+            $onu->forceFill([
+                'rx_power_dbm' => null,
+                'tx_power_dbm' => null,
+                'meta' => $meta,
+            ])->save();
         }
     }
 }

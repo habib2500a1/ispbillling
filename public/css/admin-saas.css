@@ -482,13 +482,22 @@ body.isp-sidebar-desktop-collapsed .isp-sidebar-footer__toggle--expand {
     order: 50;
 }
 
-/* Legacy duplicate group label (before Inventory Pro unify) */
 .fi-sidebar-group[data-group-label='Inventory'] {
     display: none !important;
 }
 
 .fi-sidebar-group[data-group-label='OLT & Tools'] {
     order: 60;
+}
+
+/* Legacy: OLT must not appear under Inventory Pro (stale HTML / cache). */
+.fi-sidebar-group[data-group-label='Inventory Pro'] .fi-sidebar-item:has(a[href*='/olts']),
+.fi-sidebar-group[data-group-label='Inventory Pro'] .fi-sidebar-item:has(a[href*='olt-hub']),
+.fi-sidebar-group[data-group-label='Inventory Pro'] .fi-sidebar-item:has(a[href*='optical-noc']),
+.fi-sidebar-group[data-group-label='Inventory Pro'] .fi-sidebar-item:has(a[href*='olt-mac-table']),
+.fi-sidebar-group[data-group-label='Inventory Pro'] .fi-sidebar-item:has(a[href*='optical-laser-settings']),
+.fi-sidebar-group[data-group-label='Inventory Pro'] .fi-sidebar-item:has(a[href*='network-topology']) {
+    display: none !important;
 }
 
 .fi-sidebar-group[data-group-label='Network'] {

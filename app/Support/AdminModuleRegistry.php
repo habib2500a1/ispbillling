@@ -28,7 +28,7 @@ use App\Filament\Pages\NetworkTopology;
 use App\Filament\Pages\SnmpMonitor;
 use App\Filament\Pages\NotificationsHub;
 use App\Filament\Pages\OnlineClientsMonitoring;
-use App\Filament\Pages\ManageOpticalLaserSettings;
+use App\Filament\Pages\OltHub;
 use App\Filament\Pages\OpticalMonitoringHub;
 use App\Filament\Pages\PaymentsOverview;
 use App\Filament\Pages\RadiusUserAdmin;
@@ -90,18 +90,20 @@ class AdminModuleRegistry
             ['group' => 'Payments', 'section' => 'Hub', 'label' => 'Payment center', 'description' => 'bKash · Nagad · SSLCommerz', 'url' => PaymentsOverview::getUrl(), 'accent' => 'text-emerald-600', 'icon' => 'heroicon-o-credit-card'],
             ['group' => 'Payments', 'section' => 'Records', 'label' => 'Collections', 'description' => 'Receipts & payment log', 'url' => PaymentResource::getUrl('index'), 'accent' => 'text-emerald-600', 'icon' => 'heroicon-o-banknotes'],
 
+            // ── OLT ──
+            ['group' => 'OLT & Tools', 'section' => 'Hub', 'label' => 'OLT center', 'description' => 'Aveis · BDCOM · optical dBm', 'url' => OltHub::getUrl(), 'accent' => 'text-violet-600', 'icon' => 'heroicon-o-server-stack'],
+            ['group' => 'OLT & Tools', 'section' => 'Devices', 'label' => 'OLT list', 'description' => 'Add OLT, sync ONUs, edit PON', 'url' => OltResource::getUrl('index'), 'accent' => 'text-violet-600', 'icon' => 'heroicon-o-signal'],
+            ['group' => 'OLT & Tools', 'section' => 'Optical', 'label' => 'Optical Database', 'description' => 'Receive power RX dBm', 'url' => OpticalMonitoringHub::getUrl(), 'accent' => 'text-violet-600', 'icon' => 'heroicon-o-light-bulb'],
+            ['group' => 'OLT & Tools', 'section' => 'Map', 'label' => 'Topology', 'description' => 'OLT → PON → ONU', 'url' => NetworkTopology::getUrl(), 'accent' => 'text-violet-600', 'icon' => 'heroicon-o-share'],
+
             // ── Network ──
-            ['group' => 'Network', 'section' => 'Hub', 'label' => 'Network center', 'description' => 'SNMP · NetFlow · optical', 'url' => NetworkIntelligenceHub::getUrl(), 'accent' => 'text-cyan-600', 'icon' => 'heroicon-o-cpu-chip'],
-            ['group' => 'Network', 'section' => 'Map', 'label' => 'Topology map', 'description' => 'MikroTik → OLT → PON → ONU', 'url' => NetworkTopology::getUrl(), 'accent' => 'text-cyan-600', 'icon' => 'heroicon-o-share'],
+            ['group' => 'Network', 'section' => 'Hub', 'label' => 'Network center', 'description' => 'SNMP · NetFlow · routers', 'url' => NetworkIntelligenceHub::getUrl(), 'accent' => 'text-cyan-600', 'icon' => 'heroicon-o-cpu-chip'],
             ['group' => 'Network', 'section' => 'Core', 'label' => 'MikroTik', 'description' => 'Routers & PPPoE sync', 'url' => MikrotikServerResource::getUrl('index'), 'accent' => 'text-cyan-600', 'icon' => 'heroicon-o-server'],
             ['group' => 'Network', 'section' => 'Core', 'label' => 'RADIUS users', 'description' => 'radcheck / radusergroup admin', 'url' => RadiusUserAdmin::getUrl(), 'accent' => 'text-cyan-600', 'icon' => 'heroicon-o-circle-stack'],
-            ['group' => 'Network', 'section' => 'Fiber', 'label' => 'OLT / GPON', 'description' => 'ONU inventory & ports', 'url' => OltResource::getUrl('index'), 'accent' => 'text-cyan-600', 'icon' => 'heroicon-o-signal'],
             ['group' => 'Network', 'section' => 'Monitor', 'label' => 'Online clients', 'description' => 'Live PPP sessions', 'url' => OnlineClientsMonitoring::getUrl(), 'accent' => 'text-cyan-600', 'icon' => 'heroicon-o-signal'],
             ['group' => 'Network', 'section' => 'Monitor', 'label' => 'Bandwidth', 'description' => 'Usage & abuse alerts', 'url' => BandwidthMonitor::getUrl(), 'accent' => 'text-cyan-600', 'icon' => 'heroicon-o-chart-bar'],
             ['group' => 'Network', 'section' => 'Monitor', 'label' => 'SNMP monitor', 'description' => 'Poll logs & interface status', 'url' => SnmpMonitor::getUrl(), 'accent' => 'text-cyan-600', 'icon' => 'heroicon-o-signal'],
             ['group' => 'Network', 'section' => 'Monitor', 'label' => 'NetFlow analysis', 'description' => 'Top talkers & protocols', 'url' => NetflowAnalysis::getUrl(), 'accent' => 'text-cyan-600', 'icon' => 'heroicon-o-arrows-right-left'],
-            ['group' => 'Network', 'section' => 'Fiber', 'label' => 'Optical NOC', 'description' => 'dBm levels & alarms', 'url' => OpticalMonitoringHub::getUrl(), 'accent' => 'text-cyan-600', 'icon' => 'heroicon-o-bolt'],
-            ['group' => 'Network', 'section' => 'Fiber', 'label' => 'Laser thresholds', 'description' => 'RX/TX dBm bands & high laser limits', 'url' => ManageOpticalLaserSettings::getUrl(), 'accent' => 'text-amber-600', 'icon' => 'heroicon-o-adjustments-vertical'],
             ['group' => 'Network', 'section' => 'Infrastructure', 'label' => 'POP / boxes', 'description' => 'Sites & capacity', 'url' => PopBoxResource::getUrl('index'), 'accent' => 'text-cyan-600', 'icon' => 'heroicon-o-building-office-2'],
             ['group' => 'Network', 'section' => 'Coverage', 'label' => 'Areas', 'description' => 'Coverage map', 'url' => AreaResource::getUrl('index'), 'accent' => 'text-cyan-600', 'icon' => 'heroicon-o-map-pin'],
             ['group' => 'Network', 'section' => 'IPAM', 'label' => 'IP pools', 'description' => 'Static IP allocation', 'url' => IpPoolResource::getUrl('index'), 'accent' => 'text-cyan-600', 'icon' => 'heroicon-o-globe-alt'],
