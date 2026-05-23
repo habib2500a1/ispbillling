@@ -2,14 +2,14 @@
 
 namespace App\Filament\Pages;
 
-use App\Filament\Resources\PackageResource;
-use App\Models\Package;
+use App\Filament\Resources\ResellerResource;
+use App\Models\Reseller;
+use App\Models\ResellerPackage;
 use Filament\Pages\Page;
 use Filament\Tables;
 use Filament\Tables\Concerns\InteractsWithTable;
 use Filament\Tables\Contracts\HasTable;
 use Filament\Tables\Table;
-
 class ResellerPackagePricesPage extends Page implements HasTable
 {
     use InteractsWithTable;
@@ -18,9 +18,9 @@ class ResellerPackagePricesPage extends Page implements HasTable
 
     protected static string $view = 'filament.pages.reseller-package-prices';
 
-    protected static ?string $navigationLabel = 'Package prices';
+    protected static ?string $navigationLabel = 'Reseller packages';
 
-    protected static ?string $title = 'Package prices';
+    protected static ?string $title = 'Reseller packages & selling price';
 
     protected static ?string $slug = 'reseller-package-prices';
 
@@ -33,37 +33,61 @@ class ResellerPackagePricesPage extends Page implements HasTable
 
     public static function canAccess(): bool
     {
-        return PackageResource::canViewAny();
+        return ResellerResource::canViewAny();
     }
 
     public function table(Table $table): Table
     {
         return $table
-            ->query(Package::query()->withCount(['areaPrices', 'zonePrices']))
+            ->query(
+                ResellerPackage::query()
+                    ->with(['reseller:id,name,code', 'package:id,name,price_monthly,download_mbps'])
+            )
             ->columns([
-                Tables\Columns\TextColumn::make('name')->searchable()->sortable()->weight('bold'),
-                Tables\Columns\TextColumn::make('download_mbps')
-                    ->label('Speed')
-                    ->formatStateUsing(fn (Package $r): string => $r->download_mbps.' Mbps'),
-                Tables\Columns\TextColumn::make('price_monthly')
+                Tables\Columns\TextColumn::make('reseller.code')
+                    ->label('Reseller code')
+                    ->searchable()
+                    ->fontFamily('mono'),
+                Tables\Columns\TextColumn::make('reseller.name')
+                    ->label('Reseller')
+                    ->searchable()
+                    ->sortable(),
+                Tables\Columns\TextColumn::make('package.name')
+                    ->label('Package')
+                    ->searchable()
+                    ->sortable(),
+                Tables\Columns\TextColumn::make('package.price_monthly')
                     ->label('Base price')
+                    ->money('BDT'),
+                Tables\Columns\TextColumn::make('selling_price')
+                    ->label('Selling price')
                     ->money('BDT')
                     ->sortable(),
-                Tables\Columns\TextColumn::make('area_prices_count')
-                    ->label('Area overrides')
-                    ->alignCenter(),
-                Tables\Columns\TextColumn::make('zone_prices_count')
-                    ->label('Zone overrides')
-                    ->alignCenter(),
                 Tables\Columns\IconColumn::make('is_active')->boolean()->label('Active'),
             ])
-            ->actions([
-                Tables\Actions\Action::make('edit_prices')
-                    ->label('Edit pricing')
-                    ->icon('heroicon-o-pencil-square')
-                    ->url(fn (Package $record): string => PackageResource::getUrl('edit', ['record' => $record])),
+            ->filters([
+                Tables\Filters\SelectFilter::make('reseller_id')
+                    ->label('Reseller')
+                    ->relationship('reseller', 'name')
+                    ->searchable()
+                    ->preload(),
             ])
-            ->emptyStateHeading('No packages')
-            ->emptyStateDescription('Create internet packages under Network → Packages first.');
+            ->actions([
+                Tables\Actions\Action::make('manage')
+                    ->label('Edit on reseller')
+                    ->icon('heroicon-o-pencil-square')
+                    ->url(fn (ResellerPackage $record): string => ResellerResource::getUrl('view', [
+                        'record' => $record->reseller_id,
+                    ]).'#relation-manager-packages'),
+            ])
+            ->headerActions([
+                Tables\Actions\Action::make('assign')
+                    ->label('Assign packages')
+                    ->icon('heroicon-o-plus')
+                    ->url(ResellerResource::getUrl())
+                    ->color('primary'),
+            ])
+            ->emptyStateHeading('No reseller packages yet')
+            ->emptyStateDescription('Open a reseller → Packages & selling price tab to assign packages and set selling prices.');
     }
 }

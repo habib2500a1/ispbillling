@@ -8,6 +8,7 @@ use App\Services\Olt\OltSnmpProbeService;
 use App\Services\Optical\CustomerOnuSmartLinkService;
 use App\Services\Optical\OpticalReadingPipeline;
 use App\Support\CustomerPppLoginResolver;
+use App\Support\BdcomOnuDescriptionHeuristic;
 use App\Support\MacAddress;
 use App\Support\SnmpClient;
 use Illuminate\Support\Facades\Log;
@@ -62,8 +63,9 @@ final class BdcomEponOnuSyncService
 
             $ifMap = $this->walkEponInterfaces($peer, $community, (string) ($oids['if_descr'] ?? '1.3.6.1.2.1.2.2.1.2'), $timeoutUs, $retries);
             $macByIf = $this->walkMacByIfIndex($peer, $community, (string) ($oids['bdcom_epon_onu_mac'] ?? '1.3.6.1.4.1.3320.101.10.1.1.3'), $timeoutUs, $retries);
-            $rxByIf = $this->walkScaledDbm($peer, $community, (string) ($oids['bdcom_epon_onu_rx'] ?? '1.3.6.1.4.1.3320.101.10.5.1.5'), $timeoutUs, $retries);
-            $txByIf = $this->walkScaledDbm($peer, $community, (string) ($oids['bdcom_epon_onu_tx'] ?? '1.3.6.1.4.1.3320.101.10.5.1.6'), $timeoutUs, $retries);
+            // Raw SNMP integers (0.1 dBm) — normalized once in OpticalReadingPipeline (bdcom_epon).
+            $rxByIf = $this->walkRawSnmpDbm($peer, $community, (string) ($oids['bdcom_epon_onu_rx'] ?? '1.3.6.1.4.1.3320.101.10.5.1.5'), $timeoutUs, $retries);
+            $txByIf = $this->walkRawSnmpDbm($peer, $community, (string) ($oids['bdcom_epon_onu_tx'] ?? '1.3.6.1.4.1.3320.101.10.5.1.6'), $timeoutUs, $retries);
             $statusByPonOnu = $this->walkOnuStatus($peer, $community, (string) ($oids['bdcom_epon_onu_status'] ?? '1.3.6.1.4.1.3320.101.11.4.1.5'), $timeoutUs, $retries);
             $descByIf = $this->walkStringsByIfIndex(
                 $peer,
@@ -118,7 +120,9 @@ final class BdcomEponOnuSyncService
 
             $result['purged_placeholders'] = $this->purgeAutoProvisionedPlaceholders($olt);
 
-            if (config('optical.auto_link_on_bdcom_sync', true)) {
+            // Full tenant auto-link runs once in IspDigitalOnuPipelineService (MikroTik + PPP + smart link).
+            if (config('optical.auto_link_on_bdcom_sync', true)
+                && ! config('optical.isp_digital_auto_sync', true)) {
                 $linkStats = app(CustomerOnuSmartLinkService::class)
                     ->smartRelinkTenant((int) $olt->tenant_id, true);
                 $result['linked'] = $linkStats['linked'];
@@ -257,9 +261,11 @@ final class BdcomEponOnuSyncService
     }
 
     /**
+     * BDCOM opModuleRxPower / opModuleTxPower — unit 0.1 dBm (divide in OpticalPowerNormalizer only).
+     *
      * @return array<int, float>
      */
-    private function walkScaledDbm(string $peer, string $community, string $oid, int $timeoutUs, int $retries): array
+    private function walkRawSnmpDbm(string $peer, string $community, string $oid, int $timeoutUs, int $retries): array
     {
         $out = [];
         foreach (SnmpClient::realWalk($peer, $community, $oid, $timeoutUs, $retries) as $key => $value) {
@@ -269,7 +275,7 @@ final class BdcomEponOnuSyncService
             }
             $numeric = $this->parseSnmpNumber($value);
             if ($numeric !== null) {
-                $out[(int) $suffix] = round($numeric / 10, 2);
+                $out[(int) $suffix] = $numeric;
             }
         }
 
@@ -368,10 +374,19 @@ final class BdcomEponOnuSyncService
 
         $customer = $this->matchCustomerByMac((int) $olt->tenant_id, $mac, $macCompact);
         $description = trim((string) ($row['description'] ?? ''));
-        if ($customer === null && $description !== '') {
-            $resolved = CustomerPppLoginResolver::resolve((int) $olt->tenant_id, $description);
-            if ($resolved !== null && CustomerPppLoginResolver::normalize($description) === CustomerPppLoginResolver::normalize($resolved->pppLoginName())) {
-                $customer = $resolved;
+        if ($customer === null && $description !== ''
+            && ! BdcomOnuDescriptionHeuristic::isOltPlaceholderLabel($description)) {
+            $customer = Customer::query()
+                ->withoutGlobalScopes()
+                ->where('tenant_id', $olt->tenant_id)
+                ->where('customer_code', $description)
+                ->first();
+
+            if ($customer === null) {
+                $resolved = CustomerPppLoginResolver::resolve((int) $olt->tenant_id, $description);
+                if ($resolved !== null && CustomerPppLoginResolver::normalize($description) === CustomerPppLoginResolver::normalize($resolved->pppLoginName())) {
+                    $customer = $resolved;
+                }
             }
         }
 
@@ -385,11 +400,18 @@ final class BdcomEponOnuSyncService
         }
 
         $login = $customer?->pppLoginName() ?? '';
-        if ($login === '' && $description !== '') {
-            $login = $description;
+        if ($login === '') {
+            $login = BdcomOnuDescriptionHeuristic::sanitizePppLoginHint($description, (int) $olt->tenant_id) ?? '';
         }
         if ($login !== '') {
             $meta['ppp_login'] = $login;
+        } elseif (isset($meta['ppp_login']) && BdcomOnuDescriptionHeuristic::isOltPlaceholderLabel((string) $meta['ppp_login'])) {
+            unset($meta['ppp_login']);
+        }
+
+        $externalId = $onu->onu_external_id;
+        if (blank($externalId) || BdcomOnuDescriptionHeuristic::isOltPlaceholderLabel((string) $externalId)) {
+            $externalId = $login !== '' ? $login : (string) $row['label'];
         }
 
         $onu->forceFill([
@@ -400,7 +422,7 @@ final class BdcomEponOnuSyncService
             'onu_index' => $row['onu_index'],
             'onu_oper_status' => $row['oper_status'],
             'customer_id' => $onu->customer_id ?? $customer?->id,
-            'onu_external_id' => $onu->onu_external_id ?: ($login !== '' ? $login : null),
+            'onu_external_id' => $externalId,
             'meta' => $meta,
         ])->save();
 

@@ -67,6 +67,29 @@ class OpticalSignalAccuracyTest extends TestCase
         $this->assertGreaterThan(-20, (float) $smoothed['rx_dbm']);
     }
 
+    public function test_bdcom_snmp_raw_minus_205_is_received_power_minus_20_5(): void
+    {
+        $onu = Device::query()->create([
+            'tenant_id' => 1,
+            'type' => 'onu',
+            'serial_number' => 'BDCOM-RX',
+            'status' => 'assigned',
+            'onu_oper_status' => 'online',
+        ]);
+
+        app(OpticalReadingPipeline::class)->ingest($onu, [
+            'rx_raw' => -205,
+            'tx_raw' => 22,
+            'vendor_profile' => 'bdcom_epon',
+            'source' => 'test',
+        ]);
+
+        $onu->refresh();
+        $this->assertSame(-20.5, (float) $onu->rx_power_dbm);
+        $this->assertSame(2.2, (float) $onu->tx_power_dbm);
+        $this->assertSame(-205, $onu->meta['optical']['snmp_rx_raw']);
+    }
+
     public function test_pipeline_persists_smoothed_health(): void
     {
         $onu = Device::query()->create([

@@ -13,6 +13,8 @@ return [
         'zte' => 'zte',
         'bdcom' => 'bdcom',
         'fiberhome' => 'host_resources',
+        'aveis' => 'host_resources',
+        'ecom' => 'host_resources',
         'vsol' => 'host_resources',
         'nokia' => 'host_resources',
         'alcatel' => 'host_resources',

@@ -50,6 +50,9 @@ return [
     /** After BDCOM SNMP sync, auto-link ONUs to subscribers by MAC + PPP login. */
     'auto_link_on_bdcom_sync' => (bool) env('OPTICAL_AUTO_LINK_ON_BDCOM_SYNC', true),
 
+    /** Pull live PPP sessions from MikroTik (Client IP, caller-id) before ONU link — ISP Digital style. */
+    'auto_fetch_ppp_sessions' => (bool) env('OPTICAL_AUTO_FETCH_PPP_SESSIONS', true),
+
     /** Minimum match score (0–100) to auto-link. */
     'smart_link_min_score' => (int) env('OPTICAL_SMART_LINK_MIN_SCORE', 90),
 
@@ -98,6 +101,8 @@ return [
             'huawei_gpon' => ['mode' => 'tenth_dbm', 'divisor' => 10, 'min_dbm' => -60, 'max_dbm' => 10],
             'zte_gpon' => ['mode' => 'tenth_dbm', 'divisor' => 10, 'min_dbm' => -60, 'max_dbm' => 10],
             'vsol_gpon' => ['mode' => 'tenth_dbm', 'divisor' => 10, 'min_dbm' => -60, 'max_dbm' => 10],
+            'aveis_gpon' => ['mode' => 'auto', 'min_dbm' => -60, 'max_dbm' => 10],
+            'ecom_gpon' => ['mode' => 'tenth_dbm', 'divisor' => 10, 'min_dbm' => -60, 'max_dbm' => 10],
             'fiberhome_gpon' => ['mode' => 'tenth_dbm', 'divisor' => 10, 'min_dbm' => -60, 'max_dbm' => 10],
             'generic_gpon' => ['mode' => 'auto', 'min_dbm' => -60, 'max_dbm' => 10],
         ],

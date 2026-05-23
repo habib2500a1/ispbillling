@@ -37,11 +37,7 @@ final class ResellerCustomerService
         $tenantId = (int) $reseller->tenant_id;
 
         return [
-            'packages' => Package::withoutGlobalScopes()
-                ->where('tenant_id', $tenantId)
-                ->where('is_active', true)
-                ->orderBy('name')
-                ->get(['id', 'name', 'price_monthly']),
+            'packages' => app(ResellerPackageCatalogService::class)->portalPackageOptions($reseller),
             'areas' => Area::withoutGlobalScopes()->where('tenant_id', $tenantId)->orderBy('name')->get(['id', 'name']),
             'zones' => Zone::withoutGlobalScopes()->where('tenant_id', $tenantId)->orderBy('name')->get(['id', 'name', 'area_id']),
             'status_options' => CustomerStatus::options(),
@@ -85,9 +81,16 @@ final class ResellerCustomerService
             'provision_mikrotik' => ['nullable', 'boolean'],
         ]);
 
+        $packageId = (int) $data['package_id'];
+        if (! app(ResellerPackageCatalogService::class)->resellerMaySellPackage($reseller, $packageId)) {
+            throw ValidationException::withMessages([
+                'package_id' => 'This package is not assigned to your reseller account.',
+            ]);
+        }
+
         $package = Package::withoutGlobalScopes()
             ->where('tenant_id', $tenantId)
-            ->findOrFail((int) $data['package_id']);
+            ->findOrFail($packageId);
 
         $code = filled($data['customer_code'] ?? null)
             ? trim((string) $data['customer_code'])

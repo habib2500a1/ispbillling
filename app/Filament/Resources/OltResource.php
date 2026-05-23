@@ -9,7 +9,9 @@ use App\Models\Device;
 use App\Services\Network\GponIntelligenceService;
 use App\Services\Network\OltSnmpMonitorService;
 use App\Services\Olt\OltSnmpProbeService;
+use App\Support\OltManagementHelper;
 use Filament\Forms;
+use Filament\Forms\Get;
 use Filament\Forms\Form;
 use Filament\Forms\Set;
 use Filament\Notifications\Notification;
@@ -59,27 +61,40 @@ class OltResource extends Resource
             ->schema([
                 Forms\Components\Hidden::make('type')->default('olt'),
                 Forms\Components\Section::make('OLT manage')
-                    ->description('পুরোনো প্যানেলের মতো: IP address, Community, OLT type। SNMP টেস্ট এখনও v2c sysDescr।')
+                    ->description('পুরোনো প্যানেলের মতো: IP, Community, OLT type, Web login। SNMP = ONU sync; Web = Aveis UI।')
                     ->schema([
                         Forms\Components\TextInput::make('management_ip')
                             ->label('IP address')
                             ->required()
                             ->maxLength(45)
-                            ->placeholder('e.g. 103.29.127.90'),
+                            ->placeholder('103.29.127.94')
+                            ->live(onBlur: true)
+                            ->afterStateUpdated(function (?string $state, Set $set, Get $get): void {
+                                $ip = OltManagementHelper::normalizeManagementIp($state);
+                                if ($ip === null) {
+                                    return;
+                                }
+                                $set('management_ip', $ip);
+                                if (OltManagementHelper::isAveisDriver($get('olt_driver'))
+                                    && blank($get('olt_web_url'))) {
+                                    $set('olt_web_url', OltManagementHelper::defaultAveisWebUrl($ip));
+                                }
+                            }),
                         Forms\Components\TextInput::make('snmp_community')
                             ->label('Community')
                             ->maxLength(255)
                             ->placeholder('public')
-                            ->helperText('SNMP v2c read community (ওয়েব লগইন পাসওয়ার্ড নয়)। খালি রাখলে টেস্টে public।')
+                            ->default('public')
+                            ->helperText('SNMP v2c (সাধারণত public) — ওয়েব পাসওয়ার্ড নয়।')
                             ->dehydrated(fn (?string $state): bool => filled($state)),
                         Forms\Components\Select::make('olt_driver')
                             ->label('OLT type')
                             ->options($driverOptions)
                             ->searchable()
                             ->required()
-                            ->default('huawei_gpon')
+                            ->default('aveis_epon')
                             ->live()
-                            ->afterStateUpdated(function (?string $state, Set $set): void {
+                            ->afterStateUpdated(function (?string $state, Set $set, Get $get): void {
                                 if ($state === null || $state === '') {
                                     return;
                                 }
@@ -87,24 +102,65 @@ class OltResource extends Resource
                                 if (is_string($vendor) && $vendor !== '') {
                                     $set('vendor', $vendor);
                                 }
+                                if (OltManagementHelper::isAveisDriver($state)) {
+                                    $ip = OltManagementHelper::normalizeManagementIp($get('management_ip'));
+                                    if ($ip !== null && blank($get('olt_web_url'))) {
+                                        $set('olt_web_url', OltManagementHelper::defaultAveisWebUrl($ip));
+                                    }
+                                    if (blank($get('snmp_community'))) {
+                                        $set('snmp_community', 'public');
+                                    }
+                                }
                             }),
+                        Forms\Components\Toggle::make('is_active')
+                            ->label('Is active')
+                            ->default(true)
+                            ->inline(false),
+                        Forms\Components\TextInput::make('display_name')
+                            ->label('OLT name')
+                            ->maxLength(255)
+                            ->columnSpanFull()
+                            ->placeholder('Aveis XE08'),
+                    ])
+                    ->columns(2),
+                Forms\Components\Section::make('Web UI (Aveis / VSOL / Ecom)')
+                    ->description('OLT ওয়েব প্যানেল লগইন — লিংক “Open Web UI” থেকে খুলুন।')
+                    ->schema([
+                        Forms\Components\TextInput::make('olt_web_url')
+                            ->label('Web IP')
+                            ->maxLength(255)
+                            ->placeholder('103.29.127.94:8506')
+                            ->helperText('IP:port (http যোগ করবেন না)। Aveis ডিফল্ট পোর্ট '.(int) config('olt_drivers.aveis_web_port', 8506).'.'),
+                        Forms\Components\TextInput::make('olt_web_username')
+                            ->label('Web username')
+                            ->maxLength(64)
+                            ->default('root')
+                            ->placeholder('root'),
+                        Forms\Components\TextInput::make('olt_web_password')
+                            ->label('Web password')
+                            ->password()
+                            ->revealable()
+                            ->maxLength(255)
+                            ->dehydrated(fn (?string $state): bool => filled($state))
+                            ->helperText('এডিটে খালি = আগের পাসওয়ার্ড অপরিবর্তিত।'),
+                    ])
+                    ->columns(2)
+                    ->visible(fn (Get $get): bool => OltManagementHelper::isAveisDriver($get('olt_driver'))
+                        || in_array($get('olt_driver'), ['vsol_gpon', 'ecom_gpon', 'ecom_epon', 'cdata_gpon'], true)),
+                Forms\Components\Section::make('Run status (advanced)')
+                    ->schema([
                         Forms\Components\Select::make('status')
-                            ->label('Run status')
+                            ->label('Status')
                             ->options([
-                                'active' => 'Active (চালু)',
+                                'active' => 'Active',
                                 'offline' => 'Offline',
                                 'maintenance' => 'Maintenance',
                                 'decommissioned' => 'Decommissioned',
                             ])
                             ->required()
-                            ->default('active')
-                            ->helperText('পুরোনো “Is active” চেকবক্সের জন্য Active বা Offline বেছে নিন।'),
-                        Forms\Components\TextInput::make('display_name')
-                            ->label('OLT name')
-                            ->maxLength(255)
-                            ->columnSpanFull()
-                            ->helperText('পোর্টালে দেখানো নাম (খালি থাকলে সিরিয়াল ব্যবহার হয়)।'),
+                            ->default('active'),
                     ])
+                    ->collapsed()
                     ->columns(2),
                 Forms\Components\Section::make('Details')
                     ->schema([
@@ -113,7 +169,9 @@ class OltResource extends Resource
                                 'huawei' => 'Huawei',
                                 'zte' => 'ZTE',
                                 'fiberhome' => 'Fiberhome',
+                                'aveis' => 'Aveis',
                                 'vsol' => 'VSOL',
+                                'ecom' => 'Ecom',
                                 'alcatel' => 'Alcatel-Lucent / Nokia',
                                 'nokia' => 'Nokia',
                                 'bdcom' => 'BDCom',
@@ -268,6 +326,9 @@ class OltResource extends Resource
                             }
                             if (! empty($result['huawei_onu_discovered'])) {
                                 $body .= " Huawei: {$result['huawei_onu_discovered']} ONUs ({$result['huawei_onu_created']} new).";
+                            }
+                            if (! empty($result['aveis_onu_discovered'])) {
+                                $body .= " Aveis: {$result['aveis_onu_discovered']} ONUs ({$result['aveis_onu_created']} new).";
                             }
                             $notification = Notification::make()
                                 ->title($result['success'] ? 'SNMP poll OK' : 'SNMP poll failed')

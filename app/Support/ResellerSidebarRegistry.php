@@ -40,7 +40,7 @@ final class ResellerSidebarRegistry
             ],
             [
                 'key' => 'package_prices',
-                'label' => 'Package prices',
+                'label' => 'Reseller packages',
                 'icon' => 'heroicon-o-currency-dollar',
                 'sort' => 3,
                 'url' => ResellerPackagePricesPage::getUrl(),

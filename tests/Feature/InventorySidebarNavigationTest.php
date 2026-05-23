@@ -34,6 +34,7 @@ class InventorySidebarNavigationTest extends TestCase
         $this->assertContains('Inventory center', $labels);
         $this->assertContains('Warehouses', $labels);
         $this->assertContains('New sale (POS)', $labels);
+        $this->assertNotContains('OLTs', $labels, 'OLT list lives under OLT & Tools → OLT manage only');
 
         foreach (InventorySidebarRegistry::navigationItems() as $item) {
             $this->assertSame(InventorySidebarRegistry::GROUP_LABEL, $item->getGroup());

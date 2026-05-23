@@ -6,6 +6,9 @@
  */
 return [
 
+    /** Aveis web UI default port (AV-OLT-XE08 — usually :8506). */
+    'aveis_web_port' => (int) env('AVEIS_OLT_WEB_PORT', 8506),
+
     'drivers' => [
         'bdcom_epon' => [
             'label' => 'BDCOM EPON',
@@ -31,9 +34,25 @@ return [
             'label' => 'Fiberhome GPON',
             'vendor' => 'fiberhome',
         ],
+        'aveis_gpon' => [
+            'label' => 'Aveis GPON (AV-OLT-XE08)',
+            'vendor' => 'aveis',
+        ],
+        'aveis_epon' => [
+            'label' => 'Aveis EPON (AVEIS_EPON)',
+            'vendor' => 'aveis',
+        ],
         'vsol_gpon' => [
             'label' => 'VSOL GPON',
             'vendor' => 'vsol',
+        ],
+        'ecom_gpon' => [
+            'label' => 'Ecom GPON',
+            'vendor' => 'ecom',
+        ],
+        'ecom_epon' => [
+            'label' => 'Ecom EPON',
+            'vendor' => 'ecom',
         ],
         'cdata_gpon' => [
             'label' => 'C-Data GPON',

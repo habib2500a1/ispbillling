@@ -31,11 +31,18 @@ class IspDigitalOnuSyncCommand extends Command
         foreach ($tenantIds as $tenantId) {
             $this->info("Tenant #{$tenantId}: ISP Digital ONU pipeline…");
             $stats = $pipeline->runTenantPipeline((int) $tenantId);
+            $al = $stats['auto_link'] ?? [];
             $this->line(sprintf(
-                '  OLTs %d · discovered %d · linked %d · signal snapshots %d',
+                '  OLTs %d · discovered %d · linked %d · PPP fetched %d (online %d) · link steps: customer %d mac %d hints %d smart %d · snapshots %d',
                 $stats['olts'],
                 $stats['discovered'],
                 $stats['linked'],
+                $al['ppp_sessions_fetched'] ?? 0,
+                $al['ppp_online'] ?? 0,
+                $al['ppp_customer_linked'] ?? 0,
+                $al['ppp_session_linked'] ?? 0,
+                $al['hint_linked'] ?? 0,
+                $al['smart_linked'] ?? 0,
                 $stats['signals']['logged'] ?? 0,
             ));
         }

@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Concerns\BelongsToTenant;
+use App\Support\OltManagementHelper;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -146,6 +147,11 @@ class Device extends Model
         }
 
         return (string) $this->serial_number;
+    }
+
+    public function webUiUrl(): ?string
+    {
+        return OltManagementHelper::webUiUrl($this);
     }
 
     protected function casts(): array

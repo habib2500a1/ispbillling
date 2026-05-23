@@ -17,6 +17,8 @@ class OltSnmpMonitorService
         private readonly BdcomEponOnuSyncService $bdcomEpon,
         private readonly OltHealthProbeService $healthProbe,
         private readonly HuaweiGponOnuSyncService $huaweiGpon,
+        private readonly AveisGponOnuSyncService $aveisGpon,
+        private readonly OltOnuSyncCoordinator $onuSync,
     ) {}
 
     /**
@@ -59,6 +61,19 @@ class OltSnmpMonitorService
             $result['sys_descr'] = SnmpClient::get($peer, $community, $oids['sys_descr'] ?? '1.3.6.1.2.1.1.1.0');
             if ($result['sys_descr'] === null) {
                 throw new \RuntimeException('SNMP unreachable (sysDescr).');
+            }
+
+            $guessed = OltOnuSyncCoordinator::guessDriverFromSysDescr((string) $result['sys_descr']);
+            if ($guessed !== null
+                && in_array((string) ($olt->olt_driver ?? ''), ['', 'generic_snmp', 'zte_epon', 'zte_gpon'], true)) {
+                $olt->forceFill([
+                    'olt_driver' => $guessed,
+                    'vendor' => config("olt_drivers.drivers.{$guessed}.vendor") ?? $olt->vendor,
+                    'gpon_profile' => config("gpon.driver_to_profile.{$guessed}") ?? $olt->gpon_profile,
+                ])->saveQuietly();
+                $olt->refresh();
+                $profile = $this->gpon->resolveProfile($olt);
+                $oids = $this->gpon->oidsForProfile($profile);
             }
 
             $uptimeRaw = SnmpClient::get($peer, $community, $oids['sys_uptime'] ?? '1.3.6.1.2.1.1.3.0');
@@ -106,6 +121,34 @@ class OltSnmpMonitorService
             $onus = $olt->fresh()->onus()->get(['onu_oper_status']);
             $result['onus_online'] = $onus->whereIn('onu_oper_status', ['online', 'active', 'up'])->count();
             $result['onus_offline'] = $onus->count() - $result['onus_online'];
+        }
+
+        if ($result['success']
+            && ! config('sync.skip_aveis_in_olt_poll', false)
+            && $this->aveisGpon->supportsDriver($olt)) {
+            $av = $this->aveisGpon->syncOlt($olt->fresh());
+            $result['aveis_onu_discovered'] = $av['discovered'];
+            $result['aveis_onu_created'] = $av['created'];
+            $result['aveis_onu_updated'] = $av['updated'];
+            if ($av['error']) {
+                $result['aveis_sync_error'] = $av['error'];
+            }
+            $onus = $olt->fresh()->onus()->get(['onu_oper_status']);
+            $result['onus_online'] = $onus->whereIn('onu_oper_status', ['online', 'active', 'up'])->count();
+            $result['onus_offline'] = $onus->count() - $result['onus_online'];
+        }
+
+        if ($result['success']
+            && ! config('sync.skip_vsol_in_olt_poll', true)
+            && $this->onuSync->supportsOlt($olt)
+            && ! $this->bdcomEpon->supportsDriver($olt)
+            && ! $this->huaweiGpon->supportsDriver($olt)
+            && ! $this->aveisGpon->supportsDriver($olt)) {
+            $vs = $this->onuSync->syncOlt($olt->fresh());
+            if (($vs['driver'] ?? '') !== '') {
+                $result['vendor_onu_discovered'] = $vs['discovered'];
+                $result['vendor_sync_error'] = $vs['error'] ?? null;
+            }
         }
 
         $healthContext = [

@@ -99,4 +99,9 @@ class Package extends Model
         return $this->hasMany(PackageZonePrice::class);
     }
 
+    public function resellerPackages(): HasMany
+    {
+        return $this->hasMany(ResellerPackage::class);
+    }
+
 }

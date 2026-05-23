@@ -8,7 +8,6 @@ use App\Filament\Resources\DeviceResource;
 use App\Filament\Resources\FixedAssetResource;
 use App\Filament\Resources\InventorySaleResource;
 use App\Filament\Resources\InvoiceResource;
-use App\Filament\Resources\OltResource;
 use App\Filament\Resources\PopBoxResource;
 use App\Filament\Resources\ProductResource;
 use App\Filament\Resources\PurchaseOrderResource;
@@ -167,18 +166,6 @@ final class InventorySidebarRegistry
                 'active_routes' => ['filament.admin.pages.accounting-hub'],
             ],
             [
-                'key' => 'olts',
-                'label' => 'OLTs',
-                'icon' => 'heroicon-o-signal',
-                'sort' => 13,
-                'url' => OltResource::getUrl(),
-                'active_routes' => [
-                    'filament.admin.resources.olts.index',
-                    'filament.admin.resources.olts.create',
-                    'filament.admin.resources.olts.edit',
-                ],
-            ],
-            [
                 'key' => 'pop_boxes',
                 'label' => 'POP / boxes',
                 'icon' => 'heroicon-o-map-pin',
@@ -281,7 +268,7 @@ final class InventorySidebarRegistry
             'warehouses', 'products', 'pos_new', 'retail_sales', 'purchase_orders', 'stock_ledger' => $cap->canInventory(),
             'invoices_hardware' => $cap->canInventory() && $cap->canBilling(),
             'public_shop' => $cap->canInventory() && config('inventory.shop_enabled', true),
-            'devices', 'olts', 'pop_boxes' => $cap->canInventory() || $cap->canAccessModuleGroup('Network'),
+            'devices', 'pop_boxes' => $cap->canInventory() || $cap->canAccessModuleGroup('Network'),
             'vendors', 'fixed_assets' => $cap->canInventory(),
             'accounting' => $cap->canInventory() && $cap->canAccounting(),
             default => false,

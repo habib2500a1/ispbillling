@@ -191,6 +191,11 @@ class Reseller extends Model implements AuthenticatableContract
         return $this->hasMany(ResellerTerritory::class);
     }
 
+    public function resellerPackages(): HasMany
+    {
+        return $this->hasMany(ResellerPackage::class);
+    }
+
     public function balanceTransfersIn(): HasMany
     {
         return $this->hasMany(ResellerBalanceTransfer::class, 'to_reseller_id');

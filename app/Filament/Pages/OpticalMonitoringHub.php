@@ -67,6 +67,18 @@ class OpticalMonitoringHub extends Page implements HasForms
     public function mount(): void
     {
         $this->monitorTab = 'database';
+
+        if (config('optical.auto_fetch_ppp_sessions', true) && config('bandwidth.collection_enabled', true)) {
+            $tenantId = TenantResolver::requiredTenantId();
+            $bandwidth = app(\App\Services\Bandwidth\BandwidthCollectionService::class);
+            if ($bandwidth->tenantHasEnabledMikrotik($tenantId) && ! $bandwidth->tenantOnlineFlagsTrustworthy($tenantId)) {
+                try {
+                    $bandwidth->refreshOnlineFlagsForTenant($tenantId);
+                } catch (\Throwable) {
+                    // Optical table still loads from OLT inventory.
+                }
+            }
+        }
     }
 
     /**

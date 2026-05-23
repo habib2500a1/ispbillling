@@ -45,8 +45,15 @@ class OpticalDatabaseTableTest extends TestCase
             'mac_address' => '00:11:41:38:d1:e2',
             'olt_id' => $olt->id,
             'customer_id' => $customer->id,
-            'rx_power_dbm' => -25.5284,
-            'tx_power_dbm' => 2.1,
+            'rx_power_dbm' => -20.5,
+            'tx_power_dbm' => 2.2,
+            'meta' => [
+                'optical' => [
+                    'snmp_rx_raw' => -205,
+                    'snmp_tx_raw' => 22,
+                    'vendor_profile' => 'bdcom_epon',
+                ],
+            ],
             'card_no' => 0,
             'pon_no' => 2,
             'onu_index' => 8,
@@ -61,7 +68,7 @@ class OpticalDatabaseTableTest extends TestCase
         $this->assertSame('424', $row['client_code']);
         $this->assertSame('ak-mehedi', $row['username']);
         $this->assertSame('Md Mehedi Hasan', $row['client_name']);
-        $this->assertEqualsWithDelta(-25.5284, (float) $row['optical_power'], 0.001);
+        $this->assertStringContainsString('-20.50 dBm', (string) $row['optical_power']);
         $this->assertSame('00:11:41:38:D1:E2', $row['onu_mac']);
         $this->assertSame('Online', $row['onu_status']);
     }

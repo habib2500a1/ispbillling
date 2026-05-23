@@ -4,7 +4,7 @@ namespace App\Services\Optical;
 
 use App\Models\Customer;
 use App\Models\Device;
-use App\Services\Network\BdcomEponOnuSyncService;
+use App\Services\Network\OltOnuSyncCoordinator;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Log;
 
@@ -14,25 +14,25 @@ use Illuminate\Support\Facades\Log;
 final class IspDigitalOnuPipelineService
 {
     public function __construct(
-        private readonly BdcomEponOnuSyncService $bdcomSync,
+        private readonly OltOnuSyncCoordinator $oltSync,
         private readonly OnuSignalCollectionService $signalCollector,
+        private readonly IspDigitalOnuAutoLinkService $autoLink,
     ) {}
 
     /**
      * Full tenant sync (cron): all BDCOM OLTs → smart link → signal snapshots.
      *
-     * @return array{olts: int, discovered: int, linked: int, signals: array<string, int>}
+     * @return array{olts: int, discovered: int, linked: int, auto_link: array<string, int>, signals: array<string, int>}
      */
     public function runTenantPipeline(int $tenantId): array
     {
-        $stats = ['olts' => 0, 'discovered' => 0, 'linked' => 0, 'signals' => []];
+        $stats = ['olts' => 0, 'discovered' => 0, 'linked' => 0, 'auto_link' => [], 'signals' => []];
 
-        foreach ($this->bdcomOltsForTenant($tenantId) as $olt) {
+        foreach ($this->oltSync->oltsForTenant($tenantId) as $olt) {
             $stats['olts']++;
-            $result = $this->bdcomSync->syncOlt($olt, false);
+            $result = $this->oltSync->syncOlt($olt, false);
             if ($result['success']) {
                 $stats['discovered'] += (int) ($result['discovered'] ?? 0);
-                $stats['linked'] += (int) ($result['linked'] ?? 0);
             } else {
                 Log::warning('isp_digital_onu.sync_olt_failed', [
                     'olt_id' => $olt->id,
@@ -40,6 +40,9 @@ final class IspDigitalOnuPipelineService
                 ]);
             }
         }
+
+        $stats['auto_link'] = $this->autoLink->runAfterOltSync($tenantId);
+        $stats['linked'] = (int) ($stats['auto_link']['linked'] ?? 0);
 
         $stats['signals'] = $this->signalCollector->collectForTenant($tenantId);
 
@@ -63,7 +66,7 @@ final class IspDigitalOnuPipelineService
         }
 
         if ($forceOltSync || ! $this->tenantInventoryFresh($tenantId)) {
-            $this->syncAllBdcomOlts($tenantId);
+            $this->syncAllOlts($tenantId);
         }
 
         if (config('optical.mikrotik_optical_bridge_enabled', true)) {
@@ -144,34 +147,14 @@ final class IspDigitalOnuPipelineService
     /**
      * @return array{synced: int, discovered: int, linked: int}
      */
-    public function syncAllBdcomOlts(int $tenantId): array
+    public function syncAllOlts(int $tenantId): array
     {
-        $out = ['synced' => 0, 'discovered' => 0, 'linked' => 0];
-
-        foreach ($this->bdcomOltsForTenant($tenantId) as $olt) {
-            $result = $this->bdcomSync->syncOlt($olt, false);
-            if ($result['success']) {
-                $out['synced']++;
-                $out['discovered'] += (int) ($result['discovered'] ?? 0);
-                $out['linked'] += (int) ($result['linked'] ?? 0);
-            }
-        }
-
-        return $out;
+        return $this->oltSync->syncAllForTenant($tenantId);
     }
 
-    /**
-     * @return \Illuminate\Support\Collection<int, Device>
-     */
-    private function bdcomOltsForTenant(int $tenantId)
+    /** @deprecated Use syncAllOlts() */
+    public function syncAllBdcomOlts(int $tenantId): array
     {
-        return Device::query()
-            ->withoutGlobalScopes()
-            ->where('tenant_id', $tenantId)
-            ->olts()
-            ->where('status', '!=', 'decommissioned')
-            ->orderBy('id')
-            ->get()
-            ->filter(fn (Device $olt): bool => $this->bdcomSync->supportsDriver($olt));
+        return $this->syncAllOlts($tenantId);
     }
 }

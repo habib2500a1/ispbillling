@@ -251,12 +251,20 @@ final class CustomerOnuSmartLinkService
         $login = CustomerPppLoginResolver::normalize($customer->pppLoginName());
         $meta = is_array($onu->meta) ? $onu->meta : [];
 
+        $clientCode = trim((string) ($customer->customer_code ?? ''));
+        $description = trim((string) ($meta['bdcom_description'] ?? ''));
+        if ($clientCode !== '' && $description !== ''
+            && ! \App\Support\BdcomOnuDescriptionHeuristic::isOltPlaceholderLabel($description)
+            && $clientCode === $description) {
+            return ['onu' => $onu, 'score' => 100, 'reason' => self::REASON_DESC_EXACT];
+        }
+
         if ($login !== '') {
             foreach ([
                 (string) $onu->onu_external_id,
                 (string) ($meta['ppp_login'] ?? ''),
                 (string) ($meta['subscriber_login'] ?? ''),
-                (string) ($meta['bdcom_description'] ?? ''),
+                $description,
             ] as $value) {
                 if ($value !== '' && CustomerPppLoginResolver::normalize($value) === $login) {
                     return ['onu' => $onu, 'score' => 100, 'reason' => self::REASON_LOGIN_EXACT];

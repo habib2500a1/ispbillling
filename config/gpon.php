@@ -50,13 +50,40 @@ return [
             'label' => 'Fiberhome GPON',
             'extends' => 'generic_gpon',
         ],
+        'aveis_gpon' => [
+            'label' => 'Aveis GPON (AV-OLT-XE08-L3)',
+            'extends' => 'generic_gpon',
+            'enterprise' => '50224',
+            'aveis_onu_table' => '1.3.6.1.4.1.50224.3.3.2.1',
+            'aveis_pon_table' => '1.3.6.1.4.1.50224.3.2.1.1',
+        ],
+        'aveis_epon' => [
+            'label' => 'Aveis EPON',
+            'extends' => 'aveis_gpon',
+        ],
         'vsol_gpon' => [
             'label' => 'VSOL GPON',
             'extends' => 'generic_gpon',
+            'enterprise' => '37950',
+            /** Set after snmpwalk on your VSOL OLT (firmware-dependent). */
+            'vsol_onu_desc' => env('VSOL_SNMP_ONU_DESC_OID', ''),
+            'vsol_onu_status' => env('VSOL_SNMP_ONU_STATUS_OID', ''),
+            'vsol_onu_mac' => env('VSOL_SNMP_ONU_MAC_OID', ''),
+            'vsol_onu_rx' => env('VSOL_SNMP_ONU_RX_OID', ''),
+            'vsol_onu_sn' => env('VSOL_SNMP_ONU_SN_OID', ''),
+        ],
+        'ecom_gpon' => [
+            'label' => 'Ecom GPON',
+            'extends' => 'vsol_gpon',
+            'notes' => 'Many Ecom OLTs share VSOL/ZTE MIB — set VSOL_SNMP_* env or snmpwalk enterprise tree.',
+        ],
+        'ecom_epon' => [
+            'label' => 'Ecom EPON',
+            'extends' => 'ecom_gpon',
         ],
         'cdata_gpon' => [
             'label' => 'C-Data GPON',
-            'extends' => 'generic_gpon',
+            'extends' => 'vsol_gpon',
         ],
     ],
 
@@ -66,6 +93,13 @@ return [
     /** Huawei GPON optical walk timeout (µs). */
     'huawei_gpon_walk_timeout_us' => (int) env('HUAWEI_GPON_SNMP_TIMEOUT_US', 12000000),
 
+    'aveis_gpon_walk_timeout_us' => (int) env('AVEIS_GPON_SNMP_TIMEOUT_US', 10000000),
+
+    'vsol_gpon_walk_timeout_us' => (int) env('VSOL_GPON_SNMP_TIMEOUT_US', 10000000),
+
+    /** Aveis RX column mode: negative_tenth | tenth_dbm | skip */
+    'aveis_rx_mode' => env('AVEIS_RX_MODE', 'skip'),
+
     'driver_to_profile' => [
         'huawei_gpon' => 'huawei_gpon',
         'zte_gpon' => 'zte_gpon',
@@ -73,7 +107,11 @@ return [
         'bdcom_gpon' => 'bdcom_gpon',
         'bdcom_epon' => 'bdcom_epon',
         'fiberhome_gpon' => 'fiberhome_gpon',
+        'aveis_gpon' => 'aveis_gpon',
+        'aveis_epon' => 'aveis_gpon',
         'vsol_gpon' => 'vsol_gpon',
+        'ecom_gpon' => 'ecom_gpon',
+        'ecom_epon' => 'ecom_gpon',
         'cdata_gpon' => 'cdata_gpon',
         'generic_snmp' => 'generic_gpon',
     ],

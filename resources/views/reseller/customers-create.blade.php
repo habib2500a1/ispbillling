@@ -14,7 +14,7 @@
                 <label class="block text-xs font-bold uppercase text-slate-500">Package</label>
                 <select name="package_id" required class="mt-1 w-full rounded-lg border px-3 py-2">
                     @foreach ($options['packages'] as $pkg)
-                        <option value="{{ $pkg->id }}">{{ $pkg->name }} — {{ number_format((float) $pkg->price_monthly, 0) }} BDT</option>
+                        <option value="{{ $pkg['id'] }}">{{ $pkg['name'] }} — {{ number_format((float) ($pkg['selling_price'] ?? $pkg['price_monthly']), 0) }} BDT</option>
                     @endforeach
                 </select>
             </div>

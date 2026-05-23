@@ -37,13 +37,12 @@
                 <tr>
                     <th>#</th>
                     <th>Client Code</th>
-                    <th>UserName</th>
+                    <th>PPP username</th>
                     <th>Client Name</th>
                     <th>MacAddress</th>
                     <th>IpAddress</th>
                     <th>OLTName</th>
-                    <th class="isp-optical-power-col isp-optical-power-col--sticky">OpticalPower (RX dBm)</th>
-                    <th>TX (dBm)</th>
+                    <th class="isp-optical-power-col isp-optical-power-col--sticky">Received power (RX dBm)</th>
                     <th>OnuMacaddress</th>
                     <th>OLTPort</th>
                     <th>OnuStatus</th>
@@ -83,7 +82,6 @@
                                 <span class="block text-[10px] font-medium opacity-80">{{ $row['optical_level_label'] }}</span>
                             @endif
                         </td>
-                        <td class="font-mono text-xs tabular-nums">{{ $row['tx_power'] }}</td>
                         <td class="font-mono text-xs whitespace-nowrap">{{ $row['onu_mac'] }}</td>
                         <td class="font-mono text-xs whitespace-nowrap">{{ $row['olt_port'] }}</td>
                         <td>
@@ -101,7 +99,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="16" class="py-10 text-center text-gray-500">
+                        <td colspan="15" class="py-10 text-center text-gray-500">
                             No ONU data — add OLT and run <strong>Poll OLT health</strong> or BDCOM/Huawei sync.
                         </td>
                     </tr>
@@ -113,7 +111,7 @@
     <div class="flex flex-wrap items-center justify-between gap-2 text-sm text-gray-600 dark:text-gray-400">
         <p>
             Showing {{ $paginator->firstItem() ?? 0 }}–{{ $paginator->lastItem() ?? 0 }} of {{ number_format($paginator->total()) }}
-            · OpticalPower = RX dBm · refresh page to update
+            · Received power = OLT ONU RX (received power DBm) · refresh after BDCOM sync
         </p>
         <div class="flex items-center gap-2">
             <button type="button" wire:click="gotoOpticalDbPage({{ max(1, $paginator->currentPage() - 1) }})"

@@ -43,10 +43,29 @@ final class OpticalReadingPipeline
             ?? $onu->olt?->olt_driver
             ?? 'generic_gpon';
 
-        $rawRx = $this->normalizer->normalizeRx($reading['rx_raw'] ?? null, (string) $vendor);
-        $rawTx = $this->normalizer->normalizeTx($reading['tx_raw'] ?? null, (string) $vendor);
+        $snmpRxRaw = $reading['rx_raw'] ?? null;
+        $snmpTxRaw = $reading['tx_raw'] ?? null;
 
-        $smoothed = $this->validator->smooth((int) $onu->id, $rawRx, $rawTx);
+        $rawRx = ($reading['already_dbm'] ?? false)
+            ? $this->toFloat($snmpRxRaw)
+            : $this->normalizer->normalizeRx($snmpRxRaw, (string) $vendor);
+        $rawTx = ($reading['already_dbm'] ?? false)
+            ? $this->toFloat($snmpTxRaw)
+            : $this->normalizer->normalizeTx($snmpTxRaw, (string) $vendor);
+
+        // Fresh BDCOM SNMP sync must not be averaged with pre-fix corrupted history.
+        $bypassSmooth = in_array($reading['source'] ?? '', ['bdcom_snmp', 'bdcom_resync'], true)
+            || ($reading['bypass_smoothing'] ?? false);
+
+        $smoothed = $bypassSmooth
+            ? [
+                'rx_dbm' => $rawRx,
+                'tx_dbm' => $rawTx,
+                'is_spike' => false,
+                'sample_count' => 1,
+                'rx_stddev' => null,
+            ]
+            : $this->validator->smooth((int) $onu->id, $rawRx, $rawTx);
 
         $oper = strtolower((string) ($reading['oper_status'] ?? $onu->onu_oper_status ?? 'unknown'));
         $analysis = $this->analyzer->analyze(
@@ -69,6 +88,8 @@ final class OpticalReadingPipeline
 
         $meta = is_array($onu->meta) ? $onu->meta : [];
         $meta['optical'] = array_merge($meta['optical'] ?? [], [
+            'snmp_rx_raw' => $snmpRxRaw,
+            'snmp_tx_raw' => $snmpTxRaw,
             'raw_rx_dbm' => $rawRx,
             'raw_tx_dbm' => $rawTx,
             'smoothed_at' => $at->toIso8601String(),

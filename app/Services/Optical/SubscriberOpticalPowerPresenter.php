@@ -5,6 +5,8 @@ namespace App\Services\Optical;
 use App\Models\Customer;
 use App\Models\Device;
 use App\Support\MacAddress;
+use App\Services\Optical\Normalization\OpticalPowerNormalizer;
+use App\Support\BdcomOnuDescriptionHeuristic;
 use App\Support\OnuSignalLevel;
 use App\Support\OpticalThresholds;
 use Carbon\Carbon;
@@ -148,6 +150,10 @@ final class SubscriberOpticalPowerPresenter
     private function rowUnlinked(Device $onu, int $index): array
     {
         $meta = is_array($onu->meta) ? $onu->meta : [];
+        $guestCustomer = $this->customerFromOnuDescription($onu, $meta);
+        if ($guestCustomer !== null && ! $guestCustomer->relationLoaded('activePppSession')) {
+            $guestCustomer->load('activePppSession');
+        }
         $rx = $this->resolveRxDbm($onu, $meta);
         $oper = strtolower((string) ($onu->onu_oper_status ?? ''));
         $rxLevel = OnuSignalLevel::classifyRx($rx, $oper);
@@ -160,12 +166,13 @@ final class SubscriberOpticalPowerPresenter
         return [
             'index' => $index,
             'onu_id' => $onu->id,
-            'customer_id' => null,
-            'client_code' => '—',
-            'username' => $meta['ppp_login'] ?? $meta['bdcom_description'] ?? '—',
-            'client_name' => '—',
-            'mac_address' => '—',
-            'ip_address' => $onu->framed_ip_address ?: '—',
+            'customer_id' => $guestCustomer?->id,
+            'client_code' => $guestCustomer?->customer_code ?: '—',
+            'username' => $guestCustomer?->pppLoginName()
+                ?: BdcomOnuDescriptionHeuristic::resolveDisplayUsername($onu, $meta),
+            'client_name' => $guestCustomer?->name ?: '—',
+            'mac_address' => $this->formatSessionMac($guestCustomer) ?: '—',
+            'ip_address' => $this->formatSessionIp($guestCustomer, $onu) ?: '—',
             'olt_name' => $onu->olt?->display_name ?? $onu->olt?->serial_number ?? '—',
             'optical_power' => $this->formatOpticalPower($rx),
             'optical_power_raw' => $rx,
@@ -347,13 +354,63 @@ final class SubscriberOpticalPowerPresenter
     /**
      * @param  array<string, mixed>  $meta
      */
+    private function formatSessionMac(?Customer $customer): ?string
+    {
+        if ($customer === null) {
+            return null;
+        }
+
+        $ppp = $customer->activePppSession;
+        $mac = $this->firstFilled(
+            $ppp?->caller_id,
+            is_array($customer->meta) ? ($customer->meta['mac_binding'] ?? null) : null,
+            is_array($customer->meta) ? ($customer->meta['onu_mac'] ?? null) : null,
+        );
+
+        return $mac !== null ? (MacAddress::normalizeColon($mac) ?? $mac) : null;
+    }
+
+    private function formatSessionIp(?Customer $customer, Device $onu): ?string
+    {
+        $ip = $customer?->activePppSession?->framed_ip;
+
+        return filled($ip) ? (string) $ip : (filled($onu->framed_ip_address) ? (string) $onu->framed_ip_address : null);
+    }
+
+    /**
+     * @param  array<string, mixed>  $meta
+     */
+    private function customerFromOnuDescription(Device $onu, array $meta): ?Customer
+    {
+        $description = trim((string) ($meta['bdcom_description'] ?? ''));
+        if ($description === '' || BdcomOnuDescriptionHeuristic::isOltPlaceholderLabel($description)) {
+            return null;
+        }
+
+        return Customer::query()
+            ->withoutGlobalScopes()
+            ->where('tenant_id', $onu->tenant_id)
+            ->where('customer_code', $description)
+            ->first(['id', 'tenant_id', 'customer_code', 'name', 'mikrotik_secret_name', 'radius_username']);
+    }
+
     private function resolveRxDbm(Device $onu, array $meta): ?float
     {
+        $optical = is_array($meta['optical'] ?? null) ? $meta['optical'] : [];
+
+        // BDCOM: prefer fresh SNMP integer (0.1 dBm) → matches OLT "received power(DBm)".
+        if (isset($optical['snmp_rx_raw']) && $optical['snmp_rx_raw'] !== '' && $optical['snmp_rx_raw'] !== null) {
+            $vendor = (string) ($optical['vendor_profile'] ?? $onu->gpon_profile ?? $onu->olt?->olt_driver ?? 'bdcom_epon');
+            $fromSnmp = app(OpticalPowerNormalizer::class)->normalizeRx($optical['snmp_rx_raw'], $vendor);
+            if ($fromSnmp !== null) {
+                return $fromSnmp;
+            }
+        }
+
         if ($onu->rx_power_dbm !== null && $onu->rx_power_dbm !== '') {
             return (float) $onu->rx_power_dbm;
         }
 
-        $optical = is_array($meta['optical'] ?? null) ? $meta['optical'] : [];
         $raw = $optical['raw_rx_dbm'] ?? $optical['rx_dbm'] ?? $meta['rx_dbm'] ?? null;
 
         return $raw !== null && $raw !== '' ? (float) $raw : null;

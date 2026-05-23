@@ -260,6 +260,10 @@ class ResellerResource extends Resource
                     ->badge(),
                 Tables\Columns\TextColumn::make('parent.name')->label('Parent')->placeholder('—'),
                 Tables\Columns\TextColumn::make('customers_count')->counts('customers')->label('Customers'),
+                Tables\Columns\TextColumn::make('reseller_packages_count')
+                    ->counts('resellerPackages')
+                    ->label('Packages')
+                    ->placeholder('All'),
                 Tables\Columns\TextColumn::make('commission_value')
                     ->label('Commission')
                     ->formatStateUsing(fn (Reseller $r): string => $r->commissionLabel()),
@@ -286,6 +290,7 @@ class ResellerResource extends Resource
     {
         return [
             RelationManagers\ChildrenRelationManager::class,
+            RelationManagers\PackagesRelationManager::class,
             RelationManagers\TerritoriesRelationManager::class,
             RelationManagers\CustomersRelationManager::class,
             RelationManagers\CommissionsRelationManager::class,

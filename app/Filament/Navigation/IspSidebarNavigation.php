@@ -91,26 +91,53 @@ final class IspSidebarNavigation
      */
     private static function dedupeNavigationItems(array $items): array
     {
-        $seen = [];
+        /** @var array<string, array{item: \Filament\Navigation\NavigationItem, priority: int}> $winners */
+        $winners = [];
+
+        foreach ($items as $item) {
+            $url = (string) $item->getUrl();
+            if ($url === '') {
+                continue;
+            }
+
+            $priority = self::navigationGroupPriority((string) ($item->getGroup() ?? ''));
+
+            if (! isset($winners[$url]) || $priority > $winners[$url]['priority']) {
+                $winners[$url] = ['item' => $item, 'priority' => $priority];
+            }
+        }
+
+        $emitted = [];
         $out = [];
 
         foreach ($items as $item) {
             $url = (string) $item->getUrl();
-            $group = (string) ($item->getGroup() ?? '');
-            $key = $group.'|'.$url;
 
-            if ($url !== '' && isset($seen[$key])) {
+            if ($url === '') {
+                $out[] = $item;
+
                 continue;
             }
 
-            if ($url !== '') {
-                $seen[$key] = true;
+            if (isset($emitted[$url])) {
+                continue;
             }
 
-            $out[] = $item;
+            $out[] = $winners[$url]['item'];
+            $emitted[$url] = true;
         }
 
         return $out;
+    }
+
+    private static function navigationGroupPriority(string $group): int
+    {
+        return match ($group) {
+            'OLT & Tools' => 100,
+            'Network' => 90,
+            'Inventory Pro' => 20,
+            default => 50,
+        };
     }
 
     /**

@@ -19,6 +19,12 @@ return [
     /** BDCOM full walk only in isp:sync-bdcom-epon-onus — not inside OLT poll. */
     'skip_bdcom_in_olt_poll' => filter_var(env('SYNC_SKIP_BDCOM_IN_POLL', true), FILTER_VALIDATE_BOOL),
 
+    'skip_huawei_in_olt_poll' => filter_var(env('SYNC_SKIP_HUAWEI_IN_POLL', false), FILTER_VALIDATE_BOOL),
+
+    'skip_aveis_in_olt_poll' => filter_var(env('SYNC_SKIP_AVEIS_IN_POLL', false), FILTER_VALIDATE_BOOL),
+
+    'skip_vsol_in_olt_poll' => filter_var(env('SYNC_SKIP_VSOL_IN_POLL', true), FILTER_VALIDATE_BOOL),
+
     /** isp:poll-olt-intelligence — skip optical collect (use isp:collect-onu-signals). */
     'skip_optical_in_olt_poll' => filter_var(env('SYNC_SKIP_OPTICAL_IN_POLL', true), FILTER_VALIDATE_BOOL),
 
