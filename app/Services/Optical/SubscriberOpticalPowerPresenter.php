@@ -148,7 +148,7 @@ final class SubscriberOpticalPowerPresenter
     private function rowUnlinked(Device $onu, int $index): array
     {
         $meta = is_array($onu->meta) ? $onu->meta : [];
-        $rx = $onu->rx_power_dbm !== null ? (float) $onu->rx_power_dbm : null;
+        $rx = $this->resolveRxDbm($onu, $meta);
         $oper = strtolower((string) ($onu->onu_oper_status ?? ''));
         $rxLevel = OnuSignalLevel::classifyRx($rx, $oper);
 
@@ -167,12 +167,12 @@ final class SubscriberOpticalPowerPresenter
             'mac_address' => '—',
             'ip_address' => $onu->framed_ip_address ?: '—',
             'olt_name' => $onu->olt?->display_name ?? $onu->olt?->serial_number ?? '—',
-            'optical_power' => $rx !== null ? number_format($rx, 4, '.', '') : '—',
+            'optical_power' => $this->formatOpticalPower($rx),
             'optical_power_raw' => $rx,
             'optical_level' => $rxLevel,
             'optical_level_label' => OnuSignalLevel::labels()[$rxLevel] ?? $rxLevel,
             'optical_color' => OnuSignalLevel::filamentColor($rxLevel),
-            'tx_power' => $onu->tx_power_dbm !== null ? number_format((float) $onu->tx_power_dbm, 4, '.', '') : '—',
+            'tx_power' => $this->formatTxPower($onu, $meta),
             'onu_mac' => $onu->mac_address
                 ? (MacAddress::normalizeColon($onu->mac_address) ?? $onu->mac_address)
                 : '—',
@@ -199,7 +199,7 @@ final class SubscriberOpticalPowerPresenter
     private function row(Customer $customer, Device $onu, int $index): array
     {
         $meta = is_array($onu->meta) ? $onu->meta : [];
-        $rx = $onu->rx_power_dbm !== null ? (float) $onu->rx_power_dbm : null;
+        $rx = $this->resolveRxDbm($onu, $meta);
         $oper = strtolower((string) ($onu->onu_oper_status ?? ''));
         $rxLevel = OnuSignalLevel::classifyRx($rx, $oper);
 
@@ -242,12 +242,12 @@ final class SubscriberOpticalPowerPresenter
             'mac_address' => $clientMac ? (MacAddress::normalizeColon($clientMac) ?? $clientMac) : '—',
             'ip_address' => $ip ?: '—',
             'olt_name' => $onu->olt?->display_name ?? $onu->olt?->serial_number ?? '—',
-            'optical_power' => $rx !== null ? number_format($rx, 4, '.', '') : '—',
+            'optical_power' => $this->formatOpticalPower($rx),
             'optical_power_raw' => $rx,
             'optical_level' => $rxLevel,
             'optical_level_label' => OnuSignalLevel::labels()[$rxLevel] ?? $rxLevel,
             'optical_color' => OnuSignalLevel::filamentColor($rxLevel),
-            'tx_power' => $onu->tx_power_dbm !== null ? number_format((float) $onu->tx_power_dbm, 4, '.', '') : '—',
+            'tx_power' => $this->formatTxPower($onu, $meta),
             'onu_mac' => $onu->mac_address
                 ? (MacAddress::normalizeColon($onu->mac_address) ?? $onu->mac_address)
                 : '—',
@@ -342,5 +342,43 @@ final class SubscriberOpticalPowerPresenter
         }
 
         return null;
+    }
+
+    /**
+     * @param  array<string, mixed>  $meta
+     */
+    private function resolveRxDbm(Device $onu, array $meta): ?float
+    {
+        if ($onu->rx_power_dbm !== null && $onu->rx_power_dbm !== '') {
+            return (float) $onu->rx_power_dbm;
+        }
+
+        $optical = is_array($meta['optical'] ?? null) ? $meta['optical'] : [];
+        $raw = $optical['raw_rx_dbm'] ?? $optical['rx_dbm'] ?? $meta['rx_dbm'] ?? null;
+
+        return $raw !== null && $raw !== '' ? (float) $raw : null;
+    }
+
+    private function formatOpticalPower(?float $rx): string
+    {
+        return $rx !== null ? number_format($rx, 2, '.', '').' dBm' : '—';
+    }
+
+    /**
+     * @param  array<string, mixed>  $meta
+     */
+    private function formatTxPower(Device $onu, array $meta): string
+    {
+        $tx = $onu->tx_power_dbm !== null && $onu->tx_power_dbm !== ''
+            ? (float) $onu->tx_power_dbm
+            : null;
+
+        if ($tx === null) {
+            $optical = is_array($meta['optical'] ?? null) ? $meta['optical'] : [];
+            $raw = $optical['raw_tx_dbm'] ?? $optical['tx_dbm'] ?? null;
+            $tx = $raw !== null && $raw !== '' ? (float) $raw : null;
+        }
+
+        return $tx !== null ? number_format($tx, 2, '.', '').' dBm' : '—';
     }
 }

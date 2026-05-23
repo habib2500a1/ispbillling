@@ -186,7 +186,19 @@
 
 .isp-optical-power-col {
     font-weight: 700;
-    min-width: 6.5rem;
+    min-width: 7.5rem;
+}
+
+.isp-optical-power-col--sticky {
+    position: sticky;
+    left: 0;
+    z-index: 2;
+    background: inherit;
+    box-shadow: 2px 0 6px rgba(0, 0, 0, 0.06);
+}
+
+.isp-optical-power-table thead .isp-optical-power-col--sticky {
+    background: linear-gradient(180deg, #1e3a5f 0%, #152a45 100%);
 }
 
 .isp-optical-power-value {

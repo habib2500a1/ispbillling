@@ -33,6 +33,7 @@ final class OpticalDatabasePresenter
                 'olt:id,tenant_id,display_name,serial_number',
                 'oltPort:id,olt_id,card_no,pon_no,fiber_distance_m',
             ])
+            ->orderByRaw('rx_power_dbm IS NULL ASC')
             ->orderByDesc('last_polled_at')
             ->orderBy('serial_number');
 

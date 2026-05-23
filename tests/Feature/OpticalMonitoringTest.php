@@ -197,6 +197,6 @@ class OpticalMonitoringTest extends TestCase
             ->assertSee('Optical Database')
             ->assertSee('Client Code')
             ->set('opticalDbSearch', 'ONU-NO-HEALTH')
-            ->assertSee('-20.0000');
+            ->assertSee('-20.00 dBm');
     }
 }

@@ -42,7 +42,7 @@
                     <th>MacAddress</th>
                     <th>IpAddress</th>
                     <th>OLTName</th>
-                    <th class="isp-optical-power-col">OpticalPower</th>
+                    <th class="isp-optical-power-col isp-optical-power-col--sticky">OpticalPower (RX dBm)</th>
                     <th>TX (dBm)</th>
                     <th>OnuMacaddress</th>
                     <th>OLTPort</th>
@@ -72,7 +72,7 @@
                         <td class="font-mono text-xs whitespace-nowrap">{{ $row['mac_address'] }}</td>
                         <td class="font-mono text-xs whitespace-nowrap">{{ $row['ip_address'] }}</td>
                         <td>{{ $row['olt_name'] }}</td>
-                        <td class="isp-optical-power-col">
+                        <td class="isp-optical-power-col isp-optical-power-col--sticky">
                             <span @class([
                                 'isp-optical-power-value',
                                 'isp-optical-power-value--' . ($row['optical_color'] ?? 'gray'),
