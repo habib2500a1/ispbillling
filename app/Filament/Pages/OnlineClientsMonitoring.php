@@ -269,7 +269,9 @@ class OnlineClientsMonitoring extends Page implements HasForms, HasTable
             ->filters([
                 Tables\Filters\SelectFilter::make('mikrotik_server_id')
                     ->label('Router')
-	                    ->options(function () use ($tenantId): array {
+	                    ->options(function (): array {
+	                        $tenantId = TenantResolver::requiredTenantId();
+
 	                        return MikrotikServer::query()
 	                            ->where('tenant_id', $tenantId)
 	                            ->orderBy('name')
@@ -284,7 +286,9 @@ class OnlineClientsMonitoring extends Page implements HasForms, HasTable
                         'all' => 'All PPP users',
                     ])
                     ->default('all')
-                    ->query(function (Builder $query, array $data) use ($tenantId): Builder {
+	                    ->query(function (Builder $query, array $data): Builder {
+	                        $tenantId = TenantResolver::requiredTenantId();
+
                         $value = $data['value'] ?? 'all';
 
                         return match ($value) {
