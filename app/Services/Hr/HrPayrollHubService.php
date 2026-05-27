@@ -2,6 +2,7 @@
 
 namespace App\Services\Hr;
 
+use App\Models\AttendanceOfficeLocation;
 use App\Models\AttendanceRecord;
 use App\Models\Employee;
 use App\Models\PayrollRun;
@@ -51,6 +52,7 @@ final class HrPayrollHubService
             ->sum('total_net');
 
         $staffUsers = User::query()->count();
+        $officeLocations = AttendanceOfficeLocation::query()->where('is_active', true)->count();
 
         return [
             'period_label' => now()->format('F Y'),
@@ -73,6 +75,7 @@ final class HrPayrollHubService
             'draft_runs' => $draftRuns,
             'ytd_paid' => round($ytdPaid, 2),
             'staff_users' => $staffUsers,
+            'office_locations' => $officeLocations,
         ];
     }
 }

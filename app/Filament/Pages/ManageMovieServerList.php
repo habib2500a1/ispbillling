@@ -133,7 +133,7 @@ class ManageMovieServerList extends Page
     {
         return [
             'form.name' => ['required', 'string', 'max:120'],
-            'form.url' => ['required', 'string', 'max:2048', 'url'],
+            'form.url' => ['required', 'string', 'max:2048'],
             'form.note' => ['nullable', 'string', 'max:2000'],
             'form.sort' => ['nullable', 'integer', 'min:0', 'max:9999'],
             'form.is_active' => ['boolean'],
@@ -150,12 +150,34 @@ class ManageMovieServerList extends Page
     {
         return [
             'name' => trim((string) $validated['name']),
-            'url' => trim((string) $validated['url']),
+            'url' => $this->normalizeServerUrl(
+                trim((string) $validated['url']),
+                trim((string) $validated['name']),
+            ),
             'note' => filled($validated['note'] ?? null) ? trim((string) $validated['note']) : null,
             'sort' => (int) ($validated['sort'] ?? 0),
             'is_active' => (bool) ($validated['is_active'] ?? false),
             'show_on_landing' => (bool) ($validated['show_on_landing'] ?? false),
             'show_on_portal' => (bool) ($validated['show_on_portal'] ?? false),
         ];
+    }
+
+    private function normalizeServerUrl(string $url, string $name = ''): string
+    {
+        $url = trim($url);
+        if ($url === '') {
+            return $url;
+        }
+
+        if (preg_match('#^[a-z][a-z0-9+\-.]*://#i', $url)) {
+            return $url;
+        }
+
+        $hint = strtolower($name.' '.$url);
+        if (str_contains($hint, 'ftp') || str_contains($hint, 'sftp') || preg_match('#:\d{2,5}(?:/|$)#', $url)) {
+            return 'ftp://'.ltrim($url, '/');
+        }
+
+        return 'https://'.ltrim($url, '/');
     }
 }

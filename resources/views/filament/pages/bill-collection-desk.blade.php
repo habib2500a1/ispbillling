@@ -24,6 +24,8 @@
                 <a href="{{ \App\Filament\Pages\CollectionDeskReport::getUrl() }}" class="font-semibold text-teal-600 hover:underline">Collection report (date · user · customer)</a>
                 ·
                 <a href="{{ \App\Filament\Pages\BillingFundFlowReport::getUrl() }}" class="font-semibold text-violet-600 hover:underline">Bill money trail (কোথায় গেল টাকা)</a>
+                ·
+                <a href="{{ \App\Filament\Pages\ManagePaymentRenewalSettings::getUrl() }}" class="font-semibold text-sky-600 hover:underline">Payment renew rules</a>
             </p>
         </div>
 
@@ -159,6 +161,25 @@
                                 Collector: <strong>{{ auth()->user()?->name }}</strong>
                             </p>
                         @endif
+
+                        <div class="rounded-lg border-2 border-sky-400 bg-sky-50 p-4 dark:border-sky-500 dark:bg-sky-950/30">
+                            <div class="flex flex-wrap items-start justify-between gap-2">
+                                <label class="block text-sm font-bold text-sky-900 dark:text-sky-100">Renew / valid until (on full pay)</label>
+                                <a href="{{ \App\Filament\Pages\ManagePaymentRenewalSettings::getUrl() }}" class="text-xs font-semibold text-sky-700 underline dark:text-sky-300">Global rules</a>
+                            </div>
+                            <select wire:model.live="renewalPolicy" class="isp-collection-select mt-2 w-full">
+                                @foreach ($this->getRenewalPolicyOptions() as $key => $label)
+                                    <option value="{{ $key }}">{{ $label }}</option>
+                                @endforeach
+                            </select>
+                            @if ($selectedCustomer['service_expires_at'] ?? null)
+                                <p class="mt-2 text-xs text-sky-900/90 dark:text-sky-100/90">
+                                    Current valid until: <strong>{{ $selectedCustomer['service_expires_at'] }}</strong>
+                                </p>
+                            @endif
+                            <p class="mt-1 text-xs font-medium text-sky-800 dark:text-sky-200">{{ $this->renewalPolicyHint() }}</p>
+                        </div>
+
                         @if (($selectedCustomer['account_balance'] ?? 0) > 0)
                             <div class="rounded-lg border border-fuchsia-200 bg-fuchsia-50/60 px-4 py-3 text-sm dark:border-fuchsia-900/40 dark:bg-fuchsia-950/30">
                                 <p class="font-semibold text-fuchsia-900 dark:text-fuchsia-100">

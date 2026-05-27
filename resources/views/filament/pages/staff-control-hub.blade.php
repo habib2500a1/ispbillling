@@ -1,82 +1,69 @@
 @php
     $stats = $this->getStats();
+    $statCards = [
+        ['label' => 'Staff users', 'value' => $stats['active_staff'].' / '.$stats['staff'], 'hint' => 'active / total', 'class' => 'isp-hub-stat--teal'],
+        ['label' => '2FA enabled', 'value' => (string) $stats['with_2fa'], 'hint' => 'Protected staff accounts', 'class' => 'isp-hub-stat--emerald'],
+        ['label' => 'Branches', 'value' => (string) $stats['branches'], 'hint' => 'Operational offices', 'class' => 'isp-hub-stat--sky'],
+        ['label' => 'Roles / permissions', 'value' => $stats['roles'].' / '.$stats['permissions'], 'hint' => $stats['activity_today'].' events today', 'class' => 'isp-hub-stat--violet'],
+    ];
+    $links = [
+        ['eyebrow' => 'Profile', 'label' => 'My account & password', 'hint' => 'Change your login email or password', 'url' => \App\Filament\Auth\EditAdminProfile::getUrl(), 'icon' => 'heroicon-o-user-circle', 'accent' => 'text-teal-600'],
+        ['eyebrow' => 'Staff', 'label' => 'Staff users', 'hint' => 'Create accounts and assign roles & branches', 'url' => \App\Filament\Resources\UserResource::getUrl('index'), 'icon' => 'heroicon-o-users', 'accent' => 'text-violet-600'],
+        ['eyebrow' => 'RBAC', 'label' => 'Permission matrix', 'hint' => 'Roles x permissions with grouped audit view', 'url' => \App\Filament\Pages\PermissionMatrix::getUrl(), 'icon' => 'heroicon-o-squares-2x2', 'accent' => 'text-indigo-600'],
+        ['eyebrow' => 'Roles', 'label' => 'Role management', 'hint' => 'Templates, clone, and audit', 'url' => \App\Filament\Resources\RoleResource::getUrl('index'), 'icon' => 'heroicon-o-identification', 'accent' => 'text-slate-600'],
+        ['eyebrow' => 'Catalog', 'label' => 'Permissions catalog', 'hint' => 'All RBAC permission keys', 'url' => \App\Filament\Resources\PermissionResource::getUrl('index'), 'icon' => 'heroicon-o-key', 'accent' => 'text-amber-600'],
+        ['eyebrow' => 'Branches', 'label' => 'Branch management', 'hint' => 'Offices, contact, and branch IP rules', 'url' => \App\Filament\Resources\BranchResource::getUrl('index'), 'icon' => 'heroicon-o-building-office-2', 'accent' => 'text-cyan-600'],
+        ['eyebrow' => 'Logs', 'label' => 'Activity logs', 'hint' => 'Staff actions and sign-ins', 'url' => \App\Filament\Resources\ActivityLogResource::getUrl('index'), 'icon' => 'heroicon-o-clipboard-document-list', 'accent' => 'text-rose-600'],
+        ['eyebrow' => 'Audit', 'label' => 'Audit trail', 'hint' => 'Billing and integration change history', 'url' => \App\Filament\Resources\IntegrationSettingsAuditResource::getUrl('index'), 'icon' => 'heroicon-o-shield-check', 'accent' => 'text-emerald-600'],
+        ['eyebrow' => 'Security', 'label' => 'IP restrictions', 'hint' => 'Tenant allowlist for admin login', 'url' => \App\Filament\Pages\ManageStaffSecurity::getUrl(), 'icon' => 'heroicon-o-lock-closed', 'accent' => 'text-amber-600'],
+        ['eyebrow' => '2FA', 'label' => 'Two-factor setup', 'hint' => 'Authenticator for your account', 'url' => \App\Filament\Pages\TwoFactorSetup::getUrl(), 'icon' => 'heroicon-o-device-phone-mobile', 'accent' => 'text-indigo-600'],
+        ['eyebrow' => 'Recovery', 'label' => 'Backup & restore', 'hint' => 'Download ZIP and restore after crash', 'url' => \App\Filament\Pages\ManagePlatformBackups::getUrl(), 'icon' => 'heroicon-o-cloud-arrow-down', 'accent' => 'text-emerald-600'],
+    ];
 @endphp
 
 <x-filament-panels::page>
-    <div class="space-y-6">
-        <div class="rounded-2xl border border-violet-200 bg-gradient-to-br from-violet-50 via-white to-indigo-50/40 p-6 shadow-sm dark:border-violet-900/40 dark:from-violet-950/50 dark:via-gray-900 dark:to-gray-900">
-            <h2 class="text-xl font-semibold text-gray-900 dark:text-white">Admin & staff control</h2>
-            <p class="mt-2 max-w-3xl text-sm text-gray-600 dark:text-gray-400">
-                16 role templates · {{ $stats['permissions'] }} permissions · matrix · clone · audit · 2FA · branches.
-            </p>
-        </div>
+    <div class="isp-hub-page space-y-6">
+        <x-isp.hub-hero
+            eyebrow="Identity & control"
+            title="Admin & staff control"
+            description="Role templates, permissions, matrix, audit trail, 2FA, and branch-aware staff control."
+            class="isp-hub-hero--violet"
+        >
+            <div class="isp-hub-toolbar">
+                <div class="isp-hub-toolbar__meta">
+                    <span class="isp-hub-results">{{ $stats['permissions'] }} permissions indexed</span>
+                    <span class="isp-hub-section__meta">{{ $stats['activity_today'] }} events today</span>
+                </div>
+            </div>
+        </x-isp.hub-hero>
 
-        <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <div class="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-900">
-                <p class="text-xs font-semibold uppercase text-gray-500">Staff users</p>
-                <p class="mt-1 text-2xl font-bold">{{ $stats['active_staff'] }} / {{ $stats['staff'] }}</p>
-                <p class="text-xs text-gray-500">active / total</p>
-            </div>
-            <div class="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-900">
-                <p class="text-xs font-semibold uppercase text-gray-500">2FA enabled</p>
-                <p class="mt-1 text-2xl font-bold text-emerald-600">{{ $stats['with_2fa'] }}</p>
-            </div>
-            <div class="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-900">
-                <p class="text-xs font-semibold uppercase text-gray-500">Branches</p>
-                <p class="mt-1 text-2xl font-bold">{{ $stats['branches'] }}</p>
-            </div>
-            <div class="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-900">
-                <p class="text-xs font-semibold uppercase text-gray-500">Roles / permissions</p>
-                <p class="mt-1 text-2xl font-bold">{{ $stats['roles'] }} / {{ $stats['permissions'] }}</p>
-                <p class="text-xs text-gray-500">{{ $stats['activity_today'] }} events today</p>
-            </div>
-        </div>
+        <x-isp.hub-stat-grid :stats="$statCards" />
 
-        <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            <a href="{{ \App\Filament\Auth\EditAdminProfile::getUrl() }}" class="group rounded-xl border border-teal-200 bg-teal-50/50 p-5 shadow-sm transition hover:border-teal-400 dark:border-teal-800 dark:bg-teal-950/20">
-                <p class="font-semibold text-teal-900 dark:text-teal-100">My account & password</p>
-                <p class="mt-1 text-sm text-teal-800/80 dark:text-teal-300">Change your login email or password</p>
-            </a>
-            <a href="{{ \App\Filament\Resources\UserResource::getUrl('index') }}" class="group rounded-xl border border-gray-200 bg-white p-5 shadow-sm transition hover:border-violet-400 dark:border-gray-700 dark:bg-gray-900">
-                <p class="font-semibold group-hover:text-violet-600 dark:text-white">Staff users</p>
-                <p class="mt-1 text-sm text-gray-500">Create accounts · assign roles & branches</p>
-            </a>
-            <a href="{{ \App\Filament\Pages\PermissionMatrix::getUrl() }}" class="group rounded-xl border border-violet-200 bg-violet-50/50 p-5 shadow-sm transition hover:border-violet-400 dark:border-violet-800 dark:bg-violet-950/20">
-                <p class="font-semibold text-violet-900 dark:text-violet-100">Permission matrix</p>
-                <p class="mt-1 text-sm text-violet-800/80 dark:text-violet-300">Roles × permissions · grouped · audit</p>
-            </a>
-            <a href="{{ \App\Filament\Resources\RoleResource::getUrl('index') }}" class="group rounded-xl border border-gray-200 bg-white p-5 shadow-sm transition hover:border-violet-400 dark:border-gray-700 dark:bg-gray-900">
-                <p class="font-semibold dark:text-white">Role management</p>
-                <p class="mt-1 text-sm text-gray-500">Templates · clone · audit</p>
-            </a>
-            <a href="{{ \App\Filament\Resources\PermissionResource::getUrl('index') }}" class="group rounded-xl border border-gray-200 bg-white p-5 shadow-sm transition hover:border-violet-400 dark:border-gray-700 dark:bg-gray-900">
-                <p class="font-semibold dark:text-white">Permissions catalog</p>
-                <p class="mt-1 text-sm text-gray-500">All RBAC permission keys</p>
-            </a>
-            <a href="{{ \App\Filament\Resources\BranchResource::getUrl('index') }}" class="group rounded-xl border border-gray-200 bg-white p-5 shadow-sm transition hover:border-violet-400 dark:border-gray-700 dark:bg-gray-900">
-                <p class="font-semibold dark:text-white">Branch management</p>
-                <p class="mt-1 text-sm text-gray-500">Offices · contact · branch IP rules</p>
-            </a>
-            <a href="{{ \App\Filament\Resources\ActivityLogResource::getUrl('index') }}" class="group rounded-xl border border-gray-200 bg-white p-5 shadow-sm transition hover:border-violet-400 dark:border-gray-700 dark:bg-gray-900">
-                <p class="font-semibold dark:text-white">Activity logs</p>
-                <p class="mt-1 text-sm text-gray-500">Staff actions & sign-ins</p>
-            </a>
-            <a href="{{ \App\Filament\Resources\IntegrationSettingsAuditResource::getUrl('index') }}" class="group rounded-xl border border-gray-200 bg-white p-5 shadow-sm transition hover:border-violet-400 dark:border-gray-700 dark:bg-gray-900">
-                <p class="font-semibold dark:text-white">Audit trail</p>
-                <p class="mt-1 text-sm text-gray-500">Billing & integration change history</p>
-            </a>
-            <a href="{{ \App\Filament\Pages\ManageStaffSecurity::getUrl() }}" class="group rounded-xl border border-gray-200 bg-white p-5 shadow-sm transition hover:border-violet-400 dark:border-gray-700 dark:bg-gray-900">
-                <p class="font-semibold dark:text-white">IP restrictions</p>
-                <p class="mt-1 text-sm text-gray-500">Tenant allowlist for admin login</p>
-            </a>
-            <a href="{{ \App\Filament\Pages\TwoFactorSetup::getUrl() }}" class="group rounded-xl border border-gray-200 bg-white p-5 shadow-sm transition hover:border-violet-400 dark:border-gray-700 dark:bg-gray-900">
-                <p class="font-semibold dark:text-white">Two-factor (2FA)</p>
-                <p class="mt-1 text-sm text-gray-500">Set up authenticator for your account</p>
-            </a>
-            <a href="{{ \App\Filament\Pages\ManagePlatformBackups::getUrl() }}" class="group rounded-xl border border-emerald-200 bg-emerald-50/50 p-5 shadow-sm transition hover:border-emerald-400 dark:border-emerald-900 dark:bg-emerald-950/20">
-                <p class="font-semibold text-emerald-900 dark:text-emerald-100">Backup & restore</p>
-                <p class="mt-1 text-sm text-emerald-800/80 dark:text-emerald-300">Download ZIP · upload after crash</p>
-            </a>
-        </div>
+        <section class="isp-hub-section">
+            <div class="isp-hub-section__head">
+                <div>
+                    <h2 class="isp-hub-section__title">Control shortcuts</h2>
+                    <p class="isp-hub-section__desc">Jump into staff, RBAC, branch control, audit, security, and recovery actions from one page.</p>
+                </div>
+                <span class="isp-hub-section__meta">{{ count($links) }} controls</span>
+            </div>
+            <div class="isp-hub-link-grid isp-hub-link-grid--2 isp-hub-link-grid--3">
+                @foreach ($links as $link)
+                    <a href="{{ $link['url'] }}" class="isp-module-card group">
+                        <div class="flex items-start gap-3">
+                            <span class="isp-module-icon {{ $link['accent'] }}">
+                                <x-filament::icon :icon="$link['icon']" class="h-5 w-5" />
+                            </span>
+                            <div class="min-w-0 flex-1">
+                                <p class="isp-module-card__eyebrow">{{ $link['eyebrow'] }}</p>
+                                <p class="isp-module-card__title">{{ $link['label'] }}</p>
+                                <p class="isp-module-card__desc">{{ $link['hint'] }}</p>
+                            </div>
+                            <span class="isp-module-card__arrow" aria-hidden="true">→</span>
+                        </div>
+                    </a>
+                @endforeach
+            </div>
+        </section>
     </div>
 </x-filament-panels::page>

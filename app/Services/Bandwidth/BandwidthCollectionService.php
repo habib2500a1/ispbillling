@@ -152,13 +152,17 @@ final class BandwidthCollectionService
         $radiusCount = count($radiusSessions);
         $sessionsOpen = count(array_unique($seenKeys));
 
+        if (! $canUpdateOnlineFlags) {
+            $sessionsOpen = max($sessionsOpen, count($this->activeSessionCustomerIds($tenantId)));
+        }
+
         BandwidthSyncStatus::store($tenantId, [
             'api' => [
                 'ok' => $apiOk && ($apiCount > 0 || ! $this->tenantHasEnabledMikrotik($tenantId)),
                 'reachable' => $apiOk,
                 'sessions' => $apiCount,
                 'error' => $apiResult['errors'][0] ?? ($apiCount === 0 && $this->tenantHasEnabledMikrotik($tenantId) && ! $apiOk
-                    ? 'MikroTik API unreachable — subscribers marked offline'
+                    ? 'MikroTik API unreachable — keeping last-known online sessions'
                     : ($apiCount === 0 && $this->tenantHasEnabledMikrotik($tenantId)
                         ? 'No active PPP sessions on router (or none matched)'
                         : null)),
@@ -173,6 +177,8 @@ final class BandwidthCollectionService
             'samples' => $samples,
             'wan_samples' => $wanSamples,
         ]);
+
+        \App\Services\Clients\ClientsDashboardService::flushSummaryCache($tenantId);
 
         return [
             'samples' => $samples,
@@ -392,13 +398,17 @@ final class BandwidthCollectionService
         $radiusCount = count($radiusSessions);
         $sessionsOpen = count(array_unique($seenKeys));
 
+        if (! $canUpdateOnlineFlags) {
+            $sessionsOpen = max($sessionsOpen, count($this->activeSessionCustomerIds($tenantId)));
+        }
+
         BandwidthSyncStatus::store($tenantId, [
             'api' => [
                 'ok' => $apiOk && ($apiCount > 0 || ! $this->tenantHasEnabledMikrotik($tenantId)),
                 'reachable' => $apiOk,
                 'sessions' => $apiCount,
                 'error' => $apiResult['errors'][0] ?? ($this->tenantHasEnabledMikrotik($tenantId) && ! $apiOk
-                    ? 'MikroTik API unreachable — subscribers marked offline'
+                    ? 'MikroTik API unreachable — keeping last-known online sessions'
                     : null),
             ],
             'radius' => array_merge($this->safeRadiusPing(), ['sessions' => $radiusCount]),
@@ -410,6 +420,8 @@ final class BandwidthCollectionService
             'wan_samples' => $wanSamples,
             'fast_mode' => true,
         ]);
+
+        \App\Services\Clients\ClientsDashboardService::flushSummaryCache($tenantId);
 
         CustomerPppLoginResolver::clearIndexCache();
 
@@ -655,9 +667,11 @@ final class BandwidthCollectionService
             return;
         }
 
-        $sync = BandwidthSyncStatus::get($tenantId);
-        if ($collectEnabled && $this->syncStatusFresh($sync)
-            && ((bool) ($sync['api']['reachable'] ?? false) || (bool) ($sync['api']['ok'] ?? false))) {
+        if ($this->freshBandwidthSyncShowsActiveSubscribers($tenantId)) {
+            return;
+        }
+
+        if ($this->activeSessionCustomerIds($tenantId) !== []) {
             return;
         }
 
@@ -680,6 +694,14 @@ final class BandwidthCollectionService
             : [];
 
         if ($radiusSessions !== []) {
+            return;
+        }
+
+        if ($this->freshBandwidthSyncShowsActiveSubscribers($tenantId)) {
+            return;
+        }
+
+        if ($this->activeSessionCustomerIds($tenantId) !== []) {
             return;
         }
 
@@ -746,6 +768,28 @@ final class BandwidthCollectionService
     }
 
     /**
+     * Recent isp:collect-bandwidth succeeded with live PPP data — do not wipe flags
+     * just because a lightweight probe marked the router offline.
+     */
+    public function freshBandwidthSyncShowsActiveSubscribers(int $tenantId): bool
+    {
+        $sync = BandwidthSyncStatus::get($tenantId);
+
+        if (! $this->syncStatusFresh($sync)) {
+            return false;
+        }
+
+        $apiReachable = (bool) ($sync['api']['reachable'] ?? false) || (bool) ($sync['api']['ok'] ?? false);
+
+        if (! $apiReachable) {
+            return false;
+        }
+
+        return (int) ($sync['merged_active'] ?? 0) > 0
+            || (int) ($sync['api']['sessions'] ?? 0) > 0;
+    }
+
+    /**
      * @param  array<string, mixed>  $sync
      */
     private function syncStatusFresh(array $sync): bool
@@ -762,31 +806,71 @@ final class BandwidthCollectionService
         }
 
         $intervalMinutes = max(1, (int) config('bandwidth.poll_interval_minutes', 5));
+        $intervalSeconds = $intervalMinutes * 60;
 
-        return $ageSeconds <= ($intervalMinutes * 120);
+        // Allow up to 4 intervals of staleness before we stop trusting the flags
+        return $ageSeconds <= ($intervalSeconds * 4);
     }
 
     /**
-     * Filter list queries: when MikroTik is unreachable, "online" returns nobody (not stale DB flags).
+     * @return list<int>
+     */
+    public function activeSessionCustomerIds(int $tenantId): array
+    {
+        return PppSessionLog::withoutGlobalScopes()
+            ->where('tenant_id', $tenantId)
+            ->where('status', 'active')
+            ->whereNull('ended_at')
+            ->whereNotNull('customer_id')
+            ->distinct()
+            ->pluck('customer_id')
+            ->map(fn ($id): int => (int) $id)
+            ->all();
+    }
+
+    /**
+     * Filter list queries: prefer live flags; fall back to active PPP session rows when sync cache is stale.
      */
     public function applyDisplayedOnlineFilter(Builder $query, int $tenantId, bool $wantOnline): Builder
     {
-        if (! $this->tenantOnlineFlagsTrustworthy($tenantId)) {
-            return $wantOnline ? $query->whereRaw('0 = 1') : $query;
+        if ($this->tenantOnlineFlagsTrustworthy($tenantId)) {
+            return $query->where('is_ppp_online', $wantOnline);
         }
 
-        return $query->where('is_ppp_online', $wantOnline);
+        $sessionCustomerIds = $this->activeSessionCustomerIds($tenantId);
+
+        if ($sessionCustomerIds !== []) {
+            return $wantOnline
+                ? $query->whereIn('id', $sessionCustomerIds)
+                : $query->whereNotIn('id', $sessionCustomerIds);
+        }
+
+        if ($this->freshBandwidthSyncShowsActiveSubscribers($tenantId)) {
+            return $query->where('is_ppp_online', $wantOnline);
+        }
+
+        return $wantOnline ? $query->whereRaw('0 = 1') : $query;
     }
 
     public function displayedOnlineCount(int $tenantId, ?Builder $scopedQuery = null): int
     {
-        if (! $this->tenantOnlineFlagsTrustworthy($tenantId)) {
-            return 0;
-        }
-
         $query = $scopedQuery ?? Customer::query()->where('tenant_id', $tenantId);
 
-        return (int) (clone $query)->where('is_ppp_online', true)->count();
+        if ($this->tenantOnlineFlagsTrustworthy($tenantId)) {
+            return (int) (clone $query)->where('is_ppp_online', true)->count();
+        }
+
+        $sessionCustomerIds = $this->activeSessionCustomerIds($tenantId);
+
+        if ($sessionCustomerIds !== []) {
+            return (int) (clone $query)->whereIn('id', $sessionCustomerIds)->count();
+        }
+
+        if ($this->freshBandwidthSyncShowsActiveSubscribers($tenantId)) {
+            return (int) (clone $query)->where('is_ppp_online', true)->count();
+        }
+
+        return 0;
     }
 
     /**
@@ -802,8 +886,8 @@ final class BandwidthCollectionService
             return true;
         }
 
-        // API down with no RADIUS fallback: sync empty set so stale "online" flags clear.
-        return true;
+        // Transient MikroTik API errors must not wipe live PPP sessions — fleet probe handles confirmed outages.
+        return $apiOk;
     }
 
     /**

@@ -6,10 +6,8 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title', 'Bill payment') — {{ $companyName ?? config('isp.company_name') }}</title>
     @include('partials.site-favicon')
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ asset('css/bill-payment.css') }}?v=5">
+    @include('partials.isp-premium-theme', ['tailwind' => false])
     <script src="{{ asset('js/portal-theme.js') }}?v=1"></script>
 </head>
 <body class="bp-bg antialiased">
@@ -70,5 +68,6 @@
             if (btn) btn.textContent = { light: '☀️', dark: '🌙', system: '◐' }[next] || '◐';
         }
     </script>
+    @stack('scripts')
 </body>
 </html>

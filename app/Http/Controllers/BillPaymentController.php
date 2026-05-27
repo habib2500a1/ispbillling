@@ -9,10 +9,12 @@ use App\Models\PaymentLink;
 use App\Services\BillPayment\BillPaymentOtpService;
 use App\Services\BillPayment\PaymentLinkService;
 use App\Services\BillPayment\PublicBillPaymentService;
+use App\Services\Billing\CustomerPrepayService;
 use App\Services\Payments\PublicPaymentOrchestrator;
 use App\Support\PaymentGateway;
 use App\Support\PortalPaymentGateways;
 use App\Support\PublicPaymentMethod;
+use App\Support\TenantResolver;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -173,7 +175,7 @@ class BillPaymentController extends Controller
         return back()->with('status', 'A new verification code was sent.');
     }
 
-    public function invoice(Request $request, PublicBillPaymentService $service): View|RedirectResponse
+    public function invoice(Request $request, PublicBillPaymentService $service, CustomerPrepayService $prepay): View|RedirectResponse
     {
         $customer = $this->verifiedCustomer($request);
         if ($customer === null) {
@@ -181,9 +183,10 @@ class BillPaymentController extends Controller
         }
 
         $summary = $service->customerSummary($customer);
+        $prepayQuote = $prepay->isEnabled() ? $prepay->quote($customer, 1) : null;
         $linkAmount = session(self::SESSION_LINK_AMOUNT);
         $linkInvoiceId = session(self::SESSION_LINK_INVOICE);
-        $activeTab = in_array($request->query('tab'), ['invoices', 'wallet', 'link'], true)
+        $activeTab = in_array($request->query('tab'), ['invoices', 'wallet', 'prepay', 'link'], true)
             ? $request->query('tab')
             : 'invoices';
 
@@ -212,6 +215,10 @@ class BillPaymentController extends Controller
             'minAmount' => (float) config('bill_payment.min_amount', 10),
             'walletTopupEnabled' => (bool) config('bill_payment.wallet_topup_enabled', true),
             'walletMin' => (float) config('bill_payment.wallet_topup_min', 100),
+            'prepayEnabled' => $prepay->isEnabled(),
+            'prepayQuote' => $prepayQuote,
+            'prepayMaxMonths' => $prepay->maxMonths(),
+            'prepayQuickMonths' => $prepay->quickMonthOptions(),
             'linkAmount' => $linkAmount,
             'linkInvoiceId' => $linkInvoiceId,
             'activeTab' => $activeTab,
@@ -229,8 +236,6 @@ class BillPaymentController extends Controller
         abort_unless((int) $invoice->customer_id === (int) $customer->id, 404);
 
         $balance = $invoice->balanceDue();
-        $min = (float) config('bill_payment.min_amount', 10);
-
         $validated = $request->validate([
             'gateway' => ['required', 'in:'.implode(',', [PaymentGateway::BKASH, PaymentGateway::SSLCOMMERZ, PaymentGateway::NAGAD, PaymentGateway::ROCKET, PaymentGateway::PIPRAPAY])],
             'amount' => ['prohibited'],
@@ -255,6 +260,30 @@ class BillPaymentController extends Controller
         ]);
 
         return $payments->startWalletTopup($customer, round((float) $validated['amount'], 2), $validated['gateway']);
+    }
+
+    public function prepay(Request $request, CustomerPrepayService $prepay, PublicPaymentOrchestrator $payments): RedirectResponse
+    {
+        $customer = $this->verifiedCustomer($request);
+        if ($customer === null) {
+            return redirect()->route('bill-payment.index');
+        }
+
+        $maxMonths = $prepay->maxMonths();
+        $validated = $request->validate([
+            'months' => ['required', 'integer', 'min:1', 'max:'.$maxMonths],
+            'gateway' => ['required', 'in:'.implode(',', [PaymentGateway::BKASH, PaymentGateway::SSLCOMMERZ, PaymentGateway::NAGAD, PaymentGateway::ROCKET, PaymentGateway::PIPRAPAY])],
+        ]);
+
+        $quote = $prepay->assertQuote($customer, (int) $validated['months']);
+
+        return $payments->startPrepayPayment(
+            $customer,
+            (float) $quote['total_amount'],
+            (int) $quote['months'],
+            $validated['gateway'],
+            'bill_payment',
+        );
     }
 
     public function invoicePdf(Request $request, Invoice $invoice): \Symfony\Component\HttpFoundation\Response
@@ -347,6 +376,7 @@ class BillPaymentController extends Controller
             self::SESSION_VERIFIED,
             self::SESSION_LINK_AMOUNT,
             self::SESSION_LINK_INVOICE,
+            self::SESSION_LINK_ID,
         ]);
 
         return redirect()->route('bill-payment.index');
@@ -355,8 +385,29 @@ class BillPaymentController extends Controller
     private function sessionCustomer(Request $request): ?Customer
     {
         $id = $request->session()->get(self::SESSION_CUSTOMER);
+        if (! $id) {
+            return null;
+        }
 
-        return $id ? Customer::query()->withoutGlobalScopes()->find($id) : null;
+        $customer = Customer::query()->withoutGlobalScopes()->find($id);
+        if ($customer === null) {
+            return null;
+        }
+
+        $tenantId = TenantResolver::currentTenantId();
+        if ($tenantId !== null && (int) $customer->tenant_id !== (int) $tenantId) {
+            $request->session()->forget([
+                self::SESSION_CUSTOMER,
+                self::SESSION_VERIFIED,
+                self::SESSION_LINK_AMOUNT,
+                self::SESSION_LINK_INVOICE,
+                self::SESSION_LINK_ID,
+            ]);
+
+            return null;
+        }
+
+        return $customer;
     }
 
     private function verifiedCustomer(Request $request): ?Customer

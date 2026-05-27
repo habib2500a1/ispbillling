@@ -3,6 +3,7 @@
 namespace App\Support;
 
 use App\Filament\Pages\HrPayrollHub;
+use App\Filament\Resources\AttendanceOfficeLocationResource;
 use App\Filament\Resources\AttendanceRecordResource;
 use App\Filament\Resources\EmployeeResource;
 use App\Filament\Resources\PayrollRunResource;
@@ -65,6 +66,18 @@ final class HrmSidebarRegistry
                     'filament.admin.resources.attendance-records.index',
                     'filament.admin.resources.attendance-records.create',
                     'filament.admin.resources.attendance-records.edit',
+                ],
+            ],
+            [
+                'key' => 'office_locations',
+                'label' => 'Office locations',
+                'icon' => 'heroicon-o-map-pin',
+                'sort' => 6,
+                'url' => AttendanceOfficeLocationResource::getUrl(),
+                'active_routes' => [
+                    'filament.admin.resources.attendance-office-locations.index',
+                    'filament.admin.resources.attendance-office-locations.create',
+                    'filament.admin.resources.attendance-office-locations.edit',
                 ],
             ],
         ];

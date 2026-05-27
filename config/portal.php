@@ -31,6 +31,9 @@ return [
         'download_bytes' => (int) env('PORTAL_SPEED_TEST_BYTES', 2_097_152),
     ],
 
+    /** Default customer portal password for new subscribers (user can change later). */
+    'default_password' => (string) env('PORTAL_DEFAULT_PASSWORD', '123456'),
+
     'env_defaults' => [
         'enabled' => (bool) env('PORTAL_ENABLED', true),
         'otp_enabled' => (bool) env('PORTAL_OTP_ENABLED', false),

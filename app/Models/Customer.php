@@ -277,7 +277,11 @@ class Customer extends Model implements AuthenticatableContract, AuthorizableCon
         $tenantId = (int) $this->tenant_id;
 
         if (! $bandwidth->tenantOnlineFlagsTrustworthy($tenantId)) {
-            return false;
+            if ($bandwidth->freshBandwidthSyncShowsActiveSubscribers($tenantId)) {
+                return (bool) $this->is_ppp_online;
+            }
+
+            return $this->activePppSession()->exists();
         }
 
         return (bool) $this->is_ppp_online;

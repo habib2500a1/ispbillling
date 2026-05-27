@@ -52,6 +52,9 @@
 
         <nav class="bp-tabs mt-6">
             <a href="{{ route('bill-payment.invoice', ['tab' => 'invoices']) }}" class="bp-tab {{ $activeTab === 'invoices' ? 'bp-tab-active' : '' }}">Pay bill</a>
+            @if ($prepayEnabled ?? false)
+                <a href="{{ route('bill-payment.invoice', ['tab' => 'prepay']) }}" class="bp-tab {{ $activeTab === 'prepay' ? 'bp-tab-active' : '' }}">Pay months</a>
+            @endif
             @if ($walletTopupEnabled)
                 <a href="{{ route('bill-payment.invoice', ['tab' => 'wallet']) }}" class="bp-tab {{ $activeTab === 'wallet' ? 'bp-tab-active' : '' }}">Wallet top-up</a>
             @endif
@@ -94,6 +97,19 @@
                     </div>
                 @endforeach
             @endif
+        @endif
+
+        @if ($activeTab === 'prepay' && ($prepayEnabled ?? false))
+            <div class="mt-4">
+                <x-customer-prepay-form
+                    :quote="$prepayQuote"
+                    :action="route('bill-payment.prepay')"
+                    :payment-methods="$paymentMethods ?? []"
+                    :max-months="$prepayMaxMonths"
+                    :quick-months="$prepayQuickMonths"
+                    variant="bill-pay"
+                />
+            </div>
         @endif
 
         @if ($activeTab === 'wallet' && $walletTopupEnabled)

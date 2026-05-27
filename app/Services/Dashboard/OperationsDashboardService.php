@@ -29,6 +29,7 @@ use App\Support\CustomerStatus;
 use App\Support\PaymentType;
 use App\Support\Rbac\StaffCapability;
 use App\Support\TenantResolver;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 
@@ -46,9 +47,9 @@ final class OperationsDashboardService
      */
     public function payload(?int $tenantId = null, ?User $user = null): array
     {
-        $user = $user ?? auth()->user();
+        $user = $user ?? Auth::user();
         $tenantId = $tenantId ?? TenantResolver::requiredTenantId();
-        $userKey = $user?->getKey() ?? 0;
+        $userKey = (int) ($user?->id ?? 0);
 
         return Cache::remember(
             "ops_dashboard:{$tenantId}:{$userKey}:".now()->format('Y-m-d-H-i'),
@@ -79,7 +80,7 @@ final class OperationsDashboardService
             'updated_at' => now()->toIso8601String(),
             'company' => CompanyBranding::name(),
             'highlights' => $this->highlights($snap, $sms, $tenantId, $capability),
-            'primary' => $this->primaryKpis($snap, $c, $online, $active, $capability),
+            'primary' => $this->primaryKpis($snap, $c, $online, $capability),
             'sections' => $this->groupedSections($tenantId, $snap, $c, $billingCounts, $sales, $online, $active, $pops, $capability),
             'feeds' => $this->feeds($tenantId, $capability),
             'mfs_pending_verify' => $this->mfsPendingVerify($tenantId, $capability),
@@ -106,6 +107,7 @@ final class OperationsDashboardService
 
         if ($capability->canPayments() || $capability->canBilling()) {
             $rows[] = ['label' => 'Collected today', 'value' => number_format((float) ($snap['collected_today'] ?? 0), 0).' BDT', 'url' => BillCollectionDesk::getUrl()];
+            $rows[] = ['label' => 'Collection rate', 'value' => number_format((float) ($snap['collection_rate'] ?? 0), 1).'%', 'url' => BillCollectionDesk::getUrl()];
             $pendingMfs = $this->pendingMfsCount($tenantId);
             if ($pendingMfs > 0 && PendingGatewayPaymentResource::canViewAny()) {
                 $rows[] = [
@@ -185,7 +187,7 @@ final class OperationsDashboardService
      * @param  array<string, int>  $c
      * @return list<array{label: string, value: string, hint: string, url?: string}>
      */
-    private function primaryKpis(array $snap, array $c, int $online, int $active, StaffCapability $capability): array
+    private function primaryKpis(array $snap, array $c, int $online, StaffCapability $capability): array
     {
         $n = fn (int|float $v): string => number_format((float) $v, 0);
         $kpis = [];
@@ -200,6 +202,7 @@ final class OperationsDashboardService
 
         if ($capability->canPayments() || $capability->canBilling()) {
             $kpis[] = ['label' => 'Collected today', 'value' => $n($snap['collected_today'] ?? 0), 'hint' => 'BDT', 'url' => BillCollectionDesk::getUrl(), 'tone' => 'green'];
+            $kpis[] = ['label' => 'Collection rate', 'value' => number_format((float) ($snap['collection_rate'] ?? 0), 1).'%', 'hint' => 'This month', 'url' => BillCollectionDesk::getUrl(), 'tone' => 'emerald'];
             $kpis[] = ['label' => 'Outstanding', 'value' => $n($snap['outstanding'] ?? 0), 'hint' => 'BDT due', 'url' => BillCollectionDesk::getUrl(), 'tone' => 'amber'];
             $kpis[] = ['label' => 'Due accounts', 'value' => $n($snap['due_customers'] ?? 0), 'hint' => 'Open balance', 'url' => CustomerResource::getUrl('index'), 'tone' => 'rose'];
         }

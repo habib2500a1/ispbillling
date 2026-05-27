@@ -16,8 +16,23 @@
             @if ($reseller->canPortal(\App\Support\ResellerPortalPermission::SETTLEMENT_MANAGE))
                 <a href="{{ route('reseller.settlements.index') }}" class="rsl-btn-sm rsl-btn-sm--outline">Settlements</a>
             @endif
+            @if ($reseller->canPortal(\App\Support\ResellerPortalPermission::PAYMENT_COLLECT) && $metrics['customers_total'] > 0)
+                <a href="{{ route('reseller.customers.index') }}" class="rsl-btn-sm rsl-btn-sm--outline">Collect payment</a>
+            @endif
         </div>
     </div>
+
+    @if (!empty($metrics['alerts']))
+        <div class="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+            @foreach ($metrics['alerts'] as $alert)
+                <div class="rsl-card p-5 border {{ match($alert['tone']) { 'rose' => 'border-rose-200', 'amber' => 'border-amber-200', 'sky' => 'border-sky-200', default => 'border-violet-200' } }}">
+                    <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">{{ $alert['title'] }}</p>
+                    <p class="mt-2 text-xl font-bold text-slate-900">{{ $alert['value'] }}</p>
+                    <p class="mt-1 text-sm text-slate-600">{{ $alert['hint'] }}</p>
+                </div>
+            @endforeach
+        </div>
+    @endif
 
     <div class="rsl-kpi-grid mt-6">
         <div class="rsl-metric">
@@ -28,7 +43,7 @@
         <div class="rsl-metric">
             <p class="rsl-metric-label">Today collection</p>
             <p class="rsl-metric-value text-emerald-700">{{ number_format($metrics['today_collection'], 0) }} <span class="text-base">BDT</span></p>
-            <p class="rsl-metric-sub">Month: {{ number_format($metrics['month_collection'], 0) }} BDT</p>
+            <p class="rsl-metric-sub">{{ $metrics['today_collection_count'] }} payment(s) today · Month {{ number_format($metrics['month_collection'], 0) }} BDT</p>
         </div>
         <div class="rsl-metric">
             <p class="rsl-metric-label">Wallet</p>
@@ -43,7 +58,7 @@
         <div class="rsl-metric">
             <p class="rsl-metric-label">Due subscribers</p>
             <p class="rsl-metric-value text-rose-700">{{ $metrics['due_customers'] }}</p>
-            <p class="rsl-metric-sub">{{ $metrics['pending_settlements'] > 0 ? number_format($metrics['pending_settlements'], 0).' BDT pending settlement' : 'No pending settlement' }}</p>
+            <p class="rsl-metric-sub">{{ number_format($metrics['due_amount'], 0) }} BDT due · {{ $metrics['pending_settlements'] > 0 ? number_format($metrics['pending_settlements'], 0).' BDT pending settlement' : 'No pending settlement' }}</p>
         </div>
         <div class="rsl-metric">
             <p class="rsl-metric-label">Network</p>
@@ -54,6 +69,11 @@
             <p class="rsl-metric-label">Sub-partners</p>
             <p class="rsl-metric-value">{{ $metrics['sub_resellers'] }}</p>
             <p class="rsl-metric-sub">{{ $metrics['customers_offline'] }} active offline</p>
+        </div>
+        <div class="rsl-metric">
+            <p class="rsl-metric-label">Collection rate</p>
+            <p class="rsl-metric-value text-teal-700">{{ number_format($metrics['collection_rate'], 1) }}<span class="text-base">%</span></p>
+            <p class="rsl-metric-sub">{{ $metrics['month_collection_count'] }} payment(s) this month @if($metrics['recent_payment_at']) · Last {{ $metrics['recent_payment_at'] }} @endif</p>
         </div>
     </div>
 

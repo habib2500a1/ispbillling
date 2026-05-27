@@ -2,7 +2,7 @@
     @include('filament.partials.personal-mfs-setup-panel', ['setup' => $setup])
 
     <div class="mb-4 mt-6 rounded-xl border-2 border-emerald-500/70 bg-emerald-50 p-4 text-sm text-emerald-950 dark:border-emerald-600/50 dark:bg-emerald-950/30 dark:text-emerald-100">
-        <p class="font-bold text-base">Personal MFS verify (PipraPay-style)</p>
+        <p class="font-bold text-base">bKash Personal / Nagad Personal (PipraPay-style)</p>
         <p class="mt-1">Merchant API (bKash Tokenized / Nagad PG / PipraPay) আলাদা — <a href="{{ $merchantUrl }}" class="underline font-semibold">Merchant gateways</a></p>
         <ol class="mt-2 list-decimal list-inside space-y-1 opacity-90">
             <li>এখানে personal নম্বর সেট করুন (bKash / Nagad ট্যাব)</li>

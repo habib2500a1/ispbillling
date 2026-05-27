@@ -7,6 +7,7 @@ use App\Filament\Pages\ManageMovieServerList;
 use App\Filament\Pages\ManagePortalMarquee;
 use App\Filament\Pages\ManagePortalNotices;
 use App\Filament\Pages\ManagePortalSettings;
+use App\Filament\Pages\SettingsHub;
 use Filament\Facades\Filament;
 use Filament\Navigation\NavigationItem;
 
@@ -18,6 +19,14 @@ final class SettingsSidebarRegistry
     public static function definitions(): array
     {
         return [
+            [
+                'key' => 'settings_center',
+                'label' => 'Settings center',
+                'icon' => 'heroicon-o-cog-8-tooth',
+                'sort' => 0,
+                'url' => SettingsHub::getUrl(),
+                'active_routes' => ['filament.admin.pages.settings-hub'],
+            ],
             [
                 'key' => 'app_settings',
                 'label' => 'App Settings',
@@ -73,6 +82,10 @@ final class SettingsSidebarRegistry
         $items = [];
 
         foreach (self::definitions() as $entry) {
+            if (! self::canSeeEntry($entry['key'])) {
+                continue;
+            }
+
             $items[] = NavigationItem::make($entry['label'])
                 ->url($entry['url'])
                 ->icon($entry['icon'])
@@ -90,5 +103,17 @@ final class SettingsSidebarRegistry
         }
 
         return $items;
+    }
+
+    public static function canSeeEntry(string $key): bool
+    {
+        return match ($key) {
+            'settings_center' => SettingsHub::canAccess(),
+            'portal_notices' => ManagePortalNotices::canAccess(),
+            'movie_servers' => ManageMovieServerList::canAccess(),
+            'portal_marquee' => ManagePortalMarquee::canAccess(),
+            'company_info' => ManageCompanySetup::canAccess(),
+            default => ManagePortalSettings::canAccess(),
+        };
     }
 }

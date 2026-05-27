@@ -16,6 +16,7 @@ use App\Services\Billing\InvoiceCalculator;
 use App\Services\Billing\PaymentAllocationCorrectionService;
 use App\Services\Billing\PaymentVoidService;
 use App\Support\PaymentGateway;
+use App\Support\PaymentRenewalPolicy;
 use App\Support\PaymentType;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
@@ -82,6 +83,8 @@ class BillCollectionDesk extends Page
     public ?float $longitude = null;
 
     public ?int $accuracyMeters = null;
+
+    public string $renewalPolicy = PaymentRenewalPolicy::DEFAULT;
 
     public function mount(): void
     {
@@ -166,6 +169,28 @@ class BillCollectionDesk extends Page
         }
     }
 
+    /**
+     * @return array<string, string>
+     */
+    public function getRenewalPolicyOptions(): array
+    {
+        return PaymentRenewalPolicy::options();
+    }
+
+    public function renewalPolicyHint(): string
+    {
+        if ($this->selectedCustomerId === null) {
+            return '';
+        }
+
+        $customer = \App\Models\Customer::query()->find($this->selectedCustomerId);
+        if ($customer === null) {
+            return '';
+        }
+
+        return PaymentRenewalPolicy::describeForCustomer($customer, $this->renewalPolicy);
+    }
+
     public function setTab(string $tab): void
     {
         if (in_array($tab, ['collect', 'bills', 'history'], true)) {
@@ -181,6 +206,7 @@ class BillCollectionDesk extends Page
         $this->amount = '';
         $this->reference = '';
         $this->notes = '';
+        $this->renewalPolicy = PaymentRenewalPolicy::DEFAULT;
         $this->resetCollectionDiscountFields();
         $this->activeTab = 'collect';
         $this->cancelEditPayment();
@@ -383,7 +409,10 @@ class BillCollectionDesk extends Page
                         'status' => 'completed',
                         'paid_at' => now(),
                         'recorded_by' => $collectorId,
-                        'meta' => $this->collectorPaymentMeta($collectorId),
+                        'meta' => array_merge(
+                            $this->collectorPaymentMeta($collectorId),
+                            $this->renewalPolicyMeta(),
+                        ),
                     ]);
                     $invoice = $invoice->fresh();
                 }
@@ -420,6 +449,7 @@ class BillCollectionDesk extends Page
                     array_merge(
                         $this->collectorPaymentMeta($collectorId),
                         $this->collectionDiscountMeta($discountBdt),
+                        $this->renewalPolicyMeta(),
                     ),
                 ),
             ]);
@@ -441,6 +471,7 @@ class BillCollectionDesk extends Page
                 'meta' => array_merge(
                     $this->collectorPaymentMeta($collectorId),
                     $this->collectionDiscountMeta($discountBdt),
+                    $this->renewalPolicyMeta(),
                 ),
             ]);
             $this->applyCollectionDiscountIfNeeded($invoice, $discountBdt, $payment);
@@ -507,5 +538,13 @@ class BillCollectionDesk extends Page
             PaymentGateway::ROCKET => 'Rocket',
             PaymentGateway::OTHER => 'Other',
         ];
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function renewalPolicyMeta(): array
+    {
+        return ['renewal_policy' => $this->renewalPolicy];
     }
 }

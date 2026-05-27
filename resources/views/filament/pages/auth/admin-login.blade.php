@@ -1,4 +1,9 @@
-<div class="isp-auth-card isp-auth-card--login">
+<div class="isp-auth-card isp-auth-card--login isp-auth-card--premium isp-glass-float">
+    <div class="isp-auth-lock-icon" aria-hidden="true">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.75" stroke="currentColor" class="h-7 w-7">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z" />
+        </svg>
+    </div>
     <h2 class="isp-auth-card__title">Login to your account</h2>
     <p class="isp-auth-card__sub">Admin panel · {{ config('isp.company_name') }}</p>
 
@@ -70,7 +75,7 @@
         <button
             type="submit"
             tabindex="4"
-            class="fi-btn fi-btn-size-md relative grid w-full grid-flow-col items-center justify-center gap-1.5 rounded-lg bg-primary-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm outline-none transition hover:bg-primary-500 focus-visible:ring-2 focus-visible:ring-primary-500/50 dark:bg-primary-500 dark:hover:bg-primary-400"
+            class="isp-btn-neon fi-btn fi-btn-size-md fi-color-primary relative grid w-full grid-flow-col items-center justify-center gap-1.5 rounded-lg px-4 py-2.5 text-sm font-semibold text-white outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50"
         >
             Sign in
         </button>

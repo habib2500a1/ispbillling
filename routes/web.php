@@ -13,6 +13,7 @@ use App\Http\Controllers\InvoicePdfController;
 use App\Http\Controllers\PaymentReceiptController;
 use App\Http\Controllers\Portal\PortalAccountController;
 use App\Http\Controllers\Portal\PortalBillController;
+use App\Http\Controllers\Portal\PortalPrepayController;
 use App\Http\Controllers\Portal\PortalDashboardController;
 use App\Http\Controllers\Portal\PortalNotificationController;
 use App\Http\Controllers\Portal\PortalOnuController;
@@ -26,6 +27,7 @@ use App\Http\Controllers\Portal\PortalInvoicePaymentController;
 use App\Http\Controllers\Portal\PortalKnowledgeController;
 use App\Http\Controllers\Portal\PortalLiveChatController;
 use App\Http\Controllers\Portal\PortalLoginController;
+use App\Http\Controllers\Staff\StaffSubscriberPortalController;
 use App\Http\Controllers\Portal\PortalSignupController;
 use App\Http\Controllers\Portal\PortalPaymentController;
 use App\Http\Controllers\Portal\PortalTicketController;
@@ -60,6 +62,10 @@ Route::middleware(['web', 'auth'])->prefix('admin')->group(function (): void {
         ->name('admin.google-drive.connect');
     Route::get('/google-drive/callback', [GoogleDriveOAuthController::class, 'callback'])
         ->name('admin.google-drive.callback');
+    Route::get('/subscriber-portal-login/{customer}', [StaffSubscriberPortalController::class, 'login'])
+        ->whereNumber('customer')
+        ->middleware('portal.enabled')
+        ->name('staff.subscribers.portal-login');
 });
 
 Route::redirect('/admin/customers', '/admin/subscribers', 308);
@@ -187,6 +193,9 @@ Route::middleware(['portal.enabled', 'guest:customer', 'throttle:15,1'])->group(
     Route::post('/login', [PortalLoginController::class, 'store'])->name('portal.login.store');
     Route::get('/login/otp', [PortalLoginController::class, 'otpForm'])->name('portal.login.otp');
     Route::post('/login/otp', [PortalLoginController::class, 'otpVerify'])->name('portal.login.otp.verify');
+    Route::get('/portal/access/{token}', [PortalLoginController::class, 'accessToken'])
+        ->where('token', '[0-9]+-[a-zA-Z0-9]+')
+        ->name('portal.access.token');
     Route::redirect('/portal/login', '/login', 301);
     Route::redirect('/portal/login/otp', '/login/otp', 301);
 });
@@ -205,6 +214,7 @@ Route::middleware(['portal.enabled', 'auth:customer'])->group(function () {
     Route::get('/portal/invoices/{invoice}', [PortalInvoiceController::class, 'show'])->name('portal.invoices.show');
     Route::get('/portal/invoices/{invoice}/pdf', [InvoicePdfController::class, 'show'])->name('portal.invoices.pdf');
     Route::post('/portal/invoices/{invoice}/pay', [PortalInvoicePaymentController::class, 'store'])->name('portal.invoices.pay');
+    Route::post('/portal/prepay', [PortalPrepayController::class, 'store'])->name('portal.prepay.store');
     Route::get('/portal/invoices/{invoice}/pay', function (\App\Models\Invoice $invoice) {
         return redirect()->route('portal.invoices.show', $invoice);
     });
@@ -266,6 +276,7 @@ Route::middleware('throttle:30,1')->prefix('pay')->name('bill-payment.')->group(
     Route::get('/invoice', [BillPaymentController::class, 'invoice'])->name('invoice');
     Route::get('/invoice/{invoice}/pdf', [BillPaymentController::class, 'invoicePdf'])->name('invoice.pdf');
     Route::post('/invoice/{invoice}/pay', [BillPaymentController::class, 'pay'])->name('pay');
+    Route::post('/prepay', [BillPaymentController::class, 'prepay'])->name('prepay');
     Route::post('/wallet', [BillPaymentController::class, 'walletTopup'])->name('wallet');
     Route::post('/payment-link', [BillPaymentController::class, 'createPaymentLink'])->name('payment-link.create');
     Route::post('/payment-link/{paymentLink}/sms', [BillPaymentController::class, 'sendPaymentLinkSms'])->name('payment-link.sms');

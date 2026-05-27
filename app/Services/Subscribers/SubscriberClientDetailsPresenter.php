@@ -185,6 +185,7 @@ final class SubscriberClientDetailsPresenter
             'urls' => [
                 'edit' => CustomerResource::getUrl('edit', ['record' => $customer]),
                 'collect' => BillCollectionDesk::getUrl(['customer' => $customer->id]),
+                'portal_login' => route('staff.subscribers.portal-login', ['customer' => $customer->getKey()]),
                 'invoices' => InvoiceResource::getUrl('index', [
                     'tableFilters' => ['customer_id' => ['value' => (string) $customer->id]],
                 ]),

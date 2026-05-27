@@ -15,14 +15,23 @@ class PortalInvoiceController extends Controller
     {
         $customer = $request->user('customer');
 
-        $invoices = Invoice::query()
-            ->where('customer_id', $customer->id)
+        $invoiceQuery = Invoice::query()
+            ->where('customer_id', $customer->id);
+
+        $invoices = (clone $invoiceQuery)
             ->orderByDesc('issue_date')
             ->orderByDesc('id')
             ->paginate(15);
 
+        $allInvoices = (clone $invoiceQuery)->get();
+        $openInvoices = $allInvoices->filter(fn (Invoice $invoice) => in_array($invoice->status, ['open', 'partial', 'draft'], true));
+
         return view('portal.invoices.index', [
             'invoices' => $invoices,
+            'invoiceCount' => $allInvoices->count(),
+            'openInvoiceCount' => $openInvoices->count(),
+            'paidInvoiceCount' => $allInvoices->where('status', 'paid')->count(),
+            'outstandingTotal' => round((float) $openInvoices->sum(fn (Invoice $invoice) => max(0, (float) $invoice->total - (float) $invoice->amount_paid)), 2),
         ]);
     }
 

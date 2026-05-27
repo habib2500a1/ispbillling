@@ -15,13 +15,19 @@
                 const okGroup = this.group === 'All' || mod.group === this.group;
                 const okQ = !this.q || hay.includes(this.q.toLowerCase());
                 return okGroup && okQ;
+            },
+            visibleCount(items) {
+                return items.filter((mod) => this.matches(mod)).length;
             }
         }"
     >
-        <x-isp.hub-hero title="Module directory" description="All modules grouped by department and section — search or filter below.">
-            <div class="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center">
+        <x-isp.hub-hero eyebrow="Admin workspace" title="Module directory" description="All modules grouped by department and section — search or filter below.">
+            <div class="isp-hub-toolbar">
                 <input type="search" x-model="q" placeholder="Search modules…" class="isp-dash-search max-w-md">
-                <a href="{{ \App\Filament\Pages\Dashboard::getUrl() }}" class="text-sm font-medium text-teal-600 hover:underline dark:text-teal-400">← Command center</a>
+                <div class="isp-hub-toolbar__meta">
+                    <span class="isp-hub-results">{{ count($modules) }} modules indexed</span>
+                    <a href="{{ \App\Filament\Pages\Dashboard::getUrl() }}" class="text-sm font-medium text-teal-600 hover:underline dark:text-teal-400">← Command center</a>
+                </div>
             </div>
         </x-isp.hub-hero>
 
@@ -44,8 +50,19 @@
                 </div>
 
                 @foreach ($bySection as $sectionName => $sectionItems)
+                    @php
+                        $sectionPayload = $sectionItems->map(fn ($mod) => [
+                            'label' => $mod['label'],
+                            'description' => $mod['description'],
+                            'group' => $mod['group'],
+                            'section' => $mod['section'],
+                        ])->values();
+                    @endphp
                     <section class="isp-ops-section">
-                        <h3 class="isp-ops-section-title">{{ $sectionName }}</h3>
+                        <div class="flex items-center justify-between gap-3">
+                            <h3 class="isp-ops-section-title">{{ $sectionName }}</h3>
+                            <span class="isp-hub-results" x-text="visibleCount(@js($sectionPayload)) + ' visible'"></span>
+                        </div>
                         <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                             @foreach ($sectionItems as $mod)
                                 <a
@@ -59,12 +76,21 @@
                                             <x-filament::icon :icon="\App\Support\AdminModuleRegistry::iconForModule($mod)" class="h-5 w-5" />
                                         </span>
                                         <div class="min-w-0 flex-1">
-                                            <p class="font-semibold text-gray-900 dark:text-white">{{ $mod['label'] }}</p>
-                                            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">{{ $mod['description'] }}</p>
+                                            <p class="isp-module-card__eyebrow">{{ $sectionName }}</p>
+                                            <p class="isp-module-card__title">{{ $mod['label'] }}</p>
+                                            <p class="isp-module-card__desc">{{ $mod['description'] }}</p>
                                         </div>
+                                        <span class="isp-module-card__arrow" aria-hidden="true">→</span>
                                     </div>
                                 </a>
                             @endforeach
+                        </div>
+                        <div
+                            x-show="visibleCount(@js($sectionPayload)) === 0"
+                            x-cloak
+                            class="isp-hub-empty"
+                        >
+                            No module matches the current search or filter in this section.
                         </div>
                     </section>
                 @endforeach

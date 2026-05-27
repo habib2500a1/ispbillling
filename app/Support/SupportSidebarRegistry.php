@@ -4,6 +4,7 @@ namespace App\Support;
 
 use App\Filament\Pages\BroadcastOutage;
 use App\Filament\Pages\SalesLeadPipeline;
+use App\Filament\Pages\SupportHub;
 use App\Filament\Resources\KnowledgeArticleResource;
 use App\Models\SalesLead;
 use App\Support\SalesLeadPanelAccess;
@@ -11,6 +12,7 @@ use App\Filament\Resources\OutageResource;
 use App\Filament\Resources\SalesLeadResource;
 use App\Filament\Resources\SupportAssignmentRuleResource;
 use App\Filament\Resources\SupportTicketResource;
+use Illuminate\Support\Facades\Auth;
 use Filament\Facades\Filament;
 use Filament\Navigation\NavigationItem;
 
@@ -22,6 +24,14 @@ final class SupportSidebarRegistry
     public static function definitions(): array
     {
         return [
+            [
+                'key' => 'support_center',
+                'label' => 'Support center',
+                'icon' => 'heroicon-o-lifebuoy',
+                'sort' => 0,
+                'url' => SupportHub::getUrl(),
+                'active_routes' => ['filament.admin.pages.support-hub'],
+            ],
             [
                 'key' => 'leads',
                 'label' => 'New connections (portal)',
@@ -168,12 +178,13 @@ final class SupportSidebarRegistry
 
     public static function canSeeEntry(string $key): bool
     {
-        $user = auth()->user();
+        $user = Auth::user();
         if ($user === null) {
             return false;
         }
 
         return match ($key) {
+            'support_center' => SupportHub::canAccess(),
             'tickets', 'new_ticket' => SupportPanelAccess::viewTickets($user),
             'pipeline', 'leads' => SalesLeadPanelAccess::canView(),
             'broadcast_outage' => BroadcastOutage::canAccess(),

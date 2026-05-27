@@ -1,6 +1,15 @@
 <x-filament-panels::page>
+    @php
+        $links = [
+            ['eyebrow' => 'Hub', 'label' => 'Support center', 'hint' => 'Full tools & SLA table', 'url' => \App\Filament\Pages\SupportHub::getUrl(), 'icon' => 'heroicon-o-lifebuoy'],
+            ['eyebrow' => 'Queue', 'label' => 'All tickets', 'hint' => 'Filter & assign', 'url' => \App\Filament\Resources\SupportTicketResource::getUrl('index'), 'icon' => 'heroicon-o-queue-list'],
+            ['eyebrow' => 'Tasks', 'label' => 'Kanban board', 'hint' => 'Technician jobs', 'url' => \App\Filament\Pages\TaskKanbanBoard::getUrl(), 'icon' => 'heroicon-o-view-columns'],
+        ];
+    @endphp
+
     <div class="isp-hub-page space-y-6" wire:poll.30s>
         <x-isp.hub-hero
+            eyebrow="Support operations"
             title="Support dashboard"
             description="Tickets, SLA breaches, escalations and technician workload — live for support & call center."
             class="isp-hub-hero--amber"
@@ -8,43 +17,31 @@
 
         <x-isp.hub-stat-grid :stats="$this->getStatCards()" />
 
-        <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            <a href="{{ \App\Filament\Pages\SupportHub::getUrl() }}" class="isp-module-card group">
-                <div class="flex items-start gap-3">
-                    <span class="isp-module-icon text-amber-600">
-                        <x-filament::icon icon="heroicon-o-lifebuoy" class="h-5 w-5" />
-                    </span>
-                    <div class="min-w-0 flex-1">
-                        <p class="text-xs font-bold uppercase text-gray-500 dark:text-gray-400">Hub</p>
-                        <p class="mt-0.5 font-semibold text-gray-900 dark:text-white">Support center</p>
-                        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Full tools & SLA table</p>
-                    </div>
+        <section class="isp-hub-section">
+            <div class="isp-hub-section__head">
+                <div>
+                    <h2 class="isp-hub-section__title">Support shortcuts</h2>
+                    <p class="isp-hub-section__desc">Jump into queue triage, SLA drilldown, and field-task coordination from one place.</p>
                 </div>
-            </a>
-            <a href="{{ \App\Filament\Resources\SupportTicketResource::getUrl('index') }}" class="isp-module-card group">
-                <div class="flex items-start gap-3">
-                    <span class="isp-module-icon text-amber-600">
-                        <x-filament::icon icon="heroicon-o-queue-list" class="h-5 w-5" />
-                    </span>
-                    <div class="min-w-0 flex-1">
-                        <p class="text-xs font-bold uppercase text-gray-500 dark:text-gray-400">Queue</p>
-                        <p class="mt-0.5 font-semibold text-gray-900 dark:text-white">All tickets</p>
-                        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Filter & assign</p>
-                    </div>
-                </div>
-            </a>
-            <a href="{{ \App\Filament\Pages\TaskKanbanBoard::getUrl() }}" class="isp-module-card group">
-                <div class="flex items-start gap-3">
-                    <span class="isp-module-icon text-amber-600">
-                        <x-filament::icon icon="heroicon-o-view-columns" class="h-5 w-5" />
-                    </span>
-                    <div class="min-w-0 flex-1">
-                        <p class="text-xs font-bold uppercase text-gray-500 dark:text-gray-400">Tasks</p>
-                        <p class="mt-0.5 font-semibold text-gray-900 dark:text-white">Kanban board</p>
-                        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Technician jobs</p>
-                    </div>
-                </div>
-            </a>
-        </div>
+                <span class="isp-hub-section__meta">Ops focus</span>
+            </div>
+            <div class="isp-hub-link-grid isp-hub-link-grid--2 isp-hub-link-grid--3">
+                @foreach ($links as $link)
+                    <a href="{{ $link['url'] }}" class="isp-module-card group">
+                        <div class="flex items-start gap-3">
+                            <span class="isp-module-icon text-amber-600">
+                                <x-filament::icon :icon="$link['icon']" class="h-5 w-5" />
+                            </span>
+                            <div class="min-w-0 flex-1">
+                                <p class="isp-module-card__eyebrow">{{ $link['eyebrow'] }}</p>
+                                <p class="isp-module-card__title">{{ $link['label'] }}</p>
+                                <p class="isp-module-card__desc">{{ $link['hint'] }}</p>
+                            </div>
+                            <span class="isp-module-card__arrow" aria-hidden="true">→</span>
+                        </div>
+                    </a>
+                @endforeach
+            </div>
+        </section>
     </div>
 </x-filament-panels::page>

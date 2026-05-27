@@ -6,8 +6,8 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title', 'Reseller portal') — {{ config('app.name') }}</title>
     @include('partials.site-favicon')
-    <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="{{ asset('css/reseller-portal.css') }}?v=3">
+    @include('partials.isp-premium-theme')
     <script src="{{ asset('js/portal-theme.js') }}?v=1"></script>
 </head>
 <body class="rsl-bg antialiased text-slate-900">
@@ -75,7 +75,7 @@
     @auth('reseller')
         <script>
             (function () {
-                const pollUrl = @json(route('reseller.realtime.poll'));
+                const pollUrl = "{{ route('reseller.realtime.poll') }}";
                 let since = new Date().toISOString();
                 setInterval(async () => {
                     try {
@@ -92,16 +92,25 @@
         </script>
     @endauth
     <script>
+        function portalApplyThemeButton(theme) {
+            const btn = document.getElementById('rsl-theme-btn');
+            if (btn) btn.textContent = { light: '☀️', dark: '🌙', system: '◐' }[theme] || '◐';
+        }
+
+        function portalApplyTheme(theme) {
+            const effectiveDark = theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+            document.documentElement.classList.toggle('rsl-dark', effectiveDark);
+            portalApplyThemeButton(theme);
+        }
+
         function portalCycleTheme() {
             const order = ['light', 'dark', 'system'];
             const cur = window.portalGetTheme?.() || 'system';
             const next = order[(order.indexOf(cur) + 1) % order.length];
             window.portalSetTheme?.(next);
-            document.documentElement.classList.toggle('rsl-dark', next === 'dark' || (next === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches));
-            const btn = document.getElementById('rsl-theme-btn');
-            if (btn) btn.textContent = { light: '☀️', dark: '🌙', system: '◐' }[next] || '◐';
+            portalApplyTheme(next);
         }
-        portalCycleTheme();
+        portalApplyTheme(window.portalGetTheme?.() || 'system');
     </script>
 </body>
 </html>

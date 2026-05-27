@@ -2,6 +2,7 @@
 
 namespace App\Filament\Pages;
 
+use App\Filament\Resources\AttendanceOfficeLocationResource;
 use App\Filament\Resources\AttendanceRecordResource;
 use App\Filament\Resources\EmployeeResource;
 use App\Filament\Resources\PayrollRunResource;
@@ -171,6 +172,13 @@ class HrPayrollHub extends Page
                         'url' => AttendanceRecordResource::getUrl('create'),
                         'badge' => $stats['unmarked_today'] > 0 ? (string) $stats['unmarked_today'] : null,
                         'icon' => 'plus-circle',
+                    ]] : []),
+                    ...($access['payroll_manage'] ? [[
+                        'title' => 'Office GPS zones',
+                        'description' => 'Set office lat/lng, '.$stats['office_locations'].' location(s), 10 m radius & allowed IPs',
+                        'url' => AttendanceOfficeLocationResource::getUrl(),
+                        'badge' => (string) ($stats['office_locations'] ?? 0),
+                        'icon' => 'map-pin',
                     ]] : []),
                 ],
             ];

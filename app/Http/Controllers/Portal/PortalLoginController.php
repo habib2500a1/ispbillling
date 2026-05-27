@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Portal\PortalLoginRequest;
 use App\Http\Requests\Portal\PortalOtpVerifyRequest;
 use App\Models\Customer;
+use App\Services\Portal\CustomerPortalAccessService;
 use App\Services\Portal\PortalOtpService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -158,5 +159,24 @@ class PortalLoginController extends Controller
         $request->session()->regenerateToken();
 
         return redirect()->route('portal.login');
+    }
+
+    public function accessToken(string $token, Request $request, CustomerPortalAccessService $portal): RedirectResponse
+    {
+        $customer = $portal->findCustomerByAccessToken($token);
+
+        if ($customer === null) {
+            return redirect()
+                ->route('portal.login')
+                ->withErrors(['login' => __('Invalid or expired portal access link.')]);
+        }
+
+        $portal->ensurePortalPassword($customer);
+
+        Auth::guard('customer')->login($customer, false);
+        $customer->recordPortalLogin();
+        $request->session()->regenerate();
+
+        return redirect()->route('portal.dashboard');
     }
 }

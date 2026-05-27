@@ -6,8 +6,11 @@ use App\Models\Customer;
 use App\Models\MfsSmsRecord;
 use App\Models\Payment;
 use App\Models\PendingGatewayPayment;
+use App\Support\CheckoutPaymentMeta;
+use App\Support\PaymentType;
 use App\Support\PersonalMfsGateway;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\Http;
 
 final class GatewayPaymentVerificationService
@@ -64,7 +67,7 @@ final class GatewayPaymentVerificationService
         $autoApprove = PersonalMfsGateway::autoVerifyEnabled($gateway) && ($checks['auto_ok'] ?? false);
 
         if ($autoApprove) {
-            return DB::transaction(function () use ($gateway, $orderId, $trxId, $customer, $customerId, $invoiceId, $amount, $checks): array {
+            return DB::transaction(function () use ($gateway, $orderId, $trxId, $customer, $customerId, $invoiceId, $amount, $checks, $session): array {
                 return $this->finalizeAutoApproval(
                     gateway: $gateway,
                     orderId: $orderId,
@@ -74,6 +77,7 @@ final class GatewayPaymentVerificationService
                     invoiceId: $invoiceId,
                     amount: $amount,
                     checks: $checks,
+                    checkoutSession: $session,
                 );
             });
         }
@@ -87,7 +91,11 @@ final class GatewayPaymentVerificationService
                 'amount' => $amount,
                 'status' => PendingGatewayPayment::STATUS_PENDING,
                 'checkout_order_id' => $orderId,
-                'meta' => $checks,
+                'meta' => array_merge($checks, [
+                    'payment_type' => $session['payment_type'] ?? PaymentType::PAYMENT,
+                    'prepay_months' => $session['prepay_months'] ?? null,
+                    'return_to' => $session['return_to'] ?? null,
+                ]),
             ],
         );
 
@@ -182,14 +190,6 @@ final class GatewayPaymentVerificationService
                 existingPending: $locked,
             );
         });
-    }
-
-    /**
-     * Auto-approve from SMS when subscriber ID / PPPoE appears in payment reference (no prior checkout).
-     */
-    public function autoApproveFromSmsReference(MfsSmsRecord $sms): int
-    {
-        return app(MfsSmsAutoApprovalService::class)->approveByReference($sms);
     }
 
     public function isDuplicateGatewayTransaction(string $gateway, string $trxId): bool
@@ -453,23 +453,6 @@ final class GatewayPaymentVerificationService
     }
 
     /**
-     * @param  array<string, mixed>  $session
-     * @return array{auto_ok: bool, trx_format_ok: bool, amount_ok: bool, remote_ok: bool|null, reasons: list<string>}
-     */
-    public function runRocketChecks(string $trxId, float $amount, array $session): array
-    {
-        $checks = $this->runPersonalChecks(\App\Support\PaymentGateway::ROCKET, $trxId, $amount, $session, 1);
-
-        return [
-            'auto_ok' => $checks['auto_ok'],
-            'trx_format_ok' => $checks['trx_format_ok'],
-            'amount_ok' => $checks['amount_ok'],
-            'remote_ok' => $checks['remote_ok'],
-            'reasons' => $checks['reasons'],
-        ];
-    }
-
-    /**
      * @param  array<string, mixed>  $checks
      * @return array{status: string, payment?: Payment, message: string}
      */
@@ -483,35 +466,92 @@ final class GatewayPaymentVerificationService
         float $amount,
         array $checks,
         ?PendingGatewayPayment $existingPending = null,
+        ?array $checkoutSession = null,
     ): array {
-        $payment = PaymentProcessor::recordGatewayPayment(
-            gateway: $gateway,
-            transactionId: $trxId,
-            customerId: $customerId,
-            invoiceId: $invoiceId,
-            amount: $amount,
-            reference: strtoupper($gateway).' '.$trxId,
-            meta: [
-                'checkout_order_id' => $orderId,
-                'auto_verified' => true,
-                'verification' => $checks,
-                'confirmed_at' => now()->toIso8601String(),
-                'fifo_multi_invoice' => (bool) ($checks['fifo_multi_invoice'] ?? false),
-                'matched_by' => $checks['matched_by'] ?? null,
-                'reference_token' => $checks['reference_token'] ?? null,
-            ],
-        );
+        return DB::transaction(function () use (
+            $gateway,
+            $orderId,
+            $trxId,
+            $tenantId,
+            $customerId,
+            $invoiceId,
+            $amount,
+            $checks,
+            $existingPending,
+            $checkoutSession,
+        ): array {
+            if ($this->isDuplicateTransaction($gateway, $trxId)) {
+                $existing = Payment::query()
+                    ->withoutGlobalScopes()
+                    ->where('gateway', $gateway)
+                    ->where('gateway_transaction_id', $trxId)
+                    ->first();
 
-        if ($existingPending !== null) {
-            $existingPending->forceFill([
-                'status' => PendingGatewayPayment::STATUS_AUTO_APPROVED,
-                'payment_id' => $payment->id,
-                'reviewed_at' => now(),
-                'meta' => array_merge($existingPending->meta ?? [], $checks, ['auto_matched_late' => true]),
-            ])->save();
-            $pending = $existingPending;
-        } else {
-            $pending = PendingGatewayPayment::query()->create([
+                if ($existing !== null) {
+                    return [
+                        'status' => 'approved',
+                        'payment' => $existing,
+                        'message' => 'Payment verified and recorded. Thank you!',
+                    ];
+                }
+            }
+
+            $sms = null;
+            if (($checks['sms_record_id'] ?? null) !== null) {
+                $sms = MfsSmsRecord::query()
+                    ->whereKey($checks['sms_record_id'])
+                    ->lockForUpdate()
+                    ->first();
+
+                if ($sms !== null && $sms->status === MfsSmsRecord::STATUS_USED) {
+                    $existing = Payment::query()
+                        ->withoutGlobalScopes()
+                        ->where('gateway', $gateway)
+                        ->where('gateway_transaction_id', $trxId)
+                        ->first();
+
+                    if ($existing !== null) {
+                        return [
+                            'status' => 'approved',
+                            'payment' => $existing,
+                            'message' => 'Payment verified and recorded. Thank you!',
+                        ];
+                    }
+                }
+            }
+
+            $session = $checkoutSession ?? PublicCheckoutSession::get($orderId) ?? [];
+            $paymentType = (string) ($session['payment_type'] ?? PaymentType::PAYMENT);
+
+            $payment = PaymentProcessor::recordGatewayPayment(
+                gateway: $gateway,
+                transactionId: $trxId,
+                customerId: $customerId,
+                invoiceId: $invoiceId,
+                amount: $amount,
+                reference: strtoupper($gateway).' '.$trxId,
+                meta: CheckoutPaymentMeta::fromSession($session, [
+                    'checkout_order_id' => $orderId,
+                    'auto_verified' => true,
+                    'verification' => $checks,
+                    'confirmed_at' => now()->toIso8601String(),
+                    'fifo_multi_invoice' => (bool) ($checks['fifo_multi_invoice'] ?? false),
+                    'matched_by' => $checks['matched_by'] ?? null,
+                    'reference_token' => $checks['reference_token'] ?? null,
+                ]),
+                paymentType: $paymentType,
+            );
+
+            if ($existingPending !== null) {
+                $existingPending->forceFill([
+                    'status' => PendingGatewayPayment::STATUS_AUTO_APPROVED,
+                    'payment_id' => $payment->id,
+                    'reviewed_at' => now(),
+                    'meta' => array_merge($existingPending->meta ?? [], $checks, ['auto_matched_late' => true]),
+                ])->save();
+                $pending = $existingPending;
+            } else {
+            $payload = [
                 'tenant_id' => $tenantId,
                 'customer_id' => $customerId,
                 'invoice_id' => $invoiceId,
@@ -523,21 +563,47 @@ final class GatewayPaymentVerificationService
                 'payment_id' => $payment->id,
                 'reviewed_at' => now(),
                 'meta' => $checks,
-            ]);
-        }
+            ];
 
-        if (($checks['sms_record_id'] ?? null) !== null) {
-            $sms = MfsSmsRecord::query()->find($checks['sms_record_id']);
-            if ($sms !== null) {
+            // Pending rows are unique per (gateway, transaction_id). If an earlier ingest created
+            // an "unmatched SMS" pending row (customer_id = null), we must update it instead
+            // of trying to insert a second pending record.
+            try {
+                $pending = PendingGatewayPayment::query()
+                    ->where('gateway', $gateway)
+                    ->where('transaction_id', $trxId)
+                    ->lockForUpdate()
+                    ->first();
+
+                if ($pending !== null) {
+                    $pending->forceFill($payload)->save();
+                } else {
+                    $pending = PendingGatewayPayment::query()->create($payload);
+                }
+            } catch (QueryException $e) {
+                $pending = PendingGatewayPayment::query()
+                    ->where('gateway', $gateway)
+                    ->where('transaction_id', $trxId)
+                    ->first();
+
+                if ($pending === null) {
+                    throw $e;
+                }
+
+                $pending->forceFill($payload)->save();
+            }
+            }
+
+            if ($sms !== null && $sms->status !== MfsSmsRecord::STATUS_USED) {
                 app(MfsSmsMatchingService::class)->markUsed($sms, (int) $pending->id, (int) $payment->id);
             }
-        }
 
-        return [
-            'status' => 'approved',
-            'payment' => $payment,
-            'message' => 'Payment verified and recorded. Thank you!',
-        ];
+            return [
+                'status' => 'approved',
+                'payment' => $payment,
+                'message' => 'Payment verified and recorded. Thank you!',
+            ];
+        });
     }
 
     private function verifyViaRemoteEndpoint(string $gateway, string $trxId, float $amount): ?bool
@@ -572,6 +638,7 @@ final class GatewayPaymentVerificationService
     private function isDuplicateTransaction(string $gateway, string $trxId, ?int $ignorePendingId = null): bool
     {
         if (Payment::query()
+            ->withoutGlobalScopes()
             ->where('method', $gateway)
             ->where('gateway_transaction_id', $trxId)
             ->exists()) {
@@ -579,13 +646,19 @@ final class GatewayPaymentVerificationService
         }
 
         $pendingQuery = PendingGatewayPayment::query()
+            ->withoutGlobalScopes()
             ->where('gateway', $gateway)
             ->where('transaction_id', $trxId)
-            ->whereIn('status', [
-                PendingGatewayPayment::STATUS_PENDING,
-                PendingGatewayPayment::STATUS_APPROVED,
-                PendingGatewayPayment::STATUS_AUTO_APPROVED,
-            ]);
+            ->where(function ($query): void {
+                $query->whereIn('status', [
+                    PendingGatewayPayment::STATUS_APPROVED,
+                    PendingGatewayPayment::STATUS_AUTO_APPROVED,
+                ])->orWhere(function ($query): void {
+                    // Unmatched SMS queue rows have no customer — portal checkout may claim them.
+                    $query->where('status', PendingGatewayPayment::STATUS_PENDING)
+                        ->whereNotNull('customer_id');
+                });
+            });
 
         if ($ignorePendingId !== null) {
             $pendingQuery->where('id', '!=', $ignorePendingId);

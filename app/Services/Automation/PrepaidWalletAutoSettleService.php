@@ -127,7 +127,7 @@ final class PrepaidWalletAutoSettleService
 
                 $invoice->refresh();
                 if ($invoice->balanceDue() <= 0.01) {
-                    $this->expiry->extendForPaidCycle($customer->fresh() ?? $customer);
+                    $this->expiry->activateAfterFullPayment($customer->fresh() ?? $customer);
                     $this->network->syncCustomer($customer->fresh() ?? $customer);
                     $renewed++;
                 }

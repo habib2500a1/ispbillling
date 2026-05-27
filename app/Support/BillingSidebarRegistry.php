@@ -9,6 +9,7 @@ use App\Support\Rbac\StaffCapability;
 use App\Filament\Pages\CollectionDeskReport;
 use App\Filament\Pages\CollectorMobile;
 use App\Filament\Pages\ManageCollectionDiscountSettings;
+use App\Filament\Pages\ManagePaymentRenewalSettings;
 use App\Filament\Pages\CollectorVisitsReport;
 use App\Filament\Resources\CouponResource;
 use App\Filament\Resources\InvoiceResource;
@@ -109,13 +110,21 @@ final class BillingSidebarRegistry
                 'icon' => 'heroicon-o-currency-bangladeshi',
                 'sort' => 5,
                 'url_target' => 'collection.desk',
-                'active_routes' => ['filament.admin.pages.bill-collection-desk'],
+                'active_routes' => ['filament.admin.pages.bill-collection'],
+            ],
+            [
+                'key' => 'payment_renewal_settings',
+                'label' => 'Payment renew rules',
+                'icon' => 'heroicon-o-arrow-path-rounded-square',
+                'sort' => 6,
+                'url_target' => 'collection.renewal_settings',
+                'active_routes' => ['filament.admin.pages.payment-renewal-settings'],
             ],
             [
                 'key' => 'collector_mobile',
                 'label' => 'Collector mobile',
                 'icon' => 'heroicon-o-device-phone-mobile',
-                'sort' => 6,
+                'sort' => 7,
                 'url_target' => 'collector.mobile',
                 'active_routes' => ['filament.admin.pages.collector-mobile'],
             ],
@@ -123,7 +132,7 @@ final class BillingSidebarRegistry
                 'key' => 'collection_discount_settings',
                 'label' => 'Collection discounts',
                 'icon' => 'heroicon-o-receipt-percent',
-                'sort' => 7,
+                'sort' => 8,
                 'url_target' => 'collection.discount_settings',
                 'active_routes' => ['filament.admin.pages.manage-collection-discount-settings'],
             ],
@@ -260,6 +269,7 @@ final class BillingSidebarRegistry
             'staff_expenses' => StaffExpenseResource::canViewAny(),
             'collection_desk' => BillCollectionDesk::canAccess(),
             'collection_discount_settings' => ManageCollectionDiscountSettings::canAccess(),
+            'payment_renewal_settings' => ManagePaymentRenewalSettings::canAccess(),
             'collector_mobile' => CollectorMobile::canAccess(),
             'collector_visits' => CollectorVisitsReport::canAccess(),
             'coupons' => CouponResource::canViewAny(),
@@ -285,6 +295,7 @@ final class BillingSidebarRegistry
             'collection.month' => CollectionDeskReport::getUrl(['preset' => 'month']),
             'collection.desk' => BillCollectionDesk::getUrl(),
             'collection.discount_settings' => ManageCollectionDiscountSettings::getUrl(),
+            'collection.renewal_settings' => ManagePaymentRenewalSettings::getUrl(),
             'collector.mobile' => CollectorMobile::getUrl(),
             'collector.visits' => CollectorVisitsReport::getUrl(),
             'coupons.index' => CouponResource::getUrl(),

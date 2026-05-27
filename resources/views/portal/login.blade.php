@@ -3,50 +3,82 @@
 @section('title', __('portal.login_title'))
 
 @section('content')
-    <div class="portal-auth-card mx-auto max-w-md text-center">
-        <div class="portal-auth-brand">
-            @include('portal.partials.brand-mark')
-        </div>
-        <h1 class="portal-auth-title">{{ $companyName }}</h1>
-        <p class="portal-auth-sub">{{ __('portal.customer_portal') }} · {{ __('portal.login_hint') }}</p>
-        @if ($portalOtpEnabled ?? false)
-            <p class="mt-3 rounded-xl bg-amber-50 px-3 py-2 text-sm text-amber-900 ring-1 ring-amber-200">
-                Two-step login: you will enter a code sent to your email after your password.
-            </p>
-        @endif
-
-        @if (session('portal_session_expired'))
-            <p class="mt-4 rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-950 ring-1 ring-amber-200" role="alert">
-                Your login session expired (page was open too long or cookies were blocked). Please sign in again.
-            </p>
-        @endif
-
-        <form method="post" action="{{ route('portal.login.store') }}" class="mt-8 space-y-4 text-left">
-            @csrf
-            <div>
-                <label for="login" class="block text-sm font-semibold text-slate-700">Customer code, phone, or email</label>
-                <input id="login" name="login" type="text" value="{{ old('login') }}" required autofocus autocomplete="username"
-                    class="mt-1 block w-full rounded-xl border border-slate-300 px-4 py-3 text-sm shadow-sm focus:border-violet-500 focus:ring-2 focus:ring-violet-200">
+    <div class="portal-premium-orbs isp-premium-orbs" aria-hidden="true">
+        <span></span><span></span><span></span>
+    </div>
+    <div class="portal-auth-shell portal-auth-shell--split">
+        <section class="portal-auth-panel isp-gradient-border">
+            <div class="isp-gradient-border__inner p-6 sm:p-8">
+            <div class="portal-auth-brand">
+                @include('portal.partials.brand-mark')
             </div>
-            <div>
-                <label for="password" class="block text-sm font-semibold text-slate-700">Password</label>
-                <input id="password" name="password" type="password" required autocomplete="current-password"
-                    class="mt-1 block w-full rounded-xl border border-slate-300 px-4 py-3 text-sm shadow-sm focus:border-violet-500 focus:ring-2 focus:ring-violet-200">
+            <h1 class="portal-auth-title">{{ $companyName }}</h1>
+            <p class="portal-auth-sub">{{ __('portal.customer_portal') }} · {{ __('portal.login_hint') }}</p>
+
+            @if ($portalOtpEnabled ?? false)
+                <div class="portal-note-banner mt-4">
+                    Two-step login is enabled. After your password, you will enter a code sent to your email.
+                </div>
+            @endif
+
+            @if (session('portal_session_expired'))
+                <div class="portal-note-banner mt-4" role="alert">
+                    Your login session expired because the page stayed open too long or cookies were blocked. Please sign in again.
+                </div>
+            @endif
+
+            <form method="post" action="{{ route('portal.login.store') }}" class="portal-auth-form text-left">
+                @csrf
+                <div>
+                    <label for="login">Customer code, phone, or email</label>
+                    <input id="login" name="login" type="text" value="{{ old('login') }}" required autofocus autocomplete="username" placeholder="CUST-001, 01XXXXXXXXX, or email">
+                </div>
+                <div>
+                    <label for="password">Password</label>
+                    <input id="password" name="password" type="password" required autocomplete="current-password" placeholder="Enter your portal password">
+                </div>
+                <label class="flex items-center gap-2 text-sm text-slate-600">
+                    <input name="remember" type="checkbox" value="1" class="rounded border-slate-300 text-violet-600" {{ old('remember') ? 'checked' : '' }}>
+                    {{ __('portal.remember_device') }}
+                </label>
+                <div class="portal-auth-actions">
+                    <button type="submit" class="portal-btn-primary w-full py-3 text-base">{{ __('portal.login') }}</button>
+                </div>
+            </form>
+
+            @if (config('portal.signup.enabled', true))
+                <div class="portal-auth-divider">New here?</div>
+                <p class="mt-4 text-center text-sm text-slate-600">
+                    {{ __('portal.new_customer') }}
+                    <a href="{{ route('portal.signup') }}" class="portal-link">{{ __('portal.request_connection') }}</a>
+                </p>
+            @endif
+
+            <x-mobile-app-promo variant="compact" class="mt-6" />
             </div>
-            <label class="flex items-center gap-2 text-sm text-slate-600">
-                <input name="remember" type="checkbox" value="1" class="rounded border-slate-300 text-violet-600" {{ old('remember') ? 'checked' : '' }}>
-                {{ __('portal.remember_device') }}
-            </label>
-            <button type="submit" class="portal-btn-primary w-full py-3 text-base">{{ __('portal.login') }}</button>
-        </form>
+        </section>
 
-        @if (config('portal.signup.enabled', true))
-            <p class="mt-6 text-center text-sm text-slate-600">
-                {{ __('portal.new_customer') }}
-                <a href="{{ route('portal.signup') }}" class="font-semibold text-violet-600 hover:underline">{{ __('portal.request_connection') }}</a>
-            </p>
-        @endif
+        <aside class="portal-auth-panel">
+            <div class="portal-auth-hero">
+                <p class="portal-auth-hero__eyebrow">Customer access</p>
+                <h2 class="portal-auth-hero__title">One portal for bills, usage, ONU, and support</h2>
+                <p class="portal-auth-hero__sub">Sign in to check live service data, pay bills, create tickets, and manage your customer profile from any device.</p>
+            </div>
 
-        <x-mobile-app-promo variant="compact" class="mt-6" />
+            <div class="portal-auth-points">
+                <div class="portal-auth-point">
+                    <p class="portal-auth-point__title">Billing and invoices</p>
+                    <p class="portal-auth-point__body">Track outstanding balance, invoice history, and payment records from one dashboard.</p>
+                </div>
+                <div class="portal-auth-point">
+                    <p class="portal-auth-point__title">Real-time service insight</p>
+                    <p class="portal-auth-point__body">View live usage, optical signal, equipment status, and quick diagnostic tools.</p>
+                </div>
+                <div class="portal-auth-point">
+                    <p class="portal-auth-point__title">Support continuity</p>
+                    <p class="portal-auth-point__body">Tickets and live chat stay connected, so your issue history remains preserved.</p>
+                </div>
+            </div>
+        </aside>
     </div>
 @endsection

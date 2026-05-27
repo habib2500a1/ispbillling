@@ -39,6 +39,8 @@ use App\Filament\Pages\StaffControlHub;
 use App\Filament\Pages\SupportHub;
 use App\Filament\Resources\CustomerResource;
 use App\Filament\Resources\InvoiceResource;
+use App\Filament\Pages\OltHub;
+use App\Filament\Pages\OpticalMonitoringHub;
 use App\Filament\Resources\OltResource;
 use App\Filament\Resources\PaymentResource;
 use App\Filament\Resources\SupportTicketResource;
@@ -46,13 +48,16 @@ use App\Filament\Resources\SupportTicketResource;
 class AdminCommandPalette
 {
     /**
-     * @return list<array{label: string, group: string, url: string}>
+     * @return list<array{label: string, group: string, url: string, keywords?: list<string>}>
      */
     public static function items(): array
     {
         return [
             ['group' => 'Overview', 'label' => 'All modules', 'url' => OperationsHub::getUrl()],
             ['group' => 'Overview', 'label' => 'Dashboard hub (NOC / Billing / Support)', 'url' => DashboardHub::getUrl()],
+            ['group' => 'OLT & ONU', 'label' => 'ONU — optical database & RX signals', 'url' => OpticalMonitoringHub::getUrl(), 'keywords' => ['onu', 'optical', 'gpon', 'rx', 'signal', 'laser']],
+            ['group' => 'OLT & ONU', 'label' => 'OLT hub — chassis, PON & sync', 'url' => OltHub::getUrl(), 'keywords' => ['olt', 'pon', 'gpon', 'chassis']],
+            ['group' => 'OLT & ONU', 'label' => 'OLT list — edit ports & ONUs', 'url' => OltResource::getUrl('index'), 'keywords' => ['olt', 'onu', 'port']],
             ['group' => 'Billing', 'label' => 'Billing overview', 'url' => BillingOverview::getUrl()],
             ['group' => 'Billing', 'label' => 'Bill collection desk', 'url' => BillCollectionDesk::getUrl()],
             ['group' => 'Billing', 'label' => 'Bill money trail', 'url' => BillingFundFlowReport::getUrl()],
@@ -61,7 +66,7 @@ class AdminCommandPalette
             ['group' => 'Billing', 'label' => 'Collector visits (GPS map)', 'url' => CollectorVisitsReport::getUrl()],
             ['group' => 'Billing', 'label' => 'Collector mobile (GPS)', 'url' => CollectorMobile::getUrl()],
             ['group' => 'Billing', 'label' => 'Dunning report', 'url' => DunningReport::getUrl()],
-            ['group' => 'Payments', 'label' => 'Personal bKash / Nagad verify', 'url' => ManagePersonalMfsSettings::getUrl(['tab' => 'bkash'])],
+            ['group' => 'Payments', 'label' => 'bKash Personal / Nagad Personal', 'url' => ManagePersonalMfsSettings::getUrl(['tab' => 'bkash'])],
             ['group' => 'Payments', 'label' => 'MFS SMS & apps', 'url' => ManageMfsSmsSettings::getUrl()],
             ['group' => 'Payments', 'label' => 'Gateway reconciliation', 'url' => GatewayReconciliationReport::getUrl()],
             ['group' => 'Billing', 'label' => 'Invoices', 'url' => InvoiceResource::getUrl('index')],
@@ -74,8 +79,7 @@ class AdminCommandPalette
             ['group' => 'Network', 'label' => 'Bandwidth monitor', 'url' => BandwidthMonitor::getUrl()],
             ['group' => 'Network', 'label' => 'Network intelligence', 'url' => NetworkIntelligenceHub::getUrl()],
             ['group' => 'Network', 'label' => 'Network topology', 'url' => NetworkTopology::getUrl()],
-            ['group' => 'Network', 'label' => 'OLT / ONU', 'url' => OltResource::getUrl('index')],
-            ['group' => 'HR', 'label' => 'HR & payroll', 'url' => HrPayrollHub::getUrl()],
+            ['group' => 'Network', 'label' => 'Laser thresholds', 'url' => ManageOpticalLaserSettings::getUrl()],
             ['group' => 'Inventory', 'label' => 'Inventory center', 'url' => InventoryHub::getUrl()],
             ['group' => 'Inventory', 'label' => 'Warehouses', 'url' => \App\Filament\Resources\WarehouseResource::getUrl()],
             ['group' => 'Inventory', 'label' => 'Products · barcode', 'url' => \App\Filament\Resources\ProductResource::getUrl()],
@@ -96,7 +100,7 @@ class AdminCommandPalette
             ['group' => 'System', 'label' => 'Company setup', 'url' => ManageCompanySetup::getUrl()],
             ['group' => 'System', 'label' => 'Movie server list', 'url' => ManageMovieServerList::getUrl()],
             ['group' => 'System', 'label' => 'App settings', 'url' => ManageAppSettings::getUrl()],
-            ['group' => 'Network', 'label' => 'Laser thresholds', 'url' => ManageOpticalLaserSettings::getUrl()],
+            ['group' => 'HR', 'label' => 'HR & payroll', 'url' => HrPayrollHub::getUrl()],
         ];
     }
 }

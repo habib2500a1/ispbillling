@@ -8,9 +8,15 @@
         searchError: '',
         searchUrl: @js(route('admin.smart-search')),
         get filtered() {
-            const s = this.q.toLowerCase();
-            const cmds = !s ? this.items.slice(0, 8) : this.items.filter(i => i.label.toLowerCase().includes(s) || (i.group || '').toLowerCase().includes(s)).slice(0, 8);
-            return cmds;
+            const s = this.q.toLowerCase().trim();
+            const match = (item) => {
+                if (!s) return true;
+                if (item.label.toLowerCase().includes(s)) return true;
+                if ((item.group || '').toLowerCase().includes(s)) return true;
+                if (Array.isArray(item.keywords) && item.keywords.some(k => k.includes(s) || s.includes(k))) return true;
+                return false;
+            };
+            return !s ? this.items.slice(0, 10) : this.items.filter(match).slice(0, 12);
         },
         async searchEntities() {
             if (this.q.length < 2) { this.entityResults = []; this.searchError = ''; return; }

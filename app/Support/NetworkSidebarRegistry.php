@@ -4,12 +4,10 @@ namespace App\Support;
 
 use App\Filament\Pages\BandwidthMonitor;
 use App\Filament\Pages\ManageNetworkSettings;
-use App\Filament\Pages\ImportClientsCsvPage;
 use App\Filament\Pages\ImportFromMikrotikPage;
 use App\Filament\Pages\NetflowAnalysis;
 use App\Filament\Pages\NetworkIntelligenceHub;
 use App\Filament\Pages\NetworkTopology;
-use App\Filament\Pages\OnlineClientsMonitoring;
 use App\Filament\Pages\RadiusUserAdmin;
 use App\Filament\Pages\SnmpMonitor;
 use App\Filament\Pages\SubscriberTrafficMonitor;
@@ -32,6 +30,14 @@ final class NetworkSidebarRegistry
     public static function definitions(): array
     {
         return [
+            [
+                'key' => 'network_center',
+                'label' => 'Network center',
+                'icon' => 'heroicon-o-cpu-chip',
+                'sort' => -1,
+                'url' => NetworkIntelligenceHub::getUrl(),
+                'active_routes' => ['filament.admin.pages.network-intelligence-hub'],
+            ],
             [
                 'key' => 'network_setup',
                 'label' => 'API & RADIUS setup',
@@ -240,6 +246,7 @@ final class NetworkSidebarRegistry
     public static function canSeeEntry(string $key): bool
     {
         return match ($key) {
+            'network_center' => NetworkIntelligenceHub::canAccess(),
             'network_setup' => ManageNetworkSettings::canAccess(),
             'routers_list', 'add_router' => MikrotikServerResource::canViewAny(),
             'import_mikrotik' => ImportFromMikrotikPage::canAccess(),

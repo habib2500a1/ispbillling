@@ -35,21 +35,23 @@ final class ClientsDashboardService
      */
     public function summary(?Builder $scopedQuery = null): array
     {
-        $tenantId = TenantResolver::currentTenantId() ?? 0;
+        $tenantId = TenantResolver::requiredTenantId();
 
         return Cache::remember(
             'clients_dashboard_summary:'.$tenantId.':'.md5((string) ($scopedQuery?->toRawSql() ?? 'all')),
             120,
-            function () use ($scopedQuery): array {
-                $base = $scopedQuery ?? Customer::query();
+            function () use ($scopedQuery, $tenantId): array {
+                $base = $scopedQuery ?? Customer::query()->where('tenant_id', $tenantId);
                 $notTerminated = fn () => (clone $base)->where('status', '!=', CustomerStatus::TERMINATED);
-                $tenantId = TenantResolver::currentTenantId() ?? 0;
                 $homePackageIds = $this->homePackageIds($tenantId);
+                $sessionCustomerIds = app(\App\Services\Bandwidth\BandwidthCollectionService::class)
+                    ->activeSessionCustomerIds($tenantId);
+                $onlineFromSessions = $sessionCustomerIds === []
+                    ? 0
+                    : (clone $notTerminated())->whereIn('id', $sessionCustomerIds)->count();
 
-                $bandwidth = app(\App\Services\Bandwidth\BandwidthCollectionService::class);
-                $online = $bandwidth->tenantOnlineFlagsTrustworthy($tenantId)
-                    ? (clone $notTerminated())->where('is_ppp_online', true)->count()
-                    : 0;
+                $onlineFromFlags = (clone $notTerminated())->where('is_ppp_online', true)->count();
+                $online = max($onlineFromSessions, $onlineFromFlags);
                 $active = CustomerAccountScopes::applyActive(clone $base)->count();
                 $total = (clone $notTerminated())->count();
 
@@ -73,5 +75,10 @@ final class ClientsDashboardService
                 ];
             },
         );
+    }
+
+    public static function flushSummaryCache(int $tenantId): void
+    {
+        Cache::forget('clients_dashboard_summary:'.$tenantId.':'.md5('all'));
     }
 }

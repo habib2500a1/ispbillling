@@ -3,8 +3,10 @@
 namespace App\Http\Controllers\Portal;
 
 use App\Http\Controllers\Controller;
+use App\Models\Customer;
 use App\Models\Outage;
 use App\Services\Portal\CustomerPortalDashboardService;
+use App\Services\Portal\CustomerPortalNotificationService;
 use App\Services\Portal\PortalContentCatalog;
 use App\Services\Portal\PortalMovieServerCatalog;
 use Illuminate\Http\JsonResponse;
@@ -12,8 +14,12 @@ use Illuminate\View\View;
 
 class PortalDashboardController extends Controller
 {
-    public function index(CustomerPortalDashboardService $dashboard): View
+    public function index(
+        CustomerPortalDashboardService $dashboard,
+        CustomerPortalNotificationService $notifications
+    ): View
     {
+        /** @var Customer $customer */
         $customer = auth('customer')->user();
         $customer->loadMissing('package:id,name,download_mbps,upload_mbps,price_monthly');
 
@@ -36,6 +42,8 @@ class PortalDashboardController extends Controller
             'recentInvoices' => $recentInvoices,
             'outages' => $outages,
             'dash' => $dashboard->payload($customer),
+            'notificationFeed' => $notifications->feed($customer, 4),
+            'notificationSummary' => $notifications->summary($customer),
             'movieServers' => PortalMovieServerCatalog::forPortal((int) $customer->tenant_id),
             'portalNotices' => PortalContentCatalog::noticesForPortal((int) $customer->tenant_id),
             'portalMarquee' => PortalContentCatalog::marqueeForPortal((int) $customer->tenant_id),
@@ -44,6 +52,7 @@ class PortalDashboardController extends Controller
 
     public function live(CustomerPortalDashboardService $dashboard): JsonResponse
     {
+        /** @var Customer $customer */
         $customer = auth('customer')->user();
 
         return response()->json($dashboard->payload($customer));

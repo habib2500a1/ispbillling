@@ -1,67 +1,74 @@
 @php
     $stats = $this->getStats();
+    $statCards = [
+        ['label' => 'Partners', 'value' => (string) $stats['total'], 'hint' => $stats['active'].' active', 'class' => 'isp-hub-stat--violet'],
+        ['label' => 'Franchises', 'value' => (string) $stats['franchises'], 'hint' => 'Multi-branch partners', 'class' => 'isp-hub-stat--sky'],
+        ['label' => 'White-label', 'value' => (string) $stats['white_label'], 'hint' => 'Custom branded portals', 'class' => 'isp-hub-stat--teal'],
+        ['label' => 'Wallet total', 'value' => number_format($stats['wallet_total'], 2).' BDT', 'hint' => 'Combined reseller wallets', 'class' => 'isp-hub-stat--amber'],
+        ['label' => 'Pending commission', 'value' => number_format($stats['pending_commission'], 2).' BDT', 'hint' => 'Awaiting settlement', 'class' => 'isp-hub-stat--danger', 'valueClass' => 'isp-hub-stat-value--danger'],
+    ];
+    $links = [
+        ['eyebrow' => 'Directory', 'label' => 'All resellers & franchises', 'hint' => 'Create, edit, hierarchy, territories', 'url' => \App\Filament\Resources\ResellerResource::getUrl('index'), 'icon' => 'heroicon-o-users', 'accent' => 'text-violet-600'],
+        ['eyebrow' => 'Onboarding', 'label' => 'Add reseller', 'hint' => 'Commission, wallet & portal login', 'url' => \App\Filament\Resources\ResellerResource::getUrl('create'), 'icon' => 'heroicon-o-user-plus', 'accent' => 'text-indigo-600'],
+        ['eyebrow' => 'Pricing', 'label' => 'Package prices', 'hint' => 'Area & zone pricing overrides', 'url' => \App\Filament\Pages\ResellerPackagePricesPage::getUrl(), 'icon' => 'heroicon-o-tag', 'accent' => 'text-amber-600'],
+        ['eyebrow' => 'Reports', 'label' => 'Commission report', 'hint' => 'Earnings by partner & period', 'url' => \App\Filament\Pages\ResellerReportPage::getUrl(), 'icon' => 'heroicon-o-chart-pie', 'accent' => 'text-cyan-600'],
+        ['eyebrow' => 'Wallet', 'label' => 'Wallet hub', 'hint' => 'Top-up and balances', 'url' => \App\Filament\Pages\ResellerWalletHubPage::getUrl(), 'icon' => 'heroicon-o-wallet', 'accent' => 'text-emerald-600'],
+        ['eyebrow' => 'Portal', 'label' => 'Partner portal', 'hint' => '/reseller/login access for subscribers, wallet & commissions', 'url' => url('/reseller/login'), 'icon' => 'heroicon-o-arrow-top-right-on-square', 'accent' => 'text-slate-600', 'external' => true],
+    ];
 @endphp
 
 <x-filament-panels::page>
     <div class="isp-hub-page space-y-6">
-        <div class="rounded-2xl border border-primary-200 bg-gradient-to-br from-primary-50 via-white to-violet-50/40 p-6 shadow-sm dark:border-primary-900/40 dark:from-primary-950/50 dark:via-gray-900 dark:to-gray-900">
-            <h2 class="text-xl font-semibold text-gray-900 dark:text-white">Reseller & franchise management</h2>
-            <p class="mt-2 max-w-3xl text-sm text-gray-600 dark:text-gray-400">
-                Reseller dashboard · commission on payments · territory (area/zone) · sub-resellers · revenue sharing · wallet transfers · white-label branding.
-            </p>
-            <div class="mt-4 flex flex-wrap gap-3 text-sm">
-                <span class="rounded-full bg-white px-3 py-1 font-medium shadow-sm dark:bg-gray-800">
-                    <span class="text-primary-600 dark:text-primary-400">{{ $stats['total'] }}</span> partners
-                </span>
-                <span class="rounded-full bg-white px-3 py-1 font-medium shadow-sm dark:bg-gray-800">
-                    {{ $stats['active'] }} active
-                </span>
-                <span class="rounded-full bg-white px-3 py-1 font-medium shadow-sm dark:bg-gray-800">
-                    {{ $stats['franchises'] }} franchises
-                </span>
-                <span class="rounded-full bg-white px-3 py-1 font-medium shadow-sm dark:bg-gray-800">
-                    {{ $stats['white_label'] }} white-label
-                </span>
+        <x-isp.hub-hero
+            eyebrow="Partner operations"
+            title="Reseller & franchise management"
+            description="Reseller dashboard, commission on payments, territory control, wallet transfers, and white-label branding in one workspace."
+            class="isp-hub-hero--violet"
+        >
+            <div class="isp-hub-toolbar">
+                <div class="isp-hub-toolbar__meta">
+                    <span class="isp-hub-results">{{ $stats['total'] }} partners indexed</span>
+                    <span class="isp-hub-section__meta">{{ $stats['active'] }} active</span>
+                    <span class="isp-hub-section__meta">{{ $stats['white_label'] }} white-label</span>
+                </div>
             </div>
-        </div>
+        </x-isp.hub-hero>
 
-        <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <div class="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-900">
-                <p class="text-sm text-gray-500">Total wallet balance</p>
-                <p class="mt-1 text-2xl font-bold text-gray-900 dark:text-white">{{ number_format($stats['wallet_total'], 2) }} BDT</p>
-            </div>
-            <div class="rounded-xl border border-amber-200 bg-amber-50/50 p-5 dark:border-amber-900/50 dark:bg-amber-950/20">
-                <p class="text-sm text-amber-800 dark:text-amber-300">Pending commission</p>
-                <p class="mt-1 text-2xl font-bold text-amber-950 dark:text-amber-100">{{ number_format($stats['pending_commission'], 2) }} BDT</p>
-            </div>
-        </div>
+        <x-isp.hub-stat-grid :stats="$statCards" />
 
-        <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            <a href="{{ \App\Filament\Resources\ResellerResource::getUrl('index') }}" class="group rounded-xl border border-gray-200 bg-white p-5 shadow-sm transition hover:border-primary-400 hover:shadow-md dark:border-gray-700 dark:bg-gray-900">
-                <p class="font-semibold text-gray-900 group-hover:text-primary-600 dark:text-white">All resellers & franchises</p>
-                <p class="mt-1 text-sm text-gray-500">Create, edit, hierarchy, territories.</p>
-            </a>
-            <a href="{{ \App\Filament\Resources\ResellerResource::getUrl('create') }}" class="group rounded-xl border border-violet-200 bg-violet-50/50 p-5 shadow-sm transition hover:border-violet-400 dark:border-violet-800 dark:bg-violet-950/30">
-                <p class="font-semibold text-violet-900 dark:text-violet-100">Add reseller</p>
-                <p class="mt-1 text-sm text-violet-800/80 dark:text-violet-300">Commission, wallet & portal login.</p>
-            </a>
-            <a href="{{ \App\Filament\Pages\ResellerPackagePricesPage::getUrl() }}" class="group rounded-xl border border-gray-200 bg-white p-5 shadow-sm transition hover:border-primary-400 dark:border-gray-700 dark:bg-gray-900">
-                <p class="font-semibold text-gray-900 dark:text-white">Package prices</p>
-                <p class="mt-1 text-sm text-gray-500">Area & zone pricing overrides.</p>
-            </a>
-            <a href="{{ \App\Filament\Pages\ResellerReportPage::getUrl() }}" class="group rounded-xl border border-gray-200 bg-white p-5 shadow-sm transition hover:border-primary-400 dark:border-gray-700 dark:bg-gray-900">
-                <p class="font-semibold text-gray-900 dark:text-white">Commission report</p>
-                <p class="mt-1 text-sm text-gray-500">Earnings by partner & period.</p>
-            </a>
-            <a href="{{ \App\Filament\Pages\ResellerWalletHubPage::getUrl() }}" class="group rounded-xl border border-gray-200 bg-white p-5 shadow-sm transition hover:border-primary-400 dark:border-gray-700 dark:bg-gray-900">
-                <p class="font-semibold text-gray-900 dark:text-white">Wallet hub</p>
-                <p class="mt-1 text-sm text-gray-500">Top-up and balances.</p>
-            </a>
-            <a href="{{ url('/reseller/login') }}" target="_blank" rel="noopener" class="group rounded-xl border border-indigo-200 bg-indigo-50/60 p-5 shadow-sm transition hover:border-indigo-400 dark:border-indigo-800 dark:bg-indigo-950/30">
-                <p class="font-semibold text-indigo-900 group-hover:text-indigo-700 dark:text-indigo-100">Partner portal</p>
-                <p class="mt-1 text-sm text-indigo-700/80 dark:text-indigo-300">/reseller/login — subscribers, wallet & commissions.</p>
-            </a>
-        </div>
+        <section class="isp-hub-section">
+            <div class="isp-hub-section__head">
+                <div>
+                    <h2 class="isp-hub-section__title">Partner shortcuts</h2>
+                    <p class="isp-hub-section__desc">Open onboarding, pricing, commission reporting, wallet control, and portal access from one place.</p>
+                </div>
+                <span class="isp-hub-section__meta">{{ count($links) }} shortcuts</span>
+            </div>
+            <div class="isp-hub-link-grid isp-hub-link-grid--2 isp-hub-link-grid--3">
+                @foreach ($links as $link)
+                    <a
+                        href="{{ $link['url'] }}"
+                        class="isp-module-card group"
+                        @if (! empty($link['external']))
+                            target="_blank"
+                            rel="noopener"
+                        @endif
+                    >
+                        <div class="flex items-start gap-3">
+                            <span class="isp-module-icon {{ $link['accent'] }}">
+                                <x-filament::icon :icon="$link['icon']" class="h-5 w-5" />
+                            </span>
+                            <div class="min-w-0 flex-1">
+                                <p class="isp-module-card__eyebrow">{{ $link['eyebrow'] }}</p>
+                                <p class="isp-module-card__title">{{ $link['label'] }}</p>
+                                <p class="isp-module-card__desc">{{ $link['hint'] }}</p>
+                            </div>
+                            <span class="isp-module-card__arrow" aria-hidden="true">{{ ! empty($link['external']) ? '↗' : '→' }}</span>
+                        </div>
+                    </a>
+                @endforeach
+            </div>
+        </section>
 
         <x-isp.hub-footer />
     </div>

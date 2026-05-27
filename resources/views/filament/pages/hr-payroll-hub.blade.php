@@ -131,6 +131,7 @@
                         <h3 class="text-base font-bold text-gray-900 dark:text-white">Quick actions</h3>
                         <p class="mt-0.5 text-sm text-gray-500 dark:text-gray-400">Daily HR & payroll tasks</p>
                     </div>
+                    <span class="isp-hub-section__meta">{{ count($quickActions) }} actions</span>
                 </div>
                 <div class="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
                     @foreach ($quickActions as $action)

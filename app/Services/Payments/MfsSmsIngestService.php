@@ -40,6 +40,14 @@ final class MfsSmsIngestService
 
         if ($existing !== null) {
             Log::info('mfs_sms.ingest_duplicate', ['id' => $existing->id, 'trx' => $trxId]);
+
+            if ($existing->status === MfsSmsRecord::STATUS_USED) {
+                $existing = $existing->fresh() ?? $existing;
+                \App\Support\MfsSmsBillPaymentState::afterIngest($existing, true, 0);
+
+                return [$existing, true, 0];
+            }
+
             $matched = 0;
             if ($existing->status === MfsSmsRecord::STATUS_APPROVED) {
                 $matched = app(MfsSmsAutoApprovalService::class)->processApprovedSms($existing);

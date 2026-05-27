@@ -3,45 +3,124 @@
 @section('title', 'Profile')
 
 @section('content')
-    <h1 class="text-2xl font-bold text-indigo-800">Profile management</h1>
-    <p class="mt-1 text-sm text-slate-600">Update your contact details and security settings.</p>
-
-    <form method="post" action="{{ route('portal.profile.update') }}" class="mt-8 max-w-lg space-y-4">
-        @csrf
+    <div class="portal-page-head">
         <div>
-            <label class="block text-sm font-semibold text-slate-700">Name</label>
-            <input type="text" value="{{ $customer->name }}" disabled class="mt-1 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-500">
+            <h1 class="portal-page-title">Profile management</h1>
+            <p class="portal-page-lead">Review account identity, update contact information, and manage portal security from one place.</p>
         </div>
-        <div>
-            <label class="block text-sm font-semibold text-slate-700">Customer code</label>
-            <input type="text" value="{{ $customer->customer_code }}" disabled class="mt-1 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 font-mono text-sm">
-        </div>
-        <div>
-            <label for="email" class="block text-sm font-semibold text-slate-700">Email</label>
-            <input id="email" name="email" type="email" value="{{ old('email', $customer->email) }}" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-violet-500 focus:ring-1 focus:ring-violet-500">
-        </div>
-        <div>
-            <label for="phone" class="block text-sm font-semibold text-slate-700">Phone</label>
-            <input id="phone" name="phone" type="text" value="{{ old('phone', $customer->phone) }}" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-violet-500 focus:ring-1 focus:ring-violet-500">
-        </div>
-        @if ($customer->package)
-            <div>
-                <label class="block text-sm font-semibold text-slate-700">Package</label>
-                <p class="mt-1 text-sm text-slate-800">{{ $customer->package->name }} — <a href="{{ route('portal.packages.index') }}" class="text-violet-600 hover:underline">Change plan</a></p>
-            </div>
-        @endif
-        @if ($customer->area)
-            <div>
-                <label class="block text-sm font-semibold text-slate-700">Service area</label>
-                <p class="mt-1 text-sm text-slate-800">{{ $customer->area->name }}</p>
-            </div>
-        @endif
-        <button type="submit" class="portal-btn-primary">Save profile</button>
-    </form>
-
-    <div class="mt-10 rounded-xl border border-indigo-200 bg-indigo-50/50 p-5">
-        <h2 class="font-bold text-indigo-900">Security</h2>
-        <p class="mt-1 text-sm text-slate-600">Change your portal login password.</p>
-        <a href="{{ route('portal.account.password') }}" class="mt-3 inline-block portal-btn-primary text-sm">Change password</a>
+        <a href="{{ route('portal.account.password') }}" class="portal-card-button">Change password</a>
     </div>
+
+    <div class="portal-summary-grid">
+        <article class="portal-summary-card portal-summary-card--info">
+            <p class="portal-summary-card__eyebrow">Customer ID</p>
+            <p class="portal-summary-card__value">{{ $customer->customer_code }}</p>
+            <p class="portal-summary-card__meta">Use this code when talking to support or checking service requests.</p>
+        </article>
+        <article class="portal-summary-card {{ $customer->package ? 'portal-summary-card--ok' : 'portal-summary-card--warn' }}">
+            <p class="portal-summary-card__eyebrow">Current package</p>
+            <p class="portal-summary-card__value">{{ $customer->package?->name ?? 'Not assigned' }}</p>
+            <p class="portal-summary-card__meta">
+                @if ($customer->package)
+                    {{ $customer->package->download_mbps }} Mbps plan · <a href="{{ route('portal.packages.index') }}" class="portal-link">change plan</a>
+                @else
+                    Contact support if your plan information is missing.
+                @endif
+            </p>
+        </article>
+    </div>
+
+    <div class="portal-section-grid portal-section-grid--2">
+        <section class="portal-surface-card">
+            <div class="portal-section-head">
+                <div class="portal-label-stack">
+                    <h2 class="portal-surface-card__title">Account details</h2>
+                    <p class="portal-surface-card__meta">Primary account identity and service metadata for this portal login.</p>
+                </div>
+            </div>
+
+            <div class="portal-info-grid portal-info-grid--2">
+                <div class="portal-field-card">
+                    <p class="portal-field-card__label">Name</p>
+                    <p class="portal-field-card__value">{{ $customer->name }}</p>
+                </div>
+                <div class="portal-field-card">
+                    <p class="portal-field-card__label">Customer code</p>
+                    <p class="portal-field-card__value portal-mono">{{ $customer->customer_code }}</p>
+                </div>
+                @if ($customer->package)
+                    <div class="portal-field-card">
+                        <p class="portal-field-card__label">Package</p>
+                        <p class="portal-field-card__value">{{ $customer->package->name }}</p>
+                    </div>
+                @endif
+                @if ($customer->area)
+                    <div class="portal-field-card">
+                        <p class="portal-field-card__label">Service area</p>
+                        <p class="portal-field-card__value">{{ $customer->area->name }}</p>
+                    </div>
+                @endif
+            </div>
+        </section>
+
+        <section class="portal-surface-card">
+            <div class="portal-section-head">
+                <div class="portal-label-stack">
+                    <h2 class="portal-surface-card__title">Security</h2>
+                    <p class="portal-surface-card__meta">Keep your customer portal login protected with a strong password.</p>
+                </div>
+            </div>
+
+            <div class="portal-note-banner">
+                Update your password if you shared it with someone, used it on another website, or noticed unexpected account activity.
+            </div>
+
+            <ul class="portal-note-list">
+                <li>Use a unique password for your ISP portal.</li>
+                <li>Avoid sharing portal credentials over chat or phone.</li>
+                <li>Change password immediately if you suspect misuse.</li>
+            </ul>
+
+            <div class="portal-form-actions">
+                <a href="{{ route('portal.account.password') }}" class="portal-btn-primary">Go to password settings</a>
+            </div>
+        </section>
+    </div>
+
+    <section class="portal-surface-card">
+        <div class="portal-section-head">
+            <div class="portal-label-stack">
+                <h2 class="portal-surface-card__title">Contact information</h2>
+                <p class="portal-surface-card__meta">Keep your phone and email updated so payment, outage, and support notices reach you correctly.</p>
+            </div>
+        </div>
+
+        <form method="post" action="{{ route('portal.profile.update') }}" class="portal-form-grid">
+            @csrf
+            <div class="portal-form-grid portal-form-grid--2">
+                <div>
+                    <label for="email">Email</label>
+                    <input id="email" name="email" type="email" value="{{ old('email', $customer->email) }}" placeholder="name@example.com">
+                </div>
+                <div>
+                    <label for="phone">Phone</label>
+                    <input id="phone" name="phone" type="text" value="{{ old('phone', $customer->phone) }}" placeholder="01XXXXXXXXX">
+                </div>
+            </div>
+            <div class="portal-form-actions">
+                <button type="submit" class="portal-btn-primary">Save profile</button>
+            </div>
+        </form>
+    </section>
+
+    @if (($movieServers ?? collect())->isNotEmpty())
+        <div class="portal-media-strip">
+            <x-movie-servers-showcase
+                :servers="$movieServers"
+                variant="portal"
+                title="Entertainment & FTP servers"
+                subtitle="Open or copy server links for movies, FTP libraries, and streaming access included with your plan."
+            />
+        </div>
+    @endif
 @endsection

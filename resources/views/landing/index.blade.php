@@ -5,27 +5,38 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{{ $company }} — Internet Packages</title>
     <meta name="description" content="{{ $tagline }}">
-    <link rel="preconnect" href="https://fonts.bunny.net">
-    <link href="https://fonts.bunny.net/css?family=figtree:400,500,600,700&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    @include('partials.isp-premium-theme')
     <style>
         :root {
-            --bg: #0b1220;
-            --card: #111b2e;
-            --accent: #14b8a6;
-            --accent2: #0f766e;
-            --text: #e2e8f0;
+            --bg: #030712;
+            --card: rgba(17, 17, 35, 0.72);
+            --accent: #8b5cf6;
+            --accent2: #6366f1;
+            --cyan: #06b6d4;
+            --text: #f1f5f9;
             --muted: #94a3b8;
         }
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
-            font-family: Figtree, system-ui, sans-serif;
-            background: radial-gradient(1200px 600px at 10% -10%, #134e4a55, transparent),
-                        radial-gradient(900px 500px at 90% 0%, #1e3a5f55, transparent),
-                        var(--bg);
+            font-family: Outfit, system-ui, sans-serif;
+            background: linear-gradient(160deg, #030712 0%, #0f0a1e 30%, #0c1222 55%, #0a1628 100%);
             color: var(--text);
             line-height: 1.5;
             min-height: 100vh;
         }
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            background:
+                radial-gradient(ellipse 80% 60% at 15% -5%, rgba(124, 58, 237, 0.28), transparent 55%),
+                radial-gradient(ellipse 70% 50% at 85% 10%, rgba(6, 182, 212, 0.15), transparent 50%);
+            z-index: 0;
+        }
+        body > * { position: relative; z-index: 1; }
         .wrap { max-width: 1100px; margin: 0 auto; padding: 1.25rem; }
         header {
             display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
@@ -39,14 +50,26 @@
         nav a {
             padding: .5rem 1rem; border-radius: .5rem; text-decoration: none; font-size: .875rem; font-weight: 600;
         }
-        .btn-ghost { color: var(--text); border: 1px solid #334155; }
-        .btn-ghost:hover { background: #1e293b; }
-        .btn-primary { background: var(--accent); color: #042f2e; }
-        .btn-primary:hover { background: #2dd4bf; }
+        .btn-ghost {
+            color: var(--text);
+            border: 1px solid rgba(139, 92, 246, 0.35);
+            backdrop-filter: blur(12px);
+            background: rgba(255, 255, 255, 0.05);
+            transition: all 0.28s ease;
+        }
+        .btn-ghost:hover { background: rgba(139, 92, 246, 0.15); border-color: rgba(139, 92, 246, 0.5); }
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent2), var(--accent), var(--cyan));
+            color: #fff;
+            box-shadow: 0 0 20px rgba(124, 58, 237, 0.45);
+            transition: transform 0.28s ease, box-shadow 0.28s ease;
+        }
+        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 0 28px rgba(139, 92, 246, 0.55); }
         .btn-app {
-            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+            background: linear-gradient(135deg, #6366f1, #7c3aed);
             color: #fff;
             border: none;
+            box-shadow: 0 0 16px rgba(99, 102, 241, 0.4);
         }
         .btn-app:hover { filter: brightness(1.1); }
         .app-banner {
@@ -66,8 +89,11 @@
         .app-banner-actions { display: flex; flex-wrap: wrap; gap: .5rem; }
         .hero {
             text-align: center; padding: 2.5rem 1rem 3rem;
-            border: 1px solid #1e293b; border-radius: 1rem;
-            background: linear-gradient(180deg, #111b2e 0%, #0b1220 100%);
+            border: 1px solid rgba(139, 92, 246, 0.22);
+            border-radius: 1.35rem;
+            background: rgba(17, 17, 35, 0.55);
+            backdrop-filter: blur(20px);
+            box-shadow: 0 8px 32px -8px rgba(79, 70, 229, 0.25);
         }
         .hero h2 { font-size: clamp(1.75rem, 4vw, 2.5rem); margin-bottom: .75rem; }
         .hero .lead { color: var(--muted); max-width: 36rem; margin: 0 auto 1.5rem; }
@@ -77,7 +103,16 @@
             gap: 1rem; margin: 2.5rem 0;
         }
         .feature {
-            padding: 1.25rem; border-radius: .75rem; background: var(--card); border: 1px solid #1e293b;
+            padding: 1.25rem;
+            border-radius: 1rem;
+            background: rgba(17, 17, 35, 0.55);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(139, 92, 246, 0.18);
+            transition: transform 0.28s ease, box-shadow 0.28s ease;
+        }
+        .feature:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 16px 48px -12px rgba(124, 58, 237, 0.25);
         }
         .feature h3 { font-size: 1rem; margin-bottom: .35rem; color: var(--accent); }
         .feature p { font-size: .85rem; color: var(--muted); }
@@ -87,10 +122,20 @@
             gap: 1rem; margin-bottom: 2.5rem;
         }
         .pkg {
-            background: var(--card); border: 1px solid #1e293b; border-radius: .85rem;
-            padding: 1.25rem; display: flex; flex-direction: column;
+            background: rgba(17, 17, 35, 0.55);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(139, 92, 246, 0.18);
+            border-radius: 1.15rem;
+            padding: 1.25rem;
+            display: flex;
+            flex-direction: column;
+            transition: transform 0.28s ease, box-shadow 0.28s ease;
         }
-        .pkg.popular { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+        .pkg:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 20px 56px -16px rgba(124, 58, 237, 0.3);
+        }
+        .pkg.popular { border-color: var(--accent); box-shadow: 0 0 24px rgba(124, 58, 237, 0.35); }
         .pkg h3 { font-size: 1.1rem; }
         .pkg .speed { font-size: 1.75rem; font-weight: 700; margin: .5rem 0; }
         .pkg .price { font-size: 1.25rem; color: var(--accent); font-weight: 600; }
@@ -98,10 +143,13 @@
         .pkg li { padding: .25rem 0; }
         .pkg li::before { content: "✓ "; color: var(--accent); }
         .pkg a {
-            display: block; text-align: center; padding: .65rem; border-radius: .5rem;
-            background: var(--accent2); color: #fff; text-decoration: none; font-weight: 600; font-size: .875rem;
+            display: block; text-align: center; padding: .65rem; border-radius: .75rem;
+            background: linear-gradient(135deg, var(--accent2), var(--accent));
+            color: #fff; text-decoration: none; font-weight: 600; font-size: .875rem;
+            box-shadow: 0 0 16px rgba(99, 102, 241, 0.35);
+            transition: transform 0.28s ease;
         }
-        .pkg a:hover { background: var(--accent); color: #042f2e; }
+        .pkg a:hover { transform: translateY(-2px); filter: brightness(1.08); }
         footer {
             text-align: center; padding: 2rem 1rem; color: var(--muted); font-size: .8rem;
             border-top: 1px solid #1e293b;
@@ -153,7 +201,8 @@
         }
     </style>
 </head>
-<body>
+<body class="isp-premium-bg">
+    <div class="isp-premium-orbs" aria-hidden="true"><span></span><span></span><span></span></div>
     <div class="wrap">
         <header>
             <div class="brand">

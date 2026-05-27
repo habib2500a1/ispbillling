@@ -41,9 +41,9 @@ class ManagePersonalMfsSettings extends Page
 
     protected static ?string $slug = 'personal-mfs-verify';
 
-    protected static ?string $navigationLabel = 'Personal MFS verify';
+    protected static ?string $navigationLabel = 'bKash Personal / Nagad Personal';
 
-    protected static ?string $title = 'Personal bKash / Nagad verify';
+    protected static ?string $title = 'bKash Personal / Nagad Personal';
 
     protected static ?string $navigationGroup = 'Payments';
 

@@ -20,7 +20,13 @@ final class BillingDueRealtimeSync
         CustomerBalanceDue::refreshMetaAfterPayment($customer);
         BillingMetricsCache::flush((int) $customer->tenant_id);
 
-        $due = CustomerBalanceDue::amount($customer->fresh() ?? $customer);
+        $customer = $customer->fresh() ?? $customer;
+        $due = CustomerBalanceDue::amount($customer);
+
+        if ($due <= 0.009) {
+            app(ServiceExpiryExtensionService::class)->activateAfterFullPayment($customer->fresh() ?? $customer);
+            $customer = $customer->fresh() ?? $customer;
+        }
 
         static::flushCaches((int) $customer->tenant_id);
 
@@ -38,9 +44,7 @@ final class BillingDueRealtimeSync
         BillingMetricsCache::flush($tenantId);
         Cache::forget('dashboard:snapshot:'.$tenantId);
 
-        for ($i = 0; $i < 5; $i++) {
-            Cache::forget('clients_dashboard_summary:'.$tenantId.':'.md5('all'));
-        }
+        \App\Services\Clients\ClientsDashboardService::flushSummaryCache($tenantId);
     }
 
     /**

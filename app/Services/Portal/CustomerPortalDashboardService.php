@@ -76,8 +76,15 @@ final class CustomerPortalDashboardService
             'billing' => [
                 'wallet_balance' => round((float) $customer->account_balance, 2),
                 'total_due' => round($totalDue, 2),
+                'has_due' => $totalDue > 0,
+                'can_pay' => $totalDue > 0,
                 'next_due_date' => $nextDue?->due_date?->format('d M Y'),
                 'next_invoice' => $nextDue?->invoice_number,
+                'next_invoice_label' => $nextDue?->invoice_number
+                    ? $nextDue->invoice_number.' due '.($nextDue->due_date?->format('d M Y') ?? '—')
+                    : null,
+                'status_tone' => $totalDue > 0 ? 'due' : 'paid',
+                'cta_label' => $totalDue > 0 ? 'Pay bill' : 'View bills',
             ],
             'package' => $customer->package ? [
                 'name' => $customer->package->name,

@@ -1,51 +1,73 @@
-@php $stats = $this->getStats(); @endphp
+@php
+    $stats = $this->getStats();
+    $statCards = [
+        ['label' => 'OLTs', 'value' => (string) $stats['olts'], 'hint' => 'Provisioned line terminals', 'class' => 'isp-hub-stat--violet'],
+        ['label' => 'ONUs online', 'value' => $stats['onus_online'].' / '.$stats['onus'], 'hint' => 'Connected optical units', 'class' => 'isp-hub-stat--emerald'],
+        ['label' => 'ONUs offline', 'value' => (string) $stats['onus_offline'], 'hint' => 'Needs attention', 'class' => 'isp-hub-stat--danger', 'valueClass' => 'isp-hub-stat-value--danger'],
+        ['label' => 'NetFlow (24h)', 'value' => number_format($stats['flows_24h']), 'hint' => 'Traffic events processed', 'class' => 'isp-hub-stat--cyan'],
+    ];
+@endphp
 
 <x-filament-panels::page>
     <div class="isp-hub-page space-y-6">
-        <div class="rounded-2xl border border-cyan-200 bg-gradient-to-br from-cyan-50 via-white to-indigo-50/50 p-6 shadow-sm dark:border-cyan-900/40 dark:from-cyan-950/40 dark:via-gray-900">
-            <h2 class="text-xl font-semibold text-gray-900 dark:text-white">Network intelligence</h2>
-            <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">
-                ONU/OLT integration · GPON profiles · SNMP monitoring · NetFlow traffic analysis.
-            </p>
-            <p class="mt-2 text-xs text-gray-500">
-                SNMP: {{ $stats['snmp_available'] ? 'ext-snmp loaded' : 'ext-snmp missing — install php-snmp' }}
-                · Last poll: {{ $stats['last_poll'] ?? 'never' }}
-                @if($stats['last_poll_ok'] !== null) ({{ $stats['last_poll_ok'] ? 'OK' : 'fail' }}) @endif
-            </p>
-        </div>
+        <x-isp.hub-hero
+            eyebrow="Network intelligence"
+            title="Network intelligence"
+            description="ONU/OLT integration, GPON profiles, SNMP monitoring, and NetFlow traffic analysis in one workspace."
+            class="isp-hub-hero--cyan"
+        >
+            <div class="isp-hub-toolbar">
+                <div class="isp-hub-toolbar__meta">
+                    <span class="isp-hub-results">SNMP {{ $stats['snmp_available'] ? 'enabled' : 'missing' }}</span>
+                    <span class="isp-hub-section__meta">Last poll: {{ $stats['last_poll'] ?? 'never' }}</span>
+                    @if ($stats['last_poll_ok'] !== null)
+                        <span class="isp-hub-section__meta">{{ $stats['last_poll_ok'] ? 'Poll OK' : 'Poll failed' }}</span>
+                    @endif
+                </div>
+            </div>
+        </x-isp.hub-hero>
 
-        <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <div class="rounded-xl border border-violet-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-900">
-                <p class="text-xs font-bold uppercase text-violet-600">OLTs</p>
-                <p class="mt-1 text-3xl font-bold">{{ $stats['olts'] }}</p>
-            </div>
-            <div class="rounded-xl border border-emerald-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-900">
-                <p class="text-xs font-bold uppercase text-emerald-600">ONUs online</p>
-                <p class="mt-1 text-3xl font-bold text-emerald-700">{{ $stats['onus_online'] }} <span class="text-lg text-gray-400">/ {{ $stats['onus'] }}</span></p>
-            </div>
-            <div class="rounded-xl border border-rose-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-900">
-                <p class="text-xs font-bold uppercase text-rose-600">ONUs offline</p>
-                <p class="mt-1 text-3xl font-bold text-rose-700">{{ $stats['onus_offline'] }}</p>
-            </div>
-            <div class="rounded-xl border border-sky-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-900">
-                <p class="text-xs font-bold uppercase text-sky-600">NetFlow (24h)</p>
-                <p class="mt-1 text-3xl font-bold">{{ number_format($stats['flows_24h']) }}</p>
-            </div>
-        </div>
+        <x-isp.hub-stat-grid :stats="$statCards" />
 
         <x-isp.hub-section-nav group="Network" :hub-url="\App\Filament\Pages\NetworkIntelligenceHub::getUrl()" hub-label="Network center" />
 
         <x-isp.hub-module-grid group="Network" />
 
-        <div class="rounded-xl border border-gray-200 bg-white p-6 text-sm dark:border-gray-700 dark:bg-gray-900">
-            <h3 class="font-semibold">Automation</h3>
-            <ul class="mt-2 list-inside list-disc space-y-1 text-gray-600">
-                <li><code class="text-xs">isp:poll-olt-intelligence</code> — SNMP poll all OLTs every 10 min</li>
-                <li><code class="text-xs">isp:process-netflow-inbox</code> — import JSON from <code class="text-xs">storage/app/netflow/inbox/</code></li>
-                <li>POST <code class="text-xs">/api/webhooks/netflow-ingest</code> with header <code class="text-xs">X-Netflow-Secret</code></li>
-                <li>ONU optical/status: set <code class="text-xs">devices.meta</code> keys or run meta sync (<code class="text-xs">isp:sync-onu-status-from-meta</code>)</li>
-            </ul>
-        </div>
+        <section class="isp-ops-panel">
+            <div class="isp-ops-panel__head">
+                <div>
+                    <h3 class="isp-ops-panel__title">Automation</h3>
+                    <p class="isp-ops-panel__desc">Core commands and ingest flows used for optical polling, NetFlow processing, and ONU metadata sync.</p>
+                </div>
+                <span class="isp-ops-pill isp-ops-pill--ok">Automation ready</span>
+            </div>
+            <div class="isp-ops-list">
+                <div class="isp-ops-list__item">
+                    <div class="isp-ops-list__primary">
+                        <p class="isp-ops-list__title"><code class="text-xs">isp:poll-olt-intelligence</code></p>
+                        <p class="isp-ops-list__meta">SNMP poll all OLTs every 10 minutes.</p>
+                    </div>
+                </div>
+                <div class="isp-ops-list__item">
+                    <div class="isp-ops-list__primary">
+                        <p class="isp-ops-list__title"><code class="text-xs">isp:process-netflow-inbox</code></p>
+                        <p class="isp-ops-list__meta">Import JSON files from <code class="text-xs">storage/app/netflow/inbox/</code>.</p>
+                    </div>
+                </div>
+                <div class="isp-ops-list__item">
+                    <div class="isp-ops-list__primary">
+                        <p class="isp-ops-list__title"><code class="text-xs">POST /api/webhooks/netflow-ingest</code></p>
+                        <p class="isp-ops-list__meta">Send data with header <code class="text-xs">X-Netflow-Secret</code>.</p>
+                    </div>
+                </div>
+                <div class="isp-ops-list__item">
+                    <div class="isp-ops-list__primary">
+                        <p class="isp-ops-list__title"><code class="text-xs">isp:sync-onu-status-from-meta</code></p>
+                        <p class="isp-ops-list__meta">Sync ONU optical/status using stored <code class="text-xs">devices.meta</code> keys.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
 
         <x-isp.hub-footer />
     </div>

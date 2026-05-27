@@ -88,14 +88,14 @@ return [
     ],
 
     /** BDCOM EPON SNMP walks can take 30–120s on busy OLTs. */
-    'bdcom_epon_walk_timeout_us' => (int) env('BDCOM_EPON_SNMP_TIMEOUT_US', 8000000),
+    'bdcom_epon_walk_timeout_us' => (int) env('BDCOM_EPON_SNMP_TIMEOUT_US', 15000000),
 
     /** Huawei GPON optical walk timeout (µs). */
-    'huawei_gpon_walk_timeout_us' => (int) env('HUAWEI_GPON_SNMP_TIMEOUT_US', 12000000),
+    'huawei_gpon_walk_timeout_us' => (int) env('HUAWEI_GPON_SNMP_TIMEOUT_US', 20000000),
 
-    'aveis_gpon_walk_timeout_us' => (int) env('AVEIS_GPON_SNMP_TIMEOUT_US', 10000000),
+    'aveis_gpon_walk_timeout_us' => (int) env('AVEIS_GPON_SNMP_TIMEOUT_US', 20000000),
 
-    'vsol_gpon_walk_timeout_us' => (int) env('VSOL_GPON_SNMP_TIMEOUT_US', 10000000),
+    'vsol_gpon_walk_timeout_us' => (int) env('VSOL_GPON_SNMP_TIMEOUT_US', 15000000),
 
     /** Aveis ONU table column for receive power (MIB …3.3.2.1.{col}). XE08 uses col 15. */
     'aveis_onu_rx_column' => (int) env('AVEIS_ONU_RX_COLUMN', 15),

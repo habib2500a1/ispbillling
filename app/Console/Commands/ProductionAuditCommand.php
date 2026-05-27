@@ -51,13 +51,23 @@ class ProductionAuditCommand extends Command
             }
         }
 
+        if (app()->environment('production') && ! str_starts_with((string) config('app.url'), 'https://')) {
+            $this->warn('[!] APP_URL is not HTTPS — cookies, gateways, and webhooks may fail');
+            $issues++;
+        }
+
+        if (app()->environment('production') && config('queue.default') === 'database') {
+            $this->warn('[!] QUEUE_CONNECTION=database — Horizon/Redis is recommended for production jobs');
+            $issues++;
+        }
+
         if (! config('notifications.sms.enabled') && ! config('notifications.telegram.enabled')) {
             $this->warn('[!] SMS and Telegram both disabled — ops alerts may be silent');
         }
 
         if (app()->environment('production')) {
             foreach ([
-                'support.webhook_secret' => 'SUPPORT_WEBHOOK_SECRET',
+                'support.webhook_secret' => 'ISP_SUPPORT_WEBHOOK_SECRET',
                 'netflow.webhook_secret' => 'NETFLOW_WEBHOOK_SECRET',
                 'optical.webhook_secret' => 'OPTICAL_WEBHOOK_SECRET',
             ] as $key => $env) {

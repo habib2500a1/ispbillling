@@ -23,18 +23,25 @@ final class PersonalMfsCheckoutService
         float $amount,
         string $returnTo,
         string $paymentType,
+        int $prepayMonths = 0,
     ): array {
         $amountStr = number_format(max(0.01, $amount), 2, '.', '');
         $orderId = PublicCheckoutSession::makeTranId((int) $customer->id, $invoice?->id);
 
-        PublicCheckoutSession::put($orderId, [
+        $payload = [
             'invoice_id' => $invoice?->id,
             'customer_id' => (int) $customer->id,
             'amount' => $amountStr,
             'return_to' => $returnTo,
             'payment_type' => $paymentType,
             'gateway' => $gateway,
-        ]);
+        ];
+
+        if ($prepayMonths > 0) {
+            $payload['prepay_months'] = $prepayMonths;
+        }
+
+        PublicCheckoutSession::put($orderId, $payload);
 
         return [
             'order_id' => $orderId,

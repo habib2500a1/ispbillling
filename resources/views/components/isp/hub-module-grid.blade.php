@@ -19,9 +19,11 @@
                                 <x-filament::icon :icon="\App\Support\AdminModuleRegistry::iconForModule($mod)" class="h-5 w-5" />
                             </span>
                             <div class="min-w-0 flex-1">
-                                <p class="font-semibold text-gray-900 dark:text-white">{{ $mod['label'] }}</p>
-                                <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">{{ $mod['description'] }}</p>
+                                <p class="isp-module-card__eyebrow">{{ $sectionName }}</p>
+                                <p class="isp-module-card__title">{{ $mod['label'] }}</p>
+                                <p class="isp-module-card__desc">{{ $mod['description'] }}</p>
                             </div>
+                            <span class="isp-module-card__arrow" aria-hidden="true">→</span>
                         </div>
                     </a>
                 @endforeach

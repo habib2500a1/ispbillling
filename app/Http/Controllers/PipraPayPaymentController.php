@@ -219,6 +219,7 @@ class PipraPayPaymentController extends Controller
                     'piprapay_order_id' => $orderId,
                     'piprapay_verify' => $verified,
                     'piprapay_context' => $context,
+                    'prepay_months' => $pending['prepay_months'] ?? null,
                     'source' => $source,
                     'return_to' => $pending['return_to'] ?? null,
                 ],

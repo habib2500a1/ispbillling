@@ -4,10 +4,11 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Reseller login — {{ config('app.name') }}</title>
-    <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="{{ asset('css/reseller-portal.css') }}">
+    @include('partials.isp-premium-theme')
 </head>
-<body class="rsl-bg flex min-h-screen items-center justify-center px-4">
+<body class="rsl-bg isp-premium-bg flex min-h-screen items-center justify-center px-4">
+    <div class="isp-premium-orbs" aria-hidden="true"><span></span><span></span><span></span></div>
     <div class="rsl-card w-full max-w-md p-8">
         <div class="mb-6 text-center">
             <span class="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-600 text-2xl font-bold text-white">R</span>

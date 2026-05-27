@@ -22,6 +22,12 @@ return [
     /** Run full PPP collect on each Online clients poll (heavy). Default off — use scheduler + Sync now. */
     'online_clients_collect_on_poll' => filter_var(env('BANDWIDTH_ONLINE_CLIENTS_COLLECT_ON_POLL', false), FILTER_VALIDATE_BOOL),
 
+    /** Clients hub: never run full MikroTik collect from the page (use scheduler only). */
+    'clients_hub_collect_on_poll' => filter_var(env('BANDWIDTH_CLIENTS_HUB_COLLECT_ON_POLL', false), FILTER_VALIDATE_BOOL),
+
+    /** Minimum seconds between hub-triggered collects per tenant. */
+    'clients_hub_collect_throttle_seconds' => (int) env('BANDWIDTH_CLIENTS_HUB_COLLECT_THROTTLE', 300),
+
     /** Dashboard live bandwidth chart refresh (seconds). */
     'live_chart_poll_seconds' => (int) env('BANDWIDTH_LIVE_CHART_POLL_SECONDS', 2),
 

@@ -7,6 +7,7 @@ use App\Models\Invoice;
 use App\Models\PaymentLink;
 use App\Services\Notifications\NotificationDispatcher;
 use App\Support\NotificationChannel;
+use App\Support\TenantResolver;
 
 class PaymentLinkService
 {
@@ -35,9 +36,11 @@ class PaymentLinkService
 
     public function resolve(string $token): ?PaymentLink
     {
+        $tenantId = TenantResolver::currentTenantId();
         $link = PaymentLink::query()
             ->withoutGlobalScopes()
             ->with(['customer', 'invoice'])
+            ->when($tenantId !== null, fn ($q) => $q->where('tenant_id', $tenantId))
             ->where('token', $token)
             ->first();
 

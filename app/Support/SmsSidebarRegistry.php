@@ -23,6 +23,14 @@ final class SmsSidebarRegistry
     {
         return [
             [
+                'key' => 'notifications_hub',
+                'label' => 'Notifications hub',
+                'icon' => 'heroicon-o-bell-alert',
+                'sort' => 0,
+                'url' => NotificationsHub::getUrl(),
+                'active_routes' => ['filament.admin.pages.notifications-hub'],
+            ],
+            [
                 'key' => 'send_sms',
                 'label' => 'Send SMS',
                 'icon' => 'heroicon-o-chat-bubble-left',
@@ -155,6 +163,7 @@ final class SmsSidebarRegistry
     public static function canSeeEntry(string $key): bool
     {
         return match ($key) {
+            'notifications_hub' => NotificationsHub::canAccess(),
             'send_sms' => SendSms::canAccess(),
             'send_bulk' => BulkSmsCampaign::canAccess(),
             'sms_report', 'delivered', 'pending', 'failed' => NotificationLogResource::canViewAny(),

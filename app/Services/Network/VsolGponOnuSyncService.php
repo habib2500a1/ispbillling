@@ -86,7 +86,7 @@ final class VsolGponOnuSyncService
                     $serial = 'VSOL-'.str_replace('.', '-', $idx);
                 }
 
-                $mac = MacAddress::normalizeColon($macs[$idx] ?? null);
+                $mac = MacAddress::fromSnmpValue($macs[$idx] ?? null);
                 $rxRaw = $this->parseNumber($rxByIdx[$idx] ?? null);
                 $rxDbm = $rxRaw !== null ? round($rxRaw / 10, 2) : null;
 

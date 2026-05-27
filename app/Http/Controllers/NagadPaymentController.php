@@ -6,6 +6,7 @@ use App\Models\Invoice;
 use App\Models\Payment;
 use App\Services\Payments\NagadCheckoutService;
 use App\Services\Payments\PublicCheckoutSession;
+use App\Support\CheckoutPaymentMeta;
 use App\Support\PaymentGateway;
 use App\Support\PaymentType;
 use Illuminate\Http\RedirectResponse;
@@ -85,22 +86,23 @@ class NagadPaymentController extends Controller
                 'status' => 'completed',
                 'paid_at' => now(),
                 'payment_type' => $paymentType,
-                'meta' => [
+                'meta' => CheckoutPaymentMeta::fromSession($pending, [
                     'nagad_payment_ref_id' => $paymentRefId,
                     'nagad_order_id' => $orderId,
                     'nagad_verify' => $verified,
                     'nagad_callback' => $request->query(),
                     'source' => 'nagad_callback',
-                    'return_to' => $pending['return_to'] ?? null,
-                ],
+                ]),
             ]);
         });
 
         PublicCheckoutSession::forget($orderId);
 
-        $message = $paymentType === PaymentType::WALLET_DEPOSIT
-            ? 'Wallet top-up recorded successfully.'
-            : 'Nagad payment recorded successfully.';
+        $message = match ($paymentType) {
+            PaymentType::WALLET_DEPOSIT => 'Wallet top-up recorded successfully.',
+            PaymentType::PREPAY => 'Advance payment recorded successfully.',
+            default => 'Nagad payment recorded successfully.',
+        };
 
         return $this->successRedirect($pending, $invoice, $message, $payment);
     }
@@ -112,8 +114,12 @@ class NagadPaymentController extends Controller
     {
         $returnTo = $pending['return_to'] ?? 'bill_payment';
 
-        if ($returnTo === 'portal' && $invoice) {
-            return redirect()->route('portal.invoices.show', $invoice)->with('status', $message);
+        if ($returnTo === 'portal') {
+            if ($invoice) {
+                return redirect()->route('portal.invoices.show', $invoice)->with('status', $message);
+            }
+
+            return redirect()->route('portal.bills.index')->with('status', $message);
         }
 
         if ($returnTo === 'bill_payment') {

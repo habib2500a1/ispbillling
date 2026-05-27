@@ -86,6 +86,35 @@ final class CustomerPortalNotificationService
     }
 
     /**
+     * @return array{total:int,action_required:int,payments:int,outages:int,service_expiry:int,latest_at:?string}
+     */
+    public function summary(Customer $customer): array
+    {
+        $items = $this->feed($customer, 50);
+
+        return [
+            'total' => count($items),
+            'action_required' => count(array_filter(
+                $items,
+                fn (array $item): bool => in_array($item['severity'], ['danger', 'warning'], true)
+            )),
+            'payments' => count(array_filter(
+                $items,
+                fn (array $item): bool => $item['type'] === 'payment_success'
+            )),
+            'outages' => count(array_filter(
+                $items,
+                fn (array $item): bool => $item['type'] === 'maintenance'
+            )),
+            'service_expiry' => count(array_filter(
+                $items,
+                fn (array $item): bool => $item['type'] === 'service_expiry'
+            )),
+            'latest_at' => $items[0]['at'] ?? null,
+        ];
+    }
+
+    /**
      * @return list<array{id: string, type: string, title: string, message: string, severity: string, at: string}>
      */
     private function dueInvoiceAlerts(Customer $customer): array

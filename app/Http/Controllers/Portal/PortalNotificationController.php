@@ -11,10 +11,12 @@ class PortalNotificationController extends Controller
     public function index(CustomerPortalNotificationService $notifications): View
     {
         $customer = auth('customer')->user();
+        $items = $notifications->feed($customer, 50);
 
         return view('portal.notifications', [
             'customer' => $customer,
-            'items' => $notifications->feed($customer, 50),
+            'items' => $items,
+            'summary' => $notifications->summary($customer),
         ]);
     }
 }

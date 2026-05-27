@@ -356,20 +356,27 @@ class ViewCustomer extends ViewRecord
                         ->label('Generate random password')
                         ->live()
                         ->default(false),
+                    Forms\Components\Toggle::make('use_default')
+                        ->label('Reset to default ('.config('portal.default_password', '123456').')')
+                        ->live()
+                        ->default(false)
+                        ->visible(fn (Get $get): bool => ! (bool) $get('generate')),
                     Forms\Components\TextInput::make('new_password')
                         ->label('New portal password')
                         ->password()
                         ->revealable()
                         ->minLength(6)
-                        ->required(fn (Get $get): bool => ! (bool) $get('generate'))
-                        ->visible(fn (Get $get): bool => ! (bool) $get('generate')),
+                        ->required(fn (Get $get): bool => ! (bool) $get('generate') && ! (bool) $get('use_default'))
+                        ->visible(fn (Get $get): bool => ! (bool) $get('generate') && ! (bool) $get('use_default')),
                 ])
                 ->action(function (array $data): void {
                     /** @var Customer $record */
                     $record = $this->record;
                     $plain = ! empty($data['generate'])
                         ? Str::password(10)
-                        : (string) ($data['new_password'] ?? '');
+                        : (! empty($data['use_default'])
+                            ? app(\App\Services\Portal\CustomerPortalAccessService::class)->defaultPassword()
+                            : (string) ($data['new_password'] ?? ''));
                     if ($plain === '') {
                         Notification::make()->title('Password required')->danger()->send();
 

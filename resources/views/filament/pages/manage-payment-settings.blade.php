@@ -7,8 +7,8 @@
         <p class="font-bold">Merchant payment gateways</p>
         <p class="mt-1">PipraPay, bKash Tokenized API, Nagad PG, SSLCommerz, Rocket — official merchant checkout।</p>
         <p class="mt-2">
-            <strong>Personal bKash/Nagad</strong> (Send Money + SMS verify) আলাদা:
-            <a href="{{ $personalUrl }}" class="font-semibold underline text-primary-600">Personal MFS verify →</a>
+            <strong>bKash Personal / Nagad Personal</strong> (Send Money + SMS verify) আলাদা:
+            <a href="{{ $personalUrl }}" class="font-semibold underline text-primary-600">bKash Personal / Nagad Personal →</a>
         </p>
     </div>
 

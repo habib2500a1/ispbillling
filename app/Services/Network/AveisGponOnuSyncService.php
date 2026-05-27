@@ -59,7 +59,9 @@ final class AveisGponOnuSyncService
             $labels = $this->walkColumn($peer, $community, $table.'.2', $timeoutUs, $retries);
             $statuses = $this->walkColumn($peer, $community, $table.'.3', $timeoutUs, $retries);
             $macs = $this->walkColumn($peer, $community, $table.'.7', $timeoutUs, $retries);
-            $serials = $this->walkColumn($peer, $community, $table.'.12', $timeoutUs, $retries);
+            $names = $this->walkColumn($peer, $community, $table.'.12', $timeoutUs, $retries);
+            $names2 = $this->walkColumn($peer, $community, $table.'.2', $timeoutUs, $retries);
+            
             $rxColumn = max(1, (int) config('gpon.aveis_onu_rx_column', 15));
             $rxRaw = $this->walkColumn($peer, $community, $table.'.'.$rxColumn, $timeoutUs, $retries);
             $distances = [];
@@ -82,8 +84,11 @@ final class AveisGponOnuSyncService
                     $label = sprintf('PON%d:%d', $parsed['pon_no'], $parsed['onu_index']);
                 }
 
-                $mac = $this->parseMacHex($macs[$idx] ?? null);
-                $equipmentId = trim((string) ($serials[$idx] ?? ''));
+                $mac = $this->parseMacHex($macs[$idx] ?? null) 
+                    ?? $this->parseMacHex($names[$idx] ?? null)
+                    ?? $this->parseMacHex($names2[$idx] ?? null);
+
+                $equipmentId = trim((string) ($names[$idx] ?? ''));
                 $serial = 'AV-'.$idx;
                 if ($mac !== null) {
                     $serial = 'AV-'.str_replace(':', '', strtoupper($mac));
@@ -182,18 +187,7 @@ final class AveisGponOnuSyncService
 
     private function parseMacHex(?string $raw): ?string
     {
-        if ($raw === null || $raw === '') {
-            return null;
-        }
-
-        $hex = preg_replace('/^Hex-STRING:\s*/i', '', $raw) ?? $raw;
-        $hex = preg_replace('/\s+/', '', $hex) ?? $hex;
-
-        if (strlen($hex) < 12) {
-            return null;
-        }
-
-        return MacAddress::normalizeColon($hex);
+        return MacAddress::fromSnmpValue($raw);
     }
 
     private function parseNumber(?string $raw): ?int

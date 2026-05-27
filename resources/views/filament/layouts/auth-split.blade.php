@@ -3,6 +3,9 @@
 @endphp
 
 <x-filament-panels::layout.base :livewire="$livewire">
+    <div class="isp-premium-orbs" aria-hidden="true">
+        <span></span><span></span><span></span>
+    </div>
     <div class="isp-auth-split min-h-screen">
         <aside class="isp-auth-split__brand">
             <div class="isp-auth-split__brand-inner">

@@ -7,6 +7,7 @@
 <x-filament-panels::page>
     <div class="isp-hub-page space-y-6">
         <x-isp.hub-hero
+            eyebrow="Support workspace"
             title="Support center"
             description="Portal tickets, call-center complaints, SLA tracking, technician assignment, and live chat — all in one place."
             class="isp-hub-hero--amber"
@@ -21,10 +22,11 @@
                         <x-filament::icon icon="heroicon-o-queue-list" class="h-5 w-5" />
                     </span>
                     <div class="min-w-0 flex-1">
-                        <p class="text-xs font-bold uppercase text-gray-500 dark:text-gray-400">Queue</p>
-                        <p class="mt-0.5 font-semibold text-gray-900 dark:text-white">All tickets</p>
-                        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Filters · bulk assign · SLA</p>
+                        <p class="isp-module-card__eyebrow">Queue</p>
+                        <p class="isp-module-card__title">All tickets</p>
+                        <p class="isp-module-card__desc">Filters · bulk assign · SLA</p>
                     </div>
+                    <span class="isp-module-card__arrow" aria-hidden="true">→</span>
                 </div>
             </a>
             <a href="{{ \App\Filament\Resources\SupportTicketResource::getUrl('create') }}" class="isp-module-card group">
@@ -33,10 +35,11 @@
                         <x-filament::icon icon="heroicon-o-plus-circle" class="h-5 w-5" />
                     </span>
                     <div class="min-w-0 flex-1">
-                        <p class="text-xs font-bold uppercase text-gray-500 dark:text-gray-400">New</p>
-                        <p class="mt-0.5 font-semibold text-gray-900 dark:text-white">Open ticket</p>
-                        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Phone or walk-in</p>
+                        <p class="isp-module-card__eyebrow">New</p>
+                        <p class="isp-module-card__title">Open ticket</p>
+                        <p class="isp-module-card__desc">Phone or walk-in</p>
                     </div>
+                    <span class="isp-module-card__arrow" aria-hidden="true">→</span>
                 </div>
             </a>
             <a href="{{ \App\Filament\Pages\TaskKanbanBoard::getUrl() }}" class="isp-module-card group border-amber-200/80 dark:border-amber-900/40">
@@ -45,10 +48,11 @@
                         <x-filament::icon icon="heroicon-o-view-columns" class="h-5 w-5" />
                     </span>
                     <div class="min-w-0 flex-1">
-                        <p class="text-xs font-bold uppercase text-amber-700 dark:text-amber-300">Tasks</p>
-                        <p class="mt-0.5 font-semibold text-gray-900 dark:text-white">Kanban board</p>
-                        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Staff work items</p>
+                        <p class="isp-module-card__eyebrow">Tasks</p>
+                        <p class="isp-module-card__title">Kanban board</p>
+                        <p class="isp-module-card__desc">Staff work items</p>
                     </div>
+                    <span class="isp-module-card__arrow" aria-hidden="true">→</span>
                 </div>
             </a>
             <a href="{{ \App\Filament\Resources\OutageResource::getUrl('index') }}" class="isp-module-card group">
@@ -57,10 +61,11 @@
                         <x-filament::icon icon="heroicon-o-megaphone" class="h-5 w-5" />
                     </span>
                     <div class="min-w-0 flex-1">
-                        <p class="text-xs font-bold uppercase text-gray-500 dark:text-gray-400">Network</p>
-                        <p class="mt-0.5 font-semibold text-gray-900 dark:text-white">Outages</p>
-                        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Area maintenance notices</p>
+                        <p class="isp-module-card__eyebrow">Network</p>
+                        <p class="isp-module-card__title">Outages</p>
+                        <p class="isp-module-card__desc">Area maintenance notices</p>
                     </div>
+                    <span class="isp-module-card__arrow" aria-hidden="true">→</span>
                 </div>
             </a>
         </div>

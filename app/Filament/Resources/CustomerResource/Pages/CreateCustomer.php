@@ -13,6 +13,7 @@ use App\Services\Billing\CustomerActivationBillingService;
 use App\Services\Subscribers\CustomerLineActivationService;
 use App\Support\BillingDefaults;
 use App\Support\CustomerStatus;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Arr;
 use Filament\Actions;
 use Filament\Notifications\Notification;
@@ -60,6 +61,12 @@ class CreateCustomer extends CreateRecord
 
         if (filled($data['mikrotik_secret_name'] ?? null) && blank($data['radius_username'] ?? null)) {
             $data['radius_username'] = trim((string) $data['mikrotik_secret_name']);
+        }
+
+        if (blank($data['portal_password'] ?? null)) {
+            $data['portal_password'] = Hash::make(
+                (string) config('portal.default_password', '123456'),
+            );
         }
 
         $meta = is_array($data['meta'] ?? null) ? $data['meta'] : [];

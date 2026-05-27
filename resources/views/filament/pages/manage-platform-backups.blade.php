@@ -6,16 +6,31 @@
     $allowedRoots = implode(', ', config('backup.allowed_drive_roots', []));
     $google = $this->googleDriveSnapshot;
     $tab = $this->activeBackupTab;
+    $statCards = [
+        ['label' => 'Saved ZIPs', 'value' => (string) count($archives), 'hint' => 'Server backup archives', 'class' => 'isp-hub-stat--emerald'],
+        ['label' => 'Auto backup', 'value' => $auto['enabled'] ? 'Enabled' : 'Disabled', 'hint' => $auto['process_exists'] ? 'Scheduler configured' : 'Scheduler pending', 'class' => $auto['enabled'] ? 'isp-hub-stat--teal' : 'isp-hub-stat--amber'],
+        ['label' => 'Google Drive', 'value' => ($google['connected'] ?? false) ? 'Connected' : 'Not connected', 'hint' => ($google['configured'] ?? false) ? 'OAuth configured' : 'OAuth pending', 'class' => ($google['connected'] ?? false) ? 'isp-hub-stat--sky' : 'isp-hub-stat--slate'],
+        ['label' => 'External drives', 'value' => (string) count($drives), 'hint' => 'USB / NAS destinations', 'class' => 'isp-hub-stat--violet'],
+    ];
 @endphp
 
 <x-filament-panels::page>
-    <div class="space-y-6">
-        <div class="rounded-2xl border border-emerald-200 bg-gradient-to-br from-emerald-50 via-white to-teal-50/50 p-6 shadow-sm dark:border-emerald-900/40 dark:from-emerald-950/40 dark:via-gray-900 dark:to-gray-900">
-            <h2 class="text-xl font-semibold text-gray-900 dark:text-white">Backup & restore</h2>
-            <p class="mt-2 max-w-3xl text-sm text-gray-600 dark:text-gray-400">
-                Server backup, Google Drive cloud, USB/NFS drives — সব এক জায়গায়।
-            </p>
-        </div>
+    <div class="isp-hub-page space-y-6">
+        <x-isp.hub-hero
+            eyebrow="Recovery workspace"
+            title="Backup & restore"
+            description="Server backup, Google Drive cloud, and USB/NFS destinations in one disaster-recovery workspace."
+            class="isp-hub-hero--emerald"
+        >
+            <div class="isp-hub-toolbar">
+                <div class="isp-hub-toolbar__meta">
+                    <span class="isp-hub-results">{{ count($archives) }} archives available</span>
+                    <span class="isp-hub-section__meta">{{ $auto['enabled'] ? 'Auto backup on' : 'Auto backup off' }}</span>
+                </div>
+            </div>
+        </x-isp.hub-hero>
+
+        <x-isp.hub-stat-grid :stats="$statCards" />
 
         <nav class="flex flex-wrap gap-2 rounded-xl border border-gray-200 bg-white p-2 shadow-sm dark:border-gray-700 dark:bg-gray-900" aria-label="Backup sections">
             <button type="button" wire:click="setBackupTab('overview')"

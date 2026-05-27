@@ -55,4 +55,52 @@ class PortalMovieServer extends Model
     {
         return $this->url;
     }
+
+    public function linkScheme(): ?string
+    {
+        $scheme = parse_url($this->resolvedUrl(), PHP_URL_SCHEME);
+
+        return is_string($scheme) && $scheme !== '' ? strtolower($scheme) : null;
+    }
+
+    public function displayHost(): string
+    {
+        $resolved = $this->resolvedUrl();
+        if ($resolved === '#') {
+            return '';
+        }
+
+        $host = parse_url($resolved, PHP_URL_HOST);
+        if (is_string($host) && $host !== '') {
+            return $host;
+        }
+
+        return preg_replace('#^[a-z][a-z0-9+\-.]*://#i', '', $resolved) ?? $this->url;
+    }
+
+    /**
+     * Normalized link for browsers (adds ftp:// or https:// when missing).
+     */
+    public function resolvedUrl(): string
+    {
+        $url = trim((string) $this->url);
+        if ($url === '') {
+            return '#';
+        }
+
+        if (preg_match('#^[a-z][a-z0-9+\-.]*://#i', $url)) {
+            return $url;
+        }
+
+        $hint = strtolower(trim($this->name.' '.$url));
+        $looksLikeFtp = str_contains($hint, 'ftp')
+            || str_contains($hint, 'sftp')
+            || preg_match('#:\d{2,5}(?:/|$)#', $url);
+
+        if ($looksLikeFtp) {
+            return 'ftp://'.ltrim($url, '/');
+        }
+
+        return 'https://'.ltrim($url, '/');
+    }
 }

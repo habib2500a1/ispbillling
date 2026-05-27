@@ -114,6 +114,10 @@ class PersonalMfsPaymentController extends Controller
             return redirect()->route('bill-payment.invoice', ['tab' => 'wallet'])->with('status', $flash);
         }
 
+        if ($paymentType === PaymentType::PREPAY) {
+            return redirect()->route('bill-payment.invoice', ['tab' => 'prepay'])->with('status', $flash);
+        }
+
         return redirect()->route('bill-payment.invoice')->with('status', $flash);
     }
 }

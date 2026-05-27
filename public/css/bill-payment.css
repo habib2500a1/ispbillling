@@ -463,3 +463,84 @@ html.portal-dark .bp-pay-method {
     transform: none;
     filter: grayscale(0.35);
 }
+
+.bp-prepay-card,
+.portal-prepay-card {
+    margin-top: 1rem;
+    padding: 1rem 1.05rem;
+    border-radius: 1rem;
+    border: 1px solid rgba(20, 184, 166, 0.22);
+    background: linear-gradient(160deg, rgba(255, 255, 255, 0.96), rgba(240, 253, 250, 0.98));
+    box-shadow: 0 10px 30px -18px rgba(15, 23, 42, 0.22);
+}
+
+.portal-prepay-card__eyebrow {
+    margin: 0;
+    font-size: 0.65rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #0f766e;
+}
+
+.portal-prepay-card__title {
+    margin: 0.35rem 0 0;
+    font-size: 1.15rem;
+    font-weight: 800;
+    color: #0f172a;
+}
+
+.portal-prepay-card__lead {
+    margin: 0.45rem 0 0;
+    font-size: 0.84rem;
+    line-height: 1.55;
+    color: #64748b;
+}
+
+.portal-prepay-card__quick {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+    margin: 0.75rem 0;
+}
+
+.portal-prepay-chip {
+    border: 1px solid rgba(20, 184, 166, 0.25);
+    border-radius: 999px;
+    padding: 0.35rem 0.75rem;
+    font-size: 0.72rem;
+    font-weight: 700;
+    background: rgba(20, 184, 166, 0.08);
+    color: #0f766e;
+    cursor: pointer;
+}
+
+.portal-prepay-card__breakdown {
+    display: grid;
+    gap: 0.45rem;
+    margin: 1rem 0;
+    font-size: 0.84rem;
+}
+
+.portal-prepay-card__breakdown div {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    color: #64748b;
+}
+
+.portal-prepay-card__breakdown strong {
+    color: #0f172a;
+}
+
+.portal-prepay-card__total {
+    padding-top: 0.45rem;
+    border-top: 1px dashed rgba(148, 163, 184, 0.45);
+    font-weight: 700;
+}
+
+.portal-prepay-card__meta {
+    margin: 0 0 1rem;
+    font-size: 0.8rem;
+    color: #64748b;
+}

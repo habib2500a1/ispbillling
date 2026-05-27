@@ -69,6 +69,8 @@ final class IspDigitalOnuAutoLinkService
         $stats['hint_linked'] = $this->linkByOnuClientCodeDescription($tenantId)
             + $this->linkCustomersWithOpticalHints($tenantId);
 
+        $stats['macs_learned'] = $this->learnMacsFromSessions($tenantId);
+
         $smart = $this->smartLink->smartRelinkTenant($tenantId, true);
         $stats['smart_linked'] = (int) ($smart['linked'] ?? 0);
         $stats['linked'] = Device::query()
@@ -81,6 +83,35 @@ final class IspDigitalOnuAutoLinkService
         Log::info('isp_digital_onu.auto_link_complete', array_merge(['tenant_id' => $tenantId], $stats));
 
         return $stats;
+    }
+
+    public function learnMacsFromSessions(int $tenantId): int
+    {
+        $learned = 0;
+
+        Device::query()
+            ->withoutGlobalScopes()
+            ->where('tenant_id', $tenantId)
+            ->where('type', 'onu')
+            ->whereNotNull('customer_id')
+            ->where(fn ($q) => $q->whereNull('mac_address')->orWhere('mac_address', ''))
+            ->with(['customer.activePppSession'])
+            ->chunkById(100, function ($onus) use (&$learned): void {
+                foreach ($onus as $onu) {
+                    $sessionMac = $onu->customer?->activePppSession?->caller_id;
+                    if (blank($sessionMac)) {
+                        continue;
+                    }
+
+                    $normalized = MacAddress::normalizeColon($sessionMac);
+                    if ($normalized) {
+                        $onu->forceFill(['mac_address' => $normalized])->save();
+                        $learned++;
+                    }
+                }
+            });
+
+        return $learned;
     }
 
     public function enrichCustomersFromMikrotikSecrets(int $tenantId): int

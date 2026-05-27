@@ -19,6 +19,7 @@ use App\Support\MacAddress;
 use App\Support\OnuSignalLevel;
 use App\Support\OpticalThresholds;
 use App\Services\Billing\BillingAccountListCounts;
+use App\Services\Portal\CustomerPortalAccessService;
 use Filament\Facades\Filament;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -28,6 +29,7 @@ use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Support\Enums\FontWeight;
 use Filament\Tables;
+use Filament\Tables\Enums\ActionsPosition;
 use Filament\Tables\Enums\FiltersLayout;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
@@ -626,9 +628,62 @@ class CustomerResource extends Resource
             ->filtersFormColumns(['default' => 1, 'sm' => 2, 'lg' => 4])
             ->deferFilters()
             ->actions([
+                static::portalLoginTableAction(),
                 Tables\Actions\ViewAction::make(),
                 Tables\Actions\EditAction::make(),
                 Tables\Actions\ActionGroup::make([
+                    Tables\Actions\Action::make('portal_credentials')
+                        ->label('Portal access')
+                        ->icon('heroicon-o-key')
+                        ->color('warning')
+                        ->modalHeading(fn (Customer $record): string => 'Portal access — '.$record->name)
+                        ->modalSubmitAction(false)
+                        ->modalCancelActionLabel('Close')
+                        ->modalContent(function (Customer $record): \Illuminate\Contracts\View\View {
+                            $portal = app(CustomerPortalAccessService::class);
+                            $portal->ensurePortalPassword($record);
+                            $token = $portal->ensureAccessToken($record->fresh() ?? $record);
+                            $login = $portal->portalLoginId($record);
+                            $defaultPassword = $portal->defaultPassword();
+                            $link = $portal->accessTokenUrl($record->fresh() ?? $record);
+
+                            return view('filament.resources.customer-resource.portal-access-modal', [
+                                'login' => $login,
+                                'defaultPassword' => $defaultPassword,
+                                'token' => $token,
+                                'link' => $link,
+                                'portalEnabled' => $record->fresh()?->portalAccessEnabled() ?? false,
+                            ]);
+                        }),
+                    Tables\Actions\Action::make('portal_reset_password')
+                        ->label('Reset portal password')
+                        ->icon('heroicon-o-arrow-path')
+                        ->requiresConfirmation()
+                        ->modalDescription(fn (): string => 'Set portal password to default: '.config('portal.default_password', '123456'))
+                        ->action(function (Customer $record): void {
+                            $plain = app(CustomerPortalAccessService::class)->resetPortalPassword($record);
+                            Notification::make()
+                                ->title('Portal password reset')
+                                ->body("Login: ".app(CustomerPortalAccessService::class)->portalLoginId($record)."\nPassword: {$plain}")
+                                ->success()
+                                ->persistent()
+                                ->send();
+                        }),
+                    Tables\Actions\Action::make('portal_regenerate_token')
+                        ->label('New portal token')
+                        ->icon('heroicon-o-link')
+                        ->requiresConfirmation()
+                        ->action(function (Customer $record): void {
+                            $portal = app(CustomerPortalAccessService::class);
+                            $token = $portal->regenerateAccessToken($record);
+                            $link = $portal->accessTokenUrl($record->fresh() ?? $record);
+                            Notification::make()
+                                ->title('Portal token regenerated')
+                                ->body("Token: {$token}\nLink: {$link}")
+                                ->success()
+                                ->persistent()
+                                ->send();
+                        }),
                     Tables\Actions\Action::make('verify_kyc')
                     ->label('Verify KYC')
                     ->icon('heroicon-o-check-badge')
@@ -860,6 +915,8 @@ class CustomerResource extends Resource
     {
         return static::table($table)
             ->columns(static::clientsDirectoryColumns())
+            ->actionsPosition(ActionsPosition::BeforeColumns)
+            ->actionsColumnLabel('Actions')
             ->defaultPaginationPageOption(25)
             ->paginationPageOptions([25, 50, 100])
             ->emptyStateHeading('No clients found')
@@ -886,6 +943,19 @@ class CustomerResource extends Resource
             ])
             ->filtersLayout(FiltersLayout::AboveContentCollapsible)
             ->filtersFormColumns(['default' => 2, 'sm' => 3, 'lg' => 5]);
+    }
+
+    protected static function portalLoginTableAction(): Tables\Actions\Action
+    {
+        return Tables\Actions\Action::make('portal_login')
+            ->label('Portal')
+            ->icon('heroicon-o-arrow-right-on-rectangle')
+            ->color('success')
+            ->iconButton()
+            ->extraAttributes(['class' => 'isp-portal-login-btn'])
+            ->url(fn (Customer $record): string => route('staff.subscribers.portal-login', ['customer' => $record->getKey()]))
+            ->openUrlInNewTab()
+            ->tooltip('Customer portal login');
     }
 
     /**

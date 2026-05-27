@@ -6,6 +6,7 @@ use App\Models\Invoice;
 use App\Models\Payment;
 use App\Services\Payments\PublicCheckoutSession;
 use App\Services\Payments\SslCommerzCheckoutService;
+use App\Support\CheckoutPaymentMeta;
 use App\Support\PaymentGateway;
 use App\Support\PaymentType;
 use Illuminate\Http\RedirectResponse;
@@ -83,21 +84,22 @@ class SslCommerzPaymentController extends Controller
                 'status' => 'completed',
                 'paid_at' => now(),
                 'payment_type' => $paymentType,
-                'meta' => [
+                'meta' => CheckoutPaymentMeta::fromSession($pending, [
                     'sslcommerz_tran_id' => $tranId,
                     'sslcommerz_val_id' => $valId,
                     'sslcommerz_validate' => $validated['raw'],
                     'source' => 'sslcommerz_callback',
-                    'return_to' => $pending['return_to'] ?? null,
-                ],
+                ]),
             ]);
         });
 
         PublicCheckoutSession::forget($tranId);
 
-        $message = $paymentType === PaymentType::WALLET_DEPOSIT
-            ? 'Wallet top-up recorded successfully.'
-            : 'Payment recorded successfully.';
+        $message = match ($paymentType) {
+            PaymentType::WALLET_DEPOSIT => 'Wallet top-up recorded successfully.',
+            PaymentType::PREPAY => 'Advance payment recorded successfully.',
+            default => 'Payment recorded successfully.',
+        };
 
         return $this->successRedirect($pending, $invoice, $message, $payment);
     }

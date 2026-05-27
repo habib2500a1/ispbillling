@@ -26,17 +26,23 @@ class AuthController extends Controller
 
         $customer->recordPortalLogin();
 
+        $issuedAt = now();
         $expiresAt = now()->addDays((int) config('mobile.customer_token_expiry_days', 90));
+        $abilities = ['customer'];
         $token = $customer->createToken(
             $data['device_name'] ?? config('mobile.customer_token_name', 'customer-app'),
-            ['customer'],
+            $abilities,
             $expiresAt,
         );
 
         return response()->json([
             'token' => $token->plainTextToken,
             'token_type' => 'Bearer',
+            'auth_mode' => 'sanctum',
+            'guard' => 'customer',
+            'issued_at' => $issuedAt->toIso8601String(),
             'expires_at' => $expiresAt->toIso8601String(),
+            'abilities' => $abilities,
             'customer' => $mobile->customerPayload($customer->load('package')),
         ]);
     }

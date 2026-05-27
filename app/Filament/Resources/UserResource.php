@@ -12,6 +12,7 @@ use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Spatie\Permission\Models\Role;
 
@@ -27,25 +28,11 @@ class UserResource extends Resource
 
     protected static bool $shouldRegisterNavigation = false;
 
-    public static function canViewAny(): bool
-    {
-        $user = auth()->user();
-
-        return $user !== null
-            && ($user->hasRole('super-admin') || $user->hasRole('isp-admin') || $user->can('staff.view'));
-    }
-
-    public static function canCreate(): bool
-    {
-        $user = auth()->user();
-
-        return $user !== null
-            && ($user->hasRole('super-admin') || $user->hasRole('isp-admin') || $user->can('staff.manage'));
-    }
-
     public static function form(Form $form): Form
     {
-        $isSuper = auth()->user()?->hasRole('super-admin') ?? false;
+        /** @var \App\Models\User|null $authUser */
+        $authUser = Auth::user();
+        $isSuper = $authUser?->hasRole('super-admin') ?? false;
 
         return $form->schema([
             Forms\Components\Section::make('Account')->schema([
@@ -134,10 +121,18 @@ class UserResource extends Resource
                 Tables\Columns\TextColumn::make('email')->searchable(),
                 Tables\Columns\TextColumn::make('branch.name')->label('Branch')->toggleable(),
                 Tables\Columns\TextColumn::make('roles.name')->badge()->label('Roles'),
-                Tables\Columns\IconColumn::make('is_active')->boolean(),
+                Tables\Columns\IconColumn::make('is_active')
+                    ->label('Status')
+                    ->boolean()
+                    ->trueIcon('heroicon-o-check-circle')
+                    ->falseIcon('heroicon-o-x-circle')
+                    ->trueColor('success')
+                    ->falseColor('danger'),
                 Tables\Columns\IconColumn::make('two_factor_confirmed_at')
                     ->label('2FA')
                     ->boolean()
+                    ->trueIcon('heroicon-o-shield-check')
+                    ->falseIcon('heroicon-o-shield-exclamation')
                     ->getStateUsing(fn (User $record): bool => $record->hasTwoFactorEnabled()),
                 Tables\Columns\TextColumn::make('last_login_at')
                     ->label('Last login')
@@ -159,8 +154,11 @@ class UserResource extends Resource
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),
+                Tables\Actions\DeleteAction::make(),
             ])
-            ->bulkActions([]);
+            ->bulkActions([
+                Tables\Actions\DeleteBulkAction::make(),
+            ]);
     }
 
     public static function getEloquentQuery(): Builder

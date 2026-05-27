@@ -52,7 +52,7 @@
         <section class="isp-clients-table-card">
             <div class="isp-clients-table-card__head">
                 <h3>Client directory</h3>
-                <span class="isp-clients-table-card__meta">Use row checkboxes for bulk actions in the toolbar</span>
+                <span class="isp-clients-table-card__meta">Portal column = direct login · row Actions = View, Edit, token</span>
             </div>
             {{ $this->table }}
         </section>

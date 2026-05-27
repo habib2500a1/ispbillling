@@ -3,8 +3,8 @@
         'fi-resource-view-record-page',
         'fi-resource-subscribers',
         'fi-resource-record-' . $record->getKey(),
-        'isp-client-details-page',
-        'isp-cv-page',
+        'isp-subscriber-record-page',
+        'isp-sub-view-page',
     ])
 >
     @php
@@ -17,138 +17,176 @@
         if (($sections['legacy_meta'] ?? []) !== []) {
             $moreKeys[] = 'legacy_meta';
         }
+        $tabItems = [
+            ['key' => 'overview', 'label' => 'Overview', 'icon' => 'heroicon-o-squares-2x2'],
+            ['key' => 'billing', 'label' => 'Billing', 'icon' => 'heroicon-o-banknotes'],
+            ['key' => 'network', 'label' => 'Network', 'icon' => 'heroicon-o-signal'],
+            ['key' => 'more', 'label' => 'More', 'icon' => 'heroicon-o-ellipsis-horizontal-circle'],
+        ];
+        $heroKpis = [
+            [
+                'label' => 'Open due',
+                'value' => number_format($h['open_balance'], 2),
+                'meta' => 'BDT outstanding',
+                'icon' => 'heroicon-o-exclamation-triangle',
+                'tone' => $h['open_balance'] > 0 ? 'amber' : 'emerald',
+            ],
+            [
+                'label' => 'Valid until',
+                'value' => $h['valid_until'],
+                'meta' => $h['expired'] ? 'Renew required' : 'Service window',
+                'icon' => 'heroicon-o-calendar-days',
+                'tone' => $h['expired'] ? 'rose' : 'sky',
+            ],
+            [
+                'label' => 'Package',
+                'value' => \Illuminate\Support\Str::limit($h['package'], 22),
+                'meta' => $h['speed'],
+                'icon' => 'heroicon-o-cube',
+                'tone' => 'violet',
+            ],
+            [
+                'label' => 'Monthly bill',
+                'value' => $h['monthly_bill'],
+                'meta' => 'Recurring charge',
+                'icon' => 'heroicon-o-receipt-percent',
+                'tone' => 'emerald',
+            ],
+            [
+                'label' => 'Wallet',
+                'value' => number_format($h['balance'], 2),
+                'meta' => 'BDT advance',
+                'icon' => 'heroicon-o-wallet',
+                'tone' => 'slate',
+            ],
+        ];
+        if ($h['online'] && ! empty($h['connection_duration']) && $h['connection_duration'] !== '—') {
+            $heroKpis[] = [
+                'label' => 'Session',
+                'value' => $h['connection_duration'],
+                'meta' => 'PPPoE online now',
+                'icon' => 'heroicon-o-bolt',
+                'tone' => 'cyan',
+            ];
+        }
+        $quickLinks = [
+            ['label' => 'Collect payment', 'url' => $details['urls']['collect'], 'icon' => 'heroicon-o-banknotes', 'btn' => 'white'],
+            ['label' => 'Portal login', 'url' => $details['urls']['portal_login'], 'icon' => 'heroicon-o-arrow-right-on-rectangle', 'btn' => 'glass', 'external' => true, 'class' => 'sub-hero__portal-desktop'],
+            ['label' => 'Edit profile', 'url' => $details['urls']['edit'], 'icon' => 'heroicon-o-pencil-square', 'btn' => 'glass'],
+            ['label' => 'Invoices', 'url' => $details['urls']['invoices'], 'icon' => 'heroicon-o-document-text', 'btn' => 'glass'],
+        ];
     @endphp
 
-    <style>
-        [x-cloak] { display: none !important; }
-        .isp-cv-page .fi-header-heading,
-        .isp-cv-page .fi-header-subheading { display: none !important; }
-        .isp-cv-page .fi-page-header-actions {
-            flex-wrap: wrap;
-            gap: 0.35rem;
-            margin-bottom: 0.5rem;
-        }
-        @media (max-width: 1023px) {
-            .isp-cv-hero { flex-direction: column; }
-            .isp-cv-hero__actions { width: 100%; }
-            .isp-cv-hero__actions .isp-cv-btn { flex: 1; justify-content: center; text-align: center; }
-            .isp-cv-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-            .isp-cv-overview { grid-template-columns: 1fr; }
-            .isp-cv-split { grid-template-columns: 1fr; }
-            .isp-cv-recent { grid-template-columns: 1fr; }
-            .isp-cv-tabs { overflow-x: auto; flex-wrap: nowrap; -webkit-overflow-scrolling: touch; }
-            .isp-cv-tabs__btn { flex-shrink: 0; white-space: nowrap; }
-            .isp-cv-mobile-bar {
-                display: flex;
-                position: sticky;
-                bottom: 0;
-                z-index: 20;
-                gap: 0.35rem;
-                padding: 0.5rem;
-                margin: 0 -0.5rem;
-                background: var(--isp-card-bg, #fff);
-                border-top: 1px solid var(--isp-card-border, #e5e7eb);
-                box-shadow: 0 -4px 12px rgba(15, 23, 42, 0.08);
-            }
-            .dark .isp-cv-mobile-bar {
-                background: rgb(17 24 39);
-                border-color: rgb(55 65 81);
-            }
-            .isp-cv-mobile-bar__btn {
-                flex: 1;
-                padding: 0.55rem 0.4rem;
-                border-radius: 0.5rem;
-                font-size: 0.72rem;
-                font-weight: 600;
-                text-align: center;
-                border: 1px solid #e2e8f0;
-                background: #f8fafc;
-                color: #0f172a;
-            }
-            .isp-cv-mobile-bar__btn--primary { background: #0d9488; color: #fff; border-color: #0d9488; }
-        }
-        @media (min-width: 1024px) {
-            .isp-cv-mobile-bar { display: none !important; }
-        }
-    </style>
-
-    <div class="isp-cv" wire:key="client-view-{{ $record->getKey() }}" x-data="{ tab: 'overview' }">
-        <header class="isp-cv-hero">
-            <div class="isp-cv-hero__main">
-                <span class="isp-cv-avatar" aria-hidden="true">{{ $h['initial'] }}</span>
-                <div class="isp-cv-hero__text">
-                    <h1 class="isp-cv-hero__name">{{ $h['client_name'] }}</h1>
-                    <p class="isp-cv-hero__meta">
-                        <span class="font-mono">{{ $h['client_code'] }}</span>
-                        @if ($h['phone'] !== '—')
-                            · <a href="tel:{{ preg_replace('/\D+/', '', $h['phone']) }}" class="isp-cv-hero__phone">{{ $h['phone'] }}</a>
-                        @endif
-                        · <span class="font-mono text-xs opacity-80">{{ $h['username'] }}</span>
-                    </p>
-                    <div class="isp-cv-hero__badges">
-                        <span class="isp-cv-pill isp-cv-pill--{{ $h['status_color'] }}">{{ $h['status'] }}</span>
-                        <span class="isp-cv-pill isp-cv-pill--{{ $h['subscriber_type_color'] }}">{{ $h['subscriber_type'] }}</span>
-                        <span class="isp-cv-pill {{ $h['online'] ? 'isp-cv-pill--online' : 'isp-cv-pill--offline' }}">
-                            {{ $h['online'] ? 'Online' : 'Offline' }}
-                        </span>
-                        <span class="isp-cv-pill {{ $h['network'] === 'suspended' ? 'isp-cv-pill--danger' : 'isp-cv-pill--muted' }}">
-                            Net {{ $h['network'] }}
-                        </span>
-                    </div>
+    <div class="sub-pro olt-pro" wire:key="client-view-{{ $record->getKey() }}" x-data="{ tab: 'overview' }">
+        <header class="olt-hero sub-hero">
+            <div class="olt-hero__grid">
+                <span class="olt-hero__badge">
+                    <span @class([
+                        'olt-hero__badge-dot',
+                        'olt-hero__badge-dot--offline' => ! $h['online'],
+                    ]) aria-hidden="true"></span>
+                    Client command · {{ $h['online'] ? 'PPPoE online' : 'PPPoE offline' }}
+                </span>
+                <h1 class="olt-hero__title">{{ $h['client_name'] }}</h1>
+                <p class="olt-hero__sub">
+                    <span class="font-mono font-semibold">{{ $h['client_code'] }}</span>
+                    @if ($h['phone'] !== '—')
+                        · <a href="tel:{{ preg_replace('/\D+/', '', $h['phone']) }}" class="underline decoration-white/30 hover:decoration-white">{{ $h['phone'] }}</a>
+                    @endif
+                    · PPPoE <span class="font-mono">{{ $h['username'] }}</span>
+                </p>
+                <div class="sub-hero__pills">
+                    <span class="sub-pill sub-pill--{{ $h['status_color'] }}">{{ $h['status'] }}</span>
+                    <span class="sub-pill sub-pill--{{ $h['subscriber_type_color'] }}">{{ $h['subscriber_type'] }}</span>
+                    <span @class(['sub-pill', $h['online'] ? 'sub-pill--online' : 'sub-pill--offline'])">{{ $h['online'] ? 'Online' : 'Offline' }}</span>
+                    <span @class(['sub-pill', $h['network'] === 'suspended' ? 'sub-pill--danger' : 'sub-pill--gray'])">Net {{ $h['network'] }}</span>
+                </div>
+                <div class="olt-hero__actions no-print">
+                    @foreach ($quickLinks as $link)
+                        <a
+                            href="{{ $link['url'] }}"
+                            @class(array_filter(['olt-btn', 'olt-btn--' . $link['btn'], $link['class'] ?? null]))
+                            @if (! empty($link['external'])) target="_blank" rel="noopener" @endif
+                        >
+                            <x-filament::icon :icon="$link['icon']" class="h-4 w-4" />
+                            {{ $link['label'] }}
+                        </a>
+                    @endforeach
                 </div>
             </div>
-            <div class="isp-cv-hero__actions no-print">
-                <a href="{{ $details['urls']['collect'] }}" class="isp-cv-btn isp-cv-btn--primary">Collect payment</a>
-                <a href="{{ $details['urls']['edit'] }}" class="isp-cv-btn isp-cv-btn--soft">Edit</a>
-                <a href="{{ $details['urls']['invoices'] }}" class="isp-cv-btn isp-cv-btn--ghost">Invoices</a>
+            <div class="olt-hero__live">
+                <div class="olt-hero__live-card">
+                    @if ($h['online'])
+                        <span class="olt-hero__live-label">Live session</span>
+                        <strong class="olt-hero__live-value">{{ $h['connection_duration'] !== '—' ? $h['connection_duration'] : 'Online' }}</strong>
+                        <span class="olt-hero__live-hint">{{ $h['package'] }} · {{ $h['speed'] }}</span>
+                    @else
+                        <span class="olt-hero__live-label">Open balance</span>
+                        <strong class="olt-hero__live-value">{{ number_format($h['open_balance'], 0) }} BDT</strong>
+                        <span class="olt-hero__live-hint">
+                            @if ($h['expired'])
+                                Expired · valid until {{ $h['valid_until'] }}
+                            @else
+                                Valid until {{ $h['valid_until'] }}
+                            @endif
+                        </span>
+                    @endif
+                </div>
             </div>
         </header>
 
-        <div class="isp-cv-kpis">
-            <div class="isp-cv-kpi {{ $h['open_balance'] > 0 ? 'isp-cv-kpi--warn' : '' }}">
-                <span class="isp-cv-kpi__label">Open due</span>
-                <strong class="isp-cv-kpi__value">{{ number_format($h['open_balance'], 2) }}</strong>
-                <span class="isp-cv-kpi__unit">BDT</span>
+        <div class="sub-rail">
+            <div class="sub-rail__item">
+                <span class="sub-rail__label">Activated</span>
+                <strong class="sub-rail__value">{{ $h['activation_date'] }}</strong>
             </div>
-            <div class="isp-cv-kpi {{ $h['expired'] ? 'isp-cv-kpi--danger' : '' }}">
-                <span class="isp-cv-kpi__label">Expires</span>
-                <strong class="isp-cv-kpi__value">{{ $h['valid_until'] }}</strong>
+            <div class="sub-rail__item">
+                <span class="sub-rail__label">Valid until</span>
+                <strong class="sub-rail__value">{{ $h['valid_until'] }}</strong>
             </div>
-            <div class="isp-cv-kpi">
-                <span class="isp-cv-kpi__label">Package</span>
-                <strong class="isp-cv-kpi__value isp-cv-kpi__value--sm">{{ $h['package'] }}</strong>
-                <span class="isp-cv-kpi__sub">{{ $h['speed'] }}</span>
+            <div class="sub-rail__item">
+                <span class="sub-rail__label">Line off date</span>
+                <strong class="sub-rail__value">{{ $h['off_date'] }}</strong>
             </div>
-            <div class="isp-cv-kpi">
-                <span class="isp-cv-kpi__label">Monthly</span>
-                <strong class="isp-cv-kpi__value isp-cv-kpi__value--sm">{{ $h['monthly_bill'] }}</strong>
+            <div class="sub-rail__item">
+                <span class="sub-rail__label">Portal logout</span>
+                <strong class="sub-rail__value">{{ $h['portal_last_logout'] }}</strong>
             </div>
-            <div class="isp-cv-kpi">
-                <span class="isp-cv-kpi__label">Wallet</span>
-                <strong class="isp-cv-kpi__value">{{ number_format($h['balance'], 2) }}</strong>
-                <span class="isp-cv-kpi__unit">BDT</span>
-            </div>
-            @if ($h['online'] && ! empty($h['connection_duration']))
-            <div class="isp-cv-kpi isp-cv-kpi--ok">
-                <span class="isp-cv-kpi__label">Uptime</span>
-                <strong class="isp-cv-kpi__value isp-cv-kpi__value--sm">{{ $h['connection_duration'] }}</strong>
-            </div>
-            @elseif (! empty($h['last_disconnect']) && $h['last_disconnect'] !== '—')
-            <div class="isp-cv-kpi">
-                <span class="isp-cv-kpi__label">Last off</span>
-                <strong class="isp-cv-kpi__value isp-cv-kpi__value--sm">{{ $h['last_disconnect'] }}</strong>
-            </div>
-            @endif
         </div>
 
-        <nav class="isp-cv-tabs no-print" role="tablist">
-            <button type="button" @click="tab = 'overview'" :class="tab === 'overview' && 'isp-cv-tabs__btn--active'" class="isp-cv-tabs__btn">Overview</button>
-            <button type="button" @click="tab = 'billing'" :class="tab === 'billing' && 'isp-cv-tabs__btn--active'" class="isp-cv-tabs__btn">Billing</button>
-            <button type="button" @click="tab = 'network'" :class="tab === 'network' && 'isp-cv-tabs__btn--active'" class="isp-cv-tabs__btn">Network</button>
-            <button type="button" @click="tab = 'more'" :class="tab === 'more' && 'isp-cv-tabs__btn--active'" class="isp-cv-tabs__btn">More</button>
+        <div class="olt-stats">
+            @foreach ($heroKpis as $kpi)
+                <div class="olt-stat sub-stat olt-stat--{{ $kpi['tone'] }}">
+                    <div class="olt-stat__row">
+                        <span class="olt-stat__icon">
+                            <x-filament::icon :icon="$kpi['icon']" class="h-5 w-5" />
+                        </span>
+                    </div>
+                    <span class="olt-stat__label">{{ $kpi['label'] }}</span>
+                    <strong @class([
+                        'olt-stat__value',
+                        'olt-stat__value--sm' => strlen((string) $kpi['value']) > 16,
+                    ])>{{ $kpi['value'] }}</strong>
+                    <span class="olt-stat__hint">{{ $kpi['meta'] }}</span>
+                </div>
+            @endforeach
+        </div>
+
+        <nav class="sub-tabs no-print" role="tablist" aria-label="Client sections">
+            @foreach ($tabItems as $item)
+                <button
+                    type="button"
+                    @click="tab = '{{ $item['key'] }}'"
+                    :class="tab === '{{ $item['key'] }}' && 'sub-tabs__btn--active'"
+                    class="sub-tabs__btn"
+                >
+                    <x-filament::icon :icon="$item['icon']" class="h-4 w-4" />
+                    <span>{{ $item['label'] }}</span>
+                </button>
+            @endforeach
         </nav>
 
-        <div x-show="tab === 'overview'" x-cloak class="isp-cv-pane">
+        <div x-show="tab === 'overview'" x-cloak class="sub-pane">
             @include('filament.resources.customer-resource.partials.client-details-overview', [
                 'sections' => $overview,
                 'optical' => $optical,
@@ -199,7 +237,7 @@
             @endif
         </div>
 
-        <div x-show="tab === 'billing'" x-cloak class="isp-cv-pane">
+        <div x-show="tab === 'billing'" x-cloak class="sub-pane">
             <div class="isp-cv-split">
                 <section class="isp-cv-card isp-cv-card--full">
                     <h3 class="isp-cv-card__title">Payments</h3>
@@ -264,7 +302,7 @@
             </div>
         </div>
 
-        <div x-show="tab === 'network'" x-cloak class="isp-cv-pane">
+        <div x-show="tab === 'network'" x-cloak class="sub-pane">
             <section class="isp-cv-card isp-cv-card--full" wire:poll.60s>
                 <h3 class="isp-cv-card__title">ONU / Optical</h3>
                 @include('filament.resources.customer-resource.partials.client-details-onu-table', [
@@ -281,7 +319,7 @@
             </section>
         </div>
 
-        <div x-show="tab === 'more'" x-cloak class="isp-cv-pane">
+        <div x-show="tab === 'more'" x-cloak class="sub-pane">
             <div class="isp-cv-more-grid">
                 <section class="isp-cv-card">
                     <h3 class="isp-cv-card__title">Contacts</h3>
@@ -310,14 +348,30 @@
             ])
         </div>
 
-        <div class="isp-cv-mobile-bar no-print lg:hidden">
-            <a href="{{ $details['urls']['collect'] }}" class="isp-cv-mobile-bar__btn isp-cv-mobile-bar__btn--primary">Collect</a>
-            <button type="button" class="isp-cv-mobile-bar__btn" wire:click="extendThirtyDays" wire:loading.attr="disabled">Extend 30d</button>
-            <button type="button" class="isp-cv-mobile-bar__btn" wire:click="toggleNetworkAccess" wire:loading.attr="disabled">
-                {{ ($h['network'] ?? 'active') === 'suspended' ? 'Net ON' : 'Net OFF' }}
-            </button>
-            <a href="{{ $details['urls']['edit'] }}" class="isp-cv-mobile-bar__btn">Edit</a>
-        </div>
+        <nav class="olt-dock sub-dock-mobile no-print" aria-label="Quick actions">
+            <div class="olt-dock__inner">
+                <a href="{{ $details['urls']['collect'] }}" class="olt-dock__link olt-dock__link--active">
+                    <x-filament::icon icon="heroicon-o-banknotes" />
+                    <span>Collect</span>
+                </a>
+                <a href="{{ $details['urls']['portal_login'] }}" class="olt-dock__link" target="_blank" rel="noopener">
+                    <x-filament::icon icon="heroicon-o-arrow-right-on-rectangle" />
+                    <span>Portal</span>
+                </a>
+                <button type="button" class="olt-dock__link border-0 bg-transparent" wire:click="extendThirtyDays" wire:loading.attr="disabled">
+                    <x-filament::icon icon="heroicon-o-calendar" />
+                    <span>+30d</span>
+                </button>
+                <button type="button" class="olt-dock__link border-0 bg-transparent" wire:click="toggleNetworkAccess" wire:loading.attr="disabled">
+                    <x-filament::icon icon="heroicon-o-signal-slash" />
+                    <span>{{ ($h['network'] ?? 'active') === 'suspended' ? 'Net ON' : 'Net OFF' }}</span>
+                </button>
+                <a href="{{ $details['urls']['edit'] }}" class="olt-dock__link">
+                    <x-filament::icon icon="heroicon-o-pencil-square" />
+                    <span>Edit</span>
+                </a>
+            </div>
+        </nav>
     </div>
 
     @php $relationManagers = $this->getRelationManagers(); @endphp

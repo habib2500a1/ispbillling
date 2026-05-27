@@ -20,7 +20,7 @@ final class MfsSmsRefOverridesPortalCustomerTest extends TestCase
         config([
             'mfs_personal.sms_ingest.enabled' => true,
             'mfs_personal.sms_ingest.auto_approve_by_reference' => true,
-            'mfs_personal.bkash.auto_verify' => true,
+            'mfs_personal.gateways.bkash.auto_verify' => true,
         ]);
 
         $package = Package::query()->create([

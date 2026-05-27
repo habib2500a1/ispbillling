@@ -3,57 +3,103 @@
 @section('title', 'Live usage')
 
 @section('content')
-    <div class="flex flex-wrap items-center justify-between gap-4">
+    <div class="portal-page-head">
         <div>
-            <h1 class="text-2xl font-semibold text-slate-900">Live internet usage</h1>
-            <p class="mt-1 text-sm text-slate-600">Real-time download/upload for your connection.</p>
+            <h1 class="portal-page-title">Live internet usage</h1>
+            <p class="portal-page-lead">Monitor connection state, current throughput, and session totals from your customer portal.</p>
         </div>
-        <p id="usage-updated" class="text-xs text-slate-500">Updating…</p>
+        <p id="usage-updated" class="portal-live-badge">Updating...</p>
     </div>
 
-    <div class="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <div id="card-status" class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-            <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Status</p>
-            <p id="stat-online" class="mt-2 text-xl font-bold {{ ($stats['online'] ?? false) ? 'text-emerald-600' : 'text-slate-500' }}">
-                {{ ($stats['online'] ?? false) ? 'Online' : 'Offline' }}
+    <div class="portal-summary-grid portal-summary-grid--wide">
+        <article id="status-card" class="portal-summary-card {{ ($stats['online'] ?? false) ? 'portal-summary-card--ok' : 'portal-summary-card--warn' }}">
+            <p class="portal-summary-card__eyebrow">Connection status</p>
+            <p id="stat-online" class="portal-summary-card__value">{{ ($stats['online'] ?? false) ? 'Online' : 'Offline' }}</p>
+            <p class="portal-summary-card__meta">
+                <span id="stat-online-pill" class="portal-status-pill {{ ($stats['online'] ?? false) ? 'portal-status-pill--success' : 'portal-status-pill--muted' }}">
+                    {{ ($stats['online'] ?? false) ? 'Session active' : 'No live session' }}
+                </span>
             </p>
-        </div>
-        <div class="rounded-xl border border-amber-200 bg-gradient-to-br from-amber-50 to-white p-5 shadow-sm">
-            <p class="text-xs font-semibold uppercase tracking-wide text-amber-800">Live download</p>
-            <p id="stat-download" class="mt-2 text-2xl font-bold text-amber-950">{{ \App\Support\BandwidthDirection::formatBps($stats['download_bps'] ?? null) }}</p>
-        </div>
-        <div class="rounded-xl border border-sky-200 bg-gradient-to-br from-sky-50 to-white p-5 shadow-sm">
-            <p class="text-xs font-semibold uppercase tracking-wide text-sky-800">Live upload</p>
-            <p id="stat-upload" class="mt-2 text-2xl font-bold text-sky-950">{{ \App\Support\BandwidthDirection::formatBps($stats['upload_bps'] ?? null) }}</p>
-        </div>
-        <div class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-            <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Today total</p>
-            <p id="stat-today" class="mt-2 text-sm font-medium text-slate-800">
+        </article>
+        <article class="portal-summary-card portal-summary-card--warn">
+            <p class="portal-summary-card__eyebrow">Live download</p>
+            <p id="stat-download" class="portal-summary-card__value">{{ \App\Support\BandwidthDirection::formatBps($stats['download_bps'] ?? null) }}</p>
+            <p class="portal-summary-card__meta">Current downstream throughput from your ISP connection.</p>
+        </article>
+        <article class="portal-summary-card portal-summary-card--info">
+            <p class="portal-summary-card__eyebrow">Live upload</p>
+            <p id="stat-upload" class="portal-summary-card__value">{{ \App\Support\BandwidthDirection::formatBps($stats['upload_bps'] ?? null) }}</p>
+            <p class="portal-summary-card__meta">Current upstream usage based on the latest router sync.</p>
+        </article>
+        <article class="portal-summary-card portal-summary-card--info">
+            <p class="portal-summary-card__eyebrow">Today total</p>
+            <p id="stat-today" class="portal-summary-card__value text-base sm:text-lg">
                 ↓ {{ \App\Models\BandwidthUsageDaily::formatBytes($stats['today_download'] ?? 0) }}
                 · ↑ {{ \App\Models\BandwidthUsageDaily::formatBytes($stats['today_upload'] ?? 0) }}
             </p>
+            <p class="portal-summary-card__meta">Accumulated transfer for today across all synced samples.</p>
+        </article>
+    </div>
+
+    <div class="portal-section-grid portal-section-grid--2">
+        <section class="portal-surface-card">
+            <div class="portal-section-head">
+                <div class="portal-label-stack">
+                    <h2 class="portal-surface-card__title">Session details</h2>
+                    <p class="portal-surface-card__meta">These values reflect the most recent live accounting data available from your router sync.</p>
+                </div>
+            </div>
+
+            <dl class="portal-detail-list">
+                <div class="portal-detail-list__item">
+                    <dt>IP address</dt>
+                    <dd id="stat-ip" class="portal-mono">{{ $stats['framed_ip'] ?? '-' }}</dd>
+                </div>
+                <div class="portal-detail-list__item">
+                    <dt>Session download</dt>
+                    <dd id="stat-session-down">{{ \App\Models\BandwidthUsageDaily::formatBytes($stats['total_download'] ?? 0) }}</dd>
+                </div>
+                <div class="portal-detail-list__item">
+                    <dt>Session upload</dt>
+                    <dd id="stat-session-up">{{ \App\Models\BandwidthUsageDaily::formatBytes($stats['total_upload'] ?? 0) }}</dd>
+                </div>
+            </dl>
+        </section>
+
+        <section class="portal-surface-card">
+            <div class="portal-section-head">
+                <div class="portal-label-stack">
+                    <h2 class="portal-surface-card__title">Refresh notes</h2>
+                    <p class="portal-surface-card__meta">Live speed updates are frequent, but router accounting can arrive a bit later.</p>
+                </div>
+            </div>
+
+            <div class="portal-note-banner">
+                Speed updates every 30 seconds. If download or upload shows "-", keep browsing for 1 to 2 minutes and refresh again after the router sync catches up.
+            </div>
+        </section>
+    </div>
+
+    <section
+        id="usage-panel"
+        class="portal-chart-shell"
+        data-live-url="{{ route('portal.usage.live') }}"
+        data-stats='@json($stats)'>
+        <div class="portal-section-head">
+            <div class="portal-label-stack">
+                <h2 class="portal-surface-card__title">Last 12 hours</h2>
+                <p class="portal-surface-card__meta">Average Mbps trend for download and upload across recent usage snapshots.</p>
+            </div>
         </div>
-    </div>
-
-    <div class="mt-8 rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-        <h2 class="text-sm font-semibold text-slate-800">Session</h2>
-        <dl class="mt-3 grid gap-2 text-sm sm:grid-cols-2">
-            <div><dt class="text-slate-500">IP address</dt><dd id="stat-ip" class="font-mono font-medium">{{ $stats['framed_ip'] ?? '—' }}</dd></div>
-            <div><dt class="text-slate-500">Session download</dt><dd id="stat-session-down" class="font-medium">{{ \App\Models\BandwidthUsageDaily::formatBytes($stats['total_download'] ?? 0) }}</dd></div>
-            <div><dt class="text-slate-500">Session upload</dt><dd id="stat-session-up" class="font-medium">{{ \App\Models\BandwidthUsageDaily::formatBytes($stats['total_upload'] ?? 0) }}</dd></div>
-        </dl>
-        <p class="mt-4 text-xs text-slate-500">Speed updates every 30 seconds. ISP syncs routers every few minutes — browse for 1–2 minutes, then check again if speed shows “—”.</p>
-    </div>
-
-    <div class="mt-8 rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-        <h2 class="text-sm font-semibold text-slate-800">Last 12 hours (average Mbps)</h2>
         <canvas id="usage-chart" class="mt-4 h-48 w-full" height="160"></canvas>
-    </div>
+    </section>
 
     @push('scripts')
         <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
         <script>
-            const initial = @json($stats);
+            const usagePanel = document.getElementById('usage-panel');
+            const initial = JSON.parse(usagePanel.dataset.stats || '{}');
+            const liveUrl = usagePanel.dataset.liveUrl;
             const ctx = document.getElementById('usage-chart');
             const chart = new Chart(ctx, {
                 type: 'line',
@@ -64,11 +110,17 @@
                         { label: 'Upload', data: initial.chart.upload_mbps, borderColor: '#0284c7', tension: 0.3, fill: false },
                     ],
                 },
-                options: { responsive: true, scales: { y: { beginAtZero: true } } },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: { beginAtZero: true },
+                    },
+                },
             });
 
             function formatBps(bps) {
-                if (bps === null || bps === undefined) return '—';
+                if (bps === null || bps === undefined) return '-';
                 if (bps <= 0) return '0 bps';
                 if (bps >= 1000000) return (bps / 1000000).toFixed(2) + ' Mbps';
                 if (bps >= 1000) return (bps / 1000).toFixed(1) + ' Kbps';
@@ -82,20 +134,30 @@
                 return bytes + ' B';
             }
 
+            function setOnlineState(online) {
+                const statusCard = document.getElementById('status-card');
+                const statusValue = document.getElementById('stat-online');
+                const statusPill = document.getElementById('stat-online-pill');
+
+                statusCard.className = 'portal-summary-card ' + (online ? 'portal-summary-card--ok' : 'portal-summary-card--warn');
+                statusValue.textContent = online ? 'Online' : 'Offline';
+                statusPill.className = 'portal-status-pill ' + (online ? 'portal-status-pill--success' : 'portal-status-pill--muted');
+                statusPill.textContent = online ? 'Session active' : 'No live session';
+            }
+
             async function refreshLive() {
                 try {
-                    const res = await fetch(@json(route('portal.usage.live')), {
+                    const res = await fetch(liveUrl, {
                         headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
                         credentials: 'same-origin',
                     });
                     if (!res.ok) return;
                     const data = await res.json();
-                    document.getElementById('stat-online').textContent = data.online ? 'Online' : 'Offline';
-                    document.getElementById('stat-online').className = 'mt-2 text-xl font-bold ' + (data.online ? 'text-emerald-600' : 'text-slate-500');
+                    setOnlineState(data.online);
                     document.getElementById('stat-download').textContent = formatBps(data.download_bps);
                     document.getElementById('stat-upload').textContent = formatBps(data.upload_bps);
                     document.getElementById('stat-today').textContent = '↓ ' + formatBytes(data.today_download) + ' · ↑ ' + formatBytes(data.today_upload);
-                    document.getElementById('stat-ip').textContent = data.framed_ip || '—';
+                    document.getElementById('stat-ip').textContent = data.framed_ip || '-';
                     document.getElementById('stat-session-down').textContent = formatBytes(data.total_download);
                     document.getElementById('stat-session-up').textContent = formatBytes(data.total_upload);
                     chart.data.labels = data.chart.labels;
@@ -109,6 +171,7 @@
             }
 
             document.getElementById('usage-updated').textContent = 'Updated ' + new Date().toLocaleTimeString();
+            setOnlineState(Boolean(initial.online));
             setInterval(refreshLive, 30000);
         </script>
     @endpush

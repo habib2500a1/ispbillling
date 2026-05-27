@@ -41,6 +41,24 @@
         $localeLabels = config('locales.labels', []);
     @endphp
 
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Watch for sidebar open/close to sync body class
+            function syncSidebarBodyClass() {
+                if (!window.Alpine || !window.Alpine.store('sidebar')) return;
+                const open = window.Alpine.store('sidebar').isOpen;
+                const desktop = window.matchMedia('(min-width: 1024px)').matches;
+                document.body.classList.toggle('isp-admin-sidebar-open', !desktop && open);
+            }
+
+            if (window.Alpine && window.Alpine.store('sidebar')) {
+                window.Alpine.effect(() => {
+                    syncSidebarBodyClass();
+                });
+            }
+        });
+    </script>
+
     <aside
         class="isp-mobile-bar isp-mobile-bar--color"
         aria-label="Mobile quick actions"
@@ -66,7 +84,21 @@
                 document.body.classList.toggle('isp-sidebar-desktop-expanded', desktop && open);
             },
         }"
-        x-init="syncSidebarBodyClass(); $watch('$store.sidebar.isOpen', () => syncSidebarBodyClass())"
+        x-init="
+            syncSidebarBodyClass();
+            $watch('$store.sidebar.isOpen', (isOpen) => {
+                syncSidebarBodyClass();
+                if (isOpen) {
+                    setTimeout(() => {
+                        const navGroups = document.querySelector('.fi-sidebar-nav-groups');
+                        if (navGroups) {
+                            navGroups.style.overflowY = 'auto';
+                            navGroups.style.webkitOverflowScrolling = 'touch';
+                        }
+                    }, 50);
+                }
+            });
+        "
         @isp-theme-changed.window="theme = $event.detail.mode"
     >
         <button

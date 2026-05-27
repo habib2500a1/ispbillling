@@ -35,6 +35,15 @@ final class BdcomOnuDescriptionHeuristic
             return true;
         }
 
+        // Interface / Port labels: EPON0/1, GPON0/2:3, ONU4/1
+        if (preg_match('/^(EPON|GPON|ONU|XPON)\d+\/\d+/i', $text)) {
+            return true;
+        }
+
+        if (preg_match('/^PORT\d+/i', $text)) {
+            return true;
+        }
+
         return false;
     }
 
@@ -49,8 +58,13 @@ final class BdcomOnuDescriptionHeuristic
             $meta['ppp_login'] ?? null,
             $meta['subscriber_login'] ?? null,
             $meta['username'] ?? null,
-            $onu->onu_external_id,
             $meta['bdcom_description'] ?? null,
+            $meta['aveis_label'] ?? null,
+            $meta['aveis_description'] ?? null,
+            $meta['huawei_description'] ?? null,
+            $meta['zte_description'] ?? null,
+            $onu->display_name,
+            $onu->onu_external_id,
         ], fn ($v) => filled($v));
 
         foreach ($hints as $hint) {

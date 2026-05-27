@@ -3,45 +3,63 @@
 @section('title', 'Verify code')
 
 @section('content')
-    <div class="mx-auto max-w-md rounded-xl border border-slate-200 bg-white p-8 shadow-sm">
-        <h1 class="text-xl font-semibold text-slate-900">Check your email</h1>
-        <p class="mt-2 text-sm text-slate-600">
-            Enter the one-time code we sent to finish signing in. If you do not see the email, check spam or ask your provider for help.
-        </p>
-
-        @if (session('portal_session_expired'))
-            <p class="mt-4 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-950 ring-1 ring-amber-200" role="alert">
-                Your session expired. <a href="{{ route('portal.login', ['abandon' => 1]) }}" class="font-semibold underline">Sign in again</a>.
-            </p>
-        @endif
-
-        <form method="post" action="{{ route('portal.login.otp.verify') }}" class="mt-6 space-y-4">
-            @csrf
-            <div>
-                <label for="code" class="block text-sm font-medium text-slate-700">One-time code</label>
-                <input
-                    id="code"
-                    name="code"
-                    type="text"
-                    inputmode="numeric"
-                    pattern="[0-9]*"
-                    autocomplete="one-time-code"
-                    required
-                    autofocus
-                    maxlength="12"
-                    class="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm tracking-widest shadow-sm focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500"
-                />
+    <div class="portal-auth-shell portal-auth-shell--split">
+        <section class="portal-auth-panel">
+            <div class="portal-auth-hero">
+                <p class="portal-auth-hero__eyebrow">Verify sign-in</p>
+                <h1 class="portal-auth-hero__title">Check your email</h1>
+                <p class="portal-auth-hero__sub">Enter the one-time code we sent to finish signing in. If you do not see the email, check spam or contact your provider.</p>
             </div>
-            <button
-                type="submit"
-                class="w-full rounded-lg bg-amber-600 px-4 py-2.5 text-sm font-semibold text-white shadow hover:bg-amber-700 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2"
-            >
-                Continue
-            </button>
-        </form>
 
-        <p class="mt-4 text-center text-sm text-slate-500">
-            <a href="{{ route('portal.login', ['abandon' => '1']) }}" class="font-medium text-amber-700 hover:text-amber-800">Start over</a>
-        </p>
+            @if (session('portal_session_expired'))
+                <div class="portal-note-banner mt-4" role="alert">
+                    Your session expired. <a href="{{ route('portal.login', ['abandon' => 1]) }}" class="portal-link">Sign in again</a>.
+                </div>
+            @endif
+
+            <form method="post" action="{{ route('portal.login.otp.verify') }}" class="portal-auth-form">
+                @csrf
+                <div>
+                    <label for="code">One-time code</label>
+                    <input
+                        id="code"
+                        name="code"
+                        type="text"
+                        inputmode="numeric"
+                        pattern="[0-9]*"
+                        autocomplete="one-time-code"
+                        required
+                        autofocus
+                        maxlength="12"
+                        class="portal-auth-code"
+                        placeholder="123456"
+                    />
+                </div>
+                <div class="portal-auth-actions">
+                    <button type="submit" class="portal-btn-primary w-full">Continue</button>
+                </div>
+            </form>
+
+            <p class="mt-4 text-center text-sm text-slate-500">
+                <a href="{{ route('portal.login', ['abandon' => '1']) }}" class="portal-link">Start over</a>
+            </p>
+        </section>
+
+        <aside class="portal-auth-panel">
+            <div class="portal-auth-points">
+                <div class="portal-auth-point">
+                    <p class="portal-auth-point__title">Why this extra step?</p>
+                    <p class="portal-auth-point__body">The one-time code helps protect your account from password-only access and keeps billing and service data safer.</p>
+                </div>
+                <div class="portal-auth-point">
+                    <p class="portal-auth-point__title">Code not arriving?</p>
+                    <p class="portal-auth-point__body">Wait a moment, check spam or promotions, then restart sign-in if the code expires.</p>
+                </div>
+                <div class="portal-auth-point">
+                    <p class="portal-auth-point__title">Still blocked?</p>
+                    <p class="portal-auth-point__body">If your email is outdated or inaccessible, contact your provider so they can update your account details.</p>
+                </div>
+            </div>
+        </aside>
     </div>
 @endsection

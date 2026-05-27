@@ -196,7 +196,7 @@ class AppSetting extends Model
             return (int) $value;
         }
 
-        if (str_ends_with($key, '.reminders_days_before') || $key === 'billing.default_billing_day') {
+        if (str_ends_with($key, '.reminders_days_before') || $key === 'billing.default_billing_day' || $key === 'billing.payment_renewal_late_grace_days') {
             return (int) $value;
         }
 

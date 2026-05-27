@@ -9,6 +9,7 @@ use App\Services\Automation\AutomaticProcessScheduler;
 use App\Services\Branding\FaviconGenerator;
 use App\Support\CompanyBranding;
 use App\Support\IspTimezone;
+use App\Support\PaymentRenewalPolicy;
 use App\Support\SubscriberIdSettings;
 use App\Support\TenantResolver;
 use Filament\Forms\Components\Select;
@@ -95,6 +96,8 @@ class ManageCompanySetup extends Page
             'invoice_number_prefix' => (string) config('billing.invoice_number_prefix', 'INV'),
             'invoice_number_year_infix' => (bool) config('billing.invoice_number_year_infix', true),
             'default_billing_day' => \App\Support\BillingDefaults::billingDay(),
+            'payment_renewal_base' => PaymentRenewalPolicy::systemDefault(),
+            'payment_renewal_late_grace_days' => PaymentRenewalPolicy::lateGraceDays(),
             'subscriber_auto_generate_customer_code' => SubscriberIdSettings::autoGenerateEnabled(),
             'subscriber_code_format' => SubscriberIdSettings::codeFormat(),
             'subscriber_code_prefix' => SubscriberIdSettings::codePrefix(),
@@ -200,6 +203,29 @@ class ManageCompanySetup extends Page
                                             now($zone)->format('Y-m-d g:i A'),
                                         );
                                     }),
+                            ])
+                            ->columns(2),
+                        Section::make('Payment renew on collect')
+                            ->description('When a bill is fully paid, how Valid until is extended. Also: Billing → Payment renew rules.')
+                            ->schema([
+                                Select::make('payment_renewal_base')
+                                    ->label('Default renew rule (after full payment)')
+                                    ->options([
+                                        PaymentRenewalPolicy::SMART => 'Smart — grace period, then payment date',
+                                        PaymentRenewalPolicy::FROM_PAYMENT_DATE => 'Always from payment date',
+                                        PaymentRenewalPolicy::FROM_PREVIOUS_EXPIRY => 'Always from previous expire date',
+                                    ])
+                                    ->required()
+                                    ->native(false)
+                                    ->helperText('Smart: if paid within grace days after expire, renew from old expire date; otherwise from pay date.'),
+                                TextInput::make('payment_renewal_late_grace_days')
+                                    ->label('Late pay grace (days)')
+                                    ->numeric()
+                                    ->minValue(0)
+                                    ->maxValue(90)
+                                    ->required()
+                                    ->default(7)
+                                    ->helperText('Smart mode only — e.g. 5 = expire er 5 din porjonto pay korle ager expire date theke renew.'),
                             ])
                             ->columns(2),
                         Section::make('Monthly billing')
@@ -368,6 +394,14 @@ class ManageCompanySetup extends Page
         AppSetting::putValue(
             'billing.default_billing_day',
             (string) max(1, min(28, (int) ($state['default_billing_day'] ?? 1))),
+        );
+        AppSetting::putValue(
+            'billing.payment_renewal_base',
+            PaymentRenewalPolicy::normalize((string) ($state['payment_renewal_base'] ?? PaymentRenewalPolicy::SMART)),
+        );
+        AppSetting::putValue(
+            'billing.payment_renewal_late_grace_days',
+            (string) max(0, min(90, (int) ($state['payment_renewal_late_grace_days'] ?? 7))),
         );
 
         AppSetting::putValue(

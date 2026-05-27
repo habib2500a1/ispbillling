@@ -8,6 +8,8 @@
     $onu = $dash['onu'] ?? [];
     $bill = $dash['billing'] ?? [];
     $pkg = $dash['package'] ?? null;
+    $notificationSummary = $notificationSummary ?? [];
+    $notificationFeed = collect($notificationFeed ?? []);
     $onuColor = match ($onu['color'] ?? 'gray') {
         'success' => 'emerald',
         'warning' => 'amber',
@@ -18,6 +20,11 @@
 @endphp
 
 @section('content')
+    <div
+        id="dashboard-live-panel"
+        data-live-url="{{ route('portal.dashboard.live') }}"
+        data-poll-ms="{{ (int) config('portal.poll_seconds', 5) * 1000 }}"
+        data-dash='@json($dash)'>
     <div class="portal-dash-hero">
         <div>
             <h1 class="portal-dash-hero__title">Hello, {{ $customer->name }}</h1>
@@ -32,6 +39,35 @@
     <x-portal-marquee :items="$portalMarquee ?? collect()" variant="portal" />
     <x-portal-notices-banner :notices="$portalNotices ?? collect()" variant="portal" />
 
+    <div class="portal-kpi-grid portal-kpi-grid--4">
+        <article class="portal-summary-card {{ ($notificationSummary['action_required'] ?? 0) > 0 ? 'portal-summary-card--due' : 'portal-summary-card--ok' }}">
+            <p class="portal-summary-card__eyebrow">Action required</p>
+            <p class="portal-summary-card__value">{{ $notificationSummary['action_required'] ?? 0 }}</p>
+            <p class="portal-summary-card__meta">Bills, outages, signal, or expiry alerts that need attention.</p>
+        </article>
+        <article class="portal-summary-card {{ ! empty($bill['has_due']) ? 'portal-summary-card--warn' : 'portal-summary-card--ok' }}">
+            <p class="portal-summary-card__eyebrow">Current balance</p>
+            <p class="portal-summary-card__value">{{ number_format($bill['total_due'] ?? 0, 2) }} BDT</p>
+            <p class="portal-summary-card__meta">{{ ! empty($bill['has_due']) ? ($bill['next_invoice_label'] ?? 'Payment pending') : 'No unpaid invoice right now.' }}</p>
+        </article>
+        <article class="portal-summary-card portal-summary-card--info">
+            <p class="portal-summary-card__eyebrow">Monthly transfer</p>
+            <p class="portal-summary-card__value">{{ \App\Models\BandwidthUsageDaily::formatBytes(($traffic['month_download'] ?? 0) + ($traffic['month_upload'] ?? 0)) }}</p>
+            <p class="portal-summary-card__meta">Down {{ \App\Models\BandwidthUsageDaily::formatBytes($traffic['month_download'] ?? 0) }} · Up {{ \App\Models\BandwidthUsageDaily::formatBytes($traffic['month_upload'] ?? 0) }}</p>
+        </article>
+        <article class="portal-summary-card {{ $pkg && ! empty($pkg['expires_at']) ? 'portal-summary-card--info' : 'portal-summary-card--warn' }}">
+            <p class="portal-summary-card__eyebrow">Package</p>
+            <p class="portal-summary-card__value">{{ $pkg['name'] ?? 'Not assigned' }}</p>
+            <p class="portal-summary-card__meta">
+                @if ($pkg)
+                    {{ $pkg['download_mbps'] }} Mbps @if(! empty($pkg['upload_mbps'])) / {{ $pkg['upload_mbps'] }} Mbps @endif · Expires {{ $pkg['expires_at'] ?? '—' }}
+                @else
+                    Contact support if your active package is missing.
+                @endif
+            </p>
+        </article>
+    </div>
+
     @if (($movieServers ?? collect())->isNotEmpty())
         <div style="margin-top: 1.25rem;">
             <x-movie-servers-showcase :servers="$movieServers" variant="portal" />
@@ -39,9 +75,9 @@
     @endif
 
     @if ($outages->isNotEmpty())
-        <div class="portal-panel" style="margin-top: 1rem; border-color: rgba(245, 158, 11, 0.4); background: rgba(254, 243, 199, 0.15);">
+        <div class="portal-panel portal-panel--warning">
             <p class="portal-panel__title">Area notices</p>
-            <ul class="portal-pro-card__meta" style="margin-top: 0.5rem; list-style: disc; padding-left: 1.25rem;">
+            <ul class="portal-list-compact portal-pro-card__meta">
                 @foreach ($outages as $o)
                     <li>{{ $o->title }}</li>
                 @endforeach
@@ -127,7 +163,15 @@
             </header>
             <p id="stat-due" class="portal-pro-card__value portal-pro-value-due">{{ number_format($bill['total_due'] ?? 0, 0) }} BDT</p>
             <p class="portal-pro-card__meta">Due date: <span id="stat-due-date">{{ $bill['next_due_date'] ?? '—' }}</span></p>
-            <a href="{{ route('portal.bills.index') }}" class="portal-btn-primary portal-pro-card__link" style="color: #fff; margin-top: 0.85rem;">Pay bill</a>
+            @if (! empty($bill['has_due']))
+                @if (! empty($bill['next_invoice_label']))
+                    <p class="portal-pro-card__meta">{{ $bill['next_invoice_label'] }}</p>
+                @endif
+                <a href="{{ route('portal.bills.index') }}" class="portal-btn-primary portal-pro-card__link" style="color: #fff; margin-top: 0.85rem;">{{ $bill['cta_label'] ?? 'Pay bill' }}</a>
+            @else
+                <p class="portal-pro-card__meta" style="color: #059669; font-weight: 700;">No unpaid invoice right now.</p>
+                <a href="{{ route('portal.bills.index') }}" class="portal-pro-card__link" style="margin-top: 0.85rem;">{{ $bill['cta_label'] ?? 'View bills' }} →</a>
+            @endif
         </article>
 
         <article class="portal-pro-card portal-pro-card--wallet">
@@ -158,13 +202,13 @@
                 </div>
             </header>
             <div class="portal-pro-card__actions">
-                <a href="{{ route('portal.speed-test.index') }}" class="portal-pro-chip" style="background: rgba(79, 70, 229, 0.12); color: #4338ca;">Speed test</a>
-                <a href="{{ route('portal.tickets.create') }}" class="portal-pro-chip" style="background: rgba(245, 158, 11, 0.15); color: #b45309;">Support</a>
-                <a href="{{ route('portal.notifications.index') }}" class="portal-pro-chip" style="background: rgba(124, 58, 237, 0.12); color: #6d28d9;">
+                <a href="{{ route('portal.speed-test.index') }}" class="portal-pro-chip portal-pro-chip--indigo">Speed test</a>
+                <a href="{{ route('portal.tickets.create') }}" class="portal-pro-chip portal-pro-chip--amber">Support</a>
+                <a href="{{ route('portal.notifications.index') }}" class="portal-pro-chip portal-pro-chip--violet">
                     Alerts @if(($dash['notifications_count'] ?? 0) > 0)({{ $dash['notifications_count'] }})@endif
                 </a>
                 @if (config('portal.whatsapp_url'))
-                    <a href="{{ config('portal.whatsapp_url') }}" target="_blank" rel="noopener" class="portal-pro-chip" style="background: rgba(16, 185, 129, 0.15); color: #047857;">WhatsApp</a>
+                    <a href="{{ config('portal.whatsapp_url') }}" target="_blank" rel="noopener" class="portal-pro-chip portal-pro-chip--emerald">WhatsApp</a>
                 @endif
             </div>
         </article>
@@ -173,6 +217,33 @@
     <div class="portal-panel">
         <h2 class="portal-panel__title">Live bandwidth (12h)</h2>
         <canvas id="dash-chart" style="margin-top: 0.85rem; width: 100%; height: 10rem;" height="140"></canvas>
+    </div>
+
+    <div class="portal-panel">
+        <div class="portal-panel__head">
+            <h2 class="portal-panel__title">Recent alerts</h2>
+            <a href="{{ route('portal.notifications.index') }}" class="portal-pro-card__link" style="margin: 0;">Open alerts →</a>
+        </div>
+        <div class="portal-alert-feed">
+            @forelse ($notificationFeed as $item)
+                <article class="portal-alert-card portal-alert-card--{{ $item['severity'] }}">
+                    <div class="portal-alert-card__head">
+                        <div>
+                            <h3 class="portal-alert-card__title">{{ $item['title'] }}</h3>
+                            <p class="portal-alert-card__body">{{ $item['message'] }}</p>
+                        </div>
+                        <span class="portal-alert-card__time">{{ \Carbon\Carbon::parse($item['at'])->diffForHumans() }}</span>
+                    </div>
+                    <div class="portal-alert-card__meta">
+                        <span class="portal-status-pill portal-status-pill--{{ $item['severity'] === 'danger' ? 'danger' : ($item['severity'] === 'warning' ? 'warning' : ($item['severity'] === 'success' ? 'success' : 'muted')) }}">
+                            {{ \Illuminate\Support\Str::headline($item['type']) }}
+                        </span>
+                    </div>
+                </article>
+            @empty
+                <p class="portal-empty-state">No alerts right now. Billing, outage, payment, and optical updates will appear here.</p>
+            @endforelse
+        </div>
     </div>
 
     <div class="portal-panel">
@@ -191,10 +262,13 @@
                 </thead>
                 <tbody>
                     @forelse ($recentInvoices as $inv)
-                        @php $due = round((float) $inv->total - (float) $inv->amount_paid, 2); @endphp
+                        @php
+                            $due = round((float) $inv->total - (float) $inv->amount_paid, 2);
+                            $dueClass = $due > 0 ? 'portal-amount-due' : 'portal-amount-ok';
+                        @endphp
                         <tr>
                             <td><a href="{{ route('portal.invoices.show', $inv) }}" class="portal-link">{{ $inv->invoice_number }}</a></td>
-                            <td style="text-align: right; font-weight: 700; color: {{ $due > 0 ? '#e11d48' : '#059669' }};">{{ number_format($due, 2) }}</td>
+                            <td class="{{ $dueClass }}" style="text-align: right;">{{ number_format($due, 2) }}</td>
                             <td><span class="portal-status-pill">{{ $inv->status }}</span></td>
                         </tr>
                     @empty
@@ -208,8 +282,10 @@
     @push('scripts')
         <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
         <script>
-            const pollMs = {{ (int) config('portal.poll_seconds', 5) * 1000 }};
-            let dash = @json($dash);
+            const dashboardPanel = document.getElementById('dashboard-live-panel');
+            const pollMs = Number(dashboardPanel.dataset.pollMs || 5000);
+            const liveUrl = dashboardPanel.dataset.liveUrl;
+            let dash = JSON.parse(dashboardPanel.dataset.dash || '{}');
             const ctx = document.getElementById('dash-chart');
             const chart = new Chart(ctx, {
                 type: 'line',
@@ -233,7 +309,7 @@
 
             async function refresh() {
                 try {
-                    const res = await fetch(@json(route('portal.dashboard.live')), { headers: { 'Accept': 'application/json' }, credentials: 'same-origin' });
+                    const res = await fetch(liveUrl, { headers: { 'Accept': 'application/json' }, credentials: 'same-origin' });
                     if (!res.ok) return;
                     dash = await res.json();
                     const c = dash.connection, t = dash.traffic, o = dash.onu, b = dash.billing;
@@ -267,4 +343,5 @@
             setInterval(refresh, pollMs);
         </script>
     @endpush
+    </div>
 @endsection

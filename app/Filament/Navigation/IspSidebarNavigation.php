@@ -27,6 +27,7 @@ use App\Support\ResellerSidebarRegistry;
 use App\Support\SettingsSidebarRegistry;
 use App\Support\SmsSidebarRegistry;
 use App\Support\SupportSidebarRegistry;
+use App\Support\SuperadminQuickSidebarRegistry;
 use App\Support\SystemSidebarRegistry;
 use Filament\Events\ServingFilament;
 use Filament\Facades\Filament;
@@ -34,6 +35,7 @@ use Filament\Navigation\NavigationGroup;
 use Filament\Navigation\NavigationItem;
 use Filament\Panel;
 use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Auth;
 use ReflectionClass;
 
 /**
@@ -44,7 +46,7 @@ final class IspSidebarNavigation
     public static function register(): void
     {
         Event::listen(ServingFilament::class, function (): void {
-            if (! auth()->check()) {
+            if (! Auth::check()) {
                 return;
             }
 
@@ -62,7 +64,7 @@ final class IspSidebarNavigation
 
         // Runs after any legacy listeners that still register Inventory Pro links.
         Filament::serving(function (): void {
-            if (! auth()->check()) {
+            if (! Auth::check()) {
                 return;
             }
 
@@ -297,6 +299,7 @@ final class IspSidebarNavigation
     {
         $merged = [];
 
+        static::appendIf($merged, SuperadminQuickSidebarRegistry::hasVisibleEntries(), SuperadminQuickSidebarRegistry::navigationItems());
         static::appendIf($merged, ClientsSidebarNavigation::userCanSee(), ClientsSidebarRegistry::navigationItems());
         static::appendIf($merged, BillingSidebarNavigation::userCanSee(), BillingSidebarRegistry::navigationItems());
         static::appendIf($merged, InventorySidebarRegistry::hasVisibleEntries(), InventorySidebarRegistry::navigationItems());

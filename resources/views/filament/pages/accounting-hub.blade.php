@@ -57,7 +57,10 @@
                     <span>Income {{ number_format($stats['month_income'], 0) }} BDT</span>
                 </div>
                 <div class="mt-2 flex h-3 overflow-hidden rounded-full bg-white/15">
-                    <div class="h-full rounded-l-full bg-gradient-to-r from-emerald-300 to-teal-400" style="width: {{ $stats['income_pct'] }}%"></div>
+                    <div
+                        class="h-full rounded-l-full bg-gradient-to-r from-emerald-300 to-teal-400"
+                        @style(['width: '.$stats['income_pct'].'%'])
+                    ></div>
                     <div class="h-full flex-1 rounded-r-full bg-gradient-to-r from-rose-400 to-orange-400"></div>
                 </div>
                 <p class="mt-2 text-xs text-white/70">Collections (linked payments): {{ number_format($stats['collections'], 0) }} BDT</p>
@@ -130,6 +133,7 @@
                     <h3 class="text-base font-bold text-gray-900 dark:text-white">Quick actions</h3>
                     <p class="mt-0.5 text-sm text-gray-500 dark:text-gray-400">One tap for daily finance tasks</p>
                 </div>
+                <span class="isp-hub-section__meta">{{ count($quickActions) }} actions</span>
             </div>
             <div class="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
                 @foreach ($quickActions as $action)

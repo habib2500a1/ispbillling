@@ -150,7 +150,8 @@ final class SubscriberOpticalPowerPresenter
     private function rowUnlinked(Device $onu, int $index): array
     {
         $meta = is_array($onu->meta) ? $onu->meta : [];
-        $guestCustomer = $this->customerFromOnuDescription($onu, $meta);
+        $guestCustomer = CustomerOnuMatcher::matchCustomerForOnuDevice((int) $onu->tenant_id, $onu);
+        
         if ($guestCustomer !== null && ! $guestCustomer->relationLoaded('activePppSession')) {
             $guestCustomer->load('activePppSession');
         }
@@ -244,7 +245,7 @@ final class SubscriberOpticalPowerPresenter
             'onu_id' => $onu->id,
             'customer_id' => $customer->id,
             'client_code' => $customer->customer_code ?: (string) $customer->id,
-            'username' => $customer->mikrotik_secret_name ?: $customer->radius_username ?: '—',
+            'username' => $customer->pppLoginName() ?: '—',
             'client_name' => $customer->name,
             'mac_address' => $clientMac ? (MacAddress::normalizeColon($clientMac) ?? $clientMac) : '—',
             'ip_address' => $ip ?: '—',

@@ -4,9 +4,12 @@ namespace App\Support;
 
 use App\Filament\Pages\ManageAppSettings;
 use App\Filament\Pages\ManagePlatformBackups;
+use App\Filament\Pages\ManageStaffSecurity;
 use App\Filament\Pages\PermissionMatrix;
 use App\Filament\Pages\SecurityDashboard;
 use App\Filament\Pages\StaffControlHub;
+use App\Filament\Pages\TwoFactorSetup;
+use App\Filament\Pages\MobileAppsHub;
 use App\Filament\Resources\ActivityLogResource;
 use App\Filament\Resources\AutomaticProcessResource;
 use App\Filament\Resources\RoleResource;
@@ -22,6 +25,14 @@ final class SystemSidebarRegistry
     public static function definitions(): array
     {
         return [
+            [
+                'key' => 'staff_control',
+                'label' => 'Staff control',
+                'icon' => 'heroicon-o-users',
+                'sort' => 0,
+                'url' => StaffControlHub::getUrl(),
+                'active_routes' => ['filament.admin.pages.staff-control-hub'],
+            ],
             [
                 'key' => 'users',
                 'label' => 'Users',
@@ -98,6 +109,30 @@ final class SystemSidebarRegistry
                 ],
             ],
             [
+                'key' => 'staff_security',
+                'label' => 'Staff security',
+                'icon' => 'heroicon-o-lock-closed',
+                'sort' => 8.5,
+                'url' => ManageStaffSecurity::getUrl(),
+                'active_routes' => ['filament.admin.pages.manage-staff-security'],
+            ],
+            [
+                'key' => 'two_factor',
+                'label' => 'Two-factor setup',
+                'icon' => 'heroicon-o-device-phone-mobile',
+                'sort' => 8.6,
+                'url' => TwoFactorSetup::getUrl(),
+                'active_routes' => ['filament.admin.pages.two-factor-setup'],
+            ],
+            [
+                'key' => 'mobile_apps',
+                'label' => 'Mobile apps',
+                'icon' => 'heroicon-o-device-phone-mobile',
+                'sort' => 8.7,
+                'url' => MobileAppsHub::getUrl(),
+                'active_routes' => ['filament.admin.pages.mobile-apps-hub'],
+            ],
+            [
                 'key' => 'security',
                 'label' => 'Security dashboard',
                 'icon' => 'heroicon-o-lock-closed',
@@ -157,6 +192,7 @@ final class SystemSidebarRegistry
     public static function canSeeEntry(string $key): bool
     {
         return match ($key) {
+            'staff_control' => StaffControlHub::canAccess(),
             'users' => UserResource::canViewAny(),
             'roles' => RoleResource::canViewAny(),
             'permissions' => PermissionMatrix::canAccess(),
@@ -165,6 +201,9 @@ final class SystemSidebarRegistry
             'backups-google' => ManagePlatformBackups::canAccess(),
             'integrations' => ManageAppSettings::canAccess(),
             'automatic' => AutomaticProcessResource::canViewAny(),
+            'staff_security' => ManageStaffSecurity::canAccess(),
+            'two_factor' => TwoFactorSetup::canAccess(),
+            'mobile_apps' => MobileAppsHub::canAccess(),
             'security' => SecurityDashboard::canAccess(),
             default => false,
         };

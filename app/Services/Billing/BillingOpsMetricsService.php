@@ -38,8 +38,13 @@ final class BillingOpsMetricsService
             ->where('tenant_id', $tenantId)
             ->whereNotNull('credit_limit')
             ->where('credit_limit', '>', 0)
-            ->get()
-            ->filter(fn (Customer $c): bool => app(CustomerCreditLimitService::class)->isOverCreditLimit($c))
+            ->whereRaw('(
+                SELECT COALESCE(SUM(invoices.total - invoices.amount_paid), 0)
+                FROM invoices
+                WHERE invoices.customer_id = customers.id
+                  AND invoices.tenant_id = customers.tenant_id
+                  AND invoices.status NOT IN (\'paid\', \'void\', \'cancelled\', \'draft\')
+            ) > customers.credit_limit')
             ->count();
 
         $prepaidExpiring = Customer::query()

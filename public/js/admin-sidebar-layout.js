@@ -3,6 +3,8 @@
  * Loads at end of body so Alpine + Filament sidebar store exist.
  */
 (function () {
+    let accordionClickBound = false;
+
     const OPEN_GROUP_KEY = 'isp-sidebar-open-group';
     const COLLAPSED_STORAGE_KEY = 'collapsedGroups';
 
@@ -27,14 +29,12 @@
     ];
 
     function groupsRoot() {
-        return document.querySelector('.fi-main-sidebar .fi-sidebar-nav-groups');
+        return document.querySelector('.fi-sidebar .fi-sidebar-nav-groups, .fi-main-sidebar .fi-sidebar-nav-groups');
     }
 
     function removeRetiredSidebarGroups() {
         const root = groupsRoot();
-        if (!root) {
-            return;
-        }
+        if (!root) return;
 
         mergeLegacyOltSidebarGroup(root);
         moveOltLinksOutOfInventoryPro(root);
@@ -134,7 +134,7 @@
     }
 
     function activeGroupLabel() {
-        const item = document.querySelector('.fi-main-sidebar .fi-sidebar-item.fi-active');
+        const item = document.querySelector('.fi-sidebar .fi-sidebar-item.fi-active, .fi-main-sidebar .fi-sidebar-item.fi-active');
 
         return item?.closest('.fi-sidebar-group[data-group-label]')?.dataset?.groupLabel ?? null;
     }
@@ -189,7 +189,7 @@
     }
 
     function applyDomState(openLabel) {
-        document.querySelectorAll('.fi-main-sidebar .fi-sidebar-group[data-group-label]').forEach((group) => {
+        document.querySelectorAll('.fi-sidebar .fi-sidebar-group[data-group-label], .fi-main-sidebar .fi-sidebar-group[data-group-label]').forEach((group) => {
             const label = group.dataset.groupLabel;
             const open = Boolean(openLabel && label === openLabel);
             const items = group.querySelector('.fi-sidebar-group-items');
@@ -351,10 +351,28 @@
     }
 
     function scrollActiveItemIntoView() {
-        const item = document.querySelector('.fi-main-sidebar .fi-sidebar-item.fi-active');
-        if (item && typeof item.scrollIntoView === 'function') {
-            item.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+        const item = document.querySelector('.fi-sidebar .fi-sidebar-item.fi-active, .fi-main-sidebar .fi-sidebar-item.fi-active');
+        const scroller = document.querySelector('.fi-sidebar .fi-sidebar-nav-groups, .fi-main-sidebar .fi-sidebar-nav-groups');
+        if (!item || typeof item.scrollIntoView !== 'function') {
+            return;
         }
+
+        const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        const behavior = reduceMotion ? 'auto' : 'smooth';
+
+        if (scroller && typeof scroller.scrollTo === 'function') {
+            const itemRect = item.getBoundingClientRect();
+            const boxRect = scroller.getBoundingClientRect();
+            const delta = itemRect.top - boxRect.top - (boxRect.height / 2) + itemRect.height / 2;
+            scroller.scrollTo({
+                top: scroller.scrollTop + delta,
+                behavior,
+            });
+
+            return;
+        }
+
+        item.scrollIntoView({ block: 'nearest', behavior });
     }
 
     function applyAccordion(preferred) {
@@ -387,11 +405,11 @@
 
     function bindClicks() {
         const root = groupsRoot();
-        if (!root || root.__ispAccordionClick) {
+        if (!root || accordionClickBound) {
             return;
         }
 
-        root.__ispAccordionClick = true;
+        accordionClickBound = true;
 
         root.addEventListener(
             'click',
@@ -456,6 +474,10 @@
     document.addEventListener('livewire:navigated', () => {
         window.setTimeout(() => waitForSidebar(0), 50);
     });
+
+    window.__ispSidebarRestoreAccordion = function () {
+        applyAccordion(preferredOpenLabel());
+    };
 
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', () => waitForSidebar(0));

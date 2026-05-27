@@ -39,15 +39,23 @@ class ResellerAuthController extends Controller
 
         $devices->recordLogin($reseller, $request);
 
-        $token = $reseller->createToken($data['device_name'] ?? 'reseller-api', ['reseller'])->plainTextToken;
+        $issuedAt = now();
+        $abilities = ['reseller'];
+        $token = $reseller->createToken($data['device_name'] ?? 'reseller-api', $abilities)->plainTextToken;
 
         return response()->json([
             'token' => $token,
             'token_type' => 'Bearer',
+            'auth_mode' => 'sanctum',
+            'guard' => 'reseller',
+            'issued_at' => $issuedAt->toIso8601String(),
+            'expires_at' => null,
+            'abilities' => $abilities,
             'reseller' => [
                 'id' => $reseller->id,
                 'code' => $reseller->code,
                 'name' => $reseller->name,
+                'tenant_id' => $reseller->tenant_id,
                 'permissions' => $reseller->portalPermissions(),
             ],
         ]);

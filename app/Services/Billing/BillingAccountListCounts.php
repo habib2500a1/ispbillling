@@ -15,14 +15,14 @@ final class BillingAccountListCounts
      */
     public function all(): array
     {
-        $tenantId = TenantResolver::currentTenantId() ?? 0;
+        $tenantId = TenantResolver::requiredTenantId();
         $today = now()->toDateString();
 
         return Cache::remember(
             "billing_account_list_counts:{$tenantId}:{$today}",
             60,
-            function () use ($today): array {
-                $base = Customer::query();
+            function () use ($today, $tenantId): array {
+                $base = Customer::query()->where('tenant_id', $tenantId);
                 $notTerminated = fn () => (clone $base)->where('status', '!=', CustomerStatus::TERMINATED);
 
                 return [

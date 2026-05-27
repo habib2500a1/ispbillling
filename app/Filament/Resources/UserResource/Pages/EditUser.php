@@ -49,4 +49,11 @@ class EditUser extends EditRecord
     {
         return UserResource::getUrl('index');
     }
+
+    protected function getHeaderActions(): array
+    {
+        return [
+            \Filament\Actions\DeleteAction::make(),
+        ];
+    }
 }

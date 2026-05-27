@@ -1,59 +1,82 @@
 @php
     $stats = $this->getStats();
     $base = url('/api/v1');
+    $statCards = [
+        ['label' => 'FCM status', 'value' => $stats['fcm_enabled'] ? 'Enabled' : 'Disabled', 'hint' => 'Push notification transport', 'class' => $stats['fcm_enabled'] ? 'isp-hub-stat--emerald' : 'isp-hub-stat--amber'],
+        ['label' => 'Customer devices', 'value' => (string) $stats['customer_devices'], 'hint' => 'Registered app devices', 'class' => 'isp-hub-stat--cyan'],
+        ['label' => 'Technician devices', 'value' => (string) $stats['technician_devices'], 'hint' => 'Field app devices', 'class' => 'isp-hub-stat--violet'],
+        ['label' => 'bKash', 'value' => $stats['bkash_enabled'] ? 'Enabled' : 'Disabled', 'hint' => 'Payment handoff for app', 'class' => $stats['bkash_enabled'] ? 'isp-hub-stat--teal' : 'isp-hub-stat--slate'],
+    ];
+    $apiCards = [
+        ['tone' => 'violet', 'title' => 'Customer app API', 'base' => $base.'/customer', 'routes' => ['POST /login', 'GET /dashboard', 'GET /bills · GET /bills/{id}', 'POST /bills/{id}/pay -> bKash URL', 'GET /usage/live', 'GET|POST /tickets', 'POST /devices (FCM token)']],
+        ['tone' => 'emerald', 'title' => 'Technician app API', 'base' => $base, 'routes' => ['POST /auth/login', 'GET /technician/field-visits', 'PATCH /technician/field-visits/{id}', 'POST /technician/devices']],
+    ];
 @endphp
 
 <x-filament-panels::page>
-    <div class="space-y-6">
-        <div class="rounded-2xl border border-cyan-200 bg-gradient-to-br from-cyan-50 via-white to-violet-50/50 p-6 shadow-sm dark:border-cyan-900/40 dark:from-cyan-950/40 dark:via-gray-900">
-            <h2 class="text-xl font-semibold text-gray-900 dark:text-white">Mobile app features</h2>
-            <p class="mt-2 max-w-3xl text-sm text-gray-600 dark:text-gray-400">
-                REST API for customer app & technician app — push notifications, bill payment (bKash), live usage monitor.
-            </p>
-            <div class="mt-4 flex flex-wrap gap-2 text-xs">
-                <span class="rounded-full px-3 py-1 font-semibold {{ $stats['fcm_enabled'] ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800' }}">
-                    FCM {{ $stats['fcm_enabled'] ? 'enabled' : 'disabled' }}
-                </span>
-                <span class="rounded-full bg-white px-3 py-1 font-semibold shadow-sm dark:bg-gray-800">
-                    {{ $stats['customer_devices'] }} customer devices · {{ $stats['technician_devices'] }} technician devices
-                </span>
+    <div class="isp-hub-page space-y-6">
+        <x-isp.hub-hero
+            eyebrow="Mobile platform"
+            title="Mobile app features"
+            description="REST APIs for customer and technician apps with push notifications, bill payment, and live usage monitoring."
+            class="isp-hub-hero--cyan"
+        >
+            <div class="isp-hub-toolbar">
+                <div class="isp-hub-toolbar__meta">
+                    <span class="isp-hub-results">{{ $stats['customer_devices'] }} customer devices</span>
+                    <span class="isp-hub-section__meta">{{ $stats['technician_devices'] }} technician devices</span>
+                </div>
             </div>
-        </div>
+        </x-isp.hub-hero>
 
-        <div class="grid gap-4 md:grid-cols-2">
-            <div class="rounded-xl border border-violet-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-900">
-                <h3 class="text-lg font-bold text-violet-700">Customer app API</h3>
-                <p class="mt-1 text-sm text-gray-500">Base: <code class="text-xs">{{ $base }}/customer</code></p>
-                <ul class="mt-4 space-y-2 font-mono text-xs text-slate-700 dark:text-slate-300">
-                    <li>POST /login</li>
-                    <li>GET /dashboard</li>
-                    <li>GET /bills · GET /bills/{id}</li>
-                    <li>POST /bills/{id}/pay → bKash URL</li>
-                    <li>GET /usage/live</li>
-                    <li>GET|POST /tickets</li>
-                    <li>POST /devices (FCM token)</li>
-                </ul>
-            </div>
-            <div class="rounded-xl border border-emerald-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-900">
-                <h3 class="text-lg font-bold text-emerald-700">Technician app API</h3>
-                <p class="mt-1 text-sm text-gray-500">Base: <code class="text-xs">{{ $base }}</code></p>
-                <ul class="mt-4 space-y-2 font-mono text-xs text-slate-700 dark:text-slate-300">
-                    <li>POST /auth/login</li>
-                    <li>GET /technician/field-visits</li>
-                    <li>PATCH /technician/field-visits/{id}</li>
-                    <li>POST /technician/devices</li>
-                </ul>
-            </div>
-        </div>
+        <x-isp.hub-stat-grid :stats="$statCards" />
 
-        <div class="rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-900">
-            <h3 class="font-semibold text-gray-900 dark:text-white">Environment</h3>
-            <dl class="mt-3 grid gap-2 text-sm sm:grid-cols-2">
-                <div><dt class="text-gray-500">FCM_ENABLED</dt><dd class="font-mono">{{ $stats['fcm_enabled'] ? 'true' : 'false' }}</dd></div>
-                <div><dt class="text-gray-500">BKASH_ENABLED</dt><dd class="font-mono">{{ $stats['bkash_enabled'] ? 'true' : 'false' }}</dd></div>
-                <div><dt class="text-gray-500">FCM_SERVER_KEY</dt><dd class="font-mono">{{ config('mobile.fcm_server_key') ? '•••• set' : 'not set' }}</dd></div>
-            </dl>
-            <p class="mt-4 text-xs text-gray-500">Use Authorization: Bearer {token} on all authenticated routes. Customer tokens expire in {{ config('mobile.customer_token_expiry_days') }} days.</p>
-        </div>
+        <section class="isp-hub-section">
+            <div class="isp-hub-section__head">
+                <div>
+                    <h2 class="isp-hub-section__title">API surfaces</h2>
+                    <p class="isp-hub-section__desc">Key mobile API namespaces used by customer and technician apps.</p>
+                </div>
+                <span class="isp-hub-section__meta">Bearer auth</span>
+            </div>
+            <div class="grid gap-4 md:grid-cols-2">
+                @foreach ($apiCards as $card)
+                    <div class="isp-ops-panel">
+                        <div class="isp-ops-panel__head">
+                            <div>
+                                <h3 class="isp-ops-panel__title">{{ $card['title'] }}</h3>
+                                <p class="isp-ops-panel__desc">Base: <code class="text-xs">{{ $card['base'] }}</code></p>
+                            </div>
+                            <span class="isp-ops-pill isp-ops-pill--ok">{{ ucfirst($card['tone']) }}</span>
+                        </div>
+                        <div class="isp-ops-list">
+                            @foreach ($card['routes'] as $route)
+                                <div class="isp-ops-list__item">
+                                    <div class="isp-ops-list__primary">
+                                        <p class="isp-ops-list__title"><code class="text-xs">{{ $route }}</code></p>
+                                    </div>
+                                </div>
+                            @endforeach
+                        </div>
+                    </div>
+                @endforeach
+            </div>
+        </section>
+
+        <section class="isp-ops-panel">
+            <div class="isp-ops-panel__head">
+                <div>
+                    <h3 class="isp-ops-panel__title">Environment</h3>
+                    <p class="isp-ops-panel__desc">Runtime readiness for mobile notifications and payment handoff.</p>
+                </div>
+                <span class="isp-ops-pill {{ $stats['fcm_enabled'] ? 'isp-ops-pill--ok' : 'isp-ops-pill--warn' }}">{{ $stats['fcm_enabled'] ? 'FCM ready' : 'FCM pending' }}</span>
+            </div>
+            <div class="isp-ops-list">
+                <div class="isp-ops-list__item"><div class="isp-ops-list__primary"><p class="isp-ops-list__title">FCM_ENABLED</p><p class="isp-ops-list__meta font-mono">{{ $stats['fcm_enabled'] ? 'true' : 'false' }}</p></div></div>
+                <div class="isp-ops-list__item"><div class="isp-ops-list__primary"><p class="isp-ops-list__title">BKASH_ENABLED</p><p class="isp-ops-list__meta font-mono">{{ $stats['bkash_enabled'] ? 'true' : 'false' }}</p></div></div>
+                <div class="isp-ops-list__item"><div class="isp-ops-list__primary"><p class="isp-ops-list__title">FCM_SERVER_KEY</p><p class="isp-ops-list__meta font-mono">{{ config('mobile.fcm_server_key') ? 'set' : 'not set' }}</p></div></div>
+                <div class="isp-ops-list__item"><div class="isp-ops-list__primary"><p class="isp-ops-list__title">Auth tokens</p><p class="isp-ops-list__meta">Use Authorization: Bearer {token}. Customer tokens expire in {{ config('mobile.customer_token_expiry_days') }} days.</p></div></div>
+            </div>
+        </section>
     </div>
 </x-filament-panels::page>

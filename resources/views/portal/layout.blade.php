@@ -7,17 +7,10 @@
     <meta name="theme-color" content="#312e81">
     <title>@yield('title', __('portal.customer_portal')) — {{ $companyName ?? config('app.name') }}</title>
     @include('partials.site-favicon')
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
-    @if (file_exists(public_path('build/manifest.json')) || file_exists(public_path('hot')))
-        @vite(['resources/css/app.css', 'resources/css/portal.css', 'resources/js/app.js'])
-    @endif
-    <link rel="stylesheet" href="{{ asset('css/portal.css') }}?v=9">
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = { corePlugins: { preflight: false } };
-    </script>
+    <link rel="stylesheet" href="{{ asset('css/portal.css') }}?v=12">
+    @include('partials.isp-premium-theme')
+    <link rel="stylesheet" href="{{ asset('css/bill-payment.css') }}?v=5">
+    @livewireStyles
     <script src="{{ asset('js/portal-theme.js') }}?v=1"></script>
     @stack('head')
 </head>
@@ -129,6 +122,14 @@
 
         <div class="portal-card-shell">
             @yield('content')
+
+            @auth('customer')
+                @if (($movieServers ?? collect())->isNotEmpty() && ! request()->routeIs('portal.dashboard'))
+                    <div class="portal-media-strip">
+                        <x-movie-servers-showcase :servers="$movieServers" variant="portal" :compact="true" />
+                    </div>
+                @endif
+            @endauth
         </div>
     </main>
     @stack('scripts')
@@ -148,6 +149,23 @@
         }
         window.addEventListener('portal-theme-changed', portalThemeBtnLabel);
         portalThemeBtnLabel();
+
+        document.querySelectorAll('[data-copy-url]').forEach((btn) => {
+            btn.addEventListener('click', async (event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                const url = btn.getAttribute('data-copy-url');
+                if (!url) return;
+                try {
+                    await navigator.clipboard.writeText(url);
+                    const prev = btn.textContent;
+                    btn.textContent = 'Copied';
+                    setTimeout(() => { btn.textContent = prev; }, 1400);
+                } catch (_) {
+                    window.prompt('Copy server link:', url);
+                }
+            });
+        });
     </script>
 </body>
 </html>

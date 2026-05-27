@@ -43,13 +43,13 @@ class AdminPanelProvider extends PanelProvider
             ->favicon(fn (): ?string => CompanyBranding::faviconUrl())
             ->databaseNotificationsPolling('30s')
             ->colors([
-                'primary' => Color::Teal,
+                'primary' => Color::Violet,
                 'success' => Color::Emerald,
                 'warning' => Color::Amber,
                 'danger' => Color::Rose,
-                'info' => Color::Sky,
+                'info' => Color::Cyan,
             ])
-            ->font('ui-sans-serif, system-ui, sans-serif')
+            ->font('Outfit, ui-sans-serif, system-ui, sans-serif')
             ->darkMode(true)
             ->defaultThemeMode(ThemeMode::System)
             ->sidebarCollapsibleOnDesktop()
@@ -62,7 +62,7 @@ class AdminPanelProvider extends PanelProvider
             ->navigationGroups([
                 // No group icons: Filament strips item icons and draws a second tree rail (grouped-border),
                 // which duplicated our custom sidebar dots in admin-saas.css.
-                NavigationGroup::make('Overview')->collapsed(true),
+                NavigationGroup::make('Overview')->collapsed(false),
                 NavigationGroup::make('Clients')->collapsed(true),
                 NavigationGroup::make('Billing')->collapsed(true),
                 NavigationGroup::make('Payments')->collapsed(true),
@@ -142,11 +142,18 @@ class AdminPanelProvider extends PanelProvider
             )
             ->renderHook(
                 PanelsRenderHook::BODY_END,
-                fn (): string => view('filament.hooks.command-palette', [
-                    'commandItems' => AdminCommandPalette::items(),
-                ])->render()
-                    .'<script src="'.asset('js/admin-sidebar-layout.js').'?v=28" data-cfasync="false"></script>'
-                    .view('filament.hooks.mobile-dock')->render(),
+                function (): string {
+                    if (request()->routeIs('filament.admin.auth.*')) {
+                        return '';
+                    }
+
+                    return view('filament.hooks.command-palette', [
+                        'commandItems' => AdminCommandPalette::items(),
+                    ])->render()
+                        .'<script src="'.asset('js/admin-sidebar-layout.js').'?v='.(filemtime(public_path('js/admin-sidebar-layout.js')) ?: 1).'" data-cfasync="false"></script>'
+                        .'<script src="'.asset('js/mobile-sidebar-fix.js').'?v='.(filemtime(public_path('js/mobile-sidebar-fix.js')) ?: 1).'" data-cfasync="false"></script>'
+                        .view('filament.hooks.mobile-dock')->render();
+                },
             );
     }
 }

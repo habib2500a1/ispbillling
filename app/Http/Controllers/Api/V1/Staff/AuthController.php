@@ -34,6 +34,7 @@ class AuthController extends Controller
             return response()->json(['message' => 'Mobile access not allowed for this account.'], 403);
         }
 
+        $issuedAt = now();
         $expiresAt = now()->addDays((int) config('mobile.staff_token_expiry_days', 30));
         $abilities = ['staff'];
         if ($user->hasAnyRole($technicianRoles)) {
@@ -52,7 +53,11 @@ class AuthController extends Controller
         return response()->json([
             'token' => $token->plainTextToken,
             'token_type' => 'Bearer',
+            'auth_mode' => 'sanctum',
+            'guard' => 'web',
+            'issued_at' => $issuedAt->toIso8601String(),
             'expires_at' => $expiresAt->toIso8601String(),
+            'abilities' => $abilities,
             'user' => [
                 'id' => $user->id,
                 'name' => $user->name,

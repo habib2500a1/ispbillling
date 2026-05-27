@@ -63,12 +63,39 @@ final class PublicPaymentOrchestrator
         };
     }
 
+    public function startPrepayPayment(
+        Customer $customer,
+        float $amount,
+        int $months,
+        string $gateway,
+        string $returnTo = 'bill_payment',
+    ): RedirectResponse {
+        $gateway = strtolower(trim($gateway));
+        $months = max(1, $months);
+
+        $bkash = app(BkashPaymentController::class);
+
+        return match ($gateway) {
+            PaymentGateway::BKASH => PersonalMfsGateway::bkashPersonalEnabled()
+                ? $this->startPersonalMfs(PaymentGateway::BKASH, null, $customer, $amount, $returnTo, PaymentType::PREPAY, $months)
+                : $bkash->initiatePublicPrepay($customer, $amount, $months, $returnTo),
+            PaymentGateway::SSLCOMMERZ => $this->startSslCommerz(null, $customer, $amount, $returnTo, PaymentType::PREPAY, $months),
+            PaymentGateway::NAGAD => PersonalMfsGateway::nagadPersonalEnabled()
+                ? $this->startPersonalMfs(PaymentGateway::NAGAD, null, $customer, $amount, $returnTo, PaymentType::PREPAY, $months)
+                : $this->startNagad(null, $customer, $amount, $returnTo, PaymentType::PREPAY, $months),
+            PaymentGateway::ROCKET => $this->startRocket(null, $customer, $amount, $returnTo, PaymentType::PREPAY, $months),
+            PaymentGateway::PIPRAPAY => $this->startPipraPay(null, $customer, $amount, $returnTo, PaymentType::PREPAY, $months),
+            default => $this->fail(null, $returnTo, 'This payment method is not available for advance payment.'),
+        };
+    }
+
     private function startNagad(
         ?Invoice $invoice,
         ?Customer $customer,
         float $amount,
         string $returnTo,
         string $paymentType,
+        int $prepayMonths = 0,
     ): RedirectResponse {
         if (! config('nagad.enabled')) {
             return $this->fail($invoice, $returnTo, 'Nagad is disabled.');
@@ -81,14 +108,15 @@ final class PublicPaymentOrchestrator
         $amountStr = number_format(max(0.01, $amount), 2, '.', '');
         $orderId = PublicCheckoutSession::makeTranId((int) $customer->id, $invoice?->id);
 
-        PublicCheckoutSession::put($orderId, [
-            'invoice_id' => $invoice?->id,
-            'customer_id' => (int) $customer->id,
-            'amount' => $amountStr,
-            'return_to' => $returnTo,
-            'payment_type' => $paymentType,
-            'gateway' => PaymentGateway::NAGAD,
-        ]);
+        PublicCheckoutSession::put($orderId, $this->checkoutSessionPayload(
+            $customer,
+            $invoice,
+            $amountStr,
+            $returnTo,
+            $paymentType,
+            PaymentGateway::NAGAD,
+            $prepayMonths,
+        ));
 
         try {
             $checkout = NagadCheckoutService::fromConfig()->createCheckout(
@@ -111,6 +139,7 @@ final class PublicPaymentOrchestrator
         float $amount,
         string $returnTo,
         string $paymentType,
+        int $prepayMonths = 0,
     ): RedirectResponse {
         if (! config('sslcommerz.enabled')) {
             return $this->fail($invoice, $returnTo, 'SSLCommerz is disabled.');
@@ -124,14 +153,15 @@ final class PublicPaymentOrchestrator
         $amountStr = number_format(max(0.01, $amount), 2, '.', '');
         $tranId = PublicCheckoutSession::makeTranId((int) $customer->id, $invoice?->id);
 
-        PublicCheckoutSession::put($tranId, [
-            'invoice_id' => $invoice?->id,
-            'customer_id' => (int) $customer->id,
-            'amount' => $amountStr,
-            'return_to' => $returnTo,
-            'payment_type' => $paymentType,
-            'gateway' => PaymentGateway::SSLCOMMERZ,
-        ]);
+        PublicCheckoutSession::put($tranId, $this->checkoutSessionPayload(
+            $customer,
+            $invoice,
+            $amountStr,
+            $returnTo,
+            $paymentType,
+            PaymentGateway::SSLCOMMERZ,
+            $prepayMonths,
+        ));
 
         try {
             $service = SslCommerzCheckoutService::fromConfig();
@@ -140,7 +170,9 @@ final class PublicPaymentOrchestrator
                 amount: $amountStr,
                 productName: $invoice
                     ? 'Invoice '.$invoice->invoice_number
-                    : 'Wallet top-up',
+                    : ($paymentType === PaymentType::PREPAY
+                        ? 'Advance payment '.$prepayMonths.' month(s)'
+                        : 'Wallet top-up'),
                 customer: [
                     'name' => $customer->name,
                     'phone' => $customer->phone ?? '01700000000',
@@ -166,6 +198,7 @@ final class PublicPaymentOrchestrator
         float $amount,
         string $returnTo,
         string $paymentType,
+        int $prepayMonths = 0,
     ): RedirectResponse {
         if (! PipraPayCheckoutService::isEnabled()) {
             return $this->fail($invoice, $returnTo, 'PipraPay is disabled.');
@@ -179,14 +212,15 @@ final class PublicPaymentOrchestrator
         $amountStr = number_format(max(0.01, $amount), 2, '.', '');
         $orderId = PublicCheckoutSession::makeTranId((int) $customer->id, $invoice?->id);
 
-        $session = [
-            'invoice_id' => $invoice?->id,
-            'customer_id' => (int) $customer->id,
-            'amount' => $amountStr,
-            'return_to' => $returnTo,
-            'payment_type' => $paymentType,
-            'gateway' => PaymentGateway::PIPRAPAY,
-        ];
+        $session = $this->checkoutSessionPayload(
+            $customer,
+            $invoice,
+            $amountStr,
+            $returnTo,
+            $paymentType,
+            PaymentGateway::PIPRAPAY,
+            $prepayMonths,
+        );
 
         PublicCheckoutSession::put($orderId, $session);
         PipraPayCheckoutStore::persist($orderId, $session);
@@ -226,6 +260,7 @@ final class PublicPaymentOrchestrator
         float $amount,
         string $returnTo,
         string $paymentType,
+        int $prepayMonths = 0,
     ): RedirectResponse {
         if (! RocketCheckoutService::isEnabled()) {
             return $this->fail($invoice, $returnTo, 'Rocket is disabled.');
@@ -237,7 +272,7 @@ final class PublicPaymentOrchestrator
         }
 
         return app(RocketCheckoutService::class)
-            ->startCheckout($invoice, $customer, $amount, $returnTo, $paymentType)['redirect'];
+            ->startCheckout($invoice, $customer, $amount, $returnTo, $paymentType, $prepayMonths)['redirect'];
     }
 
     private function startPersonalMfs(
@@ -247,6 +282,7 @@ final class PublicPaymentOrchestrator
         float $amount,
         string $returnTo,
         string $paymentType,
+        int $prepayMonths = 0,
     ): RedirectResponse {
         if (! PersonalMfsGateway::isPersonalEnabled($gateway)) {
             return $this->fail($invoice, $returnTo, PaymentGateway::label($gateway).' personal payment is not configured.');
@@ -258,7 +294,35 @@ final class PublicPaymentOrchestrator
         }
 
         return app(PersonalMfsCheckoutService::class)
-            ->startCheckout($gateway, $invoice, $customer, $amount, $returnTo, $paymentType)['redirect'];
+            ->startCheckout($gateway, $invoice, $customer, $amount, $returnTo, $paymentType, $prepayMonths)['redirect'];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function checkoutSessionPayload(
+        Customer $customer,
+        ?Invoice $invoice,
+        string $amount,
+        string $returnTo,
+        string $paymentType,
+        string $gateway,
+        int $prepayMonths = 0,
+    ): array {
+        $payload = [
+            'invoice_id' => $invoice?->id,
+            'customer_id' => (int) $customer->id,
+            'amount' => $amount,
+            'return_to' => $returnTo,
+            'payment_type' => $paymentType,
+            'gateway' => $gateway,
+        ];
+
+        if ($prepayMonths > 0) {
+            $payload['prepay_months'] = $prepayMonths;
+        }
+
+        return $payload;
     }
 
     private function fail(?Invoice $invoice, string $returnTo, string $message): RedirectResponse
@@ -267,8 +331,12 @@ final class PublicPaymentOrchestrator
             return redirect()->route('bill-payment.invoice')->with('danger', $message);
         }
 
-        if ($returnTo === 'portal' && $invoice) {
-            return redirect()->route('portal.invoices.show', $invoice)->with('danger', $message);
+        if ($returnTo === 'portal') {
+            if ($invoice) {
+                return redirect()->route('portal.invoices.show', $invoice)->with('danger', $message);
+            }
+
+            return redirect()->route('portal.bills.index')->with('danger', $message);
         }
 
         return redirect()->route('bill-payment.index')->with('danger', $message);

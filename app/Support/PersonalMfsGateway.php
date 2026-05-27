@@ -92,14 +92,17 @@ final class PersonalMfsGateway
 
     public static function autoVerifyEnabled(string $gateway): bool
     {
-        $gatewayCfg = (bool) config("mfs_personal.gateways.{$gateway}.auto_verify", false);
-
         if ((bool) config('mfs_personal.sms_ingest.enabled', false)
             && (bool) config('mfs_personal.sms_ingest.auto_approve_sms', false)) {
             return true;
         }
 
-        return $gatewayCfg;
+        if ($gateway === \App\Support\PaymentGateway::ROCKET
+            && (bool) config('rocket.auto_verify', false)) {
+            return true;
+        }
+
+        return (bool) config("mfs_personal.gateways.{$gateway}.auto_verify", false);
     }
 
     /**

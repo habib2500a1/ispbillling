@@ -19,7 +19,7 @@
             type="search"
             x-model.debounce.120ms="query"
             class="isp-sidebar-search__input"
-            placeholder="Menu search…"
+            placeholder="Search menu… (e.g. clients, bills, bKash)"
             autocomplete="off"
             spellcheck="false"
         />
@@ -32,5 +32,6 @@
             aria-label="Clear menu search"
         >&times;</button>
     </div>
-    <p id="isp-sidebar-search-empty" class="isp-sidebar-search__empty" hidden>No menu items match</p>
+    <p id="isp-sidebar-search-empty" class="isp-sidebar-search__empty" hidden>No menu match — try another word</p>
+    <p class="isp-sidebar-search__hint" x-show="query.length === 0" x-cloak>All modules · tap a group to expand · Ctrl+/</p>
 </div>

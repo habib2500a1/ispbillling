@@ -7,6 +7,7 @@ use App\Models\Invoice;
 use App\Models\Payment;
 use App\Support\CustomerBalanceDue;
 use App\Support\CustomerStatus;
+use App\Support\TenantResolver;
 use Illuminate\Support\Collection;
 
 class PublicBillPaymentService
@@ -18,9 +19,12 @@ class PublicBillPaymentService
             return null;
         }
 
+        $tenantId = TenantResolver::currentTenantId();
+
         return Customer::query()
             ->withoutGlobalScopes()
             ->with(['package:id,name,price_monthly'])
+            ->when($tenantId !== null, fn ($q) => $q->where('tenant_id', $tenantId))
             ->where(function ($q) use ($code): void {
                 $q->where('customer_code', $code);
                 $digits = preg_replace('/\D+/', '', $code) ?? '';
@@ -28,6 +32,8 @@ class PublicBillPaymentService
                     $q->orWhere('phone', $digits)->orWhere('phone', $code);
                 }
             })
+            ->orderByRaw('CASE WHEN customer_code = ? THEN 0 ELSE 1 END', [$code])
+            ->orderBy('id')
             ->first();
     }
 

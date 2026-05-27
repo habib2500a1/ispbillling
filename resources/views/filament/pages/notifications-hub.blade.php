@@ -18,21 +18,49 @@
 @endphp
 
 <x-filament-panels::page>
-    <div class="space-y-6">
-        <div class="rounded-2xl border border-primary-200 bg-gradient-to-br from-primary-50 via-white to-amber-50/50 p-6 shadow-sm dark:border-primary-900/40 dark:from-primary-950/50 dark:via-gray-900 dark:to-gray-900">
-            <h2 class="text-xl font-semibold text-gray-900 dark:text-white">SMS & notification system</h2>
-            <p class="mt-2 max-w-3xl text-sm text-gray-600 dark:text-gray-400">
-                Multi-channel alerts: SMS gateways (BulkSMSBD, SSL Wireless), WhatsApp Cloud API, Telegram ops channel, and email.
-                Payment receipts, invoice due reminders, outage broadcasts, and portal OTP — all configurable with delivery logs.
-            </p>
-            <div class="mt-4 flex flex-wrap gap-2">
+    @php
+        $enabledChannels = collect($channels)->where('on', true)->count();
+        $enabledEvents = collect($events)->where('on', true)->count();
+        $statCards = [
+            ['label' => 'Channels live', 'value' => (string) $enabledChannels, 'hint' => count($channels).' configured surfaces', 'class' => 'isp-hub-stat--teal'],
+            ['label' => 'Automation events', 'value' => (string) $enabledEvents, 'hint' => 'Receipt, due, outage, OTP', 'class' => 'isp-hub-stat--amber'],
+            ['label' => 'Ops channel', 'value' => config('notifications.telegram.enabled') ? 'Telegram on' : 'Telegram off', 'hint' => 'Internal broadcast path', 'class' => 'isp-hub-stat--sky'],
+        ];
+    @endphp
+
+    <div class="isp-hub-page space-y-6">
+        <x-isp.hub-hero
+            eyebrow="Messaging workspace"
+            title="SMS & notification system"
+            description="Multi-channel alerts across SMS gateways, WhatsApp Cloud API, Telegram ops channel, and email with delivery logs."
+            class="isp-hub-hero--teal"
+        >
+            <div class="isp-hub-toolbar">
+                <div class="isp-hub-toolbar__meta">
+                    <span class="isp-hub-results">{{ $enabledChannels }} channels active</span>
+                    <span class="isp-hub-section__meta">{{ $enabledEvents }} automated events</span>
+                </div>
+            </div>
+        </x-isp.hub-hero>
+
+        <x-isp.hub-stat-grid :stats="$statCards" />
+
+        <section class="isp-hub-section">
+            <div class="isp-hub-section__head">
+                <div>
+                    <h2 class="isp-hub-section__title">Channel status</h2>
+                    <p class="isp-hub-section__desc">Current notification transport availability across customer and operations messaging surfaces.</p>
+                </div>
+                <span class="isp-hub-section__meta">{{ count($channels) }} channels</span>
+            </div>
+            <div class="flex flex-wrap gap-2">
                 @foreach ($channels as $ch)
                     <span class="rounded-full px-3 py-1 text-xs font-medium {{ $ch['on'] ? 'bg-success-100 text-success-800 dark:bg-success-500/20 dark:text-success-300' : 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400' }}">
                         {{ $ch['label'] }}{{ $ch['on'] ? ' ✓' : '' }}
                     </span>
                 @endforeach
             </div>
-        </div>
+        </section>
 
         <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <a href="{{ $smsGatewayUrl }}" class="group rounded-xl border border-emerald-200 bg-emerald-50/50 p-5 shadow-sm transition hover:border-emerald-400 dark:border-emerald-900/50 dark:bg-emerald-950/20">
@@ -92,8 +120,15 @@
             </a>
         </div>
 
-        <div class="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-900">
-            <p class="text-sm font-semibold text-gray-900 dark:text-white">Automated events</p>
+        <section class="isp-ops-panel">
+            <div class="isp-ops-panel__head">
+                <div>
+                    <h3 class="isp-ops-panel__title">Automated events</h3>
+                    <p class="isp-ops-panel__desc">Core notification triggers currently enabled for billing, outage, and portal authentication flows.</p>
+                </div>
+                <span class="isp-ops-pill isp-ops-pill--ok">{{ $enabledEvents }} active</span>
+            </div>
+            <div class="p-4 pt-0">
             <ul class="mt-3 grid gap-2 sm:grid-cols-2">
                 @foreach ($events as $ev)
                     <li class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
@@ -105,6 +140,7 @@
             <p class="mt-4 text-xs text-gray-500">
                 Scheduler: <span class="font-mono">isp:send-invoice-due-reminders</span> (daily) · Payment alerts fire when status becomes completed.
             </p>
-        </div>
+            </div>
+        </section>
     </div>
 </x-filament-panels::page>

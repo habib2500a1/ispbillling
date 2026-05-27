@@ -24,6 +24,13 @@ return [
 
     'wallet_topup_min' => (float) env('BILL_PAY_WALLET_TOPUP_MIN', 100),
 
+    /** Customer can pay 1–N months in advance from portal /pay. */
+    'prepay_enabled' => (bool) env('BILL_PAY_PREPAY_ENABLED', true),
+
+    'prepay_max_months' => max(1, min(36, (int) env('BILL_PAY_PREPAY_MAX_MONTHS', 12))),
+
+    'prepay_quick_months' => [1, 2, 3, 6, 12],
+
     'link_ttl_days' => (int) env('BILL_PAY_LINK_TTL_DAYS', 7),
 
     // Synced from admin gateways after AppSetting::syncPublicPaymentGatewayFlags().

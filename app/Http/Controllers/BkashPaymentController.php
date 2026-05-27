@@ -8,6 +8,7 @@ use App\Models\Invoice;
 use App\Models\Payment;
 use App\Services\Payments\BkashCheckoutService;
 use App\Support\BkashSettings;
+use App\Support\CheckoutPaymentMeta;
 use App\Support\PaymentType;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -56,6 +57,7 @@ class BkashPaymentController extends Controller
         ?Invoice $invoice,
         string $returnTo,
         string $paymentType,
+        int $prepayMonths = 0,
     ): array {
         if ($invoice !== null && in_array($invoice->status, ['void', 'cancelled'], true)) {
             return ['error' => 'This invoice cannot be paid.'];
@@ -69,7 +71,9 @@ class BkashPaymentController extends Controller
             $token = $service->grantToken();
             $merchantRef = $invoice
                 ? $this->sanitizeMerchantInvoiceNumber((string) $invoice->invoice_number, $invoice->id)
-                : 'WALLET-'.$customerId.'-'.now()->format('YmdHis');
+                : ($paymentType === PaymentType::PREPAY
+                    ? 'PREPAY-'.$customerId.'-'.$prepayMonths.'-'.now()->format('YmdHis')
+                    : 'WALLET-'.$customerId.'-'.now()->format('YmdHis'));
             $customer = Customer::query()->withoutGlobalScopes()->find($customerId);
             $payerRef = $this->payerReferenceForCustomer($customer);
 
@@ -86,15 +90,21 @@ class BkashPaymentController extends Controller
 
         $paymentId = $created['paymentID'];
 
+        $cachePayload = [
+            'invoice_id' => $invoice?->id,
+            'customer_id' => $customerId,
+            'amount' => $amountStr,
+            'return_to' => $returnTo,
+            'payment_type' => $paymentType,
+        ];
+
+        if ($prepayMonths > 0) {
+            $cachePayload['prepay_months'] = $prepayMonths;
+        }
+
         Cache::put(
             self::CACHE_PREFIX.$paymentId,
-            [
-                'invoice_id' => $invoice?->id,
-                'customer_id' => $customerId,
-                'amount' => $amountStr,
-                'return_to' => $returnTo,
-                'payment_type' => $paymentType,
-            ],
+            $cachePayload,
             self::CACHE_TTL_SECONDS,
         );
 
@@ -135,6 +145,47 @@ class BkashPaymentController extends Controller
         }
 
         return $this->startWalletCheckout($customer, $amount, 'bill_payment');
+    }
+
+    public function initiatePublicPrepay(Customer $customer, float $amount, int $months, string $returnTo = 'bill_payment'): RedirectResponse
+    {
+        if ($returnTo === 'bill_payment') {
+            abort_unless(
+                session('bill_pay.customer_id') == $customer->id && session('bill_pay.verified'),
+                403
+            );
+        }
+
+        if (! config('bill_payment.prepay_enabled', true)) {
+            return redirect()->route($returnTo === 'portal' ? 'portal.bills.index' : 'bill-payment.invoice')
+                ->with('danger', 'Advance payment is not available.');
+        }
+
+        $channel = $this->bkashChannelForReturnTo($returnTo);
+        if (! BkashSettings::isActiveForChannel($channel)) {
+            $message = BkashSettings::isEnabledForChannel($channel)
+                ? 'bKash credentials are missing or invalid. Check Payment gateways settings.'
+                : 'bKash checkout is disabled for this page.';
+
+            return redirect()->route($returnTo === 'portal' ? 'portal.bills.index' : 'bill-payment.invoice')
+                ->with('danger', $message);
+        }
+
+        $prepared = $this->prepareCheckout(
+            customerId: (int) $customer->id,
+            amount: round($amount, 2),
+            invoice: null,
+            returnTo: $returnTo,
+            paymentType: PaymentType::PREPAY,
+            prepayMonths: max(1, $months),
+        );
+
+        if (isset($prepared['error'])) {
+            return redirect()->route($returnTo === 'portal' ? 'portal.bills.index' : 'bill-payment.invoice')
+                ->with('danger', $prepared['error']);
+        }
+
+        return redirect()->away($prepared['bkash_url']);
     }
 
     public function initiate(Request $request, Invoice $invoice): RedirectResponse
@@ -246,7 +297,7 @@ class BkashPaymentController extends Controller
             $existingQuery->where('invoice_id', $invoice->id);
         } else {
             $existingQuery->where('customer_id', $pending['customer_id'])
-                ->where('payment_type', PaymentType::WALLET_DEPOSIT);
+                ->where('payment_type', $paymentType);
         }
 
         $existing = $existingQuery->first();
@@ -293,21 +344,22 @@ class BkashPaymentController extends Controller
                 'status' => 'completed',
                 'paid_at' => now(),
                 'payment_type' => $paymentType,
-                'meta' => [
+                'meta' => CheckoutPaymentMeta::fromSession($pending, [
                     'bkash_payment_id' => $paymentId,
                     'bkash_trx_id' => $trxId,
                     'bkash_execute' => $raw,
                     'source' => 'bkash_callback',
-                    'return_to' => $pending['return_to'] ?? null,
-                ],
+                ]),
             ]);
         });
 
         Cache::forget(self::CACHE_PREFIX.$paymentId);
 
-        $message = $paymentType === PaymentType::WALLET_DEPOSIT
-            ? 'Wallet top-up recorded successfully.'
-            : 'bKash payment recorded successfully.';
+        $message = match ($paymentType) {
+            PaymentType::WALLET_DEPOSIT => 'Wallet top-up recorded successfully.',
+            PaymentType::PREPAY => 'Advance payment recorded successfully.',
+            default => 'bKash payment recorded successfully.',
+        };
 
         return $this->successRedirect($invoice, $pending, $message, $payment);
     }

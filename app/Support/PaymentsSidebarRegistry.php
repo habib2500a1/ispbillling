@@ -41,7 +41,7 @@ final class PaymentsSidebarRegistry
             ],
             [
                 'key' => 'personal_bkash',
-                'label' => 'Personal bKash',
+                'label' => 'bKash Personal',
                 'icon' => 'heroicon-o-device-phone-mobile',
                 'sort' => 10,
                 'url' => ManagePersonalMfsSettings::getUrl(['tab' => 'bkash']),
@@ -51,7 +51,7 @@ final class PaymentsSidebarRegistry
             ],
             [
                 'key' => 'personal_nagad',
-                'label' => 'Personal Nagad',
+                'label' => 'Nagad Personal',
                 'icon' => 'heroicon-o-banknotes',
                 'sort' => 11,
                 'url' => ManagePersonalMfsSettings::getUrl(['tab' => 'nagad']),
@@ -61,7 +61,7 @@ final class PaymentsSidebarRegistry
             ],
             [
                 'key' => 'mfs_sms_apps',
-                'label' => 'RCL SMS & apps',
+                'label' => 'MFS SMS & apps',
                 'icon' => 'heroicon-o-chat-bubble-left-ellipsis',
                 'sort' => 12,
                 'url' => ManageMfsSmsSettings::getUrl(),
@@ -69,7 +69,7 @@ final class PaymentsSidebarRegistry
             ],
             [
                 'key' => 'mfs_sms',
-                'label' => 'RCL SMS ledger',
+                'label' => 'SMS ledger',
                 'icon' => 'heroicon-o-chat-bubble-left-right',
                 'sort' => 13,
                 'url' => MfsSmsRecordResource::getUrl(),
@@ -77,7 +77,7 @@ final class PaymentsSidebarRegistry
             ],
             [
                 'key' => 'pending_gateway',
-                'label' => 'Pending verify',
+                'label' => 'Pending payments',
                 'icon' => 'heroicon-o-clock',
                 'sort' => 14,
                 'url' => PendingGatewayPaymentResource::getUrl(),

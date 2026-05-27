@@ -19,8 +19,16 @@ class PortalLiveChatController extends Controller
             ->orderByDesc('id')
             ->first();
 
+        $recentChats = SupportTicket::query()
+            ->where('customer_id', $customer->id)
+            ->where('channel', 'live_chat')
+            ->orderByDesc('id')
+            ->limit(5)
+            ->get();
+
         return view('portal.live-chat', [
             'openTicket' => $open,
+            'recentChats' => $recentChats,
         ]);
     }
 

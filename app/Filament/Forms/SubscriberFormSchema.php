@@ -11,6 +11,7 @@ use App\Support\BillingCycleType;
 use App\Support\BillingDefaults;
 use App\Support\CustomerCodeGenerator;
 use App\Support\CustomerStatus;
+use App\Support\PaymentRenewalPolicy;
 use App\Support\SubscriberIdSettings;
 use App\Support\SubscriberType;
 use App\Support\TenantResolver;
@@ -245,6 +246,12 @@ final class SubscriberFormSchema
                             ->minValue(0)
                             ->maxValue(90)
                             ->live(),
+                        Forms\Components\Select::make('meta.payment_renewal_base')
+                            ->label('Renew from (when bill paid)')
+                            ->options(PaymentRenewalPolicy::options())
+                            ->default(PaymentRenewalPolicy::DEFAULT)
+                            ->native(false)
+                            ->helperText('Override company default. “Previous expire date” keeps the old cycle even if paid a few days late.'),
                         Forms\Components\Placeholder::make('expire_date_preview')
                             ->label('Expire date')
                             ->content(fn (Get $get): HtmlString => self::expireDatePreview($get)),
@@ -539,7 +546,7 @@ final class SubscriberFormSchema
                             ->revealable()
                             ->dehydrated(fn (?string $state): bool => filled($state))
                             ->dehydrateStateUsing(fn (?string $state): ?string => filled($state) ? Hash::make((string) $state) : null)
-                            ->helperText('Login: subscriber code, phone, or email.'),
+                            ->helperText('Login: subscriber code, phone, or email. Leave blank on create to use default: '.config('portal.default_password', '123456').'.'),
                         Forms\Components\Toggle::make('meta.portal_otp_login')
                             ->label('OTP login enabled')
                             ->default(false),

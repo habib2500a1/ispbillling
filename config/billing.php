@@ -39,6 +39,16 @@ return [
     'default_grace_period_days' => (int) env('BILLING_DEFAULT_GRACE_DAYS', 10),
 
     /**
+     * How service_expires_at is extended when a bill is fully paid.
+     * smart = within late_grace_days after expire use previous date, else payment date;
+     * from_payment_date = always from pay date; from_previous_expiry = always from old expire date.
+     */
+    'payment_renewal_base' => env('BILLING_PAYMENT_RENEWAL_BASE', 'smart'),
+
+    /** Days after expire that late payment still renews from previous expire date (smart mode). */
+    'payment_renewal_late_grace_days' => (int) env('BILLING_PAYMENT_RENEWAL_LATE_GRACE_DAYS', 7),
+
+    /**
      * Auto-apply late fees when running isp:apply-late-fees (scheduled daily).
      */
     'late_fees_enabled' => env('BILLING_LATE_FEES_ENABLED', true),

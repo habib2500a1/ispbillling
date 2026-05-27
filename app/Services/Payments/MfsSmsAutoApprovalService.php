@@ -259,17 +259,22 @@ final class MfsSmsAutoApprovalService
         }
 
         if ($markSmsUsed) {
-            $pending = PendingGatewayPayment::query()
-                ->where('gateway', $fresh->gateway)
-                ->where('transaction_id', $trxId)
-                ->latest('id')
-                ->first();
+            $smsAfter = $fresh->fresh() ?? $fresh;
 
-            if ($pending !== null) {
-                $this->smsMatching->markUsed($fresh->fresh() ?? $fresh, (int) $pending->id, (int) $payment->id);
+            if ($smsAfter->status !== MfsSmsRecord::STATUS_USED) {
+                $pending = PendingGatewayPayment::query()
+                    ->where('gateway', $fresh->gateway)
+                    ->where('transaction_id', $trxId)
+                    ->latest('id')
+                    ->first();
+
+                if ($pending !== null) {
+                    $this->smsMatching->markUsed($smsAfter, (int) $pending->id, (int) $payment->id);
+                    $smsAfter = $smsAfter->fresh() ?? $smsAfter;
+                }
             }
 
-            $this->storeMatchMeta($fresh->fresh() ?? $fresh, array_merge(
+            $this->storeMatchMeta($smsAfter, array_merge(
                 \App\Support\MfsSmsCustomerSnapshot::from($customer),
                 [
                     'reference_match' => 'auto_approved',

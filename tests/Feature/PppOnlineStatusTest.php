@@ -4,7 +4,9 @@ namespace Tests\Feature;
 
 use App\Models\Customer;
 use App\Models\MikrotikServer;
+use App\Models\PppSessionLog;
 use App\Services\Bandwidth\BandwidthCollectionService;
+use App\Services\Bandwidth\BandwidthSyncStatus;
 use App\Support\CustomerPppLoginResolver;
 use App\Support\TenantResolver;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -69,8 +71,7 @@ class PppOnlineStatusTest extends TestCase
 
         $this->assertFalse($result['api_ok']);
         $customer->refresh();
-        $this->assertFalse($customer->is_ppp_online);
-        $this->assertFalse($customer->isPppOnline());
+        $this->assertTrue($customer->is_ppp_online);
     }
 
     public function test_collect_marks_offline_when_all_mikrotik_disabled(): void
@@ -104,6 +105,51 @@ class PppOnlineStatusTest extends TestCase
     public function test_normalize_strips_realm_suffix(): void
     {
         $this->assertSame('user1', CustomerPppLoginResolver::normalize('user1@realm'));
+    }
+
+    public function test_clear_stale_skips_when_fresh_bandwidth_sync_has_active_sessions(): void
+    {
+        $customer = Customer::createTrusted([
+            'tenant_id' => 1,
+            'customer_code' => 'live_user_1',
+            'mikrotik_secret_name' => 'live_user_1',
+            'name' => 'Live User',
+            'phone' => '01755555555',
+            'status' => 'active',
+            'is_ppp_online' => true,
+        ]);
+
+        MikrotikServer::query()->create([
+            'tenant_id' => 1,
+            'name' => 'Probe Offline NAS',
+            'host' => '127.0.0.1',
+            'api_port' => 8728,
+            'api_username' => 'admin',
+            'api_password' => 'secret',
+            'is_enabled' => true,
+            'last_api_status' => 'offline',
+        ]);
+
+        PppSessionLog::query()->create([
+            'tenant_id' => 1,
+            'customer_id' => $customer->id,
+            'session_key' => 'srv1:live_user_1',
+            'username' => 'live_user_1',
+            'status' => 'active',
+            'started_at' => now(),
+        ]);
+
+        BandwidthSyncStatus::store(1, [
+            'api' => ['ok' => true, 'reachable' => true, 'sessions' => 12],
+            'radius' => ['ok' => false, 'sessions' => 0],
+            'merged_active' => 12,
+        ]);
+
+        app(BandwidthCollectionService::class)->clearStaleOnlineFlagsWhenRoutersUnreachable(1);
+
+        $customer->refresh();
+        $this->assertTrue($customer->is_ppp_online);
+        $this->assertSame(1, PppSessionLog::query()->where('status', 'active')->count());
     }
 
     public function test_poll_disabled_shows_offline_despite_stale_db_flags(): void

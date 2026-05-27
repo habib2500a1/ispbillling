@@ -14,6 +14,8 @@ final class PaymentType
 
     public const WALLET_APPLY = 'wallet_apply';
 
+    public const PREPAY = 'prepay';
+
     /** @return array<string, string> */
     public static function options(): array
     {
@@ -23,6 +25,7 @@ final class PaymentType
             self::ADJUSTMENT => 'Adjustment',
             self::WALLET_DEPOSIT => 'Wallet top-up',
             self::WALLET_APPLY => 'Pay from wallet',
+            self::PREPAY => 'Advance months',
         ];
     }
 

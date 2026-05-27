@@ -95,10 +95,10 @@
                     </dd>
                 </div>
             </dl>
-            <p class="mt-2 text-xs text-gray-500">Auto-verify toggle: sidebar → <strong>Personal bKash</strong> / <strong>Personal Nagad</strong></p>
+            <p class="mt-2 text-xs text-gray-500">Auto-verify toggle: sidebar → <strong>bKash Personal</strong> / <strong>Nagad Personal</strong></p>
             <div class="mt-4 flex flex-wrap gap-2">
                 <x-filament::button tag="a" href="{{ $gatewayUrl }}" size="sm" color="gray" icon="heroicon-o-device-phone-mobile">
-                    Personal bKash / Nagad
+                    bKash Personal / Nagad Personal
                 </x-filament::button>
                 <x-filament::button tag="a" href="{{ $ledgerUrl }}" size="sm" color="success" icon="heroicon-o-chat-bubble-left-right">
                     RCL SMS ledger
@@ -116,7 +116,7 @@
             <li><strong>Auto-verify setup</strong> বাটন চাপুন (উপরে) — TrxID মিললে সাথে সাথে payment verify</li>
             <li><strong>RCL SMS APK</strong> — API base: <code class="text-xs">{{ $setup['api_base'] }}</code> (staff URL নয়)</li>
             <li><strong>Device key</strong> — Generate → APK-তে পেস্ট → Save</li>
-            <li><strong>Personal bKash/Nagad</strong> — Gateway settings-এ personal নম্বর + auto-verify ON</li>
+            <li><strong>bKash Personal / Nagad Personal</strong> — Gateway settings-এ personal নম্বর + auto-verify ON</li>
             <li>ভুল TrxID বা SMS না এলে → <a href="{{ $pendingUrl }}" class="text-primary-600 underline">Pending gateway</a> থেকে approve</li>
         </ol>
     </x-filament::section>

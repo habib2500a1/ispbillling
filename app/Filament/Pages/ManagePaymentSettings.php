@@ -198,7 +198,7 @@ class ManagePaymentSettings extends Page
     {
         return [
             Section::make('Nagad merchant checkout (API)')
-                ->description('Personal Nagad + SMS verify: Payments → Personal bKash / Nagad verify')
+                ->description('Nagad Personal + SMS verify: Payments → bKash Personal / Nagad Personal')
                 ->schema([
                 \Filament\Forms\Components\Toggle::make('nagad_enabled')->label('Enable Nagad merchant checkout'),
                 Radio::make('nagad_sandbox')
@@ -251,11 +251,11 @@ class ManagePaymentSettings extends Page
     {
         return [
             Placeholder::make('bkash_personal_link')
-                ->label('Personal bKash?')
+                ->label('bKash Personal?')
                 ->content(new \Illuminate\Support\HtmlString(
                     '<a class="text-primary-600 font-semibold underline" href="'
                     .\App\Filament\Pages\ManagePersonalMfsSettings::getUrl(['tab' => 'bkash'])
-                    .'">Open Personal bKash / Nagad verify</a> (Send Money + SMS — not this merchant API).'
+                    .'">Open bKash Personal / Nagad Personal</a> (Send Money + SMS — not this merchant API).'
                 )),
             Section::make('bKash Tokenized API (merchant checkout)')
                 ->description('Official bKash merchant API — callback URL must match bKash panel.')
@@ -383,6 +383,7 @@ class ManagePaymentSettings extends Page
 
         $state = $this->form->getState();
         $before = $this->bkashSnapshot();
+        $forceMerchant = request()->query('merchant') === '1';
 
         $environment = (string) ($state['bkash_environment'] ?? BkashSettings::ENV_SANDBOX);
         if (! in_array($environment, [BkashSettings::ENV_SANDBOX, BkashSettings::ENV_LIVE], true)) {
@@ -391,7 +392,7 @@ class ManagePaymentSettings extends Page
 
         $bkashIsPersonal = (string) config('bkash.gateway_type') === BkashSettings::GATEWAY_PERSONAL;
 
-        if (! $bkashIsPersonal) {
+        if (! $bkashIsPersonal || $forceMerchant) {
             AppSetting::putValue('bkash.gateway_type', BkashSettings::GATEWAY_TOKENIZED_WEB);
             AppSetting::putValue('bkash.environment', $environment);
             AppSetting::putValue('bkash.base_url', BkashSettings::baseUrlForEnvironment($environment));
@@ -438,21 +439,21 @@ class ManagePaymentSettings extends Page
             }
         }
 
-        AppSetting::putValue('rocket.enabled', ($state['rocket_enabled'] ?? '0') === '1' ? '1' : '0');
+        AppSetting::putValue('rocket.enabled', $this->toBool($state['rocket_enabled'] ?? false) ? '1' : '0');
         AppSetting::putValue('rocket.merchant_number', trim((string) ($state['rocket_merchant_number'] ?? '')));
         AppSetting::putValue('rocket.merchant_name', trim((string) ($state['rocket_merchant_name'] ?? '')));
         AppSetting::putValue('rocket.instructions', trim((string) ($state['rocket_instructions'] ?? '')));
-        AppSetting::putValue('rocket.auto_verify', ($state['rocket_auto_verify'] ?? false) ? '1' : '0');
+        AppSetting::putValue('rocket.auto_verify', $this->toBool($state['rocket_auto_verify'] ?? false) ? '1' : '0');
         AppSetting::putValue('rocket.verify_url', trim((string) ($state['rocket_verify_url'] ?? '')));
         config([
-            'payments.gateways.rocket.enabled' => ($state['rocket_enabled'] ?? '0') === '1',
+            'payments.gateways.rocket.enabled' => $this->toBool($state['rocket_enabled'] ?? false),
         ]);
 
         $nagadIsPersonal = (string) config('nagad.gateway_type') === 'personal';
 
-        if (! $nagadIsPersonal) {
+        if (! $nagadIsPersonal || $forceMerchant) {
             AppSetting::putValue('nagad.gateway_type', 'api');
-            AppSetting::putValue('nagad.enabled', ($state['nagad_enabled'] ?? false) ? '1' : '0');
+            AppSetting::putValue('nagad.enabled', $this->toBool($state['nagad_enabled'] ?? false) ? '1' : '0');
             AppSetting::putValue('nagad.sandbox', ($state['nagad_sandbox'] ?? '1') === '1' ? '1' : '0');
             AppSetting::putValue('nagad.merchant_id', trim((string) ($state['nagad_merchant_id'] ?? '')));
             AppSetting::putValue('nagad.merchant_number', trim((string) ($state['nagad_merchant_number'] ?? '')));
@@ -463,7 +464,7 @@ class ManagePaymentSettings extends Page
             }
         }
 
-        AppSetting::putValue('sslcommerz.enabled', ($state['sslcommerz_enabled'] ?? false) ? '1' : '0');
+        AppSetting::putValue('sslcommerz.enabled', $this->toBool($state['sslcommerz_enabled'] ?? false) ? '1' : '0');
         AppSetting::putValue('sslcommerz.sandbox', ($state['sslcommerz_sandbox'] ?? '1') === '1' ? '1' : '0');
         AppSetting::putValue('sslcommerz.store_id', trim((string) ($state['sslcommerz_store_id'] ?? '')));
         $sslPass = trim((string) ($this->data['sslcommerz_store_password'] ?? ''));
@@ -471,7 +472,7 @@ class ManagePaymentSettings extends Page
             AppSetting::putValue('sslcommerz.store_password', $sslPass);
         }
 
-        AppSetting::putValue('piprapay.enabled', ($state['piprapay_enabled'] ?? false) ? '1' : '0');
+        AppSetting::putValue('piprapay.enabled', $this->toBool($state['piprapay_enabled'] ?? false) ? '1' : '0');
         $apiMode = (string) ($state['piprapay_api_mode'] ?? 'redirect');
         if (! in_array($apiMode, ['redirect', 'legacy'], true)) {
             $apiMode = 'redirect';
@@ -547,25 +548,42 @@ class ManagePaymentSettings extends Page
             'bkash_activation_date' => config('bkash.activation_date'),
             'bkash_expiry_date' => config('bkash.expiry_date'),
             'bkash_channels' => BkashSettings::enabledChannels(),
-            'rocket_enabled' => config('rocket.enabled') ? '1' : '0',
+            'rocket_enabled' => (bool) config('rocket.enabled'),
             'rocket_merchant_number' => (string) config('rocket.merchant_number', ''),
             'rocket_merchant_name' => (string) config('rocket.merchant_name', ''),
             'rocket_instructions' => (string) config('rocket.instructions', ''),
-            'rocket_auto_verify' => config('rocket.auto_verify') ? '1' : '0',
+            'rocket_auto_verify' => (bool) config('rocket.auto_verify'),
             'rocket_verify_url' => (string) config('rocket.verify_url', ''),
-            'nagad_enabled' => config('nagad.enabled') && (string) config('nagad.gateway_type') === 'api' ? '1' : '0',
+            'nagad_enabled' => (bool) (config('nagad.enabled') && (string) config('nagad.gateway_type') === 'api'),
             'nagad_sandbox' => config('nagad.sandbox') ? '1' : '0',
             'nagad_merchant_id' => (string) config('nagad.merchant_id', ''),
             'nagad_merchant_number' => (string) config('nagad.merchant_number', ''),
             'nagad_pg_public_key' => (string) config('nagad.pg_public_key', ''),
-            'sslcommerz_enabled' => config('sslcommerz.enabled') ? '1' : '0',
+            'sslcommerz_enabled' => (bool) config('sslcommerz.enabled'),
             'sslcommerz_sandbox' => config('sslcommerz.sandbox') ? '1' : '0',
             'sslcommerz_store_id' => (string) config('sslcommerz.store_id', ''),
-            'piprapay_enabled' => config('piprapay.enabled') ? '1' : '0',
+            'piprapay_enabled' => (bool) config('piprapay.enabled'),
             'piprapay_api_mode' => (string) config('piprapay.api_mode', 'redirect'),
             'piprapay_base_url' => (string) config('piprapay.base_url', ''),
             'piprapay_public_url' => (string) config('piprapay.public_url', config('app.url')),
         ]);
+    }
+
+    private function toBool(mixed $value): bool
+    {
+        if (is_bool($value)) {
+            return $value;
+        }
+
+        if (is_int($value) || is_float($value)) {
+            return (int) $value === 1;
+        }
+
+        if (is_string($value)) {
+            return in_array(strtolower(trim($value)), ['1', 'true', 'yes', 'on'], true);
+        }
+
+        return false;
     }
 
     /**
