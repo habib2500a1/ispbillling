@@ -124,14 +124,39 @@ class OnlineClientsMonitoring extends Page implements HasForms, HasTable
         return BandwidthSyncStatus::get(TenantResolver::requiredTenantId());
     }
 
+    /**
+     * @return array<int|string, string>
+     */
+    protected function mikrotikServerFilterOptions(): array
+    {
+        return MikrotikServer::query()
+            ->where('tenant_id', TenantResolver::requiredTenantId())
+            ->orderBy('name')
+            ->pluck('name', 'id')
+            ->all();
+    }
+
+    protected function applyOnlineStatusTableFilter(Builder $query, array $data): Builder
+    {
+        $value = $data['value'] ?? 'all';
+
+        if ($value === 'all') {
+            return $query;
+        }
+
+        return app(BandwidthCollectionService::class)->applyDisplayedOnlineFilter(
+            $query,
+            TenantResolver::requiredTenantId(),
+            $value === 'online',
+        );
+    }
+
     public function table(Table $table): Table
     {
-        $tenantId = TenantResolver::requiredTenantId();
-
         return $table
             ->query(
                 Customer::query()
-                    ->where('tenant_id', $tenantId)
+                    ->where('tenant_id', TenantResolver::requiredTenantId())
                     ->withMikrotikPpp()
                     ->with([
                         'zone',
@@ -269,15 +294,7 @@ class OnlineClientsMonitoring extends Page implements HasForms, HasTable
             ->filters([
                 Tables\Filters\SelectFilter::make('mikrotik_server_id')
                     ->label('Router')
-	                    ->options(function (): array {
-	                        $tenantId = TenantResolver::requiredTenantId();
-
-	                        return MikrotikServer::query()
-	                            ->where('tenant_id', $tenantId)
-	                            ->orderBy('name')
-	                            ->pluck('name', 'id')
-	                            ->all();
-	                    }),
+                    ->options(fn (): array => $this->mikrotikServerFilterOptions()),
                 Tables\Filters\SelectFilter::make('online_status')
                     ->label('Status')
                     ->options([
@@ -286,19 +303,7 @@ class OnlineClientsMonitoring extends Page implements HasForms, HasTable
                         'all' => 'All PPP users',
                     ])
                     ->default('all')
-	                    ->query(function (Builder $query, array $data): Builder {
-	                        $tenantId = TenantResolver::requiredTenantId();
-
-                        $value = $data['value'] ?? 'all';
-
-                        return match ($value) {
-                            'offline' => app(BandwidthCollectionService::class)
-                                ->applyDisplayedOnlineFilter($query, $tenantId, false),
-                            'online' => app(BandwidthCollectionService::class)
-                                ->applyDisplayedOnlineFilter($query, $tenantId, true),
-                            default => $query,
-                        };
-                    }),
+                    ->query(fn (Builder $query, array $data): Builder => $this->applyOnlineStatusTableFilter($query, $data)),
             ])
             ->filtersFormColumns(['default' => 1, 'sm' => 2])
             ->filtersLayout(Tables\Enums\FiltersLayout::AboveContentCollapsible)
