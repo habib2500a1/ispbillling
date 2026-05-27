@@ -42,6 +42,7 @@ final class MikrotikNetworkProvisioner implements NetworkAccessProvisioner
     {
         foreach ($this->fleet->serversForCustomer($customer) as $server) {
             try {
+                $this->mikrotik->upsertPppSecretForCustomer($server, $customer);
                 $this->mikrotik->setPppSecretDisabledForCustomer($server, $customer, false);
             } catch (\Throwable $e) {
                 Log::channel('single')->error('network.mikrotik.unsuspend_failed', [

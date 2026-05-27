@@ -54,12 +54,29 @@ class ViewCustomer extends ViewRecord
 
     public function extendThirtyDays(): void
     {
+        $this->extendDaysLive(30);
+    }
+
+    public function extendFiveDays(): void
+    {
+        $this->extendDaysLive(5);
+    }
+
+    public function extendDaysLive(int $days): void
+    {
+        $days = max(1, min(730, $days));
+        $this->extendServiceDays($days);
+        $this->record->refresh();
+    }
+
+    private function extendServiceDays(int $days): void
+    {
         /** @var Customer $record */
         $record = $this->record;
-        $result = app(CustomerServiceRenewalService::class)->extendDays($record, 30);
+        $result = app(CustomerServiceRenewalService::class)->extendDays($record, $days);
         Notification::make()
             ->title('Service extended')
-            ->body('New expiry: '.$result['expires_at'])
+            ->body(sprintf('+%d days — new expiry: %s (MikroTik synced)', $days, $result['expires_at']))
             ->success()
             ->send();
     }
@@ -74,11 +91,22 @@ class ViewCustomer extends ViewRecord
             $record->update(['network_access_state' => 'suspended']);
             Notification::make()->title('Network suspended')->warning()->send();
         } else {
-            $record->update(['status' => 'active', 'network_access_state' => 'active']);
+            if (! app(\App\Services\Network\NetworkAccessCoordinator::class)->canAdminForceNetOn($record)) {
+                Notification::make()
+                    ->title('Cannot enable network')
+                    ->body('Overdue বিল আছে — আগে কালেক্ট করুন।')
+                    ->warning()
+                    ->send();
+
+                return;
+            }
+            \App\Support\CustomerNetworkSync::forceNetOn($record);
             Notification::make()->title('Network active')->success()->send();
         }
 
-        SyncCustomerNetworkAccessJob::dispatch((int) $record->tenant_id, (int) $record->id)->afterResponse();
+        if ($suspend) {
+            SyncCustomerNetworkAccessJob::dispatchSync((int) $record->tenant_id, (int) $record->id);
+        }
         $this->record->refresh();
     }
 
@@ -145,16 +173,23 @@ class ViewCustomer extends ViewRecord
     protected function getHeaderActions(): array
     {
         return [
-            Actions\Action::make('extend_30_days')
-                ->label('Extend 30 days')
+            Actions\Action::make('extend_days')
+                ->label('মেয়াদ বাড়ান')
                 ->icon('heroicon-o-calendar')
                 ->color('success')
-                ->requiresConfirmation()
-                ->modalHeading('Quick recharge — extend 30 days')
-                ->modalDescription('Extends service expiry by 30 days and syncs MikroTik/RADIUS access (no invoice).')
-                ->action(function (): void {
-                    $this->extendThirtyDays();
-                    $this->redirect(static::getUrl(['record' => $this->record]));
+                ->modalHeading('মেয়াদ বাড়ান — যেকোনো দিন')
+                ->modalDescription('১–৭৩০ দিন বাড়ান। মেয়াদ আপডেট হওয়ার সাথে সাথে MikroTik লাইন ON হবে (ইনভয়েস ছাড়া)।')
+                ->form([
+                    Forms\Components\TextInput::make('days')
+                        ->label('কত দিন বাড়াবেন?')
+                        ->numeric()
+                        ->minValue(1)
+                        ->maxValue(730)
+                        ->default(5)
+                        ->required(),
+                ])
+                ->action(function (array $data): void {
+                    $this->extendDaysLive((int) ($data['days'] ?? 5));
                 }),
             Actions\ActionGroup::make($this->subscriberToolsHeaderActions())
                 ->label('More tools')
@@ -285,38 +320,6 @@ class ViewCustomer extends ViewRecord
                     }
 
                     $this->redirect(static::getUrl(['record' => $record]));
-                }),
-            Actions\Action::make('extend_validity_no_charge')
-                ->label('মেয়াদ বাড়ান (চার্জ ছাড়া)')
-                ->icon('heroicon-o-calendar-days')
-                ->color('success')
-                ->form([
-                    Forms\Components\TextInput::make('days')
-                        ->label('দিন')
-                        ->numeric()
-                        ->minValue(1)
-                        ->maxValue(730)
-                        ->default(7)
-                        ->required(),
-                ])
-                ->action(function (array $data): void {
-                    /** @var Customer $record */
-                    $record = $this->record;
-                    $days = (int) ($data['days'] ?? 7);
-                    $base = $record->service_expires_at && $record->service_expires_at->isFuture()
-                        ? $record->service_expires_at->copy()->startOfDay()
-                        : now()->startOfDay();
-                    $record->forceFill([
-                        'service_expires_at' => $base->copy()->addDays($days)->toDateString(),
-                        'status' => 'active',
-                        'network_access_state' => 'active',
-                    ])->save();
-                    SyncCustomerNetworkAccessJob::dispatch((int) $record->tenant_id, (int) $record->id)->afterResponse();
-                    Notification::make()
-                        ->title('মেয়াদ আপডেট (ইনভয়েস ছাড়া)')
-                        ->body('নতুন শেষ তারিখ: '.$record->fresh()?->service_expires_at?->toDateString())
-                        ->success()
-                        ->send();
                 }),
             Actions\Action::make('extend_grace_no_charge')
                 ->label('Grace বাড়ান (চার্জ ছাড়া)')
@@ -809,12 +812,21 @@ class ViewCustomer extends ViewRecord
                 ->action(function (): void {
                     /** @var Customer $record */
                     $record = $this->record;
-                    $record->update([
-                        'status' => 'active',
-                        'network_access_state' => 'active',
-                    ]);
-                    SyncCustomerNetworkAccessJob::dispatch((int) $record->tenant_id, (int) $record->id)->afterResponse();
-                    Notification::make()->title('Network active')->success()->send();
+                    if (! app(\App\Services\Network\NetworkAccessCoordinator::class)->canAdminForceNetOn($record)) {
+                        Notification::make()
+                            ->title('Cannot enable network')
+                            ->body('Overdue বিল আছে — আগে কালেক্ট করুন। মেয়াদ শেষ + due না থাকলে Net ON চালু করবে।')
+                            ->warning()
+                            ->send();
+
+                        return;
+                    }
+                    \App\Support\CustomerNetworkSync::forceNetOn($record);
+                    Notification::make()
+                        ->title('Network active')
+                        ->body('MikroTik secret ON ('.$record->fresh()?->pppLoginName().'). ONU রিবুট করুন যদি internet না আসে।')
+                        ->success()
+                        ->send();
                 }),
             Actions\Action::make('net_off')
                 ->label('Net OFF')
@@ -825,7 +837,7 @@ class ViewCustomer extends ViewRecord
                     /** @var Customer $record */
                     $record = $this->record;
                     $record->update(['network_access_state' => 'suspended']);
-                    SyncCustomerNetworkAccessJob::dispatch((int) $record->tenant_id, (int) $record->id)->afterResponse();
+                    SyncCustomerNetworkAccessJob::dispatchSync((int) $record->tenant_id, (int) $record->id);
                     Notification::make()->title('Network suspended')->success()->send();
                 }),
         ];

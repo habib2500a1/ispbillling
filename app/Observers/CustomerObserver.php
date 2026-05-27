@@ -2,11 +2,9 @@
 
 namespace App\Observers;
 
-use App\Jobs\SyncCustomerNetworkAccessJob;
+use App\Support\CustomerNetworkSync;
 use App\Models\Customer;
 use App\Services\Radius\CustomerRadiusSyncService;
-use App\Services\Notifications\OpsNotificationService;
-use App\Services\Sms\AutomatedSmsNotifier;
 use App\Models\CustomerNote;
 use App\Models\MikrotikServer;
 use App\Support\CustomerStatus;
@@ -17,12 +15,12 @@ class CustomerObserver
     public function created(Customer $customer): void
     {
         try {
-            app(AutomatedSmsNotifier::class)->onClientCreated($customer);
-            app(OpsNotificationService::class)->onClientCreated($customer);
+            CustomerNetworkSync::provisionOnCreate($customer);
         } catch (\Throwable $e) {
-            Log::channel('single')->warning('customer.sms_created_failed', [
+            Log::channel('single')->error('customer.observer.created_mikrotik_failed', [
                 'customer_id' => $customer->id,
                 'message' => $e->getMessage(),
+                'exception' => $e::class,
             ]);
         }
     }
@@ -33,15 +31,6 @@ class CustomerObserver
             $from = CustomerStatus::normalize((string) $customer->getOriginal('status'));
             $to = CustomerStatus::normalize((string) $customer->status);
             if ($from !== $to) {
-                try {
-                    app(AutomatedSmsNotifier::class)->onClientStatusChanged($customer, $from, $to);
-                    app(OpsNotificationService::class)->onClientStatusChanged($customer, $from, $to);
-                } catch (\Throwable $e) {
-                    Log::channel('single')->warning('customer.sms_status_failed', [
-                        'customer_id' => $customer->id,
-                        'message' => $e->getMessage(),
-                    ]);
-                }
                 CustomerNote::query()->create([
                     'customer_id' => $customer->id,
                     'tenant_id' => $customer->tenant_id,
@@ -71,7 +60,17 @@ class CustomerObserver
 
         try {
             $status = CustomerStatus::normalize((string) $customer->status);
-            if (! in_array($status, [CustomerStatus::ACTIVE, CustomerStatus::SUSPENDED], true)) {
+            $shouldSyncNow = $customer->wasChanged([
+                'status',
+                'network_access_state',
+                'service_expires_at',
+            ]);
+
+            $validityExtended = $customer->wasChanged('service_expires_at')
+                && $customer->service_expires_at !== null
+                && ! $customer->isServiceExpired();
+
+            if (! $shouldSyncNow && ! $validityExtended) {
                 return;
             }
 
@@ -94,7 +93,7 @@ class CustomerObserver
                 return;
             }
 
-            SyncCustomerNetworkAccessJob::dispatch((int) $customer->tenant_id, (int) $customer->id)->afterResponse();
+            CustomerNetworkSync::runNow($customer);
         } catch (\Throwable $e) {
             Log::channel('single')->error('customer.observer.saved_failed', [
                 'customer_id' => $customer->id,

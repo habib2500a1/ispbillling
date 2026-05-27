@@ -61,6 +61,73 @@ class OpsBatchFeaturesTest extends TestCase
         $this->assertNotNull($alert->fresh()->resolved_at);
     }
 
+    public function test_session_alert_resolve_auto_restores_network_when_no_other_open_alerts(): void
+    {
+        $customer = $this->makeCustomer();
+        $customer->forceFill([
+            'status' => 'suspended',
+            'network_access_state' => 'suspended',
+        ])->save();
+
+        $alert = MikrotikSessionAlert::query()->create([
+            'tenant_id' => 1,
+            'customer_id' => $customer->id,
+            'alert_type' => MikrotikSessionAlert::TYPE_OVERDUE_ONLINE,
+            'severity' => 'warning',
+            'login' => 'testuser',
+            'message' => 'Test',
+        ]);
+
+        $this->assertNull($alert->fresh()->resolved_at);
+
+        app(\App\Services\Mikrotik\MikrotikSessionAlertService::class)->resolve($alert);
+
+        $customer->refresh();
+        $alert->refresh();
+
+        $this->assertNotNull($alert->resolved_at);
+        $this->assertSame('active', $customer->network_access_state);
+        $this->assertSame('active', $customer->status);
+    }
+
+    public function test_session_alert_resolve_keeps_suspension_if_another_alert_is_still_open(): void
+    {
+        $customer = $this->makeCustomer();
+        $customer->forceFill([
+            'status' => 'suspended',
+            'network_access_state' => 'suspended',
+        ])->save();
+
+        $alert1 = MikrotikSessionAlert::query()->create([
+            'tenant_id' => 1,
+            'customer_id' => $customer->id,
+            'alert_type' => MikrotikSessionAlert::TYPE_OVERDUE_ONLINE,
+            'severity' => 'warning',
+            'login' => 'testuser',
+            'message' => 'Test 1',
+        ]);
+
+        $alert2 = MikrotikSessionAlert::query()->create([
+            'tenant_id' => 1,
+            'customer_id' => $customer->id,
+            'alert_type' => MikrotikSessionAlert::TYPE_WRONG_ROUTER,
+            'severity' => 'warning',
+            'login' => 'testuser',
+            'message' => 'Test 2',
+        ]);
+
+        app(\App\Services\Mikrotik\MikrotikSessionAlertService::class)->resolve($alert1);
+
+        $customer->refresh();
+        $alert1->refresh();
+        $alert2->refresh();
+
+        $this->assertNotNull($alert1->resolved_at);
+        $this->assertNull($alert2->resolved_at);
+        $this->assertSame('suspended', $customer->network_access_state);
+        $this->assertSame('suspended', $customer->status);
+    }
+
     private function makeCustomer(): Customer
     {
         $package = Package::query()->create([

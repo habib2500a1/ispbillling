@@ -306,7 +306,15 @@ final class MikrotikFleetCoordinator
                 ->where('is_enabled', true)
                 ->first();
 
-            return $server ? collect([$server]) : collect();
+            if ($server !== null) {
+                return collect([$server]);
+            }
+
+            // Assigned router missing/disabled — fall back so Net ON / paid sync is not silent no-op.
+            Log::warning('mikrotik.fleet.assigned_server_unavailable', [
+                'customer_id' => $customer->id,
+                'mikrotik_server_id' => $customer->mikrotik_server_id,
+            ]);
         }
 
         return $this->enabledServers($tenantId);

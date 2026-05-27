@@ -54,11 +54,8 @@ class OnlineClientsMonitoring extends Page implements HasForms, HasTable
             'online_status' => ['value' => 'all'],
         ];
 
-        $tenantId = TenantResolver::requiredTenantId();
-        $bandwidth = app(BandwidthCollectionService::class);
-        if (! $bandwidth->tenantOnlineFlagsTrustworthy($tenantId)) {
-            $bandwidth->refreshOnlineFlagsForTenant($tenantId);
-        }
+        // Do not run refreshOnlineFlagsForTenant on mount — it can wipe is_ppp_online when
+        // router probes are stale while real PPP sessions are still active.
     }
 
     public function refreshLiveData(): void
@@ -70,24 +67,21 @@ class OnlineClientsMonitoring extends Page implements HasForms, HasTable
         $tenantId = TenantResolver::requiredTenantId();
         $service = app(BandwidthCollectionService::class);
 
-        try {
-            if (config('bandwidth.online_clients_collect_on_poll', false)
-                && config('bandwidth.collection_enabled', true)
-                && $service->tenantHasEnabledMikrotik($tenantId)) {
+        if (config('bandwidth.online_clients_collect_on_poll', false)
+            && config('bandwidth.collection_enabled', true)
+            && $service->tenantHasEnabledMikrotik($tenantId)) {
+            try {
                 $service->collectForTenant($tenantId);
-            } else {
-                $service->refreshOnlineFlagsForTenant($tenantId);
+            } catch (\Throwable) {
+                // Keep last-known online flags; scheduler / Sync live sessions handle recovery.
             }
-        } catch (\Throwable) {
-            // phpnuxbill marks API errors red, not "online" — clear stale flags when poll fails.
-            $service->clearStaleOnlineFlagsWhenRoutersUnreachable($tenantId);
         }
 
         $this->resetTable();
     }
 
     /**
-     * @return array{total: int, online: int, offline: int, active_sessions: int, unmatched_hint: bool}
+     * @return array{total: int, online: int, offline: int, active_sessions: int, unmatched_hint: bool, flags_trustworthy: bool, sync_stale: bool}
      */
     public function getMonitoringStats(): array
     {
@@ -101,17 +95,12 @@ class OnlineClientsMonitoring extends Page implements HasForms, HasTable
 
         $bandwidth = app(BandwidthCollectionService::class);
         $flagsTrustworthy = $bandwidth->tenantOnlineFlagsTrustworthy($tenantId);
+        $online = $bandwidth->displayedOnlineCount($tenantId, $base);
 
-        $online = $flagsTrustworthy
-            ? (clone $base)->where('is_ppp_online', true)->count()
-            : 0;
-
-        $activeSessions = $flagsTrustworthy
-            ? PppSessionLog::query()
-                ->where('tenant_id', $tenantId)
-                ->where('status', 'active')
-                ->count()
-            : 0;
+        $activeSessions = PppSessionLog::query()
+            ->where('tenant_id', $tenantId)
+            ->where('status', 'active')
+            ->count();
 
         $sync = BandwidthSyncStatus::get($tenantId);
         $apiSessions = (int) ($sync['api']['sessions'] ?? 0);
@@ -122,6 +111,8 @@ class OnlineClientsMonitoring extends Page implements HasForms, HasTable
             'offline' => max(0, $total - $online),
             'active_sessions' => $activeSessions,
             'unmatched_hint' => $apiSessions > $online && $online === 0,
+            'flags_trustworthy' => $flagsTrustworthy,
+            'sync_stale' => ! $flagsTrustworthy && $online > 0,
         ];
     }
 
@@ -291,7 +282,7 @@ class OnlineClientsMonitoring extends Page implements HasForms, HasTable
                         'all' => 'All PPP users',
                     ])
                     ->default('all')
-                    ->query(function (Builder $query, array $data): Builder {
+                    ->query(function (Builder $query, array $data) use ($tenantId): Builder {
                         $value = $data['value'] ?? 'all';
 
                         return match ($value) {

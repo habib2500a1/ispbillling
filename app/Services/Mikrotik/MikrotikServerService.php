@@ -182,13 +182,60 @@ final class MikrotikServerService
         $client = $this->makeClient($server);
         $id = $this->findPppSecretDotId($client, $secretName);
         if ($id === null) {
-            return;
+            if ($disabled) {
+                return;
+            }
+
+            // Secret missing on router: create via API, then enable.
+            if (! $this->upsertPppSecretForCustomer($server, $customer)) {
+                return;
+            }
+
+            $client = $this->makeClient($server);
+            $id = $this->findPppSecretDotId($client, $secretName);
+            if ($id === null) {
+                return;
+            }
         }
 
         $query = new Query('/ppp/secret/set');
         $query->equal('.id', $id);
         $query->equal('disabled', $disabled ? 'yes' : 'no');
-        $client->query($query)->read();
+
+        // RouterOS sometimes applies config with a small delay; verify read-back to avoid
+        // "panel says ON but secret still disabled" cases.
+        $attempts = 3;
+        while ($attempts-- > 0) {
+            $client->query($query)->read();
+
+            try {
+                $check = new Query('/ppp/secret/print');
+                $check->where('.id', $id);
+                $rows = $client->query($check)->read();
+
+                $row = is_array($rows) ? ($rows[0] ?? null) : null;
+                $disabledNowRaw = $row['disabled'] ?? null;
+                $disabledNow = is_string($disabledNowRaw)
+                    ? in_array(strtolower($disabledNowRaw), ['yes', 'true', '1'], true)
+                    : (($disabledNowRaw === true) ? true : false);
+
+                if ($disabledNow === $disabled) {
+                    return;
+                }
+            } catch (\Throwable) {
+                // If read-back fails, retry the set.
+            }
+
+            // brief wait before retry
+            usleep(200_000);
+        }
+
+        Log::channel('single')->warning('network.mikrotik.ppp_secret_set_verify_failed', [
+            'customer_id' => $customer->id,
+            'mikrotik_server_id' => $server->id,
+            'login' => $secretName,
+            'disabled_requested' => $disabled,
+        ]);
     }
 
     /**

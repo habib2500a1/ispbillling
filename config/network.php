@@ -45,6 +45,9 @@ return [
      */
     'mikrotik_always_push_ppp_on_customer_save' => (bool) env('NETWORK_MIKROTIK_ALWAYS_PUSH_PPP_ON_CUSTOMER_SAVE', true),
 
+    /** Create /ppp/secret on MikroTik when a new customer is registered (if API + auto_pppoe). */
+    'mikrotik_provision_on_customer_create' => (bool) env('NETWORK_MIKROTIK_PROVISION_ON_CREATE', true),
+
     'olt_snmp_poll_enabled' => (bool) env('NETWORK_OLT_SNMP_POLL_ENABLED', true),
 
     /** CPU/RAM/temperature SNMP during isp:poll-olt-intelligence */
