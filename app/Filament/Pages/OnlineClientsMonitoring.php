@@ -269,11 +269,13 @@ class OnlineClientsMonitoring extends Page implements HasForms, HasTable
             ->filters([
                 Tables\Filters\SelectFilter::make('mikrotik_server_id')
                     ->label('Router')
-                    ->options(fn (): array => MikrotikServer::query()
-                        ->where('tenant_id', $tenantId)
-                        ->orderBy('name')
-                        ->pluck('name', 'id')
-                        ->all()),
+	                    ->options(function () use ($tenantId): array {
+	                        return MikrotikServer::query()
+	                            ->where('tenant_id', $tenantId)
+	                            ->orderBy('name')
+	                            ->pluck('name', 'id')
+	                            ->all();
+	                    }),
                 Tables\Filters\SelectFilter::make('online_status')
                     ->label('Status')
                     ->options([
