@@ -420,10 +420,10 @@
     }
 
     async function importInfra() {
-        if (!wire?.runImport) {
+        if (!wire?.importInfrastructure) {
             return;
         }
-        await wire.runImport();
+        await wire.importInfrastructure();
     }
 
     function fitBounds() {

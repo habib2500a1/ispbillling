@@ -31,7 +31,7 @@ class PortalBillController extends Controller
 
         $totalDue = $dueInvoices->sum(fn (Invoice $inv) => max(0, round((float) $inv->total - (float) $inv->amount_paid, 2)));
 
-        $paymentMethods = PortalPaymentGateways::methodsForCustomerPortal();
+        $paymentMethods = PortalPaymentGateways::methodsForCustomerPortal($customer);
         $gateways = PublicPaymentMethod::legacyFlags($paymentMethods);
 
         return view('portal.bills.index', [

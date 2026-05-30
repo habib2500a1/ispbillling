@@ -5,6 +5,7 @@ namespace App\Services\Billing;
 use App\Models\Customer;
 use App\Models\Package;
 use App\Support\BillingCycleType;
+use App\Services\Resellers\ResellerPackageCatalogService;
 use Carbon\CarbonInterface;
 
 final class PackagePriceResolver
@@ -25,6 +26,16 @@ final class PackagePriceResolver
     public static function resolveBaseMonthlyPrice(Package $package, ?Customer $customer, ?CarbonInterface $onDate = null): float
     {
         $onDate ??= now();
+
+        if ($customer?->reseller_id) {
+            $reseller = $customer->reseller;
+            if ($reseller !== null) {
+                $selling = app(ResellerPackageCatalogService::class)->sellingPriceFor($reseller, $package);
+                if ($selling !== null && $selling > 0) {
+                    return $selling;
+                }
+            }
+        }
 
         if ($customer?->zone_id) {
             $zp = $package->zonePrices()

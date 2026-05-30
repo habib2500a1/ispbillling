@@ -1,41 +1,42 @@
 @php
     $snapshot = $snapshot ?? ['linked' => false, 'rows' => [], 'hint' => null];
     $rows = $snapshot['rows'] ?? [];
-    $onuBilling = $snapshot['onu_billing'] ?? [];
+    $onuBilling = collect($snapshot['onu_billing'] ?? [])
+        ->reject(fn ($value, $label): bool => str_contains(strtolower((string) $label), 'isp digital'))
+        ->mapWithKeys(fn ($value, $label) => [
+            match ($label) {
+                'ISP Digital server' => 'Network server',
+                'Connection (ISP Digital)' => 'Connection type',
+                'Device (ISP Digital)' => 'CPE device',
+                default => $label,
+            } => $value,
+        ])
+        ->reject(fn ($value): bool => $value === '—' || $value === '' || $value === null)
+        ->all();
 @endphp
 
-<div class="mb-4 grid gap-3 md:grid-cols-2">
-    <div class="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm dark:border-slate-700 dark:bg-slate-900/40">
-        <p class="text-xs font-bold uppercase tracking-wide text-slate-500">ONU lease / device (local + ISP Digital)</p>
-        <dl class="mt-2 grid gap-1 text-sm">
-            @foreach ($onuBilling as $label => $value)
-                <div class="flex justify-between gap-2">
-                    <dt class="text-slate-600 dark:text-slate-400">{{ $label }}</dt>
-                    <dd class="font-mono text-xs font-semibold">{{ $value }}</dd>
-                </div>
-            @endforeach
-        </dl>
-        <p class="mt-2 text-xs text-slate-500">
-            ভাড়া/ডিপোজিট Edit client → Fees ট্যাবে। ISP Digital-এ খালি থাকলে header-এ «ISP Digital → Network/ONU» চাপুন।
-        </p>
+@if ($onuBilling !== [])
+    <div class="mb-4">
+        <div class="sub-pro-onu-lease rounded-lg border px-4 py-3 text-sm">
+            <p class="text-xs font-bold uppercase tracking-wide opacity-70">ONU lease &amp; device</p>
+            <dl class="mt-2 grid gap-1 text-sm">
+                @foreach ($onuBilling as $label => $value)
+                    <div class="flex justify-between gap-2">
+                        <dt class="opacity-70">{{ $label }}</dt>
+                        <dd class="font-mono text-xs font-semibold">{{ $value }}</dd>
+                    </div>
+                @endforeach
+            </dl>
+        </div>
     </div>
-    <div class="rounded-lg border border-cyan-200 bg-cyan-50/80 px-4 py-3 text-sm text-cyan-950 dark:border-cyan-900/50 dark:bg-cyan-950/20 dark:text-cyan-100">
-        <p class="font-semibold">OLT থেকে optical power কীভাবে আসে</p>
-        <ol class="mt-2 list-decimal space-y-1 pl-4 text-xs">
-            <li>BDCOM OLT sync (inventory) — Optical NOC বা «Sync OLT & link ONU»</li>
-            <li>ONU description = PPP login (যেমন <span class="font-mono">{{ $rows[0]['username'] ?? ($snapshot['ppp_login'] ?? '—') }}</span>)</li>
-            <li>অথবা MikroTik secret comment-এ EPON0/4:29 বা ONU MAC</li>
-            <li>Router MAC (PPPoE caller-id) ≠ ONU MAC — OLT MAC table ব্যবহার করুন</li>
-        </ol>
-    </div>
-</div>
+@endif
 
 @if (! ($snapshot['linked'] ?? false))
     <div class="space-y-3">
         <div class="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-100">
             <p>{{ $snapshot['hint'] ?? 'No ONU linked.' }}</p>
             @if (config('optical.isp_digital_auto_sync'))
-                <p class="mt-2 text-xs opacity-90">ISP Digital mode: OLT থেকে ONU auto আনছে। ১–২ মিনিট পর refresh করুন বা header-এ «Sync OLT & link ONU» চাপুন।</p>
+                <p class="mt-2 text-xs opacity-90">OLT থেকে ONU auto-link চলছে — ১–২ মিনিট পর refresh করুন বা header-এ «Sync OLT &amp; link ONU» চাপুন।</p>
             @endif
         </div>
         @if (! empty($snapshot['suggestions']))

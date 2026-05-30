@@ -67,12 +67,14 @@ class ResellersHub extends Page
         $max = (int) ($partners->max('customers_count') ?: 0);
 
         return $partners->map(fn (Reseller $reseller): array => [
+            'id' => $reseller->getKey(),
             'name' => $reseller->name,
             'type' => $reseller->franchiseTypeLabel(),
             'customers' => (int) $reseller->customers_count,
             'wallet' => (float) $reseller->wallet_balance,
             'active' => (bool) $reseller->is_active,
             'url' => ResellerResource::getUrl('view', ['record' => $reseller]),
+            'portal_login_url' => route('staff.resellers.portal-login', ['reseller' => $reseller->getKey()]),
             'width' => $max > 0 ? (int) round(($reseller->customers_count / $max) * 100) : 0,
         ])->all();
     }
@@ -132,6 +134,28 @@ class ResellersHub extends Page
             'cancelled_count' => (int) $row(ResellerCommission::STATUS_CANCELLED, 'cnt'),
             'pending_share' => $settleable > 0 ? (int) round(($pending / $settleable) * 100) : 0,
         ];
+    }
+
+    /**
+     * Recent commission entries for the activity feed (last 8).
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public function getRecentCommissions(): array
+    {
+        return ResellerCommission::query()
+            ->with('reseller:id,name')
+            ->orderByDesc('created_at')
+            ->limit(8)
+            ->get()
+            ->map(fn (ResellerCommission $c): array => [
+                'reseller' => $c->reseller?->name ?? '—',
+                'amount'   => (float) $c->commission_amount,
+                'status'   => $c->status,
+                'date'     => $c->created_at?->diffForHumans() ?? '—',
+                'url'      => ResellerResource::getUrl('view', ['record' => $c->reseller_id]),
+            ])
+            ->all();
     }
 
     public static function canAccess(): bool

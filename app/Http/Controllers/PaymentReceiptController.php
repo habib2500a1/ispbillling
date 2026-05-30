@@ -4,6 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Models\Customer;
 use App\Models\Payment;
+use App\Models\Reseller;
+use App\Models\User;
+use App\Support\ResellerBranding;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Auth;
 use Mpdf\Mpdf;
@@ -13,10 +16,24 @@ class PaymentReceiptController extends Controller
 {
     public function show(Payment $payment): Response
     {
-        $webUser = Auth::guard('web')->user() ?? Auth::guard('sanctum')->user();
+        $webUser = Auth::guard('web')->user();
+        $sanctumUser = Auth::guard('sanctum')->user();
         $customer = Auth::guard('customer')->user();
+        $sessionReseller = Auth::guard('reseller')->user();
 
-        if ($webUser) {
+        if ($sanctumUser instanceof Reseller) {
+            $payment->loadMissing('customer');
+            abort_unless(
+                $payment->customer !== null && (int) $payment->customer->reseller_id === (int) $sanctumUser->getAuthIdentifier(),
+                403,
+            );
+        } elseif ($sessionReseller instanceof Reseller) {
+            $payment->loadMissing('customer');
+            abort_unless(
+                $payment->customer !== null && (int) $payment->customer->reseller_id === (int) $sessionReseller->getAuthIdentifier(),
+                403,
+            );
+        } elseif ($webUser instanceof User) {
             // Staff (Filament / mobile API token)
         } elseif ($customer instanceof Customer) {
             abort_unless((int) $payment->customer_id === (int) $customer->getAuthIdentifier(), 403);
@@ -28,7 +45,10 @@ class PaymentReceiptController extends Controller
 
         $payment->load(['customer', 'invoice', 'parentPayment']);
 
-        $html = view('payments.receipt', ['payment' => $payment])->render();
+        $html = view('payments.receipt', array_merge(
+            ['payment' => $payment],
+            ResellerBranding::letterheadVars($payment->customer),
+        ))->render();
 
         $tmpDir = storage_path('app/mpdf-tmp');
         if (! is_dir($tmpDir)) {

@@ -1,63 +1,140 @@
 @php
     $lists = $this->getLists();
+
     $statCards = [
-        ['label' => 'Saved views', 'value' => (string) count($lists), 'hint' => 'Subscriber segments ready', 'class' => 'isp-hub-stat--teal'],
-        ['label' => 'Attention views', 'value' => '3', 'hint' => 'Expired, suspended, left', 'class' => 'isp-hub-stat--danger', 'valueClass' => 'isp-hub-stat-value--danger'],
-        ['label' => 'Growth views', 'value' => '2', 'hint' => 'Active and VIP monitoring', 'class' => 'isp-hub-stat--amber'],
-        ['label' => 'Ops access', 'value' => 'Instant', 'hint' => 'One-click filtered lists', 'class' => 'isp-hub-stat--sky'],
+        [
+            'tone'  => 'indigo',
+            'icon'  => 'heroicon-o-queue-list',
+            'label' => 'Saved views',
+            'value' => (string) count($lists),
+            'hint'  => 'Subscriber segments',
+        ],
+        [
+            'tone'  => 'rose',
+            'icon'  => 'heroicon-o-exclamation-circle',
+            'label' => 'Attention',
+            'value' => '3',
+            'hint'  => 'Expired · suspended · left',
+        ],
+        [
+            'tone'  => 'amber',
+            'icon'  => 'heroicon-o-star',
+            'label' => 'Growth',
+            'value' => '2',
+            'hint'  => 'Active & VIP monitoring',
+        ],
+        [
+            'tone'  => 'sky',
+            'icon'  => 'heroicon-o-bolt',
+            'label' => 'Ops access',
+            'value' => 'Instant',
+            'hint'  => 'One-click filtered lists',
+        ],
     ];
 @endphp
 
-<x-filament-panels::page>
-    <div class="isp-hub-page space-y-6">
-        <x-isp.hub-hero
-            eyebrow="Subscriber operations"
-            title="Subscriber lists"
-            description="Quick access to filtered subscriber views for free, VIP, expired, suspended, and left clients."
-            class="isp-hub-hero--teal"
-        >
-            <div class="isp-hub-toolbar">
-                <div class="isp-hub-toolbar__meta">
-                    <span class="isp-hub-results">{{ count($lists) }} saved views</span>
-                    <span class="isp-hub-section__meta">Ops-ready filters</span>
+<x-filament-panels::page class="isp-slh-page">
+    <div class="slh-pro">
+
+        {{-- ── Hero ── --}}
+        <header class="slh-hero">
+            <div class="slh-hero__grid">
+                <span class="slh-hero__badge">
+                    <span class="slh-hero__badge-dot" aria-hidden="true"></span>
+                    Subscriber operations
+                </span>
+                <h1 class="slh-hero__title">Subscriber Lists</h1>
+                <p class="slh-hero__sub">
+                    Quick access to filtered subscriber views — active, free, VIP, expired, suspended, and left clients. One tap to open any segment.
+                </p>
+                <div class="slh-hero__actions">
+                    <a href="{{ \App\Filament\Resources\CustomerResource::getUrl('index') }}" class="slh-btn slh-btn--white">
+                        <x-filament::icon icon="heroicon-m-users" class="h-4 w-4" />
+                        All subscribers
+                    </a>
+                    <a href="{{ \App\Filament\Resources\CustomerResource::getUrl('create') }}" class="slh-btn slh-btn--glass">
+                        <x-filament::icon icon="heroicon-m-user-plus" class="h-4 w-4" />
+                        Add client
+                    </a>
+                    <a href="{{ \App\Filament\Pages\ClientsHub::getUrl() }}" class="slh-btn slh-btn--glass">
+                        <x-filament::icon icon="heroicon-m-squares-2x2" class="h-4 w-4" />
+                        Clients center
+                    </a>
                 </div>
-                <a href="{{ \App\Filament\Resources\CustomerResource::getUrl('index') }}" class="isp-quick-pill">All subscribers</a>
             </div>
-        </x-isp.hub-hero>
+            <div class="slh-hero__meta">
+                <div class="slh-hero__meta-card">
+                    <span class="slh-hero__meta-label">Segment views</span>
+                    <strong class="slh-hero__meta-value">{{ count($lists) }}</strong>
+                    <span class="slh-hero__meta-hint">Ops-ready filters</span>
+                </div>
+            </div>
+        </header>
 
-        <x-isp.hub-stat-grid :stats="$statCards" />
+        {{-- ── KPI strip ── --}}
+        <div class="slh-stats">
+            @foreach ($statCards as $stat)
+                <div class="slh-stat slh-stat--{{ $stat['tone'] }}">
+                    <span class="slh-stat__icon">
+                        <x-filament::icon :icon="$stat['icon']" class="h-5 w-5" />
+                    </span>
+                    <span class="slh-stat__label">{{ $stat['label'] }}</span>
+                    <strong class="slh-stat__value">{{ $stat['value'] }}</strong>
+                    <span class="slh-stat__hint">{{ $stat['hint'] }}</span>
+                </div>
+            @endforeach
+        </div>
 
-        <section class="isp-hub-section">
-            <div class="isp-hub-section__head">
+        {{-- ── Segment shortcuts ── --}}
+        <section class="slh-section">
+            <div class="slh-section__head">
                 <div>
-                    <h2 class="isp-hub-section__title">Segment shortcuts</h2>
-                    <p class="isp-hub-section__desc">Open the most-used subscriber filters for billing review, retention work, and support follow-up.</p>
+                    <h2 class="slh-section__title">Segment shortcuts</h2>
+                    <p class="slh-section__sub">Open the most-used subscriber filters for billing review, retention work, and support follow-up.</p>
                 </div>
-                <span class="isp-hub-section__meta">{{ count($lists) }} lists</span>
+                <span class="slh-section__tag">{{ count($lists) }} lists</span>
             </div>
-            <div class="isp-list-grid">
+
+            <div class="slh-grid">
                 @foreach ($lists as $list)
-                    <a href="{{ $list['url'] }}" class="isp-list-card isp-list-card--{{ $list['color'] }}">
-                        <span class="isp-list-card-icon">
+                    <a href="{{ $list['url'] }}" class="slh-card slh-card--{{ $list['color'] }}">
+                        <span class="slh-card__icon">
                             <x-filament::icon :icon="$list['icon']" class="h-6 w-6" />
                         </span>
-                        <div class="min-w-0 flex-1">
-                            <p class="isp-list-card__eyebrow">Filtered subscribers</p>
-                            <p class="isp-list-card__title">{{ $list['label'] }}</p>
-                            <p class="isp-list-card__desc">{{ $list['description'] }}</p>
+                        <div class="slh-card__body">
+                            <p class="slh-card__eyebrow">Filtered subscribers</p>
+                            <p class="slh-card__title">{{ $list['label'] }}</p>
+                            <p class="slh-card__desc">{{ $list['description'] }}</p>
                         </div>
-                        <span class="isp-list-card__arrow" aria-hidden="true">→</span>
+                        <span class="slh-card__arrow" aria-hidden="true">→</span>
                     </a>
                 @endforeach
             </div>
         </section>
 
-        <x-isp.hub-footer :links="[
-            ['url' => \App\Filament\Resources\CustomerResource::getUrl('index'), 'label' => 'Subs', 'icon' => 'heroicon-o-users'],
-            ['url' => \App\Filament\Pages\OperationsHub::getUrl(), 'label' => 'Modules', 'icon' => 'heroicon-o-squares-2x2'],
-            ['url' => \App\Filament\Pages\BillingOverview::getUrl(), 'label' => 'Billing', 'icon' => 'heroicon-o-document-text'],
-            ['url' => \App\Filament\Pages\SupportHub::getUrl(), 'label' => 'Support', 'icon' => 'heroicon-o-lifebuoy'],
-            ['url' => \App\Filament\Pages\ReportsHub::getUrl(), 'label' => 'Reports', 'icon' => 'heroicon-o-chart-pie'],
-        ]" />
+        {{-- ── Bottom dock ── --}}
+        <nav class="slh-dock" aria-label="Quick navigation">
+            <div class="slh-dock__inner">
+                @foreach ([
+                    ['url' => \App\Filament\Pages\Dashboard::getUrl(),                              'label' => 'Home',      'icon' => 'heroicon-o-home'],
+                    ['url' => \App\Filament\Pages\ClientsHub::getUrl(),                             'label' => 'Clients',   'icon' => 'heroicon-o-users'],
+                    ['url' => \App\Filament\Pages\SubscriberListsHub::getUrl(),                     'label' => 'Lists',     'icon' => 'heroicon-o-queue-list', 'active' => true],
+                    ['url' => \App\Filament\Pages\BillingOverview::getUrl(),                        'label' => 'Billing',   'icon' => 'heroicon-o-banknotes'],
+                    ['url' => \App\Filament\Pages\ReportsHub::getUrl(),                             'label' => 'Reports',   'icon' => 'heroicon-o-chart-pie'],
+                ] as $link)
+                    <a
+                        href="{{ $link['url'] }}"
+                        @class([
+                            'slh-dock__link',
+                            'slh-dock__link--active' => ! empty($link['active']),
+                        ])
+                    >
+                        <x-filament::icon :icon="$link['icon']" />
+                        <span>{{ $link['label'] }}</span>
+                    </a>
+                @endforeach
+            </div>
+        </nav>
+
     </div>
 </x-filament-panels::page>

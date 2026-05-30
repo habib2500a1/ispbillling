@@ -4,6 +4,7 @@ namespace App\Services\Network;
 
 use App\Models\Device;
 use App\Services\Olt\OltSnmpProbeService;
+use App\Support\MacAddress;
 use App\Support\SnmpClient;
 use Illuminate\Support\Facades\Log;
 
@@ -86,31 +87,38 @@ final class OltFdbMacBridgeService
             $result['fdb_entries'] = count($fdb);
 
             // Group learned MACs per ONU device.
-            $macsByOnu = [];
+            $entriesByOnu = [];
             foreach ($fdb as $entry) {
                 $ifIndex = $portToIf[$entry['port']] ?? $entry['port'];
                 $onuId = $ifToOnuId[$ifIndex] ?? null;
                 if ($onuId === null) {
                     continue;
                 }
-                $macsByOnu[$onuId][$entry['mac']] = true;
+                $mac = MacAddress::normalizeColon($entry['mac']) ?? strtoupper($entry['mac']);
+                $entriesByOnu[$onuId][$mac] = [
+                    'mac' => $mac,
+                    'vlan' => isset($entry['vlan']) ? (int) $entry['vlan'] : null,
+                    'type' => 'dynamic',
+                ];
             }
 
             $stored = 0;
-            foreach ($macsByOnu as $onuId => $macSet) {
-                $macs = array_keys($macSet);
+            foreach ($entriesByOnu as $onuId => $entrySet) {
+                $entries = array_values($entrySet);
+                $macs = array_column($entries, 'mac');
                 $onu = Device::query()->withoutGlobalScopes()->find($onuId);
                 if ($onu === null) {
                     continue;
                 }
                 $meta = is_array($onu->meta) ? $onu->meta : [];
                 $meta['fdb_macs'] = $macs;
+                $meta['pon_mac_entries'] = $entries;
                 $meta['fdb_synced_at'] = now()->toIso8601String();
                 $onu->forceFill(['meta' => $meta])->saveQuietly();
                 $stored += count($macs);
             }
 
-            $result['onus_with_macs'] = count($macsByOnu);
+            $result['onus_with_macs'] = count($entriesByOnu);
             $result['macs_stored'] = $stored;
             $result['success'] = true;
         } catch (\Throwable $e) {
@@ -298,7 +306,7 @@ final class OltFdbMacBridgeService
      * Value is the bridge port. BDCOM returns the Q-BRIDGE table out of order, so the increasing
      * check must be disabled or the walk truncates after ~20 rows.
      *
-     * @return list<array{mac: string, port: int}>
+     * @return list<array{mac: string, port: int, vlan: ?int}>
      */
     private function walkFdb(string $peer, string $community, string $oid, bool $perVlan, int $timeoutUs, int $retries): array
     {
@@ -315,6 +323,10 @@ final class OltFdbMacBridgeService
             $octets = explode('.', $suffix);
             if (count($octets) < 6) {
                 continue;
+            }
+            $vlan = null;
+            if ($perVlan && count($octets) > 6 && ctype_digit($octets[0])) {
+                $vlan = (int) $octets[0];
             }
             // Last 6 octets are the MAC (the optional leading VLAN id is ignored).
             $macOctets = array_slice($octets, -6);
@@ -333,7 +345,7 @@ final class OltFdbMacBridgeService
             if ($port <= 0) {
                 continue;
             }
-            $rows[] = ['mac' => $mac, 'port' => $port];
+            $rows[] = ['mac' => $mac, 'port' => $port, 'vlan' => $vlan];
         }
 
         return $rows;

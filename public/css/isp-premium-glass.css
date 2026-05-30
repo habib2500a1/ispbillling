@@ -137,11 +137,22 @@ body.isp-premium-bg::before {
     animation: premium-mesh-drift 24s ease-in-out infinite alternate;
 }
 
-.fi-body > *,
+.fi-body > *:not(.isp-mobile-bar):not(.isp-cmd-palette):not(.isp-premium-loader):not(.isp-premium-orbs),
 .portal-body > *:not(.isp-premium-loader):not(.isp-premium-orbs),
 .bp-bg > * {
     position: relative;
     z-index: 1;
+}
+
+/* Fixed chrome must stay viewport-bound (see admin-saas .isp-mobile-bar) */
+body.fi-body > .isp-mobile-bar,
+body.fi-body > .isp-cmd-palette {
+    position: fixed !important;
+    z-index: 55;
+}
+
+body.fi-body > .isp-cmd-palette {
+    z-index: 9999 !important;
 }
 
 @keyframes premium-mesh-drift {

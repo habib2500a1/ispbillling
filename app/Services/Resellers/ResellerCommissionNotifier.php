@@ -29,6 +29,12 @@ final class ResellerCommissionNotifier
             'gross' => number_format((float) $commission->gross_amount, 2),
             'code' => $reseller->code ?? '',
         ]);
+
+        app(ResellerPortalNotifier::class)->commissionAccrued(
+            $reseller,
+            (float) $commission->commission_amount,
+            $commission->customer?->customer_code ?? 'subscriber',
+        );
     }
 
     public function notifyPaid(ResellerCommission $commission): void
@@ -46,6 +52,12 @@ final class ResellerCommissionNotifier
             'amount' => number_format((float) $commission->commission_amount, 2),
             'code' => $reseller->code ?? '',
         ]);
+
+        app(ResellerPortalNotifier::class)->walletCredited(
+            $reseller,
+            (float) $commission->commission_amount,
+            'Commission payout',
+        );
     }
 
     /**

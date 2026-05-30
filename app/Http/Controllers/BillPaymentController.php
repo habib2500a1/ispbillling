@@ -11,6 +11,7 @@ use App\Services\BillPayment\PaymentLinkService;
 use App\Services\BillPayment\PublicBillPaymentService;
 use App\Services\Billing\CustomerPrepayService;
 use App\Services\Payments\PublicPaymentOrchestrator;
+use App\Services\Reseller\ResellerPaymentContext;
 use App\Support\PaymentGateway;
 use App\Support\PortalPaymentGateways;
 use App\Support\PublicPaymentMethod;
@@ -203,7 +204,7 @@ class BillPaymentController extends Controller
             ->limit(3)
             ->get();
 
-        $paymentMethods = PortalPaymentGateways::methodsForPublicBillPay();
+        $paymentMethods = PortalPaymentGateways::methodsForPublicBillPay($customer);
         $gateways = PublicPaymentMethod::legacyFlags($paymentMethods);
 
         return view('bill-payment.invoice', [
@@ -242,7 +243,7 @@ class BillPaymentController extends Controller
 
         $balance = $invoice->balanceDue();
         $validated = $request->validate([
-            'gateway' => ['required', 'in:'.implode(',', PaymentGateway::customerCheckoutGateways())],
+            'gateway' => ['required', 'in:'.implode(',', ResellerPaymentContext::allowedCheckoutGateways($customer))],
             'amount' => ['prohibited'],
         ]);
 
@@ -260,7 +261,7 @@ class BillPaymentController extends Controller
 
         $min = (float) config('bill_payment.wallet_topup_min', 100);
         $validated = $request->validate([
-            'gateway' => ['required', 'in:'.implode(',', PaymentGateway::customerCheckoutGateways())],
+            'gateway' => ['required', 'in:'.implode(',', ResellerPaymentContext::allowedCheckoutGateways($customer))],
             'amount' => ['required', 'numeric', 'min:'.$min, 'max:500000'],
         ]);
 
@@ -277,7 +278,7 @@ class BillPaymentController extends Controller
         $maxMonths = $prepay->maxMonths();
         $validated = $request->validate([
             'months' => ['required', 'integer', 'min:1', 'max:'.$maxMonths],
-            'gateway' => ['required', 'in:'.implode(',', PaymentGateway::customerCheckoutGateways())],
+            'gateway' => ['required', 'in:'.implode(',', ResellerPaymentContext::allowedCheckoutGateways($customer))],
         ]);
 
         $quote = $prepay->assertQuote($customer, (int) $validated['months']);
@@ -369,7 +370,6 @@ class BillPaymentController extends Controller
         $payment->load(['invoice', 'customer']);
 
         return view('bill-payment.receipt', [
-            'companyName' => config('isp.company_name'),
             'payment' => $payment,
         ]);
     }

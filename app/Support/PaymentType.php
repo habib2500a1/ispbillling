@@ -16,6 +16,8 @@ final class PaymentType
 
     public const PREPAY = 'prepay';
 
+    public const RESELLER_WALLET_RECHARGE = 'reseller_wallet_recharge';
+
     /** @return array<string, string> */
     public static function options(): array
     {
@@ -26,6 +28,7 @@ final class PaymentType
             self::WALLET_DEPOSIT => 'Wallet top-up',
             self::WALLET_APPLY => 'Pay from wallet',
             self::PREPAY => 'Advance months',
+            self::RESELLER_WALLET_RECHARGE => 'Partner wallet top-up',
         ];
     }
 

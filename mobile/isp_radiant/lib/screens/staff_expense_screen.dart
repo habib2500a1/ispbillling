@@ -110,7 +110,7 @@ class _StaffExpenseScreenState extends State<StaffExpenseScreen> {
       useGradientBody: true,
       actions: [IconButton(icon: const Icon(Icons.refresh), onPressed: _load)],
       body: _loading
-          ? const Center(child: CircularProgressIndicator())
+          ? const ListLoading()
           : _error != null
               ? Center(child: ErrorBanner(message: _error!, onRetry: _load))
               : RefreshIndicator(

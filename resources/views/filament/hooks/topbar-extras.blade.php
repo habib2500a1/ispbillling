@@ -65,17 +65,4 @@
     >
         ⌘K
     </button>
-    @php
-        $currentLocale = app()->getLocale();
-        $localeLabels = config('locales.labels', []);
-    @endphp
-    <div class="flex items-center gap-1 rounded-lg border border-gray-200 bg-white/80 px-1 dark:border-gray-600 dark:bg-gray-900/80">
-        @foreach (config('locales.supported', ['en']) as $code)
-            <a
-                href="{{ route('locale.switch', $code) }}"
-                class="rounded px-2 py-1 text-xs font-semibold {{ $currentLocale === $code ? 'bg-teal-100 text-teal-800 dark:bg-teal-900/50 dark:text-teal-200' : 'text-gray-500 hover:text-gray-800 dark:text-gray-400' }}"
-                title="{{ $localeLabels[$code] ?? $code }}"
-            >{{ strtoupper($code) }}</a>
-        @endforeach
-    </div>
 </div>

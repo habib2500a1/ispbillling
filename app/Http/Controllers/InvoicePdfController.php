@@ -4,6 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Models\Customer;
 use App\Models\Invoice;
+use App\Models\Reseller;
+use App\Models\User;
+use App\Support\ResellerBranding;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Auth;
 use Mpdf\Mpdf;
@@ -13,10 +16,24 @@ class InvoicePdfController extends Controller
 {
     public function show(Invoice $invoice): Response
     {
-        $webUser = Auth::guard('web')->user() ?? Auth::guard('sanctum')->user();
+        $webUser = Auth::guard('web')->user();
+        $sanctumUser = Auth::guard('sanctum')->user();
         $customer = Auth::guard('customer')->user();
+        $sessionReseller = Auth::guard('reseller')->user();
 
-        if ($webUser) {
+        if ($sanctumUser instanceof Reseller) {
+            $invoice->loadMissing('customer');
+            abort_unless(
+                $invoice->customer !== null && (int) $invoice->customer->reseller_id === (int) $sanctumUser->getAuthIdentifier(),
+                403,
+            );
+        } elseif ($sessionReseller instanceof Reseller) {
+            $invoice->loadMissing('customer');
+            abort_unless(
+                $invoice->customer !== null && (int) $invoice->customer->reseller_id === (int) $sessionReseller->getAuthIdentifier(),
+                403,
+            );
+        } elseif ($webUser instanceof User) {
             // Staff (Filament / mobile API token)
         } elseif ($customer instanceof Customer) {
             abort_unless((int) $invoice->customer_id === (int) $customer->getAuthIdentifier(), 403);
@@ -32,7 +49,10 @@ class InvoicePdfController extends Controller
 
         $invoice->load(['customer', 'items']);
 
-        $html = view('invoices.pdf', ['invoice' => $invoice])->render();
+        $html = view('invoices.pdf', array_merge(
+            ['invoice' => $invoice],
+            ResellerBranding::letterheadVars($invoice->customer),
+        ))->render();
 
         $tmpDir = storage_path('app/mpdf-tmp');
         if (! is_dir($tmpDir)) {

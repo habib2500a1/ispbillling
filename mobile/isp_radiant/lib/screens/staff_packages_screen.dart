@@ -94,7 +94,7 @@ class _StaffPackagesScreenState extends State<StaffPackagesScreen> {
         label: const Text('New'),
       ),
       body: _loading
-          ? const Center(child: CircularProgressIndicator())
+          ? const ListLoading()
           : _error != null
               ? Center(child: ErrorBanner(message: _error!, onRetry: _load))
               : RefreshIndicator(

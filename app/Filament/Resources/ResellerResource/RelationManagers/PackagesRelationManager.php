@@ -31,12 +31,20 @@ class PackagesRelationManager extends RelationManager
                             ->where('reseller_id', $reseller->id)
                             ->pluck('package_id');
 
-                        return Package::query()
+                        $query = Package::query()
                             ->where('tenant_id', $reseller->tenant_id)
-                            ->where('is_active', true)
-                            ->when($assigned->isNotEmpty(), fn ($q) => $q->whereNotIn('id', $assigned))
+                            ->where('is_active', true);
+
+                        if ($assigned->isNotEmpty()) {
+                            $query->whereNotIn('id', $assigned);
+                        }
+
+                        return $query
                             ->orderBy('name')
-                            ->pluck('name', 'id')
+                            ->get()
+                            ->mapWithKeys(fn (Package $package): array => [
+                                $package->id => $package->adminSelectLabel(),
+                            ])
                             ->all();
                     })
                     ->searchable()
@@ -77,6 +85,11 @@ class PackagesRelationManager extends RelationManager
                     ->searchable()
                     ->sortable()
                     ->weight('bold'),
+                Tables\Columns\TextColumn::make('package.mikrotik_profile_name')
+                    ->label('Profile code')
+                    ->fontFamily('mono')
+                    ->placeholder('—')
+                    ->toggleable(),
                 Tables\Columns\TextColumn::make('package.download_mbps')
                     ->label('Speed')
                     ->suffix(' Mbps'),

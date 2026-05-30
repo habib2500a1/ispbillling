@@ -6,6 +6,7 @@ use App\Http\Controllers\BkashPaymentController;
 use App\Exceptions\PaymentGatewayException;
 use App\Models\Customer;
 use App\Models\Invoice;
+use App\Services\Reseller\ResellerPaymentContext;
 use App\Support\BkashSettings;
 use App\Support\PaymentGateway;
 use App\Support\PaymentType;
@@ -21,10 +22,26 @@ final class PublicPaymentOrchestrator
         string $gateway,
         string $returnTo = 'bill_payment',
     ): RedirectResponse {
+        $customer = $invoice->customer;
+
+        return ResellerPaymentContext::usingCustomer($customer, fn (): RedirectResponse => $this->startInvoicePaymentResolved(
+            $invoice,
+            $amount,
+            $gateway,
+            $returnTo,
+            $customer,
+        ));
+    }
+
+    private function startInvoicePaymentResolved(
+        Invoice $invoice,
+        float $amount,
+        string $gateway,
+        string $returnTo,
+        ?Customer $customer,
+    ): RedirectResponse {
         $resolved = PaymentGateway::resolveCheckoutSelection($gateway);
         $gateway = $resolved['gateway'];
-
-        $customer = $invoice->customer;
 
         if ($gateway === PaymentGateway::BKASH) {
             return $this->routeBkashCheckout(
@@ -49,6 +66,15 @@ final class PublicPaymentOrchestrator
     }
 
     public function startWalletTopup(Customer $customer, float $amount, string $gateway): RedirectResponse
+    {
+        return ResellerPaymentContext::usingCustomer($customer, fn (): RedirectResponse => $this->startWalletTopupResolved(
+            $customer,
+            $amount,
+            $gateway,
+        ));
+    }
+
+    private function startWalletTopupResolved(Customer $customer, float $amount, string $gateway): RedirectResponse
     {
         $resolved = PaymentGateway::resolveCheckoutSelection($gateway);
         $gateway = $resolved['gateway'];
@@ -82,6 +108,22 @@ final class PublicPaymentOrchestrator
         int $months,
         string $gateway,
         string $returnTo = 'bill_payment',
+    ): RedirectResponse {
+        return ResellerPaymentContext::usingCustomer($customer, fn (): RedirectResponse => $this->startPrepayPaymentResolved(
+            $customer,
+            $amount,
+            $months,
+            $gateway,
+            $returnTo,
+        ));
+    }
+
+    private function startPrepayPaymentResolved(
+        Customer $customer,
+        float $amount,
+        int $months,
+        string $gateway,
+        string $returnTo,
     ): RedirectResponse {
         $resolved = PaymentGateway::resolveCheckoutSelection($gateway);
         $gateway = $resolved['gateway'];
@@ -305,6 +347,22 @@ final class PublicPaymentOrchestrator
         string $paymentType,
         int $prepayMonths = 0,
     ): RedirectResponse {
+        if (config('reseller_payment.active')) {
+            if (! PersonalMfsGateway::bkashPersonalEnabled()) {
+                return $this->fail($invoice, $returnTo, 'bKash Personal is not configured by your partner.', $paymentType);
+            }
+
+            return $this->startPersonalMfs(
+                PaymentGateway::BKASH,
+                $invoice,
+                $customer,
+                $amount,
+                $returnTo,
+                $paymentType,
+                $prepayMonths,
+            );
+        }
+
         $channel = $returnTo === 'portal' ? BkashSettings::CHANNEL_PORTAL : BkashSettings::CHANNEL_PUBLIC_PAY;
 
         $merchantReady = BkashSettings::isMerchantActiveForChannel($channel);

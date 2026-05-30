@@ -22,10 +22,14 @@ class ResellerDashboardController extends Controller
             ->limit(8)
             ->get();
 
+        $recentPayments = $dashboard->recentPayments($reseller, 10);
+
         return view('reseller.dashboard', [
             'reseller' => $reseller,
             'metrics' => $metrics,
             'recentCommissions' => $recentCommissions,
+            'recentPayments' => $recentPayments,
+            'chartData' => $metrics['charts'] ?? [],
         ]);
     }
 }

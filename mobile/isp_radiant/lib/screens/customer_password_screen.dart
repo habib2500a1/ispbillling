@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../core/widgets/theme_toggle_tile.dart';
 import '../services/api_service.dart';
 import '../theme/app_theme.dart';
 import '../utils/app_nav.dart';
@@ -79,6 +80,8 @@ class _CustomerPasswordScreenState extends State<CustomerPasswordScreen> {
               IspUiKit.primaryButton(label: 'Update password', loading: _loading, onPressed: _submit),
             ],
           ),
+          const SizedBox(height: 16),
+          const ThemeToggleTile(),
         ],
       ),
     );

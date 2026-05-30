@@ -7,13 +7,14 @@ use App\Models\Reseller;
 use App\Models\User;
 use App\Services\Billing\StaffCollectionPaymentService;
 use App\Support\ResellerPortalPermission;
+use App\Support\ResellerPortalSession;
 use Illuminate\Validation\ValidationException;
 
 final class ResellerCollectionPaymentService
 {
     public function collect(Reseller $reseller, Customer $customer, array $data): array
     {
-        if (! $reseller->canPortal(ResellerPortalPermission::PAYMENT_COLLECT)) {
+        if (! app(ResellerPortalSession::class)->canPortal(ResellerPortalPermission::PAYMENT_COLLECT)) {
             throw ValidationException::withMessages(['permission' => 'Payment collection is not allowed.']);
         }
 

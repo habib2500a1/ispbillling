@@ -126,7 +126,7 @@ class _StaffMfsSmsScreenState extends State<StaffMfsSmsScreen> {
         padding: const EdgeInsets.all(16),
         children: [
           Container(
-            decoration: IspUiKit.cardDecoration(tint: const Color(0xFFECFDF5)),
+            decoration: IspUiKit.cardDecoration(tint: AppTheme.success.withValues(alpha: 0.12)),
             child: SwitchListTile(
               title: const Text('Auto-read payment SMS', style: TextStyle(fontWeight: FontWeight.bold)),
               subtitle: const Text(

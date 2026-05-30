@@ -37,6 +37,10 @@ final class ResellerPortalPermission
 
     public const SUB_RESELLER_VIEW = 'portal.sub_reseller.view';
 
+    public const INTEGRATIONS_MANAGE = 'portal.integrations.manage';
+
+    public const STAFF_MANAGE = 'portal.staff.manage';
+
     /**
      * @return array<string, string>
      */
@@ -58,7 +62,18 @@ final class ResellerPortalPermission
             self::COMMISSION_VIEW => 'Commission ledger',
             self::TICKET_CREATE => 'Support tickets',
             self::SUB_RESELLER_VIEW => 'Sub-resellers',
+            self::INTEGRATIONS_MANAGE => 'SMS & payment integrations',
+            self::STAFF_MANAGE => 'Manage staff accounts',
         ];
+    }
+
+    /** @return list<string> */
+    public static function assignableToStaff(): array
+    {
+        return array_values(array_filter(
+            self::all(),
+            static fn (string $permission): bool => $permission !== self::STAFF_MANAGE,
+        ));
     }
 
     /** @return list<string> */
@@ -95,6 +110,7 @@ final class ResellerPortalPermission
                 self::SETTLEMENT_MANAGE,
                 self::TICKET_CREATE,
                 self::SUB_RESELLER_VIEW,
+                self::STAFF_MANAGE,
             ]),
             ResellerType::SUB_RESELLER, ResellerType::LOCAL_PARTNER => array_merge($read, [
                 self::CUSTOMER_EDIT,
@@ -111,6 +127,7 @@ final class ResellerPortalPermission
                 self::REPORTS_VIEW,
                 self::SETTLEMENT_MANAGE,
                 self::TICKET_CREATE,
+                self::STAFF_MANAGE,
             ]),
         };
     }

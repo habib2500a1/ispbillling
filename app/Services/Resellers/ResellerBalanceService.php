@@ -4,6 +4,7 @@ namespace App\Services\Resellers;
 
 use App\Models\Reseller;
 use App\Models\ResellerBalanceTransfer;
+use App\Services\Resellers\ResellerPortalNotifier;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -25,9 +26,12 @@ final class ResellerBalanceService
         }
 
         return DB::transaction(function () use ($from, $to, $amount, $notes, $type): ResellerBalanceTransfer {
-            if ($from !== null) {
-                $from->decrement('wallet_balance', $amount);
+        if ($from !== null) {
+            if ($from->wallet_frozen) {
+                throw ValidationException::withMessages(['wallet' => 'Wallet is frozen. Contact admin.']);
             }
+            $from->decrement('wallet_balance', $amount);
+        }
 
             $to->increment('wallet_balance', $amount);
 
@@ -58,7 +62,7 @@ final class ResellerBalanceService
         return DB::transaction(function () use ($to, $amount, $type, $reference, $notes): ResellerBalanceTransfer {
             $to->increment('wallet_balance', $amount);
 
-            return ResellerBalanceTransfer::query()->create([
+            $transfer = ResellerBalanceTransfer::query()->create([
                 'tenant_id' => $to->tenant_id,
                 'from_reseller_id' => null,
                 'to_reseller_id' => $to->id,
@@ -68,6 +72,10 @@ final class ResellerBalanceService
                 'notes' => $notes,
                 'created_by' => auth()->id(),
             ]);
+
+            app(ResellerPortalNotifier::class)->walletCredited($to, $amount, $transfer->reference);
+
+            return $transfer;
         });
     }
 

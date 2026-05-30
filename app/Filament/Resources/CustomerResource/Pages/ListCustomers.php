@@ -6,6 +6,7 @@ use App\Filament\Resources\CustomerResource;
 use App\Models\Package;
 use App\Services\Clients\ClientsDashboardService;
 use App\Services\Import\IspDigitalCurrentBillingSyncService;
+use App\Services\Mobile\StaffBillingKpiResolver;
 use App\Services\Import\IspDigitalPriceSyncService;
 use App\Services\Import\IspDigitalSessionClient;
 use App\Support\CustomerBalanceDue;
@@ -36,20 +37,37 @@ class ListCustomers extends ListRecords
 
     public function getHeading(): string
     {
-        return 'All clients';
+        return '';
     }
 
     public function getSubheading(): ?string
     {
-        return 'Search by name, code, phone, or PPPoE ID. Use tabs and filters — bulk actions are in the table toolbar.';
+        return null;
     }
 
     /**
-     * @return array<string, int>
+     * @return array<string, int|float>
      */
     public function getClientStats(): array
     {
         return app(ClientsDashboardService::class)->summary();
+    }
+
+    /**
+     * @return array{total: int, active: int, inactive: int, due_clients: int, total_due: float}
+     */
+    public function getDirectoryStats(): array
+    {
+        $stats = $this->getClientStats();
+        $tenantId = TenantResolver::requiredTenantId();
+
+        return [
+            'total' => (int) ($stats['total'] ?? 0),
+            'active' => (int) ($stats['active'] ?? 0),
+            'inactive' => max(0, (int) ($stats['total'] ?? 0) - (int) ($stats['active'] ?? 0)),
+            'due_clients' => app(StaffBillingKpiResolver::class)->dueClientsCount($tenantId),
+            'total_due' => CustomerBalanceDue::tenantOpenInvoiceDueSum($tenantId),
+        ];
     }
 
     /**
@@ -65,6 +83,52 @@ class ListCustomers extends ListRecords
             ['key' => 'offline', 'label' => 'Offline', 'count' => $stats['offline'] ?? 0],
             ['key' => 'home', 'label' => 'Home', 'count' => $stats['home'] ?? 0],
             ['key' => 'reseller', 'label' => 'Reseller', 'count' => $stats['reseller'] ?? 0],
+        ];
+    }
+
+    /**
+     * @return list<array{label: string, value: string, hint: string, tone: string, icon: string}>
+     */
+    public function getStatCards(): array
+    {
+        $stats = $this->getDirectoryStats();
+
+        return [
+            [
+                'label' => 'Total clients',
+                'value' => number_format($stats['total']),
+                'hint' => 'All time clients',
+                'tone' => 'violet',
+                'icon' => 'heroicon-o-user-group',
+            ],
+            [
+                'label' => 'Active clients',
+                'value' => number_format($stats['active']),
+                'hint' => 'Currently active',
+                'tone' => 'emerald',
+                'icon' => 'heroicon-o-check-circle',
+            ],
+            [
+                'label' => 'Inactive clients',
+                'value' => number_format($stats['inactive']),
+                'hint' => 'Not active',
+                'tone' => 'amber',
+                'icon' => 'heroicon-o-user-minus',
+            ],
+            [
+                'label' => 'Due clients',
+                'value' => number_format($stats['due_clients']),
+                'hint' => 'Have pending dues',
+                'tone' => 'rose',
+                'icon' => 'heroicon-o-exclamation-circle',
+            ],
+            [
+                'label' => 'Total due',
+                'value' => 'BDT '.number_format($stats['total_due'], 2),
+                'hint' => 'From due clients',
+                'tone' => 'sky',
+                'icon' => 'heroicon-o-banknotes',
+            ],
         ];
     }
 
@@ -171,14 +235,6 @@ class ListCustomers extends ListRecords
                             ->send();
                     }
                 }),
-            Actions\Action::make('export')
-                ->label('Export')
-                ->icon('heroicon-o-arrow-down-tray')
-                ->color('gray')
-                ->url(\App\Filament\Pages\ExportClientsReport::getUrl()),
-            Actions\CreateAction::make()
-                ->label('Add client')
-                ->icon('heroicon-o-user-plus'),
         ];
     }
 }

@@ -230,7 +230,7 @@ class _StaffInventoryPosScreenState extends State<StaffInventoryPosScreen> {
         ],
       ),
       body: _loading
-          ? const Center(child: CircularProgressIndicator())
+          ? const ListLoading()
           : Column(
               children: [
                 if (_error != null)

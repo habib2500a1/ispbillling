@@ -7,6 +7,7 @@ import 'package:telephony/telephony.dart';
 
 import '../utils/mfs_sms_parser.dart';
 import 'api_service.dart';
+import 'background_service.dart';
 
 const _kApiUrl = 'mfs_api_base_url';
 const _kDeviceKey = 'mfs_device_key';
@@ -67,8 +68,12 @@ class SmsListenerService {
   Future<void> setAutoEnabled(bool value) async {
     final p = await SharedPreferences.getInstance();
     await p.setBool(_prefAuto, value);
-    if (!value) {
+    if (value) {
+      // Keep reading SMS while locked/closed via the persistent foreground service.
+      await startBackgroundService();
+    } else {
       _listening = false;
+      stopBackgroundService();
     }
   }
 
@@ -80,6 +85,11 @@ class SmsListenerService {
     var sms = await Permission.sms.status;
     if (!sms.isGranted) {
       sms = await Permission.sms.request();
+    }
+    // Android 13+ needs this for the foreground-service notification to show;
+    // no-op (auto-granted) on older versions.
+    if (!await Permission.notification.status.isGranted) {
+      await Permission.notification.request();
     }
     return sms.isGranted;
   }
@@ -132,10 +142,24 @@ class SmsListenerService {
     _sixHourInboxScanDone = true;
   }
 
+  /// Foreground-service safety net: light, frequent scan of just-arrived SMS.
+  /// Runs in the service isolate (no cached [_api]) so it resolves config from
+  /// prefs via [handleRaw]'s `fromBackground` path. Dedup keeps it idempotent
+  /// against the real-time listener.
+  Future<void> pollInboxForService() async {
+    await _scanInbox(
+      maxMessages: 15,
+      maxAge: const Duration(minutes: 15),
+      allowRematchIngest: false,
+      fromBackground: true,
+    );
+  }
+
   Future<void> _scanInbox({
     required int maxMessages,
     required Duration maxAge,
     bool allowRematchIngest = false,
+    bool fromBackground = false,
   }) async {
     if (_scanBusy) return;
     if (!await ensurePermissions()) return;
@@ -173,6 +197,7 @@ class SmsListenerService {
         await handleRaw(
           body,
           sender: address,
+          fromBackground: fromBackground,
           silentDuplicate: true,
           allowRematchIngest: allowRematchIngest,
         );

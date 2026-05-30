@@ -10,7 +10,7 @@
                 <p class="mt-1 text-sm text-slate-600">{{ $customers->total() }} assigned to {{ $reseller->code }}</p>
             </div>
             <div class="flex flex-wrap gap-2">
-                @if ($reseller->canPortal(\App\Support\ResellerPortalPermission::CUSTOMER_CREATE))
+                @if ($portal->canPortal(\App\Support\ResellerPortalPermission::CUSTOMER_CREATE))
                     <a href="{{ route('reseller.customers.create') }}" class="rsl-btn-sm">+ New subscriber</a>
                 @endif
                 <form method="get" class="flex gap-2">

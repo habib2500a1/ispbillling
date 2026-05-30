@@ -4,6 +4,8 @@ namespace App\Services\Notifications;
 
 use App\Models\Customer;
 use App\Models\NotificationLog;
+use App\Services\Reseller\ResellerIntegrationSettings;
+use App\Services\Reseller\ResellerScopedConfig;
 use App\Services\Notifications\Channels\EmailNotificationChannel;
 use App\Services\Notifications\Channels\NotificationChannelInterface;
 use App\Services\Notifications\Channels\SmsNotificationChannel;
@@ -231,7 +233,7 @@ final class NotificationDispatcher
         }
 
         $channel = $this->channels[$channelName] ?? null;
-        if ($channel === null || ! $channel->isEnabled()) {
+        if ($channel === null) {
             $log->update([
                 'status' => 'skipped',
                 'error' => 'Channel disabled or unknown',
@@ -243,8 +245,17 @@ final class NotificationDispatcher
         try {
             $context['notification_log_id'] = $log->id;
             $context['tenant_id'] = $tenantId;
-            $channel->send($recipient, $message, $context);
-            $log->update(['status' => 'sent', 'sent_at' => now()]);
+
+            $resellerId = $this->resellerIdForSms($customerId);
+            if ($resellerId !== null && $channelName === NotificationChannel::SMS) {
+                ResellerScopedConfig::using($resellerId, function () use ($channel, $recipient, $message, $context, $log): void {
+                    $this->deliverChannel($channel, $recipient, $message, $context, $log);
+                });
+
+                return;
+            }
+
+            $this->deliverChannel($channel, $recipient, $message, $context, $log);
         } catch (\Throwable $e) {
             Log::warning('notification.send_failed', [
                 'event' => $event,
@@ -256,6 +267,38 @@ final class NotificationDispatcher
                 'error' => $e->getMessage(),
             ]);
         }
+    }
+
+    private function deliverChannel(
+        NotificationChannelInterface $channel,
+        string $recipient,
+        string $message,
+        array $context,
+        NotificationLog $log,
+    ): void {
+        if (! $channel->isEnabled()) {
+            $log->update([
+                'status' => 'skipped',
+                'error' => 'Channel disabled or unknown',
+            ]);
+
+            return;
+        }
+
+        $channel->send($recipient, $message, $context);
+        $log->update(['status' => 'sent', 'sent_at' => now()]);
+    }
+
+    private function resellerIdForSms(?int $customerId): ?int
+    {
+        if ($customerId === null) {
+            return null;
+        }
+
+        $customer = Customer::query()->withoutGlobalScopes()->find($customerId);
+        $reseller = ResellerIntegrationSettings::resellerForCustomer($customer);
+
+        return $reseller?->id;
     }
 
     private function eventEnabled(string $event): bool

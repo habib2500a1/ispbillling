@@ -37,8 +37,6 @@
         $smsUrl = \App\Support\AdminNavUrl::for(\App\Filament\Pages\SmsGatewaySetup::class);
         $networkUrl = \App\Support\AdminNavUrl::for(\App\Filament\Pages\OperationsHub::class);
         $subscribersUrl = \App\Support\AdminNavUrl::for(\App\Filament\Pages\SubscriberListsHub::class);
-        $currentLocale = app()->getLocale();
-        $localeLabels = config('locales.labels', []);
     @endphp
 
     <script>
@@ -60,6 +58,7 @@
     </script>
 
     <aside
+        x-persist="isp-mobile-bar"
         class="isp-mobile-bar isp-mobile-bar--color"
         aria-label="Mobile quick actions"
         x-data="{
@@ -212,15 +211,6 @@
                 <span x-text="themeLabel()"></span>
             </button>
 
-            <div class="isp-mobile-bar__locales" role="group" aria-label="Language">
-                @foreach (config('locales.supported', ['en']) as $code)
-                    <a
-                        href="{{ route('locale.switch', $code) }}"
-                        class="isp-mobile-bar__locale {{ $currentLocale === $code ? 'isp-mobile-bar__locale--active' : '' }}"
-                        title="{{ $localeLabels[$code] ?? $code }}"
-                    >{{ strtoupper($code) }}</a>
-                @endforeach
-            </div>
         </div>
     </aside>
 @endauth

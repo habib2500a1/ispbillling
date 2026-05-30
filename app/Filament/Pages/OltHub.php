@@ -119,7 +119,7 @@ class OltHub extends Page
                 'tone' => 'indigo',
             ],
             [
-                'title' => 'OLT MAC table',
+                'title' => 'PON MAC table',
                 'desc' => 'MAC inventory polled from OLT SNMP.',
                 'url' => OltMacTable::getUrl(),
                 'icon' => 'heroicon-o-table-cells',

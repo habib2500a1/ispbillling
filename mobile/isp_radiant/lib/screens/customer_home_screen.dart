@@ -1,14 +1,20 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../config/remote_config.dart';
+import '../core/network/api_result.dart';
+import '../core/network/connectivity.dart';
+import '../core/theme/design_tokens.dart';
+import '../core/widgets/app_refresh.dart';
+import '../core/widgets/cards.dart';
+import '../core/widgets/skeleton.dart';
+import '../core/widgets/states.dart';
+import '../features/dashboard_customer/data/customer_dashboard_repository.dart';
+import '../features/dashboard_customer/domain/customer_dashboard.dart';
 import '../services/api_service.dart';
-import '../theme/app_theme.dart';
-import '../utils/app_nav.dart';
-import '../utils/layout.dart';
 import '../widgets/usage_area_chart.dart';
 import 'client_ping_screen.dart';
 import 'customer_ai_screen.dart';
@@ -21,28 +27,24 @@ import 'customer_tickets_screen.dart';
 import 'customer_usage_screen.dart';
 import 'login_screen.dart';
 
-class CustomerHomeScreen extends StatefulWidget {
+class CustomerHomeScreen extends ConsumerStatefulWidget {
   const CustomerHomeScreen({super.key, required this.api, required this.loginPayload});
 
   final ApiService api;
   final Map<String, dynamic> loginPayload;
 
   @override
-  State<CustomerHomeScreen> createState() => _CustomerHomeScreenState();
+  ConsumerState<CustomerHomeScreen> createState() => _CustomerHomeScreenState();
 }
 
-class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
+class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
   int _tab = 0;
-  Map<String, dynamic>? _dash;
-  Map<String, dynamic>? _usage;
-  bool _loading = true;
   Timer? _usageTimer;
   final _fmt = NumberFormat('#,##0.00');
 
   @override
   void initState() {
     super.initState();
-    _load();
     _usageTimer = Timer.periodic(const Duration(seconds: 2), (_) => _pollUsage());
   }
 
@@ -53,41 +55,11 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
   }
 
   Future<void> _pollUsage() async {
-    if (_tab != 0) return;
-    try {
-      final usage = await widget.api.customerUsageLive();
-      if (!mounted) return;
-      final live = usage['usage'] as Map<String, dynamic>?;
-      setState(() {
-        _usage = live;
-        if (live != null && _dash != null) {
-          _dash!['traffic'] = {
-            'download_bps': live['download_bps'],
-            'upload_bps': live['upload_bps'],
-            'download_human': live['download_human'],
-            'upload_human': live['upload_human'],
-            'chart': live['chart'],
-            'month_download': live['total_download'] ?? live['today_download'],
-            'month_upload': live['total_upload'] ?? live['today_upload'],
-          };
-        }
-      });
-    } catch (_) {}
-  }
-
-  Future<void> _load() async {
-    setState(() => _loading = true);
-    try {
-      final data = await widget.api.customerDashboard();
-      final usage = await widget.api.customerUsageLive();
-      if (mounted) {
-        setState(() {
-          _dash = data;
-          _usage = usage['usage'] as Map<String, dynamic>?;
-        });
-      }
-    } catch (_) {}
-    if (mounted) setState(() => _loading = false);
+    if (_tab != 0 || !mounted) return;
+    final t = await ref.read(customerDashboardRepositoryProvider).liveTraffic();
+    if (t != null && mounted) {
+      ref.read(customerDashboardProvider.notifier).applyTraffic(t);
+    }
   }
 
   Future<void> _logout() async {
@@ -101,255 +73,138 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
 
   void _go(int i) => setState(() => _tab = i);
 
-  void _openPay() => Navigator.push(context, MaterialPageRoute(builder: (_) => CustomerPayScreen(api: widget.api)));
+  void _push(Widget screen) =>
+      Navigator.push(context, MaterialPageRoute(builder: (_) => screen));
 
-  void _openPackages() => Navigator.push(
-        context,
-        MaterialPageRoute(builder: (_) => CustomerPackagesScreen(api: widget.api)),
-      );
-
-  void _openPassword() => Navigator.push(
-        context,
-        MaterialPageRoute(builder: (_) => CustomerPasswordScreen(api: widget.api)),
-      );
-
-  void _openTickets() => Navigator.push(
-        context,
-        MaterialPageRoute(builder: (_) => CustomerTicketsScreen(api: widget.api)),
-      );
+  void _openPay() => _push(CustomerPayScreen(api: widget.api));
+  void _openPackages() => _push(CustomerPackagesScreen(api: widget.api));
+  void _openPassword() => _push(CustomerPasswordScreen(api: widget.api));
+  void _openTickets() => _push(CustomerTicketsScreen(api: widget.api));
 
   @override
   Widget build(BuildContext context) {
-    final titles = ['', 'Ping', 'Payment History'];
+    const titles = ['', 'Ping', 'Payment History'];
 
-    return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: SystemUiOverlayStyle.light.copyWith(statusBarColor: Colors.transparent),
-      child: Scaffold(
-        backgroundColor: const Color(0xFFF0F4FF),
-        appBar: _tab == 0
-            ? null
-            : AppBar(
-                title: Text(titles[_tab]),
-                centerTitle: true,
-              ),
-        body: IndexedStack(
-          index: _tab,
-          children: [
-            _buildHomeTab(),
-            ClientPingScreen(active: _tab == 1),
-            CustomerBillsScreen(api: widget.api, active: _tab == 2, onPay: _openPay, embedded: true),
-          ],
-        ),
-        bottomNavigationBar: NavigationBar(
-          selectedIndex: _tab,
-          onDestinationSelected: _go,
-          height: 68,
-          destinations: const [
-            NavigationDestination(icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home), label: 'Home'),
-            NavigationDestination(icon: Icon(Icons.speed_outlined), selectedIcon: Icon(Icons.speed), label: 'Ping'),
-            NavigationDestination(
+    return Scaffold(
+      appBar: _tab == 0 ? null : AppBar(title: Text(titles[_tab])),
+      body: IndexedStack(
+        index: _tab,
+        children: [
+          _HomeTab(
+            api: widget.api,
+            fmt: _fmt,
+            onLogout: _logout,
+            onPay: _openPay,
+            onPackages: _openPackages,
+            onPassword: _openPassword,
+            onTickets: _openTickets,
+            onPaymentHistory: () => _go(2),
+            onUsage: () => _push(CustomerUsageScreen(api: widget.api)),
+            onOnu: () => _push(CustomerOnuScreen(api: widget.api)),
+            onAi: () => _push(CustomerAiScreen(api: widget.api)),
+          ),
+          ClientPingScreen(active: _tab == 1),
+          CustomerBillsScreen(api: widget.api, active: _tab == 2, onPay: _openPay, embedded: true),
+        ],
+      ),
+      bottomNavigationBar: NavigationBar(
+        selectedIndex: _tab,
+        onDestinationSelected: _go,
+        destinations: const [
+          NavigationDestination(
+              icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home_rounded), label: 'Home'),
+          NavigationDestination(
+              icon: Icon(Icons.speed_outlined), selectedIcon: Icon(Icons.speed_rounded), label: 'Ping'),
+          NavigationDestination(
               icon: Icon(Icons.credit_card_outlined),
-              selectedIcon: Icon(Icons.credit_card),
-              label: 'Payment History',
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildHomeTab() {
-    final fallbackCustomer = widget.loginPayload['customer'] as Map<String, dynamic>?;
-    if (_loading && _dash == null && fallbackCustomer == null) {
-      return const Center(child: CircularProgressIndicator());
-    }
-
-    final customer = (_dash?['customer'] ?? fallbackCustomer) as Map<String, dynamic>?;
-    final summary = _dash?['summary'] as Map<String, dynamic>? ?? {};
-    final traffic = (_usage ?? _dash?['traffic']) as Map<String, dynamic>? ?? {};
-    final connected = summary['status']?.toString() == 'Connected';
-    final name = customer?['name']?.toString() ?? 'Client';
-    final code = customer?['customer_code']?.toString() ?? '';
-    final notices = _dash?['notices'] as List<dynamic>? ?? [];
-
-    return RefreshIndicator(
-      onRefresh: _load,
-      child: ListView(
-        padding: EdgeInsets.zero,
-        children: [
-          _blueHeader(name, code, summary, connected),
-          Padding(
-            padding: pagePadding(context),
-            child: Column(
-              children: [
-                const SizedBox(height: 12),
-                _quickActions(),
-                const SizedBox(height: 12),
-                _accountSummary(summary),
-                const SizedBox(height: 12),
-                _actionGrid(notices),
-                const SizedBox(height: 12),
-                _usageRow(traffic, connected),
-                const SizedBox(height: 8),
-                Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(12),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        UsageAreaChart(chart: traffic['chart'] as Map<String, dynamic>?),
-                        const SizedBox(height: 6),
-                        Text(
-                          'Download : ${traffic['download_human'] ?? '—'} · Upload : ${traffic['upload_human'] ?? '—'}',
-                          style: const TextStyle(fontSize: 11, color: Colors.grey),
-                        ),
-                        TextButton(
-                          onPressed: () => Navigator.push(
-                            context,
-                            MaterialPageRoute(builder: (_) => CustomerUsageScreen(api: widget.api)),
-                          ),
-                          child: const Text('Full usage details'),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                if (notices.isNotEmpty) ...[
-                  const Align(
-                    alignment: Alignment.centerLeft,
-                    child: Padding(
-                      padding: EdgeInsets.only(top: 8, bottom: 6),
-                      child: Text('News And Events', style: TextStyle(color: Colors.grey, fontSize: 12)),
-                    ),
-                  ),
-                  ...notices.take(3).map(_noticeCard),
-                ],
-                const SizedBox(height: 24),
-              ],
-            ),
-          ),
+              selectedIcon: Icon(Icons.credit_card_rounded),
+              label: 'Payments'),
         ],
       ),
     );
   }
+}
 
-  Widget _blueHeader(String name, String code, Map<String, dynamic> summary, bool connected) {
-    return Container(
-      width: double.infinity,
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          colors: [AppTheme.primary, AppTheme.purple, AppTheme.pink],
-          begin: Alignment.centerLeft,
-          end: Alignment.centerRight,
-        ),
-        borderRadius: BorderRadius.only(bottomLeft: Radius.circular(24), bottomRight: Radius.circular(24)),
-      ),
-      padding: EdgeInsets.fromLTRB(16, MediaQuery.paddingOf(context).top + 12, 16, 20),
-      child: Row(
-        children: [
-          CircleAvatar(
-            radius: 28,
-            backgroundColor: Colors.white24,
-            child: Text(name.isNotEmpty ? name[0].toUpperCase() : '?', style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold)),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(name, style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
-                Text('Client Code : $code', style: const TextStyle(color: Colors.white70, fontSize: 12)),
-                Row(
-                  children: [
-                    const Text('Status : ', style: TextStyle(color: Colors.white70, fontSize: 12)),
-                    Text(
-                      summary['status']?.toString() ?? '—',
-                      style: TextStyle(color: connected ? Colors.lightGreenAccent : Colors.orangeAccent, fontSize: 12, fontWeight: FontWeight.bold),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          IconButton(icon: const Icon(Icons.refresh, color: Colors.white), onPressed: _load),
-          IconButton(icon: const Icon(Icons.logout, color: Colors.white), onPressed: _logout),
-        ],
-      ),
-    );
-  }
+class _HomeTab extends ConsumerWidget {
+  const _HomeTab({
+    required this.api,
+    required this.fmt,
+    required this.onLogout,
+    required this.onPay,
+    required this.onPackages,
+    required this.onPassword,
+    required this.onTickets,
+    required this.onPaymentHistory,
+    required this.onUsage,
+    required this.onOnu,
+    required this.onAi,
+  });
 
-  Widget _quickActions() {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
+  final ApiService api;
+  final NumberFormat fmt;
+  final VoidCallback onLogout;
+  final VoidCallback onPay;
+  final VoidCallback onPackages;
+  final VoidCallback onPassword;
+  final VoidCallback onTickets;
+  final VoidCallback onPaymentHistory;
+  final VoidCallback onUsage;
+  final VoidCallback onOnu;
+  final VoidCallback onAi;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final async = ref.watch(customerDashboardProvider);
+    final online = ref.watch(isOnlineProvider);
+
+    return AppRefresh(
+      onRefresh: () => ref.read(customerDashboardProvider.notifier).refresh(),
+      child: async.when(
+        skipLoadingOnRefresh: true,
+        skipLoadingOnReload: true,
+        loading: () => const _DashboardSkeleton(),
+        error: (e, _) => ListView(
           children: [
-            _quick(Icons.credit_card, 'Recharge / Pay', _openPay),
-            _quick(Icons.inventory_2_outlined, 'Change Package', _openPackages),
-            _quick(Icons.lock_outline, 'Change password', _openPassword),
-            _quick(Icons.confirmation_number_outlined, 'Create Ticket', _openTickets),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _quick(IconData icon, String label, VoidCallback onTap) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(8),
-      child: SizedBox(
-        width: 76,
-        child: Column(
-          children: [
-            Icon(icon, color: AppTheme.primary, size: 26),
-            const SizedBox(height: 4),
-            Text(label, textAlign: TextAlign.center, style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w600)),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _accountSummary(Map<String, dynamic> summary) {
-    return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-      child: Padding(
-        padding: const EdgeInsets.all(14),
-        child: Column(
-          children: [
-            Row(
-              children: [
-                Expanded(child: _kpi(Icons.receipt_long, 'Monthly Bill', _fmt.format(summary['monthly_bill'] ?? 0))),
-                Expanded(child: _kpi(Icons.paid_outlined, 'Paid', _fmt.format(summary['paid'] ?? 0))),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(child: _kpi(Icons.desktop_windows_outlined, 'Package', summary['package_name']?.toString() ?? '—')),
-                Expanded(child: _kpi(Icons.event_outlined, 'Expire Date', summary['expire_date']?.toString() ?? '—')),
-              ],
+            SizedBox(
+              height: MediaQuery.sizeOf(context).height * 0.7,
+              child: ErrorStateView(
+                failure: e is Failure ? e : Failure.from(e),
+                onRetry: () => ref.read(customerDashboardProvider.notifier).refresh(),
+              ),
             ),
           ],
         ),
+        data: (d) => _content(context, ref, d, online),
       ),
     );
   }
 
-  Widget _kpi(IconData icon, String label, String value) {
-    return Row(
+  Widget _content(BuildContext context, WidgetRef ref, CustomerDashboard d, bool online) {
+    return ListView(
+      padding: EdgeInsets.zero,
       children: [
-        Icon(icon, color: AppTheme.primary.withValues(alpha: 0.7), size: 22),
-        const SizedBox(width: 8),
-        Expanded(
+        if (!online) const OfflineBanner(),
+        _header(context, d),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 28),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(label, style: const TextStyle(fontSize: 10, color: Colors.grey)),
-              Text(value, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+              _quickActions(context),
+              const SizedBox(height: 18),
+              const SectionHeader(title: 'Account summary'),
+              _summaryGrid(context, d),
+              const SizedBox(height: 18),
+              const SectionHeader(title: 'Services'),
+              _serviceTiles(context),
+              const SizedBox(height: 18),
+              const SectionHeader(title: 'Live usage'),
+              _usageCard(context, d),
+              if (d.notices.isNotEmpty) ...[
+                const SizedBox(height: 18),
+                const SectionHeader(title: 'News & events'),
+                ...d.notices.take(3).map((n) => _noticeCard(context, n)),
+              ],
             ],
           ),
         ),
@@ -357,143 +212,295 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
     );
   }
 
-  Widget _actionGrid(List<dynamic> notices) {
+  Widget _header(BuildContext context, CustomerDashboard d) {
+    final pad = MediaQuery.paddingOf(context).top;
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: context.brand.heroGradient,
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: const BorderRadius.vertical(bottom: Radius.circular(28)),
+      ),
+      padding: EdgeInsets.fromLTRB(16, pad + 14, 16, 22),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              CircleAvatar(
+                radius: 26,
+                backgroundColor: Colors.white.withValues(alpha: 0.22),
+                child: Text(
+                  d.name.isNotEmpty ? d.name[0].toUpperCase() : '?',
+                  style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(d.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w800)),
+                    if (d.code.isNotEmpty)
+                      Text('ID: ${d.code}',
+                          style: TextStyle(color: Colors.white.withValues(alpha: 0.85), fontSize: 12)),
+                  ],
+                ),
+              ),
+              IconButton(
+                icon: const Icon(Icons.logout_rounded, color: Colors.white),
+                onPressed: onLogout,
+                tooltip: 'Logout',
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              StatusPill(
+                label: d.status,
+                color: d.connected ? DesignTokens.success : DesignTokens.warning,
+                icon: d.connected ? Icons.check_circle_rounded : Icons.error_rounded,
+              ),
+              const Spacer(),
+              if (d.totalDue > 0)
+                StatusPill(
+                  label: 'Due ৳${fmt.format(d.totalDue)}',
+                  color: Colors.white,
+                  icon: Icons.account_balance_wallet_rounded,
+                ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _quickActions(BuildContext context) {
+    final items = [
+      (Icons.bolt_rounded, 'Pay', onPay, DesignTokens.success),
+      (Icons.swap_horiz_rounded, 'Package', onPackages, DesignTokens.primary),
+      (Icons.lock_outline_rounded, 'Password', onPassword, DesignTokens.info),
+      (Icons.support_agent_rounded, 'Ticket', onTickets, DesignTokens.warning),
+    ];
+    return AppCard(
+      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 6),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceAround,
+        children: items.map((i) {
+          return InkWell(
+            onTap: i.$3,
+            borderRadius: BorderRadius.circular(DesignTokens.radiusSm),
+            child: SizedBox(
+              width: 72,
+              child: Column(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(11),
+                    decoration: BoxDecoration(
+                      color: i.$4.withValues(alpha: 0.14),
+                      borderRadius: BorderRadius.circular(DesignTokens.radiusSm),
+                    ),
+                    child: Icon(i.$1, color: i.$4, size: 22),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(i.$2,
+                      textAlign: TextAlign.center,
+                      style: context.text.labelSmall?.copyWith(fontWeight: FontWeight.w600)),
+                ],
+              ),
+            ),
+          );
+        }).toList(),
+      ),
+    );
+  }
+
+  Widget _summaryGrid(BuildContext context, CustomerDashboard d) {
+    final cards = [
+      StatCard(
+          icon: Icons.receipt_long_rounded,
+          label: 'Monthly bill',
+          value: '৳${fmt.format(d.monthlyBill)}',
+          color: DesignTokens.primary),
+      StatCard(
+          icon: Icons.paid_rounded,
+          label: 'Paid',
+          value: '৳${fmt.format(d.paid)}',
+          color: DesignTokens.success),
+      StatCard(
+          icon: Icons.wifi_rounded,
+          label: 'Package',
+          value: d.packageName,
+          color: DesignTokens.info),
+      StatCard(
+          icon: Icons.event_rounded,
+          label: 'Expires',
+          value: d.expireDate,
+          color: DesignTokens.warning),
+    ];
+    return GridView.count(
+      crossAxisCount: 2,
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      mainAxisSpacing: 12,
+      crossAxisSpacing: 12,
+      childAspectRatio: 1.55,
+      children: cards,
+    );
+  }
+
+  Widget _serviceTiles(BuildContext context) {
+    final tiles = <Widget>[
+      _serviceTile(context, 'Packages', Icons.inventory_2_rounded, DesignTokens.primary, onPackages),
+      _serviceTile(context, 'Payments', Icons.history_rounded, DesignTokens.success, onPaymentHistory),
+      _serviceTile(context, 'Support', Icons.chat_bubble_outline_rounded, DesignTokens.warning, onTickets),
+      _serviceTile(context, 'ONU / Signal', Icons.router_rounded, DesignTokens.info, onOnu),
+    ];
+    if (RemoteConfig.aiAssistant) {
+      tiles.add(_serviceTile(context, 'AI assistant', Icons.smart_toy_rounded, DesignTokens.pink, onAi));
+    }
+    return Wrap(spacing: 12, runSpacing: 12, children: [
+      for (final t in tiles) SizedBox(width: (MediaQuery.sizeOf(context).width - 32 - 12) / 2, child: t),
+    ]);
+  }
+
+  Widget _serviceTile(BuildContext context, String label, IconData icon, Color color, VoidCallback onTap) {
+    return AppCard(
+      onTap: onTap,
+      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 14),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(9),
+            decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.14),
+                borderRadius: BorderRadius.circular(DesignTokens.radiusSm)),
+            child: Icon(icon, color: color, size: 20),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: context.text.bodyMedium?.copyWith(fontWeight: FontWeight.w600)),
+          ),
+          Icon(Icons.chevron_right_rounded, color: context.brand.textMuted, size: 18),
+        ],
+      ),
+    );
+  }
+
+  Widget _usageCard(BuildContext context, CustomerDashboard d) {
+    final t = d.traffic;
+    return AppCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              _trafficCol(context, 'Download', t.downloadHuman, Icons.south_rounded, DesignTokens.info),
+              Container(width: 1, height: 36, color: context.brand.border),
+              _trafficCol(context, 'Upload', t.uploadHuman, Icons.north_rounded, DesignTokens.success),
+              Container(width: 1, height: 36, color: context.brand.border),
+              _trafficCol(context, 'Uptime', t.uptime, Icons.timer_outlined, DesignTokens.primary),
+            ],
+          ),
+          const SizedBox(height: 8),
+          UsageAreaChart(chart: t.chart),
+          Align(
+            alignment: Alignment.centerRight,
+            child: TextButton(onPressed: onUsage, child: const Text('Full usage details')),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _trafficCol(BuildContext context, String label, String value, IconData icon, Color color) {
     return Column(
       children: [
-        Row(
+        Icon(icon, size: 20, color: color),
+        const SizedBox(height: 4),
+        Text(value, style: context.text.bodyMedium?.copyWith(fontWeight: FontWeight.w700)),
+        Text(label, style: context.text.labelSmall?.copyWith(color: context.brand.textMuted)),
+      ],
+    );
+  }
+
+  Widget _noticeCard(BuildContext context, DashboardNotice n) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: AppCard(
+        child: Row(
           children: [
-            Expanded(child: _colorTile('Internet Packages', Colors.red.shade400, Icons.inventory_2, _openPackages)),
-            const SizedBox(width: 8),
+            Container(
+              padding: const EdgeInsets.all(9),
+              decoration: BoxDecoration(
+                  color: DesignTokens.primary.withValues(alpha: 0.14),
+                  borderRadius: BorderRadius.circular(DesignTokens.radiusSm)),
+              child: const Icon(Icons.campaign_rounded, color: DesignTokens.primary, size: 20),
+            ),
+            const SizedBox(width: 12),
             Expanded(
-              child: _colorTile(
-                'News & Event',
-                AppTheme.info,
-                Icons.newspaper,
-                () {
-                  if (notices.isEmpty) {
-                    showSnack(context, 'No news at the moment');
-                    return;
-                  }
-                  showModalBottomSheet<void>(
-                    context: context,
-                    showDragHandle: true,
-                    builder: (ctx) => ListView(
-                      padding: const EdgeInsets.all(16),
-                      shrinkWrap: true,
-                      children: notices.map((n) => _noticeCard(Map<String, dynamic>.from(n as Map))).toList(),
-                    ),
-                  );
-                },
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(n.title, style: context.text.bodyMedium?.copyWith(fontWeight: FontWeight.w700)),
+                  if (n.body.isNotEmpty)
+                    Text(n.body,
+                        style: context.text.bodySmall?.copyWith(color: context.brand.textMuted)),
+                ],
               ),
             ),
           ],
         ),
-        const SizedBox(height: 8),
-        Row(
-          children: [
-            Expanded(child: _colorTile('Payment History', Colors.green.shade600, Icons.history, () => _go(2))),
-            const SizedBox(width: 8),
-            Expanded(child: _colorTile('Support & ticket', Colors.orange.shade500, Icons.chat_bubble_outline, _openTickets)),
-          ],
-        ),
-        if (RemoteConfig.aiAssistant) ...[
-          const SizedBox(height: 8),
-          Card(
-            child: ListTile(
-              leading: const Icon(Icons.router, color: AppTheme.primary),
-              title: const Text('ONU signal & reboot'),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => CustomerOnuScreen(api: widget.api))),
-            ),
-          ),
-          ListTile(
-            leading: const Icon(Icons.smart_toy_outlined, color: AppTheme.purple),
-            title: const Text('AI assistant'),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => CustomerAiScreen(api: widget.api))),
-          ),
-        ],
-      ],
-    );
-  }
-
-  Widget _colorTile(String label, Color color, IconData icon, VoidCallback onTap) {
-    return Material(
-      color: color,
-      borderRadius: BorderRadius.circular(12),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: SizedBox(
-          height: 72,
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(icon, color: Colors.white, size: 28),
-              const SizedBox(height: 4),
-              Text(label, textAlign: TextAlign.center, style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
-            ],
-          ),
-        ),
       ),
     );
   }
+}
 
-  Widget _usageRow(Map<String, dynamic> traffic, bool connected) {
-    final up = _humanBytes(traffic['month_upload'] ?? traffic['today_upload']);
-    final down = _humanBytes(traffic['month_download'] ?? traffic['today_download']);
-    final uptime = _usage?['connection_duration']?.toString() ?? (_dash?['connection']?['session_uptime']?.toString()) ?? '—';
+/// Skeleton placeholder shown on first load.
+class _DashboardSkeleton extends StatelessWidget {
+  const _DashboardSkeleton();
 
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: [
-            _trafficCol('Upload', up, Icons.arrow_upward),
-            Column(
-              children: [
-                Icon(Icons.sync, color: connected ? Colors.green : Colors.grey, size: 22),
-                const SizedBox(height: 4),
-                Text('Up Time', style: TextStyle(fontSize: 10, color: connected ? Colors.green.shade700 : Colors.grey)),
-                Text(uptime, style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w600)),
-              ],
-            ),
-            _trafficCol('Download', down, Icons.arrow_downward),
-          ],
-        ),
-      ),
-    );
-  }
-
-  String _humanBytes(dynamic raw) {
-    if (raw == null) return '—';
-    final n = (raw is num) ? raw.toDouble() : double.tryParse(raw.toString()) ?? 0;
-    if (n >= 1e9) return '${(n / 1e9).toStringAsFixed(1)} Gb';
-    if (n >= 1e6) return '${(n / 1e6).toStringAsFixed(1)} Mb';
-    if (n >= 1e3) return '${(n / 1e3).toStringAsFixed(1)} Kb';
-    return '${n.toStringAsFixed(0)} b';
-  }
-
-  Widget _trafficCol(String label, String value, IconData icon) {
-    return Column(
+  @override
+  Widget build(BuildContext context) {
+    return ListView(
+      padding: const EdgeInsets.all(16),
       children: [
-        Icon(icon, size: 20, color: AppTheme.primary),
-        Text(label, style: const TextStyle(fontSize: 10, color: Colors.grey)),
-        Text(value, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+        Row(children: [
+          const Skeleton.circle(size: 52),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: const [
+              Skeleton(width: 140, height: 18),
+              SizedBox(height: 8),
+              Skeleton(width: 90, height: 12),
+            ]),
+          ),
+        ]),
+        const SizedBox(height: 20),
+        const SkeletonCard(height: 84),
+        const SizedBox(height: 16),
+        GridView.count(
+          crossAxisCount: 2,
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          mainAxisSpacing: 12,
+          crossAxisSpacing: 12,
+          childAspectRatio: 1.55,
+          children: const [SkeletonCard(), SkeletonCard(), SkeletonCard(), SkeletonCard()],
+        ),
+        const SizedBox(height: 16),
+        const SkeletonCard(height: 180),
       ],
-    );
-  }
-
-  Widget _noticeCard(dynamic n) {
-    final m = n as Map<String, dynamic>;
-    return Card(
-      margin: const EdgeInsets.only(bottom: 8),
-      child: ListTile(
-        title: Text(m['title']?.toString() ?? '', style: const TextStyle(fontWeight: FontWeight.bold)),
-        subtitle: Text(m['body']?.toString() ?? ''),
-        trailing: Icon(Icons.notifications_active, color: Colors.red.shade400),
-      ),
     );
   }
 }

@@ -2,10 +2,15 @@
 
 namespace App\Services\Mobile;
 
+use App\Models\CollectorExpense;
 use App\Models\Customer;
 use App\Models\InternalTask;
 use App\Models\Invoice;
 use App\Models\Payment;
+use App\Models\PayrollRun;
+use App\Models\Reseller;
+use App\Models\ResellerSettlement;
+use App\Models\StaffExpense;
 use App\Models\SupportTicket;
 use App\Models\User;
 use App\Models\Zone;
@@ -39,6 +44,36 @@ final class StaffMobileService
             ->whereDate('service_expires_at', today())
             ->count();
 
+        // This-month approved expenses (staff + collector) for the finance card.
+        $expenseMonth = (float) StaffExpense::withoutGlobalScopes()
+            ->where('tenant_id', $tenantId)
+            ->whereNotNull('approved_at')
+            ->whereBetween('expense_date', [$from, $to])
+            ->sum('amount')
+            + (float) CollectorExpense::withoutGlobalScopes()
+            ->where('tenant_id', $tenantId)
+            ->whereNotNull('approved_at')
+            ->whereBetween('expense_date', [$from, $to])
+            ->sum('amount');
+        $collectedMonth = (float) ($billing['collected_bill'] ?? 0);
+
+        // Paid salary this month (PayrollRun marked paid in the current month).
+        $salaryMonth = (float) PayrollRun::withoutGlobalScopes()
+            ->where('tenant_id', $tenantId)
+            ->where('status', 'paid')
+            ->whereBetween('paid_at', [$from, $to])
+            ->sum('total_net');
+
+        // Reseller settlements approved this month + total reseller wallet balance.
+        $resellerSettledMonth = (float) ResellerSettlement::withoutGlobalScopes()
+            ->where('tenant_id', $tenantId)
+            ->where('status', ResellerSettlement::STATUS_APPROVED)
+            ->whereBetween('updated_at', [$from, $to])
+            ->sum('net_amount');
+        $resellerWallet = (float) Reseller::withoutGlobalScopes()
+            ->where('tenant_id', $tenantId)
+            ->sum('wallet_balance');
+
         return [
             'kpis' => [
                 'collected_today' => round((float) ($snap['collected_today'] ?? 0), 2),
@@ -65,6 +100,14 @@ final class StaffMobileService
                 'status' => $user->is_active ? 'Active' : 'Inactive',
             ],
             'billing' => $billing,
+            'finance' => [
+                'collected_month' => round($collectedMonth, 2),
+                'expense_month' => round($expenseMonth, 2),
+                'net_month' => round($collectedMonth - $expenseMonth, 2),
+                'paid_salary_month' => round($salaryMonth, 2),
+                'reseller_settled_month' => round($resellerSettledMonth, 2),
+                'reseller_wallet' => round($resellerWallet, 2),
+            ],
             'tickets' => $this->ticketStats($tenantId),
             'tasks' => $this->taskStats($tenantId),
             'zone_collection_chart' => $this->zoneCollectionChartFromSynced($tenantId, $from, $to),

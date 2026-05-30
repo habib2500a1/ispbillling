@@ -8,6 +8,7 @@ use App\Support\CompanyBranding;
 use App\Support\MobileApkRelease;
 use App\Support\MobileAppLinks;
 use App\Support\PersonalMfsSetup;
+use App\Support\ResellerBranding;
 
 /**
  * Mobile app ↔ website sync: URLs and feature flags match the web portal/admin.
@@ -33,15 +34,7 @@ class MobileConfigService
                 'company_name' => CompanyBranding::name(),
                 'logo_url' => CompanyBranding::logoUrl(),
             ],
-            'branding' => [
-                'company_name' => CompanyBranding::name(),
-                'tagline' => CompanyBranding::tagline(),
-                'logo_url' => CompanyBranding::logoUrl(),
-                'phone' => CompanyBranding::phone(),
-                'email' => CompanyBranding::email(),
-                'website' => CompanyBranding::website(),
-                'address' => CompanyBranding::address(),
-            ],
+            'branding' => ResellerBranding::mobileBrandingPayload(),
             'notices' => $this->activeNotices($tenantId),
             'packages' => $this->websitePackages($tenantId),
             'phases' => [

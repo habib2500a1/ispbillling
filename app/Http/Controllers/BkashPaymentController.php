@@ -10,6 +10,7 @@ use App\Services\Payments\BkashCheckoutService;
 use App\Support\BkashSettings;
 use App\Support\CheckoutPaymentMeta;
 use App\Support\PaymentType;
+use App\Support\PersonalMfsGateway;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -45,6 +46,34 @@ class BkashPaymentController extends Controller
             invoice: $invoice,
             returnTo: 'portal',
             paymentType: PaymentType::PAYMENT,
+        );
+    }
+
+    /**
+     * @return array{bkash_url: string, payment_id: string, amount: string}|array{error: string}
+     */
+    public function prepareMobilePrepay(Customer $customer, float $amount, int $months): array
+    {
+        if (! config('bill_payment.prepay_enabled', true)) {
+            return ['error' => 'Advance payment is not available.'];
+        }
+
+        $channel = BkashSettings::CHANNEL_PORTAL;
+        if (! BkashSettings::isMerchantActiveForChannel($channel)) {
+            if (PersonalMfsGateway::bkashPersonalEnabled()) {
+                return ['error' => 'Use Nagad/SSLCommerz or enable bKash Merchant API for advance pay.'];
+            }
+
+            return ['error' => 'bKash is not available for advance payment.'];
+        }
+
+        return $this->prepareCheckout(
+            customerId: (int) $customer->id,
+            amount: round($amount, 2),
+            invoice: null,
+            returnTo: 'portal',
+            paymentType: PaymentType::PREPAY,
+            prepayMonths: max(1, $months),
         );
     }
 

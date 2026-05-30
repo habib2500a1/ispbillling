@@ -104,4 +104,27 @@ class Package extends Model
         return $this->hasMany(ResellerPackage::class);
     }
 
+    /**
+     * Admin/reseller UI label: billing name + MikroTik profile code + price.
+     */
+    public function adminSelectLabel(): string
+    {
+        $name = trim((string) $this->name);
+        $profile = trim((string) ($this->mikrotik_profile_name ?? ''));
+        $price = number_format((float) $this->price_monthly, 0);
+
+        if ($profile !== '' && strcasecmp($profile, $name) !== 0) {
+            return "{$name} · {$profile} · {$price} BDT/mo";
+        }
+
+        return "{$name} · {$price} BDT/mo";
+    }
+
+    public function profileCode(): ?string
+    {
+        $profile = trim((string) ($this->mikrotik_profile_name ?? ''));
+
+        return $profile !== '' ? $profile : null;
+    }
+
 }

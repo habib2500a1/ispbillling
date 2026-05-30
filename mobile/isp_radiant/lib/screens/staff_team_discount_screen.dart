@@ -60,7 +60,7 @@ class _StaffTeamDiscountScreenState extends State<StaffTeamDiscountScreen> {
     final saved = await showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.white,
+      backgroundColor: Theme.of(context).colorScheme.surface,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
       builder: (ctx) => Padding(
         padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom, left: 16, right: 16, top: 16),
@@ -123,7 +123,7 @@ class _StaffTeamDiscountScreenState extends State<StaffTeamDiscountScreen> {
       title: 'Staff discounts',
       useGradientBody: true,
       body: _loading
-          ? const Center(child: CircularProgressIndicator())
+          ? const ListLoading()
           : _error != null
               ? Center(child: ErrorBanner(message: _error!, onRetry: _load))
               : ListView(

@@ -65,7 +65,7 @@ class _StaffReportsScreenState extends State<StaffReportsScreen> with SingleTick
         tabs: const [Tab(text: 'Collection'), Tab(text: 'Due'), Tab(text: 'Expiring')],
       ),
       body: _loading
-          ? const Center(child: CircularProgressIndicator())
+          ? const ListLoading()
           : TabBarView(
               controller: _tabs,
               children: [_collectionTab(), _dueTab(), _expiringTab()],

@@ -41,7 +41,7 @@ class PortalDashboardController extends Controller
             ->limit(5)
             ->get(['id', 'title', 'description', 'started_at']);
 
-        $paymentMethods = PortalPaymentGateways::methodsForCustomerPortal();
+        $paymentMethods = PortalPaymentGateways::methodsForCustomerPortal($customer);
 
         return view('portal.dashboard', [
             'customer' => $customer,

@@ -5,9 +5,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title', 'Bill payment') — {{ $companyName ?? config('isp.company_name') }}</title>
-    @include('partials.site-favicon')
+    @if (! empty($companyLogo))
+        <link rel="icon" href="{{ $companyLogo }}" />
+        <link rel="apple-touch-icon" href="{{ $companyLogo }}" />
+    @else
+        @include('partials.site-favicon')
+    @endif
     <link rel="stylesheet" href="{{ asset('css/bill-payment.css') }}?v=8">
     @include('partials.isp-premium-theme', ['tailwind' => false])
+    @if (! empty($whiteLabelPrimaryColor))
+        <style>:root { --bp-teal: {{ $whiteLabelPrimaryColor }}; --bp-teal-dark: {{ $whiteLabelPrimaryColor }}; }</style>
+    @endif
     <script src="{{ asset('js/portal-theme.js') }}?v=1"></script>
 </head>
 <body class="bp-bg antialiased">
@@ -23,13 +31,17 @@
     <div class="bp-split">
         <aside class="bp-brand">
             <div>
-                @php $bpLogo = \App\Support\CompanyBranding::logoUrl(); @endphp
+                @php
+                    $bpLogo = $companyLogo ?? \App\Support\CompanyBranding::logoUrl();
+                    $bpCustomer = \App\Support\ResellerBranding::customerFromContext();
+                    $bpMethods = \App\Support\PortalPaymentGateways::methodsForPublicBillPay($bpCustomer);
+                @endphp
                 @if ($bpLogo)
                     <img src="{{ $bpLogo }}" alt="{{ $companyName ?? config('isp.company_name') }}" class="bp-brand-logo mb-4 max-h-14 w-auto object-contain" />
                 @endif
                 <p class="text-sm uppercase tracking-widest text-teal-300/80">Online payment</p>
                 <h1>{{ $companyName ?? config('isp.company_name') }}</h1>
-                <p class="mt-2 text-sm text-white/65">{{ config('isp.company_tagline') }}</p>
+                <p class="mt-2 text-sm text-white/65">{{ $companyTagline ?? config('isp.company_tagline') }}</p>
                 <ol class="bp-brand-steps">
                     <li>Enter your client code</li>
                     @if ($otpEnabled ?? false)
@@ -37,7 +49,6 @@
                     @endif
                     <li>Review invoice &amp; due amount</li>
                     @php
-                        $bpMethods = \App\Support\PortalPaymentGateways::methodsForPublicBillPay();
                         $bpLabels = array_map(
                             fn (array $m): string => $m['label'].' ('.$m['badge'].')',
                             $bpMethods,

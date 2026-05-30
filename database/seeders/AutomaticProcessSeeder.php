@@ -171,6 +171,17 @@ class AutomaticProcessSeeder extends Seeder
                 'sort_order' => 75,
             ],
             [
+                'slug' => 'reseller-due-reminders',
+                'name' => 'Reseller due collection reminders',
+                'description' => 'Portal notification to partners about due subscribers and upcoming expiry.',
+                'artisan_command' => 'isp:send-reseller-due-reminders',
+                'command_options' => [],
+                'execute_at' => '08:30',
+                'interval' => 'daily',
+                'when_config_key' => 'automation.reseller_due_reminders.enabled',
+                'sort_order' => 76,
+            ],
+            [
                 'slug' => 'postpaid-pop-fund-credit',
                 'name' => 'Fund credit & disable of postpaid POPs',
                 'description' => 'Applies wallet to postpaid bills, then suspends still-unpaid subscribers.',

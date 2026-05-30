@@ -6,8 +6,10 @@ use App\Http\Controllers\Controller;
 use App\Models\Customer;
 use App\Services\Resellers\ResellerCollectionPaymentService;
 use App\Services\Resellers\ResellerCustomerService;
+use App\Services\Reseller\ResellerIntegrationSettings;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 class ResellerPaymentController extends Controller
@@ -22,6 +24,10 @@ class ResellerPaymentController extends Controller
             'reseller' => $reseller,
             'customer' => $customer,
             'openDue' => $customer->openInvoiceBalance(),
+            'paymentMethods' => \App\Support\ResellerCollectionPaymentMethod::options(),
+            'personalMfs' => ResellerIntegrationSettings::canManage($reseller)
+                ? ResellerIntegrationSettings::personalPaymentSummary($reseller)
+                : null,
         ]);
     }
 
@@ -32,16 +38,31 @@ class ResellerPaymentController extends Controller
 
         $validated = $request->validate([
             'amount' => ['required', 'numeric', 'min:0'],
-            'method' => ['nullable', 'string', 'max:32'],
+            'method' => ['nullable', 'string', Rule::in(\App\Support\ResellerCollectionPaymentMethod::values())],
             'reference' => ['nullable', 'string', 'max:128'],
             'notes' => ['nullable', 'string', 'max:500'],
             'invoice_id' => ['nullable', 'integer'],
         ]);
 
         $result = $payments->collect($reseller, $customer, $validated);
+        app(\App\Services\Resellers\ResellerPortalActivityLogger::class)->log(
+            $reseller,
+            'payment.collect',
+            $result['payment'],
+            ['amount' => $validated['amount'], 'method' => $validated['method'] ?? 'cash'],
+        );
+
+        app(\App\Services\Resellers\ResellerPortalNotifier::class)->paymentReceived(
+            $reseller,
+            $customer->customer_code,
+            (float) $validated['amount'],
+            $result['payment']->id,
+        );
+
+        $payment = $result['payment'];
 
         return redirect()
-            ->route('reseller.customers.show', $customer)
-            ->with('status', $result['message'] ?? 'Payment recorded.');
+            ->route('reseller.payments.receipt', $payment)
+            ->with('status', ($result['message'] ?? 'Payment recorded.').' Receipt: '.$payment->receipt_number);
     }
 }

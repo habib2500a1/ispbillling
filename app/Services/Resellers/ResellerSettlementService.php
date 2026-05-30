@@ -43,6 +43,12 @@ final class ResellerSettlementService
             ]);
         }
 
+        if ($reseller->wallet_frozen) {
+            throw ValidationException::withMessages([
+                'wallet' => 'Your wallet is frozen. Contact admin to request settlement.',
+            ]);
+        }
+
         if ($net > $this->outstandingBalance($reseller) + 0.01) {
             throw ValidationException::withMessages([
                 'amount' => 'Requested amount exceeds available balance (wallet + pending commission).',

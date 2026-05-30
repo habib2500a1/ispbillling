@@ -4,19 +4,19 @@
 
 @section('content')
     <div class="rsl-card p-6">
-        <h1 class="text-2xl font-bold text-slate-900">Welcome, {{ $reseller->name }}</h1>
-        <p class="mt-1 text-sm text-slate-600">{{ $reseller->franchiseTypeLabel() }} · Commission: {{ $reseller->commissionLabel() }}</p>
+        <h1 class="rsl-title">Welcome, {{ $reseller->name }}</h1>
+        <p class="rsl-subtitle">{{ $reseller->franchiseTypeLabel() }} · Commission: {{ $reseller->commissionLabel() }}</p>
         <div class="mt-4 flex flex-wrap gap-2">
-            @if ($reseller->canPortal(\App\Support\ResellerPortalPermission::CUSTOMER_VIEW))
+            @if ($portal->canPortal(\App\Support\ResellerPortalPermission::CUSTOMER_VIEW))
                 <a href="{{ route('reseller.customers.index') }}" class="rsl-btn-sm">Subscribers</a>
             @endif
-            @if ($reseller->canPortal(\App\Support\ResellerPortalPermission::COMMISSION_VIEW))
+            @if ($portal->canPortal(\App\Support\ResellerPortalPermission::COMMISSION_VIEW))
                 <a href="{{ route('reseller.commissions.index') }}" class="rsl-btn-sm rsl-btn-sm--outline">Commissions</a>
             @endif
-            @if ($reseller->canPortal(\App\Support\ResellerPortalPermission::SETTLEMENT_MANAGE))
+            @if ($portal->canPortal(\App\Support\ResellerPortalPermission::SETTLEMENT_MANAGE))
                 <a href="{{ route('reseller.settlements.index') }}" class="rsl-btn-sm rsl-btn-sm--outline">Settlements</a>
             @endif
-            @if ($reseller->canPortal(\App\Support\ResellerPortalPermission::PAYMENT_COLLECT) && $metrics['customers_total'] > 0)
+            @if ($portal->canPortal(\App\Support\ResellerPortalPermission::PAYMENT_COLLECT) && $metrics['customers_total'] > 0)
                 <a href="{{ route('reseller.customers.index') }}" class="rsl-btn-sm rsl-btn-sm--outline">Collect payment</a>
             @endif
         </div>
@@ -26,9 +26,9 @@
         <div class="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
             @foreach ($metrics['alerts'] as $alert)
                 <div class="rsl-card p-5 border {{ match($alert['tone']) { 'rose' => 'border-rose-200', 'amber' => 'border-amber-200', 'sky' => 'border-sky-200', default => 'border-violet-200' } }}">
-                    <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">{{ $alert['title'] }}</p>
-                    <p class="mt-2 text-xl font-bold text-slate-900">{{ $alert['value'] }}</p>
-                    <p class="mt-1 text-sm text-slate-600">{{ $alert['hint'] }}</p>
+                    <p class="text-xs font-semibold uppercase tracking-wide rsl-text-muted">{{ $alert['title'] }}</p>
+                    <p class="mt-2 text-xl font-bold rsl-text">{{ $alert['value'] }}</p>
+                    <p class="mt-1 text-sm rsl-text-muted">{{ $alert['hint'] }}</p>
                 </div>
             @endforeach
         </div>
@@ -38,7 +38,7 @@
         <div class="rsl-metric">
             <p class="rsl-metric-label">Subscribers</p>
             <p class="rsl-metric-value text-indigo-700">{{ $metrics['customers_total'] }}</p>
-            <p class="rsl-metric-sub">{{ $metrics['customers_active'] }} active · {{ $metrics['customers_online'] }} online</p>
+            <p class="rsl-metric-sub">{{ $metrics['customers_active'] }} active · {{ $metrics['customers_expired'] ?? 0 }} expired · {{ $metrics['customers_suspended'] ?? 0 }} suspended</p>
         </div>
         <div class="rsl-metric">
             <p class="rsl-metric-label">Today collection</p>
@@ -53,7 +53,7 @@
         <div class="rsl-metric">
             <p class="rsl-metric-label">Pending commission</p>
             <p class="rsl-metric-value text-amber-700">{{ number_format($metrics['pending_commission'], 0) }} <span class="text-base">BDT</span></p>
-            <p class="rsl-metric-sub">Paid this month {{ number_format($metrics['paid_commission_month'], 0) }} BDT</p>
+            <p class="rsl-metric-sub">Total {{ number_format($metrics['total_commission'] ?? 0, 0) }} BDT · Paid month {{ number_format($metrics['paid_commission_month'], 0) }} BDT</p>
         </div>
         <div class="rsl-metric">
             <p class="rsl-metric-label">Due subscribers</p>
@@ -77,15 +77,69 @@
         </div>
     </div>
 
-    @if ($reseller->canPortal(\App\Support\ResellerPortalPermission::COMMISSION_VIEW))
+    @if (!empty($chartData))
+        <div class="mt-6 grid gap-4 lg:grid-cols-3">
+            @foreach (['collection' => 'Collection (30 days)', 'revenue' => 'Commission revenue', 'growth' => 'Client growth'] as $key => $title)
+                <div class="rsl-card p-4">
+                    <h3 class="rsl-heading text-sm mb-3">{{ $title }}</h3>
+                    <canvas id="chart-{{ $key }}" height="160"></canvas>
+                </div>
+            @endforeach
+        </div>
+        <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+        <script>
+            (function () {
+                const data = @json($chartData);
+                const colors = { collection: '#10b981', revenue: '#8b5cf6', growth: '#3b82f6' };
+                Object.keys(data).forEach(key => {
+                    const el = document.getElementById('chart-' + key);
+                    if (!el) return;
+                    new Chart(el, {
+                        type: key === 'growth' ? 'line' : 'bar',
+                        data: {
+                            labels: data[key].labels,
+                            datasets: [{ data: data[key].values, backgroundColor: colors[key] + '99', borderColor: colors[key], borderWidth: 2, fill: key === 'growth', tension: 0.35 }]
+                        },
+                        options: { plugins: { legend: { display: false } }, scales: { x: { ticks: { maxTicksLimit: 6 } }, y: { beginAtZero: true } } }
+                    });
+                });
+            })();
+        </script>
+    @endif
+
+    @if ($portal->canPortal(\App\Support\ResellerPortalPermission::PAYMENT_COLLECT) && isset($recentPayments) && $recentPayments->isNotEmpty())
         <div class="rsl-card mt-8 overflow-hidden">
-            <div class="border-b border-slate-200 px-6 py-4 flex items-center justify-between">
-                <h2 class="font-semibold text-slate-900">Recent commissions</h2>
-                <a href="{{ route('reseller.commissions.index') }}" class="text-sm font-semibold text-indigo-600 hover:underline">View all</a>
+            <div class="rsl-card-header">
+                <h2 class="rsl-heading">Recent payments</h2>
             </div>
             <div class="overflow-x-auto">
                 <table class="rsl-table w-full text-left text-sm">
-                    <thead class="border-b border-slate-200 bg-slate-50">
+                    <thead><tr><th class="px-4 py-3">Date</th><th class="px-4 py-3">Subscriber</th><th class="px-4 py-3">Amount</th><th class="px-4 py-3">Method</th><th class="px-4 py-3"></th></tr></thead>
+                    <tbody>
+                        @foreach ($recentPayments as $pay)
+                            <tr>
+                                <td class="px-4 py-3 rsl-text">{{ $pay->paid_at?->format('d M Y H:i') }}</td>
+                                <td class="px-4 py-3 rsl-text">{{ $pay->customer?->name }}<br><span class="text-xs rsl-text-muted">{{ $pay->customer?->customer_code }}</span></td>
+                                <td class="px-4 py-3 font-semibold text-emerald-700">{{ number_format((float) $pay->amount, 2) }} BDT</td>
+                                <td class="px-4 py-3 capitalize rsl-text">{{ $pay->method }}</td>
+                                <td class="px-4 py-3"><a href="{{ route('reseller.payments.receipt', $pay) }}" class="rsl-link" target="_blank">Receipt</a></td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    @endif
+
+    @if ($portal->canPortal(\App\Support\ResellerPortalPermission::COMMISSION_VIEW))
+        <div class="rsl-card mt-8 overflow-hidden">
+            <div class="rsl-card-header">
+                <h2 class="rsl-heading">Recent commissions</h2>
+                <a href="{{ route('reseller.commissions.index') }}" class="rsl-link">View all</a>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="rsl-table w-full text-left text-sm">
+                    <thead>
                         <tr>
                             <th class="px-4 py-3">Date</th>
                             <th class="px-4 py-3">Subscriber</th>
@@ -96,16 +150,16 @@
                     </thead>
                     <tbody>
                         @forelse ($recentCommissions as $row)
-                            <tr class="border-b border-slate-100">
-                                <td class="px-4 py-3">{{ $row->earned_at?->format('d M Y') ?? '—' }}</td>
-                                <td class="px-4 py-3">{{ $row->customer?->name ?? '—' }}<br><span class="text-xs text-slate-500">{{ $row->customer?->customer_code }}</span></td>
-                                <td class="px-4 py-3">{{ number_format((float) ($row->payment?->amount ?? $row->gross_amount), 2) }} BDT</td>
+                            <tr>
+                                <td class="px-4 py-3 rsl-text">{{ $row->earned_at?->format('d M Y') ?? '—' }}</td>
+                                <td class="px-4 py-3 rsl-text">{{ $row->customer?->name ?? '—' }}<br><span class="text-xs rsl-text-muted">{{ $row->customer?->customer_code }}</span></td>
+                                <td class="px-4 py-3 rsl-text">{{ number_format((float) ($row->payment?->amount ?? $row->gross_amount), 2) }} BDT</td>
                                 <td class="px-4 py-3 font-semibold text-emerald-700">{{ number_format((float) $row->commission_amount, 2) }} BDT</td>
-                                <td class="px-4 py-3 capitalize">{{ $row->status }}</td>
+                                <td class="px-4 py-3 capitalize rsl-text">{{ $row->status }}</td>
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="5" class="px-4 py-8 text-center text-slate-500">No commissions yet.</td>
+                                <td colspan="5" class="px-4 py-8 text-center rsl-text-muted">No commissions yet.</td>
                             </tr>
                         @endforelse
                     </tbody>

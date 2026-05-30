@@ -3,8 +3,11 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Models\Reseller;
 use App\Models\User;
 use App\Services\Payments\MfsSmsIngestService;
+use App\Services\Reseller\ResellerIntegrationSettings;
+use App\Services\Reseller\ResellerScopedConfig;
 use App\Support\Rbac\StaffCapability;
 use App\Support\TenantResolver;
 use Illuminate\Http\JsonResponse;
@@ -20,18 +23,37 @@ class MfsSmsIngestController extends Controller
 {
     public function ingest(Request $request, MfsSmsIngestService $ingest): JsonResponse
     {
+        $provided = (string) ($request->header('X-MFS-Device-Key') ?? $request->header('Authorization'));
+        $provided = str_starts_with($provided, 'Bearer ') ? substr($provided, 7) : $provided;
+
+        $resellerId = ResellerIntegrationSettings::findResellerIdByDeviceKey($provided);
+        if ($resellerId !== null) {
+            return ResellerScopedConfig::using($resellerId, function () use ($request, $ingest, $resellerId): JsonResponse {
+                if (! (bool) config('mfs_personal.sms_ingest.enabled', false)) {
+                    return response()->json(['message' => 'SMS ingest disabled.'], 503);
+                }
+
+                return $this->processIngest($request, $ingest, $this->tenantIdForReseller($resellerId));
+            });
+        }
+
         if (! (bool) config('mfs_personal.sms_ingest.enabled', false)) {
             return response()->json(['message' => 'SMS ingest disabled.'], 503);
         }
 
         $expected = (string) config('mfs_personal.sms_ingest.api_key', '');
-        $provided = (string) ($request->header('X-MFS-Device-Key') ?? $request->header('Authorization'));
-        $provided = str_starts_with($provided, 'Bearer ') ? substr($provided, 7) : $provided;
 
         if ($expected === '' || ! hash_equals($expected, $provided)) {
             return response()->json(['message' => 'Unauthorized.'], 401);
         }
 
+        $tenantId = (int) (TenantResolver::currentTenantId() ?? 1);
+
+        return $this->processIngest($request, $ingest, $tenantId);
+    }
+
+    private function processIngest(Request $request, MfsSmsIngestService $ingest, int $defaultTenantId): JsonResponse
+    {
         $validated = $request->validate([
             'gateway' => ['required', 'in:bkash,nagad,rocket'],
             'transaction_id' => ['required', 'string', 'max:64'],
@@ -46,7 +68,7 @@ class MfsSmsIngestController extends Controller
             'tenant_id' => ['nullable', 'integer', 'min:1'],
         ]);
 
-        $tenantId = (int) ($validated['tenant_id'] ?? TenantResolver::currentTenantId() ?? 1);
+        $tenantId = (int) ($validated['tenant_id'] ?? $defaultTenantId);
 
         try {
             [$record, $duplicate, $matchedPending] = $ingest->ingest($tenantId, $validated);
@@ -55,6 +77,13 @@ class MfsSmsIngestController extends Controller
         }
 
         return response()->json($this->ingestResponse($record, $duplicate, $matchedPending));
+    }
+
+    private function tenantIdForReseller(int $resellerId): int
+    {
+        $reseller = Reseller::query()->withoutGlobalScopes()->find($resellerId);
+
+        return (int) ($reseller?->tenant_id ?? TenantResolver::currentTenantId() ?? 1);
     }
 
     /**

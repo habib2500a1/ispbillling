@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use App\Models\Reseller;
+use App\Support\ResellerBranding;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\View;
@@ -15,13 +16,24 @@ class ResolveResellerWhiteLabel
      */
     public function handle(Request $request, Closure $next): Response
     {
-        $partner = app()->bound('reseller.white_label') ? app('reseller.white_label') : null;
+        ResellerBranding::capturePartnerFromRequest($request);
 
-        if ($partner instanceof Reseller) {
-            View::share('whiteLabelReseller', $partner);
-            if ($partner->brand_primary_color) {
-                View::share('whiteLabelPrimaryColor', $partner->brand_primary_color);
-            }
+        $branding = ResellerBranding::forCustomer(ResellerBranding::customerFromContext());
+
+        View::share([
+            'companyName' => $branding['companyName'],
+            'companyLogo' => $branding['companyLogo'],
+            'companyTagline' => $branding['companyTagline'],
+            'companyPhone' => $branding['companyPhone'],
+            'companyAddress' => $branding['companyAddress'] ?? '',
+        ]);
+
+        if ($branding['whiteLabelReseller'] instanceof Reseller) {
+            View::share('whiteLabelReseller', $branding['whiteLabelReseller']);
+        }
+
+        if (filled($branding['whiteLabelPrimaryColor'])) {
+            View::share('whiteLabelPrimaryColor', $branding['whiteLabelPrimaryColor']);
         }
 
         return $next($request);

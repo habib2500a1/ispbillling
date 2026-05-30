@@ -30,6 +30,16 @@
     </style>
 </head>
 <body>
+    @if (! empty($companyLogo) || ! empty($companyName))
+        <div style="max-width:28rem;margin:0 auto 1rem;display:flex;align-items:center;gap:.75rem;">
+            @if (! empty($companyLogo))
+                <img src="{{ $companyLogo }}" alt="" style="max-height:2.5rem;width:auto;">
+            @endif
+            @if (! empty($companyName))
+                <span style="font-weight:600;color:#334155;">{{ $companyName }}</span>
+            @endif
+        </div>
+    @endif
     <div class="card">
         <h1>{{ $gatewayLabel }} payment</h1>
         <p class="amt">{{ number_format($amount, 2) }} BDT</p>

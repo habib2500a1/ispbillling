@@ -6,7 +6,12 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <meta name="theme-color" content="#312e81">
     <title>@yield('title', __('portal.customer_portal')) — {{ $companyName ?? config('app.name') }}</title>
-    @include('partials.site-favicon')
+    @if (! empty($companyLogo))
+        <link rel="icon" href="{{ $companyLogo }}" />
+        <link rel="apple-touch-icon" href="{{ $companyLogo }}" />
+    @else
+        @include('partials.site-favicon')
+    @endif
     <link rel="stylesheet" href="{{ asset('css/portal.css') }}?v=15">
     <link rel="stylesheet" href="{{ asset('css/portal-utilities.css') }}?v={{ @filemtime(public_path('css/portal-utilities.css')) ?: 1 }}">
     @include('partials.isp-premium-theme', ['tailwind' => false])
@@ -14,6 +19,9 @@
     <link rel="stylesheet" href="{{ asset('css/portal-responsive.css') }}?v={{ @filemtime(public_path('css/portal-responsive.css')) ?: 1 }}">
     @livewireStyles
     <script src="{{ asset('js/portal-theme.js') }}?v=1"></script>
+    @if (! empty($whiteLabelPrimaryColor))
+        <style>:root { --portal-violet: {{ $whiteLabelPrimaryColor }}; --portal-indigo: {{ $whiteLabelPrimaryColor }}; }</style>
+    @endif
     @stack('head')
 </head>
 <body class="portal-body antialiased">

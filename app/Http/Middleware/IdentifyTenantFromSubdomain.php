@@ -57,7 +57,7 @@ class IdentifyTenantFromSubdomain
             app()->instance('reseller.white_label', $reseller);
 
             if ($request->is('/') && ! $request->is('reseller*')) {
-                return redirect('/reseller/login');
+                return redirect('/login');
             }
         }
 

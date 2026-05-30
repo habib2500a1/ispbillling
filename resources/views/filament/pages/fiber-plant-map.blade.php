@@ -35,13 +35,13 @@
                     type="button"
                     class="fpm-tool fpm-tool--ghost fpm-tool--import"
                     id="fpm-import"
-                    wire:click="runImport"
+                    wire:click="importInfrastructure"
                     wire:loading.attr="disabled"
-                    wire:target="runImport"
+                    wire:target="importInfrastructure"
                     title="Import POP, OLT, customer GPS"
                 >
-                    <span wire:loading.remove wire:target="runImport">Import</span>
-                    <span wire:loading wire:target="runImport">Importing…</span>
+                    <span wire:loading.remove wire:target="importInfrastructure">Import</span>
+                    <span wire:loading wire:target="importInfrastructure">Importing…</span>
                 </button>
             </div>
 

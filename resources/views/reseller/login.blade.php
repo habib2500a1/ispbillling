@@ -4,16 +4,15 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Reseller login — {{ config('app.name') }}</title>
-    <link rel="stylesheet" href="{{ asset('css/reseller-portal.css') }}">
     @include('partials.isp-premium-theme', ['tailwind' => true])
+    <link rel="stylesheet" href="{{ asset('css/reseller-portal.css') }}?v=4">
 </head>
-<body class="rsl-bg isp-premium-bg flex min-h-screen items-center justify-center px-4">
-    <div class="isp-premium-orbs" aria-hidden="true"><span></span><span></span><span></span></div>
+<body class="rsl-page rsl-bg flex min-h-screen items-center justify-center px-4">
     <div class="rsl-card w-full max-w-md p-8">
         <div class="mb-6 text-center">
             <span class="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-600 text-2xl font-bold text-white">R</span>
-            <h1 class="mt-4 text-2xl font-bold text-slate-900">Reseller portal</h1>
-            <p class="mt-1 text-sm text-slate-600">Sign in with partner code, email, or phone</p>
+            <h1 class="mt-4 rsl-title">Reseller portal</h1>
+            <p class="mt-1 rsl-subtitle">Sign in with partner code, email, or phone</p>
         </div>
 
         @if ($errors->any())
@@ -25,14 +24,14 @@
         <form method="post" action="{{ route('reseller.login.store') }}" class="space-y-4">
             @csrf
             <div>
-                <label class="mb-1 block text-sm font-medium text-slate-700" for="login">Partner ID</label>
+                <label class="mb-1 block text-sm font-medium rsl-text" for="login">Partner ID</label>
                 <input id="login" name="login" type="text" value="{{ old('login') }}" required autofocus class="rsl-input" placeholder="RSL-2605-0001 or email">
             </div>
             <div>
-                <label class="mb-1 block text-sm font-medium text-slate-700" for="password">Password</label>
+                <label class="mb-1 block text-sm font-medium rsl-text" for="password">Password</label>
                 <input id="password" name="password" type="password" required class="rsl-input">
             </div>
-            <label class="flex items-center gap-2 text-sm text-slate-600">
+            <label class="flex items-center gap-2 text-sm rsl-text-muted">
                 <input type="checkbox" name="remember" value="1" class="rounded border-slate-300">
                 Remember me
             </label>

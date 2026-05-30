@@ -31,7 +31,9 @@ class Reseller extends Model implements AuthenticatableContract
             ->where('is_active', true)
             ->whereNotNull('portal_password')
             ->where(function ($q) use ($login, $digits): void {
-                $q->where('code', $login)->orWhere('email', $login);
+                $q->where('code', $login)
+                    ->orWhere('portal_login', $login)
+                    ->orWhere('email', $login);
                 if ($digits !== '') {
                     $q->orWhere('phone', $digits)->orWhere('phone', $login);
                 } else {
@@ -89,13 +91,18 @@ class Reseller extends Model implements AuthenticatableContract
         'commission_value',
         'revenue_share_percent',
         'white_label_enabled',
+        'own_integrations_enabled',
         'brand_name',
         'brand_logo_path',
         'brand_primary_color',
         'portal_subdomain',
         'wallet_balance',
+        'max_clients',
+        'max_active_clients',
+        'wallet_frozen',
         'is_active',
         'notes',
+        'meta',
         'portal_permissions',
         'auto_invoice_enabled',
         'auto_suspend_enabled',
@@ -127,9 +134,14 @@ class Reseller extends Model implements AuthenticatableContract
             'portal_last_login_at' => 'datetime',
             'is_active' => 'boolean',
             'white_label_enabled' => 'boolean',
+            'own_integrations_enabled' => 'boolean',
             'commission_value' => 'decimal:2',
             'revenue_share_percent' => 'decimal:2',
             'wallet_balance' => 'decimal:2',
+            'wallet_frozen' => 'boolean',
+            'max_clients' => 'integer',
+            'max_active_clients' => 'integer',
+            'meta' => 'array',
             'portal_permissions' => 'array',
             'auto_invoice_enabled' => 'boolean',
             'auto_suspend_enabled' => 'boolean',
@@ -161,6 +173,25 @@ class Reseller extends Model implements AuthenticatableContract
         return in_array($permission, $this->portalPermissions(), true);
     }
 
+    public function displayName(): string
+    {
+        return filled($this->brand_name) ? (string) $this->brand_name : (string) $this->name;
+    }
+
+    public function brandInitial(): string
+    {
+        $name = trim($this->displayName());
+
+        return $name !== ''
+            ? mb_strtoupper(mb_substr($name, 0, 1, 'UTF-8'))
+            : 'R';
+    }
+
+    public function logoUrl(): ?string
+    {
+        return \App\Support\ResellerBranding::logoUrlForReseller($this);
+    }
+
     public function parent(): BelongsTo
     {
         return $this->belongsTo(Reseller::class, 'parent_id');
@@ -174,6 +205,11 @@ class Reseller extends Model implements AuthenticatableContract
     public function portalLoginId(): string
     {
         return (string) ($this->portal_login ?: $this->code);
+    }
+
+    public function staff(): HasMany
+    {
+        return $this->hasMany(ResellerStaff::class);
     }
 
     public function children(): HasMany
@@ -214,6 +250,16 @@ class Reseller extends Model implements AuthenticatableContract
     public function settlements(): HasMany
     {
         return $this->hasMany(ResellerSettlement::class);
+    }
+
+    public function walletRechargeRequests(): HasMany
+    {
+        return $this->hasMany(ResellerWalletRechargeRequest::class);
+    }
+
+    public function portalActivityLogs(): HasMany
+    {
+        return $this->hasMany(ResellerPortalActivityLog::class);
     }
 
     public function isSubReseller(): bool

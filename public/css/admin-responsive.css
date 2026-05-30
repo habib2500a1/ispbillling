@@ -160,3 +160,16 @@ a.isp-today-tile:hover {
         scroll-snap-align: start;
     }
 }
+
+/* ============================================================
+ * Mobile dock fix: ensure it stays fixed at bottom on all pages
+ * ============================================================ */
+@media (max-width: 1023px) {
+    .isp-mobile-bar {
+        position: fixed !important;
+        bottom: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        z-index: 55 !important;
+    }
+}

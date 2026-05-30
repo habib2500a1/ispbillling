@@ -44,7 +44,7 @@ class PortalInvoiceController extends Controller
 
         $due = round((float) $invoice->total - (float) $invoice->amount_paid, 2);
 
-        $paymentMethods = PortalPaymentGateways::methodsForCustomerPortal();
+        $paymentMethods = PortalPaymentGateways::methodsForCustomerPortal($customer);
         $gateways = PublicPaymentMethod::legacyFlags($paymentMethods);
 
         return view('portal.invoices.show', [

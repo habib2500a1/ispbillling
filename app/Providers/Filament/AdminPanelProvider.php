@@ -109,7 +109,24 @@ class AdminPanelProvider extends PanelProvider
                         $html .= view('filament.hooks.auth-head')->render();
                     }
 
-                    return $html.view('filament.hooks.design-system')->render();
+                    $html .= view('filament.hooks.design-system')->render();
+
+                    if (request()->routeIs('filament.admin.resources.subscribers.index')) {
+                        $v = @filemtime(public_path('css/clients-directory-pro.css')) ?: time();
+                        $html .= '<link rel="stylesheet" href="'.asset('css/clients-directory-pro.css').'?v='.$v.'" data-clients-directory="1">';
+                    }
+
+                    if (request()->routeIs('filament.admin.pages.subscriber-lists-hub')) {
+                        $v = @filemtime(public_path('css/subscriber-lists-hub-pro.css')) ?: time();
+                        $html .= '<link rel="stylesheet" href="'.asset('css/subscriber-lists-hub-pro.css').'?v='.$v.'" data-slh="1">';
+                    }
+
+                    if (request()->routeIs('filament.admin.pages.resellers-hub')) {
+                        $v = @filemtime(public_path('css/resellers-hub-pro.css')) ?: time();
+                        $html .= '<link rel="stylesheet" href="'.asset('css/resellers-hub-pro.css').'?v='.$v.'" data-rsh="1">';
+                    }
+
+                    return $html;
                 },
             )
             ->renderHook(
@@ -152,6 +169,7 @@ class AdminPanelProvider extends PanelProvider
                     ])->render()
                         .'<script src="'.asset('js/admin-sidebar-layout.js').'?v='.(filemtime(public_path('js/admin-sidebar-layout.js')) ?: 1).'" data-cfasync="false"></script>'
                         .'<script src="'.asset('js/mobile-sidebar-fix.js').'?v='.(filemtime(public_path('js/mobile-sidebar-fix.js')) ?: 1).'" data-cfasync="false"></script>'
+                        .'<script src="'.asset('js/mobile-dock-pin.js').'?v='.(filemtime(public_path('js/mobile-dock-pin.js')) ?: 1).'" data-cfasync="false" data-navigate-once></script>'
                         .view('filament.hooks.mobile-dock')->render();
                 },
             );

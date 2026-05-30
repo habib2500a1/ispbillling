@@ -5,9 +5,11 @@ namespace App\Http\Controllers;
 use App\Models\Invoice;
 use App\Models\Payment;
 use App\Models\PendingGatewayPayment;
+use App\Models\ResellerWalletRechargeRequest;
 use App\Services\Payments\PipraPayCheckoutService;
 use App\Services\Payments\PipraPayCheckoutStore;
 use App\Services\Payments\PublicCheckoutSession;
+use App\Services\Resellers\ResellerWalletRechargeService;
 use App\Support\PaymentGateway;
 use App\Support\PaymentType;
 use Illuminate\Http\JsonResponse;
@@ -45,6 +47,11 @@ class PipraPayPaymentController extends Controller
         }
 
         if ($pending !== null) {
+            $returnTo = $pending['return_to'] ?? 'bill_payment';
+            if ($returnTo === 'reseller_portal') {
+                return redirect()->route('reseller.wallet.index')->with('danger', 'PipraPay payment was cancelled.');
+            }
+
             return $this->fail($pending, 'PipraPay payment was cancelled.');
         }
 
@@ -161,6 +168,20 @@ class PipraPayPaymentController extends Controller
 
         $pending = PipraPayCheckoutStore::resolve($orderId, $ppId, $verified);
         if ($pending === null) {
+            $rechargeRequest = app(ResellerWalletRechargeService::class)->findPendingByCheckout($orderId, $ppId);
+            if ($rechargeRequest !== null) {
+                $pending = [
+                    'reseller_id' => $rechargeRequest->reseller_id,
+                    'recharge_request_id' => $rechargeRequest->id,
+                    'amount' => number_format((float) $rechargeRequest->amount, 2, '.', ''),
+                    'return_to' => 'reseller_portal',
+                    'payment_type' => PaymentType::RESELLER_WALLET_RECHARGE,
+                    'gateway' => PaymentGateway::PIPRAPAY,
+                ];
+            }
+        }
+
+        if ($pending === null) {
             Log::warning('piprapay.checkout_session_missing', [
                 'pp_id' => $ppId,
                 'order_id' => $orderId,
@@ -201,6 +222,10 @@ class PipraPayPaymentController extends Controller
         }
 
         $paymentType = (string) ($pending['payment_type'] ?? PaymentType::PAYMENT);
+
+        if ($paymentType === PaymentType::RESELLER_WALLET_RECHARGE) {
+            return $this->completeResellerWalletRecharge($ppId, $pending, $verified, $paidAmount, $orderId, $context, $source, $jsonResponse);
+        }
 
         $payment = DB::transaction(function () use ($pending, $invoice, $ppId, $paidAmount, $verified, $paymentType, $orderId, $context, $source): Payment {
             return Payment::createTrusted([
@@ -254,6 +279,10 @@ class PipraPayPaymentController extends Controller
             return redirect()->route('portal.invoices.show', $invoice)->with('status', $message);
         }
 
+        if ($returnTo === 'reseller_portal') {
+            return redirect()->route('reseller.wallet.index')->with('status', $message);
+        }
+
         if ($returnTo === 'bill_payment') {
             return redirect()->route('bill-payment.receipt', $payment)->with('status', $message);
         }
@@ -274,11 +303,89 @@ class PipraPayPaymentController extends Controller
         $returnTo = $pending['return_to'] ?? 'bill_payment';
         $invoice = isset($pending['invoice_id']) ? Invoice::query()->find($pending['invoice_id']) : null;
 
+        if ($returnTo === 'reseller_portal') {
+            return redirect()->route('reseller.wallet.index')->with('danger', $message);
+        }
+
         if ($returnTo === 'portal' && $invoice) {
             return redirect()->route('portal.invoices.show', $invoice)->with('danger', $message);
         }
 
         return redirect()->route('bill-payment.invoice')->with('danger', $message);
+    }
+
+    /**
+     * @param  array<string, mixed>  $pending
+     * @param  array<string, mixed>  $verified
+     * @param  array<string, mixed>  $context
+     */
+    private function completeResellerWalletRecharge(
+        string $ppId,
+        array $pending,
+        array $verified,
+        string $paidAmount,
+        ?string $orderId,
+        array $context,
+        string $source,
+        bool $jsonResponse,
+    ): RedirectResponse|JsonResponse {
+        $requestId = (int) ($pending['recharge_request_id'] ?? 0);
+        $rechargeRequest = $requestId > 0
+            ? ResellerWalletRechargeRequest::query()->find($requestId)
+            : app(ResellerWalletRechargeService::class)->findPendingByCheckout($orderId, $ppId);
+
+        if ($rechargeRequest === null) {
+            if ($jsonResponse) {
+                return response()->json(['status' => false, 'message' => 'Recharge request not found'], 422);
+            }
+
+            return redirect()->route('reseller.login')->with('danger', 'Wallet recharge session expired. Contact support with your PipraPay reference.');
+        }
+
+        if ($rechargeRequest->status === ResellerWalletRechargeRequest::STATUS_APPROVED) {
+            if (is_string($orderId) && $orderId !== '') {
+                PublicCheckoutSession::forget($orderId);
+            }
+
+            $message = 'Wallet top-up was already recorded.';
+
+            if ($jsonResponse) {
+                return response()->json(['status' => true, 'message' => $message]);
+            }
+
+            return redirect()->route('reseller.wallet.index')->with('status', $message);
+        }
+
+        if (abs((float) $paidAmount - (float) $rechargeRequest->amount) > 0.05) {
+            if ($jsonResponse) {
+                return response()->json(['status' => false, 'message' => 'Amount mismatch'], 422);
+            }
+
+            return redirect()->route('reseller.wallet.index')->with('danger', 'Paid amount mismatch. Contact support.');
+        }
+
+        app(ResellerWalletRechargeService::class)->approveFromGateway(
+            $rechargeRequest,
+            $ppId,
+            [
+                'piprapay_verify' => $verified,
+                'piprapay_context' => $context,
+                'source' => $source,
+            ],
+        );
+
+        if (is_string($orderId) && $orderId !== '') {
+            PublicCheckoutSession::forget($orderId);
+        }
+        Cache::forget(PipraPayCheckoutService::ppCacheKey($ppId));
+
+        $message = 'Wallet top-up recorded successfully.';
+
+        if ($jsonResponse) {
+            return response()->json(['status' => true, 'message' => $message]);
+        }
+
+        return redirect()->route('reseller.wallet.index')->with('status', $message);
     }
 
     private function resolvePpIdFromOrderId(string $orderId): ?string

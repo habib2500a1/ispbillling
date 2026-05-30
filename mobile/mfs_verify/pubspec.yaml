@@ -1,7 +1,7 @@
 name: mfs_verify
 description: RCL SMS — Radiant ISP bKash/Nagad payment SMS auto-verify (device key).
 publish_to: 'none'
-version: 1.0.10+11
+version: 1.0.12+13
 
 environment:
   sdk: ^3.12.0
@@ -15,6 +15,9 @@ dependencies:
   telephony: ^0.2.0
   permission_handler: ^11.3.1
   package_info_plus: ^8.1.2
+  flutter_background_service: ^5.0.10
+  flutter_background_service_android: ^6.2.7
+  flutter_local_notifications: ^17.2.3
 
 dev_dependencies:
   flutter_test:

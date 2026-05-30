@@ -73,12 +73,40 @@ final class PipraPayCheckoutService
         string $webhookUrl,
         array $metadata = [],
     ): array {
+        return $this->createChargeForPayer(
+            fullName: $customer->name,
+            email: $customer->email ?: 'pay@customer.local',
+            phone: $customer->phone ?: '01700000000',
+            amount: $amount,
+            orderId: $orderId,
+            redirectUrl: $redirectUrl,
+            cancelUrl: $cancelUrl,
+            webhookUrl: $webhookUrl,
+            metadata: $metadata,
+        );
+    }
+
+    /**
+     * @param  array<string, mixed>  $metadata
+     * @return array{redirect_url: string, pp_id: ?string, raw: array<string, mixed>}
+     */
+    public function createChargeForPayer(
+        string $fullName,
+        string $email,
+        string $phone,
+        float $amount,
+        string $orderId,
+        string $redirectUrl,
+        string $cancelUrl,
+        string $webhookUrl,
+        array $metadata = [],
+    ): array {
         $mergedMeta = array_merge(['order_id' => $orderId], $metadata);
 
         if ($this->apiMode === self::MODE_LEGACY) {
             $payload = [
-                'full_name' => $customer->name,
-                'email_mobile' => $customer->email ?: $customer->phone ?: 'customer@isp.local',
+                'full_name' => $fullName,
+                'email_mobile' => $email ?: $phone ?: 'pay@isp.local',
                 'amount' => (string) round($amount, 2),
                 'currency' => $this->currency,
                 'metadata' => $mergedMeta,
@@ -90,9 +118,9 @@ final class PipraPayCheckoutService
             $endpoint = '/create-charge';
         } else {
             $payload = [
-                'full_name' => $customer->name,
-                'email_address' => $customer->email ?: 'pay@customer.local',
-                'mobile_number' => $customer->phone ?: '01700000000',
+                'full_name' => $fullName,
+                'email_address' => $email ?: 'pay@isp.local',
+                'mobile_number' => $phone ?: '01700000000',
                 'amount' => (string) round($amount, 2),
                 'currency' => $this->currency,
                 'metadata' => json_encode($mergedMeta, JSON_THROW_ON_ERROR),

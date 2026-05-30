@@ -69,7 +69,7 @@ final class OltSidebarRegistry
             ],
             [
                 'key' => 'mac_table',
-                'label' => 'MAC table',
+                'label' => 'PON MAC table',
                 'icon' => 'heroicon-o-table-cells',
                 'sort' => 5,
                 'url' => OltMacTable::getUrl(),

@@ -33,6 +33,9 @@
         </section>
 
         <section class="isp-reseller-table-card">
+            <div class="mb-3 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-100">
+                <strong>Partner portal login:</strong> green <strong>Portal login</strong> column in each row. Password/token: row menu → Portal ID & password.
+            </div>
             {{ $this->table }}
         </section>
     </div>

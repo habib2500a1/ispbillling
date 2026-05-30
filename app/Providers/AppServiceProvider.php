@@ -131,6 +131,9 @@ class AppServiceProvider extends ServiceProvider
 
         View::composer('bill-payment.*', BillPaymentViewComposer::class);
         View::composer('portal.*', PortalViewComposer::class);
+        View::composer('reseller.*', function ($view): void {
+            $view->with('portal', app(\App\Support\ResellerPortalSession::class));
+        });
 
         View::share('mobileAppDownloadUrl', MobileAppLinks::downloadUrl());
 

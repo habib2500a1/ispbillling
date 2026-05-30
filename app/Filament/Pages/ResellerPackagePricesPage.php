@@ -56,6 +56,11 @@ class ResellerPackagePricesPage extends Page implements HasTable
                     ->label('Package')
                     ->searchable()
                     ->sortable(),
+                Tables\Columns\TextColumn::make('package.mikrotik_profile_name')
+                    ->label('Profile code')
+                    ->fontFamily('mono')
+                    ->placeholder('—')
+                    ->searchable(),
                 Tables\Columns\TextColumn::make('package.price_monthly')
                     ->label('Base price')
                     ->money('BDT'),

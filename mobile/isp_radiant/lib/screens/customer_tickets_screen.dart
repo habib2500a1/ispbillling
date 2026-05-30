@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 
+import '../core/theme/design_tokens.dart';
+import '../features/customer/data/customer_repository.dart';
 import '../services/api_service.dart';
-import '../theme/app_theme.dart';
 import '../utils/app_nav.dart';
 import '../utils/layout.dart';
 import '../widgets/isp_tab_screen.dart';
@@ -36,7 +37,7 @@ class CustomerTicketsScreen extends StatefulWidget {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Row(
           children: [
-            Icon(Icons.support_agent, color: AppTheme.primary),
+            Icon(Icons.support_agent, color: DesignTokens.primary),
             SizedBox(width: 8),
             Text('New support ticket'),
           ],
@@ -77,22 +78,23 @@ class CustomerTicketsScreen extends StatefulWidget {
       return;
     }
 
-    try {
-      await api.createTicket(
-        subject: subjectCtrl.text.trim(),
-        description: descCtrl.text.trim(),
-      );
-      if (context.mounted) {
-        showSnack(context, 'Ticket submitted successfully');
+    final res = await CustomerRepository(api).createTicket(
+      subject: subjectCtrl.text.trim(),
+      description: descCtrl.text.trim(),
+    );
+    if (!context.mounted) return;
+    res.when(
+      ok: (msg) {
+        showSnack(context, msg);
         onCreated?.call();
-      }
-    } on ApiException catch (e) {
-      if (context.mounted) showSnack(context, e.message, isError: true);
-    }
+      },
+      err: (f) => showSnack(context, f.message, isError: true),
+    );
   }
 }
 
 class _CustomerTicketsScreenState extends State<CustomerTicketsScreen> {
+  late final CustomerRepository _repo = CustomerRepository(widget.api);
   List<Map<String, dynamic>> _tickets = [];
   bool _loading = true;
   String? _error;
@@ -114,16 +116,18 @@ class _CustomerTicketsScreenState extends State<CustomerTicketsScreen> {
       _loading = true;
       _error = null;
     });
-    try {
-      final list = await widget.api.customerTickets();
-      if (mounted) setState(() => _tickets = list);
-    } on ApiException catch (e) {
-      if (mounted) setState(() => _error = e.message);
-    } catch (_) {
-      if (mounted) setState(() => _error = 'Could not load tickets');
-    } finally {
-      if (mounted) setState(() => _loading = false);
-    }
+    final res = await _repo.tickets();
+    if (!mounted) return;
+    res.when(
+      ok: (list) => setState(() {
+        _tickets = list;
+        _loading = false;
+      }),
+      err: (f) => setState(() {
+        _error = f.message;
+        _loading = false;
+      }),
+    );
   }
 
   @override

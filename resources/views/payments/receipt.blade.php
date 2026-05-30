@@ -72,6 +72,6 @@
         {{ $payment->isRefund() ? '−' : '' }}{{ number_format((float) $payment->amount, 2) }} BDT
     </p>
 
-    <p class="muted" style="margin-top: 24px;">{{ \App\Support\CompanyBranding::invoiceFooter() }}</p>
+    <p class="muted" style="margin-top: 24px;">{{ $invoiceFooter ?? \App\Support\CompanyBranding::invoiceFooter() }}</p>
 </body>
 </html>

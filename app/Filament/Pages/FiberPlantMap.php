@@ -103,32 +103,41 @@ class FiberPlantMap extends Page
     {
         $this->authorizeMap();
 
-        $service = app(FiberPlantMapService::class);
-        $pops = $service->importPopBoxes();
-        $olts = $service->importOlts();
-        $subs = $service->importCustomerNodes();
+        try {
+            $service = app(FiberPlantMapService::class);
+            $pops = $service->importPopBoxes();
+            $olts = $service->importOlts();
+            $subs = $service->importCustomerNodes();
 
-        $payload = $service->buildPayload();
+            $payload = $service->buildPayload();
 
-        Notification::make()
-            ->title('Import complete')
-            ->body("POP: {$pops}, OLT: {$olts}, Customers: {$subs}")
-            ->success()
-            ->send();
+            Notification::make()
+                ->title('Import complete')
+                ->body("POP: {$pops}, OLT: {$olts}, Customers: {$subs}")
+                ->success()
+                ->send();
 
-        $this->dispatch('isp-fiber-map-refresh', payload: $payload);
+            $this->dispatch('isp-fiber-map-refresh', payload: $payload);
 
-        return [
-            'ok' => true,
-            'payload' => $payload,
-            'message' => "Imported POP {$pops}, OLT {$olts}, customers {$subs}",
-        ];
-    }
+            return [
+                'ok' => true,
+                'payload' => $payload,
+                'message' => "Imported POP {$pops}, OLT {$olts}, customers {$subs}",
+            ];
+        } catch (\Throwable $e) {
+            report($e);
 
-    /** Livewire toolbar action (works without map JS init). */
-    public function runImport(): void
-    {
-        $this->importInfrastructure();
+            Notification::make()
+                ->title('Import failed')
+                ->body($e->getMessage())
+                ->danger()
+                ->send();
+
+            return [
+                'ok' => false,
+                'message' => $e->getMessage(),
+            ];
+        }
     }
 
     public static function canAccess(): bool

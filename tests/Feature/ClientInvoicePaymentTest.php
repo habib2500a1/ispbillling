@@ -29,6 +29,37 @@ class ClientInvoicePaymentTest extends TestCase
             ->assertJsonCount(1, 'due_invoices');
     }
 
+    public function test_payables_includes_prepay_quotes_for_one_two_three_months(): void
+    {
+        config(['bill_payment.prepay_enabled' => true, 'bill_payment.prepay_quick_months' => [1, 2, 3]]);
+
+        $customer = $this->customerWithDueInvoice(500);
+
+        Sanctum::actingAs($customer, ['customer-app']);
+
+        $this->getJson('/api/v1/customer/bills/payables')
+            ->assertOk()
+            ->assertJsonPath('prepay.enabled', true)
+            ->assertJsonPath('prepay.monthly_rate', 500)
+            ->assertJsonPath('prepay.quotes.1.total_amount', 1000)
+            ->assertJsonPath('prepay.quotes.2.total_amount', 1500)
+            ->assertJsonPath('prepay.quotes.3.total_amount', 2000);
+    }
+
+    public function test_prepay_initiate_validates_months_and_gateway(): void
+    {
+        config(['bill_payment.prepay_enabled' => true, 'bkash.enabled' => false]);
+
+        $customer = $this->customerWithDueInvoice(500);
+
+        Sanctum::actingAs($customer, ['customer-app']);
+
+        $this->postJson('/api/v1/customer/bills/prepay', [
+            'months' => 2,
+            'gateway' => 'bkash',
+        ])->assertStatus(422);
+    }
+
     public function test_initiate_rejects_manual_amount(): void
     {
         config(['bill_payment.allow_partial' => false, 'bkash.enabled' => false]);

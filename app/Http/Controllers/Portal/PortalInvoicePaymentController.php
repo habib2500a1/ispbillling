@@ -5,7 +5,7 @@ namespace App\Http\Controllers\Portal;
 use App\Http\Controllers\Controller;
 use App\Models\Invoice;
 use App\Services\Payments\PublicPaymentOrchestrator;
-use App\Support\PaymentGateway;
+use App\Services\Reseller\ResellerPaymentContext;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 
@@ -17,7 +17,7 @@ class PortalInvoicePaymentController extends Controller
         abort_unless($customer !== null && (int) $invoice->customer_id === (int) $customer->getAuthIdentifier(), 404);
 
         $validated = $request->validate([
-            'gateway' => ['required', 'string', 'in:'.implode(',', PaymentGateway::customerCheckoutGateways())],
+            'gateway' => ['required', 'string', 'in:'.implode(',', ResellerPaymentContext::allowedCheckoutGateways($customer))],
         ]);
 
         $balance = round((float) $invoice->total - (float) $invoice->amount_paid, 2);

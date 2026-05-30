@@ -6,6 +6,7 @@ use App\Models\Customer;
 use App\Models\Invoice;
 use App\Services\Payments\GatewayPaymentVerificationService;
 use App\Services\Payments\PublicCheckoutSession;
+use App\Services\Reseller\ResellerPaymentContext;
 use App\Support\PaymentGateway;
 use App\Support\PaymentType;
 use App\Support\PersonalMfsGateway;
@@ -18,10 +19,6 @@ class PersonalMfsPaymentController extends Controller
     public function checkout(Request $request, string $gateway): View|RedirectResponse
     {
         $gateway = strtolower($gateway);
-        if (! PersonalMfsGateway::isPersonalEnabled($gateway)) {
-            return redirect()->route('bill-payment.index')->with('danger', 'This payment method is not available.');
-        }
-
         $orderId = (string) $request->query('order', '');
         $session = PublicCheckoutSession::get($orderId);
         if ($session === null) {
@@ -33,33 +30,35 @@ class PersonalMfsPaymentController extends Controller
             return redirect()->route('bill-payment.index')->with('danger', 'Customer not found.');
         }
 
-        $invoice = isset($session['invoice_id'])
-            ? Invoice::query()->withoutGlobalScopes()->find((int) $session['invoice_id'])
-            : null;
+        return ResellerPaymentContext::usingCustomer($customer, function () use ($request, $gateway, $orderId, $session, $customer): View|RedirectResponse {
+            if (! PersonalMfsGateway::isPersonalEnabled($gateway)) {
+                return redirect()->route('bill-payment.index')->with('danger', 'This payment method is not available.');
+            }
 
-        return view('payments.personal-mfs', [
-            'gateway' => $gateway,
-            'gatewayLabel' => PaymentGateway::label($gateway),
-            'orderId' => $orderId,
-            'amount' => (float) ($session['amount'] ?? 0),
-            'merchantNumber' => PersonalMfsGateway::merchantNumber($gateway),
-            'merchantName' => PersonalMfsGateway::merchantName($gateway),
-            'instructions' => config("{$gateway}.instructions") ?? config('rocket.instructions'),
-            'customer' => $customer,
-            'invoice' => $invoice,
-            'returnTo' => (string) ($session['return_to'] ?? 'bill_payment'),
-            'paymentType' => (string) ($session['payment_type'] ?? PaymentType::PAYMENT),
-            'prepayMonths' => max(0, (int) ($session['prepay_months'] ?? 0)),
-        ]);
+            $invoice = isset($session['invoice_id'])
+                ? Invoice::query()->withoutGlobalScopes()->find((int) $session['invoice_id'])
+                : null;
+
+            return view('payments.personal-mfs', array_merge([
+                'gateway' => $gateway,
+                'gatewayLabel' => PaymentGateway::label($gateway),
+                'orderId' => $orderId,
+                'amount' => (float) ($session['amount'] ?? 0),
+                'merchantNumber' => PersonalMfsGateway::merchantNumber($gateway),
+                'merchantName' => PersonalMfsGateway::merchantName($gateway),
+                'instructions' => config("{$gateway}.instructions") ?? config('rocket.instructions'),
+                'customer' => $customer,
+                'invoice' => $invoice,
+                'returnTo' => (string) ($session['return_to'] ?? 'bill_payment'),
+                'paymentType' => (string) ($session['payment_type'] ?? PaymentType::PAYMENT),
+                'prepayMonths' => max(0, (int) ($session['prepay_months'] ?? 0)),
+            ], \App\Support\ResellerBranding::forCustomer($customer)));
+        });
     }
 
     public function confirm(Request $request, string $gateway): RedirectResponse
     {
         $gateway = strtolower($gateway);
-        if (! PersonalMfsGateway::isPersonalEnabled($gateway)) {
-            return redirect()->route('bill-payment.index')->with('danger', 'This payment method is not available.');
-        }
-
         $minLen = max(4, (int) config("mfs_personal.gateways.{$gateway}.trx_min_length", 8));
 
         $validated = $request->validate([
@@ -73,53 +72,64 @@ class PersonalMfsPaymentController extends Controller
             return redirect()->route('bill-payment.index')->with('danger', 'Payment session expired.');
         }
 
-        try {
-            $result = app(GatewayPaymentVerificationService::class)->submitPersonalConfirmation(
-                $gateway,
-                $orderId,
-                $validated['transaction_id'],
-                $session,
-            );
-        } catch (\Throwable $e) {
-            return back()->with('danger', $e->getMessage())->withInput();
+        $customer = Customer::query()->withoutGlobalScopes()->find((int) ($session['customer_id'] ?? 0));
+        if ($customer === null) {
+            return redirect()->route('bill-payment.index')->with('danger', 'Customer not found.');
         }
 
-        if ($result['status'] === 'duplicate') {
-            return back()->with('danger', $result['message'])->withInput();
-        }
+        return ResellerPaymentContext::usingCustomer($customer, function () use ($request, $gateway, $validated, $orderId, $session): RedirectResponse {
+            if (! PersonalMfsGateway::isPersonalEnabled($gateway)) {
+                return redirect()->route('bill-payment.index')->with('danger', 'This payment method is not available.');
+            }
 
-        if ($result['status'] === 'error') {
-            return back()->with('danger', $result['message'])->withInput();
-        }
+            try {
+                $result = app(GatewayPaymentVerificationService::class)->submitPersonalConfirmation(
+                    $gateway,
+                    $orderId,
+                    $validated['transaction_id'],
+                    $session,
+                );
+            } catch (\Throwable $e) {
+                return back()->with('danger', $e->getMessage())->withInput();
+            }
 
-        if ($result['status'] === 'pending') {
-            $notice = (string) ($result['customer_notice'] ?? $result['message']);
+            if ($result['status'] === 'duplicate') {
+                return back()->with('danger', $result['message'])->withInput();
+            }
 
-            return redirect()
-                ->route('mfs.personal.checkout', ['gateway' => $gateway, 'order' => $orderId])
-                ->with('mfs_pending', true)
-                ->with('status', $notice)
-                ->withInput();
-        }
+            if ($result['status'] === 'error') {
+                return back()->with('danger', $result['message'])->withInput();
+            }
 
-        PublicCheckoutSession::forget($orderId);
+            if ($result['status'] === 'pending') {
+                $notice = (string) ($result['customer_notice'] ?? $result['message']);
 
-        $returnTo = (string) ($session['return_to'] ?? 'bill_payment');
-        $paymentType = (string) ($session['payment_type'] ?? PaymentType::PAYMENT);
-        $flash = $result['message'];
+                return redirect()
+                    ->route('mfs.personal.checkout', ['gateway' => $gateway, 'order' => $orderId])
+                    ->with('mfs_pending', true)
+                    ->with('status', $notice)
+                    ->withInput();
+            }
 
-        if ($returnTo === 'portal') {
-            return redirect()->route('portal.payments.index')->with('status', $flash);
-        }
+            PublicCheckoutSession::forget($orderId);
 
-        if ($paymentType === PaymentType::WALLET_DEPOSIT) {
-            return redirect()->route('bill-payment.invoice', ['tab' => 'wallet'])->with('status', $flash);
-        }
+            $returnTo = (string) ($session['return_to'] ?? 'bill_payment');
+            $paymentType = (string) ($session['payment_type'] ?? PaymentType::PAYMENT);
+            $flash = $result['message'];
 
-        if ($paymentType === PaymentType::PREPAY) {
-            return redirect()->route('bill-payment.invoice', ['tab' => 'prepay'])->with('status', $flash);
-        }
+            if ($returnTo === 'portal') {
+                return redirect()->route('portal.payments.index')->with('status', $flash);
+            }
 
-        return redirect()->route('bill-payment.invoice')->with('status', $flash);
+            if ($paymentType === PaymentType::WALLET_DEPOSIT) {
+                return redirect()->route('bill-payment.invoice', ['tab' => 'wallet'])->with('status', $flash);
+            }
+
+            if ($paymentType === PaymentType::PREPAY) {
+                return redirect()->route('bill-payment.invoice', ['tab' => 'prepay'])->with('status', $flash);
+            }
+
+            return redirect()->route('bill-payment.invoice')->with('status', $flash);
+        });
     }
 }

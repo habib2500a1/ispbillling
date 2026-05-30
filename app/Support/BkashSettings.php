@@ -66,6 +66,11 @@ final class BkashSettings
 
     public static function isPersonalEnabled(): bool
     {
+        if (config('reseller_payment.active')) {
+            return filter_var(config('bkash.personal_enabled'), FILTER_VALIDATE_BOOLEAN)
+                && filled(config('bkash.personal_number'));
+        }
+
         if (AppSetting::getStoredValue('bkash.personal_enabled') !== null) {
             return self::configFlag('bkash.personal_enabled');
         }

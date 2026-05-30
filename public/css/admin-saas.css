@@ -3012,15 +3012,18 @@ a.isp-lifecycle-card:hover {
 
 /* Mobile bottom bar (all admin pages) — matches mobile-dock.blade.php */
 .isp-mobile-bar {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    z-index: 55;
+    position: fixed !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    width: 100%;
+    z-index: 55 !important;
     display: flex;
     flex-direction: column;
     gap: 0.4rem;
     padding: 0.5rem 0.65rem calc(0.55rem + env(safe-area-inset-bottom, 0px));
+    margin: 0 !important;
+    inset-inline: 0;
     background: linear-gradient(180deg, rgba(255, 255, 255, 0.97) 0%, rgba(248, 250, 252, 0.98) 100%);
     border-top: 1px solid rgba(148, 163, 184, 0.22);
     backdrop-filter: blur(18px);
@@ -3088,9 +3091,11 @@ a.isp-lifecycle-card:hover {
 
 .isp-mobile-bar__nav {
     display: flex;
-    align-items: stretch;
+    align-items: center;
+    flex-shrink: 0;
     gap: 0.35rem;
     overflow-x: auto;
+    overflow-y: hidden;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
     padding-bottom: 0.05rem;
@@ -3102,14 +3107,16 @@ a.isp-lifecycle-card:hover {
 
 .isp-mobile-bar__chip {
     flex: 1 1 0;
+    flex-shrink: 0;
     min-width: 3.1rem;
     max-width: 4.5rem;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 0.15rem;
+    gap: 0.12rem;
     padding: 0.4rem 0.2rem;
+    overflow: hidden;
     border: 1px solid transparent;
     border-radius: 0.7rem;
     background: #f1f5f9;
@@ -3132,13 +3139,21 @@ a.isp-lifecycle-card:hover {
 
 .isp-mobile-bar__chip-icon {
     display: flex;
+    flex-shrink: 0;
     align-items: center;
     justify-content: center;
 }
 
 .isp-mobile-bar__chip-label {
+    display: block;
+    width: 100%;
+    max-width: 100%;
     line-height: 1.1;
     text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex-shrink: 0;
 }
 
 .isp-mobile-bar--color .isp-mobile-bar__chip--home {
@@ -3278,12 +3293,7 @@ a.isp-lifecycle-card:hover {
 }
 
 .isp-mobile-bar__locales {
-    display: inline-flex;
-    gap: 0.25rem;
-    padding: 0.15rem;
-    border-radius: 999px;
-    background: #f1f5f9;
-    border: 1px solid rgba(148, 163, 184, 0.25);
+    display: none !important;
 }
 
 .dark .isp-mobile-bar__locales,
@@ -3313,7 +3323,7 @@ a.isp-lifecycle-card:hover {
 
 @media (max-width: 1023px) {
     :root {
-        --isp-mobile-bar-height: 8.9rem;
+        --isp-mobile-bar-height: 9.75rem;
     }
 
     .fi-main-ctn {
@@ -3424,6 +3434,15 @@ a.isp-lifecycle-card:hover {
 
     .isp-mobile-bar__chip-label {
         line-height: 1.05;
+        font-size: 0.56rem;
+    }
+
+    .isp-mobile-bar__chip:hover {
+        transform: none;
+    }
+
+    .isp-mobile-bar__chip--active {
+        transform: none;
     }
 
     .isp-mobile-bar__tools {
@@ -7859,6 +7878,128 @@ button.isp-rbac-check { padding: 0; }
     color: var(--isp-text);
 }
 
+.isp-olt-mac-hero__refresh-badge {
+    display: block;
+    margin-top: .35rem;
+    font-size: .68rem;
+    font-weight: 700;
+    color: var(--isp-olt-accent);
+}
+
+.isp-olt-mac-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .5rem;
+}
+
+.isp-olt-mac-tabs__btn {
+    padding: .45rem .85rem;
+    border-radius: 999px;
+    border: 1px solid var(--isp-card-border);
+    background: var(--isp-card-bg);
+    font-size: .78rem;
+    font-weight: 700;
+    color: var(--isp-text-muted);
+}
+
+.isp-olt-mac-tabs__btn--active {
+    border-color: var(--isp-olt-accent);
+    color: var(--isp-olt-accent);
+    background: color-mix(in srgb, var(--isp-olt-accent) 10%, var(--isp-card-bg));
+}
+
+.isp-pon-mac-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: .82rem;
+}
+
+.isp-pon-mac-table th,
+.isp-pon-mac-table td {
+    padding: .65rem .85rem;
+    border-bottom: 1px solid var(--isp-card-border);
+    text-align: left;
+    vertical-align: middle;
+}
+
+.isp-pon-mac-table th {
+    font-size: .68rem;
+    font-weight: 800;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    color: var(--isp-text-muted);
+    background: color-mix(in srgb, var(--isp-surface) 80%, var(--isp-card-bg));
+}
+
+.isp-pon-mac-table tbody tr:hover {
+    background: color-mix(in srgb, var(--isp-olt-accent) 4%, transparent);
+}
+
+.isp-pon-mac-empty {
+    padding: 2.5rem 1.5rem;
+    text-align: center;
+}
+
+.isp-pon-mac-empty h3 {
+    font-size: 1.05rem;
+    font-weight: 800;
+    color: var(--isp-text);
+}
+
+.isp-pon-mac-empty p {
+    margin-top: .5rem;
+    font-size: .85rem;
+    color: var(--isp-text-muted);
+}
+
+.isp-pon-mac-footnote {
+    padding: .65rem .85rem;
+    font-size: .72rem;
+    color: var(--isp-text-muted);
+    border-top: 1px solid var(--isp-card-border);
+}
+
+.isp-pon-mac-modal-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 50;
+    background: rgb(15 23 42 / .45);
+}
+
+.isp-pon-mac-modal {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    z-index: 51;
+    width: min(420px, calc(100vw - 2rem));
+    transform: translate(-50%, -50%);
+    padding: 1.25rem 1.35rem;
+    border-radius: var(--isp-radius-lg);
+    border: 1px solid var(--isp-card-border);
+    background: var(--isp-card-bg);
+    box-shadow: 0 24px 48px rgb(15 23 42 / .18);
+}
+
+.isp-pon-mac-modal__title {
+    margin: 0 0 .85rem;
+    font-size: 1rem;
+    font-weight: 800;
+    color: var(--isp-text);
+}
+
+.isp-pon-mac-modal__hint {
+    margin: .65rem 0 1rem;
+    font-size: .78rem;
+    line-height: 1.45;
+    color: var(--isp-text-muted);
+}
+
+.isp-pon-mac-modal__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .5rem;
+}
+
 /* ── Reports (professional layout) ── */
 .isp-reports-page .fi-header {
     display: none;
@@ -8356,11 +8497,20 @@ button.isp-rbac-check { padding: 0; }
     border-radius: var(--isp-radius-lg);
     border: 1px solid var(--isp-card-border);
     background: var(--isp-card-bg);
+}
+
+.isp-reseller-table-card {
     overflow: hidden;
 }
 
 .isp-reseller-form-card {
     padding: 1.25rem 1.5rem;
+    overflow: visible;
+}
+
+.isp-reseller-form-card .choices__list--dropdown,
+.isp-reseller-form-card .fi-fo-select .fi-dropdown-panel {
+    z-index: 50;
 }
 
 .isp-reseller-form-card--inline {
@@ -8370,6 +8520,20 @@ button.isp-rbac-check { padding: 0; }
 .isp-reseller-table-card .fi-ta-ctn {
     border: none;
     box-shadow: none;
+}
+
+.fi-resource-resellers .isp-portal-login-col .fi-ta-text-item,
+.fi-resource-resellers .isp-portal-login-col a,
+.fi-resource-resellers td.isp-portal-login-col .fi-ta-text-item {
+    color: #059669 !important;
+    font-weight: 700 !important;
+    text-decoration: underline;
+}
+
+.fi-resource-resellers .isp-portal-login-btn.fi-ac-action {
+    background: #059669 !important;
+    color: #fff !important;
+    border-color: #047857 !important;
 }
 
 .isp-reseller-table-card__head {

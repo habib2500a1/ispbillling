@@ -919,17 +919,20 @@ class CustomerResource extends Resource
     {
         return static::table($table)
             ->columns(static::clientsDirectoryColumns())
-            ->actionsPosition(ActionsPosition::BeforeColumns)
+            ->striped(false)
+            ->actionsPosition(ActionsPosition::AfterColumns)
             ->actionsColumnLabel('Actions')
+            ->deferFilters(false)
             ->defaultPaginationPageOption(25)
             ->paginationPageOptions([25, 50, 100])
             ->emptyStateHeading('No clients found')
             ->emptyStateDescription('Add a client, change the tab preset, or clear filters.')
             ->filters([
                 Tables\Filters\SelectFilter::make('status')
+                    ->label('All Status')
                     ->options(CustomerStatus::options()),
                 Tables\Filters\SelectFilter::make('package_id')
-                    ->label('Package')
+                    ->label('All Packages')
                     ->relationship('package', 'name')
                     ->searchable(),
                 Tables\Filters\SelectFilter::make('mikrotik_server_id')
@@ -937,7 +940,7 @@ class CustomerResource extends Resource
                     ->relationship('mikrotikServer', 'name')
                     ->searchable(),
                 Tables\Filters\SelectFilter::make('area_id')
-                    ->label('Area')
+                    ->label('All Areas')
                     ->relationship('area', 'name')
                     ->searchable(),
                 Tables\Filters\SelectFilter::make('zone_id')
@@ -945,8 +948,8 @@ class CustomerResource extends Resource
                     ->relationship('zone', 'name')
                     ->searchable(),
             ])
-            ->filtersLayout(FiltersLayout::AboveContentCollapsible)
-            ->filtersFormColumns(['default' => 2, 'sm' => 3, 'lg' => 5]);
+            ->filtersLayout(FiltersLayout::AboveContent)
+            ->filtersFormColumns(['default' => 1, 'sm' => 2, 'lg' => 5]);
     }
 
     protected static function portalLoginTableAction(): Tables\Actions\Action
@@ -968,19 +971,18 @@ class CustomerResource extends Resource
     protected static function clientsDirectoryColumns(): array
     {
         return [
+            Tables\Columns\ViewColumn::make('name')
+                ->label('Client')
+                ->view('filament.tables.columns.client-directory-name')
+                ->searchable(['name', 'phone', 'email'])
+                ->sortable(),
             Tables\Columns\TextColumn::make('customer_code')
-                ->label('C.ID')
+                ->label('CID')
                 ->searchable()
                 ->sortable()
                 ->fontFamily('mono'),
-            Tables\Columns\TextColumn::make('name')
-                ->label('Name')
-                ->searchable(['name', 'phone', 'email'])
-                ->sortable()
-                ->weight(FontWeight::SemiBold)
-                ->description(fn (Customer $record): ?string => $record->phone),
             Tables\Columns\TextColumn::make('mikrotik_secret_name')
-                ->label('PPPoE ID')
+                ->label('PPPoE / Username')
                 ->searchable()
                 ->fontFamily('mono')
                 ->placeholder('—')
@@ -988,11 +990,25 @@ class CustomerResource extends Resource
             Tables\Columns\TextColumn::make('package.name')
                 ->label('Package')
                 ->sortable()
-                ->formatStateUsing(fn (Customer $record): string => \App\Support\CustomerPackageLabel::for($record))
-                ->limit(32)
+                ->formatStateUsing(function (Customer $record): string {
+                    $package = $record->package;
+                    if ($package === null) {
+                        return '—';
+                    }
+
+                    return ($package->download_mbps ?? '?').' Mbps';
+                })
+                ->description(function (Customer $record): ?string {
+                    $package = $record->package;
+                    if ($package === null || ! filled($package->price_monthly)) {
+                        return null;
+                    }
+
+                    return number_format((float) $package->price_monthly, 0).' BDT/mo';
+                })
                 ->placeholder('—')
-                ->tooltip(fn (Customer $record): ?string => filled($record->package?->mikrotik_profile_name)
-                    ? 'MikroTik: '.$record->package->mikrotik_profile_name
+                ->tooltip(fn (Customer $record): ?string => filled($record->package?->name)
+                    ? \App\Support\CustomerPackageLabel::for($record)
                     : null),
             Tables\Columns\TextColumn::make('resolved_balance_due')
                 ->label('Due')
@@ -1009,16 +1025,32 @@ class CustomerResource extends Resource
             Tables\Columns\TextColumn::make('status')
                 ->label('Status')
                 ->badge()
-                ->formatStateUsing(fn (Customer $record): string => $record->statusLabel())
-                ->color(fn (Customer $record): string => $record->statusColor())
+                ->formatStateUsing(function (Customer $record): string {
+                    if (\App\Support\CustomerBalanceDue::displayAmount($record) > 0.009) {
+                        return 'Due';
+                    }
+
+                    return $record->statusLabel();
+                })
+                ->color(function (Customer $record): string {
+                    if (\App\Support\CustomerBalanceDue::displayAmount($record) > 0.009) {
+                        return 'danger';
+                    }
+
+                    return $record->statusColor();
+                })
                 ->sortable(),
             Tables\Columns\TextColumn::make('coverage')
-                ->label('Area / Zone')
+                ->label('Area')
                 ->state(fn (Customer $record): string => collect([
                     $record->area?->name,
                     $record->zone?->name,
                 ])->filter()->implode(' · ') ?: '—')
                 ->wrap(),
+            Tables\Columns\TextColumn::make('created_at')
+                ->label('Joined')
+                ->date('d M Y')
+                ->sortable(),
             Tables\Columns\IconColumn::make('is_ppp_online')
                 ->label('Online')
                 ->boolean()

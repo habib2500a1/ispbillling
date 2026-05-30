@@ -10,6 +10,7 @@ use App\Services\Portal\CustomerPortalDashboardService;
 use App\Services\Portal\PortalContentCatalog;
 use App\Support\BandwidthDirection;
 use App\Support\PortalPaymentGateways;
+use App\Support\ResellerBranding;
 
 class CustomerMobileService
 {
@@ -62,7 +63,8 @@ class CustomerMobileService
             'package' => $portal['package'] ?? null,
             'recent_bills' => $recentBills,
             'notices' => $this->noticesFor($customer),
-            'gateways' => PortalPaymentGateways::forCustomerPortal(),
+            'gateways' => PortalPaymentGateways::forCustomerPortal($customer),
+            'branding' => ResellerBranding::mobileBrandingPayload($customer),
             'require_full_payment' => ! config('bill_payment.allow_partial', false),
             'line_on_when_due_cleared' => true,
         ];
@@ -177,6 +179,8 @@ class CustomerMobileService
     public function invoiceSummary(Invoice $invoice): array
     {
         $due = round((float) $invoice->total - (float) $invoice->amount_paid, 2);
+        $invoice->loadMissing('customer');
+        $customer = $invoice->customer;
 
         return [
             'id' => $invoice->id,
@@ -189,7 +193,9 @@ class CustomerMobileService
             'balance_due' => $due,
             'can_pay' => $due > 0
                 && ! in_array($invoice->status, ['void', 'cancelled', 'paid'], true)
-                && (PortalPaymentGateways::forCustomerPortal()['any'] ?? false),
+                && ($customer !== null
+                    ? (PortalPaymentGateways::forCustomerPortal($customer)['any'] ?? false)
+                    : false),
             'pay_full_only' => ! config('bill_payment.allow_partial', false),
             'pdf_url' => route('portal.invoices.pdf', $invoice),
         ];

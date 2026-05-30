@@ -229,7 +229,7 @@
     @endif
 
     <div class="footer">
-        {{ \App\Support\CompanyBranding::invoiceFooter() }}
+        {{ $invoiceFooter ?? \App\Support\CompanyBranding::invoiceFooter() }}
     </div>
 </body>
 </html>
