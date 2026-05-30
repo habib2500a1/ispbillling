@@ -17,13 +17,7 @@ class PortalInvoicePaymentController extends Controller
         abort_unless($customer !== null && (int) $invoice->customer_id === (int) $customer->getAuthIdentifier(), 404);
 
         $validated = $request->validate([
-            'gateway' => ['required', 'string', 'in:'.implode(',', [
-                PaymentGateway::BKASH,
-                PaymentGateway::SSLCOMMERZ,
-                PaymentGateway::NAGAD,
-                PaymentGateway::ROCKET,
-                PaymentGateway::PIPRAPAY,
-            ])],
+            'gateway' => ['required', 'string', 'in:'.implode(',', PaymentGateway::customerCheckoutGateways())],
         ]);
 
         $balance = round((float) $invoice->total - (float) $invoice->amount_paid, 2);

@@ -7,8 +7,9 @@
     <meta name="theme-color" content="#312e81">
     <title>@yield('title', __('portal.customer_portal')) — {{ $companyName ?? config('app.name') }}</title>
     @include('partials.site-favicon')
-    <link rel="stylesheet" href="{{ asset('css/portal.css') }}?v=12">
-    @include('partials.isp-premium-theme')
+    <link rel="stylesheet" href="{{ asset('css/portal.css') }}?v=15">
+    <link rel="stylesheet" href="{{ asset('css/portal-utilities.css') }}?v={{ @filemtime(public_path('css/portal-utilities.css')) ?: 1 }}">
+    @include('partials.isp-premium-theme', ['tailwind' => false])
     <link rel="stylesheet" href="{{ asset('css/bill-payment.css') }}?v=5">
     @livewireStyles
     <script src="{{ asset('js/portal-theme.js') }}?v=1"></script>
@@ -36,6 +37,7 @@
             $navMain = [
                 ['portal.dashboard', 'Home', 'heroicon-o-home'],
                 ['portal.bills.index', 'Bills', 'heroicon-o-document-text'],
+                ['portal.payments.index', 'Payments', 'heroicon-o-credit-card'],
                 ['portal.usage.index', 'Usage', 'heroicon-o-chart-bar'],
                 ['portal.tickets.index', 'Support', 'heroicon-o-lifebuoy'],
                 ['portal.profile.index', 'Profile', 'heroicon-o-user-circle'],
@@ -54,6 +56,7 @@
                 'Account' => [
                     ['portal.speed-test.index', 'Speed test'],
                     ['portal.tickets.index', 'Support'],
+                    ['portal.live-chat', 'Live chat'],
                     ['portal.profile.index', 'Settings'],
                 ],
             ];
@@ -90,6 +93,7 @@
                     $dockIcons = [
                         'Home' => '⌂',
                         'Bills' => '৳',
+                        'Payments' => '💳',
                         'Usage' => '↕',
                         'Support' => '✦',
                         'Profile' => '☺',

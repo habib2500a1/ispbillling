@@ -6,7 +6,6 @@ use App\Contracts\NetworkAccessProvisioner;
 use App\Models\Customer;
 use App\Models\Invoice;
 use App\Services\Subscribers\SubscriberPolicyService;
-use App\Support\CustomerBalanceDue;
 use App\Support\CustomerStatus;
 use Illuminate\Support\Facades\DB;
 
@@ -30,49 +29,20 @@ final class NetworkAccessCoordinator
             ->where('customer_id', $customer->id)
             ->when($customer->tenant_id !== null, fn ($q) => $q->where('tenant_id', $customer->tenant_id))
             ->whereNotIn('status', ['void', 'cancelled', 'paid', 'draft'])
-            ->whereIn('status', CustomerBalanceDue::OPEN_INVOICE_STATUSES)
             ->get()
             ->contains(fn (Invoice $invoice): bool => $invoice->balanceDue() >= $minBalance
                 && $invoice->due_date !== null
                 && $asOf->toDateString() > $invoice->due_date->toDateString());
     }
 
-    public function hasCollectibleBalanceDue(Customer $customer): bool
-    {
-        $minBalance = max(0.0, (float) config('network.auto_suspend_min_balance', 1));
-
-        return CustomerBalanceDue::amount($customer->fresh() ?? $customer) >= $minBalance;
-    }
-
-    public function shouldSuspendForBilling(Customer $customer): bool
-    {
-        if (! $this->customerAutoSuspendEnabled($customer)) {
-            return false;
-        }
-
-        if (config('network.suspend_on_any_balance_due', true)) {
-            return $this->hasCollectibleBalanceDue($customer);
-        }
-
-        return $this->hasOverdueOpenBalance($customer);
-    }
-
-    public function customerAutoSuspendEnabled(Customer $customer): bool
-    {
-        $meta = is_array($customer->meta) ? $customer->meta : [];
-        if (array_key_exists('auto_suspend', $meta) && ! filter_var($meta['auto_suspend'], FILTER_VALIDATE_BOOLEAN)) {
-            return false;
-        }
-
-        return true;
-    }
-
     public function desiredNetworkAccessState(Customer $customer): string
     {
         $policy = app(SubscriberPolicyService::class);
 
+        // Service date past: suspend line only when there is overdue invoice due (not expiry alone).
         if ($policy->shouldApplyServiceExpiry($customer) && $customer->isServiceExpired()
-            && ! in_array($customer->status, ['terminated'], true)) {
+            && ! in_array($customer->status, ['terminated'], true)
+            && $this->hasOverdueOpenBalance($customer)) {
             return 'suspended';
         }
 
@@ -94,44 +64,51 @@ final class NetworkAccessCoordinator
         }
 
         $status = CustomerStatus::normalize((string) $customer->status);
-        if (in_array($status, [CustomerStatus::TERMINATED, CustomerStatus::EXPIRED, CustomerStatus::SUSPENDED], true)) {
+
+        if ($status === CustomerStatus::TERMINATED) {
             return 'suspended';
         }
 
-        return $this->shouldSuspendForBilling($customer) ? 'suspended' : 'active';
+        // Validity extended: do not keep line off only because status is still "expired".
+        if ($status === CustomerStatus::EXPIRED
+            && ! $customer->isServiceExpired()
+            && ! $this->hasOverdueOpenBalance($customer)) {
+            return 'active';
+        }
+
+        if ($status === CustomerStatus::SUSPENDED && ($customer->network_access_state ?? '') === 'suspended') {
+            return 'suspended';
+        }
+
+        return $this->hasOverdueOpenBalance($customer) ? 'suspended' : 'active';
     }
 
     public function syncCustomer(Customer $customer): void
     {
+        $customer = $this->restoreServiceValidityIfNeeded($customer);
         $customer = $this->applyServiceExpiryIfNeeded($customer);
 
-        $desired = $this->desiredNetworkAccessState($customer);
-        $current = $customer->network_access_state ?? 'active';
-
-        $mikrotikFieldsChanged = $customer->wasRecentlyCreated
-            || $customer->wasChanged([
-                'mikrotik_secret_name',
-                'mikrotik_ppp_password',
-                'mikrotik_server_id',
-                'radius_username',
-                'package_id',
-            ]);
-
         if (! config('network.auto_suspend_enabled', false)) {
-            if (! config('sync.skip_unchanged_network_sync', true) || $mikrotikFieldsChanged) {
-                $this->provisioner->syncAccessPolicy($customer);
-            }
+            // Auto-suspend off: still push MikroTik/RADIUS so renew / Net ON re-enables secrets.
+            $this->provisioner->syncAccessPolicy($customer);
 
             return;
         }
 
-        if ($desired === $current && config('sync.skip_unchanged_network_sync', true) && ! $mikrotikFieldsChanged) {
+        $desired = $this->desiredNetworkAccessState($customer);
+        $current = $customer->network_access_state ?? 'active';
+
+        if ($desired === $current && config('sync.skip_unchanged_network_sync', true)) {
+            // Even if DB state already matches the desired state, ensure the
+            // provisioning backend (MikroTik/RADIUS) is aligned.
+            // Otherwise "manual renew/network_on" can leave PPP secret disabled.
+            $this->provisioner->syncAccessPolicy($customer);
             return;
         }
 
         DB::transaction(function () use ($customer, $desired, $current): void {
             if ($desired === 'suspended') {
-                $this->provisioner->suspendCustomer($customer, 'billing_balance_due');
+                $this->provisioner->suspendCustomer($customer, 'overdue_invoice');
             } else {
                 $this->provisioner->unsuspendCustomer($customer);
                 if ($current === 'suspended'
@@ -145,6 +122,36 @@ final class NetworkAccessCoordinator
         });
 
         $this->provisioner->syncAccessPolicy($customer->fresh() ?? $customer);
+    }
+
+    /**
+     * When validity was extended into the future, clear stale expired state (idempotent).
+     */
+    private function restoreServiceValidityIfNeeded(Customer $customer): Customer
+    {
+        if (! app(SubscriberPolicyService::class)->shouldApplyServiceExpiry($customer)) {
+            return $customer;
+        }
+
+        if ($customer->service_expires_at === null || $customer->isServiceExpired()) {
+            return $customer;
+        }
+
+        $status = CustomerStatus::normalize((string) $customer->status);
+        if ($status !== CustomerStatus::EXPIRED && ($customer->network_access_state ?? 'active') !== 'suspended') {
+            return $customer;
+        }
+
+        if ($this->hasOverdueOpenBalance($customer)) {
+            return $customer;
+        }
+
+        $customer->forceFill([
+            'status' => CustomerStatus::ACTIVE,
+            'network_access_state' => 'active',
+        ])->saveQuietly();
+
+        return $customer->fresh() ?? $customer;
     }
 
     /**
@@ -173,11 +180,18 @@ final class NetworkAccessCoordinator
             return $customer;
         }
 
-        $customer->forceFill([
-            'status' => CustomerStatus::EXPIRED,
-            'network_access_state' => 'suspended',
-        ])->saveQuietly();
+        $updates = ['status' => CustomerStatus::EXPIRED];
+        if ($this->hasOverdueOpenBalance($customer)) {
+            $updates['network_access_state'] = 'suspended';
+        }
+
+        $customer->forceFill($updates)->saveQuietly();
 
         return $customer->fresh() ?? $customer;
+    }
+
+    public function canAdminForceNetOn(Customer $customer): bool
+    {
+        return ! $this->hasOverdueOpenBalance($customer);
     }
 }

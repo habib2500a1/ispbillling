@@ -88,46 +88,8 @@ final class MikrotikFleetCoordinator
         $anySuccess = false;
         $serverRows = [];
 
-        $breaker = app(MikrotikCircuitBreaker::class);
-
         foreach ($this->enabledServers($tenantId) as $server) {
-            if ($breaker->isOpen((int) $server->id)) {
-                $errors[] = "{$server->name} ({$server->host}): temporarily skipped (circuit open)";
-                $serverRows[] = [
-                    'id' => $server->id,
-                    'name' => $server->name,
-                    'host' => $server->host,
-                    'status' => $server->last_api_status,
-                    'sessions' => 0,
-                    'error' => 'Circuit open',
-                ];
-
-                continue;
-            }
-
-            try {
-                $fetch = MikrotikApiRetry::attempt(fn (): array => $this->mikrotik->fetchActivePppSessions($server));
-            } catch (\Throwable $e) {
-                $breaker->recordFailure((int) $server->id);
-                $errors[] = "{$server->name} ({$server->host}): {$e->getMessage()}";
-                $serverRows[] = [
-                    'id' => $server->id,
-                    'name' => $server->name,
-                    'host' => $server->host,
-                    'status' => $server->last_api_status,
-                    'sessions' => 0,
-                    'error' => $e->getMessage(),
-                ];
-
-                continue;
-            }
-
-            if ($fetch['error'] !== null) {
-                $breaker->recordFailure((int) $server->id);
-            } else {
-                $breaker->recordSuccess((int) $server->id);
-            }
-
+            $fetch = $this->mikrotik->fetchActivePppSessions($server);
             $serverRows[] = [
                 'id' => $server->id,
                 'name' => $server->name,
@@ -217,37 +179,8 @@ final class MikrotikFleetCoordinator
     {
         $stats = ['polled' => 0, 'online' => 0, 'offline' => 0, 'servers' => []];
 
-        $breaker = app(MikrotikCircuitBreaker::class);
-
         foreach ($this->enabledServers($tenantId, $onlyServerId) as $server) {
-            if ($breaker->isOpen((int) $server->id)) {
-                $stats['polled']++;
-                $stats['offline']++;
-                $stats['servers'][] = [
-                    'id' => $server->id,
-                    'name' => $server->name,
-                    'host' => $server->host,
-                    'status' => 'offline',
-                    'error' => 'Circuit open',
-                ];
-
-                continue;
-            }
-
-            try {
-                MikrotikApiRetry::attempt(function () use ($server): void {
-                    $this->mikrotik->probeAndPersist($server);
-                });
-                $breaker->recordSuccess((int) $server->id);
-            } catch (\Throwable $e) {
-                $breaker->recordFailure((int) $server->id);
-                $server->forceFill([
-                    'last_api_status' => 'offline',
-                    'last_error' => $e->getMessage(),
-                    'last_checked_at' => now(),
-                ])->saveQuietly();
-            }
-
+            $this->mikrotik->probeAndPersist($server);
             $server = $server->fresh() ?? $server;
             $stats['polled']++;
             if ($server->last_api_status === 'online') {
@@ -306,7 +239,15 @@ final class MikrotikFleetCoordinator
                 ->where('is_enabled', true)
                 ->first();
 
-            return $server ? collect([$server]) : collect();
+            if ($server !== null) {
+                return collect([$server]);
+            }
+
+            // Assigned router missing/disabled — fall back so Net ON / paid sync is not silent no-op.
+            Log::warning('mikrotik.fleet.assigned_server_unavailable', [
+                'customer_id' => $customer->id,
+                'mikrotik_server_id' => $customer->mikrotik_server_id,
+            ]);
         }
 
         return $this->enabledServers($tenantId);

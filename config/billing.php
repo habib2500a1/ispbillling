@@ -24,6 +24,12 @@ return [
     'prepaid_auto_invoice' => (bool) env('BILLING_PREPAID_AUTO_INVOICE', true),
 
     /**
+     * When prepaid/advance payment completes, generate forward month invoice(s) in the same step
+     * (so bill + line renew together).
+     */
+    'prepaid_forward_invoices_on_payment' => (bool) env('BILLING_PREPAID_FORWARD_INVOICES', true),
+
+    /**
      * Prepaid/advance on registration: this_month = bill today; next_month = wait for bill day.
      */
     'default_first_bill_cycle_prepaid' => env('BILLING_FIRST_BILL_PREPAID', 'this_month'),

@@ -633,7 +633,7 @@ class CustomerResource extends Resource
                 Tables\Actions\EditAction::make(),
                 Tables\Actions\ActionGroup::make([
                     Tables\Actions\Action::make('portal_credentials')
-                        ->label('Portal access')
+                        ->label('Portal ID & password')
                         ->icon('heroicon-o-key')
                         ->color('warning')
                         ->modalHeading(fn (Customer $record): string => 'Portal access — '.$record->name)
@@ -719,25 +719,20 @@ class CustomerResource extends Resource
                     ->icon('heroicon-o-arrow-path')
                     ->form([
                         Forms\Components\TextInput::make('days')
+                            ->label('দিন (১–৭৩০)')
                             ->numeric()
-                            ->default(30)
+                            ->default(5)
                             ->minValue(1)
                             ->maxValue(730)
                             ->required(),
                     ])
                     ->action(function (Customer $record, array $data): void {
                         $days = (int) ($data['days'] ?? 30);
-                        $base = $record->service_expires_at && $record->service_expires_at->isFuture()
-                            ? $record->service_expires_at->copy()
-                            : now()->startOfDay();
-                        $record->forceFill([
-                            'service_expires_at' => $base->addDays($days)->toDateString(),
-                            'status' => 'active',
-                            'network_access_state' => 'active',
-                        ])->save();
+                        $result = app(\App\Services\Subscribers\CustomerServiceRenewalService::class)
+                            ->extendDays($record, $days);
                         Notification::make()
                             ->title('Service renewed')
-                            ->body('New valid-until: '.$record->fresh()?->service_expires_at?->toDateString())
+                            ->body(sprintf('+%d days — valid until %s (MikroTik synced)', $days, $result['expires_at']))
                             ->success()
                             ->send();
                     }),
@@ -748,7 +743,7 @@ class CustomerResource extends Resource
                     ->requiresConfirmation()
                     ->action(function (Customer $record): void {
                         $record->update(['network_access_state' => 'suspended']);
-                        SyncCustomerNetworkAccessJob::dispatch((int) $record->tenant_id, (int) $record->id)->afterResponse();
+                        SyncCustomerNetworkAccessJob::dispatchSync((int) $record->tenant_id, (int) $record->id);
                         Notification::make()->title('Network suspended')->success()->send();
                     }),
                 Tables\Actions\Action::make('network_on')
@@ -757,12 +752,21 @@ class CustomerResource extends Resource
                     ->color('success')
                     ->requiresConfirmation()
                     ->action(function (Customer $record): void {
-                        $record->update([
-                            'status' => 'active',
-                            'network_access_state' => 'active',
-                        ]);
-                        SyncCustomerNetworkAccessJob::dispatch((int) $record->tenant_id, (int) $record->id)->afterResponse();
-                        Notification::make()->title('Network active')->success()->send();
+                        if (! app(\App\Services\Network\NetworkAccessCoordinator::class)->canAdminForceNetOn($record)) {
+                            Notification::make()
+                                ->title('Cannot enable')
+                                ->body('Overdue বিল আছে — আগে বিল কালেক্ট করুন। মেয়াদ শেষ থাকলেও due না থাকলে Net ON হবে।')
+                                ->warning()
+                                ->send();
+
+                            return;
+                        }
+                        \App\Support\CustomerNetworkSync::forceNetOn($record);
+                        Notification::make()
+                            ->title('Network active')
+                            ->body('MikroTik secret ON ('.$record->fresh()?->pppLoginName().'). ONU রিবুট করুন।')
+                            ->success()
+                            ->send();
                     }),
                 Tables\Actions\Action::make('kick_mikrotik_sessions')
                     ->label('Kick PPP')

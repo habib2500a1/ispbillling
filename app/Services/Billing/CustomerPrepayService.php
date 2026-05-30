@@ -3,6 +3,7 @@
 namespace App\Services\Billing;
 
 use App\Models\Customer;
+use App\Models\Invoice;
 use App\Support\CustomerBalanceDue;
 use App\Support\PaymentRenewalPolicy;
 use Carbon\CarbonInterface;
@@ -48,13 +49,44 @@ final class CustomerPrepayService
     public function monthlyRate(Customer $customer): ?float
     {
         $customer->loadMissing('package');
-        if ($customer->package === null) {
-            return null;
+
+        if ($customer->package !== null) {
+            $monthly = PackagePriceResolver::resolveBaseMonthlyPrice($customer->package, $customer);
+            if ($monthly > 0) {
+                return round($monthly, 2);
+            }
+
+            $cycle = PackagePriceResolver::resolveCyclePrice($customer->package, $customer);
+            if ($cycle > 0) {
+                return round($cycle, 2);
+            }
         }
 
-        $monthly = PackagePriceResolver::resolveBaseMonthlyPrice($customer->package, $customer);
+        return $this->fallbackMonthlyRate($customer);
+    }
 
-        return $monthly > 0 ? round($monthly, 2) : null;
+    private function fallbackMonthlyRate(Customer $customer): ?float
+    {
+        $meta = is_array($customer->meta) ? $customer->meta : [];
+        $fromMeta = (float) ($meta['isp_digital_monthly_bill'] ?? 0);
+        if ($fromMeta > 0) {
+            return round($fromMeta, 2);
+        }
+
+        $fromInvoice = Invoice::query()
+            ->withoutGlobalScopes()
+            ->where('customer_id', $customer->id)
+            ->where('total', '>', 0)
+            ->whereNotIn('status', ['void', 'cancelled'])
+            ->orderByDesc('issue_date')
+            ->orderByDesc('id')
+            ->value('total');
+
+        if ($fromInvoice !== null && (float) $fromInvoice > 0) {
+            return round((float) $fromInvoice, 2);
+        }
+
+        return null;
     }
 
     /**
@@ -78,6 +110,8 @@ final class CustomerPrepayService
         $prepayAmount = round($monthly * $months, 2);
         $totalAmount = round($currentDue + $prepayAmount, 2);
 
+        $customer->loadMissing('package');
+
         return [
             'months' => $months,
             'monthly_rate' => $monthly,
@@ -85,6 +119,7 @@ final class CustomerPrepayService
             'prepay_amount' => $prepayAmount,
             'total_amount' => $totalAmount,
             'package_name' => $customer->package?->name,
+            'cycle_days' => $customer->package ? $this->expiry->cycleDays($customer->package) : 30,
             'service_expires_at' => $customer->service_expires_at,
             'projected_expires_at' => $this->projectedExpiry($customer, $months),
             'quick_options' => $this->quickMonthOptions(),

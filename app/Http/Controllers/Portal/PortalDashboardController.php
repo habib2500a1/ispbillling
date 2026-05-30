@@ -5,7 +5,10 @@ namespace App\Http\Controllers\Portal;
 use App\Http\Controllers\Controller;
 use App\Models\Customer;
 use App\Models\Outage;
+use App\Services\Billing\CustomerPrepayService;
 use App\Services\Portal\CustomerPortalDashboardService;
+use App\Support\PortalPaymentGateways;
+use App\Support\PublicPaymentMethod;
 use App\Services\Portal\CustomerPortalNotificationService;
 use App\Services\Portal\PortalContentCatalog;
 use App\Services\Portal\PortalMovieServerCatalog;
@@ -16,7 +19,8 @@ class PortalDashboardController extends Controller
 {
     public function index(
         CustomerPortalDashboardService $dashboard,
-        CustomerPortalNotificationService $notifications
+        CustomerPortalNotificationService $notifications,
+        CustomerPrepayService $prepay,
     ): View
     {
         /** @var Customer $customer */
@@ -37,11 +41,19 @@ class PortalDashboardController extends Controller
             ->limit(5)
             ->get(['id', 'title', 'description', 'started_at']);
 
+        $paymentMethods = PortalPaymentGateways::methodsForCustomerPortal();
+
         return view('portal.dashboard', [
             'customer' => $customer,
             'recentInvoices' => $recentInvoices,
             'outages' => $outages,
             'dash' => $dashboard->payload($customer),
+            'prepayEnabled' => $prepay->isEnabled(),
+            'prepayQuote' => $prepay->isEnabled() ? $prepay->quote($customer, 1) : null,
+            'prepayMaxMonths' => $prepay->maxMonths(),
+            'prepayQuickMonths' => $prepay->quickMonthOptions(),
+            'paymentMethods' => $paymentMethods,
+            'gateways' => PublicPaymentMethod::legacyFlags($paymentMethods),
             'notificationFeed' => $notifications->feed($customer, 4),
             'notificationSummary' => $notifications->summary($customer),
             'movieServers' => PortalMovieServerCatalog::forPortal((int) $customer->tenant_id),

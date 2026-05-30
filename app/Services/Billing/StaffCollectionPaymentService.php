@@ -39,7 +39,7 @@ final class StaffCollectionPaymentService
         if ($amount > 0) {
             $duplicate = $this->findRecentDuplicatePayment($user, $customer, $invoice?->id, $amount);
             if ($duplicate !== null) {
-                $due = BillingDueRealtimeSync::afterPayment($customer, queueNetwork: true);
+                $due = BillingDueRealtimeSync::afterPayment($customer, queueNetwork: false);
 
                 return [
                     'payment' => $duplicate->fresh(),
@@ -111,7 +111,7 @@ final class StaffCollectionPaymentService
             $message .= ' Discount '.number_format($discountBdt, 2).' BDT.';
         }
 
-        $due = BillingDueRealtimeSync::afterPayment($customer, queueNetwork: true);
+        $due = BillingDueRealtimeSync::afterPayment($customer, queueNetwork: false);
 
         return [
             'payment' => $payment->fresh(),

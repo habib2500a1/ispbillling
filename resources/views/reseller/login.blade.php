@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Reseller login — {{ config('app.name') }}</title>
     <link rel="stylesheet" href="{{ asset('css/reseller-portal.css') }}">
-    @include('partials.isp-premium-theme')
+    @include('partials.isp-premium-theme', ['tailwind' => true])
 </head>
 <body class="rsl-bg isp-premium-bg flex min-h-screen items-center justify-center px-4">
     <div class="isp-premium-orbs" aria-hidden="true"><span></span><span></span><span></span></div>

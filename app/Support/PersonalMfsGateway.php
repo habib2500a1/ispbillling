@@ -21,15 +21,8 @@ final class PersonalMfsGateway
 
     public static function bkashPersonalEnabled(): bool
     {
-        if (! (bool) config('bkash.enabled', false)) {
-            return false;
-        }
-
-        if ((string) config('bkash.gateway_type', BkashSettings::GATEWAY_TOKENIZED_WEB) !== self::MODE_PERSONAL) {
-            return false;
-        }
-
-        return filled(config('bkash.personal_number'));
+        return BkashSettings::isPersonalEnabled()
+            && filled(config('bkash.personal_number'));
     }
 
     public static function nagadPersonalEnabled(): bool

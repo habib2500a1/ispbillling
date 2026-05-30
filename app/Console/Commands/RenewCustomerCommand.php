@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Models\Customer;
+use App\Services\Subscribers\CustomerServiceRenewalService;
 use Illuminate\Console\Command;
 
 class RenewCustomerCommand extends Command
@@ -35,16 +36,9 @@ class RenewCustomerCommand extends Command
             return self::FAILURE;
         }
 
-        $base = $customer->service_expires_at && $customer->service_expires_at->isFuture()
-            ? $customer->service_expires_at->copy()
-            : now()->startOfDay();
-        $customer->forceFill([
-            'service_expires_at' => $base->addDays($days)->toDateString(),
-            'status' => 'active',
-            'network_access_state' => 'active',
-        ])->save();
+        $result = app(CustomerServiceRenewalService::class)->extendDays($customer, $days);
 
-        $this->info("Renewed {$customer->customer_code} until {$customer->fresh()->service_expires_at?->toDateString()}.");
+        $this->info("Renewed {$customer->customer_code} +{$days}d until {$result['expires_at']} (MikroTik synced).");
 
         return self::SUCCESS;
     }

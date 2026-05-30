@@ -19,6 +19,7 @@ use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Forms\Form;
+use Filament\Forms\Get;
 use Filament\Notifications\Notification;
 use App\Filament\Pages\Concerns\HidesHubNavigation;
 use Filament\Pages\Concerns\InteractsWithFormActions;
@@ -70,7 +71,7 @@ class ManagePersonalMfsSettings extends Page
         $this->activeGatewayTab = $this->activeGatewayTab === 'nagad' ? 'nagad' : 'bkash';
 
         $this->form->fill([
-            'bkash_enabled' => config('bkash.enabled') ? '1' : '0',
+            'bkash_enabled' => BkashSettings::isPersonalEnabled() ? '1' : '0',
             'bkash_personal_number' => (string) config('bkash.personal_number', ''),
             'bkash_personal_name' => (string) config('bkash.personal_name', ''),
             'bkash_personal_instructions' => (string) config('bkash.instructions', ''),
@@ -129,7 +130,7 @@ class ManagePersonalMfsSettings extends Page
                 ->label('Your bKash number (merchant SIM)')
                 ->tel()
                 ->placeholder('01XXXXXXXXX')
-                ->required(),
+                ->required(fn (Get $get): bool => ($get('bkash_enabled') ?? '0') === '1'),
             TextInput::make('bkash_personal_name')
                 ->label('Display name on /pay page')
                 ->maxLength(64),
@@ -162,7 +163,7 @@ class ManagePersonalMfsSettings extends Page
                 ->label('Your Nagad number')
                 ->tel()
                 ->placeholder('01XXXXXXXXX')
-                ->required(),
+                ->required(fn (Get $get): bool => ($get('nagad_enabled') ?? '0') === '1'),
             TextInput::make('nagad_personal_name')
                 ->label('Display name')
                 ->maxLength(64),
@@ -198,12 +199,32 @@ class ManagePersonalMfsSettings extends Page
         abort_unless(static::canAccess(), 403);
 
         $tab = $this->activeUiTab();
-        $state = $this->form->getState();
+        $state = $this->data ?? [];
 
         if ($tab === 'nagad') {
+            if (($state['nagad_enabled'] ?? '0') === '1' && trim((string) ($state['nagad_personal_number'] ?? '')) === '') {
+                Notification::make()
+                    ->title('Nagad number required')
+                    ->body('Enter your Nagad personal number or set Nagad to Disabled.')
+                    ->danger()
+                    ->send();
+
+                return;
+            }
+
             $this->persistNagadSettings($state);
             $label = 'Nagad personal';
         } else {
+            if (($state['bkash_enabled'] ?? '0') === '1' && trim((string) ($state['bkash_personal_number'] ?? '')) === '') {
+                Notification::make()
+                    ->title('bKash number required')
+                    ->body('Enter your bKash personal number or set bKash to Disabled.')
+                    ->danger()
+                    ->send();
+
+                return;
+            }
+
             $this->persistBkashSettings($state);
             $label = 'bKash personal';
         }
@@ -222,13 +243,16 @@ class ManagePersonalMfsSettings extends Page
      */
     private function persistBkashSettings(array $state): void
     {
+        $personalOn = $this->resolveEnabledFlag($state, 'bkash_enabled', 'bkash.personal_enabled');
+        $merchantOn = BkashSettings::isMerchantEnabled();
+
         AppSetting::putValues([
-            'bkash.gateway_type' => BkashSettings::GATEWAY_PERSONAL,
-            'bkash.enabled' => $this->resolveEnabledFlag($state, 'bkash_enabled', 'bkash.enabled') ? '1' : '0',
+            'bkash.personal_enabled' => $personalOn ? '1' : '0',
             'bkash.personal_number' => trim((string) ($state['bkash_personal_number'] ?? config('bkash.personal_number', ''))),
             'bkash.personal_name' => trim((string) ($state['bkash_personal_name'] ?? config('bkash.personal_name', ''))),
             'bkash.instructions' => trim((string) ($state['bkash_personal_instructions'] ?? config('bkash.instructions', ''))),
             'mfs_personal.gateways.bkash.auto_verify' => $this->resolveToggleFlag($state, 'bkash_auto_verify', 'mfs_personal.gateways.bkash.auto_verify') ? '1' : '0',
+            'bkash.enabled' => ($personalOn || $merchantOn) ? '1' : '0',
         ]);
     }
 
@@ -281,7 +305,7 @@ class ManagePersonalMfsSettings extends Page
             'smsUrl' => ManageMfsSmsSettings::getUrl(),
             'ledgerUrl' => MfsSmsRecordResource::getUrl(),
             'pendingUrl' => PendingGatewayPaymentResource::getUrl(),
-            'merchantUrl' => ManagePaymentSettings::getUrl(['gateway' => 'piprapay', 'merchant' => '1']),
+            'merchantUrl' => ManageBkashMerchantSettings::getUrl(),
             'bkashActive' => PersonalMfsGateway::bkashPersonalEnabled(),
             'nagadActive' => PersonalMfsGateway::nagadPersonalEnabled(),
             'mfsApk' => MobileApkRelease::mfsVerify(),

@@ -9,11 +9,11 @@ use App\Support\CustomerBalanceDue;
 use Illuminate\Support\Facades\Cache;
 
 /**
- * Keeps due balances and UI caches in sync immediately after a payment (MikroTik runs in background).
+ * Keeps due balances and UI caches in sync immediately after a payment (MikroTik ON/OFF in same request).
  */
 final class BillingDueRealtimeSync
 {
-    public static function afterPayment(Customer $customer, bool $queueNetwork = true): float
+    public static function afterPayment(Customer $customer, bool $queueNetwork = false): float
     {
         $customer = $customer->fresh() ?? $customer;
 

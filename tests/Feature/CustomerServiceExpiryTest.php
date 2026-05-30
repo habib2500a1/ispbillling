@@ -67,6 +67,10 @@ class CustomerServiceExpiryTest extends TestCase
             'service_expires_at' => now()->subDay()->toDateString(),
         ]);
 
+        $provisioner = $this->createMock(\App\Contracts\NetworkAccessProvisioner::class);
+        $provisioner->expects($this->once())->method('syncAccessPolicy');
+        $this->app->instance(\App\Contracts\NetworkAccessProvisioner::class, $provisioner);
+
         app(NetworkAccessCoordinator::class)->syncCustomer($customer->fresh());
 
         $customer->refresh();

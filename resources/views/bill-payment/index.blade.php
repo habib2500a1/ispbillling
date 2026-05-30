@@ -50,8 +50,8 @@
         </form>
 
         <p class="mt-6 text-center text-sm text-slate-500">
-            Have a portal account?
-            <a href="{{ route('portal.login') }}" class="bp-link">Customer login</a>
+            Already have a portal account?
+            <a href="{{ route('portal.login') }}" class="bp-link">Open customer portal</a>
         </p>
         <p class="mt-2 text-center text-sm text-slate-500">
             Staff?

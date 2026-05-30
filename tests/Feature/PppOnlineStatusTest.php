@@ -152,6 +152,36 @@ class PppOnlineStatusTest extends TestCase
         $this->assertSame(1, PppSessionLog::query()->where('status', 'active')->count());
     }
 
+    public function test_refresh_skips_clear_when_recent_online_poll_evidence(): void
+    {
+        $customer = Customer::createTrusted([
+            'tenant_id' => 1,
+            'customer_code' => 'recent_online_1',
+            'mikrotik_secret_name' => 'recent_online_1',
+            'name' => 'Recent Online',
+            'phone' => '01766666666',
+            'status' => 'active',
+            'is_ppp_online' => true,
+            'ppp_last_seen_at' => now(),
+        ]);
+
+        MikrotikServer::query()->create([
+            'tenant_id' => 1,
+            'name' => 'Offline Probe NAS',
+            'host' => '127.0.0.1',
+            'api_port' => 8728,
+            'api_username' => 'admin',
+            'api_password' => 'secret',
+            'is_enabled' => true,
+            'last_api_status' => 'offline',
+        ]);
+
+        app(BandwidthCollectionService::class)->refreshOnlineFlagsForTenant(1);
+
+        $customer->refresh();
+        $this->assertTrue($customer->is_ppp_online);
+    }
+
     public function test_poll_disabled_shows_offline_despite_stale_db_flags(): void
     {
         config([

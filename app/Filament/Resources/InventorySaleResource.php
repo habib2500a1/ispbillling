@@ -39,7 +39,7 @@ class InventorySaleResource extends Resource
             Forms\Components\Section::make('Sale')
                 ->schema([
                     Forms\Components\TextInput::make('sale_number')
-                        ->default(fn () => InventorySale::generateSaleNumber((int) auth()->user()?->tenant_id))
+                        ->default(fn () => InventorySale::generateSaleNumber(\App\Support\TenantResolver::requiredTenantId()))
                         ->disabled()
                         ->dehydrated(),
                     Forms\Components\Select::make('channel')
@@ -78,7 +78,7 @@ class InventorySaleResource extends Resource
                             Forms\Components\Select::make('product_id')
                                 ->label('Product')
                                 ->options(function (Get $get): array {
-                                    $tenantId = (int) auth()->user()?->tenant_id;
+                                    $tenantId = \App\Support\TenantResolver::requiredTenantId();
                                     $warehouseId = app(WarehouseResolver::class)->resolveWarehouseId(
                                         $tenantId,
                                         $get('../../warehouse_id') ? (int) $get('../../warehouse_id') : null,
@@ -122,7 +122,7 @@ class InventorySaleResource extends Resource
                                     if (! $state) {
                                         return;
                                     }
-                                    $tenantId = (int) auth()->user()?->tenant_id;
+                                    $tenantId = \App\Support\TenantResolver::requiredTenantId();
                                     $p = app(ProductBarcodeLookup::class)->find($tenantId, $state);
                                     if ($p) {
                                         $set('product_id', $p->id);

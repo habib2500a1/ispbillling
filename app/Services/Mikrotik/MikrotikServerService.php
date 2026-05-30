@@ -8,7 +8,6 @@ use App\Models\Package;
 use App\Support\BandwidthDirection;
 use App\Support\CustomerPppLoginResolver;
 use App\Support\MikrotikRateLimitParser;
-use Illuminate\Support\Facades\Log;
 use RouterOS\Client;
 use RouterOS\Config;
 use RouterOS\Exceptions\BadCredentialsException;
@@ -182,13 +181,60 @@ final class MikrotikServerService
         $client = $this->makeClient($server);
         $id = $this->findPppSecretDotId($client, $secretName);
         if ($id === null) {
-            return;
+            if ($disabled) {
+                return;
+            }
+
+            // Secret missing on router: create via API, then enable.
+            if (! $this->upsertPppSecretForCustomer($server, $customer)) {
+                return;
+            }
+
+            $client = $this->makeClient($server);
+            $id = $this->findPppSecretDotId($client, $secretName);
+            if ($id === null) {
+                return;
+            }
         }
 
         $query = new Query('/ppp/secret/set');
         $query->equal('.id', $id);
         $query->equal('disabled', $disabled ? 'yes' : 'no');
-        $client->query($query)->read();
+
+        // RouterOS sometimes applies config with a small delay; verify read-back to avoid
+        // "panel says ON but secret still disabled" cases.
+        $attempts = 3;
+        while ($attempts-- > 0) {
+            $client->query($query)->read();
+
+            try {
+                $check = new Query('/ppp/secret/print');
+                $check->where('.id', $id);
+                $rows = $client->query($check)->read();
+
+                $row = is_array($rows) ? ($rows[0] ?? null) : null;
+                $disabledNowRaw = $row['disabled'] ?? null;
+                $disabledNow = is_string($disabledNowRaw)
+                    ? in_array(strtolower($disabledNowRaw), ['yes', 'true', '1'], true)
+                    : (($disabledNowRaw === true) ? true : false);
+
+                if ($disabledNow === $disabled) {
+                    return;
+                }
+            } catch (\Throwable) {
+                // If read-back fails, retry the set.
+            }
+
+            // brief wait before retry
+            usleep(200_000);
+        }
+
+        Log::channel('single')->warning('network.mikrotik.ppp_secret_set_verify_failed', [
+            'customer_id' => $customer->id,
+            'mikrotik_server_id' => $server->id,
+            'login' => $secretName,
+            'disabled_requested' => $disabled,
+        ]);
     }
 
     /**
@@ -277,8 +323,14 @@ final class MikrotikServerService
         if ($customer->package_id) {
             $pkg = Package::query()->withoutGlobalScopes()->find($customer->package_id);
             if ($pkg instanceof Package) {
-                if (is_string($pkg->mikrotik_profile_name) && trim($pkg->mikrotik_profile_name) !== '') {
+                if ($pkg->mikrotik_server_id !== null
+                    && (int) $pkg->mikrotik_server_id === (int) $server->id
+                    && is_string($pkg->mikrotik_profile_name)
+                    && trim($pkg->mikrotik_profile_name) !== '') {
                     return trim($pkg->mikrotik_profile_name);
+                }
+                if (is_string($pkg->name) && trim($pkg->name) !== '') {
+                    return trim($pkg->name);
                 }
             }
         }
@@ -302,70 +354,7 @@ final class MikrotikServerService
         if ($profile !== null && $profile !== '') {
             $query->equal('profile', $profile);
         }
-        $response = $client->query($query)->read();
-
-        if ($this->routerOsResponseIndicatesFailure($response)) {
-            $message = $this->routerOsResponseMessage($response)
-                ?? 'RouterOS rejected PPP secret write.';
-
-            throw new \RuntimeException($message);
-        }
-    }
-
-    /**
-     * @param  mixed  $response
-     */
-    private function routerOsResponseIndicatesFailure(mixed $response): bool
-    {
-        if (! is_array($response)) {
-            return false;
-        }
-
-        foreach ($response as $row) {
-            if (! is_array($row)) {
-                continue;
-            }
-
-            if (isset($row['after']['message']) && is_string($row['after']['message'])) {
-                return true;
-            }
-
-            if (isset($row['message']) && is_string($row['message'])) {
-                return true;
-            }
-
-            if (isset($row['trap']) || isset($row['!trap'])) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    /**
-     * @param  mixed  $response
-     */
-    private function routerOsResponseMessage(mixed $response): ?string
-    {
-        if (! is_array($response)) {
-            return null;
-        }
-
-        foreach ($response as $row) {
-            if (! is_array($row)) {
-                continue;
-            }
-
-            if (isset($row['after']['message']) && is_string($row['after']['message'])) {
-                return $row['after']['message'];
-            }
-
-            if (isset($row['message']) && is_string($row['message'])) {
-                return $row['message'];
-            }
-        }
-
-        return null;
+        $client->query($query)->read();
     }
 
     /**
@@ -684,7 +673,10 @@ final class MikrotikServerService
                 return ['sessions' => [], 'error' => 'Invalid API response from router'];
             }
 
-            $trafficByLogin = $this->resolvePppoeTrafficByLogin($client, $rows);
+            $trafficByLogin = [];
+            if (! config('sync.mikrotik_smart_interface_walk', true)) {
+                $trafficByLogin = $this->fetchPppoeInterfaceTrafficByLogin($client);
+            }
 
             $sessions = [];
             foreach ($rows as $row) {
@@ -700,19 +692,22 @@ final class MikrotikServerService
                 $routerIn = (int) ($row['bytes-in'] ?? $row['bytes_in'] ?? $row['rx-byte'] ?? 0);
                 $routerOut = (int) ($row['bytes-out'] ?? $row['bytes_out'] ?? $row['tx-byte'] ?? 0);
                 $rateDown = $this->parseInstantRateBps($row, [
-                    'rate-down', 'tx-rate', 'tx-rate-bits-per-second',
+                    'rate-down', 'rx-rate', 'rx-rate-bits-per-second',
                 ]);
                 $rateUp = $this->parseInstantRateBps($row, [
-                    'rate-up', 'rx-rate', 'rx-rate-bits-per-second',
+                    'rate-up', 'tx-rate', 'tx-rate-bits-per-second',
                 ]);
 
-                if ($routerIn === 0 && $routerOut === 0 && $trafficByLogin !== []) {
+                if ($routerIn === 0 && $routerOut === 0 && config('sync.mikrotik_smart_interface_walk', true)) {
+                    if ($trafficByLogin === []) {
+                        $trafficByLogin = $this->fetchPppoeInterfaceTrafficByLogin($client);
+                    }
                     $iface = $trafficByLogin[CustomerPppLoginResolver::normalize($name)] ?? null;
                     if ($iface !== null) {
                         $routerIn = $iface['rx_byte'];
                         $routerOut = $iface['tx_byte'];
                     }
-                } elseif ($trafficByLogin !== [] && ($routerIn > 0 || $routerOut > 0)) {
+                } elseif ($trafficByLogin !== []) {
                     $iface = $trafficByLogin[CustomerPppLoginResolver::normalize($name)] ?? null;
                     if ($iface !== null) {
                         $routerIn = $iface['rx_byte'];
@@ -765,60 +760,6 @@ final class MikrotikServerService
      *     error: ?string
      * }
      */
-    /**
-     * Fast live traffic for one PPP login (interface counters only — ~1s on WAN).
-     *
-     * @return array{
-     *     found: bool,
-     *     download_bytes: int,
-     *     upload_bytes: int,
-     *     rate_download_bps: ?int,
-     *     rate_upload_bps: ?int,
-     *     error: ?string
-     * }
-     */
-    public function fetchSubscriberLiveTraffic(MikrotikServer $server, string $login): array
-    {
-        $empty = [
-            'found' => false,
-            'download_bytes' => 0,
-            'upload_bytes' => 0,
-            'rate_download_bps' => null,
-            'rate_upload_bps' => null,
-            'error' => null,
-        ];
-
-        if (! $server->is_enabled) {
-            return array_merge($empty, ['error' => 'Server disabled']);
-        }
-
-        $login = CustomerPppLoginResolver::normalize($login);
-        if ($login === '') {
-            return array_merge($empty, ['error' => 'Empty PPP login']);
-        }
-
-        try {
-            $client = $this->makeClient($server);
-            $iface = $this->fetchPppoeInterfaceTrafficForLogin($client, $login);
-            if ($iface === null) {
-                return $empty;
-            }
-
-            $counters = BandwidthDirection::fromMikrotikCounters($iface['rx_byte'], $iface['tx_byte']);
-
-            return [
-                'found' => true,
-                'download_bytes' => $counters['download_bytes'],
-                'upload_bytes' => $counters['upload_bytes'],
-                'rate_download_bps' => null,
-                'rate_upload_bps' => null,
-                'error' => null,
-            ];
-        } catch (\Throwable $e) {
-            return array_merge($empty, ['error' => $e->getMessage()]);
-        }
-    }
-
     public function fetchActivePppSessionForLogin(MikrotikServer $server, string $login): array
     {
         $empty = [
@@ -850,10 +791,10 @@ final class MikrotikServerService
             $routerIn = (int) ($row['bytes-in'] ?? $row['bytes_in'] ?? $row['rx-byte'] ?? 0);
             $routerOut = (int) ($row['bytes-out'] ?? $row['bytes_out'] ?? $row['tx-byte'] ?? 0);
             $rateDown = $this->parseInstantRateBps($row, [
-                'rate-down', 'tx-rate', 'tx-rate-bits-per-second',
+                'rate-down', 'rx-rate', 'rx-rate-bits-per-second',
             ]);
             $rateUp = $this->parseInstantRateBps($row, [
-                'rate-up', 'rx-rate', 'rx-rate-bits-per-second',
+                'rate-up', 'tx-rate', 'tx-rate-bits-per-second',
             ]);
 
             $iface = $this->fetchPppoeInterfaceTrafficForLogin($client, $login);
@@ -995,101 +936,18 @@ final class MikrotikServerService
      *
      * @return array<string, array{rx_byte: int, tx_byte: int}>
      */
-    /**
-     * @param  list<array<string, mixed>>|array<int, mixed>  $pppActiveRows
-     *
-     * @return array<string, array{rx_byte: int, tx_byte: int}>
-     */
-    private function resolvePppoeTrafficByLogin(Client $client, array $pppActiveRows): array
-    {
-        if (! config('sync.mikrotik_smart_interface_walk', true)) {
-            try {
-                return $this->fetchPppoeInterfaceTrafficByLogin($client);
-            } catch (\Throwable $e) {
-                Log::warning('mikrotik.ppp_iface_traffic_failed', ['message' => $e->getMessage()]);
-
-                return [];
-            }
-        }
-
-        if (! $this->pppActiveRowsLackByteCounters($pppActiveRows)) {
-            return [];
-        }
-
-        try {
-            return $this->fetchPppoeInterfaceTrafficByLogin($client);
-        } catch (\Throwable $e) {
-            Log::warning('mikrotik.ppp_iface_traffic_failed', ['message' => $e->getMessage()]);
-
-            return [];
-        }
-    }
-
-    /**
-     * @param  list<array<string, mixed>>|array<int, mixed>  $rows
-     */
-    private function pppActiveRowsLackByteCounters(array $rows): bool
-    {
-        foreach ($rows as $row) {
-            if (! is_array($row)) {
-                continue;
-            }
-
-            $in = (int) ($row['bytes-in'] ?? $row['bytes_in'] ?? $row['rx-byte'] ?? 0);
-            $out = (int) ($row['bytes-out'] ?? $row['bytes_out'] ?? $row['tx-byte'] ?? 0);
-            if ($in > 0 || $out > 0) {
-                return false;
-            }
-        }
-
-        return $rows !== [];
-    }
-
-    /**
-     * @return array<string, array{rx_byte: int, tx_byte: int}>
-     */
     private function fetchPppoeInterfaceTrafficByLogin(Client $client): array
     {
-        $rows = $this->queryPppoeInterfaceRows($client);
+        try {
+            $rows = $client->query('/interface/print')->read();
+        } catch (\Throwable) {
+            return [];
+        }
 
         if (! is_array($rows)) {
             return [];
         }
 
-        return $this->mapPppoeInterfaceRowsToTraffic($rows);
-    }
-
-    /**
-     * Prefer type-filtered print (faster on routers with hundreds of PPPoE sessions).
-     *
-     * @return list<array<string, mixed>>|array<int, mixed>
-     */
-    private function queryPppoeInterfaceRows(Client $client): array
-    {
-        try {
-            $query = new Query('/interface/print');
-            $query->where('type', 'pppoe-in');
-            $rows = $client->query($query)->read();
-
-            if (is_array($rows) && $rows !== []) {
-                return $rows;
-            }
-        } catch (\Throwable) {
-            // fall through to full interface list
-        }
-
-        $rows = $client->query('/interface/print')->read();
-
-        return is_array($rows) ? $rows : [];
-    }
-
-    /**
-     * @param  list<array<string, mixed>>|array<int, mixed>  $rows
-     *
-     * @return array<string, array{rx_byte: int, tx_byte: int}>
-     */
-    private function mapPppoeInterfaceRowsToTraffic(array $rows): array
-    {
         $map = [];
         foreach ($rows as $row) {
             if (! is_array($row)) {
@@ -1097,14 +955,8 @@ final class MikrotikServerService
             }
 
             $ifName = (string) ($row['name'] ?? '');
-            if ($ifName === '') {
+            if ($ifName === '' || ! str_starts_with($ifName, '<pppoe-')) {
                 continue;
-            }
-
-            if (! str_starts_with($ifName, '<pppoe-')) {
-                if (($row['type'] ?? '') !== 'pppoe-in') {
-                    continue;
-                }
             }
 
             if (! preg_match('/^<pppoe-(.+)>$/', $ifName, $m)) {

@@ -34,7 +34,7 @@ final class PublicPaymentMethod
         $methods = [];
 
         if (($flags['bkash'] ?? false) && self::bkashChannelAllowed($bkashChannel)) {
-            $methods[] = self::bkashDisplayMethod();
+            array_push($methods, ...self::bkashDisplayMethods($bkashChannel ?? BkashSettings::CHANNEL_PORTAL));
         }
 
         if ($flags['nagad'] ?? false) {
@@ -77,17 +77,27 @@ final class PublicPaymentMethod
     }
 
     /**
-     * @return PublicPaymentMethodArray
+     * @return list<PublicPaymentMethodArray>
      */
-    private static function bkashDisplayMethod(): array
+    private static function bkashDisplayMethods(string $channel): array
     {
-        $type = (string) config('bkash.gateway_type', BkashSettings::GATEWAY_TOKENIZED_WEB);
+        $methods = [];
 
-        if ($type === BkashSettings::GATEWAY_PERSONAL) {
-            return self::personal(PaymentGateway::BKASH, 'bKash', 'Send money to our number', 'bkash');
+        if (BkashSettings::isPersonalActiveForChannel($channel)) {
+            $methods[] = array_merge(
+                self::personal(PaymentGateway::BKASH, 'bKash', 'Send money to our number', 'bkash'),
+                ['checkout' => PaymentGateway::BKASH_PERSONAL],
+            );
         }
 
-        return self::merchant(PaymentGateway::BKASH, 'bKash', 'Tokenized checkout', 'bkash');
+        if (BkashSettings::isMerchantActiveForChannel($channel)) {
+            $methods[] = array_merge(
+                self::merchant(PaymentGateway::BKASH, 'bKash', 'Official checkout (redirect)', 'bkash'),
+                ['checkout' => PaymentGateway::BKASH_MERCHANT],
+            );
+        }
+
+        return $methods;
     }
 
     /**

@@ -29,6 +29,7 @@ final class IspDigitalOnuAutoLinkService
      *   ppp_sessions_fetched: int,
      *   ppp_online: int,
      *   mikrotik_enriched: int,
+     *   fdb_linked: int,
      *   ppp_customer_linked: int,
      *   ppp_session_linked: int,
      *   hint_linked: int,
@@ -42,6 +43,7 @@ final class IspDigitalOnuAutoLinkService
             'ppp_sessions_fetched' => 0,
             'ppp_online' => 0,
             'mikrotik_enriched' => 0,
+            'fdb_linked' => 0,
             'ppp_customer_linked' => 0,
             'ppp_session_linked' => 0,
             'hint_linked' => 0,
@@ -64,6 +66,8 @@ final class IspDigitalOnuAutoLinkService
             $stats['mikrotik_enriched'] = $this->enrichCustomersFromMikrotikSecrets($tenantId);
         }
 
+        // Highest-confidence: customer MAC learned behind the ONU on the OLT == PPPoE caller_id.
+        $stats['fdb_linked'] = $this->linkByOltFdbMacs($tenantId);
         $stats['ppp_customer_linked'] = $this->linkCustomersFromActivePppSessions($tenantId);
         $stats['ppp_session_linked'] = $this->linkByRecentPppSessions($tenantId);
         $stats['hint_linked'] = $this->linkByOnuClientCodeDescription($tenantId)
@@ -83,6 +87,159 @@ final class IspDigitalOnuAutoLinkService
         Log::info('isp_digital_onu.auto_link_complete', array_merge(['tenant_id' => $tenantId], $stats));
 
         return $stats;
+    }
+
+    /**
+     * Link ONUs to subscribers using the customer MACs learned behind each ONU on the OLT
+     * forwarding table (Device.meta['fdb_macs'], populated by OltFdbMacBridgeService). Each learned
+     * MAC is matched against the PPPoE caller_id / mac_binding of a subscriber — the reliable bridge
+     * between the optical (ONU) side and the PPP (customer) side.
+     */
+    public function linkByOltFdbMacs(int $tenantId): int
+    {
+        $callerToCustomer = $this->buildCallerMacToCustomerMap($tenantId);
+        if ($callerToCustomer === []) {
+            return 0;
+        }
+
+        $linked = 0;
+
+        Device::query()
+            ->withoutGlobalScopes()
+            ->where('tenant_id', $tenantId)
+            ->where('type', 'onu')
+            ->whereNull('customer_id')
+            ->whereNotNull('meta->fdb_macs')
+            ->orderByDesc('rx_power_dbm')
+            ->chunkById(200, function ($onus) use ($tenantId, $callerToCustomer, &$linked): void {
+                foreach ($onus as $onu) {
+                    $meta = is_array($onu->meta) ? $onu->meta : [];
+                    $macs = is_array($meta['fdb_macs'] ?? null) ? $meta['fdb_macs'] : [];
+
+                    foreach ($macs as $mac) {
+                        $compact = MacAddress::normalizeCompact((string) $mac);
+                        $customerId = $compact !== null ? ($callerToCustomer[$compact] ?? null) : null;
+                        if ($customerId === null) {
+                            continue;
+                        }
+
+                        $customer = Customer::query()->withoutGlobalScopes()->find($customerId);
+                        if ($customer === null
+                            || (int) $customer->tenant_id !== $tenantId
+                            || $this->provision->findOnuForCustomer($customer) !== null) {
+                            continue;
+                        }
+
+                        $assigned = $this->provision->assignOnuToCustomer(
+                            $customer,
+                            (int) $onu->id,
+                            CustomerOnuSmartLinkService::REASON_OLT_FDB_MAC,
+                            99,
+                        );
+
+                        if ($assigned !== null) {
+                            $linked++;
+                            break;
+                        }
+                    }
+                }
+            });
+
+        return $linked;
+    }
+
+    /**
+     * Read-only preview of FDB matches (no linking): which ONU would map to which subscriber via the
+     * learned customer MAC. Requires OltFdbMacBridgeService to have run first (meta['fdb_macs']).
+     *
+     * @return list<array{onu: string, mac: string, customer_id: int, login: string, already_linked: bool}>
+     */
+    public function previewFdbMatches(int $tenantId): array
+    {
+        $callerToCustomer = $this->buildCallerMacToCustomerMap($tenantId);
+        if ($callerToCustomer === []) {
+            return [];
+        }
+
+        $logins = Customer::query()->withoutGlobalScopes()
+            ->whereIn('id', array_values(array_unique($callerToCustomer)))
+            ->get(['id', 'mikrotik_secret_name', 'radius_username', 'customer_code', 'name'])
+            ->keyBy('id');
+
+        $out = [];
+
+        Device::query()
+            ->withoutGlobalScopes()
+            ->where('tenant_id', $tenantId)
+            ->where('type', 'onu')
+            ->whereNotNull('meta->fdb_macs')
+            ->orderBy('display_name')
+            ->chunkById(200, function ($onus) use ($callerToCustomer, $logins, &$out): void {
+                foreach ($onus as $onu) {
+                    $meta = is_array($onu->meta) ? $onu->meta : [];
+                    $macs = is_array($meta['fdb_macs'] ?? null) ? $meta['fdb_macs'] : [];
+                    foreach ($macs as $mac) {
+                        $compact = MacAddress::normalizeCompact((string) $mac);
+                        $customerId = $compact !== null ? ($callerToCustomer[$compact] ?? null) : null;
+                        if ($customerId === null) {
+                            continue;
+                        }
+                        $out[] = [
+                            'onu' => (string) ($onu->display_name ?: $onu->serial_number),
+                            'mac' => $compact,
+                            'customer_id' => $customerId,
+                            'login' => (string) ($logins[$customerId]?->pppLoginName() ?? $customerId),
+                            'already_linked' => $onu->customer_id !== null,
+                        ];
+                        break;
+                    }
+                }
+            });
+
+        return $out;
+    }
+
+    /**
+     * Build a map of compact router MAC → customer id, newest PPP session winning, with the
+     * customer's saved mac_binding as a fallback source.
+     *
+     * @return array<string, int>
+     */
+    private function buildCallerMacToCustomerMap(int $tenantId): array
+    {
+        $map = [];
+
+        PppSessionLog::query()
+            ->withoutGlobalScopes()
+            ->where('tenant_id', $tenantId)
+            ->whereNotNull('customer_id')
+            ->whereNotNull('caller_id')
+            ->orderBy('started_at') // oldest first so newest overwrites
+            ->chunkById(1000, function ($sessions) use (&$map): void {
+                foreach ($sessions as $session) {
+                    $compact = MacAddress::normalizeCompact((string) $session->caller_id);
+                    if ($compact !== null) {
+                        $map[$compact] = (int) $session->customer_id;
+                    }
+                }
+            });
+
+        Customer::query()
+            ->withoutGlobalScopes()
+            ->where('tenant_id', $tenantId)
+            ->where('meta->mac_binding', '!=', null)
+            ->select(['id', 'meta'])
+            ->chunkById(500, function ($customers) use (&$map): void {
+                foreach ($customers as $customer) {
+                    $meta = is_array($customer->meta) ? $customer->meta : [];
+                    $compact = MacAddress::normalizeCompact((string) ($meta['mac_binding'] ?? ''));
+                    if ($compact !== null && ! isset($map[$compact])) {
+                        $map[$compact] = (int) $customer->id;
+                    }
+                }
+            });
+
+        return $map;
     }
 
     public function learnMacsFromSessions(int $tenantId): int

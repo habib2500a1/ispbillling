@@ -28,7 +28,12 @@ return [
     'support_phone' => env('PORTAL_SUPPORT_PHONE'),
 
     'speed_test' => [
-        'download_bytes' => (int) env('PORTAL_SPEED_TEST_BYTES', 2_097_152),
+        'download_bytes' => (int) env('PORTAL_SPEED_TEST_BYTES', 1_048_576),
+        /** ~1 second quick check on usage page (512 KB default). */
+        'quick_download_bytes' => (int) env('PORTAL_SPEED_TEST_QUICK_BYTES', 524_288),
+        /** Multipart upload file size (Laravel max rule is KB). */
+        'upload_kilobytes' => (int) env('PORTAL_SPEED_TEST_UPLOAD_KB', 768),
+        'upload_bytes' => (int) env('PORTAL_SPEED_TEST_UPLOAD_BYTES', 262_144),
     ],
 
     /** Default customer portal password for new subscribers (user can change later). */

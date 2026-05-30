@@ -27,13 +27,7 @@ class PaymentController extends Controller
         $payments->assertCustomerOwnsInvoice($customer, $invoice);
 
         $validated = $request->validate([
-            'gateway' => ['required', 'string', 'in:'.implode(',', [
-                PaymentGateway::BKASH,
-                PaymentGateway::SSLCOMMERZ,
-                PaymentGateway::NAGAD,
-                PaymentGateway::ROCKET,
-                PaymentGateway::PIPRAPAY,
-            ])],
+            'gateway' => ['required', 'string', 'in:'.implode(',', PaymentGateway::customerCheckoutGateways())],
             'amount' => ['prohibited'],
         ]);
 

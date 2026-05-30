@@ -69,13 +69,13 @@ class AppServiceProvider extends ServiceProvider
         }
 
         $this->app->singleton(NetworkAccessProvisioner::class, function ($app): NetworkAccessProvisioner {
+            $mikrotik = $app->make(MikrotikNetworkProvisioner::class);
+            $radius = $app->make(RadiusNetworkProvisioner::class);
+
             return match (config('network.provisioner_driver', 'null')) {
                 'log' => new LogNetworkProvisioner,
-                'mikrotik', 'radius', 'both' => new CompositeNetworkProvisioner(
-                    $app->make(MikrotikNetworkProvisioner::class),
-                    $app->make(RadiusNetworkProvisioner::class),
-                ),
-                default => new NullNetworkProvisioner,
+                'mikrotik', 'radius', 'both' => new CompositeNetworkProvisioner($mikrotik, $radius),
+                default => static::optionalMikrotikProvisioner($mikrotik),
             };
         });
 
@@ -84,6 +84,17 @@ class AppServiceProvider extends ServiceProvider
                 $app->make(NetworkAccessProvisioner::class),
             );
         });
+    }
+
+    /**
+     * When provisioner_driver is null, still push PPP enable/disable if always_push is on (panel default).
+     */
+    private static function optionalMikrotikProvisioner(NetworkAccessProvisioner $mikrotik): NetworkAccessProvisioner
+    {
+        $alwaysPush = (bool) config('network.mikrotik_always_push_ppp_on_customer_save', true);
+        $pushEnabled = (bool) config('network.mikrotik_push_enabled', true);
+
+        return $alwaysPush && $pushEnabled ? $mikrotik : new NullNetworkProvisioner;
     }
 
     /**

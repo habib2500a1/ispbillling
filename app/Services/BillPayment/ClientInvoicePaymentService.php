@@ -13,6 +13,7 @@ use App\Services\Payments\PublicCheckoutSession;
 use App\Services\Payments\RocketCheckoutService;
 use App\Services\Payments\SslCommerzCheckoutService;
 use App\Support\CustomerBalanceDue;
+use App\Support\BkashSettings;
 use App\Support\PaymentGateway;
 use App\Support\PaymentType;
 use App\Support\PersonalMfsGateway;
@@ -135,8 +136,17 @@ class ClientInvoicePaymentService
      */
     private function prepareBkash(Invoice $invoice, float $amount): array
     {
-        if (PersonalMfsGateway::bkashPersonalEnabled()) {
+        if (PersonalMfsGateway::bkashPersonalEnabled()
+            && ! BkashSettings::isMerchantActiveForChannel(BkashSettings::CHANNEL_PORTAL)) {
             return $this->personalMfsUrl(PaymentGateway::BKASH, $invoice, $invoice->customer, $amount);
+        }
+
+        if (! BkashSettings::isMerchantActiveForChannel(BkashSettings::CHANNEL_PORTAL)) {
+            if (PersonalMfsGateway::bkashPersonalEnabled()) {
+                return $this->personalMfsUrl(PaymentGateway::BKASH, $invoice, $invoice->customer, $amount);
+            }
+
+            return ['error' => 'bKash is not available. Enable Personal bKash or add Merchant API credentials in admin.'];
         }
 
         $result = app(BkashPaymentController::class)->prepareMobileCheckout($invoice, $amount);

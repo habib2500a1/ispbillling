@@ -5,14 +5,14 @@
 <x-filament-panels::page>
     <div class="mb-4 rounded-xl border border-sky-300 bg-sky-50 p-4 text-sm text-sky-950 dark:border-sky-800 dark:bg-sky-950/40 dark:text-sky-100">
         <p class="font-bold">Merchant payment gateways</p>
-        <p class="mt-1">PipraPay, bKash Tokenized API, Nagad PG, SSLCommerz, Rocket — official merchant checkout।</p>
+        <p class="mt-1">PipraPay, bKash Tokenized API, Nagad PG, SSLCommerz, Rocket — official merchant checkout। প্রতিটি tab আলাদা — যে tab-এ আছেন শুধু সেটাই <strong>Save</strong> হবে।</p>
         <p class="mt-2">
             <strong>bKash Personal / Nagad Personal</strong> (Send Money + SMS verify) আলাদা:
             <a href="{{ $personalUrl }}" class="font-semibold underline text-primary-600">bKash Personal / Nagad Personal →</a>
         </p>
     </div>
 
-    <x-filament-panels::form id="form" wire:submit="save">
+    <x-filament-panels::form id="form">
         {{ $this->form }}
 
         <x-filament-panels::form.actions

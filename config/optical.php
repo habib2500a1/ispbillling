@@ -50,6 +50,19 @@ return [
     /** After BDCOM SNMP sync, auto-link ONUs to subscribers by MAC + PPP login. */
     'auto_link_on_bdcom_sync' => (bool) env('OPTICAL_AUTO_LINK_ON_BDCOM_SYNC', true),
 
+    /**
+     * OLT drivers to attempt the FDB MAC-bridge on (learns the customer router MAC behind each ONU
+     * from the OLT forwarding table → matches PPPoE caller_id). Uses standard BRIDGE-MIB so it is
+     * attempted on every listed vendor; OLTs that don't expose a usable per-ONU FDB simply store 0
+     * MACs (safe no-op) and fall back to description/login matching.
+     *
+     * @var list<string>
+     */
+    'fdb_bridge_drivers' => array_values(array_filter(array_map('trim', explode(',', (string) env(
+        'OPTICAL_FDB_BRIDGE_DRIVERS',
+        'bdcom_epon,bdcom_gpon,aveis_gpon,aveis_epon,huawei_gpon,vsol_gpon,ecom_gpon,ecom_epon,cdata_gpon,zte_epon,zte_gpon'
+    ))))),
+
     /** Pull live PPP sessions from MikroTik (Client IP, caller-id) before ONU link — ISP Digital style. */
     'auto_fetch_ppp_sessions' => (bool) env('OPTICAL_AUTO_FETCH_PPP_SESSIONS', true),
 

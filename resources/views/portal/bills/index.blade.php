@@ -40,15 +40,22 @@
         </article>
     </div>
 
-    @if (($prepayEnabled ?? false) && ($gateways['any'] ?? false))
-        <x-customer-prepay-form
-            :quote="$prepayQuote"
-            :action="route('portal.prepay.store')"
-            :payment-methods="$paymentMethods"
-            :max-months="$prepayMaxMonths"
-            :quick-months="$prepayQuickMonths"
-            variant="portal"
-        />
+    @if ($prepayEnabled ?? false)
+        @if ($prepayQuote ?? null)
+            <x-customer-prepay-form
+                :quote="$prepayQuote"
+                :action="route('portal.prepay.store')"
+                :payment-methods="$paymentMethods"
+                :max-months="$prepayMaxMonths"
+                :quick-months="$prepayQuickMonths"
+                variant="portal"
+            />
+        @else
+            <div class="portal-panel portal-panel--warning" style="margin-bottom: 1.25rem;">
+                <p class="portal-panel__title">Pay multiple months</p>
+                <p class="portal-summary-card__meta">Advance payment is not available until your ISP assigns a monthly package rate to this account. Contact support or pay via <a href="{{ url('/pay?code='.urlencode((string) $customer->customer_code)) }}" class="portal-link">public bill pay</a>.</p>
+            </div>
+        @endif
     @endif
 
     <div class="portal-table-wrap">

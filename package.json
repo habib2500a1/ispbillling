@@ -3,6 +3,8 @@
     "type": "module",
     "scripts": {
         "build": "vite build",
+        "build:portal-css": "tailwindcss -i ./resources/css/portal-tailwind.css -o ./public/css/portal-utilities.css --minify",
+        "build:admin-css": "tailwindcss -i ./resources/css/admin-tailwind.css -o ./public/css/admin-utilities.css --minify",
         "dev": "vite"
     },
     "devDependencies": {

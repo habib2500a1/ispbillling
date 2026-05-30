@@ -7,6 +7,7 @@ use App\Models\Customer;
 use App\Models\Device;
 use App\Services\Mikrotik\MikrotikFleetCoordinator;
 use App\Services\Mikrotik\MikrotikServerService;
+use App\Services\Network\NetworkAccessCoordinator;
 use Illuminate\Support\Facades\Log;
 
 /**
@@ -40,9 +41,13 @@ final class MikrotikNetworkProvisioner implements NetworkAccessProvisioner
 
     public function unsuspendCustomer(Customer $customer): void
     {
+        $serversOk = 0;
+
         foreach ($this->fleet->serversForCustomer($customer) as $server) {
             try {
+                $this->mikrotik->upsertPppSecretForCustomer($server, $customer);
                 $this->mikrotik->setPppSecretDisabledForCustomer($server, $customer, false);
+                $serversOk++;
             } catch (\Throwable $e) {
                 Log::channel('single')->error('network.mikrotik.unsuspend_failed', [
                     'customer_id' => $customer->id,
@@ -50,6 +55,15 @@ final class MikrotikNetworkProvisioner implements NetworkAccessProvisioner
                     'message' => $e->getMessage(),
                 ]);
             }
+        }
+
+        if ($serversOk > 0) {
+            Log::channel('single')->info('network.mikrotik.ppp_enabled', [
+                'customer_id' => $customer->id,
+                'tenant_id' => $customer->tenant_id,
+                'login' => $this->pppSecretName($customer),
+                'servers_ok' => $serversOk,
+            ]);
         }
     }
 
@@ -65,7 +79,10 @@ final class MikrotikNetworkProvisioner implements NetworkAccessProvisioner
             return;
         }
 
-        $wantDisabled = ($customer->network_access_state ?? 'active') === 'suspended';
+        // Use policy desired state (not stale DB flag) so extend/renew turns secret ON even if
+        // network_access_state was left "suspended" while not overdue/expired.
+        $wantDisabled = app(NetworkAccessCoordinator::class)
+            ->desiredNetworkAccessState($customer) === 'suspended';
         $name = $this->pppSecretName($customer);
 
         $serversOk = 0;
@@ -108,7 +125,9 @@ final class MikrotikNetworkProvisioner implements NetworkAccessProvisioner
 
     private function pppSecretName(Customer $customer): string
     {
-        return $customer->pppLoginName();
+        return filled($customer->radius_username)
+            ? (string) $customer->radius_username
+            : (string) $customer->customer_code;
     }
 
 }

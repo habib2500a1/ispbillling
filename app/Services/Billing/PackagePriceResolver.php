@@ -30,7 +30,7 @@ final class PackagePriceResolver
             $zp = $package->zonePrices()
                 ->where('zone_id', $customer->zone_id)
                 ->value('price_monthly');
-            if ($zp !== null) {
+            if ($zp !== null && (float) $zp > 0) {
                 return (float) $zp;
             }
         }
@@ -39,7 +39,7 @@ final class PackagePriceResolver
             $ap = $package->areaPrices()
                 ->where('area_id', $customer->area_id)
                 ->value('price_monthly');
-            if ($ap !== null) {
+            if ($ap !== null && (float) $ap > 0) {
                 return (float) $ap;
             }
         }

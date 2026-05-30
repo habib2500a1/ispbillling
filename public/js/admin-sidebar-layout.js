@@ -28,6 +28,9 @@
         'System',
     ];
 
+    /** Groups always expanded (Filament collapsed(false)) — not part of accordion toggling. */
+    const NON_COLLAPSIBLE_GROUPS = ['Overview'];
+
     function groupsRoot() {
         return document.querySelector('.fi-sidebar .fi-sidebar-nav-groups, .fi-main-sidebar .fi-sidebar-nav-groups');
     }
@@ -56,7 +59,7 @@
             return;
         }
 
-        const oltPath = /\/olts|olt-hub|optical-noc|olt-mac-table|optical-laser-settings|network-topology/;
+        const oltPath = /\/olts|olt-hub|optical-noc|olt-mac-table|optical-laser-settings|network-topology|fiber-plant-map/;
 
         [...inventoryList.querySelectorAll('.fi-sidebar-item')].forEach((item) => {
             const anchor = item.querySelector('a[href]');
@@ -126,7 +129,8 @@
     function groupLabels() {
         return [...document.querySelectorAll('.fi-main-sidebar .fi-sidebar-group[data-group-label]')]
             .map((el) => el.dataset.groupLabel)
-            .filter(Boolean);
+            .filter(Boolean)
+            .filter((label) => !NON_COLLAPSIBLE_GROUPS.includes(label));
     }
 
     function sidebarStore() {
@@ -191,7 +195,8 @@
     function applyDomState(openLabel) {
         document.querySelectorAll('.fi-sidebar .fi-sidebar-group[data-group-label], .fi-main-sidebar .fi-sidebar-group[data-group-label]').forEach((group) => {
             const label = group.dataset.groupLabel;
-            const open = Boolean(openLabel && label === openLabel);
+            const alwaysVisible = NON_COLLAPSIBLE_GROUPS.includes(label);
+            const open = alwaysVisible || Boolean(openLabel && label === openLabel);
             const items = group.querySelector('.fi-sidebar-group-items');
             const chevron = group.querySelector('.fi-sidebar-group-collapse-button');
 
@@ -255,6 +260,8 @@
             || path.includes('optical-noc')
             || path.includes('olt-mac-table')
             || path.includes('optical-laser-settings')
+            || path.includes('network-topology')
+            || path.includes('fiber-plant-map')
         );
     }
 
@@ -423,7 +430,7 @@
 
                 const group = trigger.closest('.fi-sidebar-group[data-group-label]');
                 const label = group?.dataset?.groupLabel;
-                if (!label) {
+                if (!label || NON_COLLAPSIBLE_GROUPS.includes(label)) {
                     return;
                 }
 

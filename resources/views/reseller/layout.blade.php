@@ -7,7 +7,7 @@
     <title>@yield('title', 'Reseller portal') — {{ config('app.name') }}</title>
     @include('partials.site-favicon')
     <link rel="stylesheet" href="{{ asset('css/reseller-portal.css') }}?v=3">
-    @include('partials.isp-premium-theme')
+    @include('partials.isp-premium-theme', ['tailwind' => true])
     <script src="{{ asset('js/portal-theme.js') }}?v=1"></script>
 </head>
 <body class="rsl-bg antialiased text-slate-900">

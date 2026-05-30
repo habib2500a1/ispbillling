@@ -20,6 +20,9 @@ final class CustomerOnuSmartLinkService
 
     public const REASON_DESC_EXACT = 'desc_exact';
 
+    /** Customer MAC learned behind the ONU on the OLT forwarding table == PPPoE caller_id. */
+    public const REASON_OLT_FDB_MAC = 'olt_fdb_mac';
+
     /**
      * @return array{
      *   pruned: int,

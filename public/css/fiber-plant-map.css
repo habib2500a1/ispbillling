@@ -1,0 +1,342 @@
+/* Fiber plant map — admin outside plant editor */
+.isp-fiber-plant-page .fi-page-main {
+    max-width: none !important;
+}
+
+.fpm-hero {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin-bottom: 1rem;
+    padding: 1.1rem 1.25rem;
+    border-radius: 16px;
+    background: linear-gradient(135deg, #0f766e 0%, #1e3a5f 55%, #312e81 100%);
+    color: #fff;
+}
+
+.fpm-hero__eyebrow {
+    font-size: 0.68rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    opacity: 0.85;
+}
+
+.fpm-hero__title {
+    font-size: 1.35rem;
+    font-weight: 800;
+    margin-top: 0.15rem;
+}
+
+.fpm-hero__sub {
+    font-size: 0.8125rem;
+    opacity: 0.9;
+    max-width: 42rem;
+    margin-top: 0.35rem;
+    line-height: 1.5;
+}
+
+.fpm-hero__stats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+}
+
+.fpm-hero__stats div {
+    min-width: 4.5rem;
+    padding: 0.5rem 0.75rem;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.12);
+    text-align: center;
+}
+
+.fpm-hero__stats strong {
+    display: block;
+    font-size: 1.1rem;
+}
+
+.fpm-hero__stats span {
+    font-size: 0.65rem;
+    opacity: 0.85;
+    text-transform: uppercase;
+}
+
+.fpm-layout {
+    display: grid;
+    grid-template-columns: minmax(280px, 340px) 1fr;
+    gap: 1rem;
+    min-height: min(72vh, 720px);
+}
+
+@media (max-width: 1023px) {
+    .fpm-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .fpm-map {
+        min-height: 55vh !important;
+    }
+}
+
+.fpm-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    padding: 0.85rem;
+    border-radius: 14px;
+    border: 1px solid rgba(148, 163, 184, 0.25);
+    background: var(--isp-surface, #fff);
+    max-height: min(72vh, 720px);
+    overflow-y: auto;
+}
+
+.dark .fpm-panel,
+[data-theme='dark'] .fpm-panel {
+    background: #111827;
+    border-color: rgba(148, 163, 184, 0.15);
+}
+
+.fpm-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+}
+
+.fpm-tool {
+    flex: 1 1 auto;
+    min-height: 2.25rem;
+    padding: 0.35rem 0.65rem;
+    border-radius: 8px;
+    border: 1px solid rgba(148, 163, 184, 0.35);
+    background: transparent;
+    font-size: 0.75rem;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.fpm-tool--active {
+    background: #0d9488;
+    border-color: #0d9488;
+    color: #fff;
+}
+
+.fpm-tool--import:disabled {
+    opacity: 0.65;
+    cursor: wait;
+}
+
+.fpm-tool--import {
+    cursor: pointer;
+    position: relative;
+    z-index: 5;
+}
+
+.fpm-legend__title {
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: #64748b;
+}
+
+.fpm-legend__swatches {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+    margin-top: 0.35rem;
+}
+
+.fpm-swatch {
+    width: 1rem;
+    height: 1rem;
+    border-radius: 3px;
+    background: var(--swatch);
+    border: 1px solid rgba(0, 0, 0, 0.15);
+}
+
+.fpm-form {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.fpm-form__title {
+    font-size: 0.875rem;
+    font-weight: 800;
+}
+
+.fpm-form__hint {
+    font-size: 0.75rem;
+    color: #64748b;
+}
+
+.fpm-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    font-size: 0.75rem;
+}
+
+.fpm-field span {
+    font-weight: 600;
+    color: #64748b;
+}
+
+.fpm-field input,
+.fpm-field select,
+.fpm-field textarea {
+    width: 100%;
+    padding: 0.45rem 0.55rem;
+    border-radius: 8px;
+    border: 1px solid rgba(148, 163, 184, 0.35);
+    font-size: 0.8125rem;
+    background: transparent;
+}
+
+.fpm-field-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.35rem;
+}
+
+.fpm-form__actions {
+    display: flex;
+    gap: 0.35rem;
+    margin-top: 0.25rem;
+}
+
+.fpm-btn {
+    flex: 1;
+    min-height: 2.35rem;
+    border-radius: 8px;
+    border: none;
+    font-size: 0.75rem;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.fpm-btn--primary {
+    background: #0d9488;
+    color: #fff;
+}
+
+.fpm-btn--danger {
+    background: #e11d48;
+    color: #fff;
+}
+
+.fpm-help {
+    font-size: 0.75rem;
+    line-height: 1.55;
+    color: #64748b;
+}
+
+.fpm-help ul {
+    margin: 0.35rem 0 0;
+    padding-left: 1rem;
+}
+
+.fpm-map-wrap {
+    border-radius: 14px;
+    overflow: hidden;
+    border: 1px solid rgba(148, 163, 184, 0.25);
+}
+
+.fpm-map {
+    width: 100%;
+    min-height: min(72vh, 720px);
+    background: #e2e8f0;
+}
+
+.fpm-node-marker div {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: var(--node-color, #64748b);
+    border: 2px solid #fff;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+    font-size: 1rem;
+    transition: transform 0.15s;
+}
+
+.fpm-node-marker small {
+    position: absolute;
+    top: 100%;
+    margin-top: 2px;
+    font-size: 0.55rem;
+    font-weight: 700;
+    white-space: nowrap;
+    color: #0f172a;
+    text-shadow: 0 0 3px #fff;
+}
+
+.fpm-node-marker--active div {
+    transform: scale(1.2);
+    outline: 3px solid #fbbf24;
+}
+
+.fpm-edge-label span {
+    display: inline-block;
+    padding: 0.1rem 0.35rem;
+    border-radius: 4px;
+    color: #fff;
+    font-size: 0.6rem;
+    font-weight: 700;
+    white-space: nowrap;
+    transform: translate(-50%, -50%);
+}
+
+/* Subscriber fiber path card */
+.fpm-sub-path {
+    margin-top: 0.5rem;
+}
+
+.fpm-sub-path__total {
+    font-size: 0.875rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+}
+
+.fpm-sub-path__list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+
+.fpm-sub-path__item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.45rem 0.55rem;
+    border-radius: 8px;
+    background: rgba(148, 163, 184, 0.12);
+    font-size: 0.8125rem;
+}
+
+.fpm-sub-path__color {
+    width: 0.65rem;
+    height: 2rem;
+    border-radius: 3px;
+    flex-shrink: 0;
+}
+
+.fpm-sub-path__meta {
+    flex: 1;
+    min-width: 0;
+}
+
+.fpm-sub-path__meta strong {
+    display: block;
+}
+
+.fpm-sub-path__len {
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+}

@@ -326,7 +326,7 @@ class BillCollectionDesk extends Page
 
     private function refreshDueAfterPayment(\App\Models\Customer $customer): void
     {
-        $due = BillingDueRealtimeSync::afterPayment($customer, queueNetwork: true);
+        $due = BillingDueRealtimeSync::afterPayment($customer, queueNetwork: false);
         $this->search = $customer->customer_code;
         $this->runSearch();
         $this->reloadCustomer();

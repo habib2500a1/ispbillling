@@ -8,6 +8,7 @@ use App\Filament\Resources\InvoiceResource;
 use App\Filament\Resources\NotificationLogResource;
 use App\Models\Branch;
 use App\Models\Customer;
+use App\Services\Billing\CustomerPrepayService;
 use App\Models\CustomerContact;
 use App\Models\Invoice;
 use App\Models\NotificationLog;
@@ -146,8 +147,8 @@ final class SubscriberClientDetailsPresenter
                 'speed' => $customer->package
                     ? ($customer->package->download_mbps ?? '?').' / '.($customer->package->upload_mbps ?? '?').' Mbps'
                     : '—',
-                'monthly_bill' => $customer->package?->price_monthly
-                    ? number_format((float) $customer->package->price_monthly, 2).' BDT'
+                'monthly_bill' => ($monthly = app(CustomerPrepayService::class)->monthlyRate($customer)) !== null
+                    ? number_format($monthly, 2).' BDT'
                     : '—',
                 'valid_until' => $customer->service_expires_at?->format('d-M-Y') ?? '—',
                 'activation_date' => $customer->joined_at?->format('d-M-Y') ?? '—',

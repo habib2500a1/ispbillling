@@ -675,6 +675,10 @@ final class BandwidthCollectionService
             return;
         }
 
+        if ($this->tenantHasRecentOnlinePollEvidence($tenantId)) {
+            return;
+        }
+
         $now = now();
         $this->syncCustomerOnlineFlags($tenantId, []);
         $this->closeStaleSessions($tenantId, [], $now);
@@ -705,6 +709,10 @@ final class BandwidthCollectionService
             return;
         }
 
+        if ($this->tenantHasRecentOnlinePollEvidence($tenantId)) {
+            return;
+        }
+
         $now = now();
         $this->syncCustomerOnlineFlags($tenantId, []);
         $this->closeStaleSessions($tenantId, [], $now);
@@ -728,6 +736,22 @@ final class BandwidthCollectionService
             ->where('tenant_id', $tenantId)
             ->where('is_enabled', true)
             ->where('last_api_status', 'online')
+            ->exists();
+    }
+
+    /**
+     * Recent successful poll left online flags — do not mass-clear on a transient API probe failure.
+     */
+    public function tenantHasRecentOnlinePollEvidence(int $tenantId): bool
+    {
+        $intervalMinutes = max(1, (int) config('bandwidth.poll_interval_minutes', 5));
+        $cutoff = now()->subMinutes($intervalMinutes * 4);
+
+        return Customer::query()
+            ->withoutGlobalScopes()
+            ->where('tenant_id', $tenantId)
+            ->where('is_ppp_online', true)
+            ->where('ppp_last_seen_at', '>=', $cutoff)
             ->exists();
     }
 
@@ -867,6 +891,10 @@ final class BandwidthCollectionService
         }
 
         if ($this->freshBandwidthSyncShowsActiveSubscribers($tenantId)) {
+            return (int) (clone $query)->where('is_ppp_online', true)->count();
+        }
+
+        if ($this->tenantHasRecentOnlinePollEvidence($tenantId)) {
             return (int) (clone $query)->where('is_ppp_online', true)->count();
         }
 

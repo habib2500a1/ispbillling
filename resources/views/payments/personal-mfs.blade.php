@@ -33,7 +33,9 @@
     <div class="card">
         <h1>{{ $gatewayLabel }} payment</h1>
         <p class="amt">{{ number_format($amount, 2) }} BDT</p>
-        @if ($invoice)
+        @if (($paymentType ?? '') === 'prepay' && ($prepayMonths ?? 0) > 0)
+            <p style="font-size:.875rem;color:#64748b;">Advance payment: <strong>{{ $prepayMonths }} month(s)</strong> (includes current due if any)</p>
+        @elseif ($invoice)
             <p style="font-size:.875rem;color:#64748b;">Invoice: {{ $invoice->invoice_number }}</p>
         @endif
         <ol class="steps">
@@ -70,7 +72,13 @@
             <button type="submit">Verify payment</button>
         </form>
         <p style="text-align:center;margin-top:1rem;font-size:.8rem;">
-            <a href="{{ route('bill-payment.invoice') }}">← Back</a>
+            @if (($returnTo ?? '') === 'portal')
+                <a href="{{ route('portal.bills.index') }}">← Back to bills</a>
+            @elseif (($paymentType ?? '') === 'prepay')
+                <a href="{{ route('bill-payment.invoice', ['tab' => 'prepay']) }}">← Back</a>
+            @else
+                <a href="{{ route('bill-payment.invoice') }}">← Back</a>
+            @endif
         </p>
     </div>
 </body>

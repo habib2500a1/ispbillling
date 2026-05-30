@@ -120,8 +120,28 @@
 
                     <dl class="portal-detail-list">
                         <div class="portal-detail-list__item">
+                            <dt>Username</dt>
+                            <dd class="portal-mono">{{ $onu['username'] ?? '-' }}</dd>
+                        </div>
+                        <div class="portal-detail-list__item">
+                            <dt>Port</dt>
+                            <dd class="portal-mono">{{ $onu['port'] ?? '-' }}</dd>
+                        </div>
+                        <div class="portal-detail-list__item">
                             <dt>MAC</dt>
                             <dd class="portal-mono">{{ $onu['mac'] ?? '-' }}</dd>
+                        </div>
+                        <div class="portal-detail-list__item">
+                            <dt>Model</dt>
+                            <dd>{{ $onu['model'] ?? '-' }}</dd>
+                        </div>
+                        <div class="portal-detail-list__item">
+                            <dt>Vendor</dt>
+                            <dd>{{ $onu['vendor'] ?? '-' }}</dd>
+                        </div>
+                        <div class="portal-detail-list__item">
+                            <dt>Distance</dt>
+                            <dd>{{ isset($onu['distance_m']) && $onu['distance_m'] ? $onu['distance_m'].' m' : '-' }}</dd>
                         </div>
                         <div class="portal-detail-list__item">
                             <dt>Serial</dt>
@@ -131,10 +151,22 @@
                             <dt>Label</dt>
                             <dd>{{ $onu['label'] ?? '-' }}</dd>
                         </div>
+                        @if (! empty($onu['cust_mac_found']))
+                            <div class="portal-detail-list__item">
+                                <dt>Customer MAC seen</dt>
+                                <dd>{{ $onu['cust_mac_found'] }}</dd>
+                            </div>
+                        @endif
                         <div class="portal-detail-list__item">
                             <dt>Last OLT poll</dt>
                             <dd id="onu-polled">{{ $onu['last_polled'] ?? '-' }}</dd>
                         </div>
+                        @if (! empty($onu['detected_label']))
+                            <div class="portal-detail-list__item">
+                                <dt>Detection</dt>
+                                <dd>{{ $onu['detected_label'] }}</dd>
+                            </div>
+                        @endif
                     </dl>
                 </section>
             </div>

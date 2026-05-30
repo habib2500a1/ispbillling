@@ -232,6 +232,7 @@ Route::middleware(['portal.enabled', 'auth:customer'])->group(function () {
     Route::get('/portal/speed-test', [PortalSpeedTestController::class, 'index'])->name('portal.speed-test.index');
     Route::get('/portal/speed-test/ping', [PortalSpeedTestController::class, 'ping'])->name('portal.speed-test.ping');
     Route::get('/portal/speed-test/download', [PortalSpeedTestController::class, 'download'])->name('portal.speed-test.download');
+    Route::get('/portal/speed-test/quick', [PortalSpeedTestController::class, 'quickDownload'])->name('portal.speed-test.quick');
     Route::post('/portal/speed-test/upload', [PortalSpeedTestController::class, 'upload'])->name('portal.speed-test.upload');
     Route::get('/portal/account/password', [PortalAccountController::class, 'editPassword'])->name('portal.account.password');
     Route::post('/portal/account/password', [PortalAccountController::class, 'updatePassword'])->name('portal.account.password.update');

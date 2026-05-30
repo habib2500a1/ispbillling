@@ -91,7 +91,7 @@
                     ['url' => \App\Filament\Pages\Dashboard::getUrl(), 'label' => 'Home', 'icon' => 'heroicon-o-home'],
                     ['url' => \App\Filament\Resources\OltResource::getUrl(), 'label' => 'OLTs', 'icon' => 'heroicon-o-server-stack', 'active' => true],
                     ['url' => \App\Filament\Pages\OpticalMonitoringHub::getUrl(), 'label' => 'Optical', 'icon' => 'heroicon-o-light-bulb'],
-                    ['url' => \App\Filament\Pages\NetworkTopology::getUrl(), 'label' => 'Map', 'icon' => 'heroicon-o-share'],
+                    ['url' => \App\Filament\Pages\FiberPlantMap::getUrl(), 'label' => 'Fiber map', 'icon' => 'heroicon-o-map'],
                     ['url' => \App\Filament\Pages\ManageOpticalLaserSettings::getUrl(), 'label' => 'Laser', 'icon' => 'heroicon-o-adjustments-vertical'],
                 ] as $link)
                     <a

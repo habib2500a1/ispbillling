@@ -6,7 +6,7 @@
             <button
                 type="submit"
                 name="gateway"
-                value="{{ $method['gateway'] }}"
+                value="{{ $method['checkout'] ?? $method['gateway'] }}"
                 title="{{ $method['hint'] ?? '' }}"
                 @class(['bp-pay-method', 'bp-pay-method--'.$method['tone']])
             >

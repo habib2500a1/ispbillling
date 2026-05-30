@@ -47,7 +47,18 @@
                 Your internet line turns on automatically only after <strong>all dues are cleared</strong>.
             </div>
         @else
-            <div class="bp-alert bp-alert-ok mt-4">No due invoices. Wallet top-up is available for advance credit.</div>
+            <div class="bp-alert bp-alert-ok mt-4">
+                No due invoices right now.
+                @if ($prepayEnabled ?? false)
+                    @if ($prepayQuote ?? null)
+                        Use the <a href="{{ route('bill-payment.invoice', ['tab' => 'prepay']) }}" class="font-semibold underline">Pay months</a> tab to pay {{ number_format((float) ($prepayQuote['monthly_rate'] ?? 0), 2) }} BDT per month in advance (1, 2, 12 months, etc.).
+                    @else
+                        Open the <a href="{{ route('bill-payment.invoice', ['tab' => 'prepay']) }}" class="font-semibold underline">Pay months</a> tab if advance payment is configured for your account.
+                    @endif
+                @elseif ($walletTopupEnabled)
+                    Wallet top-up is available for advance credit.
+                @endif
+            </div>
         @endif
 
         <nav class="bp-tabs mt-6">
@@ -62,8 +73,27 @@
         </nav>
 
         @if ($activeTab === 'invoices')
-            @if ($invoices->isEmpty())
-                <div class="bp-alert bp-alert-ok mt-4">No outstanding invoice. You can add advance to wallet below.</div>
+            @if ($invoices->isEmpty() && ($prepayEnabled ?? false) && ($prepayQuote ?? null))
+                <div class="mt-4">
+                    <p class="mb-3 text-sm font-semibold text-teal-800">No bill due — pay advance months below or open the <a href="{{ route('bill-payment.invoice', ['tab' => 'prepay']) }}" class="underline">Pay months</a> tab.</p>
+                    <x-customer-prepay-form
+                        :quote="$prepayQuote"
+                        :action="route('bill-payment.prepay')"
+                        :payment-methods="$paymentMethods ?? []"
+                        :max-months="$prepayMaxMonths"
+                        :quick-months="$prepayQuickMonths"
+                        variant="bill-pay"
+                    />
+                </div>
+            @elseif ($invoices->isEmpty())
+                <div class="bp-alert bp-alert-ok mt-4">
+                    No outstanding invoice.
+                    @if ($prepayEnabled ?? false)
+                        Open the <a href="{{ route('bill-payment.invoice', ['tab' => 'prepay']) }}" class="font-semibold underline">Pay months</a> tab to extend your service in advance.
+                    @elseif ($walletTopupEnabled)
+                        You can add advance to wallet on the Wallet top-up tab.
+                    @endif
+                </div>
             @else
                 <h3 class="mt-4 text-sm font-bold uppercase tracking-wide text-slate-500">Outstanding invoices</h3>
                 @foreach ($invoices as $invoice)
@@ -99,17 +129,24 @@
             @endif
         @endif
 
-        @if ($activeTab === 'prepay' && ($prepayEnabled ?? false))
-            <div class="mt-4">
-                <x-customer-prepay-form
-                    :quote="$prepayQuote"
-                    :action="route('bill-payment.prepay')"
-                    :payment-methods="$paymentMethods ?? []"
-                    :max-months="$prepayMaxMonths"
-                    :quick-months="$prepayQuickMonths"
-                    variant="bill-pay"
-                />
-            </div>
+        @if ($activeTab === 'prepay')
+            @if ($prepayQuote ?? null)
+                <div class="mt-4">
+                    <x-customer-prepay-form
+                        :quote="$prepayQuote"
+                        :action="route('bill-payment.prepay')"
+                        :payment-methods="$paymentMethods ?? []"
+                        :max-months="$prepayMaxMonths"
+                        :quick-months="$prepayQuickMonths"
+                        variant="bill-pay"
+                    />
+                </div>
+            @else
+                <div class="bp-alert bp-alert-err mt-4">
+                    Advance month payment is not available for this account (no monthly package rate found).
+                    Contact your ISP if you need to pay multiple months in advance.
+                </div>
+            @endif
         @endif
 
         @if ($activeTab === 'wallet' && $walletTopupEnabled)
@@ -208,11 +245,10 @@
             </div>
         @endif
 
-        <div class="mt-6 flex flex-wrap gap-4 text-sm">
-            <a href="{{ route('portal.login') }}" class="bp-link">Customer portal</a>
+        <div class="mt-6 text-sm">
             <form method="post" action="{{ route('bill-payment.reset') }}">
                 @csrf
-                <button type="submit" class="bp-link bg-transparent border-0 p-0 cursor-pointer">Different client code</button>
+                <button type="submit" class="bp-link bg-transparent border-0 p-0 cursor-pointer">Use a different client code</button>
             </form>
         </div>
     </div>

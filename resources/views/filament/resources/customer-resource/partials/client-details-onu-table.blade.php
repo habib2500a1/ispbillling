@@ -53,6 +53,17 @@
         @endif
     </div>
 @else
+    @if (! empty($snapshot['detected_label']))
+        <div class="mb-2 flex flex-wrap items-center gap-2">
+            <span class="inline-flex items-center gap-1.5 rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-semibold text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-200">
+                <span class="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
+                {{ $snapshot['detected_label'] }}
+            </span>
+            @if (! empty($snapshot['fdb_synced_at']))
+                <span class="text-[11px] text-slate-500 dark:text-slate-400">OLT synced {{ \Illuminate\Support\Carbon::parse($snapshot['fdb_synced_at'])->diffForHumans() }}</span>
+            @endif
+        </div>
+    @endif
     <div class="mb-2 flex flex-wrap gap-2">
         @if (! empty($optical_noc_url))
             <a href="{{ $optical_noc_url }}" class="isp-cd-btn isp-cd-btn--ghost text-xs">Optical NOC</a>
@@ -77,9 +88,12 @@
                     <th>OnuMacaddress</th>
                     <th>OLTPort</th>
                     <th>OnuStatus</th>
+                    <th>Model</th>
+                    <th>Vendor</th>
                     <th>Description</th>
-                    <th>LastDeregisterTime</th>
                     <th>Distance</th>
+                    <th>Cust MAC found</th>
+                    <th>LastDeregisterTime</th>
                     <th>DeregisterReason</th>
                     <th>Last Synced Time</th>
                 </tr>
@@ -115,9 +129,12 @@
                                 'isp-optical-status--offline' => strtolower($row['onu_status']) !== 'online',
                             ])>{{ $row['onu_status'] }}</span>
                         </td>
+                        <td class="font-mono text-xs">{{ $row['model'] ?? '—' }}</td>
+                        <td class="text-xs whitespace-nowrap">{{ $row['vendor'] ?? '—' }}</td>
                         <td class="max-w-[8rem] truncate" title="{{ $row['description'] }}">{{ $row['description'] }}</td>
+                        <td class="tabular-nums whitespace-nowrap">{{ $row['distance'] }}</td>
+                        <td class="text-xs whitespace-nowrap">{{ $row['cust_mac_found'] ?? '—' }}</td>
                         <td class="text-xs whitespace-nowrap">{{ $row['last_deregister_time'] }}</td>
-                        <td class="tabular-nums">{{ $row['distance'] }}</td>
                         <td class="text-xs">{{ $row['deregister_reason'] }}</td>
                         <td class="text-xs whitespace-nowrap">{{ $row['last_synced_time'] }}</td>
                     </tr>

@@ -30,7 +30,7 @@ class VendorPaymentService
         $bankAccountId = $payment->bank_account_id;
 
         $lines = [
-            ['account_code' => $expenseCode, 'debit' => $netExpense, 'description' => $payment->vendor?->name],
+            ['account_code' => $expenseCode, 'debit' => $netExpense, 'description' => $payment->displayName()],
         ];
         if ($vat > 0) {
             $lines[] = ['account_code' => $vatCode, 'debit' => $vat, 'description' => 'Input VAT'];
@@ -39,11 +39,11 @@ class VendorPaymentService
             'account_code' => $creditAccountCode,
             'credit' => $amount,
             'bank_account_id' => $bankAccountId,
-            'description' => $payment->vendor?->name,
+            'description' => $payment->displayName(),
         ];
 
         $journal = $this->ledger->post(
-            'Vendor payment: '.($payment->vendor?->name ?? '#'.$payment->vendor_id),
+            'Expense: '.$payment->displayName(),
             $lines,
             $payment->payment_date,
             'vendor_payment',

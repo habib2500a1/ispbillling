@@ -74,6 +74,14 @@ final class BdcomEponOnuSyncService
                 $timeoutUs,
                 $retries,
             );
+            // ONU ranging distance (metres), keyed by ONU MAC compact.
+            $distanceByMac = $this->walkDistanceByMac(
+                $peer,
+                $community,
+                (string) ($oids['bdcom_epon_onu_distance'] ?? '1.3.6.1.4.1.3320.101.11.1.1.7'),
+                $timeoutUs,
+                $retries,
+            );
 
             $discovered = [];
             foreach ($ifMap as $ifIndex => $info) {
@@ -88,6 +96,7 @@ final class BdcomEponOnuSyncService
 
                 $statusKey = $info['pon_ifindex'].'.'.$info['onu_index'];
                 $statusCode = $statusByPonOnu[$statusKey] ?? null;
+                $macCompact = strtoupper(str_replace(':', '', $mac));
 
                 $discovered[] = [
                     'if_index' => $ifIndex,
@@ -99,6 +108,7 @@ final class BdcomEponOnuSyncService
                     'description' => $descByIf[$ifIndex] ?? null,
                     'rx_dbm' => $rxByIf[$ifIndex] ?? null,
                     'tx_dbm' => $txByIf[$ifIndex] ?? null,
+                    'distance_m' => $distanceByMac[$macCompact] ?? null,
                     'oper_status' => $this->mapStatusCode($statusCode),
                     'bdcom_status' => $statusCode,
                 ];
@@ -261,6 +271,50 @@ final class BdcomEponOnuSyncService
     }
 
     /**
+     * ONU ranging distance (metres) indexed by «pon_ifindex.<6 mac octets>» → keyed by MAC compact.
+     *
+     * @return array<string, int>
+     */
+    private function walkDistanceByMac(string $peer, string $community, string $oid, int $timeoutUs, int $retries): array
+    {
+        $out = [];
+        try {
+            // Indexed by «pon_ifindex.<mac octets>» — non-monotonic, so the increasing check must be
+            // off or the GETNEXT walk truncates after a handful of rows.
+            foreach (SnmpClient::realWalkUnchecked($peer, $community, $oid, $timeoutUs, $retries) as $key => $value) {
+                $suffix = SnmpClient::suffixFromOidKey($key, $oid);
+                if ($suffix === null) {
+                    continue;
+                }
+                $octets = explode('.', $suffix);
+                if (count($octets) < 6) {
+                    continue;
+                }
+                $macOctets = array_slice($octets, -6);
+                $mac = '';
+                foreach ($macOctets as $octet) {
+                    if (! ctype_digit($octet) || (int) $octet > 255) {
+                        $mac = '';
+                        break;
+                    }
+                    $mac .= sprintf('%02X', (int) $octet);
+                }
+                if (strlen($mac) !== 12) {
+                    continue;
+                }
+                $distance = (int) preg_replace('/\D/', '', (string) $value);
+                if ($distance > 0) {
+                    $out[$mac] = $distance;
+                }
+            }
+        } catch (\Throwable $e) {
+            Log::debug('bdcom.onu_distance_walk_failed', ['oid' => $oid, 'error' => $e->getMessage()]);
+        }
+
+        return $out;
+    }
+
+    /**
      * BDCOM opModuleRxPower / opModuleTxPower — unit 0.1 dBm (divide in OpticalPowerNormalizer only).
      *
      * @return array<int, float>
@@ -392,8 +446,12 @@ final class BdcomEponOnuSyncService
 
         $meta = is_array($onu->meta) ? $onu->meta : [];
         $meta['bdcom_if_index'] = $row['if_index'];
+        $meta['snmp_if_index'] = $row['if_index']; // generic key used by the vendor-agnostic FDB bridge
         $meta['bdcom_status'] = $row['bdcom_status'];
         $meta['bdcom_label'] = $row['label'];
+        if (($row['distance_m'] ?? null) !== null) {
+            $meta['bdcom_distance'] = (int) $row['distance_m'];
+        }
         $meta['last_bdcom_sync'] = now()->toIso8601String();
         if ($description !== '') {
             $meta['bdcom_description'] = $description;

@@ -88,6 +88,14 @@ final class AccountsSidebarRegistry
                 'active_routes' => ['filament.admin.resources.vendor-payments.create'],
             ],
             [
+                'key' => 'add_general_expense',
+                'label' => 'General expense',
+                'icon' => 'heroicon-o-receipt-percent',
+                'sort' => 9.5,
+                'url' => VendorPaymentResource::getUrl('create').'?type=general',
+                'active_routes' => ['filament.admin.resources.vendor-payments.create'],
+            ],
+            [
                 'key' => 'my_salary',
                 'label' => 'My salary',
                 'icon' => 'heroicon-o-banknotes',
@@ -197,7 +205,7 @@ final class AccountsSidebarRegistry
             'bkash' => ManagePaymentSettings::canAccess(),
             'income_vs_expense' => AccountsIncomeVsExpensePage::canAccess(),
             'income' => AccountsIncomePage::canAccess(),
-            'expenses', 'add_expense' => VendorPaymentResource::canViewAny(),
+            'expenses', 'add_expense', 'add_general_expense' => VendorPaymentResource::canViewAny(),
             'my_salary' => AccountsMySalaryPage::canAccess(),
             'financial_reports' => FinancialReports::canAccess(),
             'ledger' => AccountingHub::canAccess(),

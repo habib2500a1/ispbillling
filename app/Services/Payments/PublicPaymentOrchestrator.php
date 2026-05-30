@@ -6,6 +6,7 @@ use App\Http\Controllers\BkashPaymentController;
 use App\Exceptions\PaymentGatewayException;
 use App\Models\Customer;
 use App\Models\Invoice;
+use App\Support\BkashSettings;
 use App\Support\PaymentGateway;
 use App\Support\PaymentType;
 use App\Services\Payments\RocketCheckoutService;
@@ -20,18 +21,23 @@ final class PublicPaymentOrchestrator
         string $gateway,
         string $returnTo = 'bill_payment',
     ): RedirectResponse {
-        $gateway = strtolower(trim($gateway));
-
-        $bkash = app(BkashPaymentController::class);
+        $resolved = PaymentGateway::resolveCheckoutSelection($gateway);
+        $gateway = $resolved['gateway'];
 
         $customer = $invoice->customer;
 
+        if ($gateway === PaymentGateway::BKASH) {
+            return $this->routeBkashCheckout(
+                $resolved['mode'],
+                $invoice,
+                $customer,
+                $amount,
+                $returnTo,
+                PaymentType::PAYMENT,
+            );
+        }
+
         return match ($gateway) {
-            PaymentGateway::BKASH => PersonalMfsGateway::bkashPersonalEnabled()
-                ? $this->startPersonalMfs(PaymentGateway::BKASH, $invoice, $customer, $amount, $returnTo, PaymentType::PAYMENT)
-                : ($returnTo === 'bill_payment'
-                    ? $bkash->initiatePublic($invoice, $amount)
-                    : $bkash->initiatePortal(request(), $invoice)),
             PaymentGateway::SSLCOMMERZ => $this->startSslCommerz($invoice, null, $amount, $returnTo, PaymentType::PAYMENT),
             PaymentGateway::NAGAD => PersonalMfsGateway::nagadPersonalEnabled()
                 ? $this->startPersonalMfs(PaymentGateway::NAGAD, $invoice, $customer, $amount, $returnTo, PaymentType::PAYMENT)
@@ -44,14 +50,21 @@ final class PublicPaymentOrchestrator
 
     public function startWalletTopup(Customer $customer, float $amount, string $gateway): RedirectResponse
     {
-        $gateway = strtolower(trim($gateway));
+        $resolved = PaymentGateway::resolveCheckoutSelection($gateway);
+        $gateway = $resolved['gateway'];
 
-        $bkash = app(BkashPaymentController::class);
+        if ($gateway === PaymentGateway::BKASH) {
+            return $this->routeBkashCheckout(
+                $resolved['mode'],
+                null,
+                $customer,
+                $amount,
+                'bill_payment',
+                PaymentType::WALLET_DEPOSIT,
+            );
+        }
 
         return match ($gateway) {
-            PaymentGateway::BKASH => PersonalMfsGateway::bkashPersonalEnabled()
-                ? $this->startPersonalMfs(PaymentGateway::BKASH, null, $customer, $amount, 'bill_payment', PaymentType::WALLET_DEPOSIT)
-                : $bkash->initiatePublicWallet($customer, $amount),
             PaymentGateway::SSLCOMMERZ => $this->startSslCommerz(null, $customer, $amount, 'bill_payment', PaymentType::WALLET_DEPOSIT),
             PaymentGateway::NAGAD => PersonalMfsGateway::nagadPersonalEnabled()
                 ? $this->startPersonalMfs(PaymentGateway::NAGAD, null, $customer, $amount, 'bill_payment', PaymentType::WALLET_DEPOSIT)
@@ -70,22 +83,30 @@ final class PublicPaymentOrchestrator
         string $gateway,
         string $returnTo = 'bill_payment',
     ): RedirectResponse {
-        $gateway = strtolower(trim($gateway));
+        $resolved = PaymentGateway::resolveCheckoutSelection($gateway);
+        $gateway = $resolved['gateway'];
         $months = max(1, $months);
 
-        $bkash = app(BkashPaymentController::class);
+        if ($gateway === PaymentGateway::BKASH) {
+            return $this->routeBkashCheckout(
+                $resolved['mode'],
+                null,
+                $customer,
+                $amount,
+                $returnTo,
+                PaymentType::PREPAY,
+                $months,
+            );
+        }
 
         return match ($gateway) {
-            PaymentGateway::BKASH => PersonalMfsGateway::bkashPersonalEnabled()
-                ? $this->startPersonalMfs(PaymentGateway::BKASH, null, $customer, $amount, $returnTo, PaymentType::PREPAY, $months)
-                : $bkash->initiatePublicPrepay($customer, $amount, $months, $returnTo),
             PaymentGateway::SSLCOMMERZ => $this->startSslCommerz(null, $customer, $amount, $returnTo, PaymentType::PREPAY, $months),
             PaymentGateway::NAGAD => PersonalMfsGateway::nagadPersonalEnabled()
                 ? $this->startPersonalMfs(PaymentGateway::NAGAD, null, $customer, $amount, $returnTo, PaymentType::PREPAY, $months)
                 : $this->startNagad(null, $customer, $amount, $returnTo, PaymentType::PREPAY, $months),
             PaymentGateway::ROCKET => $this->startRocket(null, $customer, $amount, $returnTo, PaymentType::PREPAY, $months),
             PaymentGateway::PIPRAPAY => $this->startPipraPay(null, $customer, $amount, $returnTo, PaymentType::PREPAY, $months),
-            default => $this->fail(null, $returnTo, 'This payment method is not available for advance payment.'),
+            default => $this->fail(null, $returnTo, 'This payment method is not available for advance payment.', PaymentType::PREPAY),
         };
     }
 
@@ -275,6 +296,74 @@ final class PublicPaymentOrchestrator
             ->startCheckout($invoice, $customer, $amount, $returnTo, $paymentType, $prepayMonths)['redirect'];
     }
 
+    private function routeBkashCheckout(
+        ?string $mode,
+        ?Invoice $invoice,
+        ?Customer $customer,
+        float $amount,
+        string $returnTo,
+        string $paymentType,
+        int $prepayMonths = 0,
+    ): RedirectResponse {
+        $channel = $returnTo === 'portal' ? BkashSettings::CHANNEL_PORTAL : BkashSettings::CHANNEL_PUBLIC_PAY;
+
+        $merchantReady = BkashSettings::isMerchantActiveForChannel($channel);
+        $personalReady = BkashSettings::isPersonalActiveForChannel($channel);
+
+        $usePersonal = match ($mode) {
+            'personal' => true,
+            'merchant' => ! $merchantReady && $personalReady,
+            default => $personalReady && ! $merchantReady,
+        };
+
+        if ($mode === 'merchant' && ! $merchantReady && ! $personalReady) {
+            return $this->fail(
+                $invoice,
+                $returnTo,
+                BkashSettings::isMerchantEnabled()
+                    ? 'bKash Merchant API credentials are missing. Add App key, secret, username and password under Admin → Payment → bKash Merchant API, then Save.'
+                    : 'bKash Merchant checkout is disabled. Enable it in payment gateway settings or use bKash Personal.',
+                $paymentType,
+            );
+        }
+
+        if ($usePersonal) {
+            if (! PersonalMfsGateway::bkashPersonalEnabled()) {
+                return $this->fail($invoice, $returnTo, 'bKash Personal is not configured.', $paymentType);
+            }
+
+            return $this->startPersonalMfs(
+                PaymentGateway::BKASH,
+                $invoice,
+                $customer,
+                $amount,
+                $returnTo,
+                $paymentType,
+                $prepayMonths,
+            );
+        }
+
+        $bkash = app(BkashPaymentController::class);
+
+        if ($paymentType === PaymentType::PREPAY) {
+            return $bkash->initiatePublicPrepay($customer, $amount, $prepayMonths, $returnTo);
+        }
+
+        if ($paymentType === PaymentType::WALLET_DEPOSIT) {
+            return $bkash->initiatePublicWallet($customer, $amount);
+        }
+
+        if ($returnTo === 'bill_payment' && $invoice !== null) {
+            return $bkash->initiatePublic($invoice, $amount);
+        }
+
+        if ($invoice !== null) {
+            return $bkash->initiatePortal(request(), $invoice);
+        }
+
+        return $this->fail($invoice, $returnTo, 'bKash Merchant checkout is not available.', $paymentType);
+    }
+
     private function startPersonalMfs(
         string $gateway,
         ?Invoice $invoice,
@@ -285,12 +374,12 @@ final class PublicPaymentOrchestrator
         int $prepayMonths = 0,
     ): RedirectResponse {
         if (! PersonalMfsGateway::isPersonalEnabled($gateway)) {
-            return $this->fail($invoice, $returnTo, PaymentGateway::label($gateway).' personal payment is not configured.');
+            return $this->fail($invoice, $returnTo, PaymentGateway::label($gateway).' personal payment is not configured.', $paymentType);
         }
 
         $customer ??= $invoice?->customer;
         if ($customer === null) {
-            return $this->fail($invoice, $returnTo, 'Customer not found.');
+            return $this->fail($invoice, $returnTo, 'Customer not found.', $paymentType);
         }
 
         return app(PersonalMfsCheckoutService::class)
@@ -325,10 +414,12 @@ final class PublicPaymentOrchestrator
         return $payload;
     }
 
-    private function fail(?Invoice $invoice, string $returnTo, string $message): RedirectResponse
+    private function fail(?Invoice $invoice, string $returnTo, string $message, ?string $paymentType = null): RedirectResponse
     {
         if ($returnTo === 'bill_payment') {
-            return redirect()->route('bill-payment.invoice')->with('danger', $message);
+            $params = $paymentType === PaymentType::PREPAY ? ['tab' => 'prepay'] : [];
+
+            return redirect()->route('bill-payment.invoice', $params)->with('danger', $message);
         }
 
         if ($returnTo === 'portal') {

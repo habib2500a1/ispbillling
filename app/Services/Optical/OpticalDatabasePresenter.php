@@ -86,7 +86,7 @@ final class OpticalDatabasePresenter
     }
 
     /**
-     * @return array{total: int, with_rx: int, linked: int}
+     * @return array{total: int, with_rx: int, linked: int, auto_detected: int}
      */
     public function summary(int $tenantId): array
     {
@@ -96,6 +96,7 @@ final class OpticalDatabasePresenter
             'total' => (clone $base)->count(),
             'with_rx' => (clone $base)->whereNotNull('rx_power_dbm')->count(),
             'linked' => (clone $base)->whereNotNull('customer_id')->count(),
+            'auto_detected' => (clone $base)->where('meta->linked_by', 'olt_fdb_mac')->count(),
         ];
     }
 }

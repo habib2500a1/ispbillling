@@ -63,6 +63,13 @@
             </div>
         </div>
 
+        @if ($stats['sync_stale'] ?? false)
+            <div class="isp-online-clients-alert" role="status">
+                MikroTik sync is stale — counts use last known online data.
+                Click <strong>Sync live sessions</strong> to refresh from the router.
+            </div>
+        @endif
+
         @if ($stats['unmatched_hint'])
             <div class="isp-online-clients-alert" role="status">
                 Router reports active sessions but no subscriber is marked online.

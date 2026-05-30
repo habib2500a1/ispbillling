@@ -18,13 +18,7 @@ class PortalPrepayController extends Controller
 
         $validated = $request->validate([
             'months' => ['required', 'integer', 'min:1', 'max:'.$maxMonths],
-            'gateway' => ['required', 'string', 'in:'.implode(',', [
-                PaymentGateway::BKASH,
-                PaymentGateway::SSLCOMMERZ,
-                PaymentGateway::NAGAD,
-                PaymentGateway::ROCKET,
-                PaymentGateway::PIPRAPAY,
-            ])],
+            'gateway' => ['required', 'string', 'in:'.implode(',', PaymentGateway::customerCheckoutGateways())],
         ]);
 
         $quote = $prepay->assertQuote($customer, (int) $validated['months']);

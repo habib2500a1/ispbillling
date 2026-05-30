@@ -16,18 +16,18 @@
             <p class="portal-auth-sub">{{ __('portal.customer_portal') }} · {{ __('portal.login_hint') }}</p>
 
             @if ($portalOtpEnabled ?? false)
-                <div class="portal-note-banner mt-4">
+                <div class="portal-note-banner portal-auth-note-spaced">
                     Two-step login is enabled. After your password, you will enter a code sent to your email.
                 </div>
             @endif
 
             @if (session('portal_session_expired'))
-                <div class="portal-note-banner mt-4" role="alert">
+                <div class="portal-note-banner portal-auth-note-spaced" role="alert">
                     Your login session expired because the page stayed open too long or cookies were blocked. Please sign in again.
                 </div>
             @endif
 
-            <form method="post" action="{{ route('portal.login.store') }}" class="portal-auth-form text-left">
+            <form method="post" action="{{ route('portal.login.store') }}" class="portal-auth-form">
                 @csrf
                 <div>
                     <label for="login">Customer code, phone, or email</label>
@@ -37,24 +37,24 @@
                     <label for="password">Password</label>
                     <input id="password" name="password" type="password" required autocomplete="current-password" placeholder="Enter your portal password">
                 </div>
-                <label class="flex items-center gap-2 text-sm text-slate-600">
-                    <input name="remember" type="checkbox" value="1" class="rounded border-slate-300 text-violet-600" {{ old('remember') ? 'checked' : '' }}>
+                <label class="portal-auth-remember">
+                    <input name="remember" type="checkbox" value="1" class="portal-auth-checkbox" {{ old('remember') ? 'checked' : '' }}>
                     {{ __('portal.remember_device') }}
                 </label>
                 <div class="portal-auth-actions">
-                    <button type="submit" class="portal-btn-primary w-full py-3 text-base">{{ __('portal.login') }}</button>
+                    <button type="submit" class="portal-btn-primary portal-btn-primary--block">{{ __('portal.login') }}</button>
                 </div>
             </form>
 
             @if (config('portal.signup.enabled', true))
                 <div class="portal-auth-divider">New here?</div>
-                <p class="mt-4 text-center text-sm text-slate-600">
+                <p class="portal-auth-footer-text">
                     {{ __('portal.new_customer') }}
                     <a href="{{ route('portal.signup') }}" class="portal-link">{{ __('portal.request_connection') }}</a>
                 </p>
             @endif
 
-            <x-mobile-app-promo variant="compact" class="mt-6" />
+            <x-mobile-app-promo variant="compact" class="portal-auth-note-spaced" />
             </div>
         </section>
 

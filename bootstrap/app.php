@@ -29,11 +29,13 @@ return Application::configure(basePath: dirname(__DIR__))
         $schedule->command('isp:run-automatic-processes')
             ->everyMinute()
             ->withoutOverlapping(30)
+            ->runInBackground()
             ->onOneServer();
 
         $schedule->command('mfs:match-pending-payments')
             ->everyMinute()
             ->withoutOverlapping(2)
+            ->runInBackground()
             ->onOneServer()
             ->when(fn (): bool => (bool) config('mfs_personal.sms_ingest.enabled', false));
 

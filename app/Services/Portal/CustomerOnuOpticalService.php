@@ -40,14 +40,25 @@ final class CustomerOnuOpticalService
         $oper = strtolower((string) ($onu->onu_oper_status ?? 'unknown'));
         $level = OnuSignalLevel::classifyRx($rx !== null ? (float) $rx : null, $oper);
         $health = $onu->onuHealthScore;
+        $meta = is_array($onu->meta) ? $onu->meta : [];
+        $linkedBy = (string) ($meta['linked_by'] ?? '');
 
         return [
             'linked' => true,
             'device_id' => $onu->id,
             'label' => $onu->display_name ?: $onu->serial_number,
+            'username' => $customer->pppLoginName(),
+            'port' => $onu->display_name,
+            'detected_via' => $linkedBy,
+            'detected_label' => \App\Support\OnuLinkMethod::label($linkedBy),
+            'detected_auto' => \App\Support\OnuLinkMethod::isAuto($linkedBy),
             'mac' => $onu->mac_address,
             'serial' => $onu->serial_number,
-            'model' => is_array($onu->meta) ? ($onu->meta['model'] ?? $onu->meta['bdcom_label'] ?? null) : null,
+            'model' => $meta['model']
+                ?? ((($d = (string) ($meta['bdcom_description'] ?? '')) !== '' && ! \App\Support\BdcomOnuDescriptionHeuristic::isOltPlaceholderLabel($d)) ? $d : null),
+            'vendor' => \App\Support\MacVendor::lookup($onu->mac_address),
+            'distance_m' => isset($meta['bdcom_distance']) ? (int) $meta['bdcom_distance'] : (isset($meta['distance_m']) ? (int) $meta['distance_m'] : null),
+            'cust_mac_found' => isset($meta['fdb_synced_at']) ? \Illuminate\Support\Carbon::parse((string) $meta['fdb_synced_at'])->diffForHumans() : null,
             'oper_status' => $oper,
             'rx_dbm' => $rx !== null ? round((float) $rx, 2) : null,
             'tx_dbm' => $tx !== null ? round((float) $tx, 2) : null,

@@ -22,6 +22,7 @@ use Filament\Notifications\Notification;
 use Filament\Pages\Concerns\InteractsWithFormActions;
 use Filament\Pages\Page;
 use Illuminate\Support\Facades\Log;
+use Livewire\Attributes\Url;
 
 /**
  * @property Form $form
@@ -49,6 +50,10 @@ class ManagePaymentSettings extends Page
      */
     public ?array $data = [];
 
+    /** Active merchant gateway tab — synced to ?gateway= (survives Livewire save). */
+    #[Url(as: 'gateway', except: 'piprapay')]
+    public string $activeGatewayTab = 'piprapay';
+
     public static function canAccess(): bool
     {
         return PaymentAdminAccess::canManageGateways();
@@ -63,9 +68,23 @@ class ManagePaymentSettings extends Page
     {
         abort_unless(static::canAccess(), 403);
 
-        $gateway = request()->query('gateway');
-        if (in_array($gateway, ['bkash', 'nagad'], true) && request()->query('merchant') !== '1') {
-            $this->redirect(ManagePersonalMfsSettings::getUrl(['tab' => $gateway]));
+        $gateway = request()->query('gateway', 'piprapay');
+        $this->activeGatewayTab = $this->normalizeGatewayTab(is_string($gateway) ? $gateway : 'piprapay');
+
+        if ($gateway === 'bkash' && request()->query('merchant') === '1') {
+            $this->redirect(ManageBkashMerchantSettings::getUrl());
+
+            return;
+        }
+
+        if ($gateway === 'bkash' && request()->query('merchant') !== '1') {
+            $this->redirect(ManagePersonalMfsSettings::getUrl(['tab' => 'bkash']));
+
+            return;
+        }
+
+        if ($gateway === 'nagad' && request()->query('merchant') !== '1') {
+            $this->redirect(ManagePersonalMfsSettings::getUrl(['tab' => 'nagad']));
 
             return;
         }
@@ -85,14 +104,14 @@ class ManagePaymentSettings extends Page
                 $this->makeForm()
                     ->schema([
                         Tabs::make('gateways')
-                            ->activeTab(fn (): int => match (request()->query('gateway')) {
+                            ->activeTab(fn (): int => match ($this->activeGatewayTab) {
                                 'bkash' => 2,
                                 'nagad' => 3,
                                 'sslcommerz' => 4,
                                 'rocket' => 5,
-                                'piprapay' => 1,
                                 default => 1,
                             })
+                            ->persistTabInQueryString('gateway')
                             ->tabs([
                                 Tab::make('PipraPay')
                                     ->id('piprapay')
@@ -134,6 +153,7 @@ class ManagePaymentSettings extends Page
                                         TextInput::make('rocket_verify_url')
                                             ->label('Optional verify URL (POST)')
                                             ->url()
+                                            ->nullable()
                                             ->columnSpanFull(),
                                         Placeholder::make('rocket_webhook_hint')
                                             ->label('Webhook')
@@ -257,6 +277,27 @@ class ManagePaymentSettings extends Page
                     .\App\Filament\Pages\ManagePersonalMfsSettings::getUrl(['tab' => 'bkash'])
                     .'">Open bKash Personal / Nagad Personal</a> (Send Money + SMS — not this merchant API).'
                 )),
+            Placeholder::make('bkash_mode_status')
+                ->label('Live status on /pay & portal')
+                ->content(function (): \Illuminate\Support\HtmlString {
+                    $s = BkashSettings::statusSummary();
+                    $lines = [];
+                    $lines[] = $s['personal']
+                        ? '<span class="text-success-600">Personal: ON</span> ('.e($s['personal_number']).') — Send Money + TrxID'
+                        : '<span class="text-gray-500">Personal: OFF</span>';
+                    if ($s['merchant'] && $s['merchant_configured']) {
+                        $lines[] = '<span class="text-success-600">Merchant API: ON</span> — '.e(BkashSettings::callbackUrl());
+                    } elseif ($s['merchant']) {
+                        $lines[] = '<span class="text-warning-600">Merchant API: enabled but credentials incomplete</span>';
+                    } else {
+                        $lines[] = '<span class="text-gray-500">Merchant API: OFF</span> — enable below and Save';
+                    }
+
+                    return new \Illuminate\Support\HtmlString(
+                        '<div class="text-sm space-y-1">'.implode('<br>', $lines).'</div>'
+                    );
+                })
+                ->columnSpanFull(),
             Section::make('bKash Tokenized API (merchant checkout)')
                 ->description('Official bKash merchant API — callback URL must match bKash panel.')
                 ->schema([
@@ -267,8 +308,7 @@ class ManagePaymentSettings extends Page
                             BkashSettings::ENV_LIVE => 'Live (production)',
                         ])
                         ->inline()
-                        ->live()
-                        ->required(),
+                        ->live(),
                     Placeholder::make('bkash_base_url_preview')
                         ->label('API base URL (auto)')
                         ->content(fn ($get): string => BkashSettings::baseUrlForEnvironment(
@@ -276,51 +316,46 @@ class ManagePaymentSettings extends Page
                         )),
                     TextInput::make('bkash_app_key')
                         ->label('App key (X-APP-Key)')
-                        ->maxLength(255)
-                        ->required(),
+                        ->maxLength(255),
                     TextInput::make('bkash_app_secret')
                         ->label('App secret')
                         ->password()
                         ->revealable()
                         ->maxLength(255)
-                        ->dehydrated(false)
                         ->helperText('Leave blank to keep the saved secret.'),
                     TextInput::make('bkash_username')
                         ->label('Username')
-                        ->maxLength(255)
-                        ->required(),
+                        ->maxLength(255),
                     TextInput::make('bkash_password')
                         ->label('Password')
                         ->password()
                         ->revealable()
                         ->maxLength(255)
-                        ->dehydrated(false)
                         ->helperText('Leave blank to keep the saved password.'),
                     TextInput::make('bkash_http_timeout')
                         ->label('HTTP timeout (seconds)')
                         ->numeric()
                         ->minValue(5)
                         ->maxValue(120)
-                        ->required(),
+                        ->default(30),
                     TextInput::make('bkash_callback_url')
                         ->label('Callback URL (must match bKash merchant panel)')
-                        ->url()
                         ->maxLength(255)
-                        ->required()
                         ->helperText(BkashSettings::callbackUrlHint().' Your site: '.rtrim((string) config('app.url'), '/').'/bkash/callback')
                         ->placeholder(fn (): string => rtrim((string) config('app.url'), '/').'/bkash/callback'),
                 ])
                 ->columns(1),
-            Section::make('Payment status')
+            Section::make('Merchant API on /pay & portal')
                 ->schema([
                     Radio::make('bkash_enabled')
-                        ->label('Payment gateway status')
+                        ->label('bKash Merchant API')
                         ->options([
-                            '1' => 'Payment enabled',
-                            '0' => 'Payment disabled',
+                            '1' => 'Enabled (official checkout redirect)',
+                            '0' => 'Disabled',
                         ])
                         ->inline()
-                        ->required(),
+                        ->default('0')
+                        ->helperText('Does not turn off bKash Personal (TrxID). Both can show as two buttons for customers.'),
                 ]),
             Section::make('Activation & expiry')
                 ->description('Optional. Outside this window, bKash checkout is hidden even if enabled.')
@@ -340,7 +375,7 @@ class ManagePaymentSettings extends Page
                         ->label('Applicable for')
                         ->options(BkashSettings::channelLabels())
                         ->columns(1)
-                        ->required(),
+                        ->default(BkashSettings::allChannels()),
                 ]),
         ];
     }
@@ -350,15 +385,24 @@ class ManagePaymentSettings extends Page
      */
     protected function getFormActions(): array
     {
+        $tab = $this->resolvedGatewayTab();
+
         return [
             Action::make('testBkash')
-                ->label('Test connection')
+                ->label('Test bKash connection')
                 ->color('gray')
                 ->action('testBkashConnection')
-                ->visible(true),
+                ->visible($tab === 'bkash'),
             Action::make('save')
-                ->label('Save or update')
-                ->submit('save')
+                ->label(match ($tab) {
+                    'piprapay' => 'Save PipraPay',
+                    'bkash' => 'Save bKash Merchant API',
+                    'nagad' => 'Save Nagad Merchant API',
+                    'sslcommerz' => 'Save SSLCommerz',
+                    'rocket' => 'Save Rocket',
+                    default => 'Save',
+                })
+                ->action('save')
                 ->keyBindings(['mod+s']),
         ];
     }
@@ -366,6 +410,31 @@ class ManagePaymentSettings extends Page
     public function testBkashConnection(): void
     {
         abort_unless(static::canAccess(), 403);
+
+        $state = $this->data ?? [];
+        $appKey = trim((string) ($state['bkash_app_key'] ?? ''));
+        $username = trim((string) ($state['bkash_username'] ?? ''));
+        $appSecret = trim((string) ($state['bkash_app_secret'] ?? ''));
+        $password = trim((string) ($state['bkash_password'] ?? ''));
+
+        if ($appKey !== '') {
+            config(['bkash.app_key' => $appKey]);
+        }
+        if ($appSecret !== '') {
+            config(['bkash.app_secret' => $appSecret]);
+        }
+        if ($username !== '') {
+            config(['bkash.username' => $username]);
+        }
+        if ($password !== '') {
+            config(['bkash.password' => $password]);
+        }
+
+        $environment = (string) ($state['bkash_environment'] ?? BkashSettings::ENV_SANDBOX);
+        config([
+            'bkash.environment' => $environment,
+            'bkash.base_url' => BkashSettings::baseUrlForEnvironment($environment),
+        ]);
 
         $result = BkashSettings::testConnection();
 
@@ -381,107 +450,58 @@ class ManagePaymentSettings extends Page
     {
         abort_unless(static::canAccess(), 403);
 
-        $state = $this->form->getState();
-        $before = $this->bkashSnapshot();
-        $forceMerchant = request()->query('merchant') === '1';
+        $tab = $this->resolvedGatewayTab();
+        $state = $this->data ?? [];
 
-        $environment = (string) ($state['bkash_environment'] ?? BkashSettings::ENV_SANDBOX);
-        if (! in_array($environment, [BkashSettings::ENV_SANDBOX, BkashSettings::ENV_LIVE], true)) {
-            $environment = BkashSettings::ENV_SANDBOX;
+        $saved = match ($tab) {
+            'piprapay' => $this->savePipraPaySettings($state),
+            'bkash' => $this->saveBkashMerchantSettings($state),
+            'nagad' => $this->saveNagadMerchantSettings($state),
+            'sslcommerz' => $this->saveSslCommerzSettings($state),
+            'rocket' => $this->saveRocketSettings($state),
+            default => false,
+        };
+
+        if (! $saved) {
+            return;
         }
 
-        $bkashIsPersonal = (string) config('bkash.gateway_type') === BkashSettings::GATEWAY_PERSONAL;
+        AppSetting::syncToRuntimeConfig();
+        $this->fillBkashForm();
+        $this->clearPasswordFieldsAfterSave($tab);
+    }
 
-        if (! $bkashIsPersonal || $forceMerchant) {
-            AppSetting::putValue('bkash.gateway_type', BkashSettings::GATEWAY_TOKENIZED_WEB);
-            AppSetting::putValue('bkash.environment', $environment);
-            AppSetting::putValue('bkash.base_url', BkashSettings::baseUrlForEnvironment($environment));
-            AppSetting::putValue('bkash.enabled', ($state['bkash_enabled'] ?? '0') === '1' ? '1' : '0');
-            AppSetting::putValue('bkash.app_key', trim((string) ($state['bkash_app_key'] ?? '')));
-            AppSetting::putValue('bkash.username', trim((string) ($state['bkash_username'] ?? '')));
-            AppSetting::putValue('bkash.http_timeout', (string) max(5, min(120, (int) ($state['bkash_http_timeout'] ?? 30))));
+    /**
+     * @param  array<string, mixed>  $state
+     */
+    private function savePipraPaySettings(array $state): bool
+    {
+        $enabled = $this->toBool($state['piprapay_enabled'] ?? false);
+        $pipraKey = trim((string) ($state['piprapay_api_key'] ?? ''));
+        $hasKey = $pipraKey !== '' || filled(AppSetting::getStoredValue('piprapay.api_key'));
 
-            $callbackUrl = rtrim(trim((string) ($state['bkash_callback_url'] ?? '')), '/');
-            if ($callbackUrl !== '') {
-                AppSetting::putValue('bkash.callback_url', $callbackUrl);
-            } else {
-                AppSetting::query()->where('key', 'bkash.callback_url')->delete();
-                AppSetting::restoreConfigKeyFromEnv('bkash.callback_url');
-            }
+        if ($enabled && ! $hasKey) {
+            Notification::make()
+                ->title('PipraPay API key required')
+                ->body('Enable is ON: paste your MHS-PIPRAPAY-API-KEY from PipraPay Brand Settings, then Save again.')
+                ->danger()
+                ->send();
 
-            $activation = $state['bkash_activation_date'] ?? null;
-            if ($activation) {
-                AppSetting::putValue('bkash.activation_date', $activation);
-            } else {
-                AppSetting::query()->where('key', 'bkash.activation_date')->delete();
-                AppSetting::restoreConfigKeyFromEnv('bkash.activation_date');
-            }
-
-            $expiry = $state['bkash_expiry_date'] ?? null;
-            if ($expiry) {
-                AppSetting::putValue('bkash.expiry_date', $expiry);
-            } else {
-                AppSetting::query()->where('key', 'bkash.expiry_date')->delete();
-                AppSetting::restoreConfigKeyFromEnv('bkash.expiry_date');
-            }
-
-            $channels = is_array($state['bkash_channels'] ?? null) ? $state['bkash_channels'] : [];
-            AppSetting::putValue('bkash.channels', BkashSettings::channelsToStorage($channels));
-
-            $rawSecret = (string) ($this->data['bkash_app_secret'] ?? '');
-            if ($rawSecret !== '') {
-                AppSetting::putValue('bkash.app_secret', $rawSecret);
-            }
-
-            $rawPass = (string) ($this->data['bkash_password'] ?? '');
-            if ($rawPass !== '') {
-                AppSetting::putValue('bkash.password', $rawPass);
-            }
+            return false;
         }
 
-        AppSetting::putValue('rocket.enabled', $this->toBool($state['rocket_enabled'] ?? false) ? '1' : '0');
-        AppSetting::putValue('rocket.merchant_number', trim((string) ($state['rocket_merchant_number'] ?? '')));
-        AppSetting::putValue('rocket.merchant_name', trim((string) ($state['rocket_merchant_name'] ?? '')));
-        AppSetting::putValue('rocket.instructions', trim((string) ($state['rocket_instructions'] ?? '')));
-        AppSetting::putValue('rocket.auto_verify', $this->toBool($state['rocket_auto_verify'] ?? false) ? '1' : '0');
-        AppSetting::putValue('rocket.verify_url', trim((string) ($state['rocket_verify_url'] ?? '')));
-        config([
-            'payments.gateways.rocket.enabled' => $this->toBool($state['rocket_enabled'] ?? false),
-        ]);
-
-        $nagadIsPersonal = (string) config('nagad.gateway_type') === 'personal';
-
-        if (! $nagadIsPersonal || $forceMerchant) {
-            AppSetting::putValue('nagad.gateway_type', 'api');
-            AppSetting::putValue('nagad.enabled', $this->toBool($state['nagad_enabled'] ?? false) ? '1' : '0');
-            AppSetting::putValue('nagad.sandbox', ($state['nagad_sandbox'] ?? '1') === '1' ? '1' : '0');
-            AppSetting::putValue('nagad.merchant_id', trim((string) ($state['nagad_merchant_id'] ?? '')));
-            AppSetting::putValue('nagad.merchant_number', trim((string) ($state['nagad_merchant_number'] ?? '')));
-            AppSetting::putValue('nagad.pg_public_key', trim((string) ($state['nagad_pg_public_key'] ?? '')));
-            $nagadPrivate = trim((string) ($this->data['nagad_merchant_private_key'] ?? ''));
-            if ($nagadPrivate !== '') {
-                AppSetting::putValue('nagad.merchant_private_key', $nagadPrivate);
-            }
-        }
-
-        AppSetting::putValue('sslcommerz.enabled', $this->toBool($state['sslcommerz_enabled'] ?? false) ? '1' : '0');
-        AppSetting::putValue('sslcommerz.sandbox', ($state['sslcommerz_sandbox'] ?? '1') === '1' ? '1' : '0');
-        AppSetting::putValue('sslcommerz.store_id', trim((string) ($state['sslcommerz_store_id'] ?? '')));
-        $sslPass = trim((string) ($this->data['sslcommerz_store_password'] ?? ''));
-        if ($sslPass !== '') {
-            AppSetting::putValue('sslcommerz.store_password', $sslPass);
-        }
-
-        AppSetting::putValue('piprapay.enabled', $this->toBool($state['piprapay_enabled'] ?? false) ? '1' : '0');
         $apiMode = (string) ($state['piprapay_api_mode'] ?? 'redirect');
         if (! in_array($apiMode, ['redirect', 'legacy'], true)) {
             $apiMode = 'redirect';
         }
+
+        AppSetting::putValue('piprapay.enabled', $enabled ? '1' : '0');
         AppSetting::putValue('piprapay.api_mode', $apiMode);
-        $pipraKey = trim((string) ($this->data['piprapay_api_key'] ?? ''));
+
         if ($pipraKey !== '') {
             AppSetting::putValue('piprapay.api_key', $pipraKey);
         }
+
         $pipraBase = trim((string) ($state['piprapay_base_url'] ?? ''));
         if ($pipraBase !== '') {
             AppSetting::putValue('piprapay.base_url', rtrim($pipraBase, '/'));
@@ -498,17 +518,108 @@ class ManagePaymentSettings extends Page
             AppSetting::restoreConfigKeyFromEnv('piprapay.public_url');
         }
 
-        AppSetting::syncToRuntimeConfig();
+        Notification::make()
+            ->title('PipraPay saved')
+            ->body(
+                'PipraPay: '.($enabled ? 'ON' : 'OFF')
+                .' · API key: '.(filled(config('piprapay.api_key')) ? 'saved' : 'missing')
+                .' · Public URL: '.rtrim((string) config('piprapay.public_url', config('app.url')), '/')
+            )
+            ->success()
+            ->send();
 
-        $this->data['bkash_app_secret'] = '';
-        $this->data['bkash_password'] = '';
+        return true;
+    }
+
+    /**
+     * @param  array<string, mixed>  $state
+     */
+    private function saveBkashMerchantSettings(array $state): bool
+    {
+        $merchantOn = $this->toBool($state['bkash_enabled'] ?? '0');
+        $personalOn = BkashSettings::isPersonalEnabled();
+
+        if ($merchantOn && ! $this->merchantCredentialsComplete($state)) {
+            Notification::make()
+                ->title('bKash Merchant API — credentials required')
+                ->body('Merchant is ON: fill App key, App secret, Username, and Password (first time all four; later secret/password can stay blank if already saved).')
+                ->danger()
+                ->send();
+
+            return false;
+        }
+
+        $environment = (string) ($state['bkash_environment'] ?? BkashSettings::ENV_SANDBOX);
+        if (! in_array($environment, [BkashSettings::ENV_SANDBOX, BkashSettings::ENV_LIVE], true)) {
+            $environment = BkashSettings::ENV_SANDBOX;
+        }
+
+        $before = $this->bkashSnapshot();
+
+        AppSetting::putValue('bkash.merchant_enabled', $merchantOn ? '1' : '0');
+        AppSetting::putValue('bkash.environment', $environment);
+        AppSetting::putValue('bkash.base_url', BkashSettings::baseUrlForEnvironment($environment));
+
+        $appKey = trim((string) ($state['bkash_app_key'] ?? ''));
+        if ($appKey !== '') {
+            AppSetting::putValue('bkash.app_key', $appKey);
+        }
+
+        $username = trim((string) ($state['bkash_username'] ?? ''));
+        if ($username !== '') {
+            AppSetting::putValue('bkash.username', $username);
+        }
+
+        AppSetting::putValue('bkash.http_timeout', (string) max(5, min(120, (int) ($state['bkash_http_timeout'] ?? 30))));
+
+        $callbackUrl = rtrim(trim((string) ($state['bkash_callback_url'] ?? '')), '/');
+        if ($callbackUrl !== '') {
+            AppSetting::putValue('bkash.callback_url', $callbackUrl);
+        } else {
+            AppSetting::query()->where('key', 'bkash.callback_url')->delete();
+            AppSetting::restoreConfigKeyFromEnv('bkash.callback_url');
+        }
+
+        $activation = $state['bkash_activation_date'] ?? null;
+        if ($activation) {
+            AppSetting::putValue('bkash.activation_date', $activation);
+        } else {
+            AppSetting::query()->where('key', 'bkash.activation_date')->delete();
+            AppSetting::restoreConfigKeyFromEnv('bkash.activation_date');
+        }
+
+        $expiry = $state['bkash_expiry_date'] ?? null;
+        if ($expiry) {
+            AppSetting::putValue('bkash.expiry_date', $expiry);
+        } else {
+            AppSetting::query()->where('key', 'bkash.expiry_date')->delete();
+            AppSetting::restoreConfigKeyFromEnv('bkash.expiry_date');
+        }
+
+        $channels = is_array($state['bkash_channels'] ?? null) ? $state['bkash_channels'] : [];
+        if ($channels === []) {
+            $channels = BkashSettings::enabledChannels() !== [] ? BkashSettings::enabledChannels() : BkashSettings::allChannels();
+        }
+        AppSetting::putValue('bkash.channels', BkashSettings::channelsToStorage($channels));
+
+        $rawSecret = trim((string) ($state['bkash_app_secret'] ?? ''));
+        if ($rawSecret !== '') {
+            AppSetting::putValue('bkash.app_secret', $rawSecret);
+        }
+
+        $rawPass = trim((string) ($state['bkash_password'] ?? ''));
+        if ($rawPass !== '') {
+            AppSetting::putValue('bkash.password', $rawPass);
+        }
+
+        AppSetting::putValue('bkash.enabled', ($personalOn || $merchantOn) ? '1' : '0');
 
         $after = $this->bkashSnapshot();
         try {
             IntegrationSettingsAudit::query()->create([
                 'user_id' => auth()->id(),
                 'ip_address' => request()->ip(),
-                'summary' => 'Payment gateway (bKash) updated',
+                'summary' => 'Payment gateway (bKash merchant) updated',
                 'context' => [
                     'diff' => $this->diffSnapshot($before, $after),
                     'secrets' => [
@@ -523,10 +634,124 @@ class ManagePaymentSettings extends Page
             ]);
         }
 
+        $summary = BkashSettings::statusSummary();
+
         Notification::make()
-            ->title('Payment settings saved')
+            ->title('bKash Merchant API saved')
+            ->body(
+                'Personal: '.($summary['personal'] ? 'ON' : 'OFF')
+                .' · Merchant: '.($summary['merchant']
+                    ? ($summary['merchant_configured'] ? 'ON (ready)' : 'ON (add credentials)')
+                    : 'OFF')
+            )
             ->success()
             ->send();
+
+        return true;
+    }
+
+    /**
+     * @param  array<string, mixed>  $state
+     */
+    private function saveNagadMerchantSettings(array $state): bool
+    {
+        AppSetting::putValue('nagad.gateway_type', 'api');
+        AppSetting::putValue('nagad.enabled', $this->toBool($state['nagad_enabled'] ?? false) ? '1' : '0');
+        AppSetting::putValue('nagad.sandbox', ($state['nagad_sandbox'] ?? '1') === '1' ? '1' : '0');
+        AppSetting::putValue('nagad.merchant_id', trim((string) ($state['nagad_merchant_id'] ?? '')));
+        AppSetting::putValue('nagad.merchant_number', trim((string) ($state['nagad_merchant_number'] ?? '')));
+        AppSetting::putValue('nagad.pg_public_key', trim((string) ($state['nagad_pg_public_key'] ?? '')));
+
+        $nagadPrivate = trim((string) ($state['nagad_merchant_private_key'] ?? ''));
+        if ($nagadPrivate !== '') {
+            AppSetting::putValue('nagad.merchant_private_key', $nagadPrivate);
+        }
+
+        Notification::make()
+            ->title('Nagad Merchant API saved')
+            ->success()
+            ->send();
+
+        return true;
+    }
+
+    /**
+     * @param  array<string, mixed>  $state
+     */
+    private function saveSslCommerzSettings(array $state): bool
+    {
+        AppSetting::putValue('sslcommerz.enabled', $this->toBool($state['sslcommerz_enabled'] ?? false) ? '1' : '0');
+        AppSetting::putValue('sslcommerz.sandbox', ($state['sslcommerz_sandbox'] ?? '1') === '1' ? '1' : '0');
+        AppSetting::putValue('sslcommerz.store_id', trim((string) ($state['sslcommerz_store_id'] ?? '')));
+
+        $sslPass = trim((string) ($state['sslcommerz_store_password'] ?? ''));
+        if ($sslPass !== '') {
+            AppSetting::putValue('sslcommerz.store_password', $sslPass);
+        }
+
+        Notification::make()
+            ->title('SSLCommerz saved')
+            ->success()
+            ->send();
+
+        return true;
+    }
+
+    /**
+     * @param  array<string, mixed>  $state
+     */
+    private function saveRocketSettings(array $state): bool
+    {
+        AppSetting::putValue('rocket.enabled', $this->toBool($state['rocket_enabled'] ?? false) ? '1' : '0');
+        AppSetting::putValue('rocket.merchant_number', trim((string) ($state['rocket_merchant_number'] ?? '')));
+        AppSetting::putValue('rocket.merchant_name', trim((string) ($state['rocket_merchant_name'] ?? '')));
+        AppSetting::putValue('rocket.instructions', trim((string) ($state['rocket_instructions'] ?? '')));
+        AppSetting::putValue('rocket.auto_verify', $this->toBool($state['rocket_auto_verify'] ?? false) ? '1' : '0');
+        AppSetting::putValue('rocket.verify_url', trim((string) ($state['rocket_verify_url'] ?? '')));
+        config([
+            'payments.gateways.rocket.enabled' => $this->toBool($state['rocket_enabled'] ?? false),
+        ]);
+
+        Notification::make()
+            ->title('Rocket saved')
+            ->success()
+            ->send();
+
+        return true;
+    }
+
+    private function resolvedGatewayTab(): string
+    {
+        $queryTab = request()->query('gateway');
+        if (is_string($queryTab) && $queryTab !== '') {
+            $this->activeGatewayTab = $this->normalizeGatewayTab($queryTab);
+        }
+
+        return $this->normalizeGatewayTab($this->activeGatewayTab);
+    }
+
+    private function normalizeGatewayTab(string $tab): string
+    {
+        return in_array($tab, ['piprapay', 'bkash', 'nagad', 'sslcommerz', 'rocket'], true)
+            ? $tab
+            : 'piprapay';
+    }
+
+    private function clearPasswordFieldsAfterSave(string $tab): void
+    {
+        if ($tab === 'bkash') {
+            $this->data['bkash_app_secret'] = '';
+            $this->data['bkash_password'] = '';
+        }
+        if ($tab === 'piprapay') {
+            $this->data['piprapay_api_key'] = '';
+        }
+        if ($tab === 'nagad') {
+            $this->data['nagad_merchant_private_key'] = '';
+        }
+        if ($tab === 'sslcommerz') {
+            $this->data['sslcommerz_store_password'] = '';
+        }
     }
 
     private function fillBkashForm(): void
@@ -544,7 +769,7 @@ class ManagePaymentSettings extends Page
             'bkash_password' => '',
             'bkash_http_timeout' => (int) config('bkash.http_timeout', 30),
             'bkash_callback_url' => BkashSettings::callbackUrl(),
-            'bkash_enabled' => config('bkash.enabled') ? '1' : '0',
+            'bkash_enabled' => BkashSettings::isMerchantEnabled() ? '1' : '0',
             'bkash_activation_date' => config('bkash.activation_date'),
             'bkash_expiry_date' => config('bkash.expiry_date'),
             'bkash_channels' => BkashSettings::enabledChannels(),
@@ -567,6 +792,22 @@ class ManagePaymentSettings extends Page
             'piprapay_base_url' => (string) config('piprapay.base_url', ''),
             'piprapay_public_url' => (string) config('piprapay.public_url', config('app.url')),
         ]);
+    }
+
+    /**
+     * @param  array<string, mixed>  $state
+     */
+    private function merchantCredentialsComplete(array $state): bool
+    {
+        $appKey = trim((string) ($state['bkash_app_key'] ?? ''));
+        $username = trim((string) ($state['bkash_username'] ?? ''));
+        $newSecret = trim((string) ($this->data['bkash_app_secret'] ?? ''));
+        $newPassword = trim((string) ($this->data['bkash_password'] ?? ''));
+
+        return ($appKey !== '' || filled(config('bkash.app_key')))
+            && ($newSecret !== '' || filled(AppSetting::getStoredValue('bkash.app_secret')))
+            && ($username !== '' || filled(config('bkash.username')))
+            && ($newPassword !== '' || filled(AppSetting::getStoredValue('bkash.password')));
     }
 
     private function toBool(mixed $value): bool

@@ -111,6 +111,44 @@ final class SnmpClient
         return is_array($result) ? $result : [];
     }
 
+    /**
+     * Walk a table whose OIDs are NOT monotonically increasing (e.g. BDCOM dot1qTpFdbPort, which
+     * returns per-VLAN FDB rows out of order). The default GETNEXT walk aborts early on such tables
+     * ("OID not increasing"), so this uses the OO SNMP session with the increasing check disabled —
+     * the equivalent of `snmpbulkwalk -Cc`. Falls back to realWalk() when ext-snmp / the OO class
+     * is unavailable.
+     *
+     * @return array<string, string>
+     */
+    public static function realWalkUnchecked(string $peer, string $community, string $oid, ?int $timeoutUs = null, ?int $retries = null): array
+    {
+        if (! self::available() || ! class_exists(\SNMP::class)) {
+            return self::realWalk($peer, $community, $oid, $timeoutUs, $retries);
+        }
+
+        $timeoutUs ??= (int) config('snmp.timeout_us', 2000000);
+        $retries ??= (int) config('snmp.retries', 1);
+
+        try {
+            $session = new \SNMP(\SNMP::VERSION_2c, $peer, $community, $timeoutUs, $retries);
+            $session->oid_increasing_check = false;
+            if (config('snmp.use_plain_values', true) && defined('SNMP_VALUE_PLAIN')) {
+                $session->valueretrieval = SNMP_VALUE_PLAIN;
+            }
+            if (defined('SNMP_OID_OUTPUT_NUMERIC')) {
+                $session->oid_output_format = SNMP_OID_OUTPUT_NUMERIC;
+            }
+
+            /** @var array<string, string>|false $result */
+            $result = @$session->walk($oid);
+            $session->close();
+
+            return is_array($result) ? $result : [];
+        } catch (\Throwable) {
+            return self::realWalk($peer, $community, $oid, $timeoutUs, $retries);
+        }
+    }
+
     public static function suffixFromOidKey(string $oidKey, string $baseOid): ?string
     {
         $normalized = ltrim($oidKey, '.');

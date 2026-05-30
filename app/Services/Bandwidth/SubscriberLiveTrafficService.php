@@ -99,7 +99,7 @@ final class SubscriberLiveTrafficService
             }
         }
 
-        $fetch = app(MikrotikServerService::class)->fetchSubscriberLiveTraffic($server, $login);
+        $fetch = app(MikrotikServerService::class)->fetchActivePppSessionForLogin($server, $login);
         if ($fetch['error'] !== null || ! $fetch['found']) {
             return $this->ratesFromSessionOrSample($customer);
         }

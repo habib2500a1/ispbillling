@@ -15,6 +15,7 @@ class PortalBillController extends Controller
     public function index(Request $request, CustomerPrepayService $prepay): View
     {
         $customer = $request->user('customer');
+        $customer->loadMissing('package');
 
         $invoiceQuery = Invoice::query()
             ->where('customer_id', $customer->id);

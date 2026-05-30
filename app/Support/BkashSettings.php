@@ -2,6 +2,7 @@
 
 namespace App\Support;
 
+use App\Models\AppSetting;
 use App\Services\Payments\BkashCheckoutService;
 use Carbon\Carbon;
 use Throwable;
@@ -63,9 +64,29 @@ final class BkashSettings
         return array_values(array_intersect(self::allChannels(), $channels));
     }
 
+    public static function isPersonalEnabled(): bool
+    {
+        if (AppSetting::getStoredValue('bkash.personal_enabled') !== null) {
+            return self::configFlag('bkash.personal_enabled');
+        }
+
+        return (string) config('bkash.gateway_type', self::GATEWAY_TOKENIZED_WEB) === self::GATEWAY_PERSONAL
+            && filled(config('bkash.personal_number'));
+    }
+
+    public static function isMerchantEnabled(): bool
+    {
+        if (AppSetting::getStoredValue('bkash.merchant_enabled') !== null) {
+            return self::configFlag('bkash.merchant_enabled');
+        }
+
+        return self::configFlag('bkash.enabled')
+            && (string) config('bkash.gateway_type', self::GATEWAY_TOKENIZED_WEB) !== self::GATEWAY_PERSONAL;
+    }
+
     public static function isPaymentEnabled(): bool
     {
-        return (bool) config('bkash.enabled', false);
+        return self::isPersonalEnabled() || self::isMerchantEnabled();
     }
 
     public static function isWithinSchedule(): bool
@@ -89,6 +110,12 @@ final class BkashSettings
         return true;
     }
 
+    /** @deprecated Use isMerchantEnabled() */
+    public static function isMerchantApiMode(): bool
+    {
+        return self::isMerchantEnabled();
+    }
+
     public static function isConfigured(): bool
     {
         foreach (['app_key', 'app_secret', 'username', 'password'] as $key) {
@@ -100,35 +127,72 @@ final class BkashSettings
         return true;
     }
 
-    public static function isEnabledForChannel(string $channel): bool
+    public static function isPersonalActiveForChannel(string $channel): bool
     {
-        if (! self::isPaymentEnabled() || ! self::isWithinSchedule()) {
-            return false;
-        }
-
-        return in_array($channel, self::enabledChannels(), true);
+        return self::isPersonalEnabled()
+            && filled(config('bkash.personal_number'))
+            && in_array($channel, self::enabledChannels(), true);
     }
 
-    /** Enabled, in schedule, channel on, and API credentials present (or personal MFS). */
+    public static function isMerchantActiveForChannel(string $channel): bool
+    {
+        return self::isMerchantEnabled()
+            && self::isWithinSchedule()
+            && self::isConfigured()
+            && in_array($channel, self::enabledChannels(), true);
+    }
+
+    public static function isEnabledForChannel(string $channel): bool
+    {
+        return self::isPersonalActiveForChannel($channel)
+            || self::isMerchantActiveForChannel($channel);
+    }
+
+    /** @deprecated Use isPersonalActiveForChannel / isMerchantActiveForChannel */
     public static function isActiveForChannel(string $channel): bool
     {
-        if (! self::isEnabledForChannel($channel)) {
-            return false;
-        }
-
-        if ((string) config('bkash.gateway_type', self::GATEWAY_TOKENIZED_WEB) === self::GATEWAY_PERSONAL) {
-            return \App\Support\PersonalMfsGateway::bkashPersonalEnabled();
-        }
-
-        return self::isConfigured();
+        return self::isEnabledForChannel($channel);
     }
 
     public static function isGloballyActive(): bool
     {
         return self::isConfigured()
-            && self::isPaymentEnabled()
+            && self::isMerchantEnabled()
             && self::isWithinSchedule()
             && self::enabledChannels() !== [];
+    }
+
+    /**
+     * @return array{personal: bool, merchant: bool, personal_number: string, merchant_configured: bool}
+     */
+    public static function statusSummary(): array
+    {
+        return [
+            'personal' => self::isPersonalEnabled() && filled(config('bkash.personal_number')),
+            'merchant' => self::isMerchantEnabled(),
+            'personal_number' => (string) config('bkash.personal_number', ''),
+            'merchant_configured' => self::isConfigured(),
+        ];
+    }
+
+    public static function modeLabel(): string
+    {
+        $s = self::statusSummary();
+        $parts = [];
+        if ($s['personal']) {
+            $parts[] = 'Personal (TrxID)';
+        }
+        if ($s['merchant']) {
+            $parts[] = $s['merchant_configured'] ? 'Merchant API' : 'Merchant API (credentials missing)';
+        }
+
+        return $parts !== [] ? implode(' + ', $parts) : 'Off';
+    }
+
+    public static function syncMasterEnabledFlag(): void
+    {
+        $on = self::isPersonalEnabled() || self::isMerchantEnabled();
+        config(['bkash.enabled' => $on]);
     }
 
     public static function baseUrlForEnvironment(string $environment): string
@@ -214,5 +278,10 @@ final class BkashSettings
         $parts = array_values(array_filter(array_map('trim', explode(',', $value))));
 
         return array_values(array_intersect(self::allChannels(), $parts));
+    }
+
+    private static function configFlag(string $key): bool
+    {
+        return filter_var(config($key), FILTER_VALIDATE_BOOLEAN);
     }
 }

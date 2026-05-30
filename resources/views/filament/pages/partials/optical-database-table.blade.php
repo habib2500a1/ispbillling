@@ -11,6 +11,9 @@
             <span><strong>{{ number_format($summary['total']) }}</strong> ONU</span>
             <span class="text-emerald-600"><strong>{{ number_format($summary['with_rx']) }}</strong> with OpticalPower</span>
             <span class="text-violet-600"><strong>{{ number_format($summary['linked']) }}</strong> linked subscriber</span>
+            @if (! empty($summary['auto_detected']))
+                <span class="text-cyan-600"><strong>{{ number_format($summary['auto_detected']) }}</strong> auto-detected from OLT</span>
+            @endif
         </div>
         <div class="flex flex-wrap items-center gap-3">
             <label class="flex items-center gap-2 text-xs font-semibold uppercase text-gray-500">

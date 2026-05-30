@@ -2,6 +2,7 @@
 
 namespace App\Support;
 
+use App\Filament\Pages\FiberPlantMap;
 use App\Filament\Pages\ManageOpticalLaserSettings;
 use App\Filament\Pages\OltHub;
 use App\Filament\Pages\OltMacTable;
@@ -59,10 +60,18 @@ final class OltSidebarRegistry
                 'active_routes' => ['filament.admin.pages.network-topology'],
             ],
             [
+                'key' => 'fiber_map',
+                'label' => 'Fiber map',
+                'icon' => 'heroicon-o-map',
+                'sort' => 4,
+                'url' => FiberPlantMap::getUrl(),
+                'active_routes' => ['filament.admin.pages.fiber-plant-map'],
+            ],
+            [
                 'key' => 'mac_table',
                 'label' => 'MAC table',
                 'icon' => 'heroicon-o-table-cells',
-                'sort' => 4,
+                'sort' => 5,
                 'url' => OltMacTable::getUrl(),
                 'active_routes' => ['filament.admin.pages.olt-mac-table'],
             ],
@@ -70,7 +79,7 @@ final class OltSidebarRegistry
                 'key' => 'laser_thresholds',
                 'label' => 'Laser thresholds',
                 'icon' => 'heroicon-o-adjustments-vertical',
-                'sort' => 5,
+                'sort' => 6,
                 'url' => ManageOpticalLaserSettings::getUrl(),
                 'active_routes' => ['filament.admin.pages.optical-laser-settings'],
             ],
@@ -131,6 +140,7 @@ final class OltSidebarRegistry
             'olt_manage' => OltResource::canViewAny(),
             'optical_noc' => OpticalMonitoringHub::canAccess(),
             'topology' => NetworkTopology::canAccess(),
+            'fiber_map' => FiberPlantMap::canAccess(),
             'laser_thresholds' => ManageOpticalLaserSettings::canAccess(),
             default => false,
         };

@@ -22,6 +22,7 @@ use App\Filament\Pages\ManageAppSettings;
 use App\Filament\Pages\ManagePlatformBackups;
 use App\Filament\Pages\ManagePortalSettings;
 use App\Filament\Pages\MobileAppsHub;
+use App\Filament\Pages\FiberPlantMap;
 use App\Filament\Pages\NetflowAnalysis;
 use App\Filament\Pages\NetworkIntelligenceHub;
 use App\Filament\Pages\NetworkTopology;
@@ -95,6 +96,7 @@ class AdminModuleRegistry
             ['group' => 'OLT & Tools', 'section' => 'Devices', 'label' => 'OLT list', 'description' => 'Add OLT, sync ONUs, edit PON', 'url' => OltResource::getUrl('index'), 'accent' => 'text-violet-600', 'icon' => 'heroicon-o-signal'],
             ['group' => 'OLT & Tools', 'section' => 'Optical', 'label' => 'Optical Database', 'description' => 'Receive power RX dBm', 'url' => OpticalMonitoringHub::getUrl(), 'accent' => 'text-violet-600', 'icon' => 'heroicon-o-light-bulb'],
             ['group' => 'OLT & Tools', 'section' => 'Map', 'label' => 'Topology', 'description' => 'OLT → PON → ONU', 'url' => NetworkTopology::getUrl(), 'accent' => 'text-violet-600', 'icon' => 'heroicon-o-share'],
+            ['group' => 'OLT & Tools', 'section' => 'Map', 'label' => 'Fiber plant map', 'description' => 'Splitter · cable · meter · color', 'url' => FiberPlantMap::getUrl(), 'accent' => 'text-violet-600', 'icon' => 'heroicon-o-map'],
 
             // ── Network ──
             ['group' => 'Network', 'section' => 'Hub', 'label' => 'Network center', 'description' => 'SNMP · NetFlow · routers', 'url' => NetworkIntelligenceHub::getUrl(), 'accent' => 'text-cyan-600', 'icon' => 'heroicon-o-cpu-chip'],
@@ -104,6 +106,7 @@ class AdminModuleRegistry
             ['group' => 'Network', 'section' => 'Monitor', 'label' => 'Bandwidth', 'description' => 'Usage & abuse alerts', 'url' => BandwidthMonitor::getUrl(), 'accent' => 'text-cyan-600', 'icon' => 'heroicon-o-chart-bar'],
             ['group' => 'Network', 'section' => 'Monitor', 'label' => 'SNMP monitor', 'description' => 'Poll logs & interface status', 'url' => SnmpMonitor::getUrl(), 'accent' => 'text-cyan-600', 'icon' => 'heroicon-o-signal'],
             ['group' => 'Network', 'section' => 'Monitor', 'label' => 'NetFlow analysis', 'description' => 'Top talkers & protocols', 'url' => NetflowAnalysis::getUrl(), 'accent' => 'text-cyan-600', 'icon' => 'heroicon-o-arrows-right-left'],
+            ['group' => 'Network', 'section' => 'Infrastructure', 'label' => 'Fiber plant map', 'description' => 'Cable route · splitter · distance', 'url' => FiberPlantMap::getUrl(), 'accent' => 'text-cyan-600', 'icon' => 'heroicon-o-map'],
             ['group' => 'Network', 'section' => 'Infrastructure', 'label' => 'POP / boxes', 'description' => 'Sites & capacity', 'url' => PopBoxResource::getUrl('index'), 'accent' => 'text-cyan-600', 'icon' => 'heroicon-o-building-office-2'],
             ['group' => 'Network', 'section' => 'Coverage', 'label' => 'Areas', 'description' => 'Coverage map', 'url' => AreaResource::getUrl('index'), 'accent' => 'text-cyan-600', 'icon' => 'heroicon-o-map-pin'],
             ['group' => 'Network', 'section' => 'IPAM', 'label' => 'IP pools', 'description' => 'Static IP allocation', 'url' => IpPoolResource::getUrl('index'), 'accent' => 'text-cyan-600', 'icon' => 'heroicon-o-globe-alt'],

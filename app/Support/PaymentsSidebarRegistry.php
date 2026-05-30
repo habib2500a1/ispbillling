@@ -3,6 +3,7 @@
 namespace App\Support;
 
 use App\Filament\Pages\ManageMfsSmsSettings;
+use App\Filament\Pages\ManageBkashMerchantSettings;
 use App\Filament\Pages\ManagePaymentSettings;
 use App\Filament\Pages\ManagePersonalMfsSettings;
 use App\Filament\Resources\MfsSmsRecordResource;
@@ -87,11 +88,19 @@ final class PaymentsSidebarRegistry
                 ],
             ],
             [
-                'key' => 'merchant_gateways',
-                'label' => 'Merchant gateways',
+                'key' => 'bkash_merchant',
+                'label' => 'bKash Merchant API',
                 'icon' => 'heroicon-o-building-storefront',
+                'sort' => 19,
+                'url' => ManageBkashMerchantSettings::getUrl(),
+                'active_routes' => ['filament.admin.pages.bkash-merchant-settings'],
+            ],
+            [
+                'key' => 'merchant_gateways',
+                'label' => 'All merchant gateways',
+                'icon' => 'heroicon-o-globe-alt',
                 'sort' => 20,
-                'url' => ManagePaymentSettings::getUrl(['gateway' => 'piprapay', 'merchant' => '1']),
+                'url' => ManagePaymentSettings::getUrl(['gateway' => 'piprapay']),
                 'active_routes' => ['filament.admin.pages.payment-gateway-settings'],
             ],
         ];
@@ -158,6 +167,7 @@ final class PaymentsSidebarRegistry
             'mfs_sms' => MfsSmsRecordResource::canViewAny(),
             'personal_bkash', 'personal_nagad' => ManagePersonalMfsSettings::canAccess(),
             'mfs_sms_apps' => ManageMfsSmsSettings::canAccess(),
+            'bkash_merchant' => ManageBkashMerchantSettings::canAccess(),
             'merchant_gateways' => ManagePaymentSettings::canAccess(),
             default => false,
         };

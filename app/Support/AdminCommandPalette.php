@@ -28,6 +28,7 @@ use App\Filament\Pages\ManageOpticalLaserSettings;
 use App\Filament\Pages\ManagePersonalMfsSettings;
 use App\Filament\Pages\ManageCompanySetup;
 use App\Filament\Pages\ManageMovieServerList;
+use App\Filament\Pages\FiberPlantMap;
 use App\Filament\Pages\NetworkIntelligenceHub;
 use App\Filament\Pages\NetworkTopology;
 use App\Filament\Pages\NotificationsHub;
@@ -79,6 +80,8 @@ class AdminCommandPalette
             ['group' => 'Network', 'label' => 'Bandwidth monitor', 'url' => BandwidthMonitor::getUrl()],
             ['group' => 'Network', 'label' => 'Network intelligence', 'url' => NetworkIntelligenceHub::getUrl()],
             ['group' => 'Network', 'label' => 'Network topology', 'url' => NetworkTopology::getUrl()],
+            ['group' => 'Network', 'label' => 'Fiber plant map', 'url' => FiberPlantMap::getUrl()],
+            ['group' => 'OLT & Tools', 'label' => 'Fiber plant map', 'url' => FiberPlantMap::getUrl()],
             ['group' => 'Network', 'label' => 'Laser thresholds', 'url' => ManageOpticalLaserSettings::getUrl()],
             ['group' => 'Inventory', 'label' => 'Inventory center', 'url' => InventoryHub::getUrl()],
             ['group' => 'Inventory', 'label' => 'Warehouses', 'url' => \App\Filament\Resources\WarehouseResource::getUrl()],

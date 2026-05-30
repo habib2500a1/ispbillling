@@ -5,6 +5,7 @@ namespace App\Services\Inventory;
 use App\Models\Product;
 use App\Models\ProductWarehouseStock;
 use App\Models\Warehouse;
+use App\Support\TenantResolver;
 use Illuminate\Support\Facades\DB;
 
 final class WarehouseResolver
@@ -16,6 +17,10 @@ final class WarehouseResolver
 
     public function defaultWarehouse(int $tenantId): Warehouse
     {
+        if ($tenantId < 1) {
+            $tenantId = TenantResolver::requiredTenantId();
+        }
+
         $existing = Warehouse::withoutGlobalScopes()
             ->where('tenant_id', $tenantId)
             ->where('is_default', true)

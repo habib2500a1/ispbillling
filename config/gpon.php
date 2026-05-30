@@ -15,6 +15,12 @@ return [
             'sys_uptime' => '1.3.6.1.2.1.1.3.0',
             'if_table' => '1.3.6.1.2.1.2.2',
             'if_oper_status' => '1.3.6.1.2.1.2.2.1.8',
+            'if_descr' => '1.3.6.1.2.1.2.2.1.2',
+            'if_name' => '1.3.6.1.2.1.31.1.1.1.1',
+            /** Standard BRIDGE-MIB FDB — vendor-neutral customer-MAC bridge (see OltFdbMacBridgeService). */
+            'fdb_qbridge' => '1.3.6.1.2.1.17.7.1.2.2.1.2',
+            'fdb_dot1d' => '1.3.6.1.2.1.17.4.3.1.2',
+            'fdb_baseport_ifindex' => '1.3.6.1.2.1.17.1.4.1.2',
         ],
         'huawei_gpon' => [
             'label' => 'Huawei GPON',
@@ -42,9 +48,20 @@ return [
             'bdcom_epon_onu_rx' => '1.3.6.1.4.1.3320.101.10.5.1.5',
             'bdcom_epon_onu_tx' => '1.3.6.1.4.1.3320.101.10.5.1.6',
             'bdcom_epon_onu_status' => '1.3.6.1.4.1.3320.101.11.4.1.5',
+            /** ONU ranging distance in metres, indexed by pon_ifindex.<6 mac octets>. */
+            'bdcom_epon_onu_distance' => '1.3.6.1.4.1.3320.101.11.1.1.7',
             /** ONU description / subscriber name set on OLT (for auto-link by PPP login). */
             'bdcom_epon_onu_desc' => '1.3.6.1.4.1.3320.101.10.1.1.2',
             'if_descr' => '1.3.6.1.2.1.2.2.1.2',
+            /**
+             * Forwarding (FDB) bridge — learns the CUSTOMER router MAC behind each ONU, which
+             * matches MikroTik PPPoE caller_id. This is the reliable ONU→subscriber auto-detect key
+             * (the ONU's own MAC never matches the PPP caller MAC). Walk requires the OID-increasing
+             * check disabled (BDCOM returns per-VLAN FDB out of order) — see SnmpClient::realWalkUnchecked.
+             */
+            'bdcom_epon_fdb_qbridge' => '1.3.6.1.2.1.17.7.1.2.2.1.2', // dot1qTpFdbPort  (MAC → bridgePort)
+            'bdcom_epon_fdb_dot1d' => '1.3.6.1.2.1.17.4.3.1.2',       // dot1dTpFdbPort  (legacy fallback)
+            'bdcom_epon_baseport_ifindex' => '1.3.6.1.2.1.17.1.4.1.2', // dot1dBasePortIfIndex (bridgePort → ifIndex)
         ],
         'fiberhome_gpon' => [
             'label' => 'Fiberhome GPON',

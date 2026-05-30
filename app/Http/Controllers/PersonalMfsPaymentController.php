@@ -48,6 +48,8 @@ class PersonalMfsPaymentController extends Controller
             'customer' => $customer,
             'invoice' => $invoice,
             'returnTo' => (string) ($session['return_to'] ?? 'bill_payment'),
+            'paymentType' => (string) ($session['payment_type'] ?? PaymentType::PAYMENT),
+            'prepayMonths' => max(0, (int) ($session['prepay_months'] ?? 0)),
         ]);
     }
 

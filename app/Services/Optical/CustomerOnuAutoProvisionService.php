@@ -281,20 +281,41 @@ final class CustomerOnuAutoProvisionService
             $serial = MacAddress::normalizeCompact($macColon)
                 ?? 'CPE-'.$customer->id;
 
-            $cpe = Device::query()->create([
+            // A device with this serial may already exist (commonly an ONU whose own MAC equals this
+            // value, or a CPE row from a prior session) — the (tenant_id, serial_number) index is
+            // unique, so create() would throw. Reuse the row idempotently and never repurpose
+            // optical gear (OLT/ONU); fall back to a customer-scoped serial in that case.
+            $existing = Device::query()->withoutGlobalScopes()
+                ->where('tenant_id', $customer->tenant_id)
+                ->where('serial_number', $serial)
+                ->first();
+
+            if ($existing !== null && in_array($existing->type, ['olt', 'onu'], true)) {
+                $serial = 'CPE-'.$customer->id;
+                $existing = Device::query()->withoutGlobalScopes()
+                    ->where('tenant_id', $customer->tenant_id)
+                    ->where('serial_number', $serial)
+                    ->first();
+            }
+
+            $cpe = $existing ?? new Device([
                 'tenant_id' => $customer->tenant_id,
+                'serial_number' => $serial,
+            ]);
+
+            $cpe->forceFill([
                 'type' => 'router',
                 'customer_id' => $customer->id,
                 'serial_number' => $serial,
-                'display_name' => $customer->pppLoginName() ?: $customer->name,
-                'mac_address' => $macColon,
-                'framed_ip_address' => $ip,
+                'display_name' => $cpe->display_name ?: ($customer->pppLoginName() ?: $customer->name),
+                'mac_address' => $cpe->mac_address ?: $macColon,
+                'framed_ip_address' => $ip ?: $cpe->framed_ip_address,
                 'status' => 'assigned',
-                'meta' => [
+                'meta' => array_merge(is_array($cpe->meta) ? $cpe->meta : [], [
                     'source' => 'ppp_session',
                     'synced_at' => now()->toIso8601String(),
-                ],
-            ]);
+                ]),
+            ])->save();
 
             return $cpe;
         }

@@ -71,7 +71,6 @@
         }
         $quickLinks = [
             ['label' => 'Collect payment', 'url' => $details['urls']['collect'], 'icon' => 'heroicon-o-banknotes', 'btn' => 'white'],
-            ['label' => 'Portal login', 'url' => $details['urls']['portal_login'], 'icon' => 'heroicon-o-arrow-right-on-rectangle', 'btn' => 'glass', 'external' => true, 'class' => 'sub-hero__portal-desktop'],
             ['label' => 'Edit profile', 'url' => $details['urls']['edit'], 'icon' => 'heroicon-o-pencil-square', 'btn' => 'glass'],
             ['label' => 'Invoices', 'url' => $details['urls']['invoices'], 'icon' => 'heroicon-o-document-text', 'btn' => 'glass'],
         ];
@@ -303,6 +302,7 @@
         </div>
 
         <div x-show="tab === 'network'" x-cloak class="sub-pane">
+            @include('filament.resources.customer-resource.partials.client-fiber-path', ['customer' => $record])
             <section class="isp-cv-card isp-cv-card--full" wire:poll.60s>
                 <h3 class="isp-cv-card__title">ONU / Optical</h3>
                 @include('filament.resources.customer-resource.partials.client-details-onu-table', [
@@ -358,7 +358,11 @@
                     <x-filament::icon icon="heroicon-o-arrow-right-on-rectangle" />
                     <span>Portal</span>
                 </a>
-                <button type="button" class="olt-dock__link border-0 bg-transparent" wire:click="extendThirtyDays" wire:loading.attr="disabled">
+                <button type="button" class="olt-dock__link border-0 bg-transparent" wire:click="extendDaysLive(5)" wire:loading.attr="disabled">
+                    <x-filament::icon icon="heroicon-o-calendar" />
+                    <span>+5d</span>
+                </button>
+                <button type="button" class="olt-dock__link border-0 bg-transparent" wire:click="extendDaysLive(30)" wire:loading.attr="disabled">
                     <x-filament::icon icon="heroicon-o-calendar" />
                     <span>+30d</span>
                 </button>
