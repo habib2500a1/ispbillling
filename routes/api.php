@@ -3,6 +3,7 @@
 use App\Http\Controllers\InvoicePdfController;
 use App\Http\Controllers\PaymentReceiptController;
 use App\Support\ResellerPortalPermission;
+use App\Http\Controllers\Api\NetflowWebhookController;
 use App\Http\Controllers\Api\WhatsAppWebhookController;
 use App\Http\Controllers\Api\PaymentWebhookController;
 use App\Http\Controllers\Api\SupportTicketWebhookController;

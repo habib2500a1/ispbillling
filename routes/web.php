@@ -50,6 +50,8 @@ use App\Http\Controllers\Reseller\ResellerRealtimeController;
 use App\Http\Controllers\Reseller\ResellerActivityController;
 use App\Http\Controllers\Reseller\ResellerSettingsController;
 use App\Http\Controllers\Reseller\ResellerSettlementController;
+use App\Http\Controllers\Reseller\ResellerStaffController;
+use App\Http\Controllers\Reseller\ResellerSubResellerController;
 use App\Http\Controllers\Reseller\ResellerTwoFactorController;
 use App\Http\Controllers\Reseller\ResellerWalletController;
 use App\Support\ResellerPortalPermission;

@@ -91,7 +91,7 @@
                         <div>
                             <label class="block text-xs font-bold uppercase rsl-text-muted">Method</label>
                             <select name="payment_method" class="rsl-input mt-1">
-                                @foreach ($options['payment_methods'] as $val => $label)
+                                @foreach (($options['payment_methods'] ?? \App\Support\ResellerCollectionPaymentMethod::options()) as $val => $label)
                                     <option value="{{ $val }}" @selected(old('payment_method', 'cash') === $val)>{{ $label }}</option>
                                 @endforeach
                             </select>
