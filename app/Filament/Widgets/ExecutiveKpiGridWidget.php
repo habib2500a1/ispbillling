@@ -15,7 +15,7 @@ class ExecutiveKpiGridWidget extends Widget
 
     protected int|string|array $columnSpan = 'full';
 
-    protected static ?string $pollingInterval = '30s';
+    protected static ?string $pollingInterval = '120s';
 
     /** @return array<string, mixed> */
     protected function getViewData(): array

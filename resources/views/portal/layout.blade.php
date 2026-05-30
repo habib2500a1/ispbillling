@@ -11,26 +11,17 @@
     <link rel="stylesheet" href="{{ asset('css/portal-utilities.css') }}?v={{ @filemtime(public_path('css/portal-utilities.css')) ?: 1 }}">
     @include('partials.isp-premium-theme', ['tailwind' => false])
     <link rel="stylesheet" href="{{ asset('css/bill-payment.css') }}?v=5">
+    <link rel="stylesheet" href="{{ asset('css/portal-responsive.css') }}?v={{ @filemtime(public_path('css/portal-responsive.css')) ?: 1 }}">
     @livewireStyles
     <script src="{{ asset('js/portal-theme.js') }}?v=1"></script>
     @stack('head')
 </head>
 <body class="portal-body antialiased">
-    @php
-        $localeLabels = config('locales.labels', []);
-    @endphp
-    <div class="portal-locale-bar">
-        <span class="portal-locale-label">{{ __('portal.language') }}:</span>
-        @foreach (config('locales.supported', ['en']) as $code)
-            <a href="{{ route('locale.switch', $code) }}" class="portal-locale-link {{ app()->getLocale() === $code ? 'portal-locale-link--active' : '' }}">
-                {{ $localeLabels[$code] ?? strtoupper($code) }}
-            </a>
-        @endforeach
-        @guest('customer')
-            <span class="portal-locale-bar__sep" aria-hidden="true">|</span>
+    @guest('customer')
+        <div class="portal-locale-bar">
             <a href="{{ $mobileAppDownloadUrl ?? \App\Support\MobileAppLinks::downloadUrl() }}" class="portal-locale-link portal-locale-link--app">📱 Mobile app</a>
-        @endguest
-    </div>
+        </div>
+    @endguest
     @auth('customer')
         @php
             $customer = auth('customer')->user();

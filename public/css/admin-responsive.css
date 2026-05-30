@@ -1,0 +1,162 @@
+/**
+ * Admin responsive overrides — loaded LAST in the design-system HEAD_END hook so it
+ * wins the cascade without editing admin-saas.css / *-hub-pro.css. Mobile + tablet only.
+ *
+ * Filament's core layout is already responsive; this file targets the CUSTOM hub pages
+ * and stat grids that were built desktop-first (fixed padding, multi-column grids that
+ * never collapse on phones).
+ */
+
+/* ---------- Tablet (<= 1024px) ---------- */
+@media (max-width: 1024px) {
+    /* Hub hero/stat grids: never more than 2 columns on tablet */
+    .ch-grid,
+    .olt-hub-grid,
+    .rsh-grid,
+    [class$="-hub-stats"],
+    [class$="-hub-grid"] {
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    }
+}
+
+/* ---------- Phones (<= 640px) ---------- */
+@media (max-width: 640px) {
+    /* Fluid padding for every custom hub hero/card so nothing clips on small screens */
+    .ch-hero, .ch-card, .ch-quick,
+    .olt-hub-hero, .olt-hub-card,
+    .rsh-hero, .rsh-card,
+    .billing-hub-hero, .billing-hub-card,
+    .inventory-hub-hero, .inventory-hub-card,
+    [class*="-hub-hero"],
+    [class*="-hub-card"] {
+        padding: clamp(0.9rem, 4vw, 1.5rem) !important;
+    }
+
+    /* All custom hub stat/quick-access grids collapse to a single column */
+    .ch-stats, .ch-quick, .ch-grid,
+    .olt-hub-stats, .olt-hub-grid,
+    .rsh-stats, .rsh-grid,
+    .billing-hub-stats,
+    .inventory-hub-stats,
+    [class$="-hub-stats"],
+    [class$="-hub-grid"] {
+        grid-template-columns: 1fr !important;
+        gap: 0.75rem !important;
+    }
+
+    /* Hub titles scale down fluidly */
+    .ch-title, .olt-hub-title, .rsh-title,
+    [class*="-hub-title"] {
+        font-size: clamp(1.2rem, 6vw, 1.6rem) !important;
+        line-height: 1.2;
+    }
+
+    /* Filament stats overview: one column on phones */
+    .fi-wi-stats-overview-stats-ctn {
+        grid-template-columns: 1fr !important;
+    }
+
+    /* Filament resource tables: allow horizontal scroll instead of squish */
+    .fi-ta-table {
+        font-size: 0.82rem;
+    }
+
+    /* Page header actions wrap so buttons stay tappable */
+    .fi-header-heading {
+        font-size: clamp(1.15rem, 5.5vw, 1.5rem);
+    }
+
+    /* Tap targets: ensure action buttons are at least 40px tall on touch */
+    .fi-btn,
+    .fi-ac-btn-action {
+        min-height: 40px;
+    }
+}
+
+/* ============================================================
+ * Today snapshot strip (TodaySnapshotWidget) — top of dashboard
+ * Self-contained; works in light + dark. Mobile: horizontal scroll.
+ * ============================================================ */
+.isp-today-strip {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 0.75rem;
+}
+
+.isp-today-tile {
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    padding: 0.85rem 1rem;
+    border-radius: 1rem;
+    border: 1px solid rgba(148, 163, 184, 0.25);
+    background: rgba(255, 255, 255, 0.65);
+    text-decoration: none;
+    color: inherit;
+    transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+    min-height: 64px;
+}
+a.isp-today-tile:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 24px -12px rgba(15, 23, 42, 0.35);
+    border-color: rgba(124, 58, 237, 0.45);
+}
+.dark .isp-today-tile {
+    background: rgba(30, 41, 59, 0.55);
+    border-color: rgba(148, 163, 184, 0.18);
+}
+
+.isp-today-tile__icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.4rem;
+    height: 2.4rem;
+    border-radius: 0.75rem;
+    flex: 0 0 auto;
+    background: rgba(124, 58, 237, 0.12);
+    color: #7c3aed;
+}
+.isp-today-tile__icon-svg { width: 1.25rem; height: 1.25rem; }
+
+.isp-today-tile__body { display: flex; flex-direction: column; line-height: 1.15; min-width: 0; }
+.isp-today-tile__value { font-size: 1.25rem; font-weight: 700; letter-spacing: -0.01em; }
+.isp-today-tile__label {
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    opacity: 0.7;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Tones */
+.isp-today-tile--emerald .isp-today-tile__icon { background: rgba(16, 185, 129, 0.14); color: #059669; }
+.isp-today-tile--rose    .isp-today-tile__icon { background: rgba(244, 63, 94, 0.14);  color: #e11d48; }
+.isp-today-tile--amber   .isp-today-tile__icon { background: rgba(245, 158, 11, 0.16); color: #d97706; }
+.isp-today-tile--slate   .isp-today-tile__icon { background: rgba(100, 116, 139, 0.16); color: #475569; }
+
+.isp-today-tile--rose  { border-color: rgba(244, 63, 94, 0.35); }
+.isp-today-tile--amber { border-color: rgba(245, 158, 11, 0.35); }
+
+/* Tablet: 3 across */
+@media (max-width: 1024px) {
+    .isp-today-strip { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+/* Phone: horizontal scroll row so tiles stay big enough to read/tap */
+@media (max-width: 640px) {
+    .isp-today-strip {
+        grid-template-columns: none;
+        display: flex;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        padding-bottom: 0.25rem;
+        scroll-snap-type: x mandatory;
+    }
+    .isp-today-tile {
+        flex: 0 0 70%;
+        max-width: 78%;
+        scroll-snap-align: start;
+    }
+}
