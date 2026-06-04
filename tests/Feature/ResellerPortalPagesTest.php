@@ -73,4 +73,28 @@ class ResellerPortalPagesTest extends TestCase
             ->assertOk()
             ->assertDontSee('404', false);
     }
+
+    public function test_api_keys_page_supports_scoped_abilities(): void
+    {
+        $reseller = $this->franchiseReseller();
+        $reseller->update(['api_access_enabled' => true]);
+
+        $this->actingAs($reseller, 'reseller')
+            ->get(route('reseller.api-keys.index'))
+            ->assertOk()
+            ->assertSee('API scope', false)
+            ->assertSee('View subscribers', false);
+
+        $this->actingAs($reseller, 'reseller')
+            ->post(route('reseller.api-keys.store'), [
+                'name' => 'Scoped integration',
+                'abilities' => [ResellerPortalPermission::CUSTOMER_VIEW],
+            ])
+            ->assertRedirect()
+            ->assertSessionHas('new_api_key');
+
+        $key = $reseller->apiKeys()->first();
+        $this->assertNotNull($key);
+        $this->assertSame([ResellerPortalPermission::CUSTOMER_VIEW], $key->abilities);
+    }
 }

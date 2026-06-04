@@ -2,6 +2,8 @@
 
 namespace App\Support;
 
+use App\Models\Reseller;
+
 /**
  * Partner portal capabilities — assigned per reseller (JSON) or defaulted by partner type.
  */
@@ -101,6 +103,45 @@ final class ResellerPortalPermission
             self::all(),
             static fn (string $permission): bool => $permission !== self::STAFF_MANAGE,
         ));
+    }
+
+    /**
+     * Permissions that can be scoped on partner API keys (read-only /partner routes).
+     *
+     * @return list<string>
+     */
+    public static function assignableToApiKeys(): array
+    {
+        return [
+            self::CUSTOMER_VIEW,
+            self::BILLING_VIEW,
+            self::COMMISSION_VIEW,
+            self::WALLET_VIEW,
+            self::SETTLEMENT_MANAGE,
+            self::TICKET_CREATE,
+            self::ONU_VIEW,
+            self::NETWORK_VIEW,
+            self::REPORTS_VIEW,
+            self::SUB_RESELLER_VIEW,
+            self::CUSTOMER_TRANSFER,
+            self::RESELLER_BILLING_VIEW,
+            self::ANNOUNCEMENTS_VIEW,
+        ];
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public static function labelsForApiKeys(Reseller $reseller): array
+    {
+        $allowed = array_flip($reseller->portalPermissions());
+
+        return array_filter(
+            self::labels(),
+            static fn (string $key): bool => in_array($key, self::assignableToApiKeys(), true)
+                && isset($allowed[$key]),
+            ARRAY_FILTER_USE_KEY,
+        );
     }
 
     /** @return list<string> */

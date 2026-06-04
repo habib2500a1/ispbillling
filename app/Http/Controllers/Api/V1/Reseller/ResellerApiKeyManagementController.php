@@ -29,7 +29,10 @@ class ResellerApiKeyManagementController extends Controller
         $reseller = $request->user();
         abort_unless($reseller->api_access_enabled, 403, 'API access is disabled for this account.');
 
-        $allowed = $reseller->portalPermissions();
+        $allowed = array_values(array_intersect(
+            $reseller->portalPermissions(),
+            ResellerPortalPermission::assignableToApiKeys(),
+        ));
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:128'],
             'abilities' => ['nullable', 'array'],
@@ -39,6 +42,9 @@ class ResellerApiKeyManagementController extends Controller
         $abilities = isset($validated['abilities'])
             ? array_values(array_intersect($validated['abilities'], $allowed))
             : null;
+        if ($abilities === []) {
+            $abilities = null;
+        }
 
         $result = $service->create($reseller, $validated['name'], $abilities !== [] ? $abilities : null);
 
