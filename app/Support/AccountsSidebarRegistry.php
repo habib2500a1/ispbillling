@@ -32,12 +32,36 @@ final class AccountsSidebarRegistry
     {
         return [
             [
+                'key' => 'accounts_dashboard',
+                'label' => 'Accounts dashboard',
+                'icon' => 'heroicon-o-squares-2x2',
+                'sort' => 0,
+                'url' => AccountsHub::getUrl(),
+                'active_routes' => ['filament.admin.pages.accounts-hub'],
+            ],
+            [
                 'key' => 'wallets',
                 'label' => 'Wallets',
                 'icon' => 'heroicon-o-wallet',
                 'sort' => 1,
                 'url' => AccountsWalletHubPage::getUrl(),
                 'active_routes' => ['filament.admin.pages.accounts-wallet-hub'],
+            ],
+            [
+                'key' => 'payment_reports',
+                'label' => 'Collections & bKash report',
+                'icon' => 'heroicon-o-document-chart-bar',
+                'sort' => 2,
+                'url' => PaymentsReport::getUrl(),
+                'active_routes' => ['filament.admin.pages.payments-report'],
+            ],
+            [
+                'key' => 'bkash_collections',
+                'label' => 'bKash collections',
+                'icon' => 'heroicon-o-device-phone-mobile',
+                'sort' => 2.5,
+                'url' => PaymentsReport::getUrl().'?gateway=bkash',
+                'active_routes' => ['filament.admin.pages.payments-report'],
             ],
             [
                 'key' => 'balance_transfer',
@@ -200,7 +224,9 @@ final class AccountsSidebarRegistry
     public static function canSeeEntry(string $key): bool
     {
         return match ($key) {
+            'accounts_dashboard' => AccountsHub::canAccess(),
             'wallets' => AccountsWalletHubPage::canAccess(),
+            'payment_reports', 'bkash_collections' => PaymentsReport::canAccess(),
             'balance_transfer' => CollectorCashHub::canAccess(),
             'bkash' => ManagePaymentSettings::canAccess(),
             'income_vs_expense' => AccountsIncomeVsExpensePage::canAccess(),

@@ -144,7 +144,7 @@ class ManagePersonalMfsSettings extends Page
                 ->default(true),
             Placeholder::make('bkash_flow')
                 ->label('Verify flow')
-                ->content('RCL SMS APK → SMS ledger. ID/PPPoE/registered phone + FIFO bills. Overpay → wallet advance.'),
+                ->content('RCL SMS APK → SMS ledger. ১) Ref/Counter/PPPoE মিলালে Done। ২) Ref মিল না হলে registered phone (SMS sender) মিলালে Done। ৩) না হলে ledger-এ assign।'),
         ];
     }
 

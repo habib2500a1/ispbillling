@@ -8,12 +8,26 @@ return [
 
     'default_profile' => 'host_resources',
 
+    /** Maps devices.olt_driver → health profile (auto on each OLT SNMP poll). */
+    'driver_to_profile' => [
+        'huawei_gpon' => 'huawei',
+        'zte_gpon' => 'zte',
+        'zte_epon' => 'zte',
+        'bdcom_gpon' => 'bdcom',
+        'bdcom_epon' => 'bdcom',
+        'aveis_gpon' => 'aveis',
+        'aveis_epon' => 'aveis',
+        'vsol_gpon' => 'host_resources',
+        'ecom_gpon' => 'host_resources',
+        'cdata_gpon' => 'host_resources',
+    ],
+
     'vendor_to_profile' => [
         'huawei' => 'huawei',
         'zte' => 'zte',
         'bdcom' => 'bdcom',
         'fiberhome' => 'host_resources',
-        'aveis' => 'host_resources',
+        'aveis' => 'aveis',
         'ecom' => 'host_resources',
         'vsol' => 'host_resources',
         'nokia' => 'host_resources',
@@ -46,10 +60,28 @@ return [
             'memory_usage' => '1.3.6.1.4.1.3902.1082.500.20.2.1.4',
         ],
         'bdcom' => [
-            'label' => 'BDCOM (HOST-RESOURCES fallback)',
+            'label' => 'BDCOM EPON/GPON',
             'extends' => 'host_resources',
+            /** BDCOM-PROCESS-MIB — 1-minute CPU busy % (scalar .1) */
+            'cpu_usage' => '1.3.6.1.4.1.3320.9.109.1.1.1.1.4',
+            'cpu_scalars' => [
+                '1.3.6.1.4.1.3320.9.109.1.1.1.1.4.1',
+                '1.3.6.1.4.1.3320.9.109.1.1.1.1.3.1',
+            ],
+            /** nmsCardMemoryUsage / nmscardTemperature (%) */
+            'memory_usage' => '1.3.6.1.4.1.3320.3.6.10.1.12',
+            'temperature' => '1.3.6.1.4.1.3320.3.6.10.1.13',
+            'temperature_fallback' => '1.3.6.1.4.1.3320.3.6.14',
+        ],
+        'aveis' => [
+            'label' => 'Aveis AV-OLT (HOST-RESOURCES + ENTITY-SENSOR)',
+            'extends' => 'host_resources',
+            'entity_sensor_value' => '1.3.6.1.2.1.99.1.1.1.1.4',
         ],
     ],
+
+    /** ENTITY-SENSOR-MIB fallback for any OLT when vendor temp OID is empty */
+    'entity_sensor_value' => '1.3.6.1.2.1.99.1.1.1.1.4',
 
     /** Meta keys on OLT devices.meta from external NMS */
     'meta_keys' => [

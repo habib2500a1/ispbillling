@@ -8,7 +8,10 @@ use App\Filament\Resources\ResellerResource\RelationManagers;
 use App\Models\Reseller;
 use App\Models\User;
 use App\Services\Resellers\ResellerPortalAccessService;
+use App\Support\ResellerBillingSettlementMode;
 use App\Support\ResellerBranding;
+use App\Support\ResellerCustomerBillingPolicy;
+use App\Support\ResellerNewCustomerChargeMode;
 use App\Support\ResellerPortalPermission;
 use App\Support\ResellerType;
 use Filament\Forms;
@@ -70,11 +73,12 @@ class ResellerResource extends Resource
                             ->native(false),
                         Forms\Components\Select::make('is_active')
                             ->label('Status')
-                            ->options(['1' => 'Active', '0' => 'Inactive'])
+                            ->options(['1' => 'Active (ON)', '0' => 'Inactive (OFF)'])
                             ->default('1')
                             ->required()
                             ->dehydrateStateUsing(fn (string $state): bool => $state === '1')
-                            ->formatStateUsing(fn (?bool $state): string => ($state ?? true) ? '1' : '0'),
+                            ->formatStateUsing(fn (?bool $state): string => ($state ?? true) ? '1' : '0')
+                            ->helperText('OFF = reseller portal blocked and ALL subscribers under this partner suspended on network. ON = auto-held subscribers restored.'),
                         Forms\Components\Select::make('parent_id')
                             ->label('Parent reseller')
                             ->options(fn (): array => Reseller::query()
@@ -152,11 +156,126 @@ class ResellerResource extends Resource
                             ->numeric()
                             ->minValue(1)
                             ->nullable(),
+                        Forms\Components\TextInput::make('bonus_wallet_balance')
+                            ->label('Bonus wallet')
+                            ->numeric()
+                            ->default(0)
+                            ->prefix('BDT'),
+                        Forms\Components\TextInput::make('credit_limit')
+                            ->label('Credit limit')
+                            ->numeric()
+                            ->default(0)
+                            ->prefix('BDT'),
+                        Forms\Components\TextInput::make('low_balance_threshold')
+                            ->label('Low balance threshold')
+                            ->numeric()
+                            ->nullable()
+                            ->prefix('BDT'),
+                        Forms\Components\TextInput::make('max_onu')
+                            ->label('Max ONU')
+                            ->numeric()
+                            ->nullable(),
+                        Forms\Components\TextInput::make('max_olt')
+                            ->label('Max OLT')
+                            ->numeric()
+                            ->nullable(),
+                        Forms\Components\TextInput::make('max_packages')
+                            ->label('Max packages')
+                            ->numeric()
+                            ->nullable(),
+                        Forms\Components\Select::make('commission_mode')
+                            ->label('Commission mode')
+                            ->options(['simple' => 'Simple', 'tier' => 'Tier-based'])
+                            ->default('simple'),
+                        Forms\Components\Toggle::make('api_access_enabled')
+                            ->label('API access'),
+                        Forms\Components\Toggle::make('auto_suspend_on_low_balance')
+                            ->label('Auto suspend on low balance'),
+                        Forms\Components\Toggle::make('auto_restore_on_recharge')
+                            ->label('Auto restore after recharge')
+                            ->default(true),
                         Forms\Components\Toggle::make('wallet_frozen')
                             ->label('Freeze wallet')
                             ->helperText('Blocks settlements and wallet debits.'),
                     ])
                     ->columns(3),
+                Forms\Components\Section::make('Wholesale billing (due account)')
+                    ->description('Admin bills reseller at wholesale; reseller bills customers at retail. Customer due and admin receivable are tracked separately.')
+                    ->icon('heroicon-o-scale')
+                    ->schema([
+                        Forms\Components\Select::make('billing_settlement_mode')
+                            ->label('Settlement mode')
+                            ->options(ResellerBillingSettlementMode::labels())
+                            ->default(ResellerBillingSettlementMode::POSTPAID_DUE)
+                            ->required()
+                            ->native(false),
+                        Forms\Components\TextInput::make('admin_receivable_due')
+                            ->label('Admin receivable due')
+                            ->numeric()
+                            ->disabled()
+                            ->visibleOn('edit')
+                            ->prefix('BDT'),
+                        Forms\Components\TextInput::make('margin_accrued_total')
+                            ->label('Margin accrued')
+                            ->numeric()
+                            ->disabled()
+                            ->visibleOn('edit')
+                            ->prefix('BDT'),
+                        Forms\Components\TextInput::make('due_grace_period_days')
+                            ->label('Grace period (days)')
+                            ->numeric()
+                            ->default(15)
+                            ->minValue(0)
+                            ->maxValue(90),
+                        Forms\Components\Select::make('reseller_suspend_policy')
+                            ->label('Reseller suspend policy')
+                            ->options([
+                                'credit_breach' => 'Suspend when due exceeds credit limit after grace',
+                                'none' => 'Manual only',
+                            ])
+                            ->default('credit_breach'),
+                        Forms\Components\Select::make('customer_billing_policy')
+                            ->label('Customer billing policy')
+                            ->options(ResellerCustomerBillingPolicy::labels())
+                            ->default(ResellerCustomerBillingPolicy::RESELLER_CONTROLLED)
+                            ->native(false),
+                        Forms\Components\Toggle::make('allow_overdue_customers_active')
+                            ->label('Allow overdue customers to stay online')
+                            ->default(true),
+                        Forms\Components\Toggle::make('suspend_reseller_customers_on_breach')
+                            ->label('Suspend all customers when reseller credit breached')
+                            ->default(false),
+                        Forms\Components\Select::make('new_customer_charge_mode')
+                            ->label('New customer charge')
+                            ->options(ResellerNewCustomerChargeMode::labels())
+                            ->default(ResellerNewCustomerChargeMode::PRORATED)
+                            ->helperText('Mid-month join: prorated vs full month vs first month free/half.'),
+                        Forms\Components\Select::make('default_customer_billing_mode')
+                            ->label('Default customer billing')
+                            ->options(['prepaid' => 'Prepaid', 'postpaid' => 'Postpaid'])
+                            ->default('prepaid'),
+                        Forms\Components\TextInput::make('default_prepaid_grace_days')
+                            ->label('Prepaid grace (days)')
+                            ->numeric()
+                            ->default(5)
+                            ->minValue(0)
+                            ->maxValue(30),
+                        Forms\Components\TextInput::make('default_postpaid_grace_days')
+                            ->label('Postpaid grace (days)')
+                            ->numeric()
+                            ->default(10)
+                            ->minValue(0)
+                            ->maxValue(60),
+                        Forms\Components\Toggle::make('reseller_can_override_charge_mode')
+                            ->label('Reseller can override charge mode per customer')
+                            ->default(false),
+                        Forms\Components\TextInput::make('risk_score')
+                            ->label('Risk score')
+                            ->disabled()
+                            ->visibleOn('edit'),
+                    ])
+                    ->columns(3)
+                    ->collapsed(),
                 Forms\Components\Section::make('Automation')
                     ->schema([
                         Forms\Components\Toggle::make('auto_invoice_enabled')
@@ -457,6 +576,18 @@ class ResellerResource extends Resource
             ->actions([
                 Tables\Actions\ViewAction::make(),
                 Tables\Actions\EditAction::make(),
+                Tables\Actions\Action::make('toggle_active')
+                    ->label(fn (Reseller $record): string => $record->is_active ? 'Turn OFF' : 'Turn ON')
+                    ->icon(fn (Reseller $record): string => $record->is_active ? 'heroicon-o-pause-circle' : 'heroicon-o-play-circle')
+                    ->color(fn (Reseller $record): string => $record->is_active ? 'danger' : 'success')
+                    ->requiresConfirmation()
+                    ->modalHeading(fn (Reseller $record): string => ($record->is_active ? 'Turn OFF' : 'Turn ON').' — '.$record->name)
+                    ->modalDescription(fn (Reseller $record): string => $record->is_active
+                        ? 'Reseller portal will be blocked and ALL active subscribers under this partner will be suspended on the network.'
+                        : 'Reseller portal will open and subscribers that were auto-suspended when this partner was OFF will be restored.')
+                    ->action(function (Reseller $record): void {
+                        $record->forceFill(['is_active' => ! $record->is_active])->save();
+                    }),
                 Tables\Actions\ActionGroup::make([
                     static::resellerPortalCredentialsAction(),
                     static::resellerPortalResetPasswordAction(),
@@ -480,6 +611,8 @@ class ResellerResource extends Resource
             RelationManagers\CustomersRelationManager::class,
             RelationManagers\CommissionsRelationManager::class,
             RelationManagers\SettlementsRelationManager::class,
+            RelationManagers\LedgerEntriesRelationManager::class,
+            RelationManagers\MonthlyStatementsRelationManager::class,
             RelationManagers\WalletRechargesRelationManager::class,
             RelationManagers\BalanceTransfersRelationManager::class,
             RelationManagers\ActivityLogsRelationManager::class,

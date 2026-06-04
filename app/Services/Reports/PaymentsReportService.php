@@ -3,6 +3,7 @@
 namespace App\Services\Reports;
 
 use App\Models\Payment;
+use App\Support\PaymentGateway;
 use App\Support\PaymentType;
 use App\Support\TenantResolver;
 use Carbon\Carbon;
@@ -17,25 +18,34 @@ class PaymentsReportService
 
     public const WALLET_INVOICE = 'invoice';
 
+    public const GATEWAY_ALL = 'all';
+
+    public const GATEWAY_BKASH = 'bkash';
+
     /**
      * @return array{total_amount: float, total_discount: float, total_rows: int, grouped_items: int}
      */
-    public function summary(Carbon $from, Carbon $to, string $walletFilter = self::WALLET_ALL, ?int $tenantId = null): array
-    {
+    public function summary(
+        Carbon $from,
+        Carbon $to,
+        string $walletFilter = self::WALLET_ALL,
+        string $gatewayFilter = self::GATEWAY_ALL,
+        ?int $tenantId = null,
+    ): array {
         $tenantId = $tenantId ?? TenantResolver::requiredTenantId();
-        $query = $this->baseQuery($from, $to, $walletFilter, $tenantId);
+        $query = $this->baseQuery($from, $to, $walletFilter, $gatewayFilter, $tenantId);
 
         $totalAmount = (float) (clone $query)->sum('amount');
         $totalRows = (int) (clone $query)->count();
 
         $discountSum = (float) ((clone $query)
             ->toBase()
-            ->selectRaw("COALESCE(SUM(CAST(JSON_UNQUOTE(JSON_EXTRACT(meta, '$.discount')) AS DECIMAL(12,2))), 0) as discount_total")
+            ->selectRaw($this->discountTotalSelectSql().' as discount_total')
             ->value('discount_total') ?? 0);
 
         $groupedItems = (int) ((clone $query)
             ->toBase()
-            ->selectRaw('COUNT(DISTINCT CONCAT(customer_id, "-", DATE(paid_at))) as grp')
+            ->selectRaw($this->groupedItemsSelectSql().' as grp')
             ->value('grp') ?? 0);
 
         return [
@@ -46,12 +56,28 @@ class PaymentsReportService
         ];
     }
 
-    public function tableQuery(Carbon $from, Carbon $to, string $walletFilter = self::WALLET_ALL, ?int $tenantId = null): Builder
-    {
+    public function tableQuery(
+        Carbon $from,
+        Carbon $to,
+        string $walletFilter = self::WALLET_ALL,
+        string $gatewayFilter = self::GATEWAY_ALL,
+        ?int $tenantId = null,
+    ): Builder {
         $tenantId = $tenantId ?? TenantResolver::requiredTenantId();
 
-        return $this->baseQuery($from, $to, $walletFilter, $tenantId)
+        return $this->baseQuery($from, $to, $walletFilter, $gatewayFilter, $tenantId)
             ->with(['customer', 'invoice', 'recorder']);
+    }
+
+    public static function gatewayFilterLabel(string $filter): string
+    {
+        return match ($filter) {
+            self::GATEWAY_BKASH => 'bKash only',
+            PaymentGateway::NAGAD => 'Nagad only',
+            PaymentGateway::CASH => 'Cash only',
+            PaymentGateway::BANK => 'Bank only',
+            default => 'All methods',
+        };
     }
 
     public static function walletFilterLabel(string $filter): string
@@ -84,9 +110,14 @@ class PaymentsReportService
     /**
      * @return list<array<string, mixed>>
      */
-    public function rowsForExport(Carbon $from, Carbon $to, string $walletFilter = self::WALLET_ALL, ?int $tenantId = null): array
-    {
-        return $this->tableQuery($from, $to, $walletFilter, $tenantId)
+    public function rowsForExport(
+        Carbon $from,
+        Carbon $to,
+        string $walletFilter = self::WALLET_ALL,
+        string $gatewayFilter = self::GATEWAY_ALL,
+        ?int $tenantId = null,
+    ): array {
+        return $this->tableQuery($from, $to, $walletFilter, $gatewayFilter, $tenantId)
             ->orderByDesc('paid_at')
             ->limit(10000)
             ->get()
@@ -105,12 +136,40 @@ class PaymentsReportService
             ->all();
     }
 
-    private function baseQuery(Carbon $from, Carbon $to, string $walletFilter, int $tenantId): Builder
+    private function discountTotalSelectSql(): string
+    {
+        return match (DB::connection()->getDriverName()) {
+            'pgsql' => "COALESCE(SUM(NULLIF(meta->>'discount', '')::numeric), 0)",
+            'sqlite' => "COALESCE(SUM(CAST(json_extract(meta, '$.discount') AS REAL)), 0)",
+            default => "COALESCE(SUM(CAST(JSON_UNQUOTE(JSON_EXTRACT(meta, '$.discount')) AS DECIMAL(12,2))), 0)",
+        };
+    }
+
+    private function groupedItemsSelectSql(): string
+    {
+        return match (DB::connection()->getDriverName()) {
+            'pgsql' => "COUNT(DISTINCT (customer_id::text || '-' || (paid_at::date)::text))",
+            'sqlite' => 'COUNT(DISTINCT (customer_id || \'-\' || date(paid_at)))',
+            default => 'COUNT(DISTINCT CONCAT(customer_id, "-", DATE(paid_at)))',
+        };
+    }
+
+    private function baseQuery(Carbon $from, Carbon $to, string $walletFilter, string $gatewayFilter, int $tenantId): Builder
     {
         $query = Payment::withoutGlobalScopes()
             ->where('tenant_id', $tenantId)
             ->where('status', 'completed')
             ->whereBetween('paid_at', [$from, $to]);
+
+        if ($gatewayFilter === self::GATEWAY_BKASH) {
+            $query->whereIn('method', [
+                PaymentGateway::BKASH,
+                PaymentGateway::BKASH_PERSONAL,
+                PaymentGateway::BKASH_MERCHANT,
+            ]);
+        } elseif ($gatewayFilter !== self::GATEWAY_ALL && $gatewayFilter !== '') {
+            $query->where('method', $gatewayFilter);
+        }
 
         return match ($walletFilter) {
             self::WALLET_ONLY => $query->whereIn('payment_type', [

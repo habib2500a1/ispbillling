@@ -36,9 +36,17 @@
                 <p class="font-semibold text-gray-900 dark:text-white">All payments</p>
                 <p class="mt-1 text-sm text-gray-500">Receipts, refunds, filters by gateway.</p>
             </a>
-            <a href="{{ \App\Filament\Resources\CustomerResource::getUrl() }}" class="rounded-xl border border-gray-200 bg-white p-5 shadow-sm transition hover:border-primary-400 dark:border-gray-700 dark:bg-gray-900">
-                <p class="font-semibold text-gray-900 dark:text-white">Wallet balance</p>
-                <p class="mt-1 text-sm text-gray-500">Subscriber account_balance &amp; pay-from-wallet.</p>
+            <a href="{{ \App\Filament\Pages\PaymentsReport::getUrl() }}" class="rounded-xl border border-emerald-200 bg-emerald-50 p-5 shadow-sm transition hover:border-emerald-400 dark:border-emerald-900/50 dark:bg-emerald-950/30">
+                <p class="font-semibold text-emerald-900 dark:text-emerald-100">Collection &amp; bKash report</p>
+                <p class="mt-1 text-sm text-emerald-800/80 dark:text-emerald-200/80">Bill statement · date range · CSV export.</p>
+            </a>
+            <a href="{{ \App\Filament\Pages\PaymentsReport::getUrl() }}?gateway=bkash" class="rounded-xl border border-pink-200 bg-pink-50 p-5 shadow-sm transition hover:border-pink-400 dark:border-pink-900/50 dark:bg-pink-950/30">
+                <p class="font-semibold text-pink-900 dark:text-pink-100">bKash collections</p>
+                <p class="mt-1 text-sm text-pink-800/80 dark:text-pink-200/80">All bKash receipts in selected period.</p>
+            </a>
+            <a href="{{ \App\Filament\Pages\AccountsWalletHubPage::getUrl() }}" class="rounded-xl border border-indigo-200 bg-indigo-50 p-5 shadow-sm transition hover:border-indigo-400 dark:border-indigo-900/50 dark:bg-indigo-950/30">
+                <p class="font-semibold text-indigo-900 dark:text-indigo-100">Admin wallets</p>
+                <p class="mt-1 text-sm text-indigo-800/80 dark:text-indigo-200/80">Cashbook · bank · collector · reseller balances.</p>
             </a>
         </div>
 

@@ -58,5 +58,24 @@
         </section>
 
         <p class="isp-accounts-period">Period: {{ $stats['period_label'] }}</p>
+
+        <section class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <a href="{{ \App\Filament\Pages\AccountsWalletHubPage::getUrl() }}" class="rounded-xl border border-indigo-200 bg-white p-4 shadow-sm transition hover:border-indigo-400 dark:border-indigo-900/50 dark:bg-gray-900">
+                <p class="font-semibold text-gray-900 dark:text-white">Wallets</p>
+                <p class="mt-1 text-sm text-gray-500">Bank · cashbook · collector · reseller</p>
+            </a>
+            <a href="{{ \App\Filament\Pages\PaymentsReport::getUrl() }}" class="rounded-xl border border-emerald-200 bg-white p-4 shadow-sm transition hover:border-emerald-400 dark:border-emerald-900/50 dark:bg-gray-900">
+                <p class="font-semibold text-gray-900 dark:text-white">Collection report</p>
+                <p class="mt-1 text-sm text-gray-500">All payments &amp; bill statement rows</p>
+            </a>
+            <a href="{{ \App\Filament\Pages\PaymentsReport::getUrl() }}?gateway=bkash" class="rounded-xl border border-pink-200 bg-white p-4 shadow-sm transition hover:border-pink-400 dark:border-pink-900/50 dark:bg-gray-900">
+                <p class="font-semibold text-gray-900 dark:text-white">bKash collections</p>
+                <p class="mt-1 text-sm text-gray-500">Filter bKash only · export CSV</p>
+            </a>
+            <a href="{{ \App\Filament\Pages\BillCollectionDesk::getUrl() }}" class="rounded-xl border border-teal-200 bg-white p-4 shadow-sm transition hover:border-teal-400 dark:border-teal-900/50 dark:bg-gray-900">
+                <p class="font-semibold text-gray-900 dark:text-white">Bill collection desk</p>
+                <p class="mt-1 text-sm text-gray-500">Receive cash / bKash at counter</p>
+            </a>
+        </section>
     </div>
 </x-filament-panels::page>

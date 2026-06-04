@@ -1,3 +1,16 @@
+@if (auth()->check() && \App\Support\WebSipFeature::isEnabledForUser(auth()->user()))
+    {{-- Mobile: topbar-extras is hidden on small screens — keep one call control here. --}}
+    <button
+        type="button"
+        class="isp-topbar-live-call isp-topbar-live-call--compact mr-2 inline-flex shrink-0 items-center gap-1 rounded-lg border-2 border-white bg-emerald-600 px-2.5 py-1.5 text-xs font-bold text-white shadow-sm hover:bg-emerald-700 dark:border-gray-700 lg:hidden"
+        title="লাইভ কল (WebSIP)"
+        aria-label="লাইভ কল"
+        onclick="if (window.ispWebSipOpenDialer) { window.ispWebSipOpenDialer(''); } else { document.querySelector('[data-isp-websip-fab]')?.click(); }"
+    >
+        <x-filament::icon icon="heroicon-m-phone" class="h-4 w-4" />
+    </button>
+@endif
+
 <div
     class="isp-topbar-extras flex shrink-0 items-center gap-2"
     x-data="{
@@ -46,6 +59,19 @@
             <x-filament::icon icon="heroicon-m-computer-desktop" class="h-4 w-4" />
         </button>
     </div>
+    @if (auth()->check() && \App\Support\WebSipFeature::isEnabledForUser(auth()->user()))
+        {{-- Desktop: inside theme / search cluster (extras hidden on mobile). --}}
+        <button
+            type="button"
+            class="isp-topbar-live-call hidden items-center gap-1 rounded-lg border-2 border-white bg-emerald-600 px-2.5 py-1.5 text-xs font-bold text-white shadow-sm hover:bg-emerald-700 dark:border-gray-700 lg:inline-flex"
+            title="লাইভ কল (WebSIP)"
+            aria-label="লাইভ কল"
+            onclick="if (window.ispWebSipOpenDialer) { window.ispWebSipOpenDialer(''); } else { document.querySelector('[data-isp-websip-fab]')?.click(); }"
+        >
+            <x-filament::icon icon="heroicon-m-phone" class="h-4 w-4" />
+            <span class="hidden xl:inline">কল</span>
+        </button>
+    @endif
     <button
         type="button"
         class="isp-topbar-menu-search inline-flex items-center gap-1 rounded-lg border border-gray-200 bg-white/80 px-2.5 py-1.5 text-xs font-semibold text-gray-600 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-900/80 dark:text-gray-300"

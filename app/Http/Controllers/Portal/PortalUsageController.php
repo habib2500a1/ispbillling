@@ -21,7 +21,7 @@ class PortalUsageController extends Controller
         return view('portal.usage', [
             'customer' => $customer,
             'stats' => $stats,
-            'pollSeconds' => max(3, (int) config('portal.poll_seconds', 5)),
+            'pollSeconds' => max(1, (int) config('portal.poll_seconds', 1)),
         ]);
     }
 

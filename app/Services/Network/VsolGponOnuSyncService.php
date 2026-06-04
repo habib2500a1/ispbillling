@@ -6,12 +6,15 @@ use App\Models\Device;
 use App\Services\Olt\OltSnmpProbeService;
 use App\Services\Optical\CustomerOnuSmartLinkService;
 use App\Services\Optical\OpticalReadingPipeline;
+use App\Support\GponSnmpProfile;
 use App\Support\MacAddress;
+use App\Support\SnmpEnvironmentalDecoder;
 use App\Support\SnmpClient;
 use Illuminate\Support\Facades\Log;
 
 /**
- * VSOL / Ecom / C-Data GPON OLT — config-driven SNMP ONU table (enterprise MIB varies by firmware).
+ * Config-driven GPON/EPON ONU SNMP sync (VSOL, ZTE, Ecom, C-DATA, Fiberhome, Nokia, Raisecom, custom).
+ * OIDs: .env, gpon profile, or per-OLT meta.snmp_onu_oids.
  */
 final class VsolGponOnuSyncService
 {
@@ -35,22 +38,26 @@ final class VsolGponOnuSyncService
         ];
 
         if (! $this->supportsDriver($olt)) {
-            $result['error'] = 'OLT driver is not VSOL/Ecom GPON.';
+            $result['error'] = 'OLT driver has no config-driven SNMP ONU sync. Pick a vendor type or set meta.snmp_onu_oids.';
 
             return $result;
         }
 
-        $profileKey = $this->profileKey($olt);
-        $oids = config("gpon.profiles.{$profileKey}", []);
+        $profileKey = GponSnmpProfile::profileKeyForOlt($olt);
+        $onuOids = GponSnmpProfile::onuOids($olt);
 
-        $descOid = (string) ($oids['vsol_onu_desc'] ?? '');
-        $statusOid = (string) ($oids['vsol_onu_status'] ?? '');
-        $macOid = (string) ($oids['vsol_onu_mac'] ?? '');
-        $rxOid = (string) ($oids['vsol_onu_rx'] ?? '');
-        $snOid = (string) ($oids['vsol_onu_sn'] ?? '');
+        $descOid = $onuOids['desc'];
+        $statusOid = $onuOids['status'];
+        $macOid = $onuOids['mac'];
+        $rxOid = $onuOids['rx'];
+        $txOid = $onuOids['tx'];
+        $tempOid = $onuOids['temp'];
+        $voltOid = $onuOids['voltage'];
+        $snOid = $onuOids['sn'];
+        $opticalScale = $onuOids['optical_scale'];
 
         if ($descOid === '' && $snOid === '' && $macOid === '') {
-            $result['error'] = 'VSOL/Ecom SNMP ONU OIDs not configured. Set vsol_onu_* in config/gpon.php after snmpwalk on your OLT, or use Aveis/BDCOM/Huawei driver.';
+            $result['error'] = 'SNMP ONU OIDs not configured. Set VSOL_SNMP_ONU_* (or ZTE_/CDATA_/…) in .env, or OLT → meta → snmp_onu_oids (desc/mac/sn/rx).';
 
             return $result;
         }
@@ -69,6 +76,9 @@ final class VsolGponOnuSyncService
             $statuses = $statusOid !== '' ? $this->walk($peer, $community, $statusOid, $timeoutUs, $retries) : [];
             $macs = $macOid !== '' ? $this->walk($peer, $community, $macOid, $timeoutUs, $retries) : [];
             $rxByIdx = $rxOid !== '' ? $this->walk($peer, $community, $rxOid, $timeoutUs, $retries) : [];
+            $txByIdx = $txOid !== '' ? $this->walk($peer, $community, $txOid, $timeoutUs, $retries) : [];
+            $tempByIdx = $tempOid !== '' ? $this->walk($peer, $community, $tempOid, $timeoutUs, $retries) : [];
+            $voltByIdx = $voltOid !== '' ? $this->walk($peer, $community, $voltOid, $timeoutUs, $retries) : [];
             $sns = $snOid !== '' ? $this->walk($peer, $community, $snOid, $timeoutUs, $retries) : [];
 
             $indices = array_unique(array_merge(array_keys($descs), array_keys($sns), array_keys($macs)));
@@ -83,12 +93,15 @@ final class VsolGponOnuSyncService
                 $serial = trim((string) ($sns[$idx] ?? ''));
                 $serial = preg_replace('/\s+/', '', $serial) ?? '';
                 if ($serial === '') {
-                    $serial = 'VSOL-'.str_replace('.', '-', $idx);
+                    $prefix = strtoupper(substr(preg_replace('/[^a-z0-9]/i', '', $profileKey) ?: 'ONU', 0, 4));
+                    $serial = $prefix.'-'.str_replace('.', '-', $idx);
                 }
 
                 $mac = MacAddress::fromSnmpValue($macs[$idx] ?? null);
                 $rxRaw = $this->parseNumber($rxByIdx[$idx] ?? null);
-                $rxDbm = $rxRaw !== null ? round($rxRaw / 10, 2) : null;
+                $rxDbm = $rxRaw !== null ? round($rxRaw / $opticalScale, 2) : null;
+                $txRaw = $this->parseNumber($txByIdx[$idx] ?? null);
+                $txDbm = $txRaw !== null ? round($txRaw / $opticalScale, 2) : null;
 
                 $discovered[] = [
                     'index' => $idx,
@@ -100,6 +113,13 @@ final class VsolGponOnuSyncService
                     'mac' => $mac,
                     'oper_status' => $this->mapStatus($this->parseNumber($statuses[$idx] ?? null)),
                     'rx_dbm' => $rxDbm,
+                    'tx_dbm' => $txDbm,
+                    'temperature_c' => isset($tempByIdx[$idx])
+                        ? SnmpEnvironmentalDecoder::temperatureC($this->parseNumber($tempByIdx[$idx]), $profileKey)
+                        : null,
+                    'voltage_v' => isset($voltByIdx[$idx])
+                        ? SnmpEnvironmentalDecoder::voltageV($this->parseNumber($voltByIdx[$idx]), $profileKey)
+                        : null,
                 ];
             }
 
@@ -116,7 +136,7 @@ final class VsolGponOnuSyncService
             }
 
             if ($result['discovered'] === 0) {
-                $result['error'] = 'SNMP reachable but no ONU rows returned — verify vsol_onu_* OIDs for this firmware.';
+                $result['error'] = 'SNMP reachable but no ONU rows — verify OIDs (snmpwalk) for this firmware/model.';
             } else {
                 $result['success'] = true;
             }
@@ -130,21 +150,7 @@ final class VsolGponOnuSyncService
 
     public function supportsDriver(Device $olt): bool
     {
-        $driver = strtolower((string) ($olt->olt_driver ?? ''));
-        $profile = strtolower((string) ($olt->gpon_profile ?? ''));
-        $vendor = strtolower((string) ($olt->vendor ?? ''));
-
-        return in_array($driver, ['vsol_gpon', 'ecom_gpon', 'ecom_epon', 'cdata_gpon'], true)
-            || in_array($profile, ['vsol_gpon', 'ecom_gpon', 'cdata_gpon'], true)
-            || in_array($vendor, ['vsol', 'ecom', 'cdata'], true);
-    }
-
-    private function profileKey(Device $olt): string
-    {
-        $driver = strtolower((string) ($olt->olt_driver ?? ''));
-        $map = config('gpon.driver_to_profile', []);
-
-        return (string) ($map[$driver] ?? $driver ?: 'vsol_gpon');
+        return GponSnmpProfile::isConfigDrivenDriver($olt);
     }
 
     /**
@@ -277,9 +283,12 @@ final class VsolGponOnuSyncService
             'last_polled_at' => now(),
         ])->save();
 
-        if ($row['rx_dbm'] !== null) {
+        if ($row['rx_dbm'] !== null || $row['tx_dbm'] !== null || ($row['temperature_c'] ?? null) !== null || ($row['voltage_v'] ?? null) !== null) {
             $this->opticalPipeline->ingest($onu->fresh(), [
                 'rx_raw' => $row['rx_dbm'],
+                'tx_raw' => $row['tx_dbm'],
+                'temperature' => $row['temperature_c'] ?? null,
+                'voltage' => $row['voltage_v'] ?? null,
                 'already_dbm' => true,
                 'oper_status' => $row['oper_status'],
                 'vendor_profile' => $profileKey,

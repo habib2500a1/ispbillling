@@ -2,9 +2,13 @@
 
 namespace App\Support;
 
+use App\Filament\Pages\AccountsWalletHubPage;
 use App\Filament\Pages\BillCollectionDesk;
 use App\Filament\Pages\BillingFundFlowReport;
+use App\Filament\Pages\BillingNoticesPage;
 use App\Filament\Pages\BillingOverview;
+use App\Services\Billing\AdminBillingNoticesService;
+use App\Filament\Pages\PaymentsReport;
 use App\Support\Rbac\StaffCapability;
 use App\Filament\Pages\CollectionDeskReport;
 use App\Filament\Pages\CollectorMobile;
@@ -12,6 +16,7 @@ use App\Filament\Pages\ManageCollectionDiscountSettings;
 use App\Filament\Pages\ManagePaymentRenewalSettings;
 use App\Filament\Pages\CollectorVisitsReport;
 use App\Filament\Resources\CouponResource;
+use App\Filament\Resources\PromotionalOfferResource;
 use App\Filament\Resources\InvoiceResource;
 use App\Filament\Resources\StaffExpenseResource;
 use App\Services\Billing\BillingInvoiceCounts;
@@ -60,6 +65,15 @@ final class BillingSidebarRegistry
                 'sort' => 0,
                 'url_target' => 'billing.overview',
                 'active_routes' => ['filament.admin.pages.billing-overview'],
+            ],
+            [
+                'key' => 'billing_notices',
+                'label' => 'Billing notices',
+                'icon' => 'heroicon-o-bell-alert',
+                'sort' => 0.5,
+                'count_key' => 'notices',
+                'url_target' => 'billing.notices',
+                'active_routes' => ['filament.admin.pages.billing-notices'],
             ],
             [
                 'key' => 'all_bills',
@@ -111,6 +125,32 @@ final class BillingSidebarRegistry
                 'sort' => 5,
                 'url_target' => 'collection.desk',
                 'active_routes' => ['filament.admin.pages.bill-collection'],
+            ],
+            [
+                'key' => 'payment_reports',
+                'label' => 'Payment & collection report',
+                'icon' => 'heroicon-o-document-chart-bar',
+                'sort' => 5.5,
+                'url_target' => 'billing.payment_reports',
+                'active_routes' => ['filament.admin.pages.payments-report'],
+            ],
+            [
+                'key' => 'bkash_collections',
+                'label' => 'bKash collections',
+                'icon' => 'heroicon-o-device-phone-mobile',
+                'sort' => 5.6,
+                'url_target' => 'billing.bkash_collections',
+                'active_routes' => ['filament.admin.pages.payments-report'],
+                'active_when' => fn (): bool => request()->routeIs('filament.admin.pages.payments-report')
+                    && request()->query('gateway') === 'bkash',
+            ],
+            [
+                'key' => 'admin_wallets',
+                'label' => 'Wallets (cash & bank)',
+                'icon' => 'heroicon-o-wallet',
+                'sort' => 5.7,
+                'url_target' => 'billing.wallets',
+                'active_routes' => ['filament.admin.pages.accounts-wallet-hub'],
             ],
             [
                 'key' => 'payment_renewal_settings',
@@ -169,6 +209,18 @@ final class BillingSidebarRegistry
                 ],
             ],
             [
+                'key' => 'promotional_offers',
+                'label' => 'Offers & promotions',
+                'icon' => 'heroicon-o-gift',
+                'sort' => 10.5,
+                'url_target' => 'promotional_offers.index',
+                'active_routes' => [
+                    'filament.admin.resources.promotional-offers.index',
+                    'filament.admin.resources.promotional-offers.create',
+                    'filament.admin.resources.promotional-offers.edit',
+                ],
+            ],
+            [
                 'key' => 'today_collection',
                 'label' => "Today's collection",
                 'icon' => 'heroicon-o-calendar-days',
@@ -222,7 +274,10 @@ final class BillingSidebarRegistry
                 continue;
             }
 
-            $count = isset($entry['count_key']) ? ($counts[$entry['count_key']] ?? 0) : 0;
+            $count = match ($entry['key'] ?? '') {
+                'billing_notices' => app(AdminBillingNoticesService::class)->actionableCount(),
+                default => isset($entry['count_key']) ? ($counts[$entry['count_key']] ?? 0) : 0,
+            };
             $routes = $entry['active_routes'];
 
             $item = NavigationItem::make($entry['label'])
@@ -231,8 +286,16 @@ final class BillingSidebarRegistry
                 ->group('Billing')
                 ->sort($entry['sort'])
                 ->isActiveWhen(function () use ($routes, $entry): bool {
+                    if (isset($entry['active_when']) && is_callable($entry['active_when'])) {
+                        return (bool) ($entry['active_when'])();
+                    }
+
                     if (! request()->routeIs($routes)) {
                         return false;
+                    }
+
+                    if ($entry['key'] === 'payment_reports') {
+                        return request()->query('gateway') !== 'bkash';
                     }
 
                     if ($entry['key'] === 'today_collection') {
@@ -265,14 +328,18 @@ final class BillingSidebarRegistry
 
         return match ($key) {
             'billing_center' => BillingOverview::canAccess(),
+            'billing_notices' => BillingNoticesPage::canAccess(),
             'bill_money_trail' => BillingFundFlowReport::canAccess(),
             'staff_expenses' => StaffExpenseResource::canViewAny(),
             'collection_desk' => BillCollectionDesk::canAccess(),
+            'payment_reports', 'bkash_collections' => PaymentsReport::canAccess(),
+            'admin_wallets' => AccountsWalletHubPage::canAccess(),
             'collection_discount_settings' => ManageCollectionDiscountSettings::canAccess(),
             'payment_renewal_settings' => ManagePaymentRenewalSettings::canAccess(),
             'collector_mobile' => CollectorMobile::canAccess(),
             'collector_visits' => CollectorVisitsReport::canAccess(),
             'coupons' => CouponResource::canViewAny(),
+            'promotional_offers' => PromotionalOfferResource::canViewAny(),
             'new_invoice' => InvoiceResource::canCreate(),
             default => InvoiceResource::canViewAny(),
         };
@@ -285,6 +352,7 @@ final class BillingSidebarRegistry
     {
         return match ($item['url_target']) {
             'billing.overview' => BillingOverview::getUrl(),
+            'billing.notices' => BillingNoticesPage::getUrl(),
             'billing.fund_flow' => BillingFundFlowReport::getUrl(),
             'billing.staff_expenses' => StaffExpenseResource::getUrl(),
             'invoices.index' => InvoiceResource::getUrl('index'),
@@ -294,11 +362,15 @@ final class BillingSidebarRegistry
             'collection.today' => CollectionDeskReport::getUrl(['preset' => 'today']),
             'collection.month' => CollectionDeskReport::getUrl(['preset' => 'month']),
             'collection.desk' => BillCollectionDesk::getUrl(),
+            'billing.payment_reports' => PaymentsReport::getUrl(),
+            'billing.bkash_collections' => PaymentsReport::getUrl().'?gateway=bkash',
+            'billing.wallets' => AccountsWalletHubPage::getUrl(),
             'collection.discount_settings' => ManageCollectionDiscountSettings::getUrl(),
             'collection.renewal_settings' => ManagePaymentRenewalSettings::getUrl(),
             'collector.mobile' => CollectorMobile::getUrl(),
             'collector.visits' => CollectorVisitsReport::getUrl(),
             'coupons.index' => CouponResource::getUrl(),
+            'promotional_offers.index' => PromotionalOfferResource::getUrl(),
             default => '#',
         };
     }

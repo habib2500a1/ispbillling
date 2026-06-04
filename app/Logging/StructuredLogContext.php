@@ -18,14 +18,18 @@ final class StructuredLogContext
             'env' => config('app.env'),
         ];
 
-        if (Auth::guard('web')->check()) {
-            $user = Auth::guard('web')->user();
-            $context['staff_user_id'] = $user?->id;
-            $context['tenant_id'] = $user?->tenant_id;
-        } elseif (Auth::guard('customer')->check()) {
-            $context['customer_id'] = Auth::guard('customer')->id();
-            $context['tenant_id'] = Auth::guard('customer')->user()?->tenant_id;
-        } else {
+        if (app()->isBooted()) {
+            if (Auth::guard('web')->check()) {
+                $user = Auth::guard('web')->user();
+                $context['staff_user_id'] = $user?->id;
+                $context['tenant_id'] = $user?->tenant_id;
+            } elseif (Auth::guard('customer')->check()) {
+                $context['customer_id'] = Auth::guard('customer')->id();
+                $context['tenant_id'] = Auth::guard('customer')->user()?->tenant_id;
+            }
+        }
+
+        if (! isset($context['tenant_id'])) {
             $tid = TenantResolver::currentTenantId();
             if ($tid !== null) {
                 $context['tenant_id'] = $tid;

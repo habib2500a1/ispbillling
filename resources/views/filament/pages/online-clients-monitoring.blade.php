@@ -7,11 +7,14 @@
     $syncAt = ! empty($sync['updated_at'])
         ? rescue(fn () => \Carbon\Carbon::parse($sync['updated_at'])->format('d M Y h:i A'), $sync['updated_at'])
         : null;
+    $syncRunning = \App\Services\Bandwidth\BandwidthSyncStatus::isRunning(
+        \App\Support\TenantResolver::requiredTenantId()
+    );
 @endphp
 
-<x-filament-panels::page class="isp-online-clients-page">
+<x-filament-panels::page class="isp-online-clients-page oc-pro">
     <div
-        class="space-y-4"
+        class="oc-pro-layout space-y-4"
         @if ($pollSeconds > 0)
             wire:poll.{{ $pollSeconds }}s="refreshLiveData"
         @endif
@@ -19,7 +22,7 @@
             wire:poll.{{ $livePollSeconds }}s="$refresh"
         @endif
     >
-        <section class="isp-online-clients-hero">
+        <section class="isp-online-clients-hero oc-pro-hero">
             <div>
                 <p class="isp-online-clients-hero__eyebrow">Network operations</p>
                 <h2 class="isp-online-clients-hero__title">Live PPP / online clients</h2>
@@ -27,7 +30,15 @@
                     Real-time sessions from MikroTik — login, logout, client IP, router NAS, MAC, and traffic.
                 </p>
             </div>
-            @if ($syncAt)
+            @if ($syncRunning)
+                <div class="isp-online-clients-hero__sync">
+                    <span class="isp-live-dot isp-live-dot--pulse" aria-hidden="true"></span>
+                    <div>
+                        <strong>Background sync</strong>
+                        <span>Running on server — page stays fast</span>
+                    </div>
+                </div>
+            @elseif ($syncAt)
                 <div class="isp-online-clients-hero__sync">
                     <span class="isp-live-dot" aria-hidden="true"></span>
                     <div>
@@ -44,7 +55,7 @@
             @endif
         </section>
 
-        <div class="isp-online-clients-stats">
+        <div class="isp-online-clients-stats oc-pro-stats" wire:key="online-stats-{{ $stats['online'] }}-{{ $stats['active_sessions'] }}">
             <div class="isp-online-clients-stat isp-online-clients-stat--blue">
                 <span class="isp-online-clients-stat__label">PPP subscribers</span>
                 <strong>{{ number_format($stats['total']) }}</strong>
@@ -89,7 +100,7 @@
             </p>
         @endif
 
-        <div class="isp-online-clients-table-wrap">
+        <div class="isp-online-clients-table-wrap oc-pro-table">
             {{ $this->table }}
         </div>
     </div>

@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Admin\AdminSessionLoginController;
 use App\Http\Controllers\Admin\GoogleDriveOAuthController;
+use App\Http\Controllers\Admin\WebSipCallLogController;
 use App\Http\Controllers\Admin\PlatformBackupDownloadController;
 use App\Http\Controllers\HotspotPortalController;
 use App\Http\Controllers\LocaleController;
@@ -44,6 +45,7 @@ use App\Http\Controllers\Reseller\ResellerCustomerController;
 use App\Http\Controllers\Reseller\ResellerDashboardController;
 use App\Http\Controllers\Reseller\ResellerLoginController;
 use App\Http\Controllers\Reseller\ResellerCustomerManageController;
+use App\Http\Controllers\Reseller\ResellerDueReminderController;
 use App\Http\Controllers\Reseller\ResellerOnuController;
 use App\Http\Controllers\Reseller\ResellerPaymentController;
 use App\Http\Controllers\Reseller\ResellerRealtimeController;
@@ -74,6 +76,10 @@ Route::middleware(['web', 'auth'])->prefix('admin')->group(function (): void {
         ->name('admin.google-drive.connect');
     Route::get('/google-drive/callback', [GoogleDriveOAuthController::class, 'callback'])
         ->name('admin.google-drive.callback');
+    Route::post('/websip/call-log', WebSipCallLogController::class)
+        ->middleware('throttle:60,1')
+        ->name('admin.websip.call-log');
+
     Route::get('/subscriber-portal-login/{customer}', [StaffSubscriberPortalController::class, 'login'])
         ->whereNumber('customer')
         ->middleware('portal.enabled')
@@ -81,6 +87,7 @@ Route::middleware(['web', 'auth'])->prefix('admin')->group(function (): void {
     Route::get('/reseller-portal-login/{reseller}', [StaffResellerPortalController::class, 'login'])
         ->whereNumber('reseller')
         ->name('staff.resellers.portal-login');
+
 });
 
 Route::redirect('/admin/customers', '/admin/subscribers', 308);
@@ -91,7 +98,7 @@ Route::post('/admin/login', AdminSessionLoginController::class)
     ->middleware(['web', 'throttle:20,1'])
     ->name('admin.login.session');
 
-// ISP Digital legacy URLs
+// Legacy admin URLs (old portal bookmarks)
 Route::redirect('/AutomaticProcess', '/admin/automatic-processes', 302);
 Route::redirect('/AutomaticProcess/Index', '/admin/automatic-processes', 302);
 Route::redirect('/AutomaticProcess/{path}', '/admin/automatic-processes', 302)->where('path', '.*');
@@ -118,6 +125,7 @@ Route::middleware('throttle:30,1')->prefix('mfs')->name('mfs.personal.')->group(
 
 Route::middleware(['web', 'auth'])->prefix('admin')->group(function (): void {
     Route::get('/smart-search', \App\Http\Controllers\Admin\SmartSearchController::class)->name('admin.smart-search');
+    Route::get('/command-palette-items', \App\Http\Controllers\Admin\CommandPaletteItemsController::class)->name('admin.command-palette.items');
     Route::get('/dashboard-stream', \App\Http\Controllers\Admin\DashboardStreamController::class)->name('admin.dashboard-stream');
 });
 
@@ -145,7 +153,7 @@ Route::middleware(['guest:reseller', 'throttle:15,1'])->group(function () {
         ->name('reseller.access.token');
 });
 
-Route::middleware(['auth:reseller', 'reseller.2fa'])->prefix('reseller')->name('reseller.')->group(function () {
+Route::middleware(['auth:reseller', 'reseller.2fa', 'reseller.ip'])->prefix('reseller')->name('reseller.')->group(function () {
     Route::get('/two-factor/challenge', [ResellerTwoFactorController::class, 'challenge'])->name('two-factor.challenge');
     Route::post('/two-factor/challenge', [ResellerTwoFactorController::class, 'verifyChallenge'])->name('two-factor.verify');
     Route::get('/two-factor/setup', [ResellerTwoFactorController::class, 'setup'])->name('two-factor.setup');
@@ -205,6 +213,9 @@ Route::middleware(['auth:reseller', 'reseller.2fa'])->prefix('reseller')->name('
     Route::get('/invoices', [ResellerInvoiceController::class, 'index'])
         ->middleware('reseller.permission:'.ResellerPortalPermission::BILLING_VIEW)
         ->name('invoices.index');
+    Route::post('/invoices/generate-all', [ResellerInvoiceController::class, 'bulkGenerate'])
+        ->middleware('reseller.permission:'.ResellerPortalPermission::INVOICE_GENERATE)
+        ->name('invoices.generate-all');
     Route::get('/invoices/{invoice}', [ResellerInvoiceController::class, 'show'])
         ->middleware('reseller.permission:'.ResellerPortalPermission::BILLING_VIEW)
         ->name('invoices.show');
@@ -214,6 +225,18 @@ Route::middleware(['auth:reseller', 'reseller.2fa'])->prefix('reseller')->name('
     Route::post('/invoices/{invoice}/send', [ResellerInvoiceController::class, 'send'])
         ->middleware('reseller.permission:'.ResellerPortalPermission::BILLING_VIEW)
         ->name('invoices.send');
+    Route::post('/invoices/{invoice}/adjust', [ResellerInvoiceController::class, 'adjust'])
+        ->middleware('reseller.permission:'.ResellerPortalPermission::INVOICE_ADJUST)
+        ->name('invoices.adjust');
+    Route::post('/invoices/{invoice}/due-reminder', [ResellerInvoiceController::class, 'sendDueReminder'])
+        ->middleware('reseller.permission:'.ResellerPortalPermission::BILLING_VIEW)
+        ->name('invoices.due-reminder');
+    Route::post('/invoices/{invoice}/lines', [ResellerInvoiceController::class, 'updateLine'])
+        ->middleware('reseller.permission:'.ResellerPortalPermission::INVOICE_EDIT)
+        ->name('invoices.lines.update');
+    Route::post('/invoices/{invoice}/lines/add', [ResellerInvoiceController::class, 'addLine'])
+        ->middleware('reseller.permission:'.ResellerPortalPermission::INVOICE_EDIT)
+        ->name('invoices.lines.add');
     Route::get('/tickets', [ResellerTicketController::class, 'index'])
         ->middleware('reseller.permission:'.ResellerPortalPermission::TICKET_CREATE)
         ->name('tickets.index');
@@ -244,12 +267,67 @@ Route::middleware(['auth:reseller', 'reseller.2fa'])->prefix('reseller')->name('
     Route::post('/network/{customer}/disconnect', [ResellerNetworkController::class, 'disconnect'])
         ->middleware('reseller.permission:'.ResellerPortalPermission::NETWORK_VIEW)
         ->name('network.disconnect');
+    Route::get('/hub', [\App\Http\Controllers\Reseller\ResellerHubController::class, 'index'])
+        ->name('hub');
     Route::get('/sub-resellers', [ResellerSubResellerController::class, 'index'])
         ->middleware('reseller.permission:'.ResellerPortalPermission::SUB_RESELLER_VIEW)
         ->name('sub-resellers.index');
     Route::get('/sub-resellers/{child}', [ResellerSubResellerController::class, 'show'])
         ->middleware('reseller.permission:'.ResellerPortalPermission::SUB_RESELLER_VIEW)
         ->name('sub-resellers.show');
+    Route::get('/sub-resellers/create', [\App\Http\Controllers\Reseller\ResellerSubResellerCreateController::class, 'create'])
+        ->middleware('reseller.permission:'.ResellerPortalPermission::SUB_RESELLER_CREATE)
+        ->name('sub-resellers.create');
+    Route::post('/sub-resellers', [\App\Http\Controllers\Reseller\ResellerSubResellerCreateController::class, 'store'])
+        ->middleware('reseller.permission:'.ResellerPortalPermission::SUB_RESELLER_CREATE)
+        ->name('sub-resellers.store');
+    Route::get('/wallet/overview', [\App\Http\Controllers\Reseller\ResellerEnterpriseController::class, 'walletOverview'])
+        ->middleware('reseller.permission:'.ResellerPortalPermission::WALLET_VIEW)
+        ->name('wallet.overview');
+    Route::get('/due-account', [\App\Http\Controllers\Reseller\ResellerDueAccountController::class, 'index'])
+        ->middleware('reseller.permission:'.ResellerPortalPermission::WALLET_VIEW)
+        ->name('due-account');
+    Route::post('/due-reminders/bulk', [ResellerDueReminderController::class, 'bulk'])
+        ->middleware('reseller.permission:'.ResellerPortalPermission::BILLING_VIEW)
+        ->name('due-reminders.bulk');
+    Route::get('/reports/enterprise', [\App\Http\Controllers\Reseller\ResellerEnterpriseController::class, 'reports'])
+        ->middleware('reseller.permission:'.ResellerPortalPermission::REPORTS_VIEW)
+        ->name('reports.enterprise');
+    Route::get('/announcements', [\App\Http\Controllers\Reseller\ResellerEnterpriseController::class, 'announcements'])
+        ->middleware('reseller.permission:'.ResellerPortalPermission::ANNOUNCEMENTS_VIEW)
+        ->name('announcements.index');
+    Route::get('/security', [\App\Http\Controllers\Reseller\ResellerEnterpriseController::class, 'security'])
+        ->name('security.index');
+    Route::get('/customer-transfers', [\App\Http\Controllers\Reseller\ResellerCustomerTransferController::class, 'index'])
+        ->middleware('reseller.permission:'.ResellerPortalPermission::CUSTOMER_TRANSFER)
+        ->name('customer-transfers.index');
+    Route::get('/customers/{customer}/transfer', [\App\Http\Controllers\Reseller\ResellerCustomerTransferController::class, 'create'])
+        ->middleware('reseller.permission:'.ResellerPortalPermission::CUSTOMER_TRANSFER)
+        ->name('customer-transfers.create');
+    Route::post('/customers/{customer}/transfer', [\App\Http\Controllers\Reseller\ResellerCustomerTransferController::class, 'store'])
+        ->middleware('reseller.permission:'.ResellerPortalPermission::CUSTOMER_TRANSFER)
+        ->name('customer-transfers.store');
+    Route::get('/api-keys', [\App\Http\Controllers\Reseller\ResellerApiKeyController::class, 'index'])
+        ->middleware('reseller.permission:'.ResellerPortalPermission::API_KEYS_MANAGE)
+        ->name('api-keys.index');
+    Route::post('/api-keys', [\App\Http\Controllers\Reseller\ResellerApiKeyController::class, 'store'])
+        ->middleware('reseller.permission:'.ResellerPortalPermission::API_KEYS_MANAGE)
+        ->name('api-keys.store');
+    Route::delete('/api-keys/{apiKey}', [\App\Http\Controllers\Reseller\ResellerApiKeyController::class, 'destroy'])
+        ->middleware('reseller.permission:'.ResellerPortalPermission::API_KEYS_MANAGE)
+        ->name('api-keys.destroy');
+    Route::get('/branding', [\App\Http\Controllers\Reseller\ResellerBrandingController::class, 'edit'])
+        ->middleware('reseller.permission:'.ResellerPortalPermission::BRANDING_MANAGE)
+        ->name('branding.edit');
+    Route::put('/branding', [\App\Http\Controllers\Reseller\ResellerBrandingController::class, 'update'])
+        ->middleware('reseller.permission:'.ResellerPortalPermission::BRANDING_MANAGE)
+        ->name('branding.update');
+    Route::get('/internal-tickets', [\App\Http\Controllers\Reseller\ResellerInternalTicketController::class, 'index'])
+        ->middleware('reseller.permission:'.ResellerPortalPermission::INTERNAL_TICKET_MANAGE)
+        ->name('internal-tickets.index');
+    Route::post('/internal-tickets', [\App\Http\Controllers\Reseller\ResellerInternalTicketController::class, 'store'])
+        ->middleware('reseller.permission:'.ResellerPortalPermission::INTERNAL_TICKET_MANAGE)
+        ->name('internal-tickets.store');
     Route::get('/commissions', [ResellerCommissionController::class, 'index'])
         ->middleware('reseller.permission:'.ResellerPortalPermission::COMMISSION_VIEW)
         ->name('commissions.index');

@@ -4,7 +4,7 @@ namespace App\Console\Commands;
 
 use App\Models\Device;
 use App\Services\Network\OltFdbMacBridgeService;
-use App\Services\Optical\IspDigitalOnuAutoLinkService;
+use App\Services\Optical\LegacyPortalOnuAutoLinkService;
 use App\Services\Optical\OnuSignalCollectionService;
 use Illuminate\Console\Command;
 
@@ -18,7 +18,7 @@ class DetectOnuSubscribersCommand extends Command
 
     protected $description = 'Auto-detect ONU → subscriber from the OLT FDB (router MAC behind each ONU == PPPoE caller_id)';
 
-    public function handle(OltFdbMacBridgeService $bridge, IspDigitalOnuAutoLinkService $autoLink): int
+    public function handle(OltFdbMacBridgeService $bridge, LegacyPortalOnuAutoLinkService $autoLink): int
     {
         $query = Device::withoutGlobalScopes()->where('type', 'olt')->where('status', '!=', 'decommissioned');
         if ($tenant = $this->option('tenant')) {

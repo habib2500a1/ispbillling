@@ -75,12 +75,28 @@ final class ResellerBalanceService
 
             app(ResellerPortalNotifier::class)->walletCredited($to, $amount, $transfer->reference);
 
+            app(ResellerWalletLedgerService::class)->creditMain(
+                $to->fresh(),
+                $amount,
+                $type,
+                $transfer->reference,
+                $notes,
+                $transfer,
+            );
+
+            app(ResellerAutomationService::class)->handleWalletRecharge($to->fresh(), $amount);
+
             return $transfer;
         });
     }
 
-    public function debit(Reseller $from, float $amount, ?string $notes = null): ResellerBalanceTransfer
-    {
+    public function debit(
+        Reseller $from,
+        float $amount,
+        ?string $notes = null,
+        string $type = ResellerBalanceTransfer::TYPE_DEBIT,
+        ?string $reference = null,
+    ): ResellerBalanceTransfer {
         if ($amount <= 0) {
             throw ValidationException::withMessages(['amount' => 'Amount must be greater than zero.']);
         }
@@ -89,7 +105,7 @@ final class ResellerBalanceService
             throw ValidationException::withMessages(['amount' => 'Insufficient balance.']);
         }
 
-        return DB::transaction(function () use ($from, $amount, $notes): ResellerBalanceTransfer {
+        return DB::transaction(function () use ($from, $amount, $notes, $type, $reference): ResellerBalanceTransfer {
             $from->decrement('wallet_balance', $amount);
 
             return ResellerBalanceTransfer::query()->create([
@@ -97,8 +113,8 @@ final class ResellerBalanceService
                 'from_reseller_id' => $from->id,
                 'to_reseller_id' => $from->id,
                 'amount' => $amount,
-                'transfer_type' => ResellerBalanceTransfer::TYPE_DEBIT,
-                'reference' => 'DBT-'.now()->format('YmdHis'),
+                'transfer_type' => $type,
+                'reference' => $reference ?? 'DBT-'.now()->format('YmdHis'),
                 'notes' => $notes,
                 'created_by' => auth()->id(),
             ]);

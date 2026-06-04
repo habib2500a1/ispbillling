@@ -42,7 +42,7 @@ return [
     /**
      * Default grace days when subscriber has none set.
      */
-    'default_grace_period_days' => (int) env('BILLING_DEFAULT_GRACE_DAYS', 10),
+    'default_grace_period_days' => (int) env('BILLING_DEFAULT_GRACE_DAYS', 0),
 
     /**
      * How service_expires_at is extended when a bill is fully paid.
@@ -162,4 +162,9 @@ return [
             ],
         ],
     ],
+
+    /**
+     * Auto-apply active promotional offers (package + date) on generated invoices and upgrades.
+     */
+    'auto_apply_promotional_offers' => (bool) env('BILLING_AUTO_APPLY_PROMOTIONAL_OFFERS', true),
 ];

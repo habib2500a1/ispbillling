@@ -19,7 +19,7 @@ class OpticalDatabaseTableTest extends TestCase
         TenantResolver::fake(1);
     }
 
-    public function test_database_row_matches_isp_digital_columns(): void
+    public function test_database_row_matches_legacy_portal_columns(): void
     {
         $customer = Customer::query()->create([
             'tenant_id' => 1,

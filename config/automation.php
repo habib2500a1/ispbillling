@@ -26,4 +26,13 @@ return [
     'notify_on_failure' => (bool) env('AUTOMATION_NOTIFY_ON_FAILURE', true),
 
     'run_history_keep' => max(10, min(500, (int) env('AUTOMATION_RUN_HISTORY_KEEP', 100))),
+
+    /** Global mutex for isp:run-automatic-processes (seconds). */
+    'runner_lock_seconds' => max(60, (int) env('AUTOMATION_RUNNER_LOCK_SECONDS', 300)),
+
+    /** Max concurrent isp:run-automatic-processes OS processes before guard acts. */
+    'max_runner_processes' => max(1, (int) env('AUTOMATION_MAX_RUNNER_PROCESSES', 1)),
+
+    /** Kill workers older than this (seconds) when count exceeds max_runner_processes. */
+    'stale_runner_seconds' => max(120, (int) env('AUTOMATION_STALE_RUNNER_SECONDS', 360)),
 ];

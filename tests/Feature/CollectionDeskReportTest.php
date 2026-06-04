@@ -98,4 +98,57 @@ class CollectionDeskReportTest extends TestCase
         $this->assertSame(1, $report['count']);
         $this->assertSame('Alpha User', $report['rows'][0]['customer_name']);
     }
+
+    public function test_legacy_received_by_and_bkash_filter(): void
+    {
+        $package = Package::query()->create([
+            'name' => 'P',
+            'type' => 'residential',
+            'download_mbps' => 10,
+            'price_monthly' => 500,
+            'billing_cycle_days' => 30,
+            'is_active' => true,
+        ]);
+        $customer = Customer::query()->create([
+            'name' => 'Sumi aktar',
+            'phone' => '01700001111',
+            'customer_code' => 'minto3.el',
+            'radius_username' => 'minto3.el',
+            'status' => 'active',
+            'billing_day' => 1,
+            'package_id' => $package->id,
+            'tenant_id' => 1,
+        ]);
+
+        Payment::query()->create([
+            'tenant_id' => 1,
+            'customer_id' => $customer->id,
+            'amount' => 500,
+            'method' => 'bkash',
+            'status' => 'completed',
+            'paid_at' => now(),
+            'meta' => [
+                'import_source' => 'legacy_portal',
+                'legacy_portal_bill_header_id' => '0667',
+                'received_by' => 'Habib',
+            ],
+        ]);
+
+        $report = app(CollectionDeskReportService::class)->report(
+            now(),
+            now(),
+            null,
+            'habib',
+            null,
+            null,
+            'all',
+            'bkash',
+        );
+
+        $this->assertSame(1, $report['count']);
+        $this->assertSame('Habib', $report['rows'][0]['received_by']);
+        $this->assertSame('minto3.el', $report['rows'][0]['username']);
+        $this->assertTrue($report['rows'][0]['is_bkash']);
+        $this->assertSame('bKash', $report['rows'][0]['method_label']);
+    }
 }

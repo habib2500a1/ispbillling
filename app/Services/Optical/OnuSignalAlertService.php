@@ -8,6 +8,7 @@ use App\Models\SignalAlert;
 use App\Models\SupportTicket;
 use App\Services\Notifications\NotificationDispatcher;
 use App\Support\NotificationEvent;
+use App\Support\OnuEnvironmentalMetrics;
 use App\Support\OnuSignalLevel;
 use App\Support\OpticalThresholds;
 use Carbon\Carbon;
@@ -74,6 +75,37 @@ final class OnuSignalAlertService
             $drop = (float) $prev->rx_power_dbm - $rx;
             if ($drop >= (float) config('optical.sudden_drop_db', 3)) {
                 $created += $this->openAlert($onu, SignalAlert::TYPE_SUDDEN_DROP, 'warning', 'Sudden signal drop', "RX dropped {$drop} dB.", $rx, $tx, $now);
+            }
+        }
+
+        if (config('optical.alert_on_high_temperature', true)) {
+            $temp = OnuEnvironmentalMetrics::fromDevice($onu)['temperature_c'];
+            $crit = (float) config('optical.onu_temperature_critical_c', 75);
+            $warn = (float) config('optical.onu_temperature_warning_c', 65);
+            if ($temp !== null && $temp >= $crit) {
+                $created += $this->openAlert(
+                    $onu,
+                    SignalAlert::TYPE_HIGH_TEMPERATURE,
+                    'critical',
+                    'ONU high temperature',
+                    sprintf('ONU temperature %.1f °C exceeds critical threshold (%.0f °C).', $temp, $crit),
+                    $rx,
+                    $tx,
+                    $now,
+                );
+            } elseif ($temp !== null && $temp >= $warn) {
+                $created += $this->openAlert(
+                    $onu,
+                    SignalAlert::TYPE_HIGH_TEMPERATURE,
+                    'warning',
+                    'ONU elevated temperature',
+                    sprintf('ONU temperature %.1f °C is above warning level (%.0f °C).', $temp, $warn),
+                    $rx,
+                    $tx,
+                    $now,
+                );
+            } elseif ($temp !== null && $temp < $warn) {
+                $this->resolveOpenAlerts($onu, [SignalAlert::TYPE_HIGH_TEMPERATURE]);
             }
         }
 

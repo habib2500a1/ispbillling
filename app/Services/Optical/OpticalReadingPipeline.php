@@ -87,7 +87,7 @@ final class OpticalReadingPipeline
         }
 
         $meta = is_array($onu->meta) ? $onu->meta : [];
-        $meta['optical'] = array_merge($meta['optical'] ?? [], [
+        $opticalPatch = [
             'snmp_rx_raw' => $snmpRxRaw,
             'snmp_tx_raw' => $snmpTxRaw,
             'raw_rx_dbm' => $rawRx,
@@ -95,7 +95,16 @@ final class OpticalReadingPipeline
             'smoothed_at' => $at->toIso8601String(),
             'poll_source' => $reading['source'] ?? 'snmp',
             'vendor_profile' => $vendor,
-        ]);
+        ];
+        $tempC = $this->toFloat($reading['temperature'] ?? null);
+        $voltV = $this->toFloat($reading['voltage'] ?? null);
+        if ($tempC !== null) {
+            $opticalPatch['temperature_c'] = $tempC;
+        }
+        if ($voltV !== null) {
+            $opticalPatch['voltage_v'] = $voltV;
+        }
+        $meta['optical'] = array_merge($meta['optical'] ?? [], $opticalPatch);
         $onu->meta = $meta;
         $onu->last_polled_at = $at;
         $onu->save();

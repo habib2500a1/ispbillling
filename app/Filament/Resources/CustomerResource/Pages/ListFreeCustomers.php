@@ -2,12 +2,14 @@
 
 namespace App\Filament\Resources\CustomerResource\Pages;
 
+use App\Filament\Resources\CustomerResource\Pages\Concerns\HasBillingAccountListPage;
 use App\Support\CustomerStatus;
 use App\Support\SubscriberType;
 use Illuminate\Database\Eloquent\Builder;
 
 class ListFreeCustomers extends ListFilteredCustomers
 {
+    use HasBillingAccountListPage;
     protected static ?string $navigationLabel = 'Free clients';
 
     protected static ?string $title = 'Free / complimentary clients';

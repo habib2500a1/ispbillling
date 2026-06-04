@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Customer;
 use App\Models\Invoice;
 use App\Services\Billing\InvoiceGenerator;
+use App\Services\Resellers\ResellerBulkInvoiceService;
 use App\Services\Resellers\ResellerCustomerService;
 use App\Services\Resellers\ResellerInvoiceNotifyService;
 use App\Services\Resellers\ResellerPortalActivityLogger;
@@ -40,6 +41,32 @@ class ResellerApiInvoiceController extends Controller
         return response()->json($invoice->load(['customer:id,name,customer_code', 'items']));
     }
 
+    public function bulkGenerate(Request $request, ResellerBulkInvoiceService $bulk): JsonResponse
+    {
+        $reseller = $request->user();
+        if (! app(ResellerPortalSession::class)->canPortal(ResellerPortalPermission::INVOICE_GENERATE)) {
+            throw ValidationException::withMessages(['permission' => 'Invoice generation is not allowed.']);
+        }
+
+        $validated = $request->validate([
+            'reference_date' => ['nullable', 'date'],
+        ]);
+
+        $date = isset($validated['reference_date'])
+            ? Carbon::parse($validated['reference_date'])
+            : Carbon::today();
+
+        $result = $bulk->generateForReseller($reseller, $date, false);
+
+        return response()->json([
+            'message' => sprintf('%d invoice(s) created, %d skipped.', $result['created'], $result['skipped']),
+            'created' => $result['created'],
+            'skipped' => $result['skipped'],
+            'errors' => $result['errors'],
+            'invoices' => $result['invoices'],
+        ]);
+    }
+
     public function generate(Request $request, Customer $customer, ResellerCustomerService $customers): JsonResponse
     {
         $reseller = $request->user();
@@ -50,16 +77,24 @@ class ResellerApiInvoiceController extends Controller
         $customers->assertOwned($reseller, $customer);
         $customer->load('package');
 
-        $invoice = InvoiceGenerator::generateForCustomer($customer, Carbon::today(), false, null);
+        try {
+            $invoice = InvoiceGenerator::generateForCustomer($customer, Carbon::today(), false, null);
+        } catch (ValidationException $exception) {
+            throw $exception;
+        }
+
         if ($invoice === null) {
             return response()->json(['message' => 'Could not generate invoice for this period.'], 422);
         }
 
         app(ResellerPortalActivityLogger::class)->log($reseller, 'invoice.generate', $invoice);
 
+        $wholesaleNote = app(\App\Services\Resellers\ResellerWholesaleDebitService::class)->messageForInvoice($invoice);
+
         return response()->json([
             'invoice' => $invoice->load('items'),
             'pdf_url' => url('/api/v1/reseller/invoices/'.$invoice->id.'/pdf'),
+            'wholesale_message' => $wholesaleNote !== '' ? $wholesaleNote : null,
         ], 201);
     }
 

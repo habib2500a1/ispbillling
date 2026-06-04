@@ -66,6 +66,18 @@ final class ResellerCommissionService
             return 0.0;
         }
 
+        if (($reseller->commission_mode ?? 'simple') === 'tier') {
+            $tier = \App\Models\ResellerCommissionTier::query()
+                ->where('reseller_id', $reseller->id)
+                ->orderBy('sort_order')
+                ->get()
+                ->first(fn (\App\Models\ResellerCommissionTier $t) => $t->appliesTo($gross));
+
+            if ($tier !== null) {
+                return $tier->calculate($gross);
+            }
+        }
+
         if ($reseller->commission_type === 'fixed') {
             return min($gross, (float) $reseller->commission_value);
         }

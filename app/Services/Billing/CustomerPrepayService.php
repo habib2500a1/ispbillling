@@ -68,7 +68,7 @@ final class CustomerPrepayService
     private function fallbackMonthlyRate(Customer $customer): ?float
     {
         $meta = is_array($customer->meta) ? $customer->meta : [];
-        $fromMeta = (float) ($meta['isp_digital_monthly_bill'] ?? 0);
+        $fromMeta = (float) ($meta['legacy_portal_monthly_bill'] ?? 0);
         if ($fromMeta > 0) {
             return round($fromMeta, 2);
         }

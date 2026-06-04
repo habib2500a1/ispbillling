@@ -64,6 +64,52 @@
     border-color: rgb(55 65 81);
 }
 
+.isp-optical-olt-health-wrap {
+    overflow: auto;
+}
+
+.isp-optical-olt-health-table {
+    border-collapse: collapse;
+}
+
+.isp-optical-olt-health-table thead tr {
+    background: linear-gradient(180deg, #f8fafc 0%, #eef2f7 100%);
+}
+
+.dark .isp-optical-olt-health-table thead tr {
+    background: linear-gradient(180deg, rgb(31 41 55) 0%, rgb(17 24 39) 100%);
+}
+
+.isp-optical-olt-health-table th,
+.isp-optical-olt-health-table td {
+    white-space: nowrap;
+    vertical-align: middle;
+}
+
+.isp-optical-olt-health-table th {
+    padding: 0.6rem 0.7rem;
+    font-size: 0.68rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.isp-optical-olt-health-table td {
+    padding: 0.55rem 0.7rem;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.dark .isp-optical-olt-health-table td {
+    border-color: #374151;
+}
+
+.isp-optical-olt-health-table tbody tr:hover {
+    background: rgba(59, 130, 246, 0.06);
+}
+
+.dark .isp-optical-olt-health-table tbody tr:hover {
+    background: rgba(59, 130, 246, 0.12);
+}
+
 .isp-optical-noc__ai-row {
     border-left: 3px solid var(--isp-noc-warn);
     padding: 0.75rem 1rem;
@@ -123,7 +169,7 @@
     background: rgba(251, 113, 133, 0.08);
 }
 
-/* ISP Digital optical database banner */
+/* Optical database banner */
 .isp-optical-db-banner {
     display: flex;
     flex-wrap: wrap;
@@ -135,6 +181,80 @@
     background: linear-gradient(135deg, #1e40af 0%, #1e3a8a 50%, #172554 100%);
     border: 1px solid #3b82f6;
     box-shadow: 0 8px 24px rgba(30, 64, 175, 0.35);
+}
+
+.isp-optical-db-panel {
+    container-type: inline-size;
+}
+
+.isp-optical-db-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem 1rem;
+}
+
+.isp-optical-db-toolbar__stats {
+    flex: 1 1 22rem;
+}
+
+.isp-optical-db-toolbar__controls {
+    flex: 1 1 20rem;
+    justify-content: flex-end;
+}
+
+.isp-optical-db-toolbar__control {
+    white-space: nowrap;
+}
+
+.isp-optical-db-pagination__meta {
+    margin: 0;
+}
+
+/* PON stats — MikroTik / VLAN visible without wide horizontal scroll */
+.isp-pon-stats-panel {
+    border: 1px solid rgba(59, 130, 246, 0.35);
+    box-shadow: 0 4px 24px rgba(30, 64, 175, 0.12);
+}
+
+.isp-pon-stats-scroll-hint {
+    margin: 0;
+    padding: 0.35rem 0.65rem;
+    border-radius: 0.375rem;
+    background: rgba(251, 191, 36, 0.12);
+}
+
+.isp-pon-stats-table thead tr {
+    background: linear-gradient(180deg, #1e3a5f 0%, #152a45 100%);
+}
+
+.isp-pon-stats-table__sticky {
+    position: sticky;
+    left: 0;
+    z-index: 2;
+    background: inherit;
+    box-shadow: 2px 0 4px rgba(0, 0, 0, 0.06);
+}
+
+.isp-pon-stats-table__sticky:nth-child(2) {
+    left: 5.5rem;
+}
+
+.isp-pon-stats-table__sticky:nth-child(3) {
+    left: 11rem;
+}
+
+.dark .isp-pon-stats-table tbody tr .isp-pon-stats-table__sticky {
+    background: rgb(17 24 39);
+}
+
+.isp-pon-stats-table tbody tr:nth-child(even) .isp-pon-stats-table__sticky {
+    background: #f8fafc;
+}
+
+.dark .isp-pon-stats-table tbody tr:nth-child(even) .isp-pon-stats-table__sticky {
+    background: rgba(255, 255, 255, 0.03);
 }
 
 /* Legacy OLT panel table (must load on optical-noc — not only admin-saas.css) */
@@ -212,6 +332,21 @@
     color: #e5e7eb;
 }
 
+/*
+ * Desktop: disable sticky column offset for the legacy optical database table.
+ * Some browsers/scroll containers can visually misalign header/body when the table is scrolled horizontally.
+ * (We already have mobile card layout for <=640px.)
+ */
+@media (min-width: 641px) {
+    .isp-optical-power-table .isp-optical-power-col--sticky {
+        position: static;
+        left: auto;
+        z-index: auto;
+        box-shadow: none;
+        background: inherit;
+    }
+}
+
 .isp-optical-power-table thead .isp-optical-power-col--sticky {
     background: linear-gradient(180deg, #1e3a5f 0%, #152a45 100%);
     color: #fff;
@@ -255,4 +390,179 @@
 .isp-optical-status--offline {
     background: #fee2e2;
     color: #991b1b;
+}
+
+@media (max-width: 900px) {
+    .isp-optical-db-banner {
+        padding: 0.9rem 1rem;
+        gap: 0.75rem;
+    }
+
+    .isp-optical-db-toolbar {
+        padding: 0.75rem 0.85rem;
+    }
+
+    .isp-optical-db-toolbar__controls {
+        justify-content: flex-start;
+    }
+
+    .isp-optical-db-toolbar__control {
+        flex: 1 1 100%;
+    }
+
+    .isp-optical-db-toolbar__control input,
+    .isp-optical-db-toolbar__control select {
+        width: 100%;
+    }
+}
+
+@media (max-width: 640px) {
+    .isp-optical-db-banner h2 {
+        font-size: 1rem;
+    }
+
+    .isp-optical-db-banner p {
+        font-size: 0.74rem;
+    }
+
+    .isp-optical-power-wrap {
+        border-radius: 0.75rem;
+    }
+
+    .isp-optical-power-table thead {
+        display: none;
+    }
+
+    .isp-optical-power-table tbody {
+        display: block;
+        padding: 0.5rem;
+    }
+
+    .isp-optical-power-table tbody tr {
+        display: block;
+        margin-bottom: 0.55rem;
+        border: 1px solid #dbe3ee;
+        border-radius: 0.6rem;
+        overflow: hidden;
+        background: #fff;
+    }
+
+    .dark .isp-optical-power-table tbody tr {
+        border-color: #334155;
+        background: rgb(17 24 39);
+    }
+
+    .isp-optical-power-table td {
+        display: grid;
+        grid-template-columns: minmax(7.4rem, 45%) 1fr;
+        gap: 0.4rem;
+        padding: 0.45rem 0.55rem;
+        border-bottom: 1px solid #e5e7eb;
+        white-space: normal;
+    }
+
+    .dark .isp-optical-power-table td {
+        border-color: #334155;
+    }
+
+    .isp-optical-power-table td::before {
+        content: attr(data-label);
+        font-size: 0.62rem;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: #64748b;
+    }
+
+    .dark .isp-optical-power-table td::before {
+        color: #94a3b8;
+    }
+
+    .isp-optical-power-col--sticky {
+        position: static;
+        left: auto;
+        z-index: auto;
+        box-shadow: none;
+    }
+
+    .isp-optical-power-table td:first-child {
+        padding-top: 0.6rem;
+    }
+
+    .isp-optical-power-table td:last-child {
+        border-bottom: 0;
+        padding-bottom: 0.6rem;
+    }
+
+    .isp-optical-db-pagination {
+        gap: 0.5rem;
+    }
+
+    .isp-optical-db-pagination__meta {
+        font-size: 0.73rem;
+        line-height: 1.35;
+    }
+
+    .isp-optical-olt-health-wrap {
+        border-radius: 0.75rem;
+        padding: 0.35rem;
+    }
+
+    .isp-optical-olt-health-table thead {
+        display: none;
+    }
+
+    .isp-optical-olt-health-table tbody {
+        display: block;
+    }
+
+    .isp-optical-olt-health-table tbody tr {
+        display: block;
+        margin-bottom: 0.55rem;
+        border: 1px solid #dbe3ee;
+        border-radius: 0.6rem;
+        overflow: hidden;
+        background: #fff;
+    }
+
+    .dark .isp-optical-olt-health-table tbody tr {
+        border-color: #334155;
+        background: rgb(17 24 39);
+    }
+
+    .isp-optical-olt-health-table td {
+        display: grid;
+        grid-template-columns: minmax(6.6rem, 42%) 1fr;
+        gap: 0.4rem;
+        align-items: start;
+        padding: 0.48rem 0.58rem;
+        border-bottom: 1px solid #e5e7eb;
+        white-space: normal;
+    }
+
+    .dark .isp-optical-olt-health-table td {
+        border-color: #334155;
+    }
+
+    .isp-optical-olt-health-table td::before {
+        content: attr(data-label);
+        font-size: 0.62rem;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: #64748b;
+    }
+
+    .dark .isp-optical-olt-health-table td::before {
+        color: #94a3b8;
+    }
+
+    .isp-optical-olt-health-table td:first-child {
+        padding-top: 0.62rem;
+    }
+
+    .isp-optical-olt-health-table td:last-child {
+        border-bottom: 0;
+        padding-bottom: 0.62rem;
+    }
 }

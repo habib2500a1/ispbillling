@@ -51,14 +51,16 @@ class ResellerPackageCatalogTest extends TestCase
             'tenant_id' => 1,
             'reseller_id' => $reseller->id,
             'package_id' => $p1->id,
-            'selling_price' => 450,
+            'selling_price' => 0,
+            'wholesale_price' => 200,
             'is_active' => true,
         ]);
 
         $catalog = app(ResellerPackageCatalogService::class);
 
         $this->assertCount(1, $catalog->packagesForReseller($reseller));
-        $this->assertSame(450.0, $catalog->sellingPriceFor($reseller, $p1));
+        $this->assertSame(200.0, $catalog->wholesalePriceFor($reseller, $p1));
+        $this->assertSame(500.0, $catalog->customerBillPriceFor($p1));
         $this->assertTrue($catalog->resellerMaySellPackage($reseller, (int) $p1->id));
     }
 

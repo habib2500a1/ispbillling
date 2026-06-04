@@ -22,7 +22,7 @@ final class StaffBillingMobileService
     {
         $tenantId = \App\Support\StaffTenantScope::tenantIdFor($user);
         $billing = $this->billingKpis->resolve($tenantId);
-        $cached = app(\App\Services\Import\IspDigitalCurrentBillingSyncService::class)->cachedSummary($tenantId);
+        $cached = app(\App\Services\Import\LegacyPortalCurrentBillingSyncService::class)->cachedSummary($tenantId);
 
         return [
             'billing' => array_merge($billing, [
@@ -52,7 +52,7 @@ final class StaffBillingMobileService
             ->map(function (Customer $c): array {
                 $row = MobileCustomerListSerializer::row($c);
                 $meta = is_array($c->meta) ? $c->meta : [];
-                $row['monthly_payable'] = round((float) ($meta['isp_digital_payable'] ?? 0), 2);
+                $row['monthly_payable'] = round((float) ($meta['legacy_portal_payable'] ?? 0), 2);
 
                 return $row;
             })

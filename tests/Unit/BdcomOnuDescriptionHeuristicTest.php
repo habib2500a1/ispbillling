@@ -19,4 +19,15 @@ class BdcomOnuDescriptionHeuristicTest extends TestCase
         $this->assertTrue(BdcomOnuDescriptionHeuristic::looksLikePppUsername('ak-mehedi'));
         $this->assertFalse(BdcomOnuDescriptionHeuristic::looksLikePppUsername('010T'));
     }
+
+    public function test_numeric_client_code_still_looks_like_placeholder(): void
+    {
+        $this->assertTrue(BdcomOnuDescriptionHeuristic::isOltPlaceholderLabel('252'));
+    }
+
+    public function test_skip_linking_without_tenant_customer_is_unknown_placeholder(): void
+    {
+        $this->assertTrue(BdcomOnuDescriptionHeuristic::shouldSkipDescriptionForLinking(0, '010H'));
+        $this->assertTrue(BdcomOnuDescriptionHeuristic::shouldSkipDescriptionForLinking(0, '252'));
+    }
 }

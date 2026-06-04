@@ -2,15 +2,7 @@
     $snapshot = $snapshot ?? ['linked' => false, 'rows' => [], 'hint' => null];
     $rows = $snapshot['rows'] ?? [];
     $onuBilling = collect($snapshot['onu_billing'] ?? [])
-        ->reject(fn ($value, $label): bool => str_contains(strtolower((string) $label), 'isp digital'))
-        ->mapWithKeys(fn ($value, $label) => [
-            match ($label) {
-                'ISP Digital server' => 'Network server',
-                'Connection (ISP Digital)' => 'Connection type',
-                'Device (ISP Digital)' => 'CPE device',
-                default => $label,
-            } => $value,
-        ])
+        ->reject(fn ($value, $label): bool => str_starts_with(strtolower((string) $label), 'meta.'))
         ->reject(fn ($value): bool => $value === '—' || $value === '' || $value === null)
         ->all();
 @endphp
@@ -35,7 +27,7 @@
     <div class="space-y-3">
         <div class="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-100">
             <p>{{ $snapshot['hint'] ?? 'No ONU linked.' }}</p>
-            @if (config('optical.isp_digital_auto_sync'))
+            @if (config('optical.legacy_portal_auto_sync'))
                 <p class="mt-2 text-xs opacity-90">OLT থেকে ONU auto-link চলছে — ১–২ মিনিট পর refresh করুন বা header-এ «Sync OLT &amp; link ONU» চাপুন।</p>
             @endif
         </div>
@@ -84,10 +76,14 @@
                     <th>MacAddress</th>
                     <th>IpAddress</th>
                     <th>OLTName</th>
+                    <th>MikroTik</th>
+                    <th>VLAN</th>
                     <th class="isp-optical-power-col">OpticalPower</th>
                     <th>TX (dBm)</th>
+                    <th>Temp</th>
+                    <th>Voltage</th>
                     <th>OnuMacaddress</th>
-                    <th>OLTPort</th>
+                    <th>PON port</th>
                     <th>OnuStatus</th>
                     <th>Model</th>
                     <th>Vendor</th>
@@ -109,6 +105,8 @@
                         <td class="font-mono text-xs whitespace-nowrap">{{ $row['mac_address'] }}</td>
                         <td class="font-mono text-xs whitespace-nowrap">{{ $row['ip_address'] }}</td>
                         <td>{{ $row['olt_name'] }}</td>
+                        <td class="text-xs">{{ $row['mikrotik_name'] ?? '—' }}</td>
+                        <td class="font-mono text-xs">{{ $row['vlan'] ?? '—' }}</td>
                         <td class="isp-optical-power-col">
                             <span @class([
                                 'isp-optical-power-value',
@@ -121,6 +119,8 @@
                             @endif
                         </td>
                         <td class="font-mono text-xs tabular-nums">{{ $row['tx_power'] }}</td>
+                        <td class="font-mono text-xs tabular-nums">{{ $row['temperature'] ?? '—' }}</td>
+                        <td class="font-mono text-xs tabular-nums">{{ $row['voltage'] ?? '—' }}</td>
                         <td class="font-mono text-xs whitespace-nowrap">{{ $row['onu_mac'] }}</td>
                         <td class="font-mono text-xs whitespace-nowrap">{{ $row['olt_port'] }}</td>
                         <td>

@@ -2,44 +2,20 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Customer;
+use App\Http\Controllers\Concerns\AuthorizesBillingDocumentAccess;
 use App\Models\Payment;
-use App\Models\Reseller;
-use App\Models\User;
 use App\Support\ResellerBranding;
 use Illuminate\Http\Response;
-use Illuminate\Support\Facades\Auth;
 use Mpdf\Mpdf;
 use Mpdf\Output\Destination;
 
 class PaymentReceiptController extends Controller
 {
+    use AuthorizesBillingDocumentAccess;
+
     public function show(Payment $payment): Response
     {
-        $webUser = Auth::guard('web')->user();
-        $sanctumUser = Auth::guard('sanctum')->user();
-        $customer = Auth::guard('customer')->user();
-        $sessionReseller = Auth::guard('reseller')->user();
-
-        if ($sanctumUser instanceof Reseller) {
-            $payment->loadMissing('customer');
-            abort_unless(
-                $payment->customer !== null && (int) $payment->customer->reseller_id === (int) $sanctumUser->getAuthIdentifier(),
-                403,
-            );
-        } elseif ($sessionReseller instanceof Reseller) {
-            $payment->loadMissing('customer');
-            abort_unless(
-                $payment->customer !== null && (int) $payment->customer->reseller_id === (int) $sessionReseller->getAuthIdentifier(),
-                403,
-            );
-        } elseif ($webUser instanceof User) {
-            // Staff (Filament / mobile API token)
-        } elseif ($customer instanceof Customer) {
-            abort_unless((int) $payment->customer_id === (int) $customer->getAuthIdentifier(), 403);
-        } else {
-            abort(401);
-        }
+        $this->authorizePaymentReceipt($payment);
 
         abort_unless($payment->status === 'completed', 404);
 

@@ -51,6 +51,15 @@ final class OltManagementHelper
         return str_starts_with($driver, 'aveis_');
     }
 
+    public static function isConfigDrivenDriver(?string $oltDriver): bool
+    {
+        if ($oltDriver === null || $oltDriver === '') {
+            return false;
+        }
+
+        return in_array(strtolower($oltDriver), GponSnmpProfile::configDrivenDrivers(), true);
+    }
+
     public static function webUiUrl(Device $olt): ?string
     {
         $meta = is_array($olt->meta) ? $olt->meta : [];

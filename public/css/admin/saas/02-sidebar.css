@@ -1,0 +1,697 @@
+/**
+ * Aurora ISP admin — Sidebar & shell layout
+ * @module admin/saas/02-sidebar.css
+ */
+    --isp-hero-bg: linear-gradient(125deg, #0c1222 0%, #0f766e 42%, #c2410c 100%);
+    --isp-mobile-bar-height: 10.5rem;
+}
+
+.dark,
+[data-theme='dark'] {
+    --isp-surface: #0b1220;
+    --isp-glass: rgba(15, 23, 42, 0.85);
+    --isp-shadow: 0 4px 24px -4px rgba(0, 0, 0, 0.35);
+    --isp-text: rgb(248 250 252);
+
+/* --- 02-sidebar.css --- */
+/**
+ * Aurora ISP admin — Sidebar & shell layout
+ * @module admin/saas/02-sidebar.css
+ */
+    --isp-text-muted: rgb(148 163 184);
+    --isp-card: rgba(17, 24, 39, 0.88);
+    --isp-card-muted: rgb(30 41 59);
+    --isp-card-border: rgba(71, 85, 105, 0.45);
+    --isp-sidebar-bg: linear-gradient(175deg, #070b14 0%, #0a2e2a 50%, #0f172a 100%);
+    --isp-sidebar-label: rgba(255, 255, 255, 0.4);
+    --isp-sidebar-link: rgba(255, 255, 255, 0.78);
+    --isp-hero-bg: linear-gradient(125deg, #070b14 0%, #115e59 38%, #9a3412 100%);
+}
+
+
+/* --- 02-sidebar.css --- */
+/**
+ * Aurora ISP admin — Sidebar & shell layout
+ * @module admin/saas/02-sidebar.css
+ */
+/* Typography & shell */
+.fi-body {
+    font-family: var(--isp-font) !important;
+    letter-spacing: -0.01em;
+}
+
+/* Sidebar: Filament layout on desktop; drawer overlay on mobile when open */
+.fi-sidebar {
+    border-right: 1px solid rgba(148, 163, 184, 0.12) !important;
+    background: var(--isp-sidebar-bg) !important;
+}
+
+@media (min-width: 1024px) {
+  .fi-sidebar.fi-main-sidebar,
+  .fi-main-sidebar.fi-sidebar {
+    background: var(--isp-sidebar-bg) !important;
+  }
+}
+
+.fi-sidebar.fi-sidebar-open {
+    z-index: 100 !important;
+    box-shadow: 0 25px 60px -20px rgba(0, 0, 0, 0.55) !important;
+}
+
+.fi-sidebar-close-overlay {
+    z-index: 95 !important;
+    background: rgba(2, 6, 23, 0.55) !important;
+    backdrop-filter: blur(2px);
+}
+
+@media (min-width: 1024px) {
+  .fi-layout {
+    align-items: stretch;
+  }
+
+  .fi-main-sidebar {
+    flex: 0 0 auto;
+    align-self: stretch;
+    position: relative;
+    z-index: 30;
+    min-height: 100dvh;
+    background: var(--isp-sidebar-bg);
+  }
+
+  .fi-main-ctn {
+    flex: 1 1 auto;
+    min-width: 0;
+    width: auto !important;
+  }
+
+  /* Full-height sidebar column — header + scrollable menu + pinned footer */
+  .fi-main-sidebar.fi-sidebar,
+  .fi-main-sidebar .fi-sidebar {
+    display: flex !important;
+    flex-direction: column !important;
+    flex-wrap: nowrap !important;
+    position: sticky !important;
+    top: 0 !important;
+    align-self: flex-start !important;
+    height: 100dvh !important;
+    min-height: 100dvh !important;
+    max-height: 100dvh !important;
+    z-index: 30 !important;
+    box-shadow: none !important;
+    transition: width 0.2s ease, min-width 0.2s ease, max-width 0.2s ease;
+    overflow: hidden !important;
+    background: var(--isp-sidebar-bg) !important;
+  }
+
+  .fi-main-sidebar .fi-sidebar > .overflow-x-clip {
+    flex-shrink: 0;
+  }
+
+  .fi-main-sidebar .fi-sidebar-nav {
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    overflow: hidden !important;
+    padding-bottom: 0.35rem !important;
+  }
+
+  .fi-main-sidebar .fi-sidebar-nav-groups {
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: contain;
+  }
+
+  .fi-main-sidebar .fi-sidebar.fi-sidebar-open {
+    width: var(--sidebar-width, 20rem) !important;
+    min-width: var(--sidebar-width, 20rem) !important;
+    max-width: var(--sidebar-width, 20rem) !important;
+  }
+
+  .fi-main-sidebar .fi-sidebar:not(.fi-sidebar-open) {
+    width: var(--collapsed-sidebar-width, 4.5rem) !important;
+    min-width: var(--collapsed-sidebar-width, 4.5rem) !important;
+    max-width: var(--collapsed-sidebar-width, 4.5rem) !important;
+  }
+
+  body.isp-sidebar-desktop-collapsed .fi-main-sidebar .isp-sidebar-search {
+    display: none !important;
+  }
+
+  /* Header collapse/expand — always on sidebar */
+  .fi-main-sidebar .fi-sidebar-header {
+    display: flex !important;
+    align-items: center !important;
+    gap: 0.35rem !important;
+    min-height: 4rem !important;
+    padding-inline: 0.75rem 0.5rem !important;
+  }
+
+  .fi-main-sidebar .fi-sidebar-header .fi-icon-btn,
+  .fi-main-sidebar .fi-sidebar-header .fi-icon-button {
+    display: inline-flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    flex-shrink: 0 !important;
+    color: rgba(255, 255, 255, 0.92) !important;
+    background: rgba(255, 255, 255, 0.1) !important;
+    border: 1px solid rgba(255, 255, 255, 0.22) !important;
+    border-radius: 0.5rem !important;
+    min-width: 2.25rem !important;
+    min-height: 2.25rem !important;
+  }
+
+  .fi-main-sidebar .fi-sidebar-header .fi-icon-btn:hover,
+  .fi-main-sidebar .fi-sidebar-header .fi-icon-button:hover {
+    color: #fff !important;
+    background: rgba(255, 255, 255, 0.16) !important;
+    border-color: rgba(255, 255, 255, 0.28) !important;
+  }
+
+  body.isp-sidebar-desktop-collapsed .fi-main-sidebar .fi-sidebar-nav {
+    padding-left: 0.35rem !important;
+    padding-right: 0.35rem !important;
+  }
+
+  body.isp-sidebar-desktop-collapsed .fi-main-sidebar .fi-sidebar-group-items {
+    margin-inline-start: 0 !important;
+    padding-inline-start: 0 !important;
+    border-inline-start: none !important;
+  }
+
+
+  .fi-sidebar-close-overlay {
+    display: none !important;
+    pointer-events: none !important;
+    opacity: 0 !important;
+  }
+}
+
+/* Nav: toolbar fixed at top; only menu groups scroll (never the whole nav + footer) */
+.fi-sidebar .fi-sidebar-nav {
+    display: flex !important;
+    flex-direction: column !important;
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+    overflow-x: hidden;
+    padding-top: 0.35rem !important;
+    padding-bottom: 0.25rem !important;
+}
+
+.fi-sidebar .fi-sidebar-nav-groups {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto !important;
+    overflow-x: hidden;
+    overscroll-behavior: contain;
+    overscroll-behavior-y: contain;
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
+    scroll-padding-block: 0.65rem;
+    touch-action: pan-y;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.28) transparent;
+    padding-bottom: 0.5rem;
+    padding-inline: 0.15rem;
+    gap: 0.15rem;
+}
+
+.fi-sidebar .fi-sidebar-nav-groups::-webkit-scrollbar {
+    width: 6px;
+}
+
+.fi-sidebar .fi-sidebar-nav-groups::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.fi-sidebar .fi-sidebar-nav-groups::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.22);
+    border-radius: 999px;
+    border: 2px solid transparent;
+    background-clip: padding-box;
+}
+
+.fi-sidebar .fi-sidebar-nav-groups::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.38);
+    background-clip: padding-box;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .fi-sidebar .fi-sidebar-nav-groups {
+        scroll-behavior: auto;
+    }
+}
+
+.fi-sidebar .fi-sidebar-header {
+    border-bottom-color: rgba(255, 255, 255, 0.08) !important;
+    position: sticky;
+    top: 0;
+    z-index: 6;
+    background: inherit !important;
+    overflow: visible !important;
+}
+
+.fi-sidebar .fi-sidebar-header .fi-icon-btn {
+    color: rgba(255, 255, 255, 0.9) !important;
+    z-index: 10;
+    pointer-events: auto !important;
+    flex-shrink: 0;
+}
+
+.fi-sidebar .fi-sidebar-header .fi-icon-btn:hover {
+    color: #fff !important;
+    background: rgba(255, 255, 255, 0.12) !important;
+}
+
+/* Toolbar: brand + menu search */
+.isp-sidebar-toolbar {
+    flex-shrink: 0;
+    margin: 0 0 0.5rem;
+    padding: 0 0 0.5rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    background: inherit;
+    position: relative;
+    z-index: 7;
+}
+
+.isp-sidebar-toolbar__brand {
+    margin-bottom: 0.65rem;
+    padding: 0 0.35rem;
+}
+
+.isp-sidebar-toolbar__brand-link {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    text-decoration: none;
+    color: rgba(255, 255, 255, 0.95);
+}
+
+.isp-sidebar-toolbar__brand-link:hover {
+    color: #fff;
+}
+
+.isp-sidebar-toolbar__brand-name {
+    font-size: 0.8rem;
+    font-weight: 700;
+    line-height: 1.2;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.isp-sidebar-brand-badge {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.25rem;
+    height: 2.25rem;
+    border-radius: 0.55rem;
+    background: rgba(255, 255, 255, 0.14);
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    font-size: 0.95rem;
+    font-weight: 800;
+    color: #fff;
+}
+
+.isp-sidebar-brand-badge--logo {
+    padding: 0.2rem;
+    background: rgba(255, 255, 255, 0.96);
+}
+
+.isp-sidebar-brand-badge--logo img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    border-radius: 0.35rem;
+}
+
+body.isp-sidebar-desktop-collapsed .isp-sidebar-toolbar__brand-name {
+    display: none !important;
+}
+
+body.isp-sidebar-desktop-collapsed .isp-sidebar-toolbar__brand-link {
+    justify-content: center;
+}
+
+body.isp-sidebar-desktop-collapsed .isp-sidebar-brand-badge {
+    width: 2.5rem;
+    height: 2.5rem;
+}
+
+/* Filament header logo — centered when sidebar collapsed */
+body.isp-sidebar-desktop-collapsed .fi-main-sidebar .fi-sidebar-header .fi-logo {
+    margin-inline: auto;
+    justify-content: center;
+}
+
+body.isp-sidebar-desktop-collapsed .fi-main-sidebar .fi-sidebar-header .fi-logo img {
+    max-height: 2.25rem;
+    width: auto;
+    object-fit: contain;
+}
+
+body.isp-sidebar-desktop-collapsed .fi-main-sidebar .fi-sidebar-header .fi-logo .text-xl {
+    font-size: 0.7rem !important;
+    text-align: center;
+    max-width: 3.5rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Pinned collapse — flex child at bottom of sidebar (not inside scroll area) */
+.isp-sidebar-footer {
+    flex: 0 0 auto;
+    flex-shrink: 0;
+    margin-top: 0;
+    padding: 0.65rem 1rem calc(0.75rem + env(safe-area-inset-bottom, 0px));
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    background: var(--isp-sidebar-bg);
+    z-index: 15;
+}
+
+.isp-sidebar-footer__toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    width: 100%;
+    padding: 0.5rem 0.65rem;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 0.55rem;
+    background: rgba(255, 255, 255, 0.08);
+    color: rgba(255, 255, 255, 0.92);
+    font-size: 0.78rem;
+    font-weight: 600;
+    cursor: pointer;
+    user-select: none;
+    touch-action: manipulation;
+    box-shadow: none !important;
+}
+
+.isp-sidebar-footer__toggle:hover,
+.isp-sidebar-footer__toggle:focus-visible {
+    background: rgba(255, 255, 255, 0.14);
+    border-color: rgba(255, 255, 255, 0.32);
+    color: #fff;
+    outline: none;
+}
+
+.isp-sidebar-footer__toggle--expand {
+    width: 2.75rem;
+    margin-inline: auto;
+    padding: 0.55rem;
+}
+
+body.isp-sidebar-desktop-collapsed .isp-sidebar-footer {
+    padding-inline: 0.35rem;
+}
+
+body.isp-sidebar-desktop-collapsed .isp-sidebar-footer__toggle--expand {
+    display: flex !important;
+}
+
+/* —— Sidebar menu search —— */
+.isp-sidebar-search {
+    margin: 0;
+    padding: 0;
+}
+
+.isp-sidebar-search__field {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.65rem;
+    border-radius: 0.65rem;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.isp-sidebar-search__field:focus-within {
+    border-color: rgba(45, 212, 191, 0.55);
+    box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.25);
+    background: rgba(255, 255, 255, 0.14);
+}
+
+.isp-sidebar-search__icon {
+    color: rgba(255, 255, 255, 0.55);
+    flex-shrink: 0;
+}
+
+.isp-sidebar-search__input {
+    flex: 1;
+    min-width: 0;
+    border: none;
+    background: transparent;
+    color: #fff;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    outline: none;
+}
+
+.isp-sidebar-search__input::placeholder {
+    color: rgba(255, 255, 255, 0.45);
+}
+
+.isp-sidebar-search__clear {
+    border: none;
+    background: rgba(255, 255, 255, 0.15);
+    color: #fff;
+    width: 1.35rem;
+    height: 1.35rem;
+    border-radius: 9999px;
+    font-size: 1rem;
+    line-height: 1;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+.isp-sidebar-search__empty {
+    margin: 0.35rem 0 0;
+    font-size: 0.72rem;
+    color: rgba(255, 255, 255, 0.55);
+    text-align: center;
+}
+
+.isp-sidebar-search__hint {
+    margin: 0.35rem 0 0;
+    font-size: 0.68rem;
+    line-height: 1.35;
+    color: rgba(255, 255, 255, 0.42);
+    text-align: center;
+}
+
+/* Sidebar module order (Overview → Clients → Billing → …) — overrides Filament default sort */
+.fi-sidebar .fi-sidebar-nav-groups {
+    display: flex;
+    flex-direction: column;
+}
+
+.fi-sidebar-group[data-group-label='Overview'] {
+    order: 10;
+}
+
+.fi-sidebar-group[data-group-label='Clients'] {
+    order: 20;
+}
+
+.fi-sidebar-group[data-group-label='Billing'] {
+    order: 30;
+}
+
+.fi-sidebar-group[data-group-label='Payments'] {
+    order: 40;
+}
+
+.fi-sidebar-group[data-group-label='Inventory Pro'] {
+    order: 50;
+}
+
+.fi-sidebar-group[data-group-label='Inventory'] {
+    display: none !important;
+}
+
+.fi-sidebar-group[data-group-label='OLT & Tools'] {
+    order: 60;
+}
+
+/* Legacy: OLT must not appear under Inventory Pro (stale HTML / cache). */
+.fi-sidebar-group[data-group-label='Inventory Pro'] .fi-sidebar-item:has(a[href*='/olts']),
+.fi-sidebar-group[data-group-label='Inventory Pro'] .fi-sidebar-item:has(a[href*='olt-hub']),
+.fi-sidebar-group[data-group-label='Inventory Pro'] .fi-sidebar-item:has(a[href*='optical-noc']),
+.fi-sidebar-group[data-group-label='Inventory Pro'] .fi-sidebar-item:has(a[href*='olt-mac-table']),
+.fi-sidebar-group[data-group-label='Inventory Pro'] .fi-sidebar-item:has(a[href*='optical-laser-settings']),
+.fi-sidebar-group[data-group-label='Inventory Pro'] .fi-sidebar-item:has(a[href*='network-topology']) {
+    display: none !important;
+}
+
+.fi-sidebar-group[data-group-label='Network'] {
+    order: 70;
+}
+
+.fi-sidebar-group[data-group-label='SMS Service'] {
+    order: 80;
+}
+
+.fi-sidebar-group[data-group-label='Support'] {
+    order: 90;
+}
+
+.fi-sidebar-group[data-group-label='Reports'] {
+    order: 100;
+}
+
+.fi-sidebar-group[data-group-label='BW Client'] {
+    order: 110;
+}
+
+.fi-sidebar-group[data-group-label='HRM'] {
+    order: 120;
+}
+
+.fi-sidebar-group[data-group-label='Resellers'] {
+    order: 130;
+}
+
+.fi-sidebar-group[data-group-label='Accounts'] {
+    order: 140;
+}
+
+.fi-sidebar-group[data-group-label='Settings'] {
+    order: 150;
+}
+
+.fi-sidebar-group[data-group-label='System'] {
+    order: 160;
+}
+
+/* Accordion: only the open module shows child links (see admin-sidebar-layout.js) */
+.fi-main-sidebar .fi-sidebar-group:not(.isp-sidebar-accordion-open) > .fi-sidebar-group-items {
+    display: none !important;
+}
+
+/* Overview stays expanded (Filament collapsed(false)) */
+.fi-main-sidebar .fi-sidebar-group[data-group-label='Overview'] > .fi-sidebar-group-items {
+    display: flex !important;
+    flex-direction: column;
+}
+
+.fi-main-sidebar .fi-sidebar-group.isp-sidebar-accordion-open > .fi-sidebar-group-items {
+    display: flex !important;
+    flex-direction: column;
+    gap: 0.12rem;
+    max-height: none !important;
+    overflow: visible !important;
+    overscroll-behavior: auto !important;
+    padding-block: 0.2rem 0.35rem;
+}
+
+/* Search mode: show every matching module at once */
+.fi-sidebar-nav-groups.isp-sidebar-nav--searching .fi-sidebar-group:not(.isp-sidebar-group--hidden) {
+    margin-bottom: 0.35rem;
+}
+
+.fi-sidebar-nav-groups.isp-sidebar-nav--searching .fi-sidebar-group-button {
+    background: rgba(255, 255, 255, 0.06) !important;
+    border-radius: 0.5rem !important;
+}
+
+/* Module tree indent — item icons are the markers (no extra dot rail) */
+.fi-sidebar-group-items {
+    position: relative;
+    margin-inline-start: 0.5rem !important;
+    padding-inline-start: 0.65rem !important;
+    border-inline-start: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Safety: if a group regains an icon, Filament grouped-border must not stack on our rail */
+.fi-sidebar-group-items .fi-sidebar-item-grouped-border {
+    display: none !important;
+}
+
+.fi-sidebar .fi-sidebar-group-button {
+    color: rgba(255, 255, 255, 0.92) !important;
+    font-weight: 700 !important;
+}
+
+.fi-sidebar .fi-sidebar-group-icon {
+    color: rgba(255, 255, 255, 0.7) !important;
+}
+
+.fi-sidebar-group--hidden,
+.fi-sidebar-item--hidden {
+    display: none !important;
+}
+
+.fi-sidebar .fi-sidebar-group-label {
+    color: var(--isp-sidebar-label) !important;
+    font-size: 0.7rem !important;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+.fi-sidebar .fi-sidebar-group-button {
+    min-height: 2.65rem;
+    padding-block: 0.55rem !important;
+    border-radius: 0.55rem !important;
+    touch-action: manipulation;
+}
+
+.fi-sidebar .fi-sidebar-group-collapse-button {
+    min-width: 2rem;
+    min-height: 2rem;
+    touch-action: manipulation;
+}
+
+/* Overview group — at top */
+.fi-sidebar .fi-sidebar-group:first-child .fi-sidebar-group-label {
+    color: rgba(255, 255, 255, 0.92) !important;
+    font-weight: 700;
+}
+
+.fi-sidebar-group:first-child .fi-sidebar-item-button {
+    font-weight: 600;
+}
+
+.fi-sidebar .fi-sidebar-item-button {
+    border-radius: 0.625rem !important;
+    color: var(--isp-sidebar-link) !important;
+    min-height: 2.65rem;
+    padding-block: 0.5rem !important;
+    padding-inline: 0.65rem !important;
+    font-size: 0.8125rem !important;
+    font-weight: 500 !important;
+    line-height: 1.35 !important;
+    transition: background 0.15s ease, color 0.15s ease;
+    touch-action: manipulation;
+}
+
+.fi-sidebar .fi-sidebar-item-label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.fi-sidebar .fi-sidebar-item-button:hover {
+    background: rgba(255, 255, 255, 0.1) !important;
+    color: #fff !important;
+}
+
+.fi-sidebar .fi-sidebar-item-button:focus-visible {
+    outline: 2px solid rgba(45, 212, 191, 0.75);
+    outline-offset: 2px;
+}
+
+.fi-sidebar .fi-sidebar-group-button:focus-visible {
+    outline: 2px solid rgba(45, 212, 191, 0.55);
+    outline-offset: 2px;
+}
+
+.fi-sidebar-nav-groups .fi-sidebar-item.fi-active > .fi-sidebar-item-button,
+.fi-sidebar-nav-groups .fi-sidebar-item-active > .fi-sidebar-item-button {
+    background: linear-gradient(135deg, var(--isp-primary), var(--isp-accent)) !important;
+    color: #fff !important;
+    box-shadow: 0 4px 14px rgba(13, 148, 136, 0.35);
+}

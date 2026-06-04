@@ -12,7 +12,7 @@ final class OpticalCustomerSync
 {
     public static function dispatch(Customer $customer, bool $forceOltSync = false, bool $afterResponse = true): void
     {
-        if (! config('optical.isp_digital_auto_sync', true)) {
+        if (! config('optical.legacy_portal_auto_sync', true)) {
             return;
         }
 

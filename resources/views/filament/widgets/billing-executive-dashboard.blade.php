@@ -1,5 +1,6 @@
 @php
     $kpis = $kpis ?? [];
+    $source_notice = $source_notice ?? null;
     $growth = $growth ?? ['labels' => [], 'values' => [], 'max' => 1];
     $clients = $clients ?? [];
     $max = max(1, (float) ($growth['max'] ?? 1));
@@ -19,6 +20,13 @@
                 </span>
             @endif
         </header>
+
+        @if (filled($source_notice))
+            <div class="isp-billing-dash__notice" role="note">
+                <x-heroicon-o-information-circle class="isp-billing-dash__notice-icon" />
+                <p>{{ $source_notice }}</p>
+            </div>
+        @endif
 
         <div class="isp-billing-dash__top">
             <article class="isp-billing-dash__chart-card">

@@ -124,8 +124,16 @@
                             <dd class="portal-mono">{{ $onu['username'] ?? '-' }}</dd>
                         </div>
                         <div class="portal-detail-list__item">
-                            <dt>Port</dt>
-                            <dd class="portal-mono">{{ $onu['port'] ?? '-' }}</dd>
+                            <dt>PON port</dt>
+                            <dd class="portal-mono">{{ $onu['pon_port_name'] ?? $onu['port'] ?? '-' }}</dd>
+                        </div>
+                        <div class="portal-detail-list__item">
+                            <dt>MikroTik</dt>
+                            <dd>{{ $onu['mikrotik_name'] ?? '-' }}</dd>
+                        </div>
+                        <div class="portal-detail-list__item">
+                            <dt>VLAN</dt>
+                            <dd class="portal-mono">{{ $onu['vlan'] ?? '-' }}</dd>
                         </div>
                         <div class="portal-detail-list__item">
                             <dt>MAC</dt>

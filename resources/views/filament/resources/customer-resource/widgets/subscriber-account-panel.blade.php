@@ -17,23 +17,23 @@
 
             <div class="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                 <div class="rounded-xl border bg-white p-3 dark:border-gray-700 dark:bg-gray-900">
-                    <p class="text-xs uppercase text-gray-500">কখন off হবে</p>
+                    <p class="text-xs uppercase text-gray-500">Line off</p>
                     @if ($c->service_expires_at)
                         <p class="mt-1 text-sm font-semibold text-gray-900 dark:text-white">
-                            শেষ বৈধ: <span class="text-teal-700 dark:text-teal-400">{{ $c->service_expires_at->format('d M Y') }}</span>
+                            Valid until: <span class="text-teal-700 dark:text-teal-400">{{ $c->service_expires_at->format('d M Y') }}</span>
                         </p>
                         <p class="text-xs text-rose-600 dark:text-rose-400">
-                            লাইন বন্ধ: {{ $c->serviceOffDate()?->format('d M Y') }}
+                            Line off from: {{ $c->serviceOffDate()?->format('d M Y') }}
                             @if ($c->isServiceExpired())
-                                (ইতিমধ্যে off)
+                                (already off)
                             @elseif ($c->daysUntilServiceExpiry() === 0)
-                                (আজ শেষ)
+                                (expires today)
                             @else
-                                ({{ $c->daysUntilServiceExpiry() }} দিন বাকি)
+                                ({{ $c->daysUntilServiceExpiry() }} days left)
                             @endif
                         </p>
                     @else
-                        <p class="mt-1 text-sm text-gray-500">মেয়াদ সেট নেই</p>
+                        <p class="mt-1 text-sm text-gray-500">No expiry set</p>
                     @endif
                 </div>
                 <div class="rounded-xl border bg-white p-3 dark:border-gray-700 dark:bg-gray-900">

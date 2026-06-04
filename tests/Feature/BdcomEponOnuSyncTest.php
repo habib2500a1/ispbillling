@@ -34,4 +34,11 @@ class BdcomEponOnuSyncTest extends TestCase
         $this->assertArrayHasKey('bdcom_epon_onu_mac', $profile);
         $this->assertArrayHasKey('bdcom_epon_onu_rx', $profile);
     }
+
+    public function test_bdcom_gpon_profile_inherits_epon_oids(): void
+    {
+        $oids = \App\Support\GponSnmpProfile::merged('bdcom_gpon');
+
+        $this->assertArrayHasKey('bdcom_epon_onu_rx', $oids);
+    }
 }

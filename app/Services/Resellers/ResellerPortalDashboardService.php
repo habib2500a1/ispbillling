@@ -23,6 +23,10 @@ final class ResellerPortalDashboardService
         $totalCustomers = (clone $customerBase)->count();
         $activeCustomers = (clone $customerBase)->where('status', CustomerStatus::ACTIVE)->count();
         $expiredCustomers = (clone $customerBase)->where('status', CustomerStatus::EXPIRED)->count();
+        $newCustomersMonth = (clone $customerBase)
+            ->whereMonth('created_at', now()->month)
+            ->whereYear('created_at', now()->year)
+            ->count();
         $suspendedCustomers = (clone $customerBase)->where('status', CustomerStatus::SUSPENDED)->count();
         $onlineCustomers = (clone $customerBase)->where('is_ppp_online', true)->count();
 
@@ -132,11 +136,17 @@ final class ResellerPortalDashboardService
             'customers_total' => $totalCustomers,
             'customers_active' => $activeCustomers,
             'customers_expired' => $expiredCustomers,
+            'customers_new_month' => $newCustomersMonth,
+            'admin_receivable_due' => round((float) ($reseller->admin_receivable_due ?? 0), 2),
             'customers_suspended' => $suspendedCustomers,
             'customers_online' => $onlineCustomers,
             'customers_offline' => max(0, $activeCustomers - $onlineCustomers),
             'sub_resellers' => $reseller->children()->count(),
             'wallet' => (float) $reseller->wallet_balance,
+            'bonus_wallet' => (float) $reseller->bonus_wallet_balance,
+            'total_wallet' => $reseller->totalWalletBalance(),
+            'credit_limit' => (float) $reseller->credit_limit,
+            'available_balance' => app(ResellerWalletLedgerService::class)->availableMainBalance($reseller),
             'pending_commission' => (float) $reseller->commissions()->where('status', ResellerCommission::STATUS_PENDING)->sum('commission_amount'),
             'total_commission' => $totalCommission,
             'paid_commission_month' => $paidCommissionMonth,

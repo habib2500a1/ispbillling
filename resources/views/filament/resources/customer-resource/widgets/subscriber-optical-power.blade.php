@@ -27,8 +27,8 @@
                 <div class="space-y-3">
                     <div class="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-100">
                         <p>{{ $snapshot['hint'] ?? 'No ONU linked.' }}</p>
-                        @if (config('optical.isp_digital_auto_sync'))
-                            <p class="mt-2 text-xs opacity-90">ISP Digital mode: OLT থেকে ONU auto আনছে (PPP login = ONU description)। ১–২ মিনিট পর page refresh করুন।</p>
+                        @if (config('optical.legacy_portal_auto_sync'))
+                            <p class="mt-2 text-xs opacity-90">Auto-sync: OLT থেকে ONU আনছে (PPP login = ONU description)। ১–২ মিনিট পর page refresh করুন।</p>
                         @endif
                     </div>
                     @if (! empty($snapshot['suggestions']))

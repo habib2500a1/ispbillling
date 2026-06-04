@@ -1,0 +1,944 @@
+/**
+ * Aurora ISP admin — Hub pages, billing desk, HR, quick actions
+ * @module admin/saas/06-hubs-pages.css
+ */
+    }
+
+    body.isp-websip-panel-open .isp-mobile-bar {
+        display: none !important;
+    }
+
+    .fi-modal.fi-modal-open .fi-modal-close-overlay,
+    .fi-modal.fi-modal-open > div > .fixed.inset-0 {
+        z-index: 110 !important;
+    }
+
+    .fi-modal.fi-modal-open .fi-modal-window {
+        max-height: min(
+            92dvh,
+            calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 1.25rem)
+        );
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+        overscroll-behavior: contain;
+    }
+
+    .fi-modal.fi-modal-open .fi-modal-content {
+        touch-action: pan-y;
+    }
+
+    body:has(.fi-modal.fi-modal-open) .choices__list--dropdown {
+        z-index: 120 !important;
+    }
+}
+
+/* Hub link cards — force dark-friendly */
+.isp-hub-page .rounded-xl.border-gray-200.bg-white,
+.isp-hub-page .group.rounded-xl.border-gray-200.bg-white {
+    background: white;
+
+/* --- 06-hubs-pages.css --- */
+/**
+ * Aurora ISP admin — Hub pages, billing desk, HR, quick actions
+ * @module admin/saas/06-hubs-pages.css
+ */
+}
+
+.dark .isp-hub-page .rounded-xl.border-gray-200.bg-white,
+.dark .isp-hub-page .group.rounded-xl.border-gray-200.bg-white,
+[data-theme='dark'] .isp-hub-page .rounded-xl.border-gray-200.bg-white {
+    background: rgb(17 24 39) !important;
+    border-color: rgba(148, 163, 184, 0.12) !important;
+}
+
+.dark .isp-hub-page .text-gray-900,
+[data-theme='dark'] .isp-hub-page .font-semibold.text-gray-900 {
+    color: #f1f5f9 !important;
+}
+
+/* Responsive tables in custom pages */
+.isp-hub-page .overflow-x-auto {
+    -webkit-overflow-scrolling: touch;
+}
+
+.isp-hub-page table {
+    min-width: 100%;
+}
+
+@media (max-width: 640px) {
+    .fi-sidebar-open .fi-main {
+        margin-left: 0 !important;
+    }
+
+    .isp-hub-link,
+    .isp-module-card {
+        padding: 1rem;
+    }
+}
+
+
+/* --- 06-hubs-pages.css --- */
+/**
+ * Aurora ISP admin — Hub pages, billing desk, HR, quick actions
+ * @module admin/saas/06-hubs-pages.css
+ */
+/* Hub sections & quick nav */
+.isp-ops-section {
+    margin-bottom: 1.25rem;
+}
+
+.isp-ops-section-title {
+    margin-bottom: 0.65rem;
+    font-size: 0.6875rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #64748b;
+}
+
+.dark .isp-ops-section-title {
+    color: #94a3b8;
+}
+
+.isp-section-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    padding: 1rem;
+    border-radius: 1rem;
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    background: rgba(248, 250, 252, 0.8);
+}
+
+.dark .isp-section-nav {
+    background: rgba(15, 23, 42, 0.5);
+    border-color: rgba(148, 163, 184, 0.12);
+}
+
+.isp-section-nav-hub {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--isp-primary-dark);
+}
+
+.isp-section-nav-block + .isp-section-nav-block {
+    padding-top: 0.5rem;
+    border-top: 1px solid rgba(148, 163, 184, 0.15);
+}
+
+.isp-section-nav-title {
+    margin-bottom: 0.4rem;
+    font-size: 0.625rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #94a3b8;
+}
+
+.isp-section-nav-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+}
+
+.isp-section-nav-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    max-width: 100%;
+    padding: 0.35rem 0.6rem;
+    border-radius: 0.5rem;
+    font-size: 0.6875rem;
+    color: #475569;
+    text-decoration: none;
+    background: white;
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    transition: background 0.15s, border-color 0.15s;
+}
+
+.isp-section-nav-item:hover,
+.isp-section-nav-item--active {
+    border-color: rgba(13, 148, 136, 0.4);
+    background: rgba(13, 148, 136, 0.08);
+    color: var(--isp-primary-dark);
+}
+
+.dark .isp-section-nav-item {
+    background: rgb(30 41 59);
+    border-color: rgba(148, 163, 184, 0.12);
+    color: #cbd5e1;
+}
+
+.isp-ops-details {
+    border-radius: 1rem;
+    border: 1px dashed rgba(148, 163, 184, 0.35);
+    padding: 0.75rem 1rem;
+}
+
+.isp-ops-details-summary {
+    cursor: pointer;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: #64748b;
+    list-style: none;
+}
+
+.isp-ops-details-summary::-webkit-details-marker {
+    display: none;
+}
+
+/* Subscriber list hub cards */
+.isp-list-grid {
+    display: grid;
+    gap: 0.75rem;
+    grid-template-columns: repeat(1, minmax(0, 1fr));
+}
+
+@media (min-width: 640px) {
+    .isp-list-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (min-width: 1024px) {
+    .isp-list-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+}
+
+.isp-list-card {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding: 1rem 1.1rem;
+    border-radius: 1rem;
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    background: white;
+    text-decoration: none;
+    transition: transform 0.15s, box-shadow 0.15s, border-color 0.15s;
+}
+
+.isp-list-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+    border-color: rgba(45, 212, 191, 0.28);
+}
+
+.dark .isp-list-card {
+    background: rgb(17 24 39);
+    border-color: rgba(148, 163, 184, 0.12);
+}
+
+.isp-list-card-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: 0.75rem;
+    flex-shrink: 0;
+}
+
+.isp-list-card__eyebrow {
+    margin: 0;
+    font-size: 0.68rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #64748b;
+}
+
+.isp-list-card__title {
+    margin: 0.2rem 0 0;
+    font-size: 0.94rem;
+    font-weight: 800;
+    color: rgb(15 23 42);
+}
+
+.isp-list-card__desc {
+    margin: 0.3rem 0 0;
+    font-size: 0.78rem;
+    line-height: 1.55;
+    color: #64748b;
+}
+
+.isp-list-card__arrow {
+    align-self: center;
+    font-size: 1rem;
+    font-weight: 800;
+    color: #94a3b8;
+    transition: transform 0.15s ease, color 0.15s ease;
+}
+
+.isp-list-card:hover .isp-list-card__arrow {
+    transform: translateX(3px);
+    color: #0f766e;
+}
+
+.isp-list-card--teal .isp-list-card-icon { background: rgba(13, 148, 136, 0.12); color: #0d9488; }
+.isp-list-card--sky .isp-list-card-icon { background: rgba(14, 165, 233, 0.12); color: #0284c7; }
+.isp-list-card--amber .isp-list-card-icon { background: rgba(245, 158, 11, 0.12); color: #d97706; }
+.isp-list-card--orange .isp-list-card-icon { background: rgba(249, 115, 22, 0.12); color: #ea580c; }
+.isp-list-card--rose .isp-list-card-icon { background: rgba(244, 63, 94, 0.12); color: #e11d48; }
+.isp-list-card--slate .isp-list-card-icon { background: rgba(100, 116, 139, 0.12); color: #64748b; }
+
+.dark .isp-list-card__eyebrow,
+[data-theme='dark'] .isp-list-card__eyebrow,
+.dark .isp-list-card__desc,
+[data-theme='dark'] .isp-list-card__desc {
+    color: #94a3b8;
+}
+
+.dark .isp-list-card__title,
+[data-theme='dark'] .isp-list-card__title {
+    color: #f8fafc;
+}
+
+.dark .isp-list-card__arrow,
+[data-theme='dark'] .isp-list-card__arrow {
+    color: #94a3b8;
+}
+
+/* Bill collection desk */
+.isp-collection-desk {
+    max-width: 72rem;
+}
+
+.isp-collection-search-wrap {
+    border-radius: var(--isp-radius-lg);
+    padding: 1.25rem 1.5rem;
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, #fff 50%, rgba(139, 92, 246, 0.05) 100%);
+    border: 1px solid rgba(16, 185, 129, 0.22);
+    box-shadow: var(--isp-shadow);
+}
+
+.dark .isp-collection-search-wrap,
+[data-theme='dark'] .isp-collection-search-wrap {
+    background: linear-gradient(135deg, rgba(6, 78, 59, 0.35) 0%, rgb(17 24 39) 60%);
+    border-color: rgba(52, 211, 153, 0.2);
+}
+
+.isp-collection-search-label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #64748b;
+}
+
+.isp-collection-search-row {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+@media (min-width: 640px) {
+    .isp-collection-search-row {
+        flex-direction: row;
+    }
+}
+
+.isp-collection-search-input {
+    flex: 1;
+    border-radius: 0.75rem;
+    border: 1px solid rgba(148, 163, 184, 0.35);
+    padding: 0.875rem 1rem;
+    font-size: 1.05rem;
+    background: white;
+    color: #0f172a;
+}
+
+.dark .isp-collection-search-input,
+[data-theme='dark'] .isp-collection-search-input {
+    background: rgb(30 41 59);
+    border-color: rgba(148, 163, 184, 0.2);
+    color: #f8fafc;
+}
+
+.isp-collection-search-btn {
+    border-radius: 0.75rem;
+    padding: 0.875rem 1.25rem;
+    font-weight: 600;
+    background: #059669;
+    color: white;
+    transition: background 0.15s;
+}
+
+.isp-collection-search-btn:hover {
+    background: #047857;
+}
+
+.isp-collection-result-card {
+    border-radius: var(--isp-radius);
+    padding: 1rem 1.125rem;
+    background: white;
+    border: 1px solid rgba(148, 163, 184, 0.18);
+    box-shadow: var(--isp-shadow);
+    transition: border-color 0.15s, transform 0.12s;
+}
+
+.isp-collection-result-card:hover {
+    border-color: #059669;
+    transform: translateY(-1px);
+}
+
+.dark .isp-collection-result-card,
+[data-theme='dark'] .isp-collection-result-card {
+    background: rgb(17 24 39);
+    border-color: rgba(148, 163, 184, 0.12);
+}
+
+.isp-collection-customer-card,
+.isp-collection-form {
+    border-radius: var(--isp-radius-lg);
+    padding: 1.25rem;
+    background: white;
+    border: 1px solid rgba(148, 163, 184, 0.15);
+    box-shadow: var(--isp-shadow);
+}
+
+.dark .isp-collection-customer-card,
+.dark .isp-collection-form,
+[data-theme='dark'] .isp-collection-customer-card,
+[data-theme='dark'] .isp-collection-form {
+    background: rgb(17 24 39);
+}
+
+.isp-collection-input,
+.isp-collection-select {
+    border-radius: 0.625rem;
+    border: 1px solid rgba(148, 163, 184, 0.35);
+    padding: 0.625rem 0.75rem;
+    background: white;
+    color: #0f172a;
+}
+
+.dark .isp-collection-input,
+.dark .isp-collection-select,
+[data-theme='dark'] .isp-collection-input,
+[data-theme='dark'] .isp-collection-select {
+    background: rgb(30 41 59);
+    color: #f8fafc;
+    border-color: rgba(148, 163, 184, 0.2);
+}
+
+.isp-collection-submit {
+    border-radius: 0.75rem;
+    padding: 0.75rem 1.5rem;
+    font-weight: 700;
+    background: #7c3aed;
+    color: white;
+}
+
+.isp-collection-submit:hover {
+    background: #6d28d9;
+}
+
+/* Accounting hub */
+.isp-accounting-hub {
+    max-width: 80rem;
+}
+
+.isp-accounting-hero {
+    border-radius: var(--isp-radius-lg);
+    padding: 1.5rem 1.75rem;
+    background: linear-gradient(135deg, #1e3a5f 0%, #312e81 45%, #4c1d95 100%);
+    border: 1px solid rgba(129, 140, 248, 0.25);
+    box-shadow: 0 20px 40px -12px rgba(49, 46, 129, 0.45);
+}
+
+.dark .isp-accounting-hero,
+[data-theme='dark'] .isp-accounting-hero {
+    background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #312e81 100%);
+    border-color: rgba(129, 140, 248, 0.2);
+}
+
+.isp-accounting-pill {
+    display: inline-flex;
+    align-items: center;
+    border-radius: 9999px;
+    padding: 0.35rem 0.75rem;
+    font-size: 0.7rem;
+    font-weight: 600;
+    background: rgba(255, 255, 255, 0.12);
+    color: rgba(255, 255, 255, 0.92);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.isp-accounting-kpi {
+    border-radius: var(--isp-radius);
+    padding: 1rem 1.125rem;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    backdrop-filter: blur(8px);
+}
+
+.isp-accounting-kpi--cash { border-left: 3px solid #34d399; }
+.isp-accounting-kpi--bank { border-left: 3px solid #38bdf8; }
+.isp-accounting-kpi--income { border-left: 3px solid #a78bfa; }
+.isp-accounting-kpi--profit { border-left: 3px solid #4ade80; }
+.isp-accounting-kpi--loss { border-left: 3px solid #fb7185; }
+
+/* HR & payroll hub */
+.isp-hr-payroll-hub {
+    max-width: 80rem;
+}
+
+.isp-hr-payroll-hero {
+    border-radius: var(--isp-radius-lg);
+    padding: 1.5rem 1.75rem;
+    background: linear-gradient(135deg, #881337 0%, #9d174d 40%, #6b21a8 100%);
+    border: 1px solid rgba(251, 113, 133, 0.25);
+    box-shadow: 0 20px 40px -12px rgba(136, 19, 55, 0.45);
+}
+
+.dark .isp-hr-payroll-hero,
+[data-theme='dark'] .isp-hr-payroll-hero {
+    background: linear-gradient(135deg, #1f0a12 0%, #4c0519 45%, #581c87 100%);
+    border-color: rgba(251, 113, 133, 0.2);
+}
+
+.isp-hr-payroll-pill {
+    display: inline-flex;
+    align-items: center;
+    border-radius: 9999px;
+    padding: 0.35rem 0.75rem;
+    font-size: 0.7rem;
+    font-weight: 600;
+    background: rgba(255, 255, 255, 0.12);
+    color: rgba(255, 255, 255, 0.92);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.isp-hr-payroll-kpi {
+    border-radius: var(--isp-radius);
+    padding: 1rem 1.125rem;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    backdrop-filter: blur(8px);
+}
+
+.isp-hr-payroll-kpi--staff { border-left: 3px solid #fb7185; }
+.isp-hr-payroll-kpi--attendance { border-left: 3px solid #fbbf24; }
+.isp-hr-payroll-kpi--payroll { border-left: 3px solid #e879f9; }
+.isp-hr-payroll-kpi--gross { border-left: 3px solid #c4b5fd; }
+
+/* ── HRM Employees list ── */
+.isp-hrm-employees-page .fi-header {
+    display: none;
+}
+
+.isp-hrm-employees-hero {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1.25rem;
+    padding: 1.35rem 1.5rem;
+    border-radius: var(--isp-radius-lg);
+    border: 1px solid color-mix(in srgb, #f43f5e 28%, var(--isp-card-border));
+    background: linear-gradient(135deg, color-mix(in srgb, #f43f5e 10%, var(--isp-card-bg)) 0%, var(--isp-card-bg) 60%);
+}
+
+.isp-hrm-employees-hero__eyebrow {
+    font-size: .7rem;
+    font-weight: 700;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: #e11d48;
+}
+
+.isp-hrm-employees-hero__title {
+    margin-top: .2rem;
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: var(--isp-text);
+}
+
+.isp-hrm-employees-hero__sub {
+    margin-top: .4rem;
+    max-width: 32rem;
+    font-size: .875rem;
+    color: var(--isp-text-muted);
+}
+
+.isp-hrm-employees-hero__stats {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(7rem, 1fr));
+    gap: .65rem;
+}
+
+@media (min-width: 640px) {
+    .isp-hrm-employees-hero__stats {
+        grid-template-columns: repeat(4, minmax(6.5rem, 1fr));
+    }
+}
+
+.isp-hrm-employees-stat {
+    padding: .65rem .75rem;
+    border-radius: var(--isp-radius-md);
+    border: 1px solid var(--isp-card-border);
+    background: var(--isp-card-bg);
+}
+
+.isp-hrm-employees-stat__label {
+    display: block;
+    font-size: .65rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    color: var(--isp-text-muted);
+}
+
+.isp-hrm-employees-stat strong {
+    display: block;
+    margin-top: .2rem;
+    font-size: 1.1rem;
+    font-weight: 800;
+    color: var(--isp-text);
+}
+
+.isp-hrm-employees-stat strong small {
+    font-size: .65rem;
+    font-weight: 600;
+}
+
+.isp-hrm-employees-filters-card,
+.isp-hrm-employees-table-card {
+    padding: 1rem 1.15rem;
+    border-radius: var(--isp-radius-lg);
+    border: 1px solid var(--isp-card-border);
+    background: var(--isp-card-bg);
+}
+
+.isp-hrm-employees-filters-card__title {
+    font-size: .8rem;
+    font-weight: 700;
+    color: var(--isp-text-muted);
+    text-transform: uppercase;
+    letter-spacing: .05em;
+}
+
+.isp-hrm-employees-filters-card__hint {
+    margin-top: .35rem;
+    font-size: .8rem;
+    color: var(--isp-text-muted);
+}
+
+.isp-hrm-employees-table-card__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: .75rem;
+    margin-bottom: .75rem;
+}
+
+.isp-hrm-employees-table-card__title {
+    font-size: .8rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    color: var(--isp-text-muted);
+}
+
+.isp-hrm-employees-table-card__badge {
+    font-size: .7rem;
+    font-weight: 600;
+    padding: .2rem .55rem;
+    border-radius: 999px;
+    background: color-mix(in srgb, #f43f5e 12%, var(--isp-surface));
+    color: #be123c;
+}
+
+.isp-hrm-employees-table-card .fi-ta-ctn {
+    border: none;
+    box-shadow: none;
+    background: transparent;
+}
+
+.isp-hrm-employees-table-card .fi-ta-header-cell {
+    font-size: .72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    color: var(--isp-primary-dark, #0f766e);
+}
+
+.dark .isp-hrm-employees-table-card .fi-ta-header-cell {
+    color: #5eead4;
+}
+
+.isp-hrm-employees-table-card .fi-ta-empty-state {
+    padding: 2rem 1rem;
+}
+
+/* ── BW Client (bandwidth wholesale) ── */
+.isp-bw-clients-page .fi-header,
+.isp-bw-generate-page .fi-header {
+    display: none;
+}
+
+.isp-bw-clients-hero {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1.25rem;
+    padding: 1.35rem 1.5rem;
+    border-radius: var(--isp-radius-lg);
+    border: 1px solid color-mix(in srgb, #0ea5e9 30%, var(--isp-card-border));
+    background: linear-gradient(135deg, color-mix(in srgb, #0ea5e9 12%, var(--isp-card-bg)) 0%, var(--isp-card-bg) 65%);
+}
+
+.isp-bw-clients-hero__eyebrow {
+    font-size: .7rem;
+    font-weight: 700;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: #0284c7;
+}
+
+.isp-bw-clients-hero__title {
+    margin-top: .2rem;
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: var(--isp-text);
+}
+
+.isp-bw-clients-hero__sub {
+    margin-top: .4rem;
+    max-width: 34rem;
+    font-size: .875rem;
+    color: var(--isp-text-muted);
+}
+
+.isp-bw-clients-hero__stats {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(6.5rem, 1fr));
+    gap: .65rem;
+}
+
+@media (min-width: 640px) {
+    .isp-bw-clients-hero__stats {
+        grid-template-columns: repeat(4, minmax(5.5rem, 1fr));
+    }
+}
+
+.isp-bw-clients-stat {
+    padding: .65rem .75rem;
+    border-radius: var(--isp-radius-md);
+    border: 1px solid var(--isp-card-border);
+    background: var(--isp-card-bg);
+}
+
+.isp-bw-clients-stat--due strong {
+    color: #e11d48;
+}
+
+.isp-bw-clients-stat__label {
+    display: block;
+    font-size: .65rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    color: var(--isp-text-muted);
+}
+
+.isp-bw-clients-stat strong {
+    display: block;
+    margin-top: .2rem;
+    font-size: 1.05rem;
+    font-weight: 800;
+}
+
+.isp-bw-clients-table-card,
+.isp-bw-generate-card {
+    padding: 1rem 1.15rem;
+    border-radius: var(--isp-radius-lg);
+    border: 1px solid var(--isp-card-border);
+    background: var(--isp-card-bg);
+}
+
+.isp-bw-clients-table-card__hint {
+    margin-bottom: .75rem;
+    font-size: .8rem;
+    color: var(--isp-text-muted);
+}
+
+.isp-bw-clients-table-card .fi-ta-ctn {
+    border: none;
+    box-shadow: none;
+    background: transparent;
+}
+
+.isp-bw-clients-table-card .fi-ta-header-cell {
+    font-size: .72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    color: #0369a1;
+}
+
+.dark .isp-bw-clients-table-card .fi-ta-header-cell {
+    color: #7dd3fc;
+}
+
+.isp-bw-clients-table-card .fi-ta-empty-state {
+    padding: 2.5rem 1rem;
+}
+
+.isp-accounting-section-icon--rose { background: rgba(244, 63, 94, 0.12); color: #e11d48; }
+.isp-accounting-section-icon--slate { background: rgba(100, 116, 139, 0.12); color: #475569; }
+.isp-accounting-card--rose:hover { border-color: rgba(244, 63, 94, 0.45); }
+.isp-accounting-card--slate:hover { border-color: rgba(100, 116, 139, 0.45); }
+.isp-accounting-card-icon--rose { background: rgba(244, 63, 94, 0.15); color: #e11d48; }
+.isp-accounting-card-icon--slate { background: rgba(100, 116, 139, 0.15); color: #475569; }
+.dark .isp-accounting-section-icon--rose { color: #fda4af; }
+.dark .isp-accounting-section-icon--slate { color: #cbd5e1; }
+.dark .isp-accounting-card-icon--rose { color: #fda4af; }
+.dark .isp-accounting-card-icon--slate { color: #cbd5e1; }
+
+.isp-accounting-modules {
+    padding-top: 0.5rem;
+}
+
+.isp-accounting-section {
+    border-radius: var(--isp-radius-lg);
+    padding: 1.25rem 1.5rem;
+    background: white;
+    border: 1px solid rgba(148, 163, 184, 0.15);
+    box-shadow: var(--isp-shadow);
+}
+
+.dark .isp-accounting-section,
+[data-theme='dark'] .isp-accounting-section {
+    background: rgb(17 24 39);
+    border-color: rgba(148, 163, 184, 0.1);
+}
+
+.isp-accounting-section-head {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.875rem;
+}
+
+.isp-accounting-section-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: 0.75rem;
+    flex-shrink: 0;
+}
+
+.isp-accounting-section-icon--emerald { background: rgba(16, 185, 129, 0.12); color: #059669; }
+.isp-accounting-section-icon--violet { background: rgba(124, 58, 237, 0.12); color: #7c3aed; }
+.isp-accounting-section-icon--cyan { background: rgba(6, 182, 212, 0.12); color: #0891b2; }
+.isp-accounting-section-icon--amber { background: rgba(245, 158, 11, 0.12); color: #d97706; }
+.isp-accounting-section-icon--fuchsia { background: rgba(192, 38, 211, 0.12); color: #c026d3; }
+.isp-accounting-section-icon--indigo { background: rgba(99, 102, 241, 0.12); color: #4f46e5; }
+
+.dark .isp-accounting-section-icon--emerald { color: #6ee7b7; }
+.dark .isp-accounting-section-icon--violet { color: #c4b5fd; }
+.dark .isp-accounting-section-icon--cyan { color: #67e8f9; }
+.dark .isp-accounting-section-icon--amber { color: #fcd34d; }
+.dark .isp-accounting-section-icon--fuchsia { color: #f0abfc; }
+.dark .isp-accounting-section-icon--indigo { color: #a5b4fc; }
+
+.isp-accounting-section-title {
+    font-size: 1.05rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: var(--isp-navy);
+}
+
+.dark .isp-accounting-section-title,
+[data-theme='dark'] .isp-accounting-section-title {
+    color: #f1f5f9;
+}
+
+.isp-accounting-card {
+    display: block;
+    border-radius: var(--isp-radius);
+    padding: 1rem 1.125rem;
+    background: #f8fafc;
+    border: 1px solid rgba(148, 163, 184, 0.14);
+    transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.isp-accounting-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--isp-shadow-lg);
+}
+
+.isp-accounting-card--emerald:hover { border-color: rgba(16, 185, 129, 0.45); }
+.isp-accounting-card--violet:hover { border-color: rgba(124, 58, 237, 0.45); }
+.isp-accounting-card--cyan:hover { border-color: rgba(6, 182, 212, 0.45); }
+.isp-accounting-card--amber:hover { border-color: rgba(245, 158, 11, 0.45); }
+.isp-accounting-card--fuchsia:hover { border-color: rgba(192, 38, 211, 0.45); }
+.isp-accounting-card--indigo:hover { border-color: rgba(99, 102, 241, 0.45); }
+
+.dark .isp-accounting-card,
+[data-theme='dark'] .isp-accounting-card {
+    background: rgb(30 41 59);
+    border-color: rgba(148, 163, 184, 0.1);
+}
+
+.isp-accounting-card-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.25rem;
+    height: 2.25rem;
+    border-radius: 0.625rem;
+    flex-shrink: 0;
+}
+
+.isp-accounting-card-icon--emerald { background: rgba(16, 185, 129, 0.15); color: #059669; }
+.isp-accounting-card-icon--violet { background: rgba(124, 58, 237, 0.15); color: #7c3aed; }
+.isp-accounting-card-icon--cyan { background: rgba(6, 182, 212, 0.15); color: #0891b2; }
+.isp-accounting-card-icon--amber { background: rgba(245, 158, 11, 0.15); color: #d97706; }
+.isp-accounting-card-icon--fuchsia { background: rgba(192, 38, 211, 0.15); color: #c026d3; }
+.isp-accounting-card-icon--indigo { background: rgba(99, 102, 241, 0.15); color: #4f46e5; }
+
+.dark .isp-accounting-card-icon--emerald { color: #6ee7b7; }
+.dark .isp-accounting-card-icon--violet { color: #c4b5fd; }
+.dark .isp-accounting-card-icon--cyan { color: #67e8f9; }
+.dark .isp-accounting-card-icon--amber { color: #fcd34d; }
+.dark .isp-accounting-card-icon--fuchsia { color: #f0abfc; }
+.dark .isp-accounting-card-icon--indigo { color: #a5b4fc; }
+
+.isp-accounting-badge {
+    flex-shrink: 0;
+    border-radius: 9999px;
+    padding: 0.15rem 0.5rem;
+    font-size: 0.6rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    background: rgba(99, 102, 241, 0.12);
+    color: #4f46e5;
+}
+
+.dark .isp-accounting-badge {
+    background: rgba(129, 140, 248, 0.2);
+    color: #c7d2fe;
+}
+
+/* Bottom quick actions panel */
+.isp-accounting-quick {
+    border-radius: var(--isp-radius-lg);
+    padding: 1.25rem 1.5rem;
+    background: linear-gradient(180deg, #f8fafc 0%, #fff 100%);
+    border: 1px solid rgba(148, 163, 184, 0.18);
+    box-shadow: var(--isp-shadow);
+}
+
+.dark .isp-accounting-quick,
+[data-theme='dark'] .isp-accounting-quick {

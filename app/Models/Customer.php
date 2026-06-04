@@ -40,7 +40,7 @@ class Customer extends Model implements AuthenticatableContract, AuthorizableCon
             app(\App\Services\Optical\CustomerOnuAutoProvisionService::class)->ensureForCustomer($customer);
 
             if (config('optical.auto_sync_on_customer_save', true)) {
-                \App\Support\OpticalCustomerSync::dispatch($customer, true);
+                \App\Support\OpticalCustomerSync::dispatch($customer, true, afterResponse: true);
             }
         });
 
@@ -72,7 +72,7 @@ class Customer extends Model implements AuthenticatableContract, AuthorizableCon
                 && ! $customer->wasRecentlyCreated
                 && ($customer->wasChanged(['mikrotik_secret_name', 'radius_username', 'customer_code']) || $opticalMetaChanged)
             ) {
-                \App\Support\OpticalCustomerSync::dispatch($customer, true);
+                \App\Support\OpticalCustomerSync::dispatch($customer, true, afterResponse: true);
             }
         });
     }
@@ -122,6 +122,7 @@ class Customer extends Model implements AuthenticatableContract, AuthorizableCon
         'name',
         'phone',
         'email',
+        'telegram_chat_id',
         'nid_number',
         'nid_front_path',
         'nid_back_path',
@@ -224,6 +225,11 @@ class Customer extends Model implements AuthenticatableContract, AuthorizableCon
             ->where('status', CustomerStatus::ACTIVE)
             ->where('subscriber_type', '!=', SubscriberType::FREE)
             ->whereNotNull('package_id');
+    }
+
+    public function scopeFromLegacyPortal(\Illuminate\Database\Eloquent\Builder $query): \Illuminate\Database\Eloquent\Builder
+    {
+        return $query->whereIn('import_source', \App\Support\LegacyPortalSource::importSourceValues());
     }
 
     public function scopeSubscriberType(\Illuminate\Database\Eloquent\Builder $query, string $type): \Illuminate\Database\Eloquent\Builder
@@ -481,19 +487,23 @@ class Customer extends Model implements AuthenticatableContract, AuthorizableCon
     }
 
     /**
-     * Service date is strictly before today (last valid day is the expiry date).
+     * Line off on/after service_expires_at (bill due date when grace is 0).
      */
     public function isServiceExpired(): bool
     {
+        if (\App\Services\Billing\CustomerLineGraceService::hasActiveLineGrace($this)) {
+            return false;
+        }
+
         if ($this->service_expires_at === null) {
             return false;
         }
 
-        return now()->toDateString() > $this->service_expires_at->toDateString();
+        return now()->toDateString() >= $this->service_expires_at->toDateString();
     }
 
     /**
-     * First calendar day the line is off by validity (day after service_expires_at).
+     * First calendar day the line is off by validity (same as service_expires_at when grace is 0).
      */
     public function serviceOffDate(): ?\Carbon\Carbon
     {
@@ -501,7 +511,7 @@ class Customer extends Model implements AuthenticatableContract, AuthorizableCon
             return null;
         }
 
-        return $this->service_expires_at->copy()->addDay()->startOfDay();
+        return $this->service_expires_at->copy()->startOfDay();
     }
 
     /**
@@ -526,14 +536,19 @@ class Customer extends Model implements AuthenticatableContract, AuthorizableCon
         $offFrom = $this->serviceOffDate()?->format('d M Y');
         $days = $this->daysUntilServiceExpiry();
 
+        $lineGrace = \App\Services\Billing\CustomerLineGraceService::label($this);
+        if ($lineGrace !== null) {
+            $lineGrace = ' · '.$lineGrace;
+        }
+
         if ($this->isServiceExpired()) {
-            return "Expired · was valid until {$validUntil} · off since {$offFrom}";
+            return "Expired · line off from {$offFrom}{$lineGrace}";
         }
 
         if ($days === 0) {
-            return "Valid until today ({$validUntil}) · off from tomorrow";
+            return "Bill/expire day today ({$validUntil}) · unpaid = line off today{$lineGrace}";
         }
 
-        return "Valid until {$validUntil} ({$days} days) · off from {$offFrom}";
+        return "Line off from {$offFrom} if unpaid ({$days} days left){$lineGrace}";
     }
 }

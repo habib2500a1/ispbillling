@@ -1,6 +1,8 @@
 @php
     use App\Filament\Resources\ResellerResource;
     use App\Filament\Pages\ResellerPackagePricesPage;
+    use App\Filament\Pages\ResellerPendingWalletRechargesPage;
+    use App\Filament\Pages\ResellerCollectionPerformancePage;
     use App\Filament\Pages\ResellerReportPage;
     use App\Filament\Pages\ResellerWalletHubPage;
 
@@ -9,6 +11,15 @@
     $mix         = $this->getPartnerMix();
     $settlement  = $this->getSettlement();
     $commissions = $this->getRecentCommissions();
+
+    $finance     = $this->getFinancialOverview();
+    $trend       = $this->getCommissionTrend();
+    $growth      = $this->getCustomerGrowth();
+    $performance = $this->getPerformanceScores();
+    $risk        = $this->getRiskWatchlist();
+
+    $trendMax    = max(1, max(array_map(fn ($r) => $r['commission'], $trend) ?: [1]));
+    $growthMax   = max(1, max(array_map(fn ($r) => $r['customers'], $growth) ?: [1]));
 
     $createUrl = ResellerResource::getUrl('create');
     $reportUrl = ResellerReportPage::getUrl();
@@ -42,6 +53,12 @@
                     <x-filament::icon icon="heroicon-o-chart-pie" class="h-4 w-4" />
                     Commission report
                 </a>
+                @if (($stats['pending_wallet_topups'] ?? 0) > 0)
+                    <a href="{{ ResellerPendingWalletRechargesPage::getUrl() }}" class="rsh-btn--white">
+                        <x-filament::icon icon="heroicon-o-banknotes" class="h-4 w-4" />
+                        Approve top-ups ({{ $stats['pending_wallet_topups'] }})
+                    </a>
+                @endif
             </div>
         </div>
         <div class="rsh-hero__meta">
@@ -95,14 +112,22 @@
             <span class="rsh-stat__value">{{ number_format($stats['wallet_total'], 0) }} ৳</span>
             <span class="rsh-stat__hint">Combined reseller wallets</span>
         </div>
-        <div class="rsh-stat rsh-stat--rose">
+        <div class="rsh-stat rsh-stat--indigo">
+            <div class="rsh-stat__icon">
+                <x-filament::icon icon="heroicon-o-document-text" class="h-4 w-4" />
+            </div>
+            <span class="rsh-stat__label">Admin receivable</span>
+            <span class="rsh-stat__value">{{ number_format($stats['admin_receivable_total'] ?? 0, 0) }} ৳</span>
+            <span class="rsh-stat__hint">Partners owe HQ (wholesale)</span>
+        </div>
+        <a href="{{ $reportUrl }}?status=pending&amp;preset=last_6_months" class="rsh-stat rsh-stat--rose rsh-stat--link" title="Open commission report (pending)">
             <div class="rsh-stat__icon">
                 <x-filament::icon icon="heroicon-o-clock" class="h-4 w-4" />
             </div>
             <span class="rsh-stat__label">Pending commission</span>
             <span class="rsh-stat__value">{{ number_format($stats['pending_commission'], 0) }} ৳</span>
-            <span class="rsh-stat__hint">Awaiting settlement</span>
-        </div>
+            <span class="rsh-stat__hint">Awaiting settlement · View report →</span>
+        </a>
     </div>
 
     {{-- ── Split grid: leaderboard + settlement ── --}}
@@ -248,6 +273,169 @@
         </section>
     @endif
 
+    {{-- ── Financial overview ── --}}
+    <section class="rsh-section">
+        <div class="rsh-section__head">
+            <div>
+                <h2 class="rsh-section__title">Financial overview</h2>
+                <p class="rsh-section__sub">Network-wide wallet, receivable, credit exposure and commission lifetime.</p>
+            </div>
+            <a href="{{ ResellerReportPage::getUrl() }}" class="rsh-section__tag">Commission report →</a>
+        </div>
+        <div class="rsh-an-grid">
+            <div class="rsh-an-card">
+                <span class="rsh-an-card__label">Wallet balance</span>
+                <span class="rsh-an-card__value">{{ number_format($finance['wallet_total'], 0) }} ৳</span>
+                <span class="rsh-an-card__hint">+ {{ number_format($finance['bonus_total'], 0) }} ৳ bonus</span>
+            </div>
+            <div class="rsh-an-card">
+                <span class="rsh-an-card__label">Admin receivable</span>
+                <span class="rsh-an-card__value">{{ number_format($finance['admin_receivable'], 0) }} ৳</span>
+                <span class="rsh-an-card__hint">Partners owe HQ (wholesale)</span>
+            </div>
+            <div class="rsh-an-card">
+                <span class="rsh-an-card__label">Credit utilisation</span>
+                <span class="rsh-an-card__value">{{ $finance['credit_util'] }}%</span>
+                <span class="rsh-an-card__hint">of {{ number_format($finance['credit_limit_total'], 0) }} ৳ limit</span>
+            </div>
+            <div class="rsh-an-card">
+                <span class="rsh-an-card__label">Commission lifetime</span>
+                <span class="rsh-an-card__value">{{ number_format($finance['commission_lifetime'], 0) }} ৳</span>
+                <span class="rsh-an-card__hint">{{ number_format($finance['commission_pending'], 0) }} ৳ pending</span>
+            </div>
+            <div class="rsh-an-card">
+                <span class="rsh-an-card__label">Margin accrued</span>
+                <span class="rsh-an-card__value">{{ number_format($finance['margin_accrued'], 0) }} ৳</span>
+                <span class="rsh-an-card__hint">Reseller wholesale margin</span>
+            </div>
+            <div class="rsh-an-card {{ $finance['negative_wallets'] > 0 ? 'rsh-an-card--alert' : '' }}">
+                <span class="rsh-an-card__label">Wallet alerts</span>
+                <span class="rsh-an-card__value">{{ $finance['negative_wallets'] }}</span>
+                <span class="rsh-an-card__hint">negative · {{ $finance['frozen_wallets'] }} frozen</span>
+            </div>
+        </div>
+    </section>
+
+    {{-- ── Trends: commission revenue + customer growth ── --}}
+    <div class="rsh-split">
+        <section class="rsh-section">
+            <div class="rsh-section__head">
+                <div>
+                    <h2 class="rsh-section__title">Commission revenue</h2>
+                    <p class="rsh-section__sub">Earned commission over the last 6 months.</p>
+                </div>
+            </div>
+            <div class="rsh-bars" role="img" aria-label="Commission revenue trend">
+                @foreach ($trend as $t)
+                    <div class="rsh-bars__col">
+                        <div class="rsh-bars__track">
+                            <span class="rsh-bars__fill rsh-bars__fill--violet"
+                                  style="height: {{ max(2, (int) round(($t['commission'] / $trendMax) * 100)) }}%"
+                                  title="{{ number_format($t['commission'], 0) }} ৳"></span>
+                        </div>
+                        <span class="rsh-bars__x">{{ $t['label'] }}</span>
+                        <span class="rsh-bars__v">{{ $t['commission'] >= 1000 ? round($t['commission'] / 1000, 1).'k' : (int) $t['commission'] }}</span>
+                    </div>
+                @endforeach
+            </div>
+        </section>
+
+        <section class="rsh-section">
+            <div class="rsh-section__head">
+                <div>
+                    <h2 class="rsh-section__title">Customer growth</h2>
+                    <p class="rsh-section__sub">New reseller subscribers per month.</p>
+                </div>
+                <span class="rsh-section__tag">{{ $stats['new_customers_month'] }} this month</span>
+            </div>
+            <div class="rsh-bars" role="img" aria-label="Customer growth trend">
+                @foreach ($growth as $g)
+                    <div class="rsh-bars__col">
+                        <div class="rsh-bars__track">
+                            <span class="rsh-bars__fill rsh-bars__fill--teal"
+                                  style="height: {{ max(2, (int) round(($g['customers'] / $growthMax) * 100)) }}%"
+                                  title="{{ $g['customers'] }} customers"></span>
+                        </div>
+                        <span class="rsh-bars__x">{{ $g['label'] }}</span>
+                        <span class="rsh-bars__v">{{ $g['customers'] }}</span>
+                    </div>
+                @endforeach
+            </div>
+        </section>
+    </div>
+
+    {{-- ── Performance + risk ── --}}
+    <div class="rsh-split">
+        <section class="rsh-section">
+            <div class="rsh-section__head">
+                <div>
+                    <h2 class="rsh-section__title">Performance scores</h2>
+                    <p class="rsh-section__sub">Blend of subscriber base, collection rate and low risk.</p>
+                </div>
+                <a href="{{ \App\Filament\Pages\ResellerCollectionPerformancePage::getUrl() }}" class="rsh-section__tag">Collection →</a>
+            </div>
+            @if (count($performance) > 0)
+                <ol class="rsh-rank-list">
+                    @foreach ($performance as $p)
+                        <li class="rsh-rank-item">
+                            <a href="{{ ResellerResource::getUrl('view', ['record' => $p['id']]) }}" class="rsh-rank-row">
+                                <span class="rsh-score rsh-score--{{ strtolower($p['grade']) }}">{{ $p['grade'] }}</span>
+                                <div class="rsh-rank-main">
+                                    <div class="rsh-rank-head">
+                                        <span class="rsh-rank-name">
+                                            <span class="rsh-dot {{ $p['active'] ? 'rsh-dot--on' : 'rsh-dot--off' }}" aria-hidden="true"></span>
+                                            {{ $p['name'] }}
+                                        </span>
+                                        <span class="rsh-rank-chip">{{ $p['score'] }}/100</span>
+                                    </div>
+                                    <div class="rsh-meter" role="presentation">
+                                        <span class="rsh-meter__fill" style="width: {{ max(4, $p['score']) }}%"></span>
+                                    </div>
+                                </div>
+                                <div class="rsh-rank-meta">
+                                    <strong>{{ $p['collection_rate'] }}%</strong>
+                                    <span>collected · {{ number_format($p['customers']) }} subs</span>
+                                </div>
+                            </a>
+                        </li>
+                    @endforeach
+                </ol>
+            @else
+                <p style="font-size:0.875rem;color:var(--rsh-muted);">No partner activity to score yet.</p>
+            @endif
+        </section>
+
+        <section class="rsh-section">
+            <div class="rsh-section__head">
+                <div>
+                    <h2 class="rsh-section__title">Risk monitoring</h2>
+                    <p class="rsh-section__sub">Partners flagged by credit, wallet or risk score.</p>
+                </div>
+            </div>
+            @if (count($risk) > 0)
+                <ul class="rsh-risk-list">
+                    @foreach ($risk as $r)
+                        <li>
+                            <a href="{{ ResellerResource::getUrl('view', ['record' => $r['id']]) }}" class="rsh-risk-row">
+                                <span class="rsh-risk-name">{{ $r['name'] }}</span>
+                                <span class="rsh-risk-flags">
+                                    @foreach ($r['flags'] as $flag)
+                                        <span class="rsh-risk-flag">{{ $flag }}</span>
+                                    @endforeach
+                                </span>
+                            </a>
+                        </li>
+                    @endforeach
+                </ul>
+            @else
+                <div class="rsh-risk-clear">
+                    <span class="rsh-risk-clear__icon" aria-hidden="true">✓</span>
+                    All partners healthy — no credit, wallet or risk flags.
+                </div>
+            @endif
+        </section>
+    </div>
+
     {{-- ── Partner shortcuts ── --}}
     <section class="rsh-section">
         <div class="rsh-section__head">
@@ -302,6 +490,18 @@
                     <p class="rsh-card__eyebrow">Reports</p>
                     <p class="rsh-card__title">Commission report</p>
                     <p class="rsh-card__desc">Earnings by partner &amp; period</p>
+                </div>
+                <span class="rsh-card__arrow" aria-hidden="true">→</span>
+            </a>
+
+            <a href="{{ ResellerCollectionPerformancePage::getUrl() }}" class="rsh-card rsh-card--amber">
+                <div class="rsh-card__icon">
+                    <x-filament::icon icon="heroicon-o-chart-bar" class="h-5 w-5" />
+                </div>
+                <div class="rsh-card__body">
+                    <p class="rsh-card__eyebrow">Reports</p>
+                    <p class="rsh-card__title">Collection performance</p>
+                    <p class="rsh-card__desc">Due, collection rate, HQ receivable</p>
                 </div>
                 <span class="rsh-card__arrow" aria-hidden="true">→</span>
             </a>

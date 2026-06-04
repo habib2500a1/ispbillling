@@ -91,26 +91,69 @@
 
     <section
         id="usage-panel"
-        class="portal-chart-shell portal-usage-chart"
+        class="portal-live-graph"
         data-live-url="{{ route('portal.usage.live') }}"
         data-quick-url="{{ route('portal.speed-test.quick') }}"
         data-ping-url="{{ route('portal.speed-test.ping') }}"
         data-poll-ms="{{ $pollSeconds * 1000 }}"
         data-auto-quick="0"
         data-stats='@json($stats)'>
-        <div class="portal-section-head portal-section-head--compact">
-            <div class="portal-label-stack">
-                <h2 class="portal-surface-card__title">Speed trend</h2>
-                <p class="portal-surface-card__meta">Recent download & upload (Mbps)</p>
+        <header class="portal-live-graph__head">
+            <div class="portal-live-graph__title-row">
+                <span class="portal-live-graph__icon" aria-hidden="true">📈</span>
+                <h2 class="portal-live-graph__title">Live Usage Graph</h2>
+                <span id="portal-live-badge" class="portal-live-graph__badge {{ ($stats['online'] ?? false) ? 'is-live' : 'is-off' }}">
+                    {{ ($stats['online'] ?? false) ? 'LIVE' : 'OFFLINE' }}
+                </span>
             </div>
+            <div class="portal-live-graph__pills" aria-live="polite">
+                <span class="portal-live-graph__pill portal-live-graph__pill--down">
+                    <span id="portal-live-down-mbps" class="portal-live-graph__pill-value">{{ number_format($stats['download_mbps'] ?? 0, 2) }}</span>
+                    <span aria-hidden="true">↓</span> Mbps
+                </span>
+                <span class="portal-live-graph__pill portal-live-graph__pill--up">
+                    <span id="portal-live-up-mbps" class="portal-live-graph__pill-value">{{ number_format($stats['upload_mbps'] ?? 0, 2) }}</span>
+                    <span aria-hidden="true">↑</span> Mbps
+                </span>
+            </div>
+        </header>
+        <div class="portal-live-graph__canvas-wrap">
+            <canvas id="usage-chart" height="220"></canvas>
         </div>
-        <div class="portal-usage-chart__canvas-wrap">
-            <canvas id="usage-chart" height="200"></canvas>
-        </div>
+        <footer class="portal-live-graph__stats" aria-label="Usage statistics">
+            <div class="portal-live-graph__stat">
+                <span class="portal-live-graph__stat-label">Session ↓</span>
+                <strong id="portal-stat-session-down" class="portal-live-graph__stat-value portal-live-graph__stat-value--down">
+                    {{ \App\Models\BandwidthUsageDaily::formatBytes($stats['total_download'] ?? 0) }}
+                </strong>
+            </div>
+            <div class="portal-live-graph__stat">
+                <span class="portal-live-graph__stat-label">Session ↑</span>
+                <strong id="portal-stat-session-up" class="portal-live-graph__stat-value portal-live-graph__stat-value--up">
+                    {{ \App\Models\BandwidthUsageDaily::formatBytes($stats['total_upload'] ?? 0) }}
+                </strong>
+            </div>
+            <div class="portal-live-graph__stat">
+                <span class="portal-live-graph__stat-label">Session total</span>
+                <strong id="portal-stat-session-total" class="portal-live-graph__stat-value">
+                    {{ \App\Models\BandwidthUsageDaily::formatBytes(($stats['total_download'] ?? 0) + ($stats['total_upload'] ?? 0)) }}
+                </strong>
+            </div>
+            <div class="portal-live-graph__stat">
+                <span class="portal-live-graph__stat-label">Today total</span>
+                <strong id="portal-stat-today-total" class="portal-live-graph__stat-value portal-live-graph__stat-value--today">
+                    {{ \App\Models\BandwidthUsageDaily::formatBytes(($stats['today_download'] ?? 0) + ($stats['today_upload'] ?? 0)) }}
+                </strong>
+            </div>
+            <div class="portal-live-graph__stat">
+                <span class="portal-live-graph__stat-label">Uptime</span>
+                <strong id="portal-stat-uptime" class="portal-live-graph__stat-value portal-live-graph__stat-value--mono">{{ $stats['uptime'] ?? '0:00:00' }}</strong>
+            </div>
+        </footer>
     </section>
 
     @push('scripts')
         <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" defer></script>
-        <script src="{{ asset('js/portal-usage.js') }}?v=1" defer></script>
+        <script src="{{ asset('js/portal-usage.js') }}?v=3" defer></script>
     @endpush
 @endsection

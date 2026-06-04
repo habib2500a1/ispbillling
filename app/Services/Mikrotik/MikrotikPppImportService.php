@@ -17,6 +17,7 @@ final class MikrotikPppImportService
 {
     public function __construct(
         private readonly MikrotikServerService $mikrotik,
+        private readonly MikrotikCustomerVlanSyncService $vlanSync,
     ) {}
 
     /**
@@ -67,6 +68,7 @@ final class MikrotikPppImportService
                 'profile' => $secret['profile'],
                 'disabled' => $secret['disabled'],
                 'comment' => $secret['comment'],
+                'raw' => $secret['raw'] ?? [],
                 'name' => $secret['comment'] ?: $secret['name'],
                 'phone' => null,
                 'customer_code' => null,
@@ -84,6 +86,7 @@ final class MikrotikPppImportService
             ->whereNotNull('mikrotik_profile_name')
             ->pluck('id', 'mikrotik_profile_name')
             ->all();
+        $options['_profile_vlan_map'] = $this->vlanSync->buildProfileVlanMap($server);
 
         return $this->importRows(
             (int) $server->tenant_id,
@@ -203,6 +206,9 @@ final class MikrotikPppImportService
             ->whereNotNull('mikrotik_profile_name')
             ->pluck('id', 'mikrotik_profile_name')
             ->all();
+        if (! isset($options['_profile_vlan_map']) && config('mikrotik.auto_sync_vlan', true)) {
+            $options['_profile_vlan_map'] = $this->vlanSync->buildProfileVlanMap($server);
+        }
 
         foreach ($rows as $index => $row) {
             $secretName = trim((string) ($row['secret_name'] ?? $row['username'] ?? ''));
@@ -226,14 +232,17 @@ final class MikrotikPppImportService
                     $key = strtolower(trim($secretName));
                     $customerBySecret[CustomerPppLoginResolver::serverScopedKey((int) $server->id, $key)] = $customer;
                     $customerBySecret[$key] = $customer;
+                    $this->syncVlanForImportRow($customer, $server, $row, $options);
                     $created++;
                 } elseif ($updateExisting) {
                     if (config('sync.import_skip_unchanged', true) && $this->rowMatchesCustomer($customer, $server, $secretName, $row)) {
+                        $this->syncVlanForImportRow($customer, $server, $row, $options);
                         $skipped++;
 
                         continue;
                     }
                     $this->updateCustomerFromRow($customer, $server, $secretName, $row, $options);
+                    $this->syncVlanForImportRow($customer->fresh() ?? $customer, $server, $row, $options);
                     $updated++;
                 } else {
                     $skipped++;
@@ -659,5 +668,22 @@ final class MikrotikPppImportService
         }
 
         return true;
+    }
+
+    /**
+     * @param  array<string, mixed>  $row
+     * @param  array<string, mixed>  $options
+     */
+    private function syncVlanForImportRow(Customer $customer, MikrotikServer $server, array $row, array $options): void
+    {
+        if (! config('mikrotik.auto_sync_vlan', true)) {
+            return;
+        }
+
+        $profileMap = is_array($options['_profile_vlan_map'] ?? null)
+            ? $options['_profile_vlan_map']
+            : [];
+
+        $this->vlanSync->applyFromImportRow($customer, $row, $server, $profileMap);
     }
 }

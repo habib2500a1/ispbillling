@@ -1,54 +1,89 @@
-@php
-    $stats = $this->getOpticalStatsSafe();
-@endphp
-
 <x-filament-panels::page>
-    <link rel="stylesheet" href="{{ asset('css/optical-noc.css') }}?v=5">
+    <link rel="stylesheet" href="{{ asset('css/optical-noc.css') }}?v=10">
 
     <div class="isp-optical-page-shell isp-optical-noc space-y-4">
+        @php $noc = $this->getNocPayload(); $stats = $noc; @endphp
         <div class="isp-optical-db-banner">
             <div>
-                <p class="text-xs font-bold uppercase tracking-widest text-blue-200">ISP Digital style</p>
-                <h2 class="text-xl font-bold text-white">Optical Database</h2>
-                <p class="mt-1 text-sm text-blue-100/90">Client Code · UserName · OpticalPower · OLTPort · OnuStatus — পুরনো panel এর মতো</p>
+                <p class="text-xs font-bold uppercase tracking-widest text-blue-200">GPON NOC</p>
+                <h2 class="text-xl font-bold text-white">Optical command center</h2>
+                <p class="mt-1 text-sm text-blue-100/90">RX/TX dBm · Temp/Voltage · PON + MikroTik VLAN · OLT health</p>
             </div>
-            <div class="flex flex-wrap gap-2">
+            <div class="flex flex-wrap items-center gap-2">
+                <span class="rounded bg-emerald-500/25 px-2 py-0.5 text-[10px] font-mono font-bold text-emerald-100" title="16 PON = 8×Aveis + 8×Bdcom. Aveis MikroTik/VLAN needs ONU↔subscriber link.">PON-16 2026-06-02</span>
+                <span class="rounded bg-white/15 px-3 py-1 text-xs font-semibold text-white">{{ number_format($noc['olt_total'] ?? 0) }} OLT</span>
                 <span class="rounded bg-white/15 px-3 py-1 text-xs font-semibold text-white">{{ number_format($stats['total_onus']) }} ONU</span>
                 <span class="rounded bg-emerald-500/30 px-3 py-1 text-xs font-semibold text-emerald-100">{{ number_format($stats['online_onus']) }} online</span>
+                <span class="rounded bg-rose-500/30 px-3 py-1 text-xs font-semibold text-rose-100">{{ number_format($stats['open_alerts'] ?? 0) }} alarms</span>
             </div>
         </div>
 
-        @include('filament.pages.partials.optical-database-table')
+        @php
+            $monitorTabs = [
+                'database' => 'ONU database',
+                'olt' => 'OLT health',
+                'topology' => 'Topology',
+                'charts' => 'Charts',
+                'pon' => 'PON stats',
+                'ai' => 'AI',
+                'alerts' => 'Alerts',
+            ];
+        @endphp
 
-        <div class="flex flex-wrap gap-2 border-t border-gray-200 pt-4 dark:border-gray-700">
-            <span class="w-full text-xs font-bold uppercase text-gray-500">More tools</span>
-            @foreach (['olt' => 'OLT health', 'topology' => 'Topology', 'charts' => 'Charts', 'pon' => 'PON stats', 'ai' => 'AI', 'alerts' => 'Alerts'] as $tab => $label)
-                <button type="button" wire:click="setMonitorTab('{{ $tab }}')"
-                    @class(['rounded-lg px-3 py-1.5 text-xs font-semibold', 'bg-slate-800 text-white' => $monitorTab === $tab, 'bg-gray-100 dark:bg-gray-800' => $monitorTab !== $tab])>
+        <nav class="flex flex-wrap gap-2 border-b border-gray-200 pb-3 dark:border-gray-700" aria-label="GPON tools">
+            <span class="w-full text-xs font-bold uppercase text-gray-500">GPON tools</span>
+            @foreach ($monitorTabs as $tab => $label)
+                <a href="{{ $this->monitorTabUrl($tab) }}"
+                    @class([
+                        'rounded-lg px-3 py-1.5 text-xs font-semibold no-underline',
+                        'bg-slate-800 text-white' => $monitorTab === $tab,
+                        'bg-gray-100 text-gray-800 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700' => $monitorTab !== $tab,
+                    ])>
                     {{ $label }}
-                </button>
+                </a>
             @endforeach
-        </div>
+        </nav>
+
+        @if ($monitorTab === 'database')
+            @include('filament.pages.partials.optical-database-table')
+        @endif
 
         @if ($monitorTab === 'olt')
             @php $oltHealth = $this->getOltHealthPayload(); @endphp
-            <div class="isp-optical-noc__chart-card overflow-x-auto">
-                <table class="w-full text-left text-sm">
-                    <thead><tr class="border-b text-xs uppercase text-gray-500">
-                        <th class="py-2">OLT</th><th>IP</th><th>CPU</th><th>RAM</th><th>ONUs</th><th>Health</th>
-                    </tr></thead>
+            <div class="isp-optical-noc__chart-card isp-optical-olt-health-wrap overflow-x-auto">
+                <table class="isp-optical-olt-health-table w-full text-left text-sm">
+                    <thead>
+                        <tr class="border-b text-xs uppercase text-gray-500">
+                            <th class="py-2">OLT</th>
+                            <th>Driver</th>
+                            <th>IP</th>
+                            <th>CPU</th>
+                            <th>RAM</th>
+                            <th>Temp</th>
+                            <th>Fan</th>
+                            <th>Power</th>
+                            <th>Uptime</th>
+                            <th>ONUs</th>
+                            <th>Health</th>
+                        </tr>
+                    </thead>
                     <tbody>
                         @forelse ($oltHealth['olts'] ?? [] as $olt)
                             <tr class="border-b border-gray-100 dark:border-gray-800">
-                                <td class="py-2 font-medium">{{ $olt['name'] }}</td>
-                                <td class="py-2">{{ $olt['management_ip'] ?? '—' }}</td>
-                                <td class="py-2">{{ $olt['cpu_percent'] ?? '—' }}%</td>
-                                <td class="py-2">{{ $olt['memory_percent'] ?? '—' }}%</td>
-                                <td class="py-2">{{ $olt['onus_online'] ?? 0 }}/{{ $olt['onus_total'] ?? 0 }}</td>
-                                <td class="py-2">{{ $olt['health_score'] ?? '—' }}%</td>
+                                <td data-label="OLT" class="py-2 font-medium">{{ $olt['name'] }}</td>
+                                <td data-label="Driver" class="py-2 text-xs">{{ strtoupper(str_replace('_', ' ', (string) ($olt['driver'] ?? '—'))) }}</td>
+                                <td data-label="IP" class="py-2 font-mono text-xs">{{ $olt['management_ip'] ?? '—' }}</td>
+                                <td data-label="CPU" class="py-2">{{ $olt['cpu_percent'] ?? '—' }}%</td>
+                                <td data-label="RAM" class="py-2">{{ $olt['memory_percent'] ?? '—' }}%</td>
+                                <td data-label="Temp" class="py-2">{{ isset($olt['temperature_c']) ? $olt['temperature_c'].' °C' : '—' }}</td>
+                                <td data-label="Fan" class="py-2 text-xs">{{ $olt['fan_status'] ?? '—' }}</td>
+                                <td data-label="Power" class="py-2 text-xs">{{ $olt['power_supply_status'] ?? '—' }}</td>
+                                <td data-label="Uptime" class="py-2 text-xs">{{ $olt['uptime_human'] ?? '—' }}</td>
+                                <td data-label="ONUs" class="py-2">{{ $olt['onus_online'] ?? 0 }}/{{ $olt['onus_total'] ?? 0 }}</td>
+                                <td data-label="Health" class="py-2">{{ $olt['health_score'] ?? '—' }}%</td>
                             </tr>
                         @empty
-                            <tr><td colspan="6" class="py-6 text-center text-gray-500">No OLT — Add OLT from header.</td></tr>
+                            <tr><td colspan="11" class="py-6 text-center text-gray-500">No OLT — Add OLT from header.</td></tr>
                         @endforelse
                     </tbody>
                 </table>
@@ -85,22 +120,8 @@
         @endif
 
         @if ($monitorTab === 'pon')
-            @php $ponPorts = $this->getPonPortsPayload(); @endphp
-            <div class="isp-optical-noc__chart-card overflow-x-auto text-sm">
-                <table class="w-full">
-                    <thead><tr class="border-b text-xs uppercase text-gray-500">
-                        <th class="py-2">OLT</th><th>PON</th><th>ONUs</th><th>Avg RX</th>
-                    </tr></thead>
-                    <tbody>
-                        @foreach ($ponPorts as $pon)
-                            <tr class="border-b"><td class="py-2">{{ $pon->olt?->display_name }}</td>
-                                <td>C{{ $pon->card_no }}/P{{ $pon->pon_no }}</td>
-                                <td>{{ $pon->onu_online }}/{{ $pon->onu_total }}</td>
-                                <td>{{ $pon->avg_rx_dbm }}</td></tr>
-                        @endforeach
-                    </tbody>
-                </table>
-            </div>
+            {{-- isp-pon-table-v3: OLT · MikroTik · VLAN · port name · index · ONUs · weak · avg RX --}}
+            @include('filament.pages.partials.optical-pon-stats-table')
         @endif
 
         @if ($monitorTab === 'ai')

@@ -24,6 +24,19 @@ class CustomersRelationManager extends RelationManager
                 Tables\Columns\TextColumn::make('name')->searchable(),
                 Tables\Columns\TextColumn::make('phone'),
                 Tables\Columns\TextColumn::make('status')->badge(),
+                Tables\Columns\TextColumn::make('due_amount')
+                    ->label('Due')
+                    ->money('BDT')
+                    ->state(fn (Customer $record): float => $record->openInvoiceBalance())
+                    ->color(fn (Customer $record): string => $record->openInvoiceBalance() > 0 ? 'danger' : 'gray'),
+            ])
+            ->filters([
+                Tables\Filters\Filter::make('has_due')
+                    ->label('Has due')
+                    ->query(fn ($query) => $query->whereHas('invoices', function ($iq): void {
+                        $iq->whereIn('status', ['open', 'partial', 'sent', 'overdue'])
+                            ->whereRaw('(total - amount_paid) > 0.009');
+                    })),
             ])
             ->actions([
                 Tables\Actions\Action::make('view')

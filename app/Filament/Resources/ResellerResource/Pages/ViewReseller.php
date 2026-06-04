@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\ResellerResource\Pages;
 
+use App\Filament\Pages\ResellerReportPage;
 use App\Filament\Pages\ResellersHub;
 use App\Filament\Resources\ResellerResource;
 use App\Models\Reseller;
@@ -127,6 +128,11 @@ class ViewReseller extends ViewRecord
                         ->send();
                     $this->record->refresh();
                 }),
+            Actions\Action::make('commission_report')
+                ->label('Commission report')
+                ->icon('heroicon-o-chart-pie')
+                ->url(fn (): string => ResellerReportPage::getUrl().'?reseller_id='.$this->record->getKey().'&preset=last_6_months')
+                ->openUrlInNewTab(),
             Actions\EditAction::make(),
         ];
     }

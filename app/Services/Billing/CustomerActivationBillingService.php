@@ -23,6 +23,7 @@ final class CustomerActivationBillingService
         Customer $customer,
         string $firstBillCycle,
         bool $settlePrepaidWallet = true,
+        ?bool $noProrate = null,
     ): array {
         $cycle = $firstBillCycle === self::CYCLE_NEXT_MONTH
             ? self::CYCLE_NEXT_MONTH
@@ -58,7 +59,11 @@ final class CustomerActivationBillingService
             $reference = now()->startOfDay();
         }
 
-        $invoice = InvoiceGenerator::generateForCustomer($customer, $reference, false, null);
+        if ($noProrate === null && $customer->reseller_id !== null) {
+            $noProrate = app(\App\Services\Resellers\ResellerCustomerBillingEngine::class)->shouldSkipProration($customer);
+        }
+
+        $invoice = InvoiceGenerator::generateForCustomer($customer, $reference, (bool) ($noProrate ?? false), null);
 
         if ($invoice === null) {
             return [
@@ -96,7 +101,7 @@ final class CustomerActivationBillingService
             return;
         }
 
-        $expires = Carbon::parse($invoice->period_end)->toDateString();
+        $expires = Carbon::parse($invoice->due_date ?? $invoice->period_end)->toDateString();
         $customer->forceFill(['service_expires_at' => $expires])->saveQuietly();
 
         if (config('network.service_expiry_enforced', true)) {

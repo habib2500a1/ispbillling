@@ -3,7 +3,7 @@
 namespace App\Jobs;
 
 use App\Models\Customer;
-use App\Services\Optical\IspDigitalOnuPipelineService;
+use App\Services\Optical\LegacyPortalOnuPipelineService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -28,9 +28,9 @@ class SyncCustomerOnuFromOltJob implements ShouldQueue
         public bool $forceOltSync = false,
     ) {}
 
-    public function handle(IspDigitalOnuPipelineService $pipeline): void
+    public function handle(LegacyPortalOnuPipelineService $pipeline): void
     {
-        if (! config('optical.isp_digital_auto_sync', true)) {
+        if (! config('optical.legacy_portal_auto_sync', true)) {
             return;
         }
 
@@ -46,7 +46,7 @@ class SyncCustomerOnuFromOltJob implements ShouldQueue
         try {
             $pipeline->syncAndLinkCustomer($customer, $this->forceOltSync);
         } catch (\Throwable $e) {
-            Log::warning('isp_digital_onu.customer_sync_failed', [
+            Log::warning('legacy_portal_onu.customer_sync_failed', [
                 'customer_id' => $this->customerId,
                 'message' => $e->getMessage(),
             ]);

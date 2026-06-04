@@ -52,9 +52,36 @@
         window.setTimeout(init, 0);
     });
 
+    function syncSidebarBodyClassFromStore() {
+        if (!window.Alpine || !window.Alpine.store('sidebar')) {
+            return;
+        }
+
+        const open = window.Alpine.store('sidebar').isOpen;
+        const desktop = window.matchMedia('(min-width: 1024px)').matches;
+        document.body.classList.toggle('isp-admin-sidebar-open', !desktop && open);
+    }
+
+    function watchSidebarStore() {
+        if (!window.Alpine || !window.Alpine.store('sidebar') || window.__ispMobileDockSidebarWatch) {
+            return;
+        }
+
+        window.__ispMobileDockSidebarWatch = true;
+        window.Alpine.effect(() => {
+            syncSidebarBodyClassFromStore();
+        });
+    }
+
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', init, { once: true });
+        document.addEventListener('DOMContentLoaded', function () {
+            init();
+            watchSidebarStore();
+        }, { once: true });
     } else {
         init();
+        watchSidebarStore();
     }
+
+    document.addEventListener('alpine:init', watchSidebarStore);
 })();

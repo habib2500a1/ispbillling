@@ -6,12 +6,14 @@ use App\Filament\Forms\SubscriberFormSchema;
 use App\Filament\Resources\CustomerResource;
 use App\Filament\Resources\CustomerResource\Pages\Concerns\ActivatesSubscriberLine;
 use App\Filament\Resources\CustomerResource\Pages\Concerns\HasMobileSubscriberFormLayout;
+use App\Services\Network\FiberPlantMapService;
 use App\Support\OpticalCustomerSync;
 use Filament\Forms\Form;
 use App\Services\Optical\CustomerOnuAutoProvisionService;
 use App\Services\Billing\CustomerActivationBillingService;
 use App\Services\Subscribers\CustomerLineActivationService;
 use App\Support\BillingDefaults;
+use App\Models\CustomerContact;
 use App\Support\CustomerStatus;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Arr;
@@ -53,7 +55,7 @@ class CreateCustomer extends CreateRecord
         $data['status'] = $data['status'] ?? CustomerStatus::ACTIVE;
         $data['billing_mode'] = $data['billing_mode'] ?? 'prepaid';
         $data['billing_day'] = max(1, min(28, (int) ($data['billing_day'] ?? BillingDefaults::billingDay())));
-        $data['grace_period_days'] = $data['grace_period_days'] ?? 10;
+        $data['grace_period_days'] = $data['grace_period_days'] ?? BillingDefaults::defaultGracePeriodDays();
         $expireDay = (int) (Arr::get($this->form->getState(), 'expire_day') ?? BillingDefaults::defaultExpireDay());
         $data['service_expires_at'] = BillingDefaults::dateFromExpireDay($expireDay);
         $data['account_balance'] = $data['account_balance'] ?? 0;
@@ -85,6 +87,23 @@ class CreateCustomer extends CreateRecord
 
     protected function afterCreate(): void
     {
+        $alternate = trim((string) Arr::get($this->form->getState(), 'alternate_phone', ''));
+        if ($alternate !== '') {
+            $this->record->contacts()->firstOrCreate(
+                ['phone' => CustomerContact::normalizePhone($alternate)],
+                ['label' => 'alternate', 'is_primary' => false, 'is_whatsapp' => false],
+            );
+        }
+
+        $mapNode = app(FiberPlantMapService::class)->syncCustomerNodeFromGps($this->record->fresh());
+        if ($mapNode !== null) {
+            Notification::make()
+                ->title('Added to fiber map')
+                ->body($mapNode->name.' · pin at '.number_format((float) $mapNode->latitude, 5).', '.number_format((float) $mapNode->longitude, 5))
+                ->success()
+                ->send();
+        }
+
         if (config('billing.bill_on_customer_create', true)) {
             $cycle = (string) (Arr::get($this->form->getState(), 'first_bill_cycle')
                 ?? CustomerActivationBillingService::defaultFirstBillCycle((string) $this->record->billing_mode));

@@ -5,6 +5,8 @@ namespace App\Services\Subscribers;
 use App\Models\Customer;
 use App\Support\CustomerNetworkSync;
 use App\Support\CustomerStatus;
+use Carbon\Carbon;
+use Carbon\CarbonInterface;
 
 final class CustomerServiceRenewalService
 {
@@ -37,6 +39,36 @@ final class CustomerServiceRenewalService
             'expires_at' => (string) $fresh?->service_expires_at?->toDateString(),
             'days' => $days,
         ];
+    }
+
+    /**
+     * Extend service until a chosen calendar date (inclusive).
+     *
+     * @return array{expires_at: string, days: int}
+     */
+    public function extendUntil(Customer $customer, CarbonInterface $until, bool $syncNetwork = true): array
+    {
+        $until = Carbon::parse($until)->startOfDay();
+        $base = $customer->service_expires_at && $customer->service_expires_at->isFuture()
+            ? $customer->service_expires_at->copy()->startOfDay()
+            : now()->startOfDay();
+
+        if ($until->lte($base)) {
+            throw new \InvalidArgumentException('New validity must be after today or the current expiry date.');
+        }
+
+        $days = (int) $base->diffInDays($until);
+
+        return $this->extendDays($customer, max(1, $days), $syncNetwork);
+    }
+
+    public static function suggestedValidUntil(Customer $customer): Carbon
+    {
+        $base = $customer->service_expires_at && $customer->service_expires_at->isFuture()
+            ? $customer->service_expires_at->copy()->startOfDay()
+            : now()->startOfDay();
+
+        return $base->copy()->addDays(5);
     }
 
     /**

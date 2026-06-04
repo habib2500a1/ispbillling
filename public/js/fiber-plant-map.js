@@ -125,6 +125,12 @@
         if (node.splitter_direction) {
             html += ` · ${escapeHtml(node.splitter_direction)}`;
         }
+        if (node.phone) {
+            html += `<br>📞 ${escapeHtml(node.phone)}`;
+        }
+        if (node.customer_code) {
+            html += `<br>ID: ${escapeHtml(node.customer_code)}`;
+        }
         if (node.address) {
             html += `<br>${escapeHtml(node.address)}`;
         }

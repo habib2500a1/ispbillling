@@ -2653,6 +2653,206 @@ html.portal-dark .portal-chart-shell {
     margin-top: 1rem;
 }
 
+/* Pro live usage graph (portal) */
+.portal-live-graph {
+    margin-top: 1rem;
+    border-radius: 1rem;
+    overflow: hidden;
+    border: 1px solid var(--portal-border, #e2e8f0);
+    background: var(--portal-surface, #fff);
+    box-shadow: 0 8px 28px rgb(15 23 42 / 0.07);
+}
+
+.portal-live-graph__head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem 1rem;
+    padding: 0.85rem 1rem;
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+    color: #f8fafc;
+}
+
+.portal-live-graph__title-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.portal-live-graph__icon {
+    font-size: 1.1rem;
+}
+
+.portal-live-graph__title {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+}
+
+.portal-live-graph__badge {
+    display: inline-flex;
+    padding: 0.15rem 0.45rem;
+    border-radius: 999px;
+    font-size: 0.62rem;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+}
+
+.portal-live-graph__badge.is-live {
+    background: rgb(34 197 94 / 0.22);
+    color: #86efac;
+    animation: portal-live-pulse 2s ease infinite;
+}
+
+.portal-live-graph__badge.is-off {
+    background: rgb(148 163 184 / 0.2);
+    color: #cbd5e1;
+}
+
+@keyframes portal-live-pulse {
+    0%,
+    100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.65;
+    }
+}
+
+.portal-live-graph__pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.portal-live-graph__pill {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0.2rem;
+    padding: 0.35rem 0.65rem;
+    border-radius: 999px;
+    font-weight: 700;
+    font-size: 0.8rem;
+    font-variant-numeric: tabular-nums;
+}
+
+.portal-live-graph__pill--down {
+    background: rgb(37 99 235 / 0.2);
+    color: #93c5fd;
+    box-shadow: inset 0 0 0 1px rgb(59 130 246 / 0.45);
+}
+
+.portal-live-graph__pill--up {
+    background: rgb(220 38 38 / 0.2);
+    color: #fca5a5;
+    box-shadow: inset 0 0 0 1px rgb(248 113 113 / 0.45);
+}
+
+.portal-live-graph__pill-value {
+    font-size: 0.95rem;
+}
+
+.portal-live-graph__canvas-wrap {
+    position: relative;
+    width: 100%;
+    height: min(48vw, 260px);
+    min-height: 200px;
+    padding: 0.5rem 0.35rem 0;
+}
+
+.portal-live-graph__canvas-wrap canvas {
+    display: block;
+    width: 100% !important;
+    height: 100% !important;
+}
+
+.portal-live-graph__stats {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    border-top: 1px solid var(--portal-border, #e2e8f0);
+    background: rgb(248 250 252);
+}
+
+.portal-live-graph__stat {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.2rem;
+    padding: 0.65rem 0.35rem;
+    text-align: center;
+    border-right: 1px solid var(--portal-border, #e2e8f0);
+}
+
+.portal-live-graph__stat:last-child {
+    border-right: none;
+}
+
+.portal-live-graph__stat-label {
+    font-size: 0.62rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--portal-muted, #64748b);
+}
+
+.portal-live-graph__stat-value {
+    font-size: 0.78rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+}
+
+.portal-live-graph__stat-value--down {
+    color: #2563eb;
+}
+
+.portal-live-graph__stat-value--up {
+    color: #dc2626;
+}
+
+.portal-live-graph__stat-value--today {
+    color: #059669;
+}
+
+.portal-live-graph__stat-value--mono {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 0.72rem;
+}
+
+@media (max-width: 640px) {
+    .portal-live-graph__stats {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .portal-live-graph__stat {
+        border-bottom: 1px solid var(--portal-border, #e2e8f0);
+    }
+
+    .portal-live-graph__stat:nth-child(2n) {
+        border-right: none;
+    }
+
+    .portal-live-graph__stat:nth-last-child(1) {
+        grid-column: 1 / -1;
+        border-bottom: none;
+    }
+}
+
+html.portal-dark .portal-live-graph {
+    border-color: rgb(51 65 85);
+    background: rgb(15 23 42);
+}
+
+html.portal-dark .portal-live-graph__stats {
+    background: rgb(30 41 59 / 0.6);
+    border-top-color: rgb(51 65 85);
+}
+
+html.portal-dark .portal-live-graph__stat {
+    border-color: rgb(51 65 85);
+}
+
 .portal-section-head--compact {
     margin-bottom: 0.5rem;
 }

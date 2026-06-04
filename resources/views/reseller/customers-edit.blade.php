@@ -16,12 +16,17 @@
                 <div><label class="block text-xs font-bold uppercase rsl-text-muted">Name</label><input name="name" value="{{ old('name', $customer->name) }}" required class="rsl-input mt-1"></div>
                 <div><label class="block text-xs font-bold uppercase rsl-text-muted">Phone</label><input name="phone" value="{{ old('phone', $customer->phone) }}" required class="rsl-input mt-1"></div>
                 <div><label class="block text-xs font-bold uppercase rsl-text-muted">Email</label><input name="email" type="email" value="{{ old('email', $customer->email) }}" class="rsl-input mt-1"></div>
+                <div>
+                    <label class="block text-xs font-bold uppercase rsl-text-muted">Telegram chat ID</label>
+                    <input name="telegram_chat_id" value="{{ old('telegram_chat_id', $customer->telegram_chat_id) }}" class="rsl-input mt-1 font-mono" placeholder="e.g. 123456789" pattern="-?[0-9]+">
+                    <p class="mt-1 text-xs rsl-text-muted">Optional — bill reminders via Telegram (platform bot must be configured).</p>
+                </div>
                 <div><label class="block text-xs font-bold uppercase rsl-text-muted">Address</label><input name="address" value="{{ old('address', $customer->address) }}" class="rsl-input mt-1"></div>
                 <div>
                     <label class="block text-xs font-bold uppercase rsl-text-muted">Package</label>
                     <select name="package_id" class="rsl-input mt-1">
                         @foreach ($options['packages'] as $pkg)
-                            <option value="{{ $pkg['id'] }}" @selected(old('package_id', $customer->package_id) == $pkg['id'])>{{ $pkg['name'] }} — {{ number_format($pkg['selling_price'], 0) }} BDT</option>
+                            <option value="{{ $pkg['id'] }}" @selected(old('package_id', $customer->package_id) == $pkg['id'])>{{ $pkg['name'] }} — {{ number_format($pkg['customer_price'] ?? $pkg['price_monthly'], 0) }} BDT</option>
                         @endforeach
                     </select>
                 </div>
@@ -33,6 +38,14 @@
                         @endforeach
                     </select>
                 </div>
+                <div>
+                    <label class="block text-xs font-bold uppercase rsl-text-muted">Grace period (days)</label>
+                    <input type="number" name="grace_period_days" min="0" max="90" value="{{ old('grace_period_days', $customer->grace_period_days) }}" class="rsl-input mt-1">
+                </div>
+                <label class="flex items-center gap-2 text-sm">
+                    <input type="checkbox" name="allow_active_when_due" value="1" class="rounded border-slate-300" @checked(old('allow_active_when_due', data_get($customer->meta, 'allow_active_when_due')))>
+                    Keep online when bill is due
+                </label>
                 @if ($options['areas']->isNotEmpty())
                     <div class="grid gap-4 sm:grid-cols-2">
                         <div>
@@ -57,12 +70,18 @@
                 @endif
                 <div>
                     <label class="block text-xs font-bold uppercase rsl-text-muted">Status</label>
-                    <select name="status" class="rsl-input mt-1">
+                    <select name="status" id="customer-status" class="rsl-input mt-1">
                         @foreach ($options['status_options'] as $val => $label)
                             <option value="{{ $val }}" @selected(old('status', $customer->status) === $val)>{{ $label }}</option>
                         @endforeach
                     </select>
                 </div>
+                @if ($customer->status !== 'active' && $portal->canPortal(\App\Support\ResellerPortalPermission::INVOICE_GENERATE))
+                    <label class="flex items-center gap-2 text-sm" id="generate-bill-on-activate-wrap">
+                        <input type="checkbox" name="generate_bill_on_activate" value="1" class="rounded border-slate-300" @checked(old('generate_bill_on_activate', true))>
+                        Active করলে এই মাসের বিল তৈরি করুন (330 HQ + retail bill)
+                    </label>
+                @endif
             </section>
 
             <section class="grid gap-4 border-t border-slate-200 pt-6">
@@ -78,4 +97,18 @@
             <button type="submit" class="rsl-btn">Save changes</button>
         </form>
     </div>
+    @if ($customer->status !== 'active')
+        <script>
+            (function () {
+                const status = document.getElementById('customer-status');
+                const wrap = document.getElementById('generate-bill-on-activate-wrap');
+                if (!status || !wrap) return;
+                const sync = () => {
+                    wrap.style.display = status.value === 'active' ? '' : 'none';
+                };
+                status.addEventListener('change', sync);
+                sync();
+            })();
+        </script>
+    @endif
 @endsection

@@ -76,6 +76,9 @@ Route::middleware('throttle:webhooks')->group(function (): void {
         ->name('api.webhooks.whatsapp.verify');
     Route::post('/webhooks/whatsapp', [WhatsAppWebhookController::class, 'handle'])
         ->name('api.webhooks.whatsapp');
+
+    Route::post('/webhooks/call-center', [\App\Http\Controllers\Api\CallCenterWebhookController::class, '__invoke'])
+        ->name('api.webhooks.call-center');
 });
 
 Route::prefix('v1')->group(function (): void {
@@ -232,6 +235,8 @@ Route::prefix('v1')->group(function (): void {
             ->middleware('reseller.api.permission:'.ResellerPortalPermission::PAYMENT_COLLECT);
         Route::post('/customers/{customer}/invoice', [\App\Http\Controllers\Api\V1\Reseller\ResellerApiInvoiceController::class, 'generate'])
             ->whereNumber('customer')
+            ->middleware('reseller.api.permission:'.ResellerPortalPermission::INVOICE_GENERATE);
+        Route::post('/invoices/generate-all', [\App\Http\Controllers\Api\V1\Reseller\ResellerApiInvoiceController::class, 'bulkGenerate'])
             ->middleware('reseller.api.permission:'.ResellerPortalPermission::INVOICE_GENERATE);
 
         Route::get('/payments/{payment}/receipt', [\App\Http\Controllers\Api\V1\Reseller\ResellerApiPaymentController::class, 'receipt'])

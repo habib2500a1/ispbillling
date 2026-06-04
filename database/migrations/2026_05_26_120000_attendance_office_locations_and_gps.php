@@ -24,36 +24,42 @@ return new class extends Migration
             $table->index(['tenant_id', 'is_active']);
         });
 
-        Schema::table('attendance_records', function (Blueprint $table): void {
-            $table->foreignId('attendance_office_location_id')
-                ->nullable()
-                ->after('employee_id')
-                ->constrained('attendance_office_locations')
-                ->nullOnDelete();
-            $table->decimal('latitude', 10, 7)->nullable()->after('check_out');
-            $table->decimal('longitude', 10, 7)->nullable()->after('latitude');
-            $table->unsignedSmallInteger('accuracy_meters')->nullable()->after('longitude');
-            $table->unsignedInteger('distance_meters')->nullable()->after('accuracy_meters');
-            $table->string('client_ip', 45)->nullable()->after('distance_meters');
-            $table->boolean('location_verified')->default(false)->after('client_ip');
-            $table->boolean('geofence_override')->default(false)->after('location_verified');
-        });
+        if (Schema::hasTable('attendance_records')) {
+            Schema::table('attendance_records', function (Blueprint $table): void {
+                if (! Schema::hasColumn('attendance_records', 'attendance_office_location_id')) {
+                    $table->foreignId('attendance_office_location_id')
+                        ->nullable()
+                        ->after('employee_id')
+                        ->constrained('attendance_office_locations')
+                        ->nullOnDelete();
+                }
+                if (! Schema::hasColumn('attendance_records', 'latitude')) {
+                    $table->decimal('latitude', 10, 7)->nullable()->after('check_out');
+                    $table->decimal('longitude', 10, 7)->nullable()->after('latitude');
+                    $table->unsignedSmallInteger('accuracy_meters')->nullable()->after('longitude');
+                    $table->unsignedInteger('distance_meters')->nullable()->after('accuracy_meters');
+                    $table->string('client_ip', 45)->nullable()->after('distance_meters');
+                    $table->boolean('location_verified')->default(false)->after('client_ip');
+                    $table->boolean('geofence_override')->default(false)->after('location_verified');
+                }
+            });
+        }
     }
 
     public function down(): void
     {
-        Schema::table('attendance_records', function (Blueprint $table): void {
-            $table->dropConstrainedForeignId('attendance_office_location_id');
-            $table->dropColumn([
-                'latitude',
-                'longitude',
-                'accuracy_meters',
-                'distance_meters',
-                'client_ip',
-                'location_verified',
-                'geofence_override',
-            ]);
-        });
+        if (Schema::hasTable('attendance_records')) {
+            Schema::table('attendance_records', function (Blueprint $table): void {
+                if (Schema::hasColumn('attendance_records', 'attendance_office_location_id')) {
+                    $table->dropConstrainedForeignId('attendance_office_location_id');
+                }
+                $cols = ['latitude', 'longitude', 'accuracy_meters', 'distance_meters', 'client_ip', 'location_verified', 'geofence_override'];
+                $existing = array_filter($cols, fn (string $c): bool => Schema::hasColumn('attendance_records', $c));
+                if ($existing !== []) {
+                    $table->dropColumn($existing);
+                }
+            });
+        }
 
         Schema::dropIfExists('attendance_office_locations');
     }

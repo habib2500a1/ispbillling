@@ -68,6 +68,9 @@ class BillCollectionDesk extends Page
 
     public string $activeTab = 'collect';
 
+    /** all | legacy_portal — match pay.anetbd.com history for imported subscribers */
+    public string $collectionHistoryFilter = 'legacy_portal';
+
     public ?int $editingPaymentId = null;
 
     public string $editPaymentAmount = '';
@@ -93,7 +96,7 @@ class BillCollectionDesk extends Page
 
         $customerId = request()->integer('customer');
         if ($customerId > 0) {
-            $customer = \App\Models\Customer::query()->find($customerId);
+            $customer = \App\Models\Customer::withoutGlobalScopes()->find($customerId);
             if ($customer !== null) {
                 $this->search = $customer->customer_code ?: (string) $customer->id;
                 $this->runSearch();
@@ -112,10 +115,13 @@ class BillCollectionDesk extends Page
      */
     public static function getUrl(array $parameters = [], bool $isAbsolute = true, ?string $panel = null, ?\Illuminate\Database\Eloquent\Model $tenant = null): string
     {
+        $customerId = isset($parameters['customer']) ? (int) $parameters['customer'] : null;
+        unset($parameters['customer']);
+
         $url = parent::getUrl($parameters, $isAbsolute, $panel, $tenant);
 
-        if (isset($parameters['customer'])) {
-            $url .= (str_contains($url, '?') ? '&' : '?').'customer='.(int) $parameters['customer'];
+        if ($customerId !== null && $customerId > 0) {
+            $url .= (str_contains($url, '?') ? '&' : '?').'customer='.$customerId;
         }
 
         return $url;
@@ -322,6 +328,43 @@ class BillCollectionDesk extends Page
         // Reset so Livewire re-renders due amount/colour immediately after payment.
         $this->selectedCustomer = null;
         $this->selectedCustomer = app(BillCollectionSearchService::class)->find($this->selectedCustomerId);
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    public function filteredCollectionHistory(): array
+    {
+        if ($this->selectedCustomer === null) {
+            return [];
+        }
+
+        if ($this->collectionHistoryFilter === 'legacy_portal') {
+            return $this->selectedCustomer['collection_history_legacy_portal']
+                ?? array_values(array_filter(
+                    $this->selectedCustomer['collection_history'] ?? [],
+                    fn (array $row): bool => (bool) ($row['is_legacy_portal_import'] ?? false),
+                ));
+        }
+
+        return $this->selectedCustomer['collection_history'] ?? [];
+    }
+
+    public function collectionHistoryTabLabel(): string
+    {
+        if ($this->selectedCustomer === null) {
+            return 'Collection history';
+        }
+
+        $sync = $this->selectedCustomer['collection_sync'] ?? null;
+        $all = count($this->selectedCustomer['collection_history'] ?? []);
+        $isd = is_array($sync) ? (int) ($sync['legacy_portal_count'] ?? 0) : $all;
+
+        if ($this->collectionHistoryFilter === 'legacy_portal' && is_array($sync) && ($sync['show_legacy_portal_hint'] ?? false)) {
+            return \App\Support\BillingPortalLabel::collectionFilter()." ({$isd})";
+        }
+
+        return "Collection history ({$all})";
     }
 
     private function refreshDueAfterPayment(\App\Models\Customer $customer): void

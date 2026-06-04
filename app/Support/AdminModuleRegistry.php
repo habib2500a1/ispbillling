@@ -45,6 +45,7 @@ use App\Filament\Resources\AreaResource;
 use App\Filament\Resources\AutomaticProcessResource;
 use App\Filament\Resources\BranchResource;
 use App\Filament\Resources\CouponResource;
+use App\Filament\Resources\PromotionalOfferResource;
 use App\Filament\Resources\CustomerResource;
 use App\Filament\Resources\DeviceResource;
 use App\Filament\Resources\EmployeeResource;
@@ -82,10 +83,14 @@ class AdminModuleRegistry
             // ── Billing ──
             ['group' => 'Billing', 'section' => 'Hub', 'label' => 'Billing center', 'description' => 'Open bills · overdue · collections', 'url' => BillingOverview::getUrl(), 'accent' => 'text-violet-600', 'icon' => 'heroicon-o-banknotes'],
             ['group' => 'Billing', 'section' => 'Collections', 'label' => 'Bill collection desk', 'description' => 'Search subscriber · collect payment', 'url' => BillCollectionDesk::getUrl(), 'accent' => 'text-emerald-600', 'icon' => 'heroicon-o-currency-bangladeshi'],
+            ['group' => 'Billing', 'section' => 'Collections', 'label' => 'Payment & bKash report', 'description' => 'Collection statement · method filters · CSV', 'url' => \App\Filament\Pages\PaymentsReport::getUrl(), 'accent' => 'text-emerald-600', 'icon' => 'heroicon-o-document-chart-bar'],
+            ['group' => 'Billing', 'section' => 'Collections', 'label' => 'bKash collections', 'description' => 'All bKash payments in date range', 'url' => \App\Filament\Pages\PaymentsReport::getUrl().'?gateway=bkash', 'accent' => 'text-pink-600', 'icon' => 'heroicon-o-device-phone-mobile'],
+            ['group' => 'Billing', 'section' => 'Collections', 'label' => 'Wallets', 'description' => 'Cashbook · bank · collector cash', 'url' => \App\Filament\Pages\AccountsWalletHubPage::getUrl(), 'accent' => 'text-indigo-600', 'icon' => 'heroicon-o-wallet'],
             ['group' => 'Billing', 'section' => 'Collections', 'label' => 'Bill money trail', 'description' => 'Where collections went · invoice · wallet · expenses', 'url' => BillingFundFlowReport::getUrl(), 'accent' => 'text-violet-600', 'icon' => 'heroicon-o-arrows-right-left'],
             ['group' => 'Billing', 'section' => 'Collections', 'label' => 'Staff expenses', 'description' => 'Submit · approve vendor / office / other costs', 'url' => StaffExpenseResource::getUrl(), 'accent' => 'text-rose-600', 'icon' => 'heroicon-o-receipt-refund'],
             ['group' => 'Billing', 'section' => 'Documents', 'label' => 'Invoices', 'description' => 'Generate, print, due dates', 'url' => InvoiceResource::getUrl('index'), 'accent' => 'text-violet-600', 'icon' => 'heroicon-o-document-text'],
             ['group' => 'Billing', 'section' => 'Promotions', 'label' => 'Coupons', 'description' => 'Discount codes', 'url' => CouponResource::getUrl('index'), 'accent' => 'text-violet-600', 'icon' => 'heroicon-o-ticket'],
+            ['group' => 'Billing', 'section' => 'Promotions', 'label' => 'Offers & promotions', 'description' => 'Package promos & date ranges', 'url' => PromotionalOfferResource::getUrl('index'), 'accent' => 'text-violet-600', 'icon' => 'heroicon-o-gift'],
 
             // ── Payments ──
             ['group' => 'Payments', 'section' => 'Hub', 'label' => 'Payment center', 'description' => 'bKash · Nagad · SSLCommerz', 'url' => PaymentsOverview::getUrl(), 'accent' => 'text-emerald-600', 'icon' => 'heroicon-o-credit-card'],
@@ -115,6 +120,8 @@ class AdminModuleRegistry
 
             // ── Support ──
             ['group' => 'Support', 'section' => 'Hub', 'label' => 'Support center', 'description' => 'Tickets · SLA · chat', 'url' => SupportHub::getUrl(), 'accent' => 'text-amber-600', 'icon' => 'heroicon-o-lifebuoy'],
+            ['group' => 'Support', 'section' => 'Call center', 'label' => 'Call center', 'description' => 'Logs · follow-ups · SIP · reports', 'url' => \App\Filament\Pages\CallCenterHub::getUrl(), 'accent' => 'text-amber-600', 'icon' => 'heroicon-o-phone'],
+            ['group' => 'Support', 'section' => 'Call center', 'label' => 'Call reports', 'description' => 'Staff call performance', 'url' => \App\Filament\Pages\CallCenterReports::getUrl(), 'accent' => 'text-amber-600', 'icon' => 'heroicon-o-chart-bar-square'],
             ['group' => 'Support', 'section' => 'CRM', 'label' => 'New connections', 'description' => 'Website signup requests · convert to subscriber', 'url' => SalesLeadResource::getUrl('index'), 'accent' => 'text-amber-600', 'icon' => 'heroicon-o-user-plus'],
             ['group' => 'Support', 'section' => 'CRM', 'label' => 'Connection pipeline', 'description' => 'Kanban by stage', 'url' => SalesLeadPipeline::getUrl(), 'accent' => 'text-amber-600', 'icon' => 'heroicon-o-view-columns'],
             ['group' => 'Support', 'section' => 'Tickets', 'label' => 'All tickets', 'description' => 'Complaints queue', 'url' => SupportTicketResource::getUrl('index'), 'accent' => 'text-amber-600', 'icon' => 'heroicon-o-chat-bubble-left-right'],
@@ -155,6 +162,8 @@ class AdminModuleRegistry
             // ── System ──
             ['group' => 'System', 'section' => 'Admin', 'label' => 'Staff & security', 'description' => 'Users · roles · 2FA', 'url' => StaffControlHub::getUrl(), 'accent' => 'text-slate-600', 'icon' => 'heroicon-o-shield-check'],
             ['group' => 'System', 'section' => 'Safety', 'label' => 'Backup & restore', 'description' => 'Download ZIP · upload restore', 'url' => ManagePlatformBackups::getUrl(), 'accent' => 'text-emerald-600', 'icon' => 'heroicon-o-archive-box-arrow-down'],
+            ['group' => 'System', 'section' => 'Integrations', 'label' => 'API configuration', 'description' => 'Tenant host · HMAC · REST tokens', 'url' => \App\Filament\Pages\ManageApiConfiguration::getUrl(), 'accent' => 'text-violet-600', 'icon' => 'heroicon-o-key'],
+            ['group' => 'System', 'section' => 'Integrations', 'label' => 'Deployment & license', 'description' => 'Rent SaaS vs sell on-premise', 'url' => \App\Filament\Pages\ManagePlatformDeployment::getUrl(), 'accent' => 'text-violet-600', 'icon' => 'heroicon-o-shield-check'],
             ['group' => 'System', 'section' => 'Integrations', 'label' => 'Integrations', 'description' => 'Gateways & API keys', 'url' => ManageAppSettings::getUrl(), 'accent' => 'text-slate-600', 'icon' => 'heroicon-o-puzzle-piece'],
             ['group' => 'System', 'section' => 'Automation', 'label' => 'Automatic process', 'description' => 'Scheduled billing · sync · suspend', 'url' => AutomaticProcessResource::getUrl('index'), 'accent' => 'text-amber-600', 'icon' => 'heroicon-o-clock'],
             ['group' => 'System', 'section' => 'Comms', 'label' => 'Notifications', 'description' => 'SMS · email · WhatsApp', 'url' => NotificationsHub::getUrl(), 'accent' => 'text-slate-600', 'icon' => 'heroicon-o-bell-alert'],

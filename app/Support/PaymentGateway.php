@@ -37,6 +37,8 @@ final class PaymentGateway
             self::CASH => 'Cash',
             self::BANK => 'Bank transfer',
             self::BKASH => 'bKash',
+            self::BKASH_PERSONAL => 'bKash (personal)',
+            self::BKASH_MERCHANT => 'bKash (merchant)',
             self::NAGAD => 'Nagad',
             self::ROCKET => 'Rocket',
             self::SSLCOMMERZ => 'SSLCommerz',

@@ -37,19 +37,29 @@ class PaymentsReport extends Page implements HasTable
 
     public string $walletFilter = PaymentsReportService::WALLET_ALL;
 
+    public string $gatewayFilter = PaymentsReportService::GATEWAY_ALL;
+
     public function mount(): void
     {
         $this->dateFrom = now()->startOfMonth()->toDateString();
         $this->dateTo = now()->toDateString();
+        $gateway = request()->string('gateway')->toString();
+        if ($gateway !== '') {
+            $this->gatewayFilter = $gateway;
+        }
         $this->mountInteractsWithTable();
     }
 
     public static function canAccess(): bool
     {
         $user = auth()->user();
+        if ($user === null) {
+            return false;
+        }
 
-        return $user !== null
-            && \App\Support\Rbac\StaffCapability::for($user)->canReports();
+        $cap = \App\Support\Rbac\StaffCapability::for($user);
+
+        return $cap->canReports() || $cap->canPayments() || $cap->canBilling();
     }
 
     /**
@@ -61,12 +71,18 @@ class PaymentsReport extends Page implements HasTable
             $this->periodFrom(),
             $this->periodTo(),
             $this->walletFilter,
+            $this->gatewayFilter,
         );
     }
 
     public function getWalletFilterLabelProperty(): string
     {
         return PaymentsReportService::walletFilterLabel($this->walletFilter);
+    }
+
+    public function getGatewayFilterLabelProperty(): string
+    {
+        return PaymentsReportService::gatewayFilterLabel($this->gatewayFilter);
     }
 
     public function getPeriodLabelProperty(): string
@@ -149,6 +165,7 @@ class PaymentsReport extends Page implements HasTable
             $this->periodFrom(),
             $this->periodTo(),
             $this->walletFilter,
+            $this->gatewayFilter,
         );
     }
 
@@ -158,6 +175,7 @@ class PaymentsReport extends Page implements HasTable
             $this->periodFrom(),
             $this->periodTo(),
             $this->walletFilter,
+            $this->gatewayFilter,
         );
 
         $filename = 'payments-report-'.now()->format('Y-m-d-His').'.csv';

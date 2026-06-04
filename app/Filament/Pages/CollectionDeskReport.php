@@ -38,6 +38,12 @@ class CollectionDeskReport extends Page
 
     public ?int $customerId = null;
 
+    /** all | desk | legacy_portal */
+    public string $sourceFilter = '';
+
+    /** all | cash | bkash | bank | … */
+    public string $methodFilter = 'all';
+
     public function mount(): void
     {
         $preset = request()->string('preset')->toString();
@@ -52,6 +58,10 @@ class CollectionDeskReport extends Page
         $filterCustomer = request()->integer('customer');
         if ($filterCustomer > 0) {
             $this->customerId = $filterCustomer;
+        }
+
+        if ($this->sourceFilter === '') {
+            $this->sourceFilter = 'all';
         }
     }
 
@@ -122,6 +132,8 @@ class CollectionDeskReport extends Page
             $this->search ?: null,
             null,
             $this->customerId ?: null,
+            $this->sourceFilter ?: null,
+            $this->methodFilter !== 'all' ? $this->methodFilter : null,
         );
     }
 
@@ -145,6 +157,8 @@ class CollectionDeskReport extends Page
             $this->collectorId ?: null,
             $this->search ?: null,
             $this->customerId ?: null,
+            $this->sourceFilter ?: null,
+            $this->methodFilter !== 'all' ? $this->methodFilter : null,
         );
     }
 }

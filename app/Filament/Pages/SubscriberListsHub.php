@@ -54,6 +54,13 @@ class SubscriberListsHub extends Page
                 'icon' => 'heroicon-o-star',
             ],
             [
+                'label' => 'Due clients',
+                'description' => 'Open invoice balance',
+                'url' => CustomerResource::getUrl('due'),
+                'color' => 'rose',
+                'icon' => 'heroicon-o-banknotes',
+            ],
+            [
                 'label' => 'Expired',
                 'description' => 'Service period ended',
                 'url' => CustomerResource::getUrl('expired'),

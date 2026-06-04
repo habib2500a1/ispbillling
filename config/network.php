@@ -17,7 +17,7 @@ return [
 
     'radius_push_enabled' => (bool) env('NETWORK_RADIUS_PUSH_ENABLED', true),
 
-    'auto_suspend_enabled' => (bool) env('NETWORK_AUTO_SUSPEND_ENABLED', false),
+    'auto_suspend_enabled' => (bool) env('NETWORK_AUTO_SUSPEND_ENABLED', true),
 
     'auto_suspend_grace_days' => (int) env('NETWORK_AUTO_SUSPEND_GRACE_DAYS', 0),
 
@@ -61,7 +61,7 @@ return [
         'provisioner_driver' => env('NETWORK_PROVISIONER_DRIVER', 'null'),
         'mikrotik_push_enabled' => (bool) env('NETWORK_MIKROTIK_PUSH_ENABLED', true),
         'radius_push_enabled' => (bool) env('NETWORK_RADIUS_PUSH_ENABLED', true),
-        'auto_suspend_enabled' => (bool) env('NETWORK_AUTO_SUSPEND_ENABLED', false),
+        'auto_suspend_enabled' => (bool) env('NETWORK_AUTO_SUSPEND_ENABLED', true),
         'auto_suspend_grace_days' => (int) env('NETWORK_AUTO_SUSPEND_GRACE_DAYS', 0),
         'auto_suspend_min_balance' => (float) env('NETWORK_AUTO_SUSPEND_MIN_BALANCE', 1),
         'session_integrity_enabled' => (bool) env('NETWORK_SESSION_INTEGRITY_ENABLED', true),

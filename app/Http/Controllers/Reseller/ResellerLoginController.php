@@ -9,6 +9,7 @@ use App\Models\ResellerStaff;
 use App\Services\Resellers\ResellerPortalAccessService;
 use App\Services\Resellers\ResellerPortalActivityLogger;
 use App\Services\Resellers\ResellerPortalDeviceTracker;
+use App\Services\Resellers\ResellerPortalLoginLogger;
 use App\Services\Resellers\ResellerTwoFactorService;
 use App\Support\ResellerPortalSession;
 use Illuminate\Http\RedirectResponse;
@@ -32,8 +33,12 @@ class ResellerLoginController extends Controller
         return view('reseller.login');
     }
 
-    public function store(ResellerLoginRequest $request, ResellerTwoFactorService $twoFactor, ResellerPortalDeviceTracker $devices): RedirectResponse
-    {
+    public function store(
+        ResellerLoginRequest $request,
+        ResellerTwoFactorService $twoFactor,
+        ResellerPortalDeviceTracker $devices,
+        ResellerPortalLoginLogger $loginLogger,
+    ): RedirectResponse {
         if (! config('reseller_portal.enabled', true)) {
             abort(404);
         }
@@ -47,8 +52,18 @@ class ResellerLoginController extends Controller
         if ($staff !== null && Hash::check($password, (string) $staff->password)) {
             $reseller = $staff->reseller;
             if ($reseller === null || ! $reseller->is_active || ! $reseller->hasPortalAccess()) {
+                $loginLogger->logAttempt($reseller, $request, false, $login, $staff, 'inactive_or_no_access');
+
                 return back()->withErrors([
                     'login' => __('These credentials do not match our records.'),
+                ])->onlyInput('login');
+            }
+
+            if (! $loginLogger->isIpAllowed($reseller, $request->ip())) {
+                $loginLogger->logAttempt($reseller, $request, false, $login, $staff, 'ip_not_allowed');
+
+                return back()->withErrors([
+                    'login' => __('Access denied from this IP address.'),
                 ])->onlyInput('login');
             }
 
@@ -58,6 +73,7 @@ class ResellerLoginController extends Controller
             $staff->recordLogin();
             app(ResellerPortalAccessService::class)->bypassTwoFactorForSession($request);
             $devices->recordLogin($reseller, $request);
+            $loginLogger->logAttempt($reseller, $request, true, $login, $staff);
             app(ResellerPortalActivityLogger::class)->log($reseller, 'portal.login.staff', $staff, ['login' => $staff->login], $request);
 
             return redirect()->intended(route('reseller.dashboard'));
@@ -66,8 +82,18 @@ class ResellerLoginController extends Controller
         $reseller = Reseller::findForPortalLogin($login);
 
         if (! $reseller || ! Hash::check($password, (string) $reseller->portal_password)) {
+            $loginLogger->logAttempt($reseller, $request, false, $login, failureReason: 'invalid_credentials');
+
             return back()->withErrors([
                 'login' => __('These credentials do not match our records.'),
+            ])->onlyInput('login');
+        }
+
+        if (! $loginLogger->isIpAllowed($reseller, $request->ip())) {
+            $loginLogger->logAttempt($reseller, $request, false, $login, failureReason: 'ip_not_allowed');
+
+            return back()->withErrors([
+                'login' => __('Access denied from this IP address.'),
             ])->onlyInput('login');
         }
 
@@ -82,6 +108,7 @@ class ResellerLoginController extends Controller
             return redirect()->route('reseller.two-factor.challenge');
         }
 
+        $loginLogger->logAttempt($reseller, $request, true, $login);
         app(ResellerPortalActivityLogger::class)->log($reseller, 'portal.login', meta: ['login' => $reseller->portalLoginId()], request: $request);
 
         return redirect()->intended(route('reseller.dashboard'));

@@ -4,7 +4,31 @@
 
 @section('content')
     <div class="rsl-card p-6">
-        <h1 class="rsl-title">Invoices</h1>
+        <div class="flex flex-wrap items-start justify-between gap-4">
+            <div>
+                <h1 class="rsl-title">Invoices</h1>
+                <p class="rsl-subtitle mt-1">Partner {{ $reseller->code }} · {{ $eligibleSubscribers }} active subscribers</p>
+            </div>
+            @if ($portal->canPortal(\App\Support\ResellerPortalPermission::INVOICE_GENERATE) && ($bulkGenerateEnabled ?? true))
+                <form method="post" action="{{ route('reseller.invoices.generate-all') }}"
+                      onsubmit="return confirm('Generate monthly bills for all active subscribers who do not already have a bill for this period?');">
+                    @csrf
+                    <button type="submit" class="rsl-btn">Generate all monthly bills</button>
+                </form>
+            @endif
+        </div>
+
+        @if ($portal->canPortal(\App\Support\ResellerPortalPermission::INVOICE_GENERATE) && ($bulkGenerateEnabled ?? true))
+            <div class="mt-4 rounded-xl border border-indigo-200 bg-indigo-50 p-4 text-sm text-indigo-950">
+                <p class="font-semibold">Monthly bill run</p>
+                <p class="mt-1 text-indigo-900">
+                    Creates one invoice per active subscriber for the current billing period (package price, proration rules, ONU lines).
+                    Subscribers who already have a bill this month are skipped.
+                    HQ wholesale due accrues when your account uses postpaid settlement.
+                </p>
+            </div>
+        @endif
+
         <form method="get" class="mt-4 flex flex-wrap gap-2">
             <select name="status" class="rsl-input w-auto">
                 <option value="">All statuses</option>

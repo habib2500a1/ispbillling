@@ -1,0 +1,293 @@
+/* Pro live traffic graph — subscriber 360° / traffic monitor */
+
+.isp-live-traffic-widget.fi-wi-chart {
+    --isp-lt-down: #2563eb;
+    --isp-lt-up: #dc2626;
+    --isp-lt-head: #0f172a;
+}
+
+.isp-live-traffic {
+    border-radius: 1rem;
+    overflow: hidden;
+    border: 1px solid rgb(226 232 240);
+    background: #fff;
+    box-shadow:
+        0 1px 2px rgb(15 23 42 / 0.04),
+        0 8px 24px rgb(15 23 42 / 0.06);
+}
+
+.dark .isp-live-traffic {
+    border-color: rgb(51 65 85);
+    background: rgb(15 23 42);
+    box-shadow: 0 8px 32px rgb(0 0 0 / 0.35);
+}
+
+.isp-live-traffic__head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem 1rem;
+    padding: 0.85rem 1rem;
+    background: linear-gradient(135deg, var(--isp-lt-head) 0%, #1e293b 100%);
+    color: #f8fafc;
+}
+
+.isp-live-traffic__title-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-width: 0;
+}
+
+.isp-live-traffic__title-icon {
+    width: 1.25rem;
+    height: 1.25rem;
+    opacity: 0.9;
+    flex-shrink: 0;
+}
+
+.isp-live-traffic__title {
+    margin: 0;
+    font-size: 0.95rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+}
+
+.isp-live-traffic__badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.15rem 0.45rem;
+    border-radius: 999px;
+    font-size: 0.62rem;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+.isp-live-traffic__badge--live {
+    background: rgb(34 197 94 / 0.22);
+    color: #86efac;
+    box-shadow: 0 0 0 1px rgb(34 197 94 / 0.35);
+    animation: isp-lt-pulse 2s ease infinite;
+}
+
+.isp-live-traffic__badge--off {
+    background: rgb(148 163 184 / 0.2);
+    color: #cbd5e1;
+}
+
+@keyframes isp-lt-pulse {
+    0%,
+    100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.65;
+    }
+}
+
+.isp-live-traffic__speed-pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.isp-live-traffic__pill {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0.2rem;
+    padding: 0.35rem 0.65rem;
+    border-radius: 999px;
+    font-variant-numeric: tabular-nums;
+    font-weight: 700;
+    font-size: 0.8rem;
+    line-height: 1;
+}
+
+.isp-live-traffic__pill--down {
+    background: rgb(37 99 235 / 0.2);
+    color: #93c5fd;
+    box-shadow: inset 0 0 0 1px rgb(59 130 246 / 0.45);
+}
+
+.isp-live-traffic__pill--up {
+    background: rgb(220 38 38 / 0.2);
+    color: #fca5a5;
+    box-shadow: inset 0 0 0 1px rgb(248 113 113 / 0.45);
+}
+
+.isp-live-traffic__pill-value {
+    font-size: 0.95rem;
+}
+
+.isp-live-traffic__pill-arrow {
+    font-size: 0.75rem;
+    opacity: 0.9;
+}
+
+.isp-live-traffic__pill-unit {
+    font-size: 0.65rem;
+    font-weight: 600;
+    opacity: 0.85;
+}
+
+.isp-live-traffic__filters {
+    padding: 0.5rem 1rem 0;
+}
+
+.isp-live-traffic__chart-wrap {
+    padding: 0.75rem 0.5rem 0.25rem;
+    min-height: 220px;
+}
+
+.isp-live-traffic__offline {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    min-height: 220px;
+    padding: 1.5rem;
+    text-align: center;
+    color: #94a3b8;
+}
+
+.isp-live-traffic__offline-title {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 700;
+    color: #e2e8f0;
+}
+
+.isp-live-traffic__offline-text {
+    margin: 0;
+    font-size: 0.8rem;
+    max-width: 22rem;
+    color: #94a3b8;
+}
+
+.isp-subscriber-traffic-page .fi-header-heading {
+    visibility: hidden;
+    height: 0;
+    margin: 0;
+    overflow: hidden;
+}
+
+.isp-live-traffic__chart {
+    position: relative;
+    height: 240px;
+}
+
+.isp-live-traffic__chart canvas {
+    width: 100% !important;
+    height: 100% !important;
+}
+
+.isp-live-traffic__stats {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 0;
+    border-top: 1px solid rgb(226 232 240);
+    background: rgb(248 250 252);
+}
+
+.dark .isp-live-traffic__stats {
+    border-top-color: rgb(51 65 85);
+    background: rgb(30 41 59 / 0.5);
+}
+
+.isp-live-traffic__stat {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.2rem;
+    padding: 0.65rem 0.35rem;
+    text-align: center;
+    border-right: 1px solid rgb(226 232 240);
+}
+
+.dark .isp-live-traffic__stat {
+    border-right-color: rgb(51 65 85);
+}
+
+.isp-live-traffic__stat:last-child {
+    border-right: none;
+}
+
+.isp-live-traffic__stat-label {
+    font-size: 0.62rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: rgb(100 116 139);
+}
+
+.dark .isp-live-traffic__stat-label {
+    color: rgb(148 163 184);
+}
+
+.isp-live-traffic__stat-value {
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: rgb(15 23 42);
+    font-variant-numeric: tabular-nums;
+}
+
+.dark .isp-live-traffic__stat-value {
+    color: #f1f5f9;
+}
+
+.isp-live-traffic__stat-value--down {
+    color: var(--isp-lt-down);
+}
+
+.isp-live-traffic__stat-value--up {
+    color: var(--isp-lt-up);
+}
+
+.isp-live-traffic__stat-value--today {
+    color: #059669;
+}
+
+.dark .isp-live-traffic__stat-value--today {
+    color: #34d399;
+}
+
+.isp-live-traffic__stat-value--mono {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 0.72rem;
+}
+
+.isp-live-traffic__hint {
+    margin: 0;
+    padding: 0.45rem 1rem 0.65rem;
+    font-size: 0.7rem;
+    color: rgb(100 116 139);
+    text-align: center;
+}
+
+.dark .isp-live-traffic__hint {
+    color: rgb(148 163 184);
+}
+
+@media (max-width: 768px) {
+    .isp-live-traffic__stats {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .isp-live-traffic__stat {
+        border-bottom: 1px solid rgb(226 232 240);
+    }
+
+    .isp-live-traffic__stat:nth-child(2n) {
+        border-right: none;
+    }
+
+    .isp-live-traffic__stat:nth-last-child(-n + 1) {
+        grid-column: 1 / -1;
+        border-right: none;
+        border-bottom: none;
+    }
+}

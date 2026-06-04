@@ -2,6 +2,7 @@
 
 namespace App\Support;
 
+use App\Filament\Pages\PaymentsReport;
 use App\Filament\Pages\ManageMfsSmsSettings;
 use App\Filament\Pages\ManageBkashMerchantSettings;
 use App\Filament\Pages\ManagePaymentSettings;
@@ -39,6 +40,22 @@ final class PaymentsSidebarRegistry
                 'sort' => 2,
                 'url' => PaymentResource::getUrl('create'),
                 'active_routes' => ['filament.admin.resources.payments.create'],
+            ],
+            [
+                'key' => 'payment_reports',
+                'label' => 'Collection report',
+                'icon' => 'heroicon-o-document-chart-bar',
+                'sort' => 3,
+                'url' => PaymentsReport::getUrl(),
+                'active_routes' => ['filament.admin.pages.payments-report'],
+            ],
+            [
+                'key' => 'bkash_collections',
+                'label' => 'bKash collections',
+                'icon' => 'heroicon-o-device-phone-mobile',
+                'sort' => 4,
+                'url' => PaymentsReport::getUrl().'?gateway=bkash',
+                'active_routes' => ['filament.admin.pages.payments-report'],
             ],
             [
                 'key' => 'personal_bkash',
@@ -163,6 +180,7 @@ final class PaymentsSidebarRegistry
     {
         return match ($key) {
             'all', 'record' => PaymentResource::canViewAny(),
+            'payment_reports', 'bkash_collections' => PaymentsReport::canAccess(),
             'pending_gateway' => PendingGatewayPaymentResource::canViewAny(),
             'mfs_sms' => MfsSmsRecordResource::canViewAny(),
             'personal_bkash', 'personal_nagad' => ManagePersonalMfsSettings::canAccess(),

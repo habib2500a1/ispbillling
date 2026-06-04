@@ -81,6 +81,8 @@ return [
             'days_before' => (int) env('SMS_REMINDERS_DAYS', 3),
             'channels' => ['email', 'sms'],
             'telegram_ops' => false,
+            /** Direct Telegram to customer when customers.telegram_chat_id is set. */
+            'customer_telegram' => (bool) env('NOTIFICATIONS_CUSTOMER_TELEGRAM_DUE', true),
         ],
         'invoice_due_soon' => [
             'enabled' => (bool) env('SMS_REMINDERS_ENABLED', false),

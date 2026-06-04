@@ -255,11 +255,17 @@ final class CustomerOnuSmartLinkService
         $meta = is_array($onu->meta) ? $onu->meta : [];
 
         $clientCode = trim((string) ($customer->customer_code ?? ''));
-        $description = trim((string) ($meta['bdcom_description'] ?? ''));
-        if ($clientCode !== '' && $description !== ''
-            && ! \App\Support\BdcomOnuDescriptionHeuristic::isOltPlaceholderLabel($description)
-            && $clientCode === $description) {
-            return ['onu' => $onu, 'score' => 100, 'reason' => self::REASON_DESC_EXACT];
+        foreach ([
+            trim((string) ($meta['bdcom_description'] ?? '')),
+            trim((string) ($meta['aveis_description'] ?? '')),
+            trim((string) ($meta['aveis_label'] ?? '')),
+            trim((string) ($onu->display_name ?? '')),
+        ] as $description) {
+            if ($clientCode !== '' && $description !== ''
+                && ! \App\Support\BdcomOnuDescriptionHeuristic::isOltPlaceholderLabel($description)
+                && $clientCode === $description) {
+                return ['onu' => $onu, 'score' => 100, 'reason' => self::REASON_DESC_EXACT];
+            }
         }
 
         if ($login !== '') {
@@ -267,7 +273,10 @@ final class CustomerOnuSmartLinkService
                 (string) $onu->onu_external_id,
                 (string) ($meta['ppp_login'] ?? ''),
                 (string) ($meta['subscriber_login'] ?? ''),
-                $description,
+                (string) ($meta['aveis_description'] ?? ''),
+                (string) ($meta['aveis_label'] ?? ''),
+                (string) ($onu->display_name ?? ''),
+                (string) ($meta['bdcom_description'] ?? ''),
             ] as $value) {
                 if ($value !== '' && CustomerPppLoginResolver::normalize($value) === $login) {
                     return ['onu' => $onu, 'score' => 100, 'reason' => self::REASON_LOGIN_EXACT];

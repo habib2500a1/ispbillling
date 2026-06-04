@@ -3,7 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Models\Customer;
-use App\Services\Import\IspDigitalBillingReconciler;
+use App\Services\Import\LegacyPortalBillingReconciler;
 use App\Support\CustomerBalanceDue;
 use App\Support\TenantResolver;
 use Illuminate\Console\Command;
@@ -13,12 +13,12 @@ class RefreshCustomerDueBalanceCommand extends Command
     protected $signature = 'isp:refresh-customer-due-balance
                             {--customer= : Customer ID or customer_code}';
 
-    protected $description = 'Sync customer meta from open invoices only (removes legacy isp_digital_balance_due)';
+    protected $description = 'Sync customer meta from open invoices only (removes legacy legacy_portal_balance_due)';
 
     public function handle(): int
     {
         $tenantId = TenantResolver::currentTenantId();
-        $reopened = app(IspDigitalBillingReconciler::class)->reopenConsolidatedMonthlyInvoices($tenantId);
+        $reopened = app(LegacyPortalBillingReconciler::class)->reopenConsolidatedMonthlyInvoices($tenantId);
         if ($reopened > 0) {
             $this->info("Reopened {$reopened} consolidated monthly invoice(s).");
         }
@@ -34,9 +34,9 @@ class RefreshCustomerDueBalanceCommand extends Command
         $updated = 0;
         $query->orderBy('id')->chunkById(100, function ($customers) use (&$updated): void {
             foreach ($customers as $customer) {
-                $hadLegacy = isset($customer->meta['isp_digital_balance_due']);
+                $hadLegacy = isset($customer->meta['legacy_portal_balance_due']);
                 $before = $hadLegacy
-                    ? (float) $customer->meta['isp_digital_balance_due']
+                    ? (float) $customer->meta['legacy_portal_balance_due']
                     : CustomerBalanceDue::amount($customer);
                 CustomerBalanceDue::refreshMetaAfterPayment($customer);
                 $after = CustomerBalanceDue::amount($customer->fresh());

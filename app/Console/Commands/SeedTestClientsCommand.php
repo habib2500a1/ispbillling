@@ -20,7 +20,7 @@ class SeedTestClientsCommand extends Command
                             {--admin-password=habib@123 : Set admin@isp.local password}
                             {--force : Re-create if customer_code already exists}';
 
-    protected $description = 'Seed ISP Digital–style test subscribers with full profile + meta (for Client Details testing)';
+    protected $description = 'Seed legacy portal–style test subscribers with full profile + meta (for Client Details testing)';
 
     /** @var list<array<string, mixed>> */
     private array $profiles = [
@@ -164,7 +164,7 @@ class SeedTestClientsCommand extends Command
                 'portal_password' => Hash::make('portal'.$i),
                 'segment' => $profile['segment'],
                 'address' => "House {$i}, Road ".($i + 2).', Kazla, Dhaka',
-                'notes' => "Test subscriber seeded for ISP Digital parity — {$code}",
+                'notes' => "Test subscriber seeded for legacy portal parity — {$code}",
                 'kyc_status' => $i % 2 === 0 ? 'verified' : 'pending',
                 'kyc_verified_at' => $i % 2 === 0 ? now()->subDays(10) : null,
                 'kyc_notes' => 'Seeded test KYC',

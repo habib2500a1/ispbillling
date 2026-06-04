@@ -4,10 +4,12 @@ namespace App\Services\Network;
 
 use App\Models\Device;
 use App\Services\Olt\OltSnmpProbeService;
-use App\Services\Optical\CustomerOnuSmartLinkService;
+use App\Services\Optical\OltOnuAutoLinkCoordinator;
 use App\Services\Optical\OpticalReadingPipeline;
+use App\Support\GponSnmpProfile;
 use App\Support\MacAddress;
 use App\Support\SnmpClient;
+use App\Support\SnmpEnvironmentalDecoder;
 use Illuminate\Support\Facades\Log;
 
 /**
@@ -50,7 +52,7 @@ final class AveisGponOnuSyncService
 
             $peer = $this->probe->snmpPeer($olt);
             $community = $this->probe->effectiveCommunity($olt);
-            $oids = config('gpon.profiles.aveis_gpon', []);
+            $oids = GponSnmpProfile::forOlt($olt);
             $timeoutUs = (int) config('gpon.aveis_gpon_walk_timeout_us', 10000000);
             $retries = (int) config('snmp.retries', 1);
 
@@ -60,11 +62,19 @@ final class AveisGponOnuSyncService
             $statuses = $this->walkColumn($peer, $community, $table.'.3', $timeoutUs, $retries);
             $macs = $this->walkColumn($peer, $community, $table.'.7', $timeoutUs, $retries);
             $names = $this->walkColumn($peer, $community, $table.'.12', $timeoutUs, $retries);
-            $names2 = $this->walkColumn($peer, $community, $table.'.2', $timeoutUs, $retries);
-            
-            $rxColumn = max(1, (int) config('gpon.aveis_onu_rx_column', 15));
+
+            $rxColumn = max(1, (int) ($oids['aveis_onu_rx_column'] ?? config('gpon.aveis_onu_rx_column', 15)));
             $rxRaw = $this->walkColumn($peer, $community, $table.'.'.$rxColumn, $timeoutUs, $retries);
-            $distances = [];
+
+            $txColumn = (int) ($oids['aveis_onu_tx_column'] ?? 0);
+            $tempColumn = (int) ($oids['aveis_onu_temp_column'] ?? 0);
+            $voltColumn = (int) ($oids['aveis_onu_voltage_column'] ?? 0);
+            $distColumn = (int) ($oids['aveis_onu_distance_column'] ?? 0);
+
+            $txRaw = $txColumn > 0 ? $this->walkColumn($peer, $community, $table.'.'.$txColumn, $timeoutUs, $retries) : [];
+            $tempRaw = $tempColumn > 0 ? $this->walkColumn($peer, $community, $table.'.'.$tempColumn, $timeoutUs, $retries) : [];
+            $voltRaw = $voltColumn > 0 ? $this->walkColumn($peer, $community, $table.'.'.$voltColumn, $timeoutUs, $retries) : [];
+            $distRaw = $distColumn > 0 ? $this->walkColumn($peer, $community, $table.'.'.$distColumn, $timeoutUs, $retries) : [];
 
             $indices = array_unique(array_merge(
                 array_keys($labels),
@@ -94,8 +104,10 @@ final class AveisGponOnuSyncService
                     $serial = 'AV-'.str_replace(':', '', strtoupper($mac));
                 }
 
-                $distance = null;
+                $distance = isset($distRaw[$idx]) ? $this->parseNumber($distRaw[$idx]) : null;
                 $rx = self::decodeAveisRx($this->parseNumber($rxRaw[$idx] ?? null));
+                $txRawVal = $this->parseNumber($txRaw[$idx] ?? null);
+                $tx = $txRawVal !== null ? self::decodeAveisRx($txRawVal) : null;
 
                 $discovered[] = [
                     'index' => (string) $idx,
@@ -109,6 +121,13 @@ final class AveisGponOnuSyncService
                     'oper_status' => $this->mapStatus($this->parseNumber($statuses[$idx] ?? null)),
                     'distance_m' => $distance,
                     'rx_dbm' => $rx,
+                    'tx_dbm' => $tx,
+                    'temperature_c' => isset($tempRaw[$idx])
+                        ? SnmpEnvironmentalDecoder::temperatureC($this->parseNumber($tempRaw[$idx]), 'aveis_gpon')
+                        : null,
+                    'voltage_v' => isset($voltRaw[$idx])
+                        ? SnmpEnvironmentalDecoder::voltageV($this->parseNumber($voltRaw[$idx]), 'aveis_gpon')
+                        : null,
                 ];
             }
 
@@ -118,10 +137,11 @@ final class AveisGponOnuSyncService
                 $this->upsertOnu($olt, $row, $result);
             }
 
-            if ($runSmartLink && config('optical.auto_link_on_bdcom_sync', true)) {
-                $linkStats = app(CustomerOnuSmartLinkService::class)
-                    ->smartRelinkTenant((int) $olt->tenant_id, true);
-                $result['linked'] = (int) ($linkStats['linked'] ?? 0);
+            if ($runSmartLink) {
+                $linkOut = app(OltOnuAutoLinkCoordinator::class)->runAfterOltInventory($olt);
+                $result['linked'] = (int) ($linkOut['auto_link']['linked'] ?? 0);
+                $result['fdb_macs_stored'] = (int) ($linkOut['fdb']['macs_stored'] ?? 0);
+                $result['auto_link_detail'] = $linkOut['auto_link'];
             }
 
             $result['success'] = true;
@@ -315,9 +335,12 @@ final class AveisGponOnuSyncService
             'last_polled_at' => now(),
         ])->save();
 
-        if ($row['rx_dbm'] !== null) {
+        if ($row['rx_dbm'] !== null || $row['tx_dbm'] !== null || ($row['temperature_c'] ?? null) !== null || ($row['voltage_v'] ?? null) !== null) {
             $this->opticalPipeline->ingest($onu->fresh(), [
                 'rx_raw' => $row['rx_dbm'],
+                'tx_raw' => $row['tx_dbm'],
+                'temperature' => $row['temperature_c'] ?? null,
+                'voltage' => $row['voltage_v'] ?? null,
                 'already_dbm' => true,
                 'oper_status' => $row['oper_status'],
                 'vendor_profile' => 'aveis_gpon',

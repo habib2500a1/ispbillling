@@ -109,7 +109,9 @@ class DashboardMetricsService
             ->where('status', 'sent')
             ->count();
 
-        return array_merge($summary, [
+        $segments = app(SubscriberSegmentMetrics::class)->forTenant($tenantId);
+
+        return array_merge($summary, $segments, [
             'due_customers' => $dueCustomers,
             'open_tickets' => $openTickets,
             'mikrotik_online' => $mtOnline,

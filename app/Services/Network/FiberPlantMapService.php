@@ -24,6 +24,7 @@ final class FiberPlantMapService
     public function buildPayload(?int $highlightCustomerId = null): array
     {
         $nodes = FiberPlantNode::query()
+            ->with('customer:id,name,phone,customer_code')
             ->where('is_active', true)
             ->orderBy('sort_order')
             ->orderBy('name')
@@ -277,6 +278,39 @@ final class FiberPlantMapService
         return $count;
     }
 
+    /**
+     * Create or update fiber map pin when subscriber has GPS in meta.
+     */
+    public function syncCustomerNodeFromGps(Customer $customer): ?FiberPlantNode
+    {
+        $lat = data_get($customer->meta, 'gps_lat');
+        $lng = data_get($customer->meta, 'gps_lng');
+
+        if (! is_numeric($lat) || ! is_numeric($lng)) {
+            return null;
+        }
+
+        $phone = trim((string) ($customer->phone ?? ''));
+        $label = trim($customer->name.($phone !== '' ? ' · '.$phone : ''));
+
+        $node = FiberPlantNode::query()->firstOrNew([
+            'customer_id' => $customer->id,
+        ]);
+
+        $node->fill([
+            'code' => $node->code ?: 'SUB-'.$customer->id,
+            'name' => $label !== '' ? $label : ('Subscriber #'.$customer->id),
+            'type' => 'customer',
+            'latitude' => (float) $lat,
+            'longitude' => (float) $lng,
+            'address' => $customer->address,
+            'is_active' => true,
+        ]);
+        $node->save();
+
+        return $node;
+    }
+
     public function suggestCode(string $type): string
     {
         $prefix = strtoupper(match ($type) {
@@ -325,6 +359,8 @@ final class FiberPlantMapService
             'splitter_direction' => $node->splitter_direction,
             'bearing_deg' => $node->bearing_deg,
             'customer_id' => $node->customer_id,
+            'phone' => $node->customer?->phone,
+            'customer_code' => $node->customer?->customer_code,
             'device_id' => $node->device_id,
             'pop_box_id' => $node->pop_box_id,
             'notes' => $node->notes,

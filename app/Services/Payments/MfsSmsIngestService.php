@@ -79,7 +79,10 @@ final class MfsSmsIngestService
             'device_name' => $payload['device_name'] ?? null,
             'gateway' => $gateway,
             'sender_type' => $payload['sender_type'] ?? 'personal',
-            'sender_phone' => $this->normalizePhone($payload['sender_phone'] ?? null),
+            'sender_phone' => $this->resolveSenderPhone(
+                $payload['sender_phone'] ?? null,
+                isset($payload['raw_message']) ? (string) $payload['raw_message'] : null,
+            ),
             'merchant_phone' => $this->normalizePhone($payload['merchant_phone'] ?? null),
             'transaction_id' => $trxId,
             'amount' => $amount,
@@ -120,6 +123,28 @@ final class MfsSmsIngestService
             'status' => MfsSmsRecord::STATUS_REJECTED,
             'meta' => array_merge($record->meta ?? [], ['reject_reason' => $reason]),
         ])->save();
+    }
+
+    private function resolveSenderPhone(mixed $explicit, ?string $rawMessage): ?string
+    {
+        $phone = $this->normalizePhone($explicit);
+        if ($phone !== null) {
+            return $phone;
+        }
+
+        if ($rawMessage === null || trim($rawMessage) === '') {
+            return null;
+        }
+
+        if (preg_match('/\bfrom\s*(?:number\s*)?(01[3-9]\d{8})\b/i', $rawMessage, $from)) {
+            return $from[1];
+        }
+
+        if (preg_match('/\b01[3-9]\d{8}\b/', $rawMessage, $any)) {
+            return $any[0];
+        }
+
+        return null;
     }
 
     private function normalizePhone(mixed $phone): ?string

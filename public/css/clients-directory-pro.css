@@ -283,10 +283,31 @@
     color: #fff !important;
 }
 
+.cl-dir-table .cl-dir-col-name {
+    min-width: 12rem;
+    width: 24%;
+    max-width: none;
+}
+
+.cl-dir-table .fi-ta-header-cell.cl-dir-col-name,
+.cl-dir-table .fi-ta-cell.cl-dir-col-name {
+    overflow: visible !important;
+    white-space: normal !important;
+}
+
 .cl-dir-client {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     gap: 0.65rem;
+    min-width: 0;
+}
+
+.cl-dir-client__body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    min-width: 0;
+    flex: 1;
 }
 
 .cl-dir-client__avatar {
@@ -302,7 +323,24 @@
     font-weight: 700;
 }
 
-.cl-dir-client__name { font-weight: 600; color: var(--cl-dir-text); }
+.cl-dir-client__name {
+    font-weight: 600;
+    color: var(--cl-dir-text);
+    word-break: break-word;
+}
+
+.cl-dir-client__ppp {
+    display: block;
+    font-size: 0.7rem;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    color: var(--cl-dir-muted);
+    white-space: normal;
+    word-break: break-all;
+    overflow: visible;
+    text-overflow: unset;
+    max-width: none;
+}
+
 .cl-dir-client__phone { font-size: 0.7rem; color: var(--cl-dir-muted); }
 
 .isp-clients-page .isp-clients-hero,

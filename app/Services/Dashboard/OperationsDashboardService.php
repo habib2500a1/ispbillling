@@ -12,6 +12,7 @@ use App\Filament\Pages\SupportHub;
 use App\Filament\Resources\HotspotVoucherResource;
 use App\Filament\Resources\CustomerResource;
 use App\Filament\Resources\CustomerResource\Pages\ListSuspendedCustomers;
+use App\Filament\Resources\ResellerResource;
 use App\Filament\Resources\InvoiceResource;
 use App\Filament\Resources\PendingGatewayPaymentResource;
 use App\Filament\Resources\PopBoxResource;
@@ -40,6 +41,7 @@ final class OperationsDashboardService
 {
     public function __construct(
         private readonly DashboardMetricsService $metrics,
+        private readonly SubscriberSegmentMetrics $segments,
     ) {}
 
     /**
@@ -65,6 +67,7 @@ final class OperationsDashboardService
     {
         $snap = $this->metrics->snapshot($tenantId);
         $c = $this->customerBreakdown($tenantId);
+        $seg = $this->segments->forTenant($tenantId);
         $billingCounts = $this->safeBillingCounts();
         $sales = $this->salesTotals($tenantId);
         $sms = app(SmsBalanceFetcher::class)->fetch();
@@ -80,7 +83,7 @@ final class OperationsDashboardService
             'updated_at' => now()->toIso8601String(),
             'company' => CompanyBranding::name(),
             'highlights' => $this->highlights($snap, $sms, $tenantId, $capability),
-            'primary' => $this->primaryKpis($snap, $c, $online, $capability),
+            'primary' => $this->primaryKpis($snap, $c, $seg, $online, $capability),
             'sections' => $this->groupedSections($tenantId, $snap, $c, $billingCounts, $sales, $online, $active, $pops, $capability),
             'feeds' => $this->feeds($tenantId, $capability),
             'mfs_pending_verify' => $this->mfsPendingVerify($tenantId, $capability),
@@ -187,17 +190,49 @@ final class OperationsDashboardService
      * @param  array<string, int>  $c
      * @return list<array{label: string, value: string, hint: string, url?: string}>
      */
-    private function primaryKpis(array $snap, array $c, int $online, StaffCapability $capability): array
+    /**
+     * @param  array<string, int>  $seg
+     */
+    private function primaryKpis(array $snap, array $c, array $seg, int $online, StaffCapability $capability): array
     {
         $n = fn (int|float $v): string => number_format((float) $v, 0);
         $kpis = [];
 
         if ($capability->canCustomers()) {
-            $kpis[] = ['label' => 'Active subscribers', 'value' => $n($c['active']), 'hint' => 'Live accounts', 'url' => CustomerResource::getUrl('active'), 'tone' => 'teal'];
+            $partners = (int) ($seg['active_reseller_partners'] ?? 0);
+            $kpis[] = [
+                'label' => 'Direct active',
+                'value' => $n($seg['direct_active'] ?? $c['active']),
+                'hint' => 'Own / ISP clients',
+                'url' => CustomerResource::getUrl('active'),
+                'tone' => 'teal',
+            ];
+            $kpis[] = [
+                'label' => 'Reseller active',
+                'value' => $n($seg['reseller_clients_active'] ?? 0),
+                'hint' => $partners > 0
+                    ? "{$partners} partner(s) · client lines"
+                    : 'Under reseller',
+                'url' => ResellerResource::getUrl('index'),
+                'tone' => 'cyan',
+            ];
         }
 
         if ($capability->canMikrotik()) {
-            $kpis[] = ['label' => 'Online now', 'value' => $n($online), 'hint' => 'PPPoE sessions', 'url' => OnlineClientsMonitoring::getUrl(), 'tone' => 'sky'];
+            $kpis[] = [
+                'label' => 'Online (direct)',
+                'value' => $n($seg['direct_online'] ?? $online),
+                'hint' => 'PPPoE · own clients',
+                'url' => OnlineClientsMonitoring::getUrl(),
+                'tone' => 'sky',
+            ];
+            $kpis[] = [
+                'label' => 'Online (reseller)',
+                'value' => $n($seg['reseller_clients_online'] ?? 0),
+                'hint' => 'PPPoE · reseller clients',
+                'url' => OnlineClientsMonitoring::getUrl(),
+                'tone' => 'blue',
+            ];
         }
 
         if ($capability->canPayments() || $capability->canBilling()) {

@@ -1,5 +1,5 @@
 /**
- * Portal usage page: quick ~1s speed test + live router stats polling.
+ * Portal usage page: quick ~1s speed test + pro live usage graph.
  */
 (function () {
     const panel = document.getElementById('usage-panel');
@@ -9,10 +9,14 @@
 
     const initial = JSON.parse(panel.dataset.stats || '{}');
     const liveUrl = panel.dataset.liveUrl;
-    const pollMs = Math.max(3000, parseInt(panel.dataset.pollMs || '5000', 10));
+    const pollMs = Math.max(1000, parseInt(panel.dataset.pollMs || '1000', 10));
     const quickUrl = panel.dataset.quickUrl;
     const pingUrl = panel.dataset.pingUrl;
-    const csrf = document.querySelector('meta[name="csrf-token"]')?.content || '';
+
+    const COLOR_DOWN = '#2563eb';
+    const COLOR_UP = '#dc2626';
+    const FILL_DOWN = 'rgba(37, 99, 235, 0.18)';
+    const FILL_UP = 'rgba(220, 38, 38, 0.14)';
 
     function formatBps(bps) {
         if (bps === null || bps === undefined) {
@@ -33,13 +37,14 @@
 
     function formatMbps(mbps) {
         if (mbps === null || mbps === undefined || Number.isNaN(mbps)) {
-            return '—';
+            return '0.00';
         }
 
-        return mbps.toFixed(2);
+        return Number(mbps).toFixed(2);
     }
 
     function formatBytes(bytes) {
+        bytes = Number(bytes) || 0;
         if (bytes >= 1073741824) {
             return (bytes / 1073741824).toFixed(2) + ' GB';
         }
@@ -57,6 +62,14 @@
         const statusCard = document.getElementById('status-card');
         const statusValue = document.getElementById('stat-online');
         const statusPill = document.getElementById('stat-online-pill');
+        const liveBadge = document.getElementById('portal-live-badge');
+
+        if (liveBadge) {
+            liveBadge.textContent = online ? 'LIVE' : 'OFFLINE';
+            liveBadge.classList.toggle('is-live', online);
+            liveBadge.classList.toggle('is-off', !online);
+        }
+
         if (!statusCard || !statusValue || !statusPill) {
             return;
         }
@@ -70,61 +83,123 @@
         statusPill.textContent = online ? 'Session active' : 'No live session';
     }
 
+    function updateLiveGraphStats(data) {
+        const downMbps = document.getElementById('portal-live-down-mbps');
+        const upMbps = document.getElementById('portal-live-up-mbps');
+        if (downMbps) {
+            downMbps.textContent = formatMbps(data.download_mbps ?? (data.download_bps || 0) / 1_000_000);
+        }
+        if (upMbps) {
+            upMbps.textContent = formatMbps(data.upload_mbps ?? (data.upload_bps || 0) / 1_000_000);
+        }
+
+        const sessDown = document.getElementById('portal-stat-session-down');
+        const sessUp = document.getElementById('portal-stat-session-up');
+        const sessTotal = document.getElementById('portal-stat-session-total');
+        const todayTotal = document.getElementById('portal-stat-today-total');
+        const uptime = document.getElementById('portal-stat-uptime');
+
+        if (sessDown) {
+            sessDown.textContent = formatBytes(data.total_download);
+        }
+        if (sessUp) {
+            sessUp.textContent = formatBytes(data.total_upload);
+        }
+        if (sessTotal) {
+            sessTotal.textContent = formatBytes(data.session_total ?? (data.total_download || 0) + (data.total_upload || 0));
+        }
+        if (todayTotal) {
+            todayTotal.textContent = formatBytes(data.today_total ?? (data.today_download || 0) + (data.today_upload || 0));
+        }
+        if (uptime && data.uptime) {
+            uptime.textContent = data.uptime;
+        }
+    }
+
     let chart = null;
+
+    function buildChartOptions() {
+        return {
+            responsive: true,
+            maintainAspectRatio: false,
+            animation: { duration: 400, easing: 'easeOutQuart' },
+            interaction: { mode: 'index', intersect: false },
+            plugins: {
+                legend: {
+                    position: window.innerWidth < 640 ? 'bottom' : 'top',
+                    align: 'center',
+                    labels: {
+                        usePointStyle: true,
+                        pointStyle: 'rectRounded',
+                        boxWidth: 10,
+                        boxHeight: 10,
+                        padding: 14,
+                        font: { size: 11, weight: '600' },
+                    },
+                },
+                tooltip: {
+                    mode: 'index',
+                    intersect: false,
+                    backgroundColor: 'rgba(15, 23, 42, 0.94)',
+                    padding: 12,
+                    cornerRadius: 8,
+                    titleFont: { size: 12, weight: 'bold' },
+                    bodyFont: { size: 11 },
+                },
+            },
+            scales: {
+                x: {
+                    grid: { display: false },
+                    ticks: { maxTicksLimit: window.innerWidth < 640 ? 5 : 8, font: { size: 10 } },
+                },
+                y: {
+                    beginAtZero: true,
+                    title: { display: true, text: 'Mbps', font: { size: 11, weight: '600' } },
+                    grid: { color: 'rgba(148, 163, 184, 0.25)' },
+                    ticks: { font: { size: 10 } },
+                },
+            },
+        };
+    }
 
     function initChart() {
         const ctx = document.getElementById('usage-chart');
-        if (!ctx || typeof Chart === 'undefined' || !initial.chart) {
+        if (!ctx || typeof Chart === 'undefined') {
             return;
         }
+
+        const chartData = initial.chart || { labels: [], download_mbps: [], upload_mbps: [] };
 
         chart = new Chart(ctx, {
             type: 'line',
             data: {
-                labels: initial.chart.labels || [],
+                labels: chartData.labels || [],
                 datasets: [
                     {
-                        label: 'Download',
-                        data: initial.chart.download_mbps || [],
-                        borderColor: '#d97706',
-                        backgroundColor: 'rgba(217, 119, 6, 0.08)',
-                        tension: 0.35,
+                        label: 'Download (Mbps)',
+                        data: chartData.download_mbps || [],
+                        borderColor: COLOR_DOWN,
+                        backgroundColor: FILL_DOWN,
+                        tension: 0.42,
                         fill: true,
                         pointRadius: 0,
-                        borderWidth: 2,
+                        pointHoverRadius: 4,
+                        borderWidth: 2.5,
                     },
                     {
-                        label: 'Upload',
-                        data: initial.chart.upload_mbps || [],
-                        borderColor: '#0284c7',
-                        backgroundColor: 'rgba(2, 132, 199, 0.08)',
-                        tension: 0.35,
+                        label: 'Upload (Mbps)',
+                        data: chartData.upload_mbps || [],
+                        borderColor: COLOR_UP,
+                        backgroundColor: FILL_UP,
+                        tension: 0.42,
                         fill: true,
                         pointRadius: 0,
-                        borderWidth: 2,
+                        pointHoverRadius: 4,
+                        borderWidth: 2.5,
                     },
                 ],
             },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                interaction: { mode: 'index', intersect: false },
-                plugins: {
-                    legend: {
-                        position: window.innerWidth < 640 ? 'bottom' : 'top',
-                        labels: { boxWidth: 12, padding: 14, font: { size: 11 } },
-                    },
-                },
-                scales: {
-                    x: {
-                        ticks: { maxTicksLimit: window.innerWidth < 640 ? 5 : 8, font: { size: 10 } },
-                    },
-                    y: {
-                        beginAtZero: true,
-                        ticks: { font: { size: 10 } },
-                    },
-                },
-            },
+            options: buildChartOptions(),
         });
     }
 
@@ -144,6 +219,8 @@
             }
             const data = await res.json();
             setOnlineState(Boolean(data.online));
+            updateLiveGraphStats(data);
+
             const downEl = document.getElementById('stat-download');
             const upEl = document.getElementById('stat-upload');
             if (downEl) {
@@ -263,6 +340,7 @@
         updatedEl.textContent = 'Live · ' + new Date().toLocaleTimeString();
     }
     setOnlineState(Boolean(initial.online));
+    updateLiveGraphStats(initial);
     initChart();
     setInterval(refreshLive, pollMs);
 

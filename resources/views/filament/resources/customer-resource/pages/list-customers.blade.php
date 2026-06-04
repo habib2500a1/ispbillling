@@ -5,29 +5,14 @@
     $createUrl = \App\Filament\Resources\CustomerResource::getUrl('create');
     $canExport = \App\Filament\Pages\ExportClientsReport::canAccess();
     $exportUrl = $canExport ? \App\Filament\Pages\ExportClientsReport::getUrl() : null;
-    $clDirCssV = @filemtime(public_path('css/clients-directory-pro.css')) ?: time();
+    $clDirNameColV = @filemtime(resource_path('views/filament/tables/columns/client-directory-name.blade.php')) ?: time();
 @endphp
 
-<link rel="stylesheet" href="{{ asset('css/clients-directory-pro.css') }}?v={{ $clDirCssV }}" data-clients-directory="1" id="clients-directory-pro-css">
-
-<script data-cfasync="false">
-(function () {
-    var id = 'clients-directory-pro-css';
-    var href = @json(asset('css/clients-directory-pro.css').'?v='.$clDirCssV);
-    var existing = document.getElementById(id);
-    if (existing && existing.getAttribute('href') === href) return;
-    if (existing) existing.remove();
-    var link = document.createElement('link');
-    link.id = id;
-    link.rel = 'stylesheet';
-    link.href = href;
-    link.setAttribute('data-clients-directory', '1');
-    document.head.appendChild(link);
-})();
-</script>
+{!! \App\Support\ClientsDirectoryStyles::html() !!}
+{!! \App\Support\ClientsDirectoryStyles::navigatedScript() !!}
 
 <x-filament-panels::page class="isp-clients-page">
-    <div class="cl-dir" wire:key="clients-directory-{{ $this->getId() }}">
+    <div class="cl-dir" wire:key="clients-directory-{{ $this->getId() }}-{{ $clDirNameColV }}">
         <div class="cl-dir-actions no-print">
             <nav class="cl-dir-tabs" aria-label="Quick presets">
                 @foreach ($tabs as $tab)

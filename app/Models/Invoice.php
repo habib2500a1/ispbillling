@@ -58,6 +58,8 @@ class Invoice extends Model
         'withholding_amount',
         'coupon_id',
         'coupon_discount_amount',
+        'promotional_offer_id',
+        'promotional_offer_discount_amount',
     ];
 
     protected function casts(): array
@@ -75,6 +77,7 @@ class Invoice extends Model
             'sd_amount' => 'decimal:2',
             'withholding_amount' => 'decimal:2',
             'coupon_discount_amount' => 'decimal:2',
+            'promotional_offer_discount_amount' => 'decimal:2',
         ];
     }
 
@@ -96,6 +99,11 @@ class Invoice extends Model
     public function coupon(): BelongsTo
     {
         return $this->belongsTo(Coupon::class);
+    }
+
+    public function promotionalOffer(): BelongsTo
+    {
+        return $this->belongsTo(PromotionalOffer::class);
     }
 
     public function balanceDue(): float

@@ -134,11 +134,16 @@ class MfsSmsIngestController extends Controller
     {
         $meta = $record->meta ?? [];
 
+        $billState = \App\Support\MfsSmsBillPaymentState::resolve($record);
+
         return [
             'ok' => true,
             'duplicate' => $duplicate,
             'matched_pending' => $matchedPending,
-            'auto_approved' => $matchedPending > 0,
+            'auto_approved' => $matchedPending > 0
+                || ($meta['reference_match'] ?? '') === 'auto_approved'
+                || $record->payment_id !== null
+                || $billState === \App\Support\MfsSmsBillPaymentState::LINKED,
             'id' => $record->id,
             'status' => $record->status,
             'transaction_id' => $record->transaction_id,

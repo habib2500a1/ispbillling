@@ -39,6 +39,7 @@ class PaymentObserver
         $payment->refresh();
         app(PaymentNotificationService::class)->onPaymentCompleted($payment);
         app(ResellerCommissionService::class)->accrueFromPayment($payment);
+        app(\App\Services\Resellers\ResellerHierarchicalBillingService::class)->handlePaymentCompleted($payment);
         app(AccountingIntegrationService::class)->postCustomerPayment($payment);
         app(CollectorSettlementService::class)->recordCollectionFromPayment($payment->fresh());
         app(PaymentLinkService::class)->markConverted($payment->invoice_id, (int) $payment->id);

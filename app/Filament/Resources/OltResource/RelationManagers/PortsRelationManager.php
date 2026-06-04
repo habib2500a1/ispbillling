@@ -34,8 +34,10 @@ class PortsRelationManager extends RelationManager
                     ->minValue(0)
                     ->maxValue(255),
                 Forms\Components\TextInput::make('label')
+                    ->label('PON port name')
                     ->maxLength(64)
-                    ->helperText('Optional display label; defaults to card/PON.'),
+                    ->placeholder('EPON0/4:29 বা Zone-A PON-3')
+                    ->helperText('এই নাম subscriber Network tab ও Optical table-এ দেখাবে। খালি থাকলে C1/P4 ফরম্যাট।'),
                 Forms\Components\Select::make('admin_status')
                     ->options([
                         'enabled' => 'Enabled',

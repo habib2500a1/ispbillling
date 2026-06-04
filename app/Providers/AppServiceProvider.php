@@ -34,12 +34,15 @@ use App\Services\Network\MikrotikNetworkProvisioner;
 use App\Services\Network\NetworkAccessCoordinator;
 use App\Services\Network\NullNetworkProvisioner;
 use App\Services\Network\RadiusNetworkProvisioner;
+use App\Support\DemoMode;
 use App\Support\EnsureStorageWritable;
 use App\Support\MobileAppLinks;
 use App\Listeners\RecordStaffLogout;
 use App\Models\User;
+use App\Livewire\Filament\SafeGlobalSearch;
 use App\View\Composers\BillPaymentViewComposer;
 use App\View\Composers\PortalViewComposer;
+use Filament\Livewire\GlobalSearch as FilamentGlobalSearch;
 use Illuminate\Support\Facades\View;
 use Illuminate\Auth\Events\Logout;
 use Illuminate\Cache\RateLimiting\Limit;
@@ -84,6 +87,10 @@ class AppServiceProvider extends ServiceProvider
                 $app->make(NetworkAccessProvisioner::class),
             );
         });
+
+        Auth::provider('customer', function ($app, array $config): CustomerUserProvider {
+            return new CustomerUserProvider($app['hash'], $config['model']);
+        });
     }
 
     /**
@@ -108,10 +115,6 @@ class AppServiceProvider extends ServiceProvider
                 'hint' => 'Run: sudo scripts/fix-storage-permissions.sh',
             ]);
         }
-
-        Auth::provider('customer', function ($app, array $config): CustomerUserProvider {
-            return new CustomerUserProvider($app['hash'], $config['model']);
-        });
 
         InvoiceItem::observe(InvoiceItemObserver::class);
         Payment::observe(PaymentObserver::class);
@@ -143,6 +146,8 @@ class AppServiceProvider extends ServiceProvider
                 AppSetting::syncToRuntimeConfig();
             }
 
+            DemoMode::applySafetyOverrides();
+
             if (Schema::hasTable('sms_templates') && SmsTemplate::query()->count() === 0) {
                 app(SmsTemplateService::class)->seedDefaults();
             }
@@ -168,6 +173,12 @@ class AppServiceProvider extends ServiceProvider
         Livewire::useScriptTagAttributes([
             'data-cfasync' => 'false',
         ]);
+
+        // Must run after Filament panel registers Livewire components (otherwise overwritten).
+        $this->app->booted(function (): void {
+            Livewire::component('filament.livewire.global-search', SafeGlobalSearch::class);
+            Livewire::component(FilamentGlobalSearch::class, SafeGlobalSearch::class);
+        });
 
         config([
             'livewire.temporary_file_upload.disk' => 'local',

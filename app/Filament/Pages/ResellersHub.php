@@ -3,6 +3,7 @@
 namespace App\Filament\Pages;
 
 use App\Filament\Pages\ResellerPackagePricesPage;
+use App\Filament\Pages\ResellerPendingWalletRechargesPage;
 use App\Filament\Pages\ResellerReportPage;
 use App\Filament\Pages\ResellerWalletHubPage;
 use App\Filament\Resources\ResellerResource;
@@ -46,6 +47,13 @@ class ResellersHub extends Page
             'pending_commission' => (float) ResellerCommission::query()
                 ->where('status', ResellerCommission::STATUS_PENDING)
                 ->sum('commission_amount'),
+            'pending_wallet_topups' => ResellerPendingWalletRechargesPage::pendingCount(),
+            'admin_receivable_total' => (float) Reseller::query()->sum('admin_receivable_due'),
+            'new_customers_month' => (int) \App\Models\Customer::query()
+                ->whereNotNull('reseller_id')
+                ->whereMonth('created_at', now()->month)
+                ->whereYear('created_at', now()->year)
+                ->count(),
         ];
     }
 
@@ -161,5 +169,55 @@ class ResellersHub extends Page
     public static function canAccess(): bool
     {
         return \App\Support\Rbac\StaffCapability::for(auth()->user())->canResellers();
+    }
+
+    /**
+     * Network financial overview (wallet, receivable, credit utilisation, commission lifetime).
+     *
+     * @return array<string, float|int>
+     */
+    public function getFinancialOverview(): array
+    {
+        return app(\App\Services\Resellers\ResellerAnalyticsService::class)->financialOverview();
+    }
+
+    /**
+     * Commission + gross-revenue trend for the last 6 months.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public function getCommissionTrend(): array
+    {
+        return app(\App\Services\Resellers\ResellerAnalyticsService::class)->commissionTrend(6);
+    }
+
+    /**
+     * New reseller customers per month (growth) for the last 6 months.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public function getCustomerGrowth(): array
+    {
+        return app(\App\Services\Resellers\ResellerAnalyticsService::class)->customerGrowth(6);
+    }
+
+    /**
+     * Top partners by performance score (size + collection + low risk).
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public function getPerformanceScores(): array
+    {
+        return app(\App\Services\Resellers\ResellerAnalyticsService::class)->performanceScores(6);
+    }
+
+    /**
+     * Risk watchlist — partners flagged by credit/wallet/risk.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public function getRiskWatchlist(): array
+    {
+        return app(\App\Services\Resellers\ResellerAnalyticsService::class)->riskWatchlist(6);
     }
 }

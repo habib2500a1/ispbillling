@@ -6,10 +6,18 @@ use App\Filament\Concerns\ChecksIspPermission;
 use App\Filament\Resources\CustomerResource\Pages;
 use App\Filament\Resources\CustomerResource\RelationManagers;
 use App\Filament\Resources\CustomerResource\Widgets;
+use App\Filament\Pages\BillCollectionDesk;
 use App\Jobs\SyncCustomerNetworkAccessJob;
+use App\Jobs\SyncCustomerOnuFromOltJob;
+use App\Models\Reseller;
+use App\Models\Area;
 use App\Models\Customer;
 use App\Models\CustomerContact;
 use App\Models\Device;
+use App\Models\MikrotikServer;
+use App\Models\Package;
+use App\Models\Zone;
+use App\Support\TenantResolver;
 use App\Services\Mikrotik\MikrotikServerService;
 use App\Support\CustomerBalanceDue;
 use App\Support\CustomerStatus;
@@ -19,7 +27,10 @@ use App\Support\MacAddress;
 use App\Support\OnuSignalLevel;
 use App\Support\OpticalThresholds;
 use App\Services\Billing\BillingAccountListCounts;
+use App\Services\Billing\CustomerWalletService;
+use App\Services\Optical\OnuNetworkDiagnosticsPresenter;
 use App\Services\Portal\CustomerPortalAccessService;
+use App\Services\Subscribers\AdminSubscriberTransferService;
 use Filament\Facades\Filament;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -629,8 +640,12 @@ class CustomerResource extends Resource
             ->deferFilters()
             ->actions([
                 static::portalLoginTableAction(),
-                Tables\Actions\ViewAction::make(),
-                Tables\Actions\EditAction::make(),
+                Tables\Actions\ViewAction::make()
+                    ->iconButton()
+                    ->tooltip('View subscriber'),
+                Tables\Actions\EditAction::make()
+                    ->iconButton()
+                    ->tooltip('Edit subscriber'),
                 Tables\Actions\ActionGroup::make([
                     Tables\Actions\Action::make('portal_credentials')
                         ->label('Portal ID & password')
@@ -743,7 +758,7 @@ class CustomerResource extends Resource
                     ->requiresConfirmation()
                     ->action(function (Customer $record): void {
                         $record->update(['network_access_state' => 'suspended']);
-                        SyncCustomerNetworkAccessJob::dispatchSync((int) $record->tenant_id, (int) $record->id);
+                        SyncCustomerNetworkAccessJob::dispatch((int) $record->tenant_id, (int) $record->id)->afterResponse();
                         Notification::make()->title('Network suspended')->success()->send();
                     }),
                 Tables\Actions\Action::make('network_on')
@@ -849,11 +864,12 @@ class CustomerResource extends Resource
                             ->send();
                     }),
                 ])
-                    ->label('More')
-                    ->icon('heroicon-m-ellipsis-vertical')
+                    ->icon('heroicon-m-ellipsis-horizontal')
                     ->color('gray')
-                    ->button(),
+                    ->iconButton()
+                    ->tooltip('More actions'),
             ])
+            ->actionsPosition(ActionsPosition::AfterColumns)
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\BulkAction::make('bulk_active')
@@ -915,41 +931,165 @@ class CustomerResource extends Resource
             ]);
     }
 
-    public static function clientsDirectoryTable(Table $table): Table
+    /**
+     * @return array<int, Tables\Filters\BaseFilter>
+     */
+    protected static function clientsDirectoryFilters(): array
     {
-        return static::table($table)
-            ->columns(static::clientsDirectoryColumns())
-            ->striped(false)
+        $tenantId = TenantResolver::requiredTenantId();
+        $today = now()->toDateString();
+
+        return [
+            Tables\Filters\SelectFilter::make('package_id')
+                ->label('Package')
+                ->placeholder('All packages')
+                ->options(fn (): array => Package::query()
+                    ->where('tenant_id', $tenantId)
+                    ->orderBy('name')
+                    ->pluck('name', 'id')
+                    ->all())
+                ->searchable()
+                ->preload()
+                ->native(false),
+            Tables\Filters\SelectFilter::make('zone_id')
+                ->label('Zone')
+                ->placeholder('All zones')
+                ->options(fn (): array => Zone::query()
+                    ->where('tenant_id', $tenantId)
+                    ->orderBy('name')
+                    ->pluck('name', 'id')
+                    ->all())
+                ->searchable()
+                ->preload()
+                ->native(false),
+            Tables\Filters\SelectFilter::make('reseller_id')
+                ->label('Owner')
+                ->placeholder('All owners')
+                ->options(fn (): array => Reseller::query()
+                    ->where('is_active', true)
+                    ->orderBy('name')
+                    ->pluck('name', 'id')
+                    ->all())
+                ->searchable()
+                ->preload()
+                ->native(false),
+            Tables\Filters\SelectFilter::make('status')
+                ->label('Account status')
+                ->placeholder('Any status')
+                ->options(CustomerStatus::options())
+                ->native(false),
+            Tables\Filters\SelectFilter::make('network_access_state')
+                ->label('Line')
+                ->placeholder('Any line')
+                ->options([
+                    'active' => 'Line on',
+                    'suspended' => 'Line off',
+                ])
+                ->native(false),
+            Tables\Filters\SelectFilter::make('remaining_days')
+                ->label('Rem. days')
+                ->placeholder('Any')
+                ->options([
+                    'expired' => 'Expired',
+                    '0_3' => '0–3 days',
+                    '4_7' => '4–7 days',
+                    '8_30' => '8–30 days',
+                    '30_plus' => '30+ days',
+                ])
+                ->native(false)
+                ->query(function (Builder $query, array $data) use ($today): Builder {
+                    $value = $data['value'] ?? null;
+                    if (blank($value)) {
+                        return $query;
+                    }
+
+                    $table = $query->getModel()->getTable();
+
+                    return match ($value) {
+                        'expired' => $query
+                            ->whereNotNull("{$table}.service_expires_at")
+                            ->whereDate("{$table}.service_expires_at", '<', $today),
+                        '0_3' => $query
+                            ->whereNotNull("{$table}.service_expires_at")
+                            ->whereDate("{$table}.service_expires_at", '>=', $today)
+                            ->whereDate("{$table}.service_expires_at", '<=', now()->addDays(3)->toDateString()),
+                        '4_7' => $query
+                            ->whereNotNull("{$table}.service_expires_at")
+                            ->whereDate("{$table}.service_expires_at", '>=', $today)
+                            ->whereDate("{$table}.service_expires_at", '<=', now()->addDays(7)->toDateString()),
+                        '8_30' => $query
+                            ->whereNotNull("{$table}.service_expires_at")
+                            ->whereDate("{$table}.service_expires_at", '>=', $today)
+                            ->whereDate("{$table}.service_expires_at", '<=', now()->addDays(30)->toDateString()),
+                        '30_plus' => $query
+                            ->whereNotNull("{$table}.service_expires_at")
+                            ->whereDate("{$table}.service_expires_at", '>', now()->addDays(30)->toDateString()),
+                        default => $query,
+                    };
+                }),
+        ];
+    }
+
+    public static function clientsDirectoryTable(Table $table, ?string $variant = null): Table
+    {
+        $billingList = in_array($variant, ['due', 'vip'], true);
+        $duePage = $variant === 'due';
+
+        return $table
+            ->modifyQueryUsing(function (Builder $query) use ($billingList): Builder {
+                $query->with([
+                    'zone:id,name',
+                    'package:id,name,download_mbps,price_monthly',
+                    'reseller:id,name',
+                ]);
+
+                if ($billingList) {
+                    CustomerBalanceDue::augmentTableQuery($query);
+                }
+
+                return $query;
+            })
+            ->columns(static::clientsDirectoryColumns($billingList))
+            ->actions($billingList ? static::clientsDirectoryDueActions() : static::clientsDirectoryActions())
+            ->bulkActions([
+                Tables\Actions\BulkActionGroup::make([
+                    static::bulkMoveResellerAction(),
+                    static::bulkRechargeWalletAction(),
+                    static::bulkExtendDaysAction(),
+                    static::bulkDisableAction(),
+                    static::bulkLeftAction(),
+                    static::bulkSmsAction(),
+                ]),
+            ])
+            ->defaultSort(
+                $duePage ? 'resolved_balance_due' : 'name',
+                $duePage ? 'desc' : 'asc',
+            )
+            ->striped($billingList)
             ->actionsPosition(ActionsPosition::AfterColumns)
-            ->actionsColumnLabel('Actions')
-            ->deferFilters(false)
+            ->actionsColumnLabel($billingList ? 'Pay / Actions' : 'Actions')
+            ->persistFiltersInSession(false)
+            ->persistSearchInSession(false)
+            ->searchable()
+            ->searchPlaceholder($billingList ? 'Search ID, name, phone, PPPoE, zone…' : 'Search name, phone, ID, PPPoE, address…')
+            ->searchDebounce('400ms')
             ->defaultPaginationPageOption(25)
             ->paginationPageOptions([25, 50, 100])
-            ->emptyStateHeading('No clients found')
-            ->emptyStateDescription('Add a client, change the tab preset, or clear filters.')
-            ->filters([
-                Tables\Filters\SelectFilter::make('status')
-                    ->label('All Status')
-                    ->options(CustomerStatus::options()),
-                Tables\Filters\SelectFilter::make('package_id')
-                    ->label('All Packages')
-                    ->relationship('package', 'name')
-                    ->searchable(),
-                Tables\Filters\SelectFilter::make('mikrotik_server_id')
-                    ->label('Router')
-                    ->relationship('mikrotikServer', 'name')
-                    ->searchable(),
-                Tables\Filters\SelectFilter::make('area_id')
-                    ->label('All Areas')
-                    ->relationship('area', 'name')
-                    ->searchable(),
-                Tables\Filters\SelectFilter::make('zone_id')
-                    ->label('Zone')
-                    ->relationship('zone', 'name')
-                    ->searchable(),
-            ])
+            ->emptyStateHeading(match ($variant) {
+                'due' => 'No due clients',
+                'vip' => 'No VIP clients',
+                default => 'No clients found',
+            })
+            ->emptyStateDescription(match ($variant) {
+                'due' => 'All clients are paid up — or adjust filters above.',
+                'vip' => 'Mark subscribers as VIP in profile — they keep line on with optional billing.',
+                default => 'Add a client, change the tab preset, or clear filters.',
+            })
+            ->filters(static::clientsDirectoryFilters())
             ->filtersLayout(FiltersLayout::AboveContent)
-            ->filtersFormColumns(['default' => 1, 'sm' => 2, 'lg' => 5]);
+            ->filtersFormColumns(['default' => 2, 'sm' => 3, 'lg' => 6])
+            ->deferFilters(false)
+            ->deferLoading();
     }
 
     protected static function portalLoginTableAction(): Tables\Actions\Action
@@ -968,89 +1108,98 @@ class CustomerResource extends Resource
     /**
      * @return array<int, Tables\Columns\Column>
      */
-    protected static function clientsDirectoryColumns(): array
+    protected static function clientsDirectoryColumns(bool $billingList = false): array
     {
         return [
-            Tables\Columns\ViewColumn::make('name')
-                ->label('Client')
-                ->view('filament.tables.columns.client-directory-name')
-                ->searchable(['name', 'phone', 'email'])
-                ->sortable(),
             Tables\Columns\TextColumn::make('customer_code')
-                ->label('CID')
+                ->label('C.Code')
                 ->searchable()
                 ->sortable()
-                ->fontFamily('mono'),
-            Tables\Columns\TextColumn::make('mikrotik_secret_name')
-                ->label('PPPoE / Username')
-                ->searchable()
                 ->fontFamily('mono')
+                ->size('sm')
+                ->extraHeaderAttributes(['class' => 'cl-dir-col-id'])
+                ->extraCellAttributes(['class' => 'cl-dir-col-id']),
+            Tables\Columns\ViewColumn::make('name')
+                ->label('Customer')
+                ->view('filament.tables.columns.client-directory-name')
+                ->searchable(['name', 'customer_code', 'phone', 'email', 'address', 'mikrotik_secret_name', 'radius_username'])
+                ->sortable()
+                ->extraHeaderAttributes(['class' => 'cl-dir-col-name'])
+                ->extraCellAttributes(['class' => 'cl-dir-col-name']),
+            Tables\Columns\ViewColumn::make('phone')
+                ->label('Phone')
+                ->view('filament.tables.columns.client-directory-phone')
+                ->searchable()
+                ->extraHeaderAttributes(['class' => 'cl-dir-col-phone'])
+                ->extraCellAttributes(['class' => 'cl-dir-col-phone']),
+            Tables\Columns\TextColumn::make('address')
+                ->label('Address')
+                ->searchable()
+                ->wrap()
+                ->limit(48)
                 ->placeholder('—')
-                ->copyable(),
+                ->toggleable(isToggledHiddenByDefault: true)
+                ->extraCellAttributes(['class' => 'cl-dir-col-address']),
+            Tables\Columns\TextColumn::make('zone.name')
+                ->label('Zone')
+                ->badge()
+                ->color('gray')
+                ->placeholder('—')
+                ->sortable()
+                ->toggleable(isToggledHiddenByDefault: ! $billingList)
+                ->extraHeaderAttributes(['class' => 'cl-dir-col-zone'])
+                ->extraCellAttributes(['class' => 'cl-dir-col-zone']),
             Tables\Columns\TextColumn::make('package.name')
                 ->label('Package')
                 ->sortable()
-                ->formatStateUsing(function (Customer $record): string {
-                    $package = $record->package;
-                    if ($package === null) {
-                        return '—';
-                    }
-
-                    return ($package->download_mbps ?? '?').' Mbps';
-                })
-                ->description(function (Customer $record): ?string {
-                    $package = $record->package;
-                    if ($package === null || ! filled($package->price_monthly)) {
-                        return null;
-                    }
-
-                    return number_format((float) $package->price_monthly, 0).' BDT/mo';
-                })
+                ->wrap(false)
+                ->limit(16)
                 ->placeholder('—')
-                ->tooltip(fn (Customer $record): ?string => filled($record->package?->name)
-                    ? \App\Support\CustomerPackageLabel::for($record)
-                    : null),
-            Tables\Columns\TextColumn::make('resolved_balance_due')
-                ->label('Due')
-                ->formatStateUsing(fn ($state, Customer $record): float => \App\Support\CustomerBalanceDue::displayAmount($record))
+                ->extraCellAttributes(['class' => 'cl-dir-col-package']),
+            Tables\Columns\TextColumn::make('package.price_monthly')
+                ->label('M.Bill')
                 ->money('BDT')
                 ->alignEnd()
-                ->color(fn ($state, Customer $record): ?string => \App\Support\CustomerBalanceDue::displayAmount($record) > 0.009 ? 'danger' : 'success'),
-            Tables\Columns\TextColumn::make('account_balance')
-                ->label('Wallet')
+                ->placeholder('—')
+                ->toggleable(isToggledHiddenByDefault: ! $billingList)
+                ->extraHeaderAttributes(['class' => 'cl-dir-col-mbill'])
+                ->extraCellAttributes(['class' => 'cl-dir-col-mbill']),
+            Tables\Columns\TextColumn::make('owner_label')
+                ->label('Owner')
+                ->state(fn (Customer $record): string => $record->reseller?->name
+                    ?? (string) config('isp.company_name', 'Admin'))
+                ->badge()
+                ->color(fn (Customer $record): string => $record->reseller_id ? 'info' : 'gray')
+                ->toggleable(isToggledHiddenByDefault: true),
+            Tables\Columns\ToggleColumn::make('network_access_state')
+                ->label('Line')
+                ->extraHeaderAttributes(['class' => 'cl-dir-col-line'])
+                ->extraCellAttributes(['class' => 'cl-dir-col-line'])
+                ->onColor('success')
+                ->offColor('danger')
+                ->getStateUsing(fn (Customer $record): bool => ($record->network_access_state ?? 'active') === 'active'
+                    && $record->status !== CustomerStatus::TERMINATED)
+                ->updateStateUsing(function (Customer $record, bool $state): void {
+                    $record->update([
+                        'network_access_state' => $state ? 'active' : 'suspended',
+                        'status' => $state && $record->status === CustomerStatus::SUSPENDED
+                            ? CustomerStatus::ACTIVE
+                            : $record->status,
+                    ]);
+                    SyncCustomerNetworkAccessJob::dispatch((int) $record->tenant_id, (int) $record->id)->afterResponse();
+                })
+                ->disabled(fn (Customer $record): bool => $record->status === CustomerStatus::TERMINATED),
+            Tables\Columns\TextColumn::make('resolved_balance_due')
+                ->label('Balance due')
+                ->formatStateUsing(fn ($state, Customer $record): float => CustomerBalanceDue::displayAmount($record))
                 ->money('BDT')
                 ->sortable()
                 ->alignEnd()
-                ->toggleable(isToggledHiddenByDefault: true),
-            Tables\Columns\TextColumn::make('status')
-                ->label('Status')
-                ->badge()
-                ->formatStateUsing(function (Customer $record): string {
-                    if (\App\Support\CustomerBalanceDue::displayAmount($record) > 0.009) {
-                        return 'Due';
-                    }
-
-                    return $record->statusLabel();
-                })
-                ->color(function (Customer $record): string {
-                    if (\App\Support\CustomerBalanceDue::displayAmount($record) > 0.009) {
-                        return 'danger';
-                    }
-
-                    return $record->statusColor();
-                })
-                ->sortable(),
-            Tables\Columns\TextColumn::make('coverage')
-                ->label('Area')
-                ->state(fn (Customer $record): string => collect([
-                    $record->area?->name,
-                    $record->zone?->name,
-                ])->filter()->implode(' · ') ?: '—')
-                ->wrap(),
-            Tables\Columns\TextColumn::make('created_at')
-                ->label('Joined')
-                ->date('d M Y')
-                ->sortable(),
+                ->weight(FontWeight::Bold)
+                ->color(fn ($state, Customer $record): ?string => CustomerBalanceDue::displayAmount($record) > 0.009 ? 'danger' : 'success')
+                ->toggleable(isToggledHiddenByDefault: ! $billingList)
+                ->extraHeaderAttributes(['class' => 'cl-dir-col-due'])
+                ->extraCellAttributes(['class' => 'cl-dir-col-due']),
             Tables\Columns\IconColumn::make('is_ppp_online')
                 ->label('Online')
                 ->boolean()
@@ -1061,6 +1210,286 @@ class CustomerResource extends Resource
                 ->falseColor('gray')
                 ->toggleable(isToggledHiddenByDefault: true),
         ];
+    }
+
+    /**
+     * @return array<int, Tables\Actions\Action>
+     */
+    /**
+     * @return array<int, Tables\Actions\Action>
+     */
+    protected static function clientsDirectoryDueActions(): array
+    {
+        return [
+            Tables\Actions\Action::make('pay_due')
+                ->label('Pay')
+                ->icon('heroicon-o-banknotes')
+                ->color('success')
+                ->button()
+                ->size('sm')
+                ->extraAttributes(['class' => 'cl-dir-pay-btn'])
+                ->url(fn (Customer $record): string => BillCollectionDesk::getUrl(['customer' => $record->getKey()])),
+            static::portalLoginTableAction(),
+            Tables\Actions\ViewAction::make()
+                ->iconButton()
+                ->tooltip('Client 360° view'),
+            Tables\Actions\ActionGroup::make(
+                \App\Filament\Support\ShebaSubscriberQuickActions::tableActions(),
+            )
+                ->icon('heroicon-m-ellipsis-horizontal')
+                ->color('gray')
+                ->iconButton()
+                ->tooltip('More actions'),
+        ];
+    }
+
+    protected static function clientsDirectoryActions(): array
+    {
+        return [
+            static::portalLoginTableAction(),
+            Tables\Actions\ViewAction::make()
+                ->iconButton()
+                ->tooltip('Client 360° view'),
+            Tables\Actions\ActionGroup::make(
+                \App\Filament\Support\ShebaSubscriberQuickActions::tableActions(),
+            )
+                ->icon('heroicon-m-ellipsis-horizontal')
+                ->color('gray')
+                ->iconButton()
+                ->tooltip('More actions'),
+        ];
+    }
+
+    protected static function shebaMoveResellerAction(): Tables\Actions\Action
+    {
+        return Tables\Actions\Action::make('move_reseller')
+            ->label('Move')
+            ->icon('heroicon-o-arrows-right-left')
+            ->color('gray')
+            ->tooltip('Move to POP / reseller')
+            ->form([
+                Forms\Components\Select::make('reseller_id')
+                    ->label('Target reseller')
+                    ->options(fn (): array => Reseller::query()
+                        ->where('is_active', true)
+                        ->orderBy('name')
+                        ->pluck('name', 'id')
+                        ->all())
+                    ->searchable()
+                    ->nullable()
+                    ->helperText('Leave empty to detach from reseller.'),
+                Forms\Components\Textarea::make('reason')->rows(2),
+            ])
+            ->action(function (Customer $record, array $data): void {
+                $to = filled($data['reseller_id'] ?? null)
+                    ? Reseller::query()->find((int) $data['reseller_id'])
+                    : null;
+                app(AdminSubscriberTransferService::class)->moveToReseller(
+                    $record,
+                    $to,
+                    auth()->user(),
+                    $data['reason'] ?? null,
+                );
+                Notification::make()->title('Subscriber moved')->success()->send();
+            });
+    }
+
+    protected static function shebaRechargeWalletAction(): Tables\Actions\Action
+    {
+        return Tables\Actions\Action::make('recharge_wallet')
+            ->label('Recharge')
+            ->icon('heroicon-o-wallet')
+            ->color('success')
+            ->tooltip('Wallet top-up')
+            ->form([
+                Forms\Components\TextInput::make('amount')
+                    ->label('Amount (BDT)')
+                    ->numeric()
+                    ->required()
+                    ->minValue(1),
+                Forms\Components\Textarea::make('notes')->rows(2),
+            ])
+            ->action(function (Customer $record, array $data): void {
+                $payment = app(CustomerWalletService::class)->deposit(
+                    $record,
+                    (float) $data['amount'],
+                    $data['notes'] ?? null,
+                    auth()->id(),
+                );
+                Notification::make()
+                    ->title('Wallet recharged')
+                    ->body('Receipt '.$payment->receipt_number.' · Balance BDT '.number_format((float) $record->fresh()->account_balance, 2))
+                    ->success()
+                    ->send();
+            });
+    }
+
+    protected static function shebaRetestOnuAction(): Tables\Actions\Action
+    {
+        return Tables\Actions\Action::make('retest_onu')
+            ->label('Retest ONU')
+            ->icon('heroicon-o-signal')
+            ->color('info')
+            ->tooltip('Refresh ONU / line diagnostics')
+            ->action(function (Customer $record): void {
+                SyncCustomerOnuFromOltJob::dispatch(
+                    (int) $record->tenant_id,
+                    (int) $record->id,
+                    forceOltSync: true,
+                );
+                $diag = app(OnuNetworkDiagnosticsPresenter::class)->forCustomer($record->fresh() ?? $record);
+                $rx = is_array($diag) ? ($diag['onu']['rx_display'] ?? 'No ONU linked') : 'No ONU linked';
+                Notification::make()
+                    ->title('Line retest queued')
+                    ->body('ONU RX: '.$rx)
+                    ->success()
+                    ->send();
+            });
+    }
+
+    protected static function bulkExtendDaysAction(): Tables\Actions\BulkAction
+    {
+        return Tables\Actions\BulkAction::make('bulk_extend_days')
+            ->label('Extend')
+            ->icon('heroicon-o-calendar')
+            ->color('info')
+            ->form([
+                Forms\Components\TextInput::make('days')
+                    ->label('Days')
+                    ->numeric()
+                    ->default(3)
+                    ->minValue(1)
+                    ->maxValue(730)
+                    ->required(),
+            ])
+            ->action(function (\Illuminate\Support\Collection $records, array $data): void {
+                $renewal = app(\App\Services\Subscribers\CustomerServiceRenewalService::class);
+                $days = (int) ($data['days'] ?? 3);
+                foreach ($records as $record) {
+                    $renewal->extendDays($record, $days);
+                }
+                Notification::make()
+                    ->title('Extended '.$records->count().' client(s) by '.$days.' days')
+                    ->success()
+                    ->send();
+            });
+    }
+
+    protected static function bulkDisableAction(): Tables\Actions\BulkAction
+    {
+        return Tables\Actions\BulkAction::make('bulk_disable')
+            ->label('Disable')
+            ->icon('heroicon-o-eye-slash')
+            ->color('warning')
+            ->requiresConfirmation()
+            ->action(fn (\Illuminate\Support\Collection $records) => static::bulkUpdateStatus($records, CustomerStatus::SUSPENDED));
+    }
+
+    protected static function bulkLeftAction(): Tables\Actions\BulkAction
+    {
+        return Tables\Actions\BulkAction::make('bulk_left')
+            ->label('Left')
+            ->icon('heroicon-o-user-minus')
+            ->color('danger')
+            ->requiresConfirmation()
+            ->action(fn (\Illuminate\Support\Collection $records) => static::bulkUpdateStatus($records, CustomerStatus::TERMINATED));
+    }
+
+    protected static function bulkSmsAction(): Tables\Actions\BulkAction
+    {
+        return Tables\Actions\BulkAction::make('bulk_sms')
+            ->label('SMS')
+            ->icon('heroicon-o-chat-bubble-left-right')
+            ->color('gray')
+            ->form([
+                Forms\Components\Textarea::make('message')
+                    ->label('Message')
+                    ->required()
+                    ->rows(4)
+                    ->maxLength(500),
+            ])
+            ->action(function (\Illuminate\Support\Collection $records, array $data): void {
+                $dispatcher = app(\App\Services\Notifications\NotificationDispatcher::class);
+                $message = trim((string) ($data['message'] ?? ''));
+                $sent = 0;
+
+                foreach ($records as $record) {
+                    $phone = $record->phone;
+                    if (blank($phone)) {
+                        continue;
+                    }
+
+                    $dispatcher->send(
+                        (int) $record->tenant_id,
+                        (int) $record->id,
+                        'manual_staff',
+                        \App\Support\NotificationChannel::SMS,
+                        (string) $phone,
+                        $message,
+                        ['bypass_event_gate' => true],
+                    );
+                    $sent++;
+                }
+
+                Notification::make()
+                    ->title('SMS queued for '.$sent.' client(s)')
+                    ->success()
+                    ->send();
+            });
+    }
+
+    protected static function bulkMoveResellerAction(): Tables\Actions\BulkAction
+    {
+        return Tables\Actions\BulkAction::make('bulk_move_reseller')
+            ->label('Move')
+            ->icon('heroicon-o-arrows-right-left')
+            ->form([
+                Forms\Components\Select::make('reseller_id')
+                    ->label('Target reseller')
+                    ->options(fn (): array => Reseller::query()->where('is_active', true)->orderBy('name')->pluck('name', 'id')->all())
+                    ->searchable()
+                    ->nullable(),
+            ])
+            ->action(function (\Illuminate\Support\Collection $records, array $data): void {
+                $to = filled($data['reseller_id'] ?? null)
+                    ? Reseller::query()->find((int) $data['reseller_id'])
+                    : null;
+                $service = app(AdminSubscriberTransferService::class);
+                foreach ($records as $record) {
+                    $service->moveToReseller($record, $to, auth()->user());
+                }
+                Notification::make()->title('Moved '.$records->count().' subscriber(s)')->success()->send();
+            });
+    }
+
+    protected static function bulkRechargeWalletAction(): Tables\Actions\BulkAction
+    {
+        return Tables\Actions\BulkAction::make('bulk_recharge_wallet')
+            ->label('Recharge')
+            ->icon('heroicon-o-wallet')
+            ->form([
+                Forms\Components\TextInput::make('amount')->numeric()->required()->minValue(1),
+            ])
+            ->action(function (\Illuminate\Support\Collection $records, array $data): void {
+                $wallet = app(CustomerWalletService::class);
+                foreach ($records as $record) {
+                    $wallet->deposit($record, (float) $data['amount'], 'Bulk wallet recharge', auth()->id());
+                }
+                Notification::make()->title('Recharged '.$records->count().' wallet(s)')->success()->send();
+            });
+    }
+
+    protected static function bulkRetestOnuAction(): Tables\Actions\BulkAction
+    {
+        return Tables\Actions\BulkAction::make('bulk_retest_onu')
+            ->label('Retest ONU')
+            ->icon('heroicon-o-signal')
+            ->action(function (\Illuminate\Support\Collection $records): void {
+                foreach ($records as $record) {
+                    SyncCustomerOnuFromOltJob::dispatch((int) $record->tenant_id, (int) $record->id, forceOltSync: true);
+                }
+                Notification::make()->title('Queued ONU retest for '.$records->count().' subscriber(s)')->success()->send();
+            });
     }
 
     /**
@@ -1196,6 +1625,7 @@ class CustomerResource extends Resource
             'expire-7' => Pages\ListExpireIn7DaysCustomers::route('/expire-7'),
             'pending' => Pages\ListPendingCustomers::route('/pending'),
             'free' => Pages\ListFreeCustomers::route('/free'),
+            'due' => Pages\ListDueCustomers::route('/due'),
             'vip' => Pages\ListVipCustomers::route('/vip'),
             'expired' => Pages\ListExpiredCustomers::route('/expired'),
             'suspended' => Pages\ListSuspendedCustomers::route('/suspended'),

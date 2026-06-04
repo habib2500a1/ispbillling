@@ -24,14 +24,10 @@
         'Legacy ID',
         'Database ID',
         'Tenant ID',
-        'ISP Digital sync',
+        'Portal sync',
     ];
 
-    $labelAliases = [
-        'ISP Digital server' => 'Network server',
-        'Connection (ISP Digital)' => 'Connection type',
-        'Device (ISP Digital)' => 'CPE device',
-    ];
+    $labelAliases = [];
 
     $isEmptyValue = static fn (mixed $value): bool => $value === '—' || $value === '' || $value === null;
 
@@ -42,8 +38,7 @@
 
         $lower = strtolower($label);
 
-        return str_contains($lower, 'isp digital')
-            || str_starts_with($lower, 'meta.isp_digital');
+        return str_starts_with($lower, 'meta.');
     };
 @endphp
 

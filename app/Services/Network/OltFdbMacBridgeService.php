@@ -17,7 +17,7 @@ use Illuminate\Support\Facades\Log;
  *
  * This walks the standard BRIDGE-MIB (dot1qTpFdbPort → bridge port; dot1dBasePortIfIndex →
  * ifIndex), resolves ifIndex → ONU device, and persists the learned customer MACs on the ONU as
- * meta['fdb_macs']. IspDigitalOnuAutoLinkService then matches those MACs to ppp_session_logs.caller_id.
+ * meta['fdb_macs']. LegacyPortalOnuAutoLinkService then matches those MACs to ppp_session_logs.caller_id.
  *
  * The ifIndex → ONU resolution is multi-source so it works across vendors:
  *   1. a stored ifIndex (meta['snmp_if_index'] or meta['bdcom_if_index']);

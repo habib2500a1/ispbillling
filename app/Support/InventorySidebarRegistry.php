@@ -12,6 +12,7 @@ use App\Filament\Resources\PopBoxResource;
 use App\Filament\Resources\ProductResource;
 use App\Filament\Resources\PurchaseOrderResource;
 use App\Filament\Resources\StockMovementResource;
+use App\Filament\Resources\StoreDeviceLoanResource;
 use App\Filament\Resources\VendorResource;
 use App\Filament\Resources\WarehouseResource;
 use App\Support\Rbac\StaffCapability;
@@ -146,6 +147,17 @@ final class InventorySidebarRegistry
                 ],
             ],
             [
+                'key' => 'store_device_loans',
+                'label' => 'Support device loans',
+                'icon' => 'heroicon-o-arrow-path-rounded-square',
+                'sort' => 9.5,
+                'url' => StoreDeviceLoanResource::getUrl(),
+                'active_routes' => [
+                    'filament.admin.resources.store-device-loans.index',
+                    'filament.admin.resources.store-device-loans.create',
+                ],
+            ],
+            [
                 'key' => 'vendors',
                 'label' => 'Vendors',
                 'icon' => 'heroicon-o-building-storefront',
@@ -268,7 +280,7 @@ final class InventorySidebarRegistry
             'warehouses', 'products', 'pos_new', 'retail_sales', 'purchase_orders', 'stock_ledger' => $cap->canInventory(),
             'invoices_hardware' => $cap->canInventory() && $cap->canBilling(),
             'public_shop' => $cap->canInventory() && config('inventory.shop_enabled', true),
-            'devices', 'pop_boxes' => $cap->canInventory() || $cap->canAccessModuleGroup('Network'),
+            'devices', 'store_device_loans', 'pop_boxes' => $cap->canInventory() || $cap->canAccessModuleGroup('Network'),
             'vendors', 'fixed_assets' => $cap->canInventory(),
             'accounting' => $cap->canInventory() && $cap->canAccounting(),
             default => false,

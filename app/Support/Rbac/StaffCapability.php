@@ -172,7 +172,7 @@ final class StaffCapability
             'HR & Payroll' => $this->canHrm(),
             'Inventory' => $this->canInventory(),
             'Inventory Pro' => $this->canInventory(),
-            'Finance' => $this->canAccounting(),
+            'Finance', 'Accounts' => $this->canAccounting() || $this->canBilling() || $this->canPayments(),
             'Resellers' => $this->canResellers(),
             'Reports' => $this->canReports(),
             'System' => $this->isTenantAdmin() || $this->canSystemSettings(),

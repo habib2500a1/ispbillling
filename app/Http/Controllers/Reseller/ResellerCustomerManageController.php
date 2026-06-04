@@ -51,16 +51,22 @@ class ResellerCustomerManageController extends Controller
             ->limit(15)
             ->get();
 
-        $invoices = $customer->invoices()
-            ->latest('issue_date')
-            ->limit(15)
-            ->get();
+        $pauseBilling = app(\App\Services\Resellers\ResellerSuspendedBillingService::class);
+        $billingPaused = $pauseBilling->isBillingPaused($customer);
+        $suspensionMonthCurrent = $billingPaused && $pauseBilling->isSuspensionMonthStillCurrent($customer);
+
+        $invoices = $billingPaused
+            ? $pauseBilling->invoicesQueryWhileSuspended($customer)->latest('issue_date')->limit(15)->get()
+            : $customer->invoices()->latest('issue_date')->limit(15)->get();
 
         $networkSession = $networkSessions->liveDetail($customer);
 
         return view('reseller.customers-show', [
             'reseller' => $reseller,
             'customer' => $customer,
+            'billingPaused' => $billingPaused,
+            'suspensionMonthCurrent' => $suspensionMonthCurrent,
+            'displayDue' => $pauseBilling->displayableOpenDue($customer),
             'payments' => $payments,
             'invoices' => $invoices,
             'networkSession' => $networkSession,
@@ -82,10 +88,27 @@ class ResellerCustomerManageController extends Controller
     public function update(Request $request, Customer $customer, ResellerCustomerService $customers): RedirectResponse
     {
         $reseller = auth('reseller')->user();
+        $activating = $customers->isActivating($customer, $request);
         $customers->update($reseller, $customer, $request);
+
+        $status = 'Subscriber updated.';
+        if ($activating) {
+            $pause = app(\App\Services\Resellers\ResellerSuspendedBillingService::class);
+            $voided = $pause->voidStaleOpenInvoicesBeforeActivation($customer->fresh());
+            $pause->clearPauseState($customer->fresh());
+            if ($voided > 0) {
+                $status .= " {$voided} old bill(s) cleared.";
+            }
+        }
+        if ($activating && $request->boolean('generate_bill_on_activate')) {
+            $bill = $customers->generateBillOnActivate($reseller, $customer->fresh());
+            if ($bill['message'] !== '') {
+                $status .= ' '.$bill['message'];
+            }
+        }
 
         return redirect()
             ->route('reseller.customers.show', $customer)
-            ->with('status', 'Subscriber updated.');
+            ->with('status', $status);
     }
 }

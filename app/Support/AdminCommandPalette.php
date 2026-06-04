@@ -2,6 +2,8 @@
 
 namespace App\Support;
 
+use App\Filament\Pages\AccountsHub;
+use App\Filament\Pages\AccountsWalletHubPage;
 use App\Filament\Pages\AccountingHub;
 use App\Filament\Pages\AnalyticsReports;
 use App\Filament\Pages\BandwidthMonitor;
@@ -34,6 +36,7 @@ use App\Filament\Pages\NetworkTopology;
 use App\Filament\Pages\NotificationsHub;
 use App\Filament\Pages\OperationsHub;
 use App\Filament\Pages\PaymentsOverview;
+use App\Filament\Pages\PaymentsReport;
 use App\Filament\Pages\ReportsHub;
 use App\Filament\Pages\ResellersHub;
 use App\Filament\Pages\StaffControlHub;
@@ -45,6 +48,7 @@ use App\Filament\Pages\OpticalMonitoringHub;
 use App\Filament\Resources\OltResource;
 use App\Filament\Resources\PaymentResource;
 use App\Filament\Resources\SupportTicketResource;
+use Illuminate\Support\Facades\Cache;
 
 class AdminCommandPalette
 {
@@ -52,6 +56,14 @@ class AdminCommandPalette
      * @return list<array{label: string, group: string, url: string, keywords?: list<string>}>
      */
     public static function items(): array
+    {
+        return Cache::remember('admin_command_palette_items', 3600, fn (): array => self::buildItems());
+    }
+
+    /**
+     * @return list<array{label: string, group: string, url: string, keywords?: list<string>}>
+     */
+    private static function buildItems(): array
     {
         return [
             ['group' => 'Overview', 'label' => 'All modules', 'url' => OperationsHub::getUrl()],
@@ -64,6 +76,10 @@ class AdminCommandPalette
             ['group' => 'Billing', 'label' => 'Bill money trail', 'url' => BillingFundFlowReport::getUrl()],
             ['group' => 'Billing', 'label' => 'Collection discount settings', 'url' => \App\Filament\Pages\ManageCollectionDiscountSettings::getUrl()],
             ['group' => 'Billing', 'label' => 'Collection report', 'url' => CollectionDeskReport::getUrl()],
+            ['group' => 'Billing', 'label' => 'Payment & bKash report', 'url' => PaymentsReport::getUrl(), 'keywords' => ['statement', 'bkash', 'collection']],
+            ['group' => 'Billing', 'label' => 'bKash collections', 'url' => PaymentsReport::getUrl().'?gateway=bkash'],
+            ['group' => 'Billing', 'label' => 'Admin wallets', 'url' => AccountsWalletHubPage::getUrl(), 'keywords' => ['wallet', 'cashbook', 'bank']],
+            ['group' => 'Accounts', 'label' => 'Accounts dashboard', 'url' => AccountsHub::getUrl()],
             ['group' => 'Billing', 'label' => 'Collector visits (GPS map)', 'url' => CollectorVisitsReport::getUrl()],
             ['group' => 'Billing', 'label' => 'Collector mobile (GPS)', 'url' => CollectorMobile::getUrl()],
             ['group' => 'Billing', 'label' => 'Dunning report', 'url' => DunningReport::getUrl()],

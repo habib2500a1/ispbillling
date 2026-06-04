@@ -30,7 +30,8 @@ class SyncAveisGponOnusCommand extends Command
             $this->line("Syncing Aveis OLT #{$olt->id} {$olt->adminLabel()} …");
             $result = $sync->syncOlt($olt, true);
             if ($result['success']) {
-                $this->info("  OK — {$result['discovered']} ONUs · +{$result['created']} new · {$result['updated']} updated · linked {$result['linked']}");
+                $fdb = (int) ($result['fdb_macs_stored'] ?? 0);
+                $this->info("  OK — {$result['discovered']} ONUs · +{$result['created']} new · {$result['updated']} updated · linked {$result['linked']} · FDB MACs {$fdb}");
             } else {
                 $this->error('  FAIL — '.($result['error'] ?? 'unknown'));
             }

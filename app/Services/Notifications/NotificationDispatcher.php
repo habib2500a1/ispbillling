@@ -11,6 +11,7 @@ use App\Services\Notifications\Channels\NotificationChannelInterface;
 use App\Services\Notifications\Channels\SmsNotificationChannel;
 use App\Services\Notifications\Channels\TelegramNotificationChannel;
 use App\Services\Notifications\Channels\WhatsAppNotificationChannel;
+use App\Services\CallCenter\VoiceCallGateway;
 use App\Services\Sms\SmsTemplateService;
 use App\Support\NotificationChannel;
 use App\Support\NotificationEvent;
@@ -37,35 +38,78 @@ final class NotificationDispatcher
      */
     public function notifyCustomer(Customer $customer, string $event, array $variables = [], array $context = []): void
     {
-        if (! $this->eventEnabled($event)) {
+        if (! $this->eventEnabled($event) && ! ($context['bypass_event_gate'] ?? false)) {
             return;
         }
 
-        $message = MessageTemplateRenderer::render($event, array_merge(
-            ['name' => $customer->name],
-            $variables,
-        ));
+        $tenantId = (int) $customer->tenant_id;
+        $smsTemplates = app(SmsTemplateService::class);
+        $smsEnabled = $smsTemplates->isEnabled($event, $tenantId);
 
-        if ($message === '') {
+        $message = '';
+        if ($smsEnabled) {
+            $message = $smsTemplates->render($event, array_merge(['name' => $customer->name], $variables), $tenantId);
+            if ($message === '') {
+                $message = MessageTemplateRenderer::render($event, array_merge(
+                    ['name' => $customer->name],
+                    $variables,
+                ));
+            }
+        }
+
+        // Reminder rule: SMS ON → SMS only. SMS OFF → voice call (if voice fallback enabled).
+        $useSms = $smsEnabled && $message !== '';
+        $voiceTemplate = ! $useSms ? $smsTemplates->voiceTemplateFor($event, $tenantId) : null;
+        $voiceMessage = $voiceTemplate !== null
+            ? trim((string) $voiceTemplate->transcript)
+            : '';
+        $useVoice = ! $useSms && $voiceMessage !== '';
+
+        if (! $useSms && ! $useVoice) {
             return;
         }
 
-        foreach ($this->channelsForEvent($event) as $channelName) {
-            if ($channelName === NotificationChannel::SMS && ! app(SmsTemplateService::class)->isEnabled($event, (int) $customer->tenant_id)) {
-                $this->logSkipped($customer, $event, $channelName, 'SMS template disabled');
+        if ($useSms) {
+            foreach ($this->channelsForEvent($event) as $channelName) {
+                if ($channelName !== NotificationChannel::SMS) {
+                    continue;
+                }
 
-                continue;
+                $recipient = $this->recipientForCustomer($customer, $channelName);
+                if ($recipient === null) {
+                    $this->logSkipped($customer, $event, $channelName, 'No recipient');
+
+                    continue;
+                }
+
+                $this->send($customer->tenant_id, $customer->id, $event, $channelName, $recipient, $message, $context);
             }
-
-            $recipient = $this->recipientForCustomer($customer, $channelName);
-            if ($recipient === null) {
-                $this->logSkipped($customer, $event, $channelName, 'No recipient');
-
-                continue;
-            }
-
-            $this->send($customer->tenant_id, $customer->id, $event, $channelName, $recipient, $message, $context);
         }
+
+        if ($useVoice) {
+            $phone = $this->recipientForCustomer($customer, NotificationChannel::SMS);
+            if ($phone !== null) {
+                $ok = app(VoiceCallGateway::class)->placeCall(
+                    $tenantId,
+                    $phone,
+                    $voiceMessage,
+                    $voiceTemplate->audio_url,
+                    array_merge($context, ['event' => $event, 'customer_id' => $customer->id]),
+                );
+                $this->send(
+                    $tenantId,
+                    $customer->id,
+                    $event,
+                    'voice',
+                    $phone,
+                    $voiceMessage,
+                    array_merge($context, ['voice_delivery' => $ok ? 'sent' : 'failed']),
+                );
+            }
+        }
+
+        $notifyBody = $useSms ? $message : $voiceMessage;
+        $this->notifyCustomerTelegramIfConfigured($customer, $event, $notifyBody, $context);
 
         // Dedicated ops handlers (e.g. PaymentNotificationService) send full Telegram templates.
         if ($this->telegramOpsEnabled($event) && ! $this->hasDedicatedOpsHandler($event)) {
@@ -220,6 +264,17 @@ final class NotificationDispatcher
             'meta' => $logMeta !== [] ? $logMeta : null,
         ]);
 
+        if ($channelName === 'voice') {
+            $delivery = (string) ($context['voice_delivery'] ?? 'failed');
+            $log->update([
+                'status' => $delivery === 'sent' ? 'sent' : 'failed',
+                'sent_at' => $delivery === 'sent' ? now() : null,
+                'error' => $delivery === 'sent' ? null : 'Voice call gateway failed or disabled',
+            ]);
+
+            return;
+        }
+
         if ((bool) config('notifications.log_delivery_only', false)) {
             Log::info('notification.log_only', [
                 'event' => $event,
@@ -316,11 +371,48 @@ final class NotificationDispatcher
             return ['email'];
         }
 
-        // Telegram ops alerts use notifyOps(); customer loop has no per-subscriber chat id.
+        // Subscriber Telegram uses notifyCustomerTelegramIfConfigured() with telegram_chat_id.
         return array_values(array_filter(
             $channels,
             fn (mixed $channel): bool => is_string($channel) && $channel !== NotificationChannel::TELEGRAM,
         ));
+    }
+
+    /**
+     * @param  array<string, mixed>  $context
+     */
+    private function notifyCustomerTelegramIfConfigured(
+        Customer $customer,
+        string $event,
+        string $message,
+        array $context,
+    ): void {
+        if ($message === '' || ! filled($customer->telegram_chat_id)) {
+            return;
+        }
+
+        if (! (bool) config('notifications.telegram.enabled', false)) {
+            return;
+        }
+
+        if (! (bool) config("notifications.events.{$event}.customer_telegram", false)) {
+            return;
+        }
+
+        $chatId = trim((string) $customer->telegram_chat_id);
+        if ($chatId === '') {
+            return;
+        }
+
+        $this->send(
+            (int) $customer->tenant_id,
+            $customer->id,
+            $event,
+            NotificationChannel::TELEGRAM,
+            $chatId,
+            $message,
+            $context,
+        );
     }
 
     /**
@@ -361,6 +453,7 @@ final class NotificationDispatcher
             NotificationChannel::EMAIL => filter_var($customer->email, FILTER_VALIDATE_EMAIL) ? $customer->email : null,
             NotificationChannel::SMS => filled($customer->phone) ? $customer->phone : null,
             NotificationChannel::WHATSAPP => $this->whatsappNumber($customer),
+            NotificationChannel::TELEGRAM => filled($customer->telegram_chat_id) ? trim((string) $customer->telegram_chat_id) : null,
             default => null,
         };
     }

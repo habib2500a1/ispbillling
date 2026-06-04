@@ -67,7 +67,7 @@ final class OltNocDashboardService
                 'fan_status' => $health['fan_status'] ?? null,
                 'power_supply_status' => $health['power_supply_status'] ?? null,
                 'health_score' => $score,
-                'health_label' => $this->healthLabel($score),
+                'health_label' => $this->healthLabel($score, $health['health_data_complete'] ?? null),
                 'snmp_ok' => $snmpOk,
                 'onus_online' => (int) ($health['onus_online'] ?? $olt->onus_online ?? 0),
                 'onus_offline' => (int) ($health['onus_offline'] ?? max(0, $olt->onus_total - ($olt->onus_online ?? 0))),
@@ -107,10 +107,14 @@ final class OltNocDashboardService
         return (int) round($scores->avg());
     }
 
-    private function healthLabel(?int $score): string
+    private function healthLabel(?int $score, ?bool $dataComplete = null): string
     {
         if ($score === null) {
             return 'Unknown';
+        }
+
+        if ($dataComplete === false) {
+            return 'Partial data';
         }
 
         return match (true) {

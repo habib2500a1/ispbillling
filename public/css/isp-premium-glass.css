@@ -137,7 +137,7 @@ body.isp-premium-bg::before {
     animation: premium-mesh-drift 24s ease-in-out infinite alternate;
 }
 
-.fi-body > *:not(.isp-mobile-bar):not(.isp-cmd-palette):not(.isp-premium-loader):not(.isp-premium-orbs),
+.fi-body > *:not(.isp-mobile-bar):not(.isp-cmd-palette):not(.isp-premium-loader):not(.isp-premium-orbs):not(.isp-live-call-dock),
 .portal-body > *:not(.isp-premium-loader):not(.isp-premium-orbs),
 .bp-bg > * {
     position: relative;
@@ -146,13 +146,25 @@ body.isp-premium-bg::before {
 
 /* Fixed chrome must stay viewport-bound (see admin-saas .isp-mobile-bar) */
 body.fi-body > .isp-mobile-bar,
-body.fi-body > .isp-cmd-palette {
+body.fi-body > .isp-cmd-palette,
+body.fi-body > .isp-live-call-dock {
     position: fixed !important;
     z-index: 55;
 }
 
 body.fi-body > .isp-cmd-palette {
     z-index: 9999 !important;
+}
+
+body.fi-body > .isp-live-call-dock {
+    z-index: 10050 !important;
+    pointer-events: none;
+}
+
+body.fi-body > .isp-live-call-dock > .isp-live-call-fab,
+body.fi-body > .isp-live-call-dock .isp-websip-panel,
+body.fi-body > .isp-live-call-dock .isp-websip-backdrop {
+    pointer-events: auto;
 }
 
 @keyframes premium-mesh-drift {
@@ -795,7 +807,6 @@ html:not(.portal-dark) #dashboard-live-panel .portal-summary-card__meta {
 .isp-billing-hub-page .fi-main,
 .isp-inventory-hub-page .fi-main,
 .isp-olt-hub-page .fi-main,
-.isp-sub-view-page .fi-main,
 .isp-optical-noc-page .fi-main {
     background: transparent !important;
 }
@@ -803,27 +814,21 @@ html:not(.portal-dark) #dashboard-live-panel .portal-summary-card__meta {
 .isp-clients-hub-page .fi-page,
 .isp-billing-hub-page .fi-page,
 .isp-inventory-hub-page .fi-page,
-.isp-olt-hub-page .fi-page,
-.isp-sub-view-page .fi-page {
+.isp-olt-hub-page .fi-page {
     background: transparent !important;
 }
 
 .ch-pro .ch-card,
 .bh-pro .bh-card,
 .ih-pro .ih-card,
-.olt-pro .olt-stat,
-.olt-pro .olt-hero,
-.sub-pro .olt-hero,
+.isp-olt-hub-page .olt-pro .olt-hero,
+.isp-olt-hub-page .olt-pro .olt-stat,
 .sub-pro .isp-cv-card {
     background: var(--premium-glass-bg-strong) !important;
     backdrop-filter: blur(var(--premium-blur)) !important;
     -webkit-backdrop-filter: blur(var(--premium-blur)) !important;
     border: 1px solid var(--premium-glass-border) !important;
     box-shadow: var(--premium-glass-shadow) !important;
-}
-
-.sub-pro .olt-hero {
-    box-shadow: var(--premium-glass-shadow-hover) !important;
 }
 
 .isp-portal-login-col a {

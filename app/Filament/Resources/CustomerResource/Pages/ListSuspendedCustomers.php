@@ -20,6 +20,12 @@ class ListSuspendedCustomers extends ListFilteredCustomers
 
     protected function applyFilter(Builder $query): Builder
     {
-        return $query->where('status', CustomerStatus::SUSPENDED);
+        return $query->where(function (Builder $q): void {
+            $q->where('status', CustomerStatus::SUSPENDED)
+                ->orWhere(function (Builder $q2): void {
+                    $q2->where('network_access_state', 'suspended')
+                        ->where('status', '!=', CustomerStatus::TERMINATED);
+                });
+        });
     }
 }

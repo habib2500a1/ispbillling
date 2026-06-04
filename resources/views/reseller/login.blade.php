@@ -5,14 +5,21 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Reseller login — {{ config('app.name') }}</title>
     @include('partials.isp-premium-theme', ['tailwind' => true])
-    <link rel="stylesheet" href="{{ asset('css/reseller-portal.css') }}?v=4">
+    @php $loginCssVer = @filemtime(public_path('css/reseller-portal-v2.css')) ?: time(); @endphp
+    <link rel="stylesheet" href="{{ asset('css/reseller-portal-v2.css') }}?v={{ $loginCssVer }}">
 </head>
 <body class="rsl-page rsl-bg flex min-h-screen items-center justify-center px-4">
     <div class="rsl-card w-full max-w-md p-8">
         <div class="mb-6 text-center">
             <span class="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-600 text-2xl font-bold text-white">R</span>
-            <h1 class="mt-4 rsl-title">Reseller portal</h1>
+            <h1 class="mt-4 rsl-title">Enterprise partner portal</h1>
             <p class="mt-1 rsl-subtitle">Sign in with partner code, email, or phone</p>
+            @php
+                $wl = app()->bound('reseller.white_label') ? app('reseller.white_label') : null;
+            @endphp
+            @if ($wl && filled($wl->portal_login_message))
+                <p class="mt-3 rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-2 text-sm text-indigo-900">{{ $wl->portal_login_message }}</p>
+            @endif
         </div>
 
         @if ($errors->any())

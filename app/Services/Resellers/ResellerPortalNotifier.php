@@ -60,6 +60,16 @@ final class ResellerPortalNotifier
         );
     }
 
+    public function lowBalanceSuspended(Reseller $reseller): void
+    {
+        $this->notify(
+            $reseller,
+            'low_balance_suspended',
+            'Account suspended — low balance',
+            'Your reseller account was suspended due to low wallet balance. Recharge to restore service.',
+        );
+    }
+
     public function dueReminder(Reseller $reseller, int $dueCustomers, float $dueAmount, int $expiringCustomers = 0): void
     {
         $parts = [];
@@ -116,6 +126,37 @@ final class ResellerPortalNotifier
             'Wallet top-up rejected',
             number_format($amount, 2).' BDT · '.$requestNumber.' — '.$reason,
             ['request_number' => $requestNumber],
+        );
+    }
+
+    public function wholesaleDebited(
+        Reseller $reseller,
+        float $amount,
+        string $invoiceNumber,
+        string $customerCode,
+    ): void {
+        $this->notify(
+            $reseller,
+            'wholesale_debit',
+            'Wholesale debited',
+            number_format($amount, 2).' BDT for bill '.$invoiceNumber.' · '.$customerCode,
+            ['invoice_number' => $invoiceNumber, 'customer_code' => $customerCode],
+        );
+    }
+
+    public function wholesaleDebitFailed(
+        Reseller $reseller,
+        float $amount,
+        string $invoiceNumber,
+        string $customerCode,
+        string $reason,
+    ): void {
+        $this->notify(
+            $reseller,
+            'wholesale_debit_failed',
+            'Wholesale not debited',
+            number_format($amount, 2).' BDT for '.$invoiceNumber.' · '.$customerCode.' — '.$reason.'. Top up wallet.',
+            ['invoice_number' => $invoiceNumber, 'customer_code' => $customerCode, 'reason' => $reason],
         );
     }
 

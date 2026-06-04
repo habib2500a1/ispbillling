@@ -20,7 +20,7 @@ class ResellerPackagePricesPage extends Page implements HasTable
 
     protected static ?string $navigationLabel = 'Reseller packages';
 
-    protected static ?string $title = 'Reseller packages & selling price';
+    protected static ?string $title = 'Reseller packages & rates';
 
     protected static ?string $slug = 'reseller-package-prices';
 
@@ -62,10 +62,10 @@ class ResellerPackagePricesPage extends Page implements HasTable
                     ->placeholder('—')
                     ->searchable(),
                 Tables\Columns\TextColumn::make('package.price_monthly')
-                    ->label('Base price')
+                    ->label('Customer bill')
                     ->money('BDT'),
-                Tables\Columns\TextColumn::make('selling_price')
-                    ->label('Selling price')
+                Tables\Columns\TextColumn::make('wholesale_price')
+                    ->label('Reseller rate')
                     ->money('BDT')
                     ->sortable(),
                 Tables\Columns\IconColumn::make('is_active')->boolean()->label('Active'),

@@ -24,7 +24,7 @@ final class BillingDueRealtimeSync
         $due = CustomerBalanceDue::amount($customer);
 
         if ($due <= 0.009) {
-            app(ServiceExpiryExtensionService::class)->activateAfterFullPayment($customer->fresh() ?? $customer);
+            app(ServiceExpiryExtensionService::class)->extendForPaidCycle($customer->fresh() ?? $customer);
             $customer = $customer->fresh() ?? $customer;
         }
 

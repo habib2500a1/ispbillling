@@ -4,8 +4,27 @@
 
 @section('content')
     <div class="rsl-card p-6">
-        <h1 class="rsl-title">Wallet</h1>
-        <p class="mt-2 text-3xl font-bold text-emerald-700">{{ number_format((float) $reseller->wallet_balance, 2) }} BDT</p>
+        <div class="flex flex-wrap items-start justify-between gap-4">
+            <div>
+                <h1 class="rsl-title">Wallet</h1>
+                <p class="rsl-subtitle">Main balance, bonus wallet, and top-up</p>
+            </div>
+            <a href="{{ route('reseller.wallet.overview') }}" class="rsl-btn-sm rsl-btn-sm--outline">Full ledger & quotas →</a>
+        </div>
+        <div class="mt-4 grid gap-3 sm:grid-cols-3">
+            <div class="rounded-xl border border-emerald-200 bg-emerald-50/80 p-4 dark:border-emerald-800 dark:bg-emerald-950/30">
+                <p class="text-xs font-bold uppercase text-emerald-800 dark:text-emerald-300">Main</p>
+                <p class="mt-1 text-2xl font-bold text-emerald-700 dark:text-emerald-400">{{ number_format((float) $reseller->wallet_balance, 2) }} BDT</p>
+            </div>
+            <div class="rounded-xl border border-sky-200 bg-sky-50/80 p-4 dark:border-sky-800 dark:bg-sky-950/30">
+                <p class="text-xs font-bold uppercase text-sky-800 dark:text-sky-300">Bonus</p>
+                <p class="mt-1 text-2xl font-bold text-sky-700 dark:text-sky-400">{{ number_format((float) $reseller->bonus_wallet_balance, 2) }} BDT</p>
+            </div>
+            <div class="rounded-xl border border-violet-200 bg-violet-50/80 p-4 dark:border-violet-800 dark:bg-violet-950/30">
+                <p class="text-xs font-bold uppercase text-violet-800 dark:text-violet-300">Credit limit</p>
+                <p class="mt-1 text-2xl font-bold text-violet-700 dark:text-violet-400">{{ number_format((float) $reseller->credit_limit, 2) }} BDT</p>
+            </div>
+        </div>
         @if ($walletFrozen)
             <p class="mt-2 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900">Wallet is frozen. Contact admin for settlement or withdrawal.</p>
         @else
@@ -111,14 +130,15 @@
                     @forelse ($transfers as $t)
                         @php
                             $credit = (int) $t->to_reseller_id === (int) $reseller->id && (int) $t->from_reseller_id !== (int) $reseller->id;
-                            $debit = (int) $t->from_reseller_id === (int) $reseller->id && $t->transfer_type === 'debit';
+                            $debit = (int) $t->from_reseller_id === (int) $reseller->id
+                                && in_array($t->transfer_type, ['debit', 'wholesale_debit'], true);
                             $incoming = (int) $t->to_reseller_id === (int) $reseller->id;
                         @endphp
                         <tr>
                             <td class="px-4 py-3 rsl-text">{{ $t->created_at?->format('d M Y H:i') }}</td>
-                            <td class="px-4 py-3 capitalize">{{ str_replace('_', ' ', $t->transfer_type) }}</td>
-                            <td class="px-4 py-3 font-semibold text-emerald-700">{{ $incoming ? number_format((float) $t->amount, 2) : '—' }}</td>
-                            <td class="px-4 py-3 font-semibold text-rose-700">{{ ! $incoming || $debit ? ($incoming && ! $debit ? '—' : number_format((float) $t->amount, 2)) : '—' }}</td>
+                            <td class="px-4 py-3">{{ \App\Models\ResellerBalanceTransfer::typeLabel($t->transfer_type) }}</td>
+                            <td class="px-4 py-3 font-semibold text-emerald-700">{{ $incoming && ! $debit ? number_format((float) $t->amount, 2) : '—' }}</td>
+                            <td class="px-4 py-3 font-semibold text-rose-700">{{ $debit ? number_format((float) $t->amount, 2) : '—' }}</td>
                             <td class="px-4 py-3 rsl-text-muted">{{ $t->reference ?? '—' }}</td>
                             <td class="px-4 py-3 rsl-text-muted">{{ Str::limit($t->notes, 40) }}</td>
                         </tr>

@@ -2,8 +2,8 @@
 
 namespace App\Filament\Pages;
 
+use App\Filament\Pages\Concerns\CachesHubStats;
 use App\Support\Rbac\StaffCapability;
-
 use App\Filament\Resources\OltResource;
 use App\Models\Device;
 use App\Models\SignalAlert;
@@ -14,7 +14,6 @@ use App\Services\Olt\OltNocDashboardService;
 use App\Services\Olt\OltProvisioningService;
 use App\Services\Optical\OpticalDatabasePresenter;
 use App\Services\Optical\OpticalTopologyService;
-use App\Services\Optical\OpticalNocDashboardService;
 use App\Services\Optical\OpticalSignalHistoryService;
 use App\Support\TenantResolver;
 use Filament\Actions\Action;
@@ -26,6 +25,7 @@ use Filament\Pages\Page;
 
 class OpticalMonitoringHub extends Page implements HasForms
 {
+    use CachesHubStats;
     use InteractsWithForms;
 
     protected static ?string $navigationIcon = 'heroicon-o-light-bulb';
@@ -53,32 +53,39 @@ class OpticalMonitoringHub extends Page implements HasForms
     public int $opticalDbPage = 1;
 
     /**
+     * Lightweight banner stats — avoids full NOC snapshot (16M+ signal logs) on every page load.
+     *
      * @return array<string, mixed>
      */
     public function getNocPayload(): array
     {
-        try {
-            return app(OpticalNocDashboardService::class)->fullSnapshot(TenantResolver::requiredTenantId());
-        } catch (\Throwable) {
-            return $this->getOpticalStatsSafe();
-        }
+        return $this->cachedHubStats(function (): array {
+            try {
+                $tenantId = TenantResolver::requiredTenantId();
+                $stats = $this->getOpticalStatsSafe();
+
+                return array_merge($stats, [
+                    'olt_total' => Device::query()
+                        ->withoutGlobalScopes()
+                        ->where('tenant_id', $tenantId)
+                        ->where('type', 'olt')
+                        ->where('status', '!=', 'decommissioned')
+                        ->count(),
+                ]);
+            } catch (\Throwable) {
+                return $this->getOpticalStatsSafe();
+            }
+        });
     }
 
     public function mount(): void
     {
-        $this->monitorTab = 'database';
+        $tab = (string) request()->query('tab', 'database');
+        $this->monitorTab = in_array($tab, ['database', 'olt', 'topology', 'charts', 'pon', 'ai', 'alerts'], true)
+            ? $tab
+            : 'database';
 
-        if (config('optical.auto_fetch_ppp_sessions', true) && config('bandwidth.collection_enabled', true)) {
-            $tenantId = TenantResolver::requiredTenantId();
-            $bandwidth = app(\App\Services\Bandwidth\BandwidthCollectionService::class);
-            if ($bandwidth->tenantHasEnabledMikrotik($tenantId) && ! $bandwidth->tenantOnlineFlagsTrustworthy($tenantId)) {
-                try {
-                    $bandwidth->refreshOnlineFlagsForTenant($tenantId);
-                } catch (\Throwable) {
-                    // Optical table still loads from OLT inventory.
-                }
-            }
-        }
+        // Do not refresh PPP online flags on mount — iterates all subscribers and can timeout.
     }
 
     /**
@@ -94,22 +101,24 @@ class OpticalMonitoringHub extends Page implements HasForms
      */
     public function getOpticalStatsSafe(): array
     {
-        try {
-            return $this->getOpticalStats();
-        } catch (\Throwable) {
-            return [
-                'total_onus' => 0,
-                'online_onus' => 0,
-                'critical_onus' => 0,
-                'warning_onus' => 0,
-                'offline_onus' => 0,
-                'excellent_onus' => 0,
-                'avg_rx_dbm' => null,
-                'open_alerts' => 0,
-                'fiber_faults' => 0,
-                'avg_health' => 0,
-            ];
-        }
+        return $this->cachedHubStats(function (): array {
+            try {
+                return $this->getOpticalStats();
+            } catch (\Throwable) {
+                return [
+                    'total_onus' => 0,
+                    'online_onus' => 0,
+                    'critical_onus' => 0,
+                    'warning_onus' => 0,
+                    'offline_onus' => 0,
+                    'excellent_onus' => 0,
+                    'avg_rx_dbm' => null,
+                    'open_alerts' => 0,
+                    'fiber_faults' => 0,
+                    'avg_health' => 0,
+                ];
+            }
+        });
     }
 
     /**
@@ -146,6 +155,16 @@ class OpticalMonitoringHub extends Page implements HasForms
     }
 
     /**
+     * Full page navigation (avoids Livewire keeping stale PON table markup in the DOM).
+     *
+     * @param  array<string, mixed>  $query
+     */
+    public function monitorTabUrl(string $tab, array $query = []): string
+    {
+        return static::getUrl(array_merge(['tab' => $tab], $query));
+    }
+
+    /**
      * @return \Illuminate\Support\Collection<int, SignalAlert>
      */
     public function getOpenAlertsPayload(): \Illuminate\Support\Collection
@@ -154,7 +173,12 @@ class OpticalMonitoringHub extends Page implements HasForms
             return SignalAlert::query()
                 ->where('tenant_id', TenantResolver::requiredTenantId())
                 ->where('status', 'open')
-                ->with('device:id,serial_number')
+                ->with([
+                    'device:id,serial_number,mac_address,display_name,customer_id,meta',
+                    'device.customer:id,name,customer_code,mikrotik_secret_name,radius_username',
+                    'customer:id,name,customer_code,mikrotik_secret_name,radius_username',
+                    'olt:id,display_name,serial_number',
+                ])
                 ->orderByDesc('detected_at')
                 ->limit(50)
                 ->get();
@@ -194,17 +218,18 @@ class OpticalMonitoringHub extends Page implements HasForms
     }
 
     /**
-     * @return \Illuminate\Support\Collection<int, mixed>
+     * @return list<array<string, mixed>>
      */
-    public function getPonPortsPayload(): \Illuminate\Support\Collection
+    public function getPonPortsPayload(): array
     {
         try {
-            return app(OpticalSignalHistoryService::class)->ponPortStats(
-                TenantResolver::requiredTenantId(),
-                20,
-            );
+            return app(OpticalSignalHistoryService::class)
+                ->ponPortStats(TenantResolver::requiredTenantId())
+                ->map(fn (\App\Models\PonSignalStat $pon): array => \App\Services\Optical\PonPortNetworkSummary::toRow($pon))
+                ->values()
+                ->all();
         } catch (\Throwable) {
-            return collect();
+            return [];
         }
     }
 

@@ -7,6 +7,10 @@ return [
     'timezone' => env('APP_TIMEZONE', 'Asia/Dhaka'),
     'timezone_label' => env('APP_TIMEZONE_LABEL', 'BDT'),
 
+    /** Default map center when subscriber GPS is not set yet (Dhaka). */
+    'default_map_lat' => (float) env('ISP_DEFAULT_MAP_LAT', 23.8103),
+    'default_map_lng' => (float) env('ISP_DEFAULT_MAP_LNG', 90.4125),
+
     'admin_email' => env('ISP_ADMIN_EMAIL', 'admin@isp.local'),
     'admin_password' => env('ISP_ADMIN_PASSWORD', 'changeme123!'),
 
@@ -30,6 +34,37 @@ return [
     | for data scoping before login. Super-admins bypass the User model tenant scope while logged in.
     */
     'tenant_base_domain' => env('ISP_TENANT_BASE_DOMAIN', ''),
+
+    /*
+    | saas = you host many ISPs (rent). on_premise = sold copy on customer server (license).
+    */
+    'deployment_mode' => env('ISP_DEPLOYMENT_MODE', 'saas'),
+
+    'license' => [
+        'enforce' => env('ISP_LICENSE_ENFORCE', false),
+        'key' => env('ISP_LICENSE_KEY', ''),
+        'public_key_path' => env('ISP_LICENSE_PUBLIC_KEY_PATH', base_path('resources/license/public.pem')),
+        'private_key_path' => env('ISP_LICENSE_PRIVATE_KEY_PATH', storage_path('license/private.pem')),
+    ],
+
+    /*
+    | CSS: production uses one bundled file per area (fewer HTTP requests).
+    | Run `php artisan isp:build-styles` after editing public/css/admin/** modules.
+    */
+    'assets' => [
+        'bundle_css' => env('ISP_BUNDLE_CSS', env('APP_ENV') === 'production'),
+        /** admin-saas.css bundle also contains utilities + responsive when built via isp:build-styles */
+        'bundle_includes_extras' => true,
+    ],
+
+    /*
+    | Demo / training instance (Sheba-Fi demo style). Disables live SMS, MikroTik push, WebSIP.
+    */
+    'demo' => [
+        'enabled' => env('ISP_DEMO_MODE', false),
+        'banner_label' => env('ISP_DEMO_BANNER_LABEL', 'DEMO'),
+        'banner_message' => env('ISP_DEMO_BANNER_MESSAGE', 'Demo mode — no real SMS, router push, or live calls.'),
+    ],
 
     /*
     | Snapshot of .env at bootstrap (safe when config is cached). Used when clearing DB overrides.

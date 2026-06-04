@@ -8,8 +8,10 @@ use App\Support\MacAddress;
 use App\Support\MacVendor;
 use App\Services\Optical\Normalization\OpticalPowerNormalizer;
 use App\Support\BdcomOnuDescriptionHeuristic;
+use App\Support\OnuEnvironmentalMetrics;
 use App\Support\OnuSignalLevel;
 use App\Support\OpticalThresholds;
+use App\Support\SubscriberNetworkLabels;
 use Carbon\Carbon;
 
 /**
@@ -23,7 +25,7 @@ final class SubscriberOpticalPowerPresenter
      *   rows: list<array<string, mixed>>,
      *   hint: ?string,
      *   onu_billing: array<string, string>,
-     *   isp_digital_synced_at: ?string,
+     *   legacy_portal_synced_at: ?string,
      * }
      */
     public function forCustomer(Customer $customer): array
@@ -56,7 +58,7 @@ final class SubscriberOpticalPowerPresenter
                 'ppp_login' => $login,
                 'hint' => $this->unlinkHint($customer, $login, $suggestions),
                 'onu_billing' => $onuBilling,
-                'isp_digital_synced_at' => $meta['isp_digital_details_synced_at'] ?? null,
+                'legacy_portal_synced_at' => $meta['legacy_portal_details_synced_at'] ?? null,
                 'suggestions' => array_map(fn (array $s): array => [
                     'id' => $s['onu']->id,
                     'label' => trim(sprintf(
@@ -82,7 +84,7 @@ final class SubscriberOpticalPowerPresenter
             'ppp_login' => $customer->pppLoginName(),
             'hint' => null,
             'onu_billing' => $onuBilling,
-            'isp_digital_synced_at' => $meta['isp_digital_details_synced_at'] ?? null,
+            'legacy_portal_synced_at' => $meta['legacy_portal_details_synced_at'] ?? null,
             'suggestions' => [],
             'detected_via' => (string) ($primaryMeta['linked_by'] ?? ''),
             'detected_label' => \App\Support\OnuLinkMethod::label((string) ($primaryMeta['linked_by'] ?? '')),
@@ -190,7 +192,9 @@ final class SubscriberOpticalPowerPresenter
             'onu_mac' => $onu->mac_address
                 ? (MacAddress::normalizeColon($onu->mac_address) ?? $onu->mac_address)
                 : '—',
-            'olt_port' => $this->oltPortLabel($onu),
+            'olt_port' => SubscriberNetworkLabels::ponPortLabel($onu, $guestCustomer),
+            'mikrotik_name' => SubscriberNetworkLabels::mikrotikName($guestCustomer),
+            'vlan' => SubscriberNetworkLabels::vlan($guestCustomer, $onu),
             'onu_status' => $this->formatStatus((string) ($onu->onu_oper_status ?? 'unknown')),
             'description' => $this->firstFilled(
                 $meta['bdcom_description'] ?? null,
@@ -207,6 +211,7 @@ final class SubscriberOpticalPowerPresenter
             'is_high_laser' => OpticalThresholds::isHighRx($rx) || OpticalThresholds::isHighTx(
                 $onu->tx_power_dbm !== null ? (float) $onu->tx_power_dbm : null,
             ),
+            ...$this->environmentalFields($onu),
         ];
     }
 
@@ -268,7 +273,9 @@ final class SubscriberOpticalPowerPresenter
             'onu_mac' => $onu->mac_address
                 ? (MacAddress::normalizeColon($onu->mac_address) ?? $onu->mac_address)
                 : '—',
-            'olt_port' => $this->oltPortLabel($onu),
+            'olt_port' => SubscriberNetworkLabels::ponPortLabel($onu, $customer),
+            'mikrotik_name' => SubscriberNetworkLabels::mikrotikName($customer),
+            'vlan' => SubscriberNetworkLabels::vlan($customer, $onu),
             'onu_status' => $this->formatStatus((string) ($onu->onu_oper_status ?? 'unknown')),
             'description' => $this->firstFilled(
                 $meta['bdcom_description'] ?? null,
@@ -286,22 +293,24 @@ final class SubscriberOpticalPowerPresenter
             'is_high_laser' => OpticalThresholds::isHighRx($rx) || OpticalThresholds::isHighTx(
                 $onu->tx_power_dbm !== null ? (float) $onu->tx_power_dbm : null,
             ),
+            ...$this->environmentalFields($onu),
         ];
     }
 
-    private function oltPortLabel(Device $onu): string
+    /**
+     * @return array{temperature: string, temperature_c: ?float, temperature_tone: string, voltage: string, voltage_v: ?float}
+     */
+    private function environmentalFields(Device $onu): array
     {
-        if (filled($onu->display_name)) {
-            return (string) $onu->display_name;
-        }
+        $env = OnuEnvironmentalMetrics::fromDevice($onu);
 
-        $parts = array_filter([
-            $onu->card_no !== null ? 'C'.$onu->card_no : null,
-            $onu->pon_no !== null ? 'P'.$onu->pon_no : null,
-            $onu->onu_index !== null ? ':'.$onu->onu_index : null,
-        ]);
-
-        return $parts !== [] ? implode('', $parts) : '—';
+        return [
+            'temperature' => OnuEnvironmentalMetrics::formatTemperature($env['temperature_c']),
+            'temperature_c' => $env['temperature_c'],
+            'temperature_tone' => OnuEnvironmentalMetrics::temperatureTone($env['temperature_c']),
+            'voltage' => OnuEnvironmentalMetrics::formatVoltage($env['voltage_v']),
+            'voltage_v' => $env['voltage_v'],
+        ];
     }
 
     private function formatStatus(string $status): string

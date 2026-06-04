@@ -15,6 +15,7 @@ final class PackageChangeQuoteService
      *   credit_amount: float,
      *   new_charge: float,
      *   net_due: float,
+     *   promotional_discount: float,
      *   effective_label: string
      * }
      */
@@ -26,6 +27,8 @@ final class PackageChangeQuoteService
         if ($current === null) {
             $charge = PackagePriceResolver::resolveCyclePrice($newPackage, $customer, $today);
 
+            $promo = PromotionalOfferApplicator::previewDiscount($customer, $newPackage, $charge);
+
             return [
                 'current_package' => '—',
                 'new_package' => $newPackage->name,
@@ -33,7 +36,8 @@ final class PackageChangeQuoteService
                 'days_remaining' => 0,
                 'credit_amount' => 0.0,
                 'new_charge' => $charge,
-                'net_due' => $charge,
+                'promotional_discount' => $promo,
+                'net_due' => round(max(0, $charge - $promo), 2),
                 'effective_label' => 'Immediate',
             ];
         }
@@ -61,7 +65,9 @@ final class PackageChangeQuoteService
             $periodEnd,
         );
 
-        $netDue = round(max(0, $newCharge - $credit), 2);
+        $grossDue = round(max(0, $newCharge - $credit), 2);
+        $promo = PromotionalOfferApplicator::previewDiscount($customer, $newPackage, $grossDue);
+        $netDue = round(max(0, $grossDue - $promo), 2);
         $isUpgrade = $newCycle > $currentCycle || $newPackage->download_mbps > $current->download_mbps;
 
         return [
@@ -71,6 +77,7 @@ final class PackageChangeQuoteService
             'days_remaining' => $daysRemaining,
             'credit_amount' => round($credit, 2),
             'new_charge' => round($newCharge, 2),
+            'promotional_discount' => $promo,
             'net_due' => $netDue,
             'effective_label' => $isUpgrade && config('billing.portal_instant_upgrade', true)
                 ? 'Pay prorated difference now'
@@ -132,6 +139,7 @@ final class PackageChangeQuoteService
         ]);
 
         InvoiceCalculator::recalculate($invoice->fresh());
+        PromotionalOfferApplicator::applyBestToInvoice($invoice->fresh(), $newPackage);
 
         return $invoice->fresh();
     }

@@ -13,7 +13,7 @@ class SyncCustomerAccountStatusCommand extends Command
     protected $signature = 'customers:sync-account-status
                             {--dry-run : Show counts only, do not update}';
 
-    protected $description = 'Align customer status with validity dates and legacy ISP Digital «left» markers';
+    protected $description = 'Align customer status with validity dates and legacy legacy portal «left» markers';
 
     public function handle(): int
     {

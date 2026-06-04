@@ -9,8 +9,10 @@ use App\Services\Optical\CustomerOnuSmartLinkService;
 use App\Services\Optical\OpticalReadingPipeline;
 use App\Support\CustomerPppLoginResolver;
 use App\Support\BdcomOnuDescriptionHeuristic;
+use App\Support\GponSnmpProfile;
 use App\Support\MacAddress;
 use App\Support\SnmpClient;
+use App\Support\SnmpEnvironmentalDecoder;
 use Illuminate\Support\Facades\Log;
 
 final class BdcomEponOnuSyncService
@@ -44,7 +46,7 @@ final class BdcomEponOnuSyncService
         ];
 
         if (! $this->supportsDriver($olt)) {
-            $result['error'] = 'OLT driver is not BDCOM EPON.';
+            $result['error'] = 'OLT driver is not BDCOM EPON/GPON.';
 
             return $result;
         }
@@ -56,7 +58,8 @@ final class BdcomEponOnuSyncService
 
             $peer = $this->probe->snmpPeer($olt);
             $community = $this->probe->effectiveCommunity($olt);
-            $oids = config('gpon.profiles.bdcom_epon', []);
+            $oids = GponSnmpProfile::forOlt($olt);
+            $vendorProfile = strtolower((string) ($olt->olt_driver ?? 'bdcom_epon'));
 
             $timeoutUs = (int) config('gpon.bdcom_epon_walk_timeout_us', 8000000);
             $retries = (int) config('snmp.retries', 1);
@@ -82,6 +85,11 @@ final class BdcomEponOnuSyncService
                 $timeoutUs,
                 $retries,
             );
+
+            $tempOid = trim((string) ($oids['bdcom_onu_temperature'] ?? ''));
+            $voltOid = trim((string) ($oids['bdcom_onu_voltage'] ?? ''));
+            $tempByIf = $tempOid !== '' ? $this->walkRawSnmpDbm($peer, $community, $tempOid, $timeoutUs, $retries) : [];
+            $voltByIf = $voltOid !== '' ? $this->walkRawSnmpDbm($peer, $community, $voltOid, $timeoutUs, $retries) : [];
 
             $discovered = [];
             foreach ($ifMap as $ifIndex => $info) {
@@ -111,6 +119,12 @@ final class BdcomEponOnuSyncService
                     'distance_m' => $distanceByMac[$macCompact] ?? null,
                     'oper_status' => $this->mapStatusCode($statusCode),
                     'bdcom_status' => $statusCode,
+                    'temperature_c' => isset($tempByIf[$ifIndex])
+                        ? SnmpEnvironmentalDecoder::temperatureC((int) $tempByIf[$ifIndex], $vendorProfile)
+                        : null,
+                    'voltage_v' => isset($voltByIf[$ifIndex])
+                        ? SnmpEnvironmentalDecoder::voltageV((int) $voltByIf[$ifIndex], $vendorProfile)
+                        : null,
                 ];
             }
 
@@ -130,9 +144,9 @@ final class BdcomEponOnuSyncService
 
             $result['purged_placeholders'] = $this->purgeAutoProvisionedPlaceholders($olt);
 
-            // Full tenant auto-link runs once in IspDigitalOnuPipelineService (MikroTik + PPP + smart link).
+            // Full tenant auto-link runs once in LegacyPortalOnuPipelineService (MikroTik + PPP + smart link).
             if (config('optical.auto_link_on_bdcom_sync', true)
-                && ! config('optical.isp_digital_auto_sync', true)) {
+                && ! config('optical.legacy_portal_auto_sync', true)) {
                 $linkStats = app(CustomerOnuSmartLinkService::class)
                     ->smartRelinkTenant((int) $olt->tenant_id, true);
                 $result['linked'] = $linkStats['linked'];
@@ -154,7 +168,9 @@ final class BdcomEponOnuSyncService
         $driver = strtolower((string) ($olt->olt_driver ?? ''));
         $profile = strtolower((string) ($olt->gpon_profile ?? ''));
 
-        return $driver === 'bdcom_epon' || $profile === 'bdcom_epon';
+        return in_array($driver, ['bdcom_epon', 'bdcom_gpon'], true)
+            || in_array($profile, ['bdcom_epon', 'bdcom_gpon'], true)
+            || strtolower((string) ($olt->vendor ?? '')) === 'bdcom';
     }
 
     /**
@@ -484,12 +500,14 @@ final class BdcomEponOnuSyncService
             'meta' => $meta,
         ])->save();
 
-        if ($row['rx_dbm'] !== null || $row['tx_dbm'] !== null) {
+        if ($row['rx_dbm'] !== null || $row['tx_dbm'] !== null || ($row['temperature_c'] ?? null) !== null || ($row['voltage_v'] ?? null) !== null) {
             $this->opticalPipeline->ingest($onu->fresh(), [
                 'rx_raw' => $row['rx_dbm'],
                 'tx_raw' => $row['tx_dbm'],
+                'temperature' => $row['temperature_c'] ?? null,
+                'voltage' => $row['voltage_v'] ?? null,
                 'oper_status' => $row['oper_status'],
-                'vendor_profile' => 'bdcom_epon',
+                'vendor_profile' => strtolower((string) ($olt->olt_driver ?? 'bdcom_epon')),
                 'source' => 'bdcom_snmp',
             ]);
         }

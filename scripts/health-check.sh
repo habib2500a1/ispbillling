@@ -2,7 +2,7 @@
 # Quick health: DB connections + stuck schedulers (exit 1 if unhealthy).
 set -euo pipefail
 MAX_DB="${MAX_DB_CONNECTIONS:-40}"
-MAX_PROC="${MAX_AUTO_PROCESSES:-2}"
+MAX_PROC="${MAX_AUTO_PROCESSES:-1}"
 
 DB_COUNT=$(sudo -u postgres psql -tAc "SELECT count(*) FROM pg_stat_activity WHERE usename='isp_app';" 2>/dev/null | tr -d '[:space:]' || echo 999)
 PROC_COUNT=$(pgrep -fc 'isp:run-automatic-processes' 2>/dev/null || true)

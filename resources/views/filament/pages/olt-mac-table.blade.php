@@ -10,7 +10,7 @@
         @endif
     >
         <section class="isp-olt-mac-hero">
-            <div>
+            <div class="isp-olt-mac-hero__body">
                 <p class="isp-olt-mac-hero__eyebrow">OLT &amp; Tools · Aveis / ISP Digital</p>
                 <h2 class="isp-olt-mac-hero__title">PON MAC table</h2>
                 <p class="isp-olt-mac-hero__sub">
@@ -27,21 +27,23 @@
             </div>
         </section>
 
-        <div class="isp-olt-mac-tabs">
-            <button
-                type="button"
-                wire:click="setViewMode('pon')"
-                @class(['isp-olt-mac-tabs__btn', 'isp-olt-mac-tabs__btn--active' => $viewMode === 'pon'])
-            >
-                PON MAC (customer)
-            </button>
-            <button
-                type="button"
-                wire:click="setViewMode('onu')"
-                @class(['isp-olt-mac-tabs__btn', 'isp-olt-mac-tabs__btn--active' => $viewMode === 'onu'])
-            >
-                ONU inventory MAC
-            </button>
+        <div class="isp-olt-mac-toolbar">
+            <div class="isp-olt-mac-tabs" role="tablist" aria-label="PON MAC view mode">
+                <button
+                    type="button"
+                    wire:click="setViewMode('pon')"
+                    @class(['isp-olt-mac-tabs__btn', 'isp-olt-mac-tabs__btn--active' => $viewMode === 'pon'])
+                >
+                    PON MAC (customer)
+                </button>
+                <button
+                    type="button"
+                    wire:click="setViewMode('onu')"
+                    @class(['isp-olt-mac-tabs__btn', 'isp-olt-mac-tabs__btn--active' => $viewMode === 'onu'])
+                >
+                    ONU inventory MAC
+                </button>
+            </div>
         </div>
 
         <section class="isp-olt-mac-filters">
@@ -144,14 +146,14 @@
                             <tbody>
                                 @foreach ($ponRows as $row)
                                     <tr wire:key="pon-mac-{{ $row['row_key'] }}">
-                                        <td><span class="isp-olt-mac-pill">{{ $row['mac'] }}</span></td>
-                                        <td>{{ $row['vlan'] ?? '—' }}</td>
-                                        <td class="font-mono text-sm">{{ $row['port_id'] }}</td>
-                                        <td class="font-mono text-sm">{{ $row['onu_id'] }}</td>
-                                        <td>{{ $row['name'] }}</td>
-                                        <td>{{ $row['mac_type'] }}</td>
-                                        <td>{{ $row['olt_label'] }}</td>
-                                        <td class="text-xs text-gray-500">{{ $row['synced_at']?->format('d/m/y H:i') ?? '—' }}</td>
+                                        <td data-label="MAC"><span class="isp-olt-mac-pill">{{ $row['mac'] }}</span></td>
+                                        <td data-label="VLAN ID">{{ $row['vlan'] ?? '—' }}</td>
+                                        <td data-label="Port ID" class="font-mono text-sm">{{ $row['port_id'] }}</td>
+                                        <td data-label="ONU ID" class="font-mono text-sm">{{ $row['onu_id'] }}</td>
+                                        <td data-label="Name">{{ $row['name'] }}</td>
+                                        <td data-label="MAC Address Type">{{ $row['mac_type'] }}</td>
+                                        <td data-label="OLT">{{ $row['olt_label'] }}</td>
+                                        <td data-label="Synced" class="text-xs text-gray-500">{{ $row['synced_at']?->format('d/m/y H:i') ?? '—' }}</td>
                                     </tr>
                                 @endforeach
                             </tbody>

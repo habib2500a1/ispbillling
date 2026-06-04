@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Models\Concerns\BelongsToTenant;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class SmsTemplate extends Model
 {
@@ -18,6 +19,8 @@ class SmsTemplate extends Model
         'body',
         'placeholders',
         'is_enabled',
+        'voice_enabled',
+        'voice_template_id',
         'sort_order',
     ];
 
@@ -26,8 +29,14 @@ class SmsTemplate extends Model
         return [
             'placeholders' => 'array',
             'is_enabled' => 'boolean',
+            'voice_enabled' => 'boolean',
             'sort_order' => 'integer',
         ];
+    }
+
+    public function voiceTemplate(): BelongsTo
+    {
+        return $this->belongsTo(VoiceTemplate::class);
     }
 
     public static function findByKey(string $key, ?int $tenantId = null): ?self
@@ -39,6 +48,8 @@ class SmsTemplate extends Model
             ->where(function ($q) use ($key): void {
                 $q->where('key', $key)->orWhere('event_key', $key);
             })
+            ->orderByRaw('CASE WHEN `key` = ? THEN 0 ELSE 1 END', [$key])
+            ->orderByDesc('id')
             ->first();
     }
 }

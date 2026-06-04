@@ -53,20 +53,53 @@ final class InvoiceGenerator
             return null;
         }
 
+        app(\App\Services\Resellers\ResellerWholesaleDebitService::class)->assertWalletCanCover(
+            $customer,
+            Carbon::parse($referenceDate),
+            $noProrate,
+        );
+
         $date = Carbon::parse($referenceDate)->startOfDay();
         [$periodStart, $periodEnd] = BillingPeriodResolver::resolve($package, $date);
 
         $exists = Invoice::query()
             ->where('customer_id', $customer->id)
-            ->whereDate('period_start', $periodStart->toDateString())
-            ->whereDate('period_end', $periodEnd->toDateString())
+            ->whereNotIn('status', ['void', 'cancelled'])
+            ->where(function ($q) use ($periodStart, $periodEnd, $date): void {
+                $q->where(function ($q2) use ($periodStart, $periodEnd): void {
+                    $q2->whereDate('period_start', $periodStart->toDateString())
+                        ->whereDate('period_end', $periodEnd->toDateString());
+                })->orWhere(function ($q2) use ($date): void {
+                    $q2->whereYear('issue_date', $date->year)
+                        ->whereMonth('issue_date', $date->month);
+                });
+            })
             ->exists();
 
         if ($exists) {
             return null;
         }
 
+        if (\App\Support\LegacyPortalSource::isImportedSource($customer->import_source)) {
+            $hasImported = Invoice::query()
+                ->where('customer_id', $customer->id)
+                ->where('invoice_number', 'like', 'ISD-%')
+                ->whereNotIn('status', ['void', 'cancelled'])
+                ->whereYear('issue_date', $date->year)
+                ->whereMonth('issue_date', $date->month)
+                ->exists();
+
+            if ($hasImported) {
+                return null;
+            }
+        }
+
         $basePrice = PackagePriceResolver::resolveCyclePrice($package, $customer, $date);
+
+        $billingEngine = app(\App\Services\Resellers\ResellerCustomerBillingEngine::class);
+        if ($customer->reseller_id !== null) {
+            $noProrate = $noProrate || $billingEngine->shouldSkipProration($customer);
+        }
 
         if (! $noProrate && $customer->joined_at) {
             $joined = Carbon::parse($customer->joined_at)->startOfDay();
@@ -77,6 +110,13 @@ final class InvoiceGenerator
                     $periodEnd,
                     $joined,
                 );
+            }
+        }
+
+        if ($customer->reseller_id !== null) {
+            $multiplier = $billingEngine->firstMonthPackageMultiplier($customer, null, $date);
+            if ($multiplier < 1.0) {
+                $basePrice = round($basePrice * $multiplier, 2);
             }
         }
 
@@ -164,6 +204,8 @@ final class InvoiceGenerator
 
         InvoiceCalculator::recalculate($invoice->fresh());
 
+        PromotionalOfferApplicator::applyBestToInvoice($invoice->fresh());
+
         if ($couponCode) {
             try {
                 CouponApplicator::apply($invoice->fresh(), $couponCode);
@@ -172,7 +214,13 @@ final class InvoiceGenerator
             }
         }
 
-        return $invoice->fresh();
+        $invoice = $invoice->fresh();
+        app(\App\Services\Resellers\ResellerHierarchicalBillingService::class)->handleInvoiceCreated($invoice);
+
+        app(CustomerActivationBillingService::class)->applyServiceValidityFromInvoice($customer->fresh(), $invoice);
+        CustomerLineGraceService::clearForNewBillingPeriod($customer->fresh(), $invoice);
+
+        return $invoice;
     }
 
     /**
@@ -181,14 +229,15 @@ final class InvoiceGenerator
     public static function resolveIssueAndDueDates(Customer $customer, CarbonInterface $issueReference): array
     {
         $issue = $issueReference->toDateString();
-        $grace = max(0, (int) ($customer->grace_period_days ?? 10));
+        $engine = app(\App\Services\Resellers\ResellerCustomerBillingEngine::class);
+        $grace = $customer->reseller_id !== null
+            ? $engine->defaultGraceDaysFor($customer)
+            : max(0, (int) ($customer->grace_period_days ?? \App\Support\BillingDefaults::defaultGracePeriodDays()));
         $mode = $customer->billing_mode ?? 'postpaid';
 
         if ($mode === 'prepaid' || $mode === 'advance') {
-            // Advance: pay by issue date (or short grace)
-            $due = $issueReference->copy()->addDays(min($grace, 3))->toDateString();
+            $due = $issueReference->copy()->addDays(max(1, $grace))->toDateString();
         } else {
-            // Postpaid: due after grace from issue
             $due = $issueReference->copy()->addDays($grace)->toDateString();
         }
 

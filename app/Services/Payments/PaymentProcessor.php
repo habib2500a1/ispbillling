@@ -129,6 +129,18 @@ final class PaymentProcessor
             return;
         }
 
+        $fifo = $payment->meta['fifo_allocations'] ?? null;
+        if (is_array($fifo) && $fifo !== []) {
+            $surplus = app(\App\Services\Resellers\ResellerPaymentAllocationService::class)
+                ->applyFifoAllocations($payment, $customer, $fifo);
+
+            if ($surplus > 0.009 && config('payments.overpayment_to_wallet', true)) {
+                static::addWallet($customer, $surplus, $payment, 'fifo_surplus');
+            }
+
+            return;
+        }
+
         if ($payment->invoice_id && $payment->invoice) {
             $invoice = $payment->invoice->fresh();
             $due = $invoice->balanceDue();

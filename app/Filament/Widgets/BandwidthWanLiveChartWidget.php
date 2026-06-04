@@ -12,30 +12,80 @@ class BandwidthWanLiveChartWidget extends ChartWidget
 {
     use SafeBandwidthChartData;
 
+    protected static string $view = 'filament.widgets.bandwidth-wan-live-chart';
+
     protected static bool $isDiscovered = false;
-
-    protected static ?string $heading = 'MikroTik WAN port — live (Mbps/s)';
-
-    protected static ?string $description = 'Each line = one uplink interface from router (ether1, WAN, SFP…)';
 
     protected static ?int $sort = 1;
 
     protected int|string|array $columnSpan = 'full';
 
+    protected static ?string $maxHeight = '320px';
+
+    public float $liveDownMbps = 0;
+
+    public float $liveUpMbps = 0;
+
+    public int $activeIfaceCount = 0;
+
     /** @var list<string> */
-    private const COLORS = ['#dc2626', '#ea580c', '#b45309', '#c2410c', '#2563eb', '#0891b2'];
+    private const DOWN_COLORS = ['#0ea5e9', '#2563eb', '#7c3aed', '#0891b2'];
+
+    /** @var list<string> */
+    private const UP_COLORS = ['#f97316', '#ea580c', '#db2777', '#ca8a04'];
 
     protected function getPollingInterval(): ?string
     {
-        $seconds = (int) config('bandwidth.monitor_wan_poll_seconds', 0);
+        $seconds = max(1, (int) config('bandwidth.monitor_wan_chart_poll_seconds', 1));
 
-        return $seconds > 0 ? "{$seconds}s" : null;
+        return "{$seconds}s";
+    }
+
+    public function mount(): void
+    {
+        parent::mount();
+        $this->syncHeaderStats();
+    }
+
+    public function pollWanChart(): void
+    {
+        $this->syncHeaderStats();
+        $this->updateChartData();
     }
 
     #[On('bandwidth-refresh')]
     public function refreshChart(): void
     {
-        //
+        $this->pollWanChart();
+    }
+
+    /**
+     * @return array{down_mbps: float, up_mbps: float, iface_count: int, poll_seconds: int, collect_seconds: int}
+     */
+    public function getChartHeader(): array
+    {
+        return [
+            'down_mbps' => $this->liveDownMbps,
+            'up_mbps' => $this->liveUpMbps,
+            'iface_count' => $this->activeIfaceCount,
+            'poll_seconds' => max(1, (int) config('bandwidth.monitor_wan_chart_poll_seconds', 1)),
+            'collect_seconds' => max(3, (int) config('bandwidth.monitor_wan_collect_seconds', 3)),
+        ];
+    }
+
+    private function syncHeaderStats(): void
+    {
+        try {
+            $tenantId = TenantResolver::requiredTenantId();
+            $chart = BandwidthCollectionService::aggregateWanLiveChartSeries($tenantId);
+            $this->liveDownMbps = $chart['down_mbps'];
+            $this->liveUpMbps = $chart['up_mbps'];
+            $this->activeIfaceCount = count($chart['series']);
+        } catch (\Throwable) {
+            $this->liveDownMbps = 0;
+            $this->liveUpMbps = 0;
+            $this->activeIfaceCount = 0;
+        }
     }
 
     protected function getData(): array
@@ -49,65 +99,36 @@ class BandwidthWanLiveChartWidget extends ChartWidget
     private function buildChartData(): array
     {
         $tenantId = TenantResolver::requiredTenantId();
-        $points = (int) config('bandwidth.monitor_wan_chart_points', 180);
-        $minutes = (int) config('bandwidth.monitor_wan_chart_minutes', 15);
-        $ifaces = BandwidthCollectionService::aggregateWanInterfacesMbpsPerSecond($tenantId, $minutes, $points);
+        $points = (int) config('bandwidth.monitor_wan_chart_points', 120);
+        $chart = BandwidthCollectionService::aggregateWanLiveChartSeries($tenantId, $points);
 
-        if ($ifaces['labels'] !== [] && $ifaces['series'] !== []) {
-            $datasets = [];
-            foreach ($ifaces['series'] as $i => $iface) {
-                $color = self::COLORS[$i % count(self::COLORS)];
-                $datasets[] = $this->dataset("{$iface['label']} ↓", $iface['download_mbps'], $color, 'rgba(220, 38, 38, 0.12)');
-                $datasets[] = $this->dataset("{$iface['label']} ↑", $iface['upload_mbps'], $color, 'rgba(234, 88, 12, 0.08)', dashed: true);
-            }
-
-            return [
-                'datasets' => $datasets,
-                'labels' => $ifaces['labels'],
-            ];
-        }
-
-        $chart = BandwidthCollectionService::aggregateWanLiveMbpsPerSecond($tenantId, $minutes, $points);
-
-        if ($chart['labels'] === []) {
-            $live = BandwidthCollectionService::currentWanLiveBps($tenantId);
-            $snapshots = BandwidthCollectionService::latestWanInterfaceSnapshots($tenantId);
-
-            if ($snapshots !== []) {
-                $datasets = [];
-                foreach ($snapshots as $i => $snap) {
-                    $color = self::COLORS[$i % count(self::COLORS)];
-                    $label = "{$snap['server']} · {$snap['interface']}";
-                    $datasets[] = $this->dataset("{$label} ↓", [$snap['down_mbps']], $color, 'rgba(220, 38, 38, 0.2)');
-                    $datasets[] = $this->dataset("{$label} ↑", [$snap['up_mbps']], $color, 'rgba(234, 88, 12, 0.12)', dashed: true);
-                }
-
-                return [
-                    'datasets' => $datasets,
-                    'labels' => [now()->format('H:i:s')],
-                ];
-            }
-
+        if ($chart['labels'] === [] || $chart['series'] === []) {
             return [
                 'datasets' => [
-                    $this->dataset('WAN ↓', [round($live['down_bps'] / 1_000_000, 3)], '#dc2626', 'rgba(220, 38, 38, 0.2)'),
-                    $this->dataset('WAN ↑', [round($live['up_bps'] / 1_000_000, 3)], '#ea580c', 'rgba(234, 88, 12, 0.12)', dashed: true),
+                    $this->dataset('WAN ↓', [0], self::DOWN_COLORS[0], 'rgba(14, 165, 233, 0.15)'),
+                    $this->dataset('WAN ↑', [0], self::UP_COLORS[0], 'rgba(249, 115, 22, 0.08)', dashed: true),
                 ],
                 'labels' => [now()->format('H:i:s')],
             ];
         }
 
+        $datasets = [];
+        foreach ($chart['series'] as $i => $iface) {
+            $downColor = self::DOWN_COLORS[$i % count(self::DOWN_COLORS)];
+            $upColor = self::UP_COLORS[$i % count(self::UP_COLORS)];
+            $label = $iface['label'];
+            $datasets[] = $this->dataset("{$label} ↓", $iface['download_mbps'], $downColor, $this->chartFill($downColor, 0.14));
+            $datasets[] = $this->dataset("{$label} ↑", $iface['upload_mbps'], $upColor, $this->chartFill($upColor, 0.07), dashed: true);
+        }
+
         return [
-            'datasets' => [
-                $this->dataset('WAN total ↓', $chart['download_mbps'], '#dc2626', 'rgba(220, 38, 38, 0.18)'),
-                $this->dataset('WAN total ↑', $chart['upload_mbps'], '#ea580c', 'rgba(234, 88, 12, 0.1)', dashed: true),
-            ],
+            'datasets' => $datasets,
             'labels' => $chart['labels'],
         ];
     }
 
     /**
-     * @param  list<float>  $data
+     * @param  list<float|int>  $data
      * @return array<string, mixed>
      */
     private function dataset(string $label, array $data, string $color, string $fill, bool $dashed = false): array
@@ -117,13 +138,27 @@ class BandwidthWanLiveChartWidget extends ChartWidget
             'data' => $data,
             'borderColor' => $color,
             'backgroundColor' => $fill,
-            'borderWidth' => $dashed ? 2 : 2.5,
-            'borderDash' => $dashed ? [5, 4] : [],
+            'borderWidth' => $dashed ? 1.75 : 2.25,
+            'borderDash' => $dashed ? [6, 4] : [],
             'fill' => true,
-            'tension' => 0.3,
+            'tension' => 0.35,
             'pointRadius' => 0,
-            'pointHitRadius' => 8,
+            'pointHitRadius' => 10,
         ];
+    }
+
+    private function chartFill(string $hex, float $alpha): string
+    {
+        $hex = ltrim($hex, '#');
+        if (strlen($hex) !== 6) {
+            return 'rgba(14, 165, 233, 0.12)';
+        }
+
+        $r = hexdec(substr($hex, 0, 2));
+        $g = hexdec(substr($hex, 2, 2));
+        $b = hexdec(substr($hex, 4, 2));
+
+        return "rgba({$r}, {$g}, {$b}, {$alpha})";
     }
 
     protected function getType(): string
@@ -134,14 +169,39 @@ class BandwidthWanLiveChartWidget extends ChartWidget
     protected function getOptions(): array
     {
         return [
-            'animation' => ['duration' => 400],
+            'animation' => ['duration' => 280],
+            'maintainAspectRatio' => false,
+            'plugins' => [
+                'legend' => [
+                    'display' => true,
+                    'position' => 'bottom',
+                    'labels' => [
+                        'boxWidth' => 10,
+                        'boxHeight' => 10,
+                        'usePointStyle' => true,
+                        'padding' => 16,
+                        'font' => ['size' => 11, 'weight' => '600'],
+                    ],
+                ],
+                'tooltip' => [
+                    'mode' => 'index',
+                    'intersect' => false,
+                    'backgroundColor' => 'rgba(15, 23, 42, 0.92)',
+                    'padding' => 12,
+                    'titleFont' => ['size' => 12, 'weight' => '700'],
+                    'bodyFont' => ['size' => 11],
+                ],
+            ],
             'scales' => [
                 'y' => [
                     'beginAtZero' => true,
-                    'title' => ['display' => true, 'text' => 'Mbps/s'],
+                    'grid' => ['color' => 'rgba(148, 163, 184, 0.18)'],
+                    'ticks' => ['maxTicksLimit' => 6, 'font' => ['size' => 10]],
+                    'title' => ['display' => true, 'text' => 'Mbps/s', 'font' => ['size' => 11, 'weight' => '600']],
                 ],
                 'x' => [
-                    'ticks' => ['maxTicksLimit' => 12, 'maxRotation' => 0],
+                    'grid' => ['display' => false],
+                    'ticks' => ['maxTicksLimit' => 8, 'maxRotation' => 0, 'font' => ['size' => 10]],
                 ],
             ],
             'interaction' => ['mode' => 'index', 'intersect' => false],

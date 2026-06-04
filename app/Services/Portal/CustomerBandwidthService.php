@@ -63,18 +63,35 @@ final class CustomerBandwidthService
             $chart['granularity'] = 'per_second';
         }
 
+        $sessionDown = (int) ($session?->bytes_in ?? 0);
+        $sessionUp = (int) ($session?->bytes_out ?? 0);
+
         return [
             'online' => $online,
             'download_bps' => $downloadBps,
             'upload_bps' => $uploadBps,
-            'total_download' => (int) ($session?->bytes_in ?? 0),
-            'total_upload' => (int) ($session?->bytes_out ?? 0),
+            'download_mbps' => round(($downloadBps ?? 0) / 1_000_000, 2),
+            'upload_mbps' => round(($uploadBps ?? 0) / 1_000_000, 2),
+            'total_download' => $sessionDown,
+            'total_upload' => $sessionUp,
+            'session_total' => $sessionDown + $sessionUp,
             'session_started' => $session?->started_at?->toIso8601String(),
+            'uptime' => $session?->isActive() ? $this->formatUptime($session->durationSeconds()) : '0:00:00',
             'framed_ip' => $session?->framed_ip,
             'chart' => $chart,
             'today_download' => (int) ($today?->bytes_in ?? 0),
             'today_upload' => (int) ($today?->bytes_out ?? 0),
+            'today_total' => (int) ($today?->bytes_in ?? 0) + (int) ($today?->bytes_out ?? 0),
         ];
+    }
+
+    private function formatUptime(int $seconds): string
+    {
+        $hours = intdiv($seconds, 3600);
+        $minutes = intdiv($seconds % 3600, 60);
+        $secs = $seconds % 60;
+
+        return sprintf('%d:%02d:%02d', $hours, $minutes, $secs);
     }
 
     /**

@@ -4,8 +4,10 @@ namespace App\Console\Commands;
 
 use App\Services\Automation\AutomaticProcessScheduler;
 use App\Services\Automation\SchedulerStatus;
+use App\Support\Automation\SchedulerRunnerLock;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
 
 class RunAutomaticProcessesCommand extends Command
@@ -16,7 +18,15 @@ class RunAutomaticProcessesCommand extends Command
 
     public function handle(AutomaticProcessScheduler $scheduler): int
     {
-        set_time_limit(300);
+        $maxRuntime = max(60, (int) config('automation.runner_lock_seconds', 300));
+        set_time_limit($maxRuntime);
+
+        $lock = SchedulerRunnerLock::acquire($maxRuntime);
+        if ($lock === null) {
+            $this->warn('Skipped — another automatic-process runner is already active.');
+
+            return self::SUCCESS;
+        }
 
         try {
             if (! Schema::hasTable('automatic_processes')) {
@@ -44,7 +54,18 @@ class RunAutomaticProcessesCommand extends Command
             $this->info("Automatic processes finished ({$ran} executed).");
 
             return self::SUCCESS;
+        } catch (\Throwable $e) {
+            Log::error('isp:run-automatic-processes failed', [
+                'message' => $e->getMessage(),
+            ]);
+
+            throw $e;
         } finally {
+            try {
+                $lock->release();
+            } catch (\Throwable) {
+                // ignore
+            }
             DB::disconnect();
         }
     }

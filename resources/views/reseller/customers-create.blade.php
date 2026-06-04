@@ -15,6 +15,11 @@
                 <div><label class="block text-xs font-bold uppercase rsl-text-muted">Name</label><input name="name" value="{{ old('name') }}" required class="rsl-input mt-1"></div>
                 <div><label class="block text-xs font-bold uppercase rsl-text-muted">Phone</label><input name="phone" id="phone-input" value="{{ old('phone') }}" required class="rsl-input mt-1"></div>
                 <div><label class="block text-xs font-bold uppercase rsl-text-muted">Email</label><input name="email" type="email" value="{{ old('email') }}" class="rsl-input mt-1"></div>
+                <div>
+                    <label class="block text-xs font-bold uppercase rsl-text-muted">Telegram chat ID</label>
+                    <input name="telegram_chat_id" value="{{ old('telegram_chat_id') }}" class="rsl-input mt-1 font-mono" placeholder="e.g. 123456789" pattern="-?[0-9]+">
+                    <p class="mt-1 text-xs rsl-text-muted">Optional — subscriber gets bill reminders on Telegram when the bot is enabled.</p>
+                </div>
                 <div><label class="block text-xs font-bold uppercase rsl-text-muted">Address</label><input name="address" value="{{ old('address') }}" required class="rsl-input mt-1"></div>
                 @unless ($options['auto_generate_code'])
                     <div><label class="block text-xs font-bold uppercase rsl-text-muted">Client ID</label><input name="customer_code" value="{{ old('customer_code') }}" class="rsl-input mt-1" placeholder="{{ $options['client_id_prefix'] ?? '' }}"></div>
@@ -49,7 +54,7 @@
                     <label class="block text-xs font-bold uppercase rsl-text-muted">Package</label>
                     <select name="package_id" id="package-select" required class="rsl-input mt-1">
                         @foreach ($options['packages'] as $pkg)
-                            <option value="{{ $pkg['id'] }}" data-price="{{ (float) ($pkg['selling_price'] ?? $pkg['price_monthly']) }}" @selected(old('package_id') == $pkg['id'])>{{ $pkg['name'] }} — {{ number_format((float) ($pkg['selling_price'] ?? $pkg['price_monthly']), 0) }} BDT</option>
+                            <option value="{{ $pkg['id'] }}" data-price="{{ (float) ($pkg['customer_price'] ?? $pkg['price_monthly']) }}" @selected(old('package_id') == $pkg['id'])>{{ $pkg['name'] }} — {{ number_format((float) ($pkg['customer_price'] ?? $pkg['price_monthly']), 0) }} BDT@if(! empty($pkg['wholesale_price'])) (your rate {{ number_format((float) $pkg['wholesale_price'], 0) }})@endif</option>
                         @endforeach
                     </select>
                 </div>
@@ -60,7 +65,32 @@
                             <option value="{{ $val }}" @selected(old('billing_mode', $options['defaults']['billing_mode']) === $val)>{{ $label }}</option>
                         @endforeach
                     </select>
+                    <p class="mt-1 text-xs rsl-text-muted">Prepaid: line off after due+grace if unpaid. Postpaid: due accumulates; line can stay on if partner allows.</p>
                 </div>
+                <div class="grid gap-4 sm:grid-cols-2">
+                    <div>
+                        <label class="block text-xs font-bold uppercase rsl-text-muted">Grace period (days)</label>
+                        <input type="number" name="grace_period_days" min="0" max="90" value="{{ old('grace_period_days', $options['defaults']['grace_period_days'] ?? 5) }}" class="rsl-input mt-1">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold uppercase rsl-text-muted">Join date</label>
+                        <input type="date" name="joined_at" value="{{ old('joined_at', $options['defaults']['joined_at']) }}" class="rsl-input mt-1">
+                    </div>
+                </div>
+                @if (! empty($options['can_override_charge_mode']))
+                    <div>
+                        <label class="block text-xs font-bold uppercase rsl-text-muted">First month charge</label>
+                        <select name="new_customer_charge_mode" class="rsl-input mt-1">
+                            @foreach ($options['charge_modes'] as $val => $label)
+                                <option value="{{ $val }}" @selected(old('new_customer_charge_mode', $options['default_charge_mode']) === $val)>{{ $label }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                @endif
+                <label class="flex items-center gap-2 text-sm">
+                    <input type="checkbox" name="allow_active_when_due" value="1" class="rounded border-slate-300" @checked(old('allow_active_when_due'))>
+                    Keep online when bill is due (postpaid override)
+                </label>
                 <label class="flex items-center gap-2 text-sm">
                     <input type="checkbox" name="generate_bill" value="1" class="rounded border-slate-300" @checked(old('generate_bill', '1') !== '0')>
                     Generate first bill now

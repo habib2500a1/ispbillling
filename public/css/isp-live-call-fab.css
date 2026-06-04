@@ -1,0 +1,413 @@
+/* Sheba-Fi style WebSIP dialer + floating FAB */
+.isp-live-call-dock {
+    position: fixed;
+    inset: 0;
+    z-index: 10050;
+    pointer-events: none;
+}
+
+.isp-live-call-dock > .isp-live-call-fab {
+    pointer-events: auto;
+    position: fixed;
+    bottom: calc(1.25rem + env(safe-area-inset-bottom, 0px));
+    right: 1.25rem;
+    z-index: 10002;
+}
+
+.isp-websip-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.45);
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.2s ease, visibility 0.2s;
+    pointer-events: none;
+    z-index: 10000;
+}
+
+.isp-websip-backdrop.is-open {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+}
+
+/* Right-side panel like Sheba-Fi */
+.isp-websip-panel {
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: min(22rem, 100vw);
+    max-width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+    padding: 1rem 1rem calc(1rem + env(safe-area-inset-bottom, 0px));
+    background: linear-gradient(180deg, #0f2847 0%, #0a1628 55%, #060d18 100%);
+    color: #e2e8f0;
+    box-shadow: -8px 0 40px rgba(0, 0, 0, 0.35);
+    transform: translateX(105%);
+    transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+    pointer-events: auto;
+    z-index: 10001;
+    overflow-y: auto;
+}
+
+.isp-websip-panel.is-open {
+    transform: translateX(0);
+}
+
+body.isp-websip-panel-open {
+    overflow: hidden;
+}
+
+/* Bottom nav (z-55) was covering the dialer keypad on phones */
+body.isp-websip-panel-open .isp-mobile-bar {
+    display: none !important;
+}
+
+body.isp-websip-panel-open .isp-live-call-fab {
+    opacity: 0;
+    pointer-events: none;
+    transform: scale(0.85);
+}
+
+.isp-websip-panel__head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.5rem;
+}
+
+.isp-websip-panel__mode-label {
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #94a3b8;
+    margin: 0;
+}
+
+.isp-websip-panel__mode-value {
+    margin: 0.15rem 0 0;
+    font-size: 1rem;
+    font-weight: 800;
+    color: #38bdf8;
+    letter-spacing: 0.02em;
+}
+
+.isp-websip-panel__mode-sub {
+    margin: 0.2rem 0 0;
+    font-size: 0.65rem;
+    color: #94a3b8;
+}
+
+.isp-websip-panel__close {
+    width: 2rem;
+    height: 2rem;
+    border: none;
+    border-radius: 0.5rem;
+    background: rgba(255, 255, 255, 0.08);
+    color: #cbd5e1;
+    font-size: 1.35rem;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.isp-websip-panel__close:hover {
+    background: rgba(255, 255, 255, 0.15);
+}
+
+.isp-websip-panel__status-wrap {
+    text-align: center;
+}
+
+.isp-websip-panel__status {
+    display: inline-block;
+    border-radius: 9999px;
+    padding: 0.2rem 0.65rem;
+    font-size: 0.7rem;
+    font-weight: 600;
+    background: rgba(255, 255, 255, 0.1);
+    color: #cbd5e1;
+}
+
+.isp-websip-panel__status.is-ok {
+    background: rgba(34, 197, 94, 0.2);
+    color: #86efac;
+}
+
+.isp-websip-panel__status.is-err {
+    background: rgba(244, 63, 94, 0.2);
+    color: #fda4af;
+}
+
+.isp-websip-panel__display {
+    min-height: 2.75rem;
+    padding: 0.5rem 0.75rem;
+    border-radius: 0.65rem;
+    background: rgba(0, 0, 0, 0.35);
+    border: 1px solid rgba(56, 189, 248, 0.25);
+    font-size: 1.35rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-align: center;
+    color: #f8fafc;
+    word-break: break-all;
+}
+
+.isp-websip-keypad {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.45rem;
+    flex-shrink: 0;
+    min-height: 12.5rem;
+}
+
+.isp-websip-key {
+    min-height: 2.85rem;
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    border-radius: 0.5rem;
+    background: linear-gradient(180deg, rgba(30, 58, 95, 0.9) 0%, rgba(15, 40, 71, 0.95) 100%);
+    color: #f1f5f9;
+    font-size: 1.15rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: transform 0.1s ease, background 0.15s ease;
+}
+
+.isp-websip-key:hover {
+    background: linear-gradient(180deg, rgba(51, 85, 136, 0.95) 0%, rgba(30, 58, 95, 1) 100%);
+}
+
+.isp-websip-key:active {
+    transform: scale(0.96);
+}
+
+.isp-websip-panel__toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1.25rem;
+    padding-top: 0.25rem;
+}
+
+.isp-websip-tool {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: 9999px;
+    background: rgba(255, 255, 255, 0.08);
+    color: #94a3b8;
+    border: none;
+    cursor: pointer;
+    text-decoration: none;
+}
+
+.isp-websip-tool svg {
+    width: 1.15rem;
+    height: 1.15rem;
+}
+
+.isp-websip-tool:hover {
+    color: #e2e8f0;
+    background: rgba(255, 255, 255, 0.14);
+}
+
+.isp-websip-call-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 4.25rem;
+    height: 4.25rem;
+    border: 4px solid rgba(255, 255, 255, 0.9);
+    border-radius: 9999px;
+    background: linear-gradient(145deg, #4ade80 0%, #16a34a 50%, #15803d 100%);
+    color: #fff;
+    box-shadow: 0 6px 24px rgba(22, 163, 74, 0.55);
+    cursor: pointer;
+    transition: transform 0.15s ease;
+}
+
+.isp-websip-call-btn svg {
+    width: 1.65rem;
+    height: 1.65rem;
+}
+
+.isp-websip-call-btn:hover {
+    transform: scale(1.05);
+}
+
+.isp-websip-call-btn.is-active {
+    background: linear-gradient(145deg, #f87171 0%, #dc2626 100%);
+    box-shadow: 0 6px 24px rgba(220, 38, 38, 0.5);
+}
+
+.isp-websip-volume {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.7rem;
+    color: #94a3b8;
+    margin-top: 0.15rem;
+}
+
+.isp-websip-volume input {
+    flex: 1;
+    accent-color: #38bdf8;
+}
+
+.isp-websip-panel__hint {
+    font-size: 0.7rem;
+    text-align: center;
+    color: #94a3b8;
+    margin: 0;
+}
+
+.isp-websip-panel__hint a {
+    color: #38bdf8;
+    text-decoration: underline;
+}
+
+.isp-websip-panel__actions {
+    margin: 0;
+    text-align: center;
+}
+
+.isp-websip-retry {
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: #38bdf8;
+    background: transparent;
+    border: 1px solid rgba(56, 189, 248, 0.45);
+    border-radius: 999px;
+    padding: 0.25rem 0.65rem;
+    cursor: pointer;
+}
+
+.isp-websip-retry:hover {
+    background: rgba(56, 189, 248, 0.12);
+}
+
+/* FAB */
+.isp-live-call-fab {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 3.75rem;
+    height: 3.75rem;
+    border-radius: 9999px;
+    border: 3px solid rgba(255, 255, 255, 0.95);
+    background: linear-gradient(145deg, #34d399 0%, #16a34a 55%, #15803d 100%);
+    color: #fff;
+    box-shadow:
+        0 4px 14px rgba(22, 163, 74, 0.45),
+        0 2px 4px rgba(0, 0, 0, 0.12);
+    cursor: pointer;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.isp-live-call-fab:hover {
+    transform: scale(1.06);
+}
+
+.isp-live-call-fab svg {
+    width: 1.55rem;
+    height: 1.55rem;
+}
+
+.isp-live-call-fab--ready {
+    animation: isp-live-call-pulse 2s ease-in-out infinite;
+}
+
+@keyframes isp-live-call-pulse {
+    0%,
+    100% {
+        box-shadow:
+            0 4px 14px rgba(22, 163, 74, 0.45),
+            0 0 0 0 rgba(34, 197, 94, 0.35);
+    }
+    50% {
+        box-shadow:
+            0 6px 20px rgba(22, 163, 74, 0.55),
+            0 0 0 10px rgba(34, 197, 94, 0);
+    }
+}
+
+@media (max-width: 1023px) {
+    .isp-live-call-dock > .isp-live-call-fab {
+        bottom: calc(var(--isp-mobile-bar-height, 9.75rem) + 0.75rem + env(safe-area-inset-bottom, 0px));
+        right: 0.85rem;
+    }
+
+    .isp-websip-panel {
+        width: 100%;
+        max-height: min(92dvh, calc(100dvh - env(safe-area-inset-top, 0px) - 0.5rem));
+        top: auto;
+        bottom: 0;
+        border-radius: 1.25rem 1.25rem 0 0;
+        transform: translateY(105%);
+        padding: 0.75rem 1rem calc(1rem + env(safe-area-inset-bottom, 0px));
+        gap: 0.5rem;
+    }
+
+    .isp-websip-panel.is-open {
+        transform: translateY(0);
+    }
+
+    .isp-websip-panel__head {
+        flex-shrink: 0;
+    }
+
+    .isp-websip-panel__display {
+        flex-shrink: 0;
+        min-height: 2.25rem;
+        font-size: 1.2rem;
+    }
+
+    .isp-websip-key {
+        min-height: 2.65rem;
+        font-size: 1.1rem;
+    }
+
+    .isp-websip-keypad {
+        order: 1;
+        min-height: 11rem;
+    }
+
+    .isp-websip-panel__toolbar {
+        order: 2;
+        flex-shrink: 0;
+    }
+
+    .isp-websip-volume {
+        order: 3;
+        flex-shrink: 0;
+    }
+
+    .isp-websip-panel__hint {
+        order: 4;
+        flex-shrink: 0;
+    }
+}
+
+/* Per-row live call (client list) */
+.cl-dir-phone__call {
+    width: 2.25rem !important;
+    height: 2.25rem !important;
+    border-radius: 9999px !important;
+    border: 2px solid rgba(255, 255, 255, 0.9) !important;
+    background: linear-gradient(145deg, #34d399 0%, #16a34a 100%) !important;
+    box-shadow: 0 2px 8px rgba(22, 163, 74, 0.4) !important;
+}
+
+.cl-dir-phone__call:hover {
+    transform: scale(1.08);
+}
+
+.cl-dir-phone__call svg {
+    width: 1.1rem !important;
+    height: 1.1rem !important;
+}

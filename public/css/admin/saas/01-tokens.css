@@ -1,0 +1,60 @@
+/**
+ * Aurora ISP admin — Design tokens
+ * @module admin/saas/01-tokens.css
+ */
+/**
+ * Aurora ISP admin — bundled from public/css/admin/saas/
+ * Edit modules there; run: ./scripts/concat-admin-saas-css.sh
+ */
+
+/* --- 01-tokens.css --- */
+/**
+ * Aurora ISP admin — Design tokens
+ * @module admin/saas/01-tokens.css
+ */
+/**
+ * Aurora ISP admin — bundled from public/css/admin/saas/
+ * Edit modules there; run: ./scripts/concat-admin-saas-css.sh
+ */
+
+/* --- 01-tokens.css --- */
+/**
+ * Aurora ISP admin — Design tokens
+ * @module admin/saas/01-tokens.css
+ */
+/**
+ * Aurora ISP admin — unique design (teal + coral).
+ */
+
+/* Mobile sidebar behavior is controlled later with scoped rules only. */
+
+:root,
+[data-theme='light'] {
+    --isp-navy: #0c1222;
+    --isp-navy-soft: #151d2e;
+    --isp-primary: #0d9488;
+    --isp-primary-dark: #0f766e;
+    --isp-primary-light: #2dd4bf;
+    --isp-accent: #f97316;
+    --isp-accent-soft: #fb923c;
+    --isp-cyan: #38bdf8;
+    --isp-emerald: #10b981;
+    --isp-rose: #f43f5e;
+    --isp-amber: #f59e0b;
+    --isp-surface: #f4f7f6;
+    --isp-glass: rgba(255, 255, 255, 0.78);
+    --isp-radius: 0.875rem;
+    --isp-radius-md: 0.625rem;
+    --isp-radius-lg: 1.25rem;
+    --isp-radius-xl: 1.5rem;
+    --isp-shadow: 0 4px 24px -4px rgba(12, 18, 34, 0.08);
+    --isp-shadow-lg: 0 20px 50px -12px rgba(13, 148, 136, 0.22);
+    --isp-font: 'Outfit', ui-sans-serif, system-ui, sans-serif;
+    --isp-text: rgb(15 23 42);
+    --isp-text-muted: rgb(100 116 139);
+    --isp-card: rgba(255, 255, 255, 0.92);
+    --isp-card-muted: rgb(248 250 252);
+    --isp-card-border: rgba(148, 163, 184, 0.22);
+    --isp-sidebar-bg: linear-gradient(175deg, #0c1222 0%, #0f3d38 55%, #1a2744 100%);
+    --isp-sidebar-label: rgba(255, 255, 255, 0.45);
+    --isp-sidebar-link: rgba(255, 255, 255, 0.82);

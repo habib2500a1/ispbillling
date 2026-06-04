@@ -148,7 +148,7 @@ final class MikrotikOpticalBridgeService
         $customer = $customer->fresh();
 
         if ($syncOltFirst && config('optical.auto_sync_olt_on_mac_lookup', true)) {
-            app(IspDigitalOnuPipelineService::class)->syncAllBdcomOlts((int) $customer->tenant_id);
+            app(LegacyPortalOnuPipelineService::class)->syncAllBdcomOlts((int) $customer->tenant_id);
         }
 
         $byEpon = CustomerOnuMatcher::findUnlinkedOnuForEponHints((int) $customer->tenant_id, $customer);

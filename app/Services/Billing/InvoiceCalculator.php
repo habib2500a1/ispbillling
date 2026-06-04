@@ -31,15 +31,16 @@ class InvoiceCalculator
 
         $discount = (float) $invoice->discount_amount;
         $couponDisc = (float) ($invoice->coupon_discount_amount ?? 0);
+        $promoDisc = (float) ($invoice->promotional_offer_discount_amount ?? 0);
 
-        $netAfterDiscounts = max(0.0, round((float) $invoice->subtotal - $discount - $couponDisc, 2));
+        $netAfterDiscounts = max(0.0, round((float) $invoice->subtotal - $discount - $couponDisc - $promoDisc, 2));
         $taxAmount = round($netAfterDiscounts * ($vatPercent / 100), 2);
         $invoice->tax_amount = $taxAmount;
         $invoice->sd_amount = round($netAfterDiscounts * ($sdPercent / 100), 2);
         $invoice->withholding_amount = round($netAfterDiscounts * ($whtPercent / 100), 2);
 
         $invoice->total = max(0, round(
-            (float) $invoice->subtotal - $discount - $couponDisc
+            (float) $invoice->subtotal - $discount - $couponDisc - $promoDisc
             + (float) $invoice->tax_amount + (float) $invoice->sd_amount,
             2
         ));

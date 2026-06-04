@@ -77,6 +77,11 @@ class Device extends Model
         return $this->belongsTo(Customer::class);
     }
 
+    public function storeDeviceLoans(): HasMany
+    {
+        return $this->hasMany(StoreDeviceLoan::class);
+    }
+
     public function catalogProduct(): BelongsTo
     {
         return $this->belongsTo(Product::class, 'product_id');

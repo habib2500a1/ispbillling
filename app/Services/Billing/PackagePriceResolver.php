@@ -5,7 +5,6 @@ namespace App\Services\Billing;
 use App\Models\Customer;
 use App\Models\Package;
 use App\Support\BillingCycleType;
-use App\Services\Resellers\ResellerPackageCatalogService;
 use Carbon\CarbonInterface;
 
 final class PackagePriceResolver
@@ -27,22 +26,12 @@ final class PackagePriceResolver
     {
         $onDate ??= now();
 
-        if ($customer?->reseller_id) {
-            $reseller = $customer->reseller;
-            if ($reseller !== null) {
-                $selling = app(ResellerPackageCatalogService::class)->sellingPriceFor($reseller, $package);
-                if ($selling !== null && $selling > 0) {
-                    return $selling;
-                }
-            }
-        }
-
         if ($customer?->zone_id) {
             $zp = $package->zonePrices()
                 ->where('zone_id', $customer->zone_id)
                 ->value('price_monthly');
             if ($zp !== null && (float) $zp > 0) {
-                return (float) $zp;
+                return self::applyCustomerMonthlyDiscount((float) $zp, $customer);
             }
         }
 
@@ -51,7 +40,7 @@ final class PackagePriceResolver
                 ->where('area_id', $customer->area_id)
                 ->value('price_monthly');
             if ($ap !== null && (float) $ap > 0) {
-                return (float) $ap;
+                return self::applyCustomerMonthlyDiscount((float) $ap, $customer);
             }
         }
 
@@ -60,11 +49,18 @@ final class PackagePriceResolver
             $d = $onDate->toDateString();
             if ($d >= $package->promo_starts_at->toDateString()
                 && $d <= $package->promo_ends_at->toDateString()) {
-                return (float) $package->promo_price_monthly;
+                return self::applyCustomerMonthlyDiscount((float) $package->promo_price_monthly, $customer);
             }
         }
 
-        return (float) $package->price_monthly;
+        return self::applyCustomerMonthlyDiscount((float) $package->price_monthly, $customer);
+    }
+
+    private static function applyCustomerMonthlyDiscount(float $monthly, ?Customer $customer): float
+    {
+        $discount = (float) data_get($customer?->meta, 'monthly_discount_bdt', 0);
+
+        return max(0, round($monthly - $discount, 2));
     }
 
     public static function scaleToCycle(float $monthlyAmount, Package $package): float

@@ -18,6 +18,34 @@ final class BandwidthSyncStatus
         ]), now()->addHours(6));
     }
 
+    public static function markRunning(int $tenantId, string $type = 'collect'): void
+    {
+        Cache::put(sprintf('bandwidth_sync_running_%d', $tenantId), [
+            'type' => $type,
+            'started_at' => now()->toIso8601String(),
+        ], now()->addMinutes(10));
+    }
+
+    public static function clearRunning(int $tenantId): void
+    {
+        Cache::forget(sprintf('bandwidth_sync_running_%d', $tenantId));
+    }
+
+    public static function isRunning(int $tenantId): bool
+    {
+        return Cache::has(sprintf('bandwidth_sync_running_%d', $tenantId));
+    }
+
+    /**
+     * @return array{type?: string, started_at?: string}|null
+     */
+    public static function runningMeta(int $tenantId): ?array
+    {
+        $meta = Cache::get(sprintf('bandwidth_sync_running_%d', $tenantId));
+
+        return is_array($meta) ? $meta : null;
+    }
+
     /**
      * @return array<string, mixed>
      */

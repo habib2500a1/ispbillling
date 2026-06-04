@@ -21,7 +21,7 @@ return [
         'enabled' => (bool) env('PORTAL_SIGNUP_ENABLED', true),
     ],
 
-    'poll_seconds' => max(3, (int) env('PORTAL_POLL_SECONDS', 5)),
+    'poll_seconds' => max(1, (int) env('PORTAL_POLL_SECONDS', 1)),
 
     'whatsapp_url' => env('PORTAL_WHATSAPP_URL'),
 

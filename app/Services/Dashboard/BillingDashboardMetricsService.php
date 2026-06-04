@@ -8,6 +8,7 @@ use App\Models\InvoiceItem;
 use App\Models\Payment;
 use App\Services\Accounting\AccountingReportService;
 use App\Services\Mobile\StaffBillingKpiResolver;
+use App\Support\BillingPortalLabel;
 use App\Support\CustomerBalanceDue;
 use App\Support\CustomerStatus;
 use App\Support\PaymentType;
@@ -26,7 +27,7 @@ final class BillingDashboardMetricsService
         $tenantId = $tenantId ?? TenantResolver::requiredTenantId();
 
         return Cache::remember(
-            "billing_dashboard:{$tenantId}:".now()->format('Y-m-d-H'),
+            "billing_dashboard:v3:{$tenantId}:".now()->format('Y-m-d-H'),
             now()->addMinutes(3),
             fn (): array => $this->build($tenantId),
         );
@@ -41,9 +42,13 @@ final class BillingDashboardMetricsService
         $to = now()->endOfMonth();
         $pl = app(AccountingReportService::class)->profitAndLoss($from, $to, $tenantId);
 
+        $billing = app(StaffBillingKpiResolver::class)->resolve($tenantId);
+        $fromLegacyPortal = ($billing['source'] ?? '') === 'legacy_portal';
+
         return [
             'updated_at' => now()->toIso8601String(),
-            'kpis' => $this->kpis($tenantId, $from, $to, $pl),
+            'source_notice' => $this->sourceNotice($fromLegacyPortal),
+            'kpis' => $this->kpis($tenantId, $from, $to, $pl, $billing),
             'growth' => $this->monthlyGrowthChart($tenantId, 9),
             'clients' => $this->topDueClients($tenantId, 12),
         ];
@@ -53,18 +58,40 @@ final class BillingDashboardMetricsService
      * @param  array{income: float, expenses: float}  $pl
      * @return list<array{key: string, label: string, value: float, hint: string, tone: string, icon: string}>
      */
-    private function kpis(int $tenantId, Carbon $from, Carbon $to, array $pl): array
+    private function sourceNotice(bool $fromLegacyPortal): ?string
     {
-        $billing = app(StaffBillingKpiResolver::class)->resolve($tenantId);
-        $fromIsp = ($billing['source'] ?? '') === 'isp_digital';
-        $ispHint = $fromIsp ? ' (ISP Digital)' : '';
+        if (! $fromLegacyPortal) {
+            return null;
+        }
+
+        return 'Monthly bill, collected, and due totals are synced from '
+            .BillingPortalLabel::name()
+            .'. Income shows cash collected this month (not ledger journal net).';
+    }
+
+    /**
+     * @param  array{monthly_bill: float, collected_bill: float, due: float, discount: float, source: string}  $billing
+     * @param  array{income: float, expenses: float}  $pl
+     * @return list<array{key: string, label: string, value: float, hint: string, tone: string, icon: string}>
+     */
+    private function kpis(int $tenantId, Carbon $from, Carbon $to, array $pl, array $billing): array
+    {
+        $fromLegacyPortal = ($billing['source'] ?? '') === 'legacy_portal';
+        $sourceHint = $this->kpiSourceHint($fromLegacyPortal, true);
 
         $monthlyBill = (float) $billing['monthly_bill'];
         $collected = (float) $billing['collected_bill'];
         $totalDue = (float) $billing['due'];
         $discount = (float) $billing['discount'];
 
-        if (! $fromIsp) {
+        $snap = app(AccountingReportService::class)->incomeExpenseSnapshot($from, $to, $tenantId);
+        $localCollections = (float) ($snap['collections'] ?? 0);
+        // Income = cash received this month (payments), never ledger P&L net (can be negative).
+        $cashIncome = $fromLegacyPortal
+            ? max($localCollections, $collected)
+            : max($localCollections, (float) ($pl['income'] ?? 0));
+
+        if (! $fromLegacyPortal) {
             $discount = (float) Invoice::withoutGlobalScopes()
                 ->where('tenant_id', $tenantId)
                 ->whereBetween('issue_date', [$from->toDateString(), $to->toDateString()])
@@ -94,7 +121,7 @@ final class BillingDashboardMetricsService
                 'key' => 'monthly_bill',
                 'label' => 'Monthly Bill',
                 'value' => round($monthlyBill, 2),
-                'hint' => 'Current month total customer monthly bill'.$ispHint,
+                'hint' => 'Current month total customer monthly bill'.$sourceHint,
                 'tone' => 'blue',
                 'icon' => 'heroicon-o-calendar-days',
             ],
@@ -102,7 +129,7 @@ final class BillingDashboardMetricsService
                 'key' => 'collected',
                 'label' => 'Collected Bill',
                 'value' => round($collected, 2),
-                'hint' => 'Current month total received amount'.$ispHint,
+                'hint' => 'Current month total received amount'.$sourceHint,
                 'tone' => 'teal',
                 'icon' => 'heroicon-o-check-badge',
             ],
@@ -118,7 +145,7 @@ final class BillingDashboardMetricsService
                 'key' => 'total_due',
                 'label' => 'Total Due',
                 'value' => round(max(0, $totalDue), 2),
-                'hint' => 'Total due bill of clients'.$ispHint,
+                'hint' => 'Total due bill of clients'.$sourceHint,
                 'tone' => 'slate',
                 'icon' => 'heroicon-o-exclamation-circle',
             ],
@@ -141,8 +168,8 @@ final class BillingDashboardMetricsService
             [
                 'key' => 'income',
                 'label' => 'Income',
-                'value' => (float) ($pl['income'] ?? 0),
-                'hint' => 'Current month total income amount',
+                'value' => round(max(0, $cashIncome), 2),
+                'hint' => 'Current month cash collected (completed payments)'.$sourceHint,
                 'tone' => 'indigo',
                 'icon' => 'heroicon-o-arrow-trending-up',
             ],
@@ -155,6 +182,21 @@ final class BillingDashboardMetricsService
                 'icon' => 'heroicon-o-arrow-trending-down',
             ],
         ];
+    }
+
+    private function kpiSourceHint(bool $fromLegacyPortalSync, bool $billingDashboard = false): string
+    {
+        if (! $fromLegacyPortalSync) {
+            return '';
+        }
+
+        if (! $billingDashboard && ! (bool) config('legacy_portal.show_dashboard_kpi_hint', false)) {
+            return '';
+        }
+
+        $label = trim((string) config('legacy_portal.dashboard_kpi_hint', ''));
+
+        return ' · '.($label !== '' ? $label : BillingPortalLabel::name());
     }
 
     /**

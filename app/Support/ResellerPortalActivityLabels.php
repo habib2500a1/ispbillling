@@ -17,6 +17,8 @@ final class ResellerPortalActivityLabels
             'payment.collect' => 'Collected payment',
             'invoice.generate' => 'Generated invoice',
             'invoice.send' => 'Sent invoice (SMS/email)',
+            'wallet.wholesale_debit' => 'Wholesale wallet debit',
+            'wallet.wholesale_debit_failed' => 'Wholesale debit failed',
             'ticket.create' => 'Created support ticket',
             'ticket.reply' => 'Replied to ticket',
             'network.disconnect' => 'Disconnected PPPoE session',

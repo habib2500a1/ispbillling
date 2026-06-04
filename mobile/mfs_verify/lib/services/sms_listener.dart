@@ -275,9 +275,13 @@ class SmsListenerService {
 
       var logStatus = billLabel ?? billState ?? (res['duplicate'] == true ? 'duplicate_ok' : (res['status']?.toString() ?? 'ok'));
       if (autoApproved && customerCode != null && customerCode.isNotEmpty) {
-        logStatus = 'bill_linked_$customerCode';
+        if (refToken != null && refToken.isNotEmpty && matchedBy == 'sms_sender_phone') {
+          logStatus = 'ref_$refToken·done·$customerCode';
+        } else {
+          logStatus = 'done·$customerCode';
+        }
       } else if (billState == 'pending_match' && refToken != null && refToken.isNotEmpty) {
-        logStatus = matchedBy == 'sms_reference' ? 'ref_$refToken·pending' : 'pending_match';
+        logStatus = matchedBy == 'sms_reference' ? 'ref_$refToken·pending' : 'ref_$refToken·pending_match';
       } else if (billState == 'duplicate_trx') {
         logStatus = 'duplicate_trx';
       } else if (refMatch == 'needs_assignment' && refToken != null) {

@@ -63,6 +63,8 @@ final class ResellerCustomerLifecycleService
             'network_access_state' => 'suspended',
         ])->save();
 
+        app(ResellerSuspendedBillingService::class)->markSuspended($customer->fresh());
+
         $this->network->suspendCustomer($customer, $data['reason'] ?? 'reseller-portal');
         $this->activity->log($reseller, 'customer.suspend', $customer, ['reason' => $data['reason'] ?? null], $request);
 
@@ -76,6 +78,8 @@ final class ResellerCustomerLifecycleService
             throw ValidationException::withMessages(['permission' => 'Reconnect is not allowed.']);
         }
 
+        $this->customers->assertActiveClientLimit($reseller, $customer);
+
         $customer->forceFill([
             'status' => CustomerStatus::ACTIVE,
             'network_access_state' => 'active',
@@ -87,7 +91,23 @@ final class ResellerCustomerLifecycleService
 
         $this->activity->log($reseller, 'customer.reconnect', $customer, [], $request);
 
-        return ['message' => 'Subscriber reconnected and network enabled.'];
+        $pauseBilling = app(ResellerSuspendedBillingService::class);
+        $voided = $pauseBilling->voidStaleOpenInvoicesBeforeActivation($customer->fresh());
+        $pauseBilling->clearPauseState($customer->fresh());
+
+        $message = 'Subscriber activated and network enabled.';
+        if ($voided > 0) {
+            $message .= " {$voided} suspend-period bill(s) cleared.";
+        }
+
+        if ($request->boolean('generate_bill', true)) {
+            $bill = $this->customers->generateBillOnActivate($reseller, $customer->fresh());
+            if ($bill['message'] !== '') {
+                $message .= ' '.$bill['message'];
+            }
+        }
+
+        return ['message' => $message];
     }
 
     public function changePassword(Reseller $reseller, Customer $customer, Request $request): array

@@ -3,9 +3,17 @@
 @section('title', 'Sub-partners')
 
 @section('content')
+    @php $portal = app(\App\Support\ResellerPortalSession::class); @endphp
     <div class="rsl-card p-6">
-        <h1 class="rsl-title">Sub-partners</h1>
-        <p class="rsl-subtitle">{{ $partners->count() }} partner(s) under your account</p>
+        <div class="flex flex-wrap items-center justify-between gap-4">
+            <div>
+                <h1 class="rsl-title">Sub-partners</h1>
+                <p class="rsl-subtitle">{{ $partners->count() }} partner(s) in your hierarchy</p>
+            </div>
+            @if ($portal->canPortal(\App\Support\ResellerPortalPermission::SUB_RESELLER_CREATE))
+                <a href="{{ route('reseller.sub-resellers.create') }}" class="rsl-btn-sm">+ Add partner</a>
+            @endif
+        </div>
     </div>
     <div class="rsl-card mt-6 overflow-hidden">
         <table class="rsl-table w-full text-sm">

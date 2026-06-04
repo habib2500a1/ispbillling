@@ -107,6 +107,49 @@ class PppOnlineStatusTest extends TestCase
         $this->assertSame('user1', CustomerPppLoginResolver::normalize('user1@realm'));
     }
 
+    public function test_resolver_matches_login_even_when_session_router_differs_from_assigned(): void
+    {
+        $liveNas = MikrotikServer::query()->create([
+            'tenant_id' => 1,
+            'name' => 'Live NAS',
+            'host' => '10.0.0.1',
+            'api_port' => 8728,
+            'api_username' => 'admin',
+            'api_password' => 'secret',
+            'is_enabled' => true,
+        ]);
+
+        MikrotikServer::query()->create([
+            'tenant_id' => 1,
+            'name' => 'Stale NAS',
+            'host' => '10.0.0.2',
+            'api_port' => 8728,
+            'api_username' => 'admin',
+            'api_password' => 'secret',
+            'is_enabled' => true,
+        ]);
+
+        $customer = Customer::createTrusted([
+            'tenant_id' => 1,
+            'customer_code' => 'CROSS-ROUTER-1',
+            'mikrotik_secret_name' => 'akash.al',
+            'mikrotik_server_id' => 2,
+            'name' => 'Cross Router',
+            'phone' => '01777777777',
+            'status' => 'active',
+        ]);
+
+        CustomerPppLoginResolver::clearIndexCache();
+
+        $found = CustomerPppLoginResolver::resolve(1, 'akash.al', (int) $liveNas->id);
+
+        $this->assertNotNull($found);
+        $this->assertSame($customer->id, $found->id);
+
+        $customer->refresh();
+        $this->assertSame((int) $liveNas->id, (int) $customer->mikrotik_server_id);
+    }
+
     public function test_clear_stale_skips_when_fresh_bandwidth_sync_has_active_sessions(): void
     {
         $customer = Customer::createTrusted([

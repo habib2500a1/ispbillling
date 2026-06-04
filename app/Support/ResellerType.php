@@ -6,6 +6,8 @@ final class ResellerType
 {
     public const MASTER_RESELLER = 'master_reseller';
 
+    public const DISTRIBUTOR = 'distributor';
+
     public const RESELLER = 'reseller';
 
     public const FRANCHISE = 'franchise';
@@ -23,6 +25,7 @@ final class ResellerType
     {
         return [
             self::MASTER_RESELLER => 'Master reseller',
+            self::DISTRIBUTOR => 'Distributor',
             self::RESELLER => 'Reseller',
             self::FRANCHISE => 'Franchise',
             self::SUB_RESELLER => 'Sub-reseller',
@@ -36,10 +39,24 @@ final class ResellerType
     {
         return match ($type) {
             self::MASTER_RESELLER => 0,
-            self::FRANCHISE, self::AREA_DISTRIBUTOR => 1,
+            self::DISTRIBUTOR, self::FRANCHISE, self::AREA_DISTRIBUTOR => 1,
             self::RESELLER => 2,
             self::SUB_RESELLER, self::LOCAL_PARTNER => 3,
             default => 2,
         };
+    }
+
+    /** @return list<string> */
+    public static function hierarchyOrder(): array
+    {
+        return [
+            self::MASTER_RESELLER,
+            self::DISTRIBUTOR,
+            self::FRANCHISE,
+            self::AREA_DISTRIBUTOR,
+            self::RESELLER,
+            self::SUB_RESELLER,
+            self::LOCAL_PARTNER,
+        ];
     }
 }

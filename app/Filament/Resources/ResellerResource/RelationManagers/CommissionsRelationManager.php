@@ -4,11 +4,15 @@ namespace App\Filament\Resources\ResellerResource\RelationManagers;
 
 use App\Models\ResellerCommission;
 use App\Services\Resellers\ResellerCommissionService;
+use App\Services\Resellers\ResellerReportService;
 use Filament\Notifications\Notification;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
+use Filament\Tables\Grouping\Group;
 use Filament\Tables\Table;
+use Illuminate\Contracts\Support\Htmlable;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\HtmlString;
 
 class CommissionsRelationManager extends RelationManager
 {
@@ -18,9 +22,40 @@ class CommissionsRelationManager extends RelationManager
 
     protected static ?string $icon = 'heroicon-o-banknotes';
 
+    public function getTableDescription(): string|Htmlable|null
+    {
+        $totals = app(ResellerReportService::class)->partnerLedgerTotals((int) $this->getOwnerRecord()->getKey());
+        $monthly = app(ResellerReportService::class)->monthlyBreakdown(
+            now()->subMonths(5)->startOfMonth(),
+            now()->endOfDay(),
+            (int) $this->getOwnerRecord()->getKey(),
+        );
+
+        $monthLines = collect($monthly)->take(3)->map(
+            fn (array $m): string => $m['label'].': '.number_format($m['total'], 0).' ৳ (pending '.number_format($m['pending'], 0).')',
+        )->implode(' · ');
+
+        return new HtmlString(
+            '<div class="text-sm text-gray-600 dark:text-gray-400 space-y-1">'
+            .'<p><strong>Pending settlement:</strong> '.number_format($totals['pending'], 2).' ৳ ('.$totals['count_pending'].' lines) · '
+            .'<strong>Paid:</strong> '.number_format($totals['paid'], 2).' ৳ · '
+            .'<strong>Cancelled:</strong> '.number_format($totals['cancelled'], 2).' ৳</p>'
+            .($monthLines !== '' ? '<p><strong>Recent months:</strong> '.$monthLines.'</p>' : '')
+            .'</div>'
+        );
+    }
+
     public function table(Table $table): Table
     {
         return $table
+            ->groups([
+                Group::make('earned_month')
+                    ->label('Month')
+                    ->getKeyFromRecordUsing(fn (ResellerCommission $record): string => $record->earned_at?->format('Y-m') ?? 'unknown')
+                    ->getTitleFromRecordUsing(fn (ResellerCommission $record): string => $record->earned_at?->format('F Y') ?? 'Unknown')
+                    ->collapsible(),
+            ])
+            ->defaultGroup('earned_month')
             ->columns([
                 Tables\Columns\TextColumn::make('earned_at')
                     ->label('Earned')

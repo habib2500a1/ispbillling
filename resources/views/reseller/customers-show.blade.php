@@ -6,6 +6,26 @@
     <div class="rsl-card p-6">
         <h1 class="rsl-title">{{ $customer->name }}</h1>
         <p class="rsl-subtitle">{{ $customer->customer_code }} · {{ $customer->phone }} · {{ $customer->area?->name ?? '—' }}</p>
+        @php
+            $resellerHold = is_array($customer->meta['reseller_hold'] ?? null) ? $customer->meta['reseller_hold'] : null;
+            $openDue = $displayDue ?? $customer->openInvoiceBalance();
+        @endphp
+        @if ($billingPaused ?? false)
+            @if ($suspensionMonthCurrent ?? false)
+                <p class="mt-2 inline-flex rounded-lg bg-amber-100 px-3 py-1 text-sm font-semibold text-amber-900">
+                    Suspended — এই মাসের বিল আছে (generate করার পর suspend)। পরের মাসে নতুন বিল হবে না।
+                </p>
+            @else
+                <p class="mt-2 inline-flex rounded-lg bg-slate-200 px-3 py-1 text-sm font-semibold text-slate-700">
+                    Suspended — নতুন মাস, কোনো বিল নেই। Active + বিল দিন।
+                </p>
+            @endif
+        @elseif ($openDue > 0)
+            <p class="mt-2 inline-flex rounded-lg bg-rose-100 px-3 py-1 text-sm font-bold text-rose-800">Due: {{ number_format($openDue, 2) }} BDT</p>
+        @endif
+        @if ($resellerHold)
+            <p class="mt-2 text-sm text-amber-800">Network held — reseller partner was turned OFF by admin.</p>
+        @endif
         <div class="mt-4 flex flex-wrap gap-2">
             @if ($portal->canPortal(\App\Support\ResellerPortalPermission::CUSTOMER_EDIT))
                 <a href="{{ route('reseller.customers.edit', $customer) }}" class="rsl-btn-sm rsl-btn-sm--outline">Edit</a>
@@ -13,17 +33,26 @@
             @if ($portal->canPortal(\App\Support\ResellerPortalPermission::PAYMENT_COLLECT))
                 <a href="{{ route('reseller.customers.collect', $customer) }}" class="rsl-btn-sm">Collect payment</a>
             @endif
-            @if ($portal->canPortal(\App\Support\ResellerPortalPermission::INVOICE_GENERATE))
+            @if ($portal->canPortal(\App\Support\ResellerPortalPermission::INVOICE_GENERATE) && ! ($billingPaused ?? false))
                 <form method="post" action="{{ route('reseller.customers.invoice.generate', $customer) }}" class="inline">@csrf<button type="submit" class="rsl-btn-sm rsl-btn-sm--outline">Generate invoice</button></form>
             @endif
             @if ($portal->canPortal(\App\Support\ResellerPortalPermission::CUSTOMER_EDIT))
                 <form method="post" action="{{ route('reseller.customers.renew', $customer) }}" class="inline">@csrf<input type="hidden" name="days" value="30"><button type="submit" class="rsl-btn-sm rsl-btn-sm--outline">Renew 30d</button></form>
             @endif
             @if ($portal->canPortal(\App\Support\ResellerPortalPermission::CUSTOMER_SUSPEND))
-                @if ($customer->status !== 'suspended')
+                @if ($customer->status === 'active')
                     <form method="post" action="{{ route('reseller.customers.suspend', $customer) }}" class="inline" onsubmit="return confirm('Suspend this subscriber?')">@csrf<button type="submit" class="rsl-btn-sm rsl-btn-sm--outline">Suspend</button></form>
-                @else
-                    <form method="post" action="{{ route('reseller.customers.reconnect', $customer) }}" class="inline">@csrf<button type="submit" class="rsl-btn-sm">Reconnect</button></form>
+                @elseif (in_array($customer->status, ['suspended', 'expired'], true))
+                    <form method="post" action="{{ route('reseller.customers.reconnect', $customer) }}" class="inline-flex flex-wrap items-center gap-2">
+                        @csrf
+                        @if ($portal->canPortal(\App\Support\ResellerPortalPermission::INVOICE_GENERATE))
+                            <label class="inline-flex items-center gap-1 text-xs rsl-text">
+                                <input type="checkbox" name="generate_bill" value="1" checked class="rounded border-slate-300">
+                                এই মাসের বিল
+                            </label>
+                        @endif
+                        <button type="submit" class="rsl-btn-sm">Active + বিল</button>
+                    </form>
                 @endif
             @endif
             @if ($portal->canPortal(\App\Support\ResellerPortalPermission::ONU_VIEW))
@@ -40,7 +69,7 @@
         <div class="rsl-metric"><p class="rsl-metric-label">Billing</p><p class="rsl-metric-value text-base capitalize">{{ $customer->billing_mode ?? 'prepaid' }}</p></div>
         <div class="rsl-metric"><p class="rsl-metric-label">PPPoE user</p><p class="rsl-metric-value text-base font-mono">{{ $customer->mikrotik_secret_name ?: '—' }}</p></div>
         <div class="rsl-metric"><p class="rsl-metric-label">Status</p><p class="rsl-metric-value text-base capitalize">{{ $customer->status }}</p></div>
-        <div class="rsl-metric"><p class="rsl-metric-label">Due</p><p class="rsl-metric-value text-rose-700">{{ number_format($customer->openInvoiceBalance(), 2) }} BDT</p></div>
+        <div class="rsl-metric"><p class="rsl-metric-label">Due</p><p class="rsl-metric-value {{ ($billingPaused ?? false) ? 'text-slate-500' : 'text-rose-700' }}">{{ number_format($openDue, 2) }} BDT</p></div>
         <div class="rsl-metric"><p class="rsl-metric-label">Expires</p><p class="rsl-metric-value text-base">{{ $customer->service_expires_at?->format('d M Y') ?? '—' }}</p></div>
         <div class="rsl-metric"><p class="rsl-metric-label">Network</p><p class="rsl-metric-value text-base">{{ $customer->is_ppp_online ? 'Online' : 'Offline' }}</p></div>
     </div>
@@ -98,6 +127,14 @@
         </div>
         <div class="rsl-card overflow-hidden">
             <div class="rsl-card-header"><h2 class="rsl-heading">Invoice history</h2></div>
+            @if ($billingPaused ?? false)
+                @if ($suspensionMonthCurrent ?? false)
+                    <p class="px-4 py-3 text-xs text-center rsl-text-muted border-b border-slate-100">শুধু suspend মাসের বিল (এই মাস)।</p>
+                @else
+                    <p class="px-4 py-6 text-sm text-center rsl-text-muted">নতুন মাস — suspend থাকলে বিল দেখাবে না। Active + বিল দিন।</p>
+                @endif
+            @endif
+            @if (! ($billingPaused ?? false) || ($suspensionMonthCurrent ?? false))
             <div class="overflow-x-auto">
                 <table class="rsl-table w-full text-sm">
                     <thead><tr><th class="px-4 py-2">Invoice</th><th class="px-4 py-2">Total</th><th class="px-4 py-2">Status</th><th class="px-4 py-2"></th></tr></thead>
@@ -115,6 +152,7 @@
                     </tbody>
                 </table>
             </div>
+            @endif
         </div>
     </div>
 @endsection

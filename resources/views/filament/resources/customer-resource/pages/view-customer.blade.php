@@ -8,7 +8,6 @@
     ])
 >
     @php
-        $subViewCssV = @filemtime(public_path('css/subscriber-view-pro.css')) ?: time();
         $details = $this->getClientDetails();
         $h = $details['header'];
         $optical = $details['optical'];
@@ -61,27 +60,7 @@
         ];
     @endphp
 
-    <link rel="stylesheet" href="{{ asset('css/subscriber-view-pro.css') }}?v={{ $subViewCssV }}" data-subscriber-view="1" id="subscriber-view-pro-css">
-
-    <script data-cfasync="false">
-    (function () {
-        var id = 'subscriber-view-pro-css';
-        var href = @json(asset('css/subscriber-view-pro.css').'?v='.$subViewCssV);
-        var existing = document.getElementById(id);
-        if (existing && existing.getAttribute('href') === href) {
-            return;
-        }
-        if (existing) {
-            existing.remove();
-        }
-        var link = document.createElement('link');
-        link.id = id;
-        link.rel = 'stylesheet';
-        link.href = href;
-        link.setAttribute('data-subscriber-view', '1');
-        document.head.appendChild(link);
-    })();
-    </script>
+    {!! \App\Support\SubscriberViewStyles::navigatedScriptWithOlt() !!}
 
     <div class="sub-pro olt-pro" wire:key="client-view-{{ $record->getKey() }}" x-data="{ tab: 'overview' }">
         <header class="olt-hero sub-hero">

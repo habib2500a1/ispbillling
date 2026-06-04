@@ -7,8 +7,10 @@ use App\Filament\Auth\EditAdminProfile;
 use App\Filament\GlobalSearch\IspGlobalSearchProvider;
 use App\Support\CompanyBranding;
 use App\Http\Middleware\EnsureStaffTwoFactorVerified;
+use App\Http\Middleware\RedirectSubscribersOnlinePreset;
 use App\Http\Middleware\SetAppLocale;
 use App\Support\AdminCommandPalette;
+use App\Support\AdminRouteAssets;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
@@ -41,7 +43,7 @@ class AdminPanelProvider extends PanelProvider
             ->brandLogo(fn (): ?string => CompanyBranding::logoUrl())
             ->brandLogoHeight('2.25rem')
             ->favicon(fn (): ?string => CompanyBranding::faviconUrl())
-            ->databaseNotificationsPolling('30s')
+            ->databaseNotificationsPolling('120s')
             ->colors([
                 'primary' => Color::Violet,
                 'success' => Color::Emerald,
@@ -100,6 +102,7 @@ class AdminPanelProvider extends PanelProvider
             ->authMiddleware([
                 Authenticate::class,
                 EnsureStaffTwoFactorVerified::class,
+                RedirectSubscribersOnlinePreset::class,
             ])
             ->renderHook(
                 PanelsRenderHook::HEAD_END,
@@ -110,21 +113,7 @@ class AdminPanelProvider extends PanelProvider
                     }
 
                     $html .= view('filament.hooks.design-system')->render();
-
-                    if (request()->routeIs('filament.admin.resources.subscribers.index')) {
-                        $v = @filemtime(public_path('css/clients-directory-pro.css')) ?: time();
-                        $html .= '<link rel="stylesheet" href="'.asset('css/clients-directory-pro.css').'?v='.$v.'" data-clients-directory="1">';
-                    }
-
-                    if (request()->routeIs('filament.admin.pages.subscriber-lists-hub')) {
-                        $v = @filemtime(public_path('css/subscriber-lists-hub-pro.css')) ?: time();
-                        $html .= '<link rel="stylesheet" href="'.asset('css/subscriber-lists-hub-pro.css').'?v='.$v.'" data-slh="1">';
-                    }
-
-                    if (request()->routeIs('filament.admin.pages.resellers-hub')) {
-                        $v = @filemtime(public_path('css/resellers-hub-pro.css')) ?: time();
-                        $html .= '<link rel="stylesheet" href="'.asset('css/resellers-hub-pro.css').'?v='.$v.'" data-rsh="1">';
-                    }
+                    $html .= AdminRouteAssets::headLinks();
 
                     return $html;
                 },

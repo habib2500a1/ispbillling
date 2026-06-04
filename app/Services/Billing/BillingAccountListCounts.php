@@ -5,6 +5,8 @@ namespace App\Services\Billing;
 use App\Models\Customer;
 use App\Support\CustomerAccountScopes;
 use App\Support\CustomerStatus;
+use App\Support\SubscriberType;
+use App\Services\Mobile\StaffBillingKpiResolver;
 use App\Support\TenantResolver;
 use Illuminate\Support\Facades\Cache;
 
@@ -49,6 +51,13 @@ final class BillingAccountListCounts
                         })->count(),
                     'suspended' => (clone $base)->where('status', CustomerStatus::SUSPENDED)->count(),
                     'left' => CustomerAccountScopes::applyLeft(clone $base)->count(),
+                    'free' => $notTerminated()
+                        ->where('subscriber_type', SubscriberType::FREE)
+                        ->count(),
+                    'vip' => $notTerminated()
+                        ->where('subscriber_type', SubscriberType::VIP)
+                        ->count(),
+                    'due_clients' => app(StaffBillingKpiResolver::class)->dueClientsCount($tenantId),
                 ];
             },
         );

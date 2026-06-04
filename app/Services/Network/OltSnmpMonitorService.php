@@ -63,14 +63,7 @@ class OltSnmpMonitorService
                 throw new \RuntimeException('SNMP unreachable (sysDescr).');
             }
 
-            $guessed = OltOnuSyncCoordinator::guessDriverFromSysDescr((string) $result['sys_descr']);
-            if ($guessed !== null
-                && in_array((string) ($olt->olt_driver ?? ''), ['', 'generic_snmp', 'zte_epon', 'zte_gpon'], true)) {
-                $olt->forceFill([
-                    'olt_driver' => $guessed,
-                    'vendor' => config("olt_drivers.drivers.{$guessed}.vendor") ?? $olt->vendor,
-                    'gpon_profile' => config("gpon.driver_to_profile.{$guessed}") ?? $olt->gpon_profile,
-                ])->saveQuietly();
+            if (OltOnuSyncCoordinator::applyDriverFromSysDescr($olt, (string) $result['sys_descr'])) {
                 $olt->refresh();
                 $profile = $this->gpon->resolveProfile($olt);
                 $oids = $this->gpon->oidsForProfile($profile);

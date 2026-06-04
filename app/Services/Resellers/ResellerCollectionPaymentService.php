@@ -21,6 +21,25 @@ final class ResellerCollectionPaymentService
         app(ResellerCustomerService::class)->assertOwned($reseller, $customer);
 
         $user = $this->recorderUser($reseller);
+        $mode = (string) ($data['allocation_mode'] ?? ResellerPaymentAllocationService::MODE_SINGLE);
+
+        if ($mode === ResellerPaymentAllocationService::MODE_FIFO) {
+            return app(ResellerPaymentAllocationService::class)->recordFifo(
+                $user,
+                $customer,
+                $data,
+                'reseller-portal',
+            );
+        }
+
+        if ($mode === ResellerPaymentAllocationService::MODE_ADVANCE) {
+            return app(ResellerPaymentAllocationService::class)->recordAdvanceWallet(
+                $user,
+                $customer,
+                $data,
+                'reseller-portal',
+            );
+        }
 
         return app(StaffCollectionPaymentService::class)->record(
             $user,

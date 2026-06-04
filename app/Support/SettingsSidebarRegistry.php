@@ -2,6 +2,8 @@
 
 namespace App\Support;
 
+use App\Filament\Pages\ManageApiConfiguration;
+use App\Filament\Pages\ManagePlatformDeployment;
 use App\Filament\Pages\ManageCompanySetup;
 use App\Filament\Pages\ManageMovieServerList;
 use App\Filament\Pages\ManagePortalMarquee;
@@ -67,6 +69,22 @@ final class SettingsSidebarRegistry
                 'url' => ManageCompanySetup::getUrl(),
                 'active_routes' => ['filament.admin.pages.company-setup'],
             ],
+            [
+                'key' => 'api_configuration',
+                'label' => 'API configuration',
+                'icon' => 'heroicon-o-key',
+                'sort' => 6,
+                'url' => ManageApiConfiguration::getUrl(),
+                'active_routes' => ['filament.admin.pages.api-configuration'],
+            ],
+            [
+                'key' => 'platform_deployment',
+                'label' => 'Deployment & license',
+                'icon' => 'heroicon-o-shield-check',
+                'sort' => 7,
+                'url' => ManagePlatformDeployment::getUrl(),
+                'active_routes' => ['filament.admin.pages.platform-deployment'],
+            ],
         ];
     }
 
@@ -113,6 +131,8 @@ final class SettingsSidebarRegistry
             'movie_servers' => ManageMovieServerList::canAccess(),
             'portal_marquee' => ManagePortalMarquee::canAccess(),
             'company_info' => ManageCompanySetup::canAccess(),
+            'api_configuration' => ManageApiConfiguration::canAccess(),
+            'platform_deployment' => ManagePlatformDeployment::canAccess(),
             default => ManagePortalSettings::canAccess(),
         };
     }
