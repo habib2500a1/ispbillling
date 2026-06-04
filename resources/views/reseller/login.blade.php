@@ -7,15 +7,17 @@
     @include('partials.site-favicon')
     @include('partials.reseller-theme-head')
     @php
-        $rslPortalBuild = '2026.06.04-pro-en';
+        $rslPortalBuild = '2026.06.04-pro-fix';
         $loginCssVer = (@filemtime(public_path('css/reseller-portal-pro.css')) ?: time()).'-'.$rslPortalBuild;
+        $loginCssHref = '/css/reseller-portal-pro.css?v='.$loginCssVer;
         $wl = app()->bound('reseller.white_label') ? app('reseller.white_label') : null;
         $companyName = $wl?->brand_name ?: config('app.name');
         $logoUrl = $wl?->logoUrl() ?: \App\Support\CompanyBranding::logoUrl();
         $initial = $wl?->brandInitial() ?: \App\Support\CompanyBranding::brandInitial();
     @endphp
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-    <link rel="stylesheet" href="{{ asset('css/reseller-portal-pro.css') }}?v={{ $loginCssVer }}">
+    <link rel="preload" href="{{ $loginCssHref }}" as="style">
+    <link rel="stylesheet" href="{{ $loginCssHref }}">
     <script src="{{ asset('js/portal-theme.js') }}?v={{ $loginCssVer }}"></script>
 </head>
 <body class="rsl-page rsl-login-page">

@@ -31,7 +31,7 @@
             </p>
         </div>
         <div class="rsl-pro-ring" aria-label="Collection {{ number_format($collectionRate, 0) }}%">
-            <svg viewBox="0 0 36 36" class="rsl-pro-ring-svg">
+            <svg viewBox="0 0 36 36" width="72" height="72" class="rsl-pro-ring-svg">
                 <path class="rsl-pro-ring-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"/>
                 <path class="rsl-pro-ring-fill" stroke-dasharray="{{ $collectionRate }}, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"/>
             </svg>

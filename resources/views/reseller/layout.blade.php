@@ -10,12 +10,26 @@
     @include('partials.site-favicon')
     @include('partials.reseller-theme-head')
     @php
-        $rslPortalBuild = '2026.06.04-pro-en';
+        $rslPortalBuild = '2026.06.04-pro-fix';
         $rslCssFile = 'css/reseller-portal-pro.css';
         $rslCssVer = (@filemtime(public_path($rslCssFile)) ?: time()).'-'.$rslPortalBuild;
         $rslJsVer = (@filemtime(public_path('js/portal-theme.js')) ?: time()).'-'.$rslPortalBuild;
+        $rslCssHref = '/'.$rslCssFile.'?v='.$rslCssVer;
     @endphp
-    <link rel="stylesheet" href="{{ asset($rslCssFile) }}?v={{ $rslCssVer }}">
+    <link rel="preload" href="{{ $rslCssHref }}" as="style">
+    <link rel="stylesheet" href="{{ $rslCssHref }}">
+    <style id="rsl-critical">
+        body.rsl-page{margin:0;min-height:100vh;font-family:'Plus Jakarta Sans',system-ui,sans-serif;color:#0f172a;background:#f1f5f9}
+        .rsl-app{min-height:100vh;display:flex;flex-direction:column}
+        @media(min-width:1024px){.rsl-app{flex-direction:row}}
+        .rsl-app-content{flex:1;min-width:0;display:flex;flex-direction:column}
+        .rsl-main{flex:1;padding:1rem;max-width:80rem;margin:0 auto;width:100%}
+        svg.rsl-pro-nav-icon,.rsl-dock-link svg{width:1.25rem;height:1.25rem;max-width:1.25rem;flex-shrink:0}
+        .rsl-pro-ring,.rsl-dash-ring{position:relative;width:4.5rem;height:4.5rem;max-width:4.5rem;flex-shrink:0}
+        .rsl-pro-ring-svg,.rsl-dash-ring-svg{width:100%;height:100%;max-width:100%}
+        .rsl-only-desktop{display:none}
+        @media(min-width:1024px){.rsl-only-desktop{display:block}.rsl-only-mobile{display:none!important}}
+    </style>
     @stack('styles')
     <script src="{{ asset('js/portal-theme.js') }}?v={{ $rslJsVer }}"></script>
 </head>

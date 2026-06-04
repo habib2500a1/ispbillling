@@ -11,6 +11,6 @@
         default => 'M12 6v12m6-6H6',
     };
 @endphp
-<svg class="rsl-pro-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true">
+<svg class="rsl-pro-nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true">
     <path stroke-linecap="round" stroke-linejoin="round" d="{{ $d }}" />
 </svg>

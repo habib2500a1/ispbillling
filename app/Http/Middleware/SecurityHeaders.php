@@ -31,7 +31,7 @@ final class SecurityHeaders
             $response->headers->set('Expires', '0');
             $response->headers->set('CDN-Cache-Control', 'no-store');
             $response->headers->set('Cloudflare-CDN-Cache-Control', 'no-store');
-            $response->headers->set('X-Portal-Build', '2026.06.01-mobile');
+            $response->headers->set('X-Portal-Build', '2026.06.04-pro-fix');
         }
 
         return $response;
