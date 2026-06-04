@@ -7,43 +7,40 @@
     $s = $summary;
     $c = $customerBreakdown;
 @endphp
-<div class="rsl-page-head mb-6">
-    <h1 class="text-2xl font-bold text-slate-900">Due account — Admin &amp; Reseller</h1>
-    <p class="text-sm text-slate-600 mt-1">
-        দুই ধরনের due: <strong>HQ-র কাছে আপনার বাকি</strong> (wholesale) এবং <strong>customer-দের আপনার কাছে বাকি</strong> (retail).
-        জমা, adjustment, customer payment হলে due <strong>কমে</strong> — নিচের হিসাবে ও ledger-এ দেখা যাবে।
-    </p>
-</div>
+@include('reseller.partials.page-header', [
+    'title' => 'Due account',
+    'subtitle' => 'HQ due (wholesale) and subscriber due (retail) — reduced by payments.',
+])
 
 {{-- Side by side: HQ vs Customer --}}
 <div class="grid gap-6 lg:grid-cols-2 mb-6">
     {{-- Admin / HQ side --}}
-    <div class="rsl-card p-5 border-2 border-rose-200">
-        <h2 class="text-lg font-bold text-rose-800">① Admin (HQ) — আপনার বাকি</h2>
-        <p class="text-sm text-slate-600 mt-1">Wholesale @ 330 BDT/subscriber (package অনুযায়ী)। জমা/adjustment করলে কমে।</p>
+    <div class="rsl-panel rsl-panel-pad" style="border-color:rgba(244,63,94,0.35)">
+        <h2 class="text-lg font-bold text-rose-800">① Admin (HQ) — your balance due</h2>
+        <p class="text-sm text-slate-600 mt-1">Wholesale @ 330 BDT/subscriber (per package). Reduced by settlement/adjustment.</p>
 
         <div class="mt-4 rounded-lg bg-rose-50 p-4 text-center">
-            <p class="text-xs font-semibold uppercase text-rose-700">এখন বাকি (HQ due)</p>
+            <p class="text-xs font-semibold uppercase text-rose-700">Current HQ due</p>
             <p class="text-3xl font-bold text-rose-800 mt-1">{{ number_format($s['admin_due'], 2) }} BDT</p>
         </div>
 
         <dl class="mt-4 space-y-2 text-sm border-t border-rose-100 pt-4">
             <div class="flex justify-between gap-2">
-                <dt class="text-slate-600">+ Wholesale বিল (accrual)</dt>
+                <dt class="text-slate-600">+ Wholesale Bills (accrual)</dt>
                 <dd class="font-mono text-rose-700">+{{ number_format($s['total_wholesale_accrued'] ?? 0, 2) }}</dd>
             </div>
             @if (($s['debit_notes'] ?? 0) > 0)
                 <div class="flex justify-between gap-2">
-                    <dt class="text-slate-600">+ Debit note (admin বাড়ানো)</dt>
+                    <dt class="text-slate-600">+ Debit note (admin added)</dt>
                     <dd class="font-mono text-rose-700">+{{ number_format($s['debit_notes'], 2) }}</dd>
                 </div>
             @endif
             <div class="flex justify-between gap-2 font-medium border-t border-slate-100 pt-2">
-                <dt>মোট বাড়েছে</dt>
+                <dt>Total increases</dt>
                 <dd class="font-mono">{{ number_format($s['total_debits'] ?? 0, 2) }} BDT</dd>
             </div>
             <div class="flex justify-between gap-2 text-emerald-800">
-                <dt>− আপনি HQ-তে জমা (settlement)</dt>
+                <dt>− Paid to HQ (settlement)</dt>
                 <dd class="font-mono">−{{ number_format($s['paid_to_hq_settlement'] ?? 0, 2) }}</dd>
             </div>
             <div class="flex justify-between gap-2 text-emerald-800">
@@ -57,59 +54,59 @@
                 </div>
             @endif
             <div class="flex justify-between gap-2 font-bold border-t border-slate-200 pt-2">
-                <dt>= বাকি (হিসাব)</dt>
+                <dt>= Balance due (calc)</dt>
                 <dd class="font-mono text-rose-800">{{ number_format($s['calculated_due'] ?? $s['admin_due'], 2) }} BDT</dd>
             </div>
         </dl>
-        <p class="mt-3 text-xs text-slate-500">Margin আপনার: {{ number_format($s['margin_total'], 2) }} BDT (customer collect থেকে)</p>
+        <p class="mt-3 text-xs text-slate-500">Your margin: {{ number_format($s['margin_total'], 2) }} BDT (from customer collections)</p>
     </div>
 
     {{-- Reseller / customer side --}}
-    <div class="rsl-card p-5 border-2 border-emerald-200">
-        <h2 class="text-lg font-bold text-emerald-800">② Reseller — Customer-দের বাকি</h2>
-        <p class="text-sm text-slate-600 mt-1">Subscriber retail bill (যেমন 500)। Collect / discount করলে বাকি কমে।</p>
+    <div class="rsl-panel p-5 border-2 border-emerald-200">
+        <h2 class="text-lg font-bold text-emerald-800">② Reseller — customer balances due</h2>
+        <p class="text-sm text-slate-600 mt-1">Subscriber retail bills. Due drops when you collect or discount.</p>
 
         <div class="mt-4 rounded-lg bg-emerald-50 p-4 text-center">
-            <p class="text-xs font-semibold uppercase text-emerald-700">এখন customer due</p>
+            <p class="text-xs font-semibold uppercase text-emerald-700">Current customer due</p>
             <p class="text-3xl font-bold text-emerald-800 mt-1">{{ number_format($c['due'], 2) }} BDT</p>
         </div>
 
         <dl class="mt-4 space-y-2 text-sm border-t border-emerald-100 pt-4">
             <div class="flex justify-between gap-2">
-                <dt class="text-slate-600">মোট বিল (invoiced)</dt>
+                <dt class="text-slate-600">Total invoiced</dt>
                 <dd class="font-mono">{{ number_format($c['invoiced'], 2) }} BDT</dd>
             </div>
             <div class="flex justify-between gap-2 text-emerald-800">
-                <dt>− সংগ্রহ (collected)</dt>
+                <dt>− Collected</dt>
                 <dd class="font-mono">−{{ number_format($c['collected'], 2) }}</dd>
             </div>
             @if ($c['discounted'] > 0)
                 <div class="flex justify-between gap-2 text-amber-800">
                     <dt>− Discount / waive</dt>
-                    <dd class="font-mono">(bill-এ {{ number_format($c['discounted'], 2) }})</dd>
+                    <dd class="font-mono">(on invoice {{ number_format($c['discounted'], 2) }})</dd>
                 </div>
             @endif
             <div class="flex justify-between gap-2 font-bold border-t border-slate-200 pt-2">
-                <dt>= বাকি</dt>
+                <dt>= Due</dt>
                 <dd class="font-mono text-emerald-800">{{ number_format($c['due'], 2) }} BDT</dd>
             </div>
         </dl>
         <p class="mt-3">
-            <a href="{{ route('reseller.customers.index', ['due' => 1]) }}" class="rsl-link text-sm">Due subscribers তালিকা →</a>
+            <a href="{{ route('reseller.customers.index', ['due' => 1]) }}" class="rsl-link text-sm">Due subscribers List →</a>
         </p>
     </div>
 </div>
 
 <div class="grid gap-4 md:grid-cols-2 mb-6">
-    <div class="rsl-card p-4">
-        <h2 class="font-semibold text-slate-800 mb-2">কী করলে due কমে?</h2>
+    <div class="rsl-panel p-4">
+        <h2 class="font-semibold text-slate-800 mb-2">What reduces due?</h2>
         <ul class="text-sm space-y-2 text-slate-700 list-disc pl-5">
-            <li><strong>HQ due:</strong> Admin settlement রেকর্ড করলে · Customer payment হলে (330 অংশ) · Credit note</li>
+            <li><strong>HQ due:</strong> Admin records settlement · Customer payment (HQ share) · Credit note</li>
             <li><strong>Customer due:</strong> Collect payment · Invoice discount/waive</li>
-            <li><strong>HQ due বাড়ে:</strong> নতুন monthly bill generate (wholesale accrual)</li>
+            <li><strong>HQ due increases:</strong> New monthly bill generate (wholesale accrual)</li>
         </ul>
     </div>
-    <div class="rsl-card p-4">
+    <div class="rsl-panel p-4">
         <h2 class="font-semibold text-slate-800 mb-2">Billing policy</h2>
         <dl class="text-sm space-y-1">
             <div class="flex justify-between"><dt class="text-slate-500">Settlement</dt><dd>{{ $settlementMode }}</dd></div>
@@ -119,8 +116,8 @@
     </div>
 </div>
 
-<div class="rsl-card p-4 mb-6">
-    <h2 class="font-semibold text-slate-800 mb-2">Customer due aging (আপনার কাছে)</h2>
+<div class="rsl-panel p-4 mb-6">
+    <h2 class="font-semibold text-slate-800 mb-2">Customer due aging (owed to you)</h2>
     <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
         <div><span class="text-slate-500">0–30d</span><br><strong>{{ number_format($aging['bucket_30'], 0) }}</strong></div>
         <div><span class="text-slate-500">31–60d</span><br><strong>{{ number_format($aging['bucket_60'], 0) }}</strong></div>
@@ -129,13 +126,13 @@
     </div>
 </div>
 
-<div class="rsl-card overflow-hidden mb-6">
+<div class="rsl-panel overflow-hidden mb-6">
     <div class="px-4 py-3 border-b border-slate-200 flex flex-wrap items-center justify-between gap-2">
         <div>
-            <h2 class="font-semibold text-slate-800">Subscriber lines — {{ $lineTotals['count'] }} জন</h2>
+            <h2 class="font-semibold text-slate-800">Subscriber lines — {{ $lineTotals['count'] }} subscribers</h2>
             <p class="text-xs text-slate-500 mt-1">
-                {{ $lineTotals['with_bill'] }} জনের এই মাসের বিল · Customer due মোট {{ number_format($lineTotals['retail_due'], 2) }} BDT
-                · HQ wholesale মোট {{ number_format($lineTotals['wholesale'], 2) }} BDT
+                {{ $lineTotals['with_bill'] }} subscribers billed this month · Customer due total {{ number_format($lineTotals['retail_due'], 2) }} BDT
+                · HQ wholesale Total {{ number_format($lineTotals['wholesale'], 2) }} BDT
             </p>
         </div>
     </div>
@@ -173,7 +170,7 @@
             </tbody>
             <tfoot class="bg-slate-100 font-semibold border-t-2 border-slate-300">
                 <tr>
-                    <td colspan="6" class="px-3 py-2 text-right">মোট ({{ $lineTotals['count'] }} লাইন)</td>
+                    <td colspan="6" class="px-3 py-2 text-right">Total ({{ $lineTotals['count'] }} lines)</td>
                     <td class="px-3 py-2 text-right font-mono text-emerald-800">{{ number_format($lineTotals['retail_due'], 2) }}</td>
                     <td class="px-3 py-2 text-right font-mono text-rose-800">{{ number_format($lineTotals['wholesale'], 2) }}</td>
                 </tr>
@@ -182,18 +179,18 @@
     </div>
 </div>
 
-<div class="rsl-card overflow-hidden">
+<div class="rsl-panel overflow-hidden">
     <div class="px-4 py-3 border-b border-slate-200">
-        <h2 class="font-semibold text-slate-800">HQ ledger — প্রতিটি লাইনে “Due after”</h2>
-        <p class="text-xs text-slate-500 mt-1">+ = due বাড়ে · − = due কমে (জমা / payment / adjustment)</p>
+        <h2 class="font-semibold text-slate-800">HQ ledger — “Due after” per line</h2>
+        <p class="text-xs text-slate-500 mt-1">+ = due up · − = due down (settlement / payment / adjustment)</p>
     </div>
     <div class="overflow-x-auto">
         <table class="w-full text-sm">
             <thead class="bg-slate-50 text-left text-slate-600">
                 <tr>
                     <th class="px-4 py-2">Date</th>
-                    <th class="px-4 py-2">বিবরণ</th>
-                    <th class="px-4 py-2">পরিবর্তন</th>
+                    <th class="px-4 py-2">Description</th>
+                    <th class="px-4 py-2">Change</th>
                     <th class="px-4 py-2">Due after</th>
                     <th class="px-4 py-2">Notes</th>
                 </tr>
@@ -213,7 +210,7 @@
                         <td class="px-4 py-2 text-slate-600 max-w-xs truncate" title="{{ $entry->notes }}">{{ $entry->notes }}</td>
                     </tr>
                 @empty
-                    <tr><td colspan="5" class="px-4 py-8 text-center text-slate-500">এখনো ledger নেই — bill generate করলে wholesale এখানে যোগ হবে।</td></tr>
+                    <tr><td colspan="5" class="px-4 py-8 text-center text-slate-500">No ledger yet — wholesale accruals appear when you generate bills.</td></tr>
                 @endforelse
             </tbody>
         </table>

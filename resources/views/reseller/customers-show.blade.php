@@ -3,30 +3,39 @@
 @section('title', $customer->name)
 
 @section('content')
-    <div class="rsl-card p-6">
-        <h1 class="rsl-title">{{ $customer->name }}</h1>
-        <p class="rsl-subtitle">{{ $customer->customer_code }} · {{ $customer->phone }} · {{ $customer->area?->name ?? '—' }}</p>
-        @php
-            $resellerHold = is_array($customer->meta['reseller_hold'] ?? null) ? $customer->meta['reseller_hold'] : null;
-            $openDue = $displayDue ?? $customer->openInvoiceBalance();
-        @endphp
+    @php
+        $resellerHold = is_array($customer->meta['reseller_hold'] ?? null) ? $customer->meta['reseller_hold'] : null;
+        $openDue = $displayDue ?? $customer->openInvoiceBalance();
+        $statusNote = ($billingPaused ?? false)
+            ? (($suspensionMonthCurrent ?? false) ? 'Suspended — This month's bill exists' : 'Suspended — new month, no bill')
+            : ($openDue > 0 ? 'Due: '.number_format($openDue, 2).' BDT' : null);
+    @endphp
+
+    @include('reseller.partials.page-header', [
+        'title' => $customer->name,
+        'subtitle' => $customer->customer_code.' · '.$customer->phone.' · '.($customer->area?->name ?? '—').($statusNote ? ' · '.$statusNote : ''),
+        'backUrl' => route('reseller.customers.index'),
+        'backLabel' => '← Customers',
+    ])
+
+    <div class="rsl-panel rsl-panel-pad">
         @if ($billingPaused ?? false)
             @if ($suspensionMonthCurrent ?? false)
                 <p class="mt-2 inline-flex rounded-lg bg-amber-100 px-3 py-1 text-sm font-semibold text-amber-900">
-                    Suspended — এই মাসের বিল আছে (generate করার পর suspend)। পরের মাসে নতুন বিল হবে না।
+                    Suspended — bill exists for this month (suspended after generate). No new bill next month.
                 </p>
             @else
                 <p class="mt-2 inline-flex rounded-lg bg-slate-200 px-3 py-1 text-sm font-semibold text-slate-700">
-                    Suspended — নতুন মাস, কোনো বিল নেই। Active + বিল দিন।
+                    Suspended — new month, no bill. Reconnect with bill.
                 </p>
             @endif
         @elseif ($openDue > 0)
             <p class="mt-2 inline-flex rounded-lg bg-rose-100 px-3 py-1 text-sm font-bold text-rose-800">Due: {{ number_format($openDue, 2) }} BDT</p>
         @endif
         @if ($resellerHold)
-            <p class="mt-2 text-sm text-amber-800">Network held — reseller partner was turned OFF by admin.</p>
+            <p class="mb-3 text-sm rsl-callout rsl-callout--info">Network held — admin turned partner OFF.</p>
         @endif
-        <div class="mt-4 flex flex-wrap gap-2">
+        <div class="rsl-toolbar">
             @if ($portal->canPortal(\App\Support\ResellerPortalPermission::CUSTOMER_EDIT))
                 <a href="{{ route('reseller.customers.edit', $customer) }}" class="rsl-btn-sm rsl-btn-sm--outline">Edit</a>
             @endif
@@ -48,10 +57,10 @@
                         @if ($portal->canPortal(\App\Support\ResellerPortalPermission::INVOICE_GENERATE))
                             <label class="inline-flex items-center gap-1 text-xs rsl-text">
                                 <input type="checkbox" name="generate_bill" value="1" checked class="rounded border-slate-300">
-                                এই মাসের বিল
+                                This month's Bills
                             </label>
                         @endif
-                        <button type="submit" class="rsl-btn-sm">Active + বিল</button>
+                        <button type="submit" class="rsl-btn-sm">Active + Bills</button>
                     </form>
                 @endif
             @endif
@@ -75,7 +84,7 @@
     </div>
 
     @if ($portal->canPortal(\App\Support\ResellerPortalPermission::NETWORK_VIEW) && ! empty($networkSession))
-        <div class="rsl-card mt-6 p-6">
+        <div class="rsl-panel mt-6 p-6">
             <h2 class="rsl-heading">PPPoE session</h2>
             <div class="rsl-kpi-grid mt-4">
                 <div class="rsl-metric"><p class="rsl-metric-label">IP address</p><p class="rsl-metric-value text-base font-mono">{{ $networkSession['framed_ip'] ?? '—' }}</p></div>
@@ -94,7 +103,7 @@
     @endif
 
     @if ($portal->canPortal(\App\Support\ResellerPortalPermission::CUSTOMER_EDIT))
-        <div class="rsl-card mt-6 p-6 max-w-md">
+        <div class="rsl-panel mt-6 p-6 max-w-md">
             <h2 class="rsl-heading mb-3">Change PPPoE password</h2>
             <form method="post" action="{{ route('reseller.customers.password', $customer) }}" class="flex gap-2">
                 @csrf
@@ -105,8 +114,8 @@
     @endif
 
     <div class="grid gap-6 mt-6 lg:grid-cols-2">
-        <div class="rsl-card overflow-hidden">
-            <div class="rsl-card-header"><h2 class="rsl-heading">Payment history</h2></div>
+        <div class="rsl-panel overflow-hidden">
+            <div class="rsl-panel-head"><h2 class="rsl-heading">Payment history</h2></div>
             <div class="overflow-x-auto">
                 <table class="rsl-table w-full text-sm">
                     <thead><tr><th class="px-4 py-2">Date</th><th class="px-4 py-2">Amount</th><th class="px-4 py-2">Method</th><th class="px-4 py-2"></th></tr></thead>
@@ -125,13 +134,13 @@
                 </table>
             </div>
         </div>
-        <div class="rsl-card overflow-hidden">
-            <div class="rsl-card-header"><h2 class="rsl-heading">Invoice history</h2></div>
+        <div class="rsl-panel overflow-hidden">
+            <div class="rsl-panel-head"><h2 class="rsl-heading">Invoice history</h2></div>
             @if ($billingPaused ?? false)
                 @if ($suspensionMonthCurrent ?? false)
-                    <p class="px-4 py-3 text-xs text-center rsl-text-muted border-b border-slate-100">শুধু suspend মাসের বিল (এই মাস)।</p>
+                    <p class="px-4 py-3 text-xs text-center rsl-text-muted border-b border-slate-100">Suspend-month bills only (this month).</p>
                 @else
-                    <p class="px-4 py-6 text-sm text-center rsl-text-muted">নতুন মাস — suspend থাকলে বিল দেখাবে না। Active + বিল দিন।</p>
+                    <p class="px-4 py-6 text-sm text-center rsl-text-muted">new month — while suspended no bill shown। Active + add bill।</p>
                 @endif
             @endif
             @if (! ($billingPaused ?? false) || ($suspensionMonthCurrent ?? false))

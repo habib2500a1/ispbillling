@@ -3,32 +3,36 @@
 @section('title', 'New subscriber')
 
 @section('content')
-    <div class="rsl-card p-6 max-w-2xl">
-        <h1 class="rsl-title">New subscriber</h1>
-        <p class="rsl-subtitle mt-1">Add client with PPPoE login. Prepaid = collect payment now; postpaid = bill due on account.</p>
+    @include('reseller.partials.page-header', [
+        'title' => 'New subscriber',
+        'subtitle' => 'PPPoE — prepaid = pay now; postpaid = bill due.',
+        'backUrl' => route('reseller.customers.index'),
+        'backLabel' => '← Customers',
+    ])
 
-        <form method="post" action="{{ route('reseller.customers.store') }}" class="mt-6 grid gap-6" id="subscriber-create-form">
+    <div class="rsl-panel rsl-panel-pad" style="max-width:40rem">
+        <form method="post" action="{{ route('reseller.customers.store') }}" class="rsl-form-grid" id="subscriber-create-form">
             @csrf
 
             <section class="grid gap-4">
                 <h2 class="rsl-heading text-sm uppercase tracking-wide">Customer info</h2>
-                <div><label class="block text-xs font-bold uppercase rsl-text-muted">Name</label><input name="name" value="{{ old('name') }}" required class="rsl-input mt-1"></div>
-                <div><label class="block text-xs font-bold uppercase rsl-text-muted">Phone</label><input name="phone" id="phone-input" value="{{ old('phone') }}" required class="rsl-input mt-1"></div>
-                <div><label class="block text-xs font-bold uppercase rsl-text-muted">Email</label><input name="email" type="email" value="{{ old('email') }}" class="rsl-input mt-1"></div>
+                <div><label class="rsl-field-label">Name</label><input name="name" value="{{ old('name') }}" required class="rsl-input"></div>
+                <div><label class="rsl-field-label">Phone</label><input name="phone" id="phone-input" value="{{ old('phone') }}" required class="rsl-input"></div>
+                <div><label class="rsl-field-label">Email</label><input name="email" type="email" value="{{ old('email') }}" class="rsl-input"></div>
                 <div>
-                    <label class="block text-xs font-bold uppercase rsl-text-muted">Telegram chat ID</label>
+                    <label class="rsl-field-label">Telegram chat ID</label>
                     <input name="telegram_chat_id" value="{{ old('telegram_chat_id') }}" class="rsl-input mt-1 font-mono" placeholder="e.g. 123456789" pattern="-?[0-9]+">
                     <p class="mt-1 text-xs rsl-text-muted">Optional — subscriber gets bill reminders on Telegram when the bot is enabled.</p>
                 </div>
-                <div><label class="block text-xs font-bold uppercase rsl-text-muted">Address</label><input name="address" value="{{ old('address') }}" required class="rsl-input mt-1"></div>
+                <div><label class="rsl-field-label">Address</label><input name="address" value="{{ old('address') }}" required class="rsl-input"></div>
                 @unless ($options['auto_generate_code'])
-                    <div><label class="block text-xs font-bold uppercase rsl-text-muted">Client ID</label><input name="customer_code" value="{{ old('customer_code') }}" class="rsl-input mt-1" placeholder="{{ $options['client_id_prefix'] ?? '' }}"></div>
+                    <div><label class="rsl-field-label">Client ID</label><input name="customer_code" value="{{ old('customer_code') }}" class="rsl-input" placeholder="{{ $options['client_id_prefix'] ?? '' }}"></div>
                 @endunless
                 @if ($options['areas']->isNotEmpty())
                     <div class="grid gap-4 sm:grid-cols-2">
                         <div>
-                            <label class="block text-xs font-bold uppercase rsl-text-muted">Area</label>
-                            <select name="area_id" class="rsl-input mt-1">
+                            <label class="rsl-field-label">Area</label>
+                            <select name="area_id" class="rsl-input">
                                 <option value="">—</option>
                                 @foreach ($options['areas'] as $area)
                                     <option value="{{ $area->id }}" @selected(old('area_id') == $area->id)>{{ $area->name }}</option>
@@ -36,8 +40,8 @@
                             </select>
                         </div>
                         <div>
-                            <label class="block text-xs font-bold uppercase rsl-text-muted">Zone</label>
-                            <select name="zone_id" class="rsl-input mt-1">
+                            <label class="rsl-field-label">Zone</label>
+                            <select name="zone_id" class="rsl-input">
                                 <option value="">—</option>
                                 @foreach ($options['zones'] as $zone)
                                     <option value="{{ $zone->id }}" @selected(old('zone_id') == $zone->id)>{{ $zone->name }}</option>
@@ -51,16 +55,16 @@
             <section class="grid gap-4 border-t border-slate-200 pt-6">
                 <h2 class="rsl-heading text-sm uppercase tracking-wide">Package & billing</h2>
                 <div>
-                    <label class="block text-xs font-bold uppercase rsl-text-muted">Package</label>
-                    <select name="package_id" id="package-select" required class="rsl-input mt-1">
+                    <label class="rsl-field-label">Package</label>
+                    <select name="package_id" id="package-select" required class="rsl-input">
                         @foreach ($options['packages'] as $pkg)
                             <option value="{{ $pkg['id'] }}" data-price="{{ (float) ($pkg['customer_price'] ?? $pkg['price_monthly']) }}" @selected(old('package_id') == $pkg['id'])>{{ $pkg['name'] }} — {{ number_format((float) ($pkg['customer_price'] ?? $pkg['price_monthly']), 0) }} BDT@if(! empty($pkg['wholesale_price'])) (your rate {{ number_format((float) $pkg['wholesale_price'], 0) }})@endif</option>
                         @endforeach
                     </select>
                 </div>
                 <div>
-                    <label class="block text-xs font-bold uppercase rsl-text-muted">Billing mode</label>
-                    <select name="billing_mode" id="billing-mode" class="rsl-input mt-1">
+                    <label class="rsl-field-label">Billing mode</label>
+                    <select name="billing_mode" id="billing-mode" class="rsl-input">
                         @foreach ($options['billing_modes'] as $val => $label)
                             <option value="{{ $val }}" @selected(old('billing_mode', $options['defaults']['billing_mode']) === $val)>{{ $label }}</option>
                         @endforeach
@@ -69,18 +73,18 @@
                 </div>
                 <div class="grid gap-4 sm:grid-cols-2">
                     <div>
-                        <label class="block text-xs font-bold uppercase rsl-text-muted">Grace period (days)</label>
-                        <input type="number" name="grace_period_days" min="0" max="90" value="{{ old('grace_period_days', $options['defaults']['grace_period_days'] ?? 5) }}" class="rsl-input mt-1">
+                        <label class="rsl-field-label">Grace period (days)</label>
+                        <input type="number" name="grace_period_days" min="0" max="90" value="{{ old('grace_period_days', $options['defaults']['grace_period_days'] ?? 5) }}" class="rsl-input">
                     </div>
                     <div>
-                        <label class="block text-xs font-bold uppercase rsl-text-muted">Join date</label>
-                        <input type="date" name="joined_at" value="{{ old('joined_at', $options['defaults']['joined_at']) }}" class="rsl-input mt-1">
+                        <label class="rsl-field-label">Join date</label>
+                        <input type="date" name="joined_at" value="{{ old('joined_at', $options['defaults']['joined_at']) }}" class="rsl-input">
                     </div>
                 </div>
                 @if (! empty($options['can_override_charge_mode']))
                     <div>
-                        <label class="block text-xs font-bold uppercase rsl-text-muted">First month charge</label>
-                        <select name="new_customer_charge_mode" class="rsl-input mt-1">
+                        <label class="rsl-field-label">First month charge</label>
+                        <select name="new_customer_charge_mode" class="rsl-input">
                             @foreach ($options['charge_modes'] as $val => $label)
                                 <option value="{{ $val }}" @selected(old('new_customer_charge_mode', $options['default_charge_mode']) === $val)>{{ $label }}</option>
                             @endforeach
@@ -100,8 +104,8 @@
             <section class="grid gap-4 border-t border-slate-200 pt-6">
                 <h2 class="rsl-heading text-sm uppercase tracking-wide">PPPoE login</h2>
                 <p class="text-sm rsl-text-muted">Username defaults to phone digits if left blank. Password syncs to router.</p>
-                <div><label class="block text-xs font-bold uppercase rsl-text-muted">PPPoE username</label><input name="mikrotik_secret_name" id="ppp-username" value="{{ old('mikrotik_secret_name') }}" class="rsl-input mt-1 font-mono" placeholder="Auto from phone"></div>
-                <div><label class="block text-xs font-bold uppercase rsl-text-muted">PPPoE password</label><input type="text" name="mikrotik_ppp_password" value="{{ old('mikrotik_ppp_password') }}" class="rsl-input mt-1 font-mono" placeholder="Leave blank to auto-generate" minlength="4"></div>
+                <div><label class="rsl-field-label">PPPoE username</label><input name="mikrotik_secret_name" id="ppp-username" value="{{ old('mikrotik_secret_name') }}" class="rsl-input mt-1 font-mono" placeholder="Auto from phone"></div>
+                <div><label class="rsl-field-label">PPPoE password</label><input type="text" name="mikrotik_ppp_password" value="{{ old('mikrotik_ppp_password') }}" class="rsl-input mt-1 font-mono" placeholder="Leave blank to auto-generate" minlength="4"></div>
                 <label class="flex items-center gap-2 text-sm">
                     <input type="checkbox" name="provision_mikrotik" value="1" class="rounded border-slate-300" @checked(old('provision_mikrotik', '1') !== '0')>
                     Push to MikroTik router now
@@ -117,21 +121,21 @@
                         Collect payment now
                     </label>
                     <div id="payment-fields" class="grid gap-4">
-                        <div><label class="block text-xs font-bold uppercase rsl-text-muted">Amount (BDT)</label><input type="number" name="payment_amount" id="payment-amount" step="0.01" min="0" value="{{ old('payment_amount') }}" class="rsl-input mt-1"></div>
+                        <div><label class="rsl-field-label">Amount (BDT)</label><input type="number" name="payment_amount" id="payment-amount" step="0.01" min="0" value="{{ old('payment_amount') }}" class="rsl-input"></div>
                         <div>
-                            <label class="block text-xs font-bold uppercase rsl-text-muted">Method</label>
-                            <select name="payment_method" class="rsl-input mt-1">
+                            <label class="rsl-field-label">Method</label>
+                            <select name="payment_method" class="rsl-input">
                                 @foreach (($options['payment_methods'] ?? \App\Support\ResellerCollectionPaymentMethod::options()) as $val => $label)
                                     <option value="{{ $val }}" @selected(old('payment_method', 'cash') === $val)>{{ $label }}</option>
                                 @endforeach
                             </select>
                         </div>
-                        <div><label class="block text-xs font-bold uppercase rsl-text-muted">Reference / TrxID</label><input name="payment_reference" value="{{ old('payment_reference') }}" class="rsl-input mt-1" placeholder="Optional"></div>
+                        <div><label class="rsl-field-label">Reference / TrxID</label><input name="payment_reference" value="{{ old('payment_reference') }}" class="rsl-input" placeholder="Optional"></div>
                     </div>
                 </section>
             @endif
 
-            <div><label class="block text-xs font-bold uppercase rsl-text-muted">Notes</label><textarea name="notes" rows="2" class="rsl-input mt-1">{{ old('notes') }}</textarea></div>
+            <div><label class="rsl-field-label">Notes</label><textarea name="notes" rows="2" class="rsl-input">{{ old('notes') }}</textarea></div>
 
             <button type="submit" class="rsl-btn w-full sm:w-auto">Create subscriber</button>
         </form>

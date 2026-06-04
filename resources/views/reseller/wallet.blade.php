@@ -3,102 +3,101 @@
 @section('title', 'Wallet')
 
 @section('content')
-    <div class="rsl-card p-6">
-        <div class="flex flex-wrap items-start justify-between gap-4">
-            <div>
-                <h1 class="rsl-title">Wallet</h1>
-                <p class="rsl-subtitle">Main balance, bonus wallet, and top-up</p>
-            </div>
-            <a href="{{ route('reseller.wallet.overview') }}" class="rsl-btn-sm rsl-btn-sm--outline">Full ledger & quotas →</a>
+    @include('reseller.partials.page-header', [
+        'title' => 'Wallet',
+        'subtitle' => 'Main, bonus, and top-up.',
+        'actionUrl' => route('reseller.wallet.overview'),
+        'actionLabel' => 'Ledger & quotas →',
+    ])
+
+    <div class="rsl-metric-grid">
+        <div class="rsl-metric">
+            <p class="rsl-metric-label">Main</p>
+            <p class="rsl-metric-value">{{ number_format((float) $reseller->wallet_balance, 2) }} BDT</p>
         </div>
-        <div class="mt-4 grid gap-3 sm:grid-cols-3">
-            <div class="rounded-xl border border-emerald-200 bg-emerald-50/80 p-4 dark:border-emerald-800 dark:bg-emerald-950/30">
-                <p class="text-xs font-bold uppercase text-emerald-800 dark:text-emerald-300">Main</p>
-                <p class="mt-1 text-2xl font-bold text-emerald-700 dark:text-emerald-400">{{ number_format((float) $reseller->wallet_balance, 2) }} BDT</p>
-            </div>
-            <div class="rounded-xl border border-sky-200 bg-sky-50/80 p-4 dark:border-sky-800 dark:bg-sky-950/30">
-                <p class="text-xs font-bold uppercase text-sky-800 dark:text-sky-300">Bonus</p>
-                <p class="mt-1 text-2xl font-bold text-sky-700 dark:text-sky-400">{{ number_format((float) $reseller->bonus_wallet_balance, 2) }} BDT</p>
-            </div>
-            <div class="rounded-xl border border-violet-200 bg-violet-50/80 p-4 dark:border-violet-800 dark:bg-violet-950/30">
-                <p class="text-xs font-bold uppercase text-violet-800 dark:text-violet-300">Credit limit</p>
-                <p class="mt-1 text-2xl font-bold text-violet-700 dark:text-violet-400">{{ number_format((float) $reseller->credit_limit, 2) }} BDT</p>
-            </div>
+        <div class="rsl-metric">
+            <p class="rsl-metric-label">Bonus</p>
+            <p class="rsl-metric-value">{{ number_format((float) $reseller->bonus_wallet_balance, 2) }} BDT</p>
         </div>
-        @if ($walletFrozen)
-            <p class="mt-2 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900">Wallet is frozen. Contact admin for settlement or withdrawal.</p>
-        @else
-            <p class="mt-1 rsl-subtitle">Commission payouts, top-ups and admin credits appear in the statement below.</p>
-        @endif
+        <div class="rsl-metric">
+            <p class="rsl-metric-label">Credit limit</p>
+            <p class="rsl-metric-value">{{ number_format((float) $reseller->credit_limit, 2) }} BDT</p>
+        </div>
     </div>
 
+    @if ($walletFrozen)
+        <div class="rsl-callout rsl-callout--due mt-4">Wallet frozen — contact admin for settlement or withdrawal.</div>
+    @endif
+
     @if ($rechargeEnabled && ($manualRechargeEnabled || $pipraPayEnabled))
-        <div class="rsl-card mt-6 p-6">
-            <h2 class="rsl-heading">Top up wallet</h2>
-            <p class="rsl-subtitle mt-1">Add balance for collections and settlements. Min {{ number_format($rechargeLimits['min'], 0) }} · Max {{ number_format($rechargeLimits['max'], 0) }} BDT.</p>
+        <div class="rsl-panel rsl-panel-pad mt-6">
+            <h2 class="rsl-panel-title">Top-up</h2>
+            <p class="mt-1 text-sm" style="color:var(--rsl-text-muted)">Min {{ number_format($rechargeLimits['min'], 0) }} · Max {{ number_format($rechargeLimits['max'], 0) }} BDT</p>
 
             @if ($pipraPayEnabled)
-                <form method="post" action="{{ route('reseller.wallet.piprapay') }}" class="mt-4 flex flex-wrap items-end gap-2 border-b border-slate-200 pb-6">
+                <form method="post" action="{{ route('reseller.wallet.piprapay') }}" class="rsl-form-grid rsl-form-grid--2 mt-4 pb-6" style="border-bottom:1px solid var(--rsl-border)">
                     @csrf
-                    <div>
-                        <label class="text-xs rsl-text-muted">Online (PipraPay)</label>
-                        <input type="number" name="amount" min="{{ $rechargeLimits['min'] }}" max="{{ $rechargeLimits['max'] }}" step="0.01" required class="rsl-input mt-1 w-40" placeholder="Amount">
+                    <div class="rsl-field">
+                        <label class="rsl-field-label">Online (PipraPay)</label>
+                        <input type="number" name="amount" min="{{ $rechargeLimits['min'] }}" max="{{ $rechargeLimits['max'] }}" step="0.01" required class="rsl-input" placeholder="Amount">
                     </div>
-                    <button type="submit" class="rsl-btn-sm">Pay online</button>
+                    <div class="rsl-field" style="align-self:end">
+                        <button type="submit" class="rsl-btn">Pay online</button>
+                    </div>
                 </form>
             @endif
 
             @if ($manualRechargeEnabled)
-                <form method="post" action="{{ route('reseller.wallet.recharge') }}" class="mt-4 grid gap-3 md:grid-cols-2">
+                <form method="post" action="{{ route('reseller.wallet.recharge') }}" class="rsl-form-grid rsl-form-grid--2 mt-4">
                     @csrf
-                    <div>
-                        <label class="text-xs rsl-text-muted">Amount (BDT)</label>
-                        <input type="number" name="amount" min="{{ $rechargeLimits['min'] }}" max="{{ $rechargeLimits['max'] }}" step="0.01" required class="rsl-input mt-1 w-full">
+                    <div class="rsl-field">
+                        <label class="rsl-field-label">Amount (BDT)</label>
+                        <input type="number" name="amount" min="{{ $rechargeLimits['min'] }}" max="{{ $rechargeLimits['max'] }}" step="0.01" required class="rsl-input">
                     </div>
-                    <div>
-                        <label class="text-xs rsl-text-muted">Payment method</label>
-                        <select name="payment_method" required class="rsl-input mt-1 w-full">
+                    <div class="rsl-field">
+                        <label class="rsl-field-label">Payment method</label>
+                        <select name="payment_method" required class="rsl-input">
                             @foreach ($paymentMethods as $value => $label)
                                 <option value="{{ $value }}">{{ $label }}</option>
                             @endforeach
                         </select>
                     </div>
-                    <div>
-                        <label class="text-xs rsl-text-muted">Transaction ID / reference</label>
-                        <input type="text" name="reference" required maxlength="128" class="rsl-input mt-1 w-full" placeholder="bKash TrxID">
+                    <div class="rsl-field">
+                        <label class="rsl-field-label">TrxID / reference</label>
+                        <input type="text" name="reference" required maxlength="128" class="rsl-input" placeholder="bKash TrxID">
                     </div>
-                    <div>
-                        <label class="text-xs rsl-text-muted">Notes (optional)</label>
-                        <input type="text" name="notes" maxlength="1000" class="rsl-input mt-1 w-full" placeholder="Sender number, bank branch…">
+                    <div class="rsl-field">
+                        <label class="rsl-field-label">Notes</label>
+                        <input type="text" name="notes" maxlength="1000" class="rsl-input" placeholder="Optional">
                     </div>
-                    <div class="md:col-span-2">
-                        <button type="submit" class="rsl-btn-sm">Submit for approval</button>
-                        <p class="mt-2 text-xs rsl-text-muted">Send payment to your ISP’s official number/account, then submit the TrxID here. Wallet credits after admin verification.</p>
+                    <div style="grid-column:1/-1">
+                        <button type="submit" class="rsl-btn">Submit for approval</button>
+                        <p class="mt-2 text-xs" style="color:var(--rsl-text-muted)">Pay the ISP official number, then submit TrxID. Credited after verification.</p>
                     </div>
                 </form>
             @endif
         </div>
 
         @if ($rechargeRequests->isNotEmpty())
-            <div class="rsl-card mt-6 overflow-hidden">
-                <div class="rsl-card-header"><h2 class="rsl-heading">Top-up requests</h2></div>
-                <div class="overflow-x-auto">
+            <div class="rsl-panel mt-6">
+                <div class="rsl-panel-head"><h2 class="rsl-panel-title">Top-up requests</h2></div>
+                <div class="rsl-table-wrap">
                     <table class="rsl-table w-full text-sm">
                         <thead>
                             <tr>
-                                <th class="px-4 py-3 text-left">Date</th>
-                                <th class="px-4 py-3 text-left">Reference</th>
-                                <th class="px-4 py-3 text-left">Method</th>
-                                <th class="px-4 py-3 text-left">Amount</th>
-                                <th class="px-4 py-3 text-left">Status</th>
+                                <th class="px-4 py-3">Date</th>
+                                <th class="px-4 py-3">Reference</th>
+                                <th class="px-4 py-3">Method</th>
+                                <th class="px-4 py-3">Amount</th>
+                                <th class="px-4 py-3">Status</th>
                             </tr>
                         </thead>
                         <tbody>
                             @foreach ($rechargeRequests as $row)
                                 <tr>
-                                    <td class="px-4 py-3 rsl-text">{{ $row->created_at?->format('d M Y H:i') }}</td>
-                                    <td class="px-4 py-3 rsl-text-muted">{{ $row->request_number }}</td>
-                                    <td class="px-4 py-3 capitalize">{{ str_replace('_', ' ', $row->payment_method) }}</td>
+                                    <td class="px-4 py-3">{{ $row->created_at?->format('d M Y H:i') }}</td>
+                                    <td class="px-4 py-3 font-mono text-xs">{{ $row->request_number }}</td>
+                                    <td class="px-4 py-3">{{ str_replace('_', ' ', $row->payment_method) }}</td>
                                     <td class="px-4 py-3 font-semibold">{{ number_format((float) $row->amount, 2) }}</td>
                                     <td class="px-4 py-3">{{ $row->statusLabel() }}</td>
                                 </tr>
@@ -110,12 +109,10 @@
         @endif
     @endif
 
-    <div class="rsl-card mt-6 overflow-hidden">
-        <div class="rsl-card-header">
-            <h2 class="rsl-heading">Wallet statement</h2>
-        </div>
-        <div class="overflow-x-auto">
-            <table class="rsl-table w-full text-left text-sm">
+    <div class="rsl-panel mt-6">
+        <div class="rsl-panel-head"><h2 class="rsl-panel-title">Wallet statement</h2></div>
+        <div class="rsl-table-wrap">
+            <table class="rsl-table w-full text-sm">
                 <thead>
                     <tr>
                         <th class="px-4 py-3">Date</th>
@@ -129,23 +126,20 @@
                 <tbody>
                     @forelse ($transfers as $t)
                         @php
-                            $credit = (int) $t->to_reseller_id === (int) $reseller->id && (int) $t->from_reseller_id !== (int) $reseller->id;
                             $debit = (int) $t->from_reseller_id === (int) $reseller->id
                                 && in_array($t->transfer_type, ['debit', 'wholesale_debit'], true);
                             $incoming = (int) $t->to_reseller_id === (int) $reseller->id;
                         @endphp
                         <tr>
-                            <td class="px-4 py-3 rsl-text">{{ $t->created_at?->format('d M Y H:i') }}</td>
+                            <td class="px-4 py-3">{{ $t->created_at?->format('d M Y H:i') }}</td>
                             <td class="px-4 py-3">{{ \App\Models\ResellerBalanceTransfer::typeLabel($t->transfer_type) }}</td>
-                            <td class="px-4 py-3 font-semibold text-emerald-700">{{ $incoming && ! $debit ? number_format((float) $t->amount, 2) : '—' }}</td>
-                            <td class="px-4 py-3 font-semibold text-rose-700">{{ $debit ? number_format((float) $t->amount, 2) : '—' }}</td>
-                            <td class="px-4 py-3 rsl-text-muted">{{ $t->reference ?? '—' }}</td>
-                            <td class="px-4 py-3 rsl-text-muted">{{ Str::limit($t->notes, 40) }}</td>
+                            <td class="px-4 py-3 font-semibold" style="color:var(--rsl-teal-600)">{{ $incoming && ! $debit ? number_format((float) $t->amount, 2) : '—' }}</td>
+                            <td class="px-4 py-3 font-semibold" style="color:var(--rsl-danger)">{{ $debit ? number_format((float) $t->amount, 2) : '—' }}</td>
+                            <td class="px-4 py-3 font-mono text-xs">{{ $t->reference ?? '—' }}</td>
+                            <td class="px-4 py-3">{{ Str::limit($t->notes, 40) }}</td>
                         </tr>
                     @empty
-                        <tr>
-                            <td colspan="6" class="px-4 py-8 text-center rsl-text-muted">No wallet activity yet.</td>
-                        </tr>
+                        <tr><td colspan="6" class="px-4 py-10 text-center" style="color:var(--rsl-text-muted)">No transactions yet.</td></tr>
                     @endforelse
                 </tbody>
             </table>

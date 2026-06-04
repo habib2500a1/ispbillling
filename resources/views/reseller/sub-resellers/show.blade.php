@@ -3,20 +3,35 @@
 @section('title', $partner->name)
 
 @section('content')
-    <div class="rsl-card p-6">
-        <h1 class="rsl-title">{{ $partner->name }}</h1>
-        <p class="rsl-subtitle">{{ $partner->code }} · {{ $partner->franchiseTypeLabel() }}</p>
-        <a href="{{ route('reseller.sub-resellers.index') }}" class="rsl-link mt-3 inline-block">← Back to sub-partners</a>
+    @include('reseller.partials.page-header', [
+        'title' => $partner->name,
+        'subtitle' => $partner->code.' · '.$partner->franchiseTypeLabel(),
+        'backUrl' => route('reseller.sub-resellers.index'),
+        'backLabel' => '← Partners',
+    ])
+
+    <div class="rsl-metric-grid">
+        <div class="rsl-metric">
+            <p class="rsl-metric-label">Subscribers</p>
+            <p class="rsl-metric-value">{{ $stats['customers'] }}</p>
+        </div>
+        <div class="rsl-metric">
+            <p class="rsl-metric-label">Sub-partners</p>
+            <p class="rsl-metric-value">{{ $stats['sub_resellers'] }}</p>
+        </div>
+        <div class="rsl-metric">
+            <p class="rsl-metric-label">Wallet</p>
+            <p class="rsl-metric-value">{{ number_format($stats['wallet'], 0) }} BDT</p>
+        </div>
+        <div class="rsl-metric">
+            <p class="rsl-metric-label">Pending commission</p>
+            <p class="rsl-metric-value">{{ number_format($stats['pending_commission'], 0) }} BDT</p>
+        </div>
     </div>
-    <div class="rsl-kpi-grid mt-6">
-        <div class="rsl-metric"><p class="rsl-metric-label">Clients</p><p class="rsl-metric-value">{{ $stats['customers'] }}</p></div>
-        <div class="rsl-metric"><p class="rsl-metric-label">Sub-partners</p><p class="rsl-metric-value">{{ $stats['sub_resellers'] }}</p></div>
-        <div class="rsl-metric"><p class="rsl-metric-label">Wallet</p><p class="rsl-metric-value text-sky-700">{{ number_format($stats['wallet'], 0) }} BDT</p></div>
-        <div class="rsl-metric"><p class="rsl-metric-label">Pending commission</p><p class="rsl-metric-value text-amber-700">{{ number_format($stats['pending_commission'], 0) }} BDT</p></div>
-    </div>
-    <div class="rsl-card mt-6 p-6">
-        <h2 class="rsl-heading mb-2">Contact</h2>
-        <p class="rsl-text-muted text-sm">{{ $partner->phone ?: '—' }} · {{ $partner->email ?: '—' }}</p>
-        <p class="rsl-text-muted text-sm mt-1">Commission: {{ $partner->commissionLabel() }}</p>
+
+    <div class="rsl-panel rsl-panel-pad mt-6">
+        <h2 class="rsl-panel-title">Contact</h2>
+        <p class="mt-2 text-sm" style="color:var(--rsl-text-muted)">{{ $partner->phone ?: '—' }} · {{ $partner->email ?: '—' }}</p>
+        <p class="mt-1 text-sm" style="color:var(--rsl-text-muted)">Commission: {{ $partner->commissionLabel() }}</p>
     </div>
 @endsection

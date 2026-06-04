@@ -3,13 +3,13 @@
 @section('title', 'Enterprise reports')
 
 @section('content')
-    <div class="rsl-card p-6">
-        <h1 class="rsl-title">Reports & analytics</h1>
-        <p class="rsl-subtitle">Revenue, growth, package sales, and profit/loss for the current month.</p>
-    </div>
+    @include('reseller.partials.page-header', [
+        'title' => 'Enterprise analytics',
+        'subtitle' => 'Revenue, growth, packages, and profit/loss this month.',
+    ])
 
     <div class="mt-6 grid gap-6 lg:grid-cols-2">
-        <div class="rsl-card p-6">
+        <div class="rsl-panel rsl-panel-pad">
             <h2 class="rsl-heading">Revenue (commission)</h2>
             <dl class="mt-3 space-y-2 text-sm">
                 <div class="flex justify-between"><dt>Gross</dt><dd>{{ number_format($revenue['gross'], 2) }} BDT</dd></div>
@@ -18,7 +18,7 @@
                 <div class="flex justify-between"><dt>Pending</dt><dd>{{ number_format($revenue['pending'], 2) }} BDT</dd></div>
             </dl>
         </div>
-        <div class="rsl-card p-6">
+        <div class="rsl-panel rsl-panel-pad">
             <h2 class="rsl-heading">Profit / loss estimate</h2>
             <dl class="mt-3 space-y-2 text-sm">
                 <div class="flex justify-between"><dt>Collections</dt><dd>{{ number_format($profitLoss['collections'], 2) }}</dd></div>
@@ -29,7 +29,7 @@
     </div>
 
     @if (!empty($packageSales['packages']))
-        <div class="rsl-card mt-6 p-6">
+        <div class="rsl-panel rsl-panel-pad mt-6">
             <h2 class="rsl-heading">Package sales</h2>
             <ul class="mt-3 space-y-2 text-sm">
                 @foreach ($packageSales['packages'] as $pkg)

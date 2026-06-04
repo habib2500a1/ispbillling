@@ -10,7 +10,7 @@
     @include('partials.site-favicon')
     @include('partials.reseller-theme-head')
     @php
-        $rslPortalBuild = '2026.06.04-pro-redesign';
+        $rslPortalBuild = '2026.06.04-pro-en';
         $rslCssFile = 'css/reseller-portal-pro.css';
         $rslCssVer = (@filemtime(public_path($rslCssFile)) ?: time()).'-'.$rslPortalBuild;
         $rslJsVer = (@filemtime(public_path('js/portal-theme.js')) ?: time()).'-'.$rslPortalBuild;
@@ -37,35 +37,35 @@
         ];
 
         $navPrimary = array_filter([
-            ['reseller.dashboard', 'ড্যাশবোর্ড', ['reseller.dashboard']],
+            ['reseller.dashboard', 'Dashboard', ['reseller.dashboard']],
             $portal->canPortal($P::CUSTOMER_VIEW)
-                ? ['reseller.customers.index', 'গ্রাহক', ['reseller.customers.*']] : null,
+                ? ['reseller.customers.index', 'Subscribers', ['reseller.customers.*']] : null,
             $portal->canPortal($P::WALLET_VIEW)
-                ? ['reseller.wallet.index', 'ওয়ালেট', ['reseller.wallet.*']] : null,
+                ? ['reseller.wallet.index', 'Wallet', ['reseller.wallet.*']] : null,
             $portal->canPortal($P::COMMISSION_VIEW)
-                ? ['reseller.commissions.index', 'কমিশন', ['reseller.commissions.*']] : null,
+                ? ['reseller.commissions.index', 'Commission', ['reseller.commissions.*']] : null,
             $portal->canPortal($P::SUB_RESELLER_VIEW)
-                ? ['reseller.sub-resellers.index', 'পার্টনার', ['reseller.sub-resellers.*']] : null,
-            ['reseller.hub', 'হাব', ['reseller.hub', 'reseller.wallet.overview', 'reseller.due-account', 'reseller.reports.enterprise', 'reseller.customer-transfers.*', 'reseller.api-keys.*', 'reseller.branding.*', 'reseller.internal-tickets.*', 'reseller.announcements.*', 'reseller.security.*']],
+                ? ['reseller.sub-resellers.index', 'Partners', ['reseller.sub-resellers.*']] : null,
+            ['reseller.hub', 'Hub', ['reseller.hub', 'reseller.wallet.overview', 'reseller.due-account', 'reseller.reports.enterprise', 'reseller.customer-transfers.*', 'reseller.api-keys.*', 'reseller.branding.*', 'reseller.internal-tickets.*', 'reseller.announcements.*', 'reseller.security.*']],
             $portal->canPortal($P::REPORTS_VIEW)
-                ? ['reseller.reports.index', 'রিপোর্ট', ['reseller.reports.index', 'reseller.activity.*']] : null,
+                ? ['reseller.reports.index', 'Reports', ['reseller.reports.index', 'reseller.activity.*']] : null,
         ]);
 
         $navMore = array_filter([
             $portal->canPortal($P::SETTLEMENT_MANAGE)
-                ? ['reseller.settlements.index', 'সেটেলমেন্ট', ['reseller.settlements.*']] : null,
+                ? ['reseller.settlements.index', 'Settlements', ['reseller.settlements.*']] : null,
             $portal->canPortal($P::BILLING_VIEW)
-                ? ['reseller.invoices.index', 'বিল', ['reseller.invoices.*']] : null,
+                ? ['reseller.invoices.index', 'Bills', ['reseller.invoices.*']] : null,
             $portal->canPortal($P::ONU_VIEW)
                 ? ['reseller.onu.index', 'ONU', ['reseller.onu.*']] : null,
             $portal->canPortal($P::NETWORK_VIEW)
-                ? ['reseller.network.index', 'নেট', ['reseller.network.*']] : null,
+                ? ['reseller.network.index', 'Network', ['reseller.network.*']] : null,
             $portal->canPortal($P::TICKET_CREATE)
-                ? ['reseller.tickets.index', 'টিকেট', ['reseller.tickets.*']] : null,
+                ? ['reseller.tickets.index', 'Tickets', ['reseller.tickets.*']] : null,
             $portal->canPortal($P::STAFF_MANAGE)
-                ? ['reseller.staff.index', 'স্টাফ', ['reseller.staff.*']] : null,
+                ? ['reseller.staff.index', 'Staff', ['reseller.staff.*']] : null,
             (($reseller->own_integrations_enabled && $portal->canPortal($P::INTEGRATIONS_MANAGE)) || $reseller->white_label_enabled)
-                ? ['reseller.settings.index', 'সেটিংস', ['reseller.settings.*']] : null,
+                ? ['reseller.settings.index', 'Settings', ['reseller.settings.*']] : null,
         ]);
 
         $navActive = function (array $patterns): bool {
@@ -113,7 +113,7 @@
                 </a>
             </div>
             <nav class="rsl-sidebar-nav">
-                <p class="rsl-sidebar-section-label">মেনু</p>
+                <p class="rsl-sidebar-section-label">Menu</p>
                 @foreach ($navPrimary as [$route, $label, $patterns])
                     <a href="{{ route($route) }}" class="rsl-sidebar-link {{ $navActive($patterns) ? 'rsl-sidebar-link--active' : '' }}">
                         @include('reseller.partials.nav-icons', ['name' => $navIcons[$route] ?? 'home'])
@@ -121,7 +121,7 @@
                     </a>
                 @endforeach
                 @if (count($navMore) > 0)
-                    <p class="rsl-sidebar-section-label">আরও</p>
+                    <p class="rsl-sidebar-section-label">More</p>
                     @foreach ($navMore as [$route, $label, $patterns])
                         <a href="{{ route($route) }}" class="rsl-sidebar-link {{ $navActive($patterns) ? 'rsl-sidebar-link--active' : '' }}">
                             @include('reseller.partials.nav-icons', ['name' => $navIcons[$route] ?? 'hub'])
@@ -133,7 +133,7 @@
             <div class="rsl-sidebar-footer">
                 <form method="post" action="{{ route('reseller.logout') }}">
                     @csrf
-                    <button type="submit" class="rsl-sidebar-logout">লগ আউট</button>
+                    <button type="submit" class="rsl-sidebar-logout">Log out</button>
                 </form>
             </div>
         </aside>
@@ -163,12 +163,12 @@
                     @if ($portal->canPortal($P::WALLET_VIEW))
                         <a href="{{ $walletUrl }}" class="rsl-wallet-pill" title="Wallet">
                             <span style="display:block;font-size:10px;font-weight:600;opacity:.85">Wallet</span>
-                            {{ number_format($totalWallet, 0) }} ৳
+                            {{ number_format($totalWallet, 0) }} BDT
                         </a>
                         @if ($showHqDue && \Illuminate\Support\Facades\Route::has('reseller.due-account'))
                             <a href="{{ route('reseller.due-account') }}" class="rsl-wallet-pill rsl-wallet-pill--due" title="HQ due">
                                 <span style="display:block;font-size:10px;font-weight:600;opacity:.9">HQ</span>
-                                {{ number_format($hqDue, 0) }} ৳
+                                {{ number_format($hqDue, 0) }} BDT
                             </a>
                         @endif
                     @endif
@@ -185,13 +185,13 @@
                     <div class="rsl-alert rsl-alert-ok">{{ session('status') }}</div>
                 @endif
                 @if ($reseller->wallet_frozen)
-                    <div class="rsl-alert rsl-alert-warn">ওয়ালেট ফ্রোজন — সেটেলমেন্ট বন্ধ আছে।</div>
+                    <div class="rsl-alert rsl-alert-warn">Wallet frozen — settlements disabled.</div>
                 @endif
                 @php $ledger = app(\App\Services\Resellers\ResellerWalletLedgerService::class); @endphp
                 @if ($ledger->isLowBalance($reseller) && ! request()->routeIs('reseller.wallet.*'))
                     <div class="rsl-alert rsl-alert-danger">
-                        কম ব্যালেন্স ({{ number_format((float) $reseller->wallet_balance, 0) }} ৳).
-                        <a href="{{ route('reseller.wallet.index') }}" class="rsl-link">টপ আপ</a>
+                        Low balance ({{ number_format((float) $reseller->wallet_balance, 0) }} BDT).
+                        <a href="{{ route('reseller.wallet.index') }}" class="rsl-link">Top up</a>
                     </div>
                 @endif
                 @yield('content')

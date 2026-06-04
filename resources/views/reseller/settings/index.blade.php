@@ -3,44 +3,49 @@
 @section('title', 'Settings')
 
 @section('content')
-    <div class="rsl-card p-6">
-        <h1 class="text-xl font-bold text-slate-900">Settings</h1>
-        <p class="mt-1 text-sm text-slate-600">Integrations and customer-facing branding for your business.</p>
-    </div>
+    @include('reseller.partials.page-header', [
+        'title' => 'Settings',
+        'subtitle' => 'Integrations and customer-facing branding.',
+    ])
 
-    <div class="mt-6 grid gap-4 sm:grid-cols-2">
+    <div class="rsl-settings-grid">
         @if ($canBranding ?? false)
-            <a href="{{ route('reseller.settings.branding') }}" class="rsl-card block p-6 transition hover:shadow-md">
-                <div class="flex items-start justify-between gap-3">
+            <a href="{{ route('reseller.settings.branding') }}" class="rsl-settings-tile">
+                <div class="flex justify-between gap-2" style="display:flex;justify-content:space-between">
                     <div>
-                        <h2 class="font-semibold text-slate-900">White-label branding</h2>
-                        <p class="mt-1 text-sm text-slate-600">Tagline, address, invoice footer, customer links.</p>
+                        <h2>White-label (limited)</h2>
+                        <p>Tagline, address, invoice footer</p>
                     </div>
-                    <span class="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-bold text-emerald-800">Active</span>
+                    <span class="rsl-badge-pill rsl-badge-pill--ok">Active</span>
                 </div>
+            </a>
+        @endif
+        @if (\Illuminate\Support\Facades\Route::has('reseller.branding.edit'))
+            <a href="{{ route('reseller.branding.edit') }}" class="rsl-settings-tile">
+                <h2>Full branding</h2>
+                <p>Logo, colors, custom domain</p>
             </a>
         @endif
 
         @if ($canIntegrations ?? false)
-            <a href="{{ route('reseller.settings.sms') }}" class="rsl-card block p-6 transition hover:shadow-md">
-                <div class="flex items-start justify-between gap-3">
+            <a href="{{ route('reseller.settings.sms') }}" class="rsl-settings-tile">
+                <div style="display:flex;justify-content:space-between;gap:0.5rem">
                     <div>
-                        <h2 class="font-semibold text-slate-900">SMS gateway</h2>
-                        <p class="mt-1 text-sm text-slate-600">KhudeBarta, BulkSMSBD, sender ID for your customers.</p>
+                        <h2>SMS gateway</h2>
+                        <p>KhudeBarta, BulkSMSBD, sender ID</p>
                     </div>
-                    <span class="rounded-full px-2 py-0.5 text-xs font-bold {{ ($summary['sms_active'] ?? false) ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-600' }}">
+                    <span class="rsl-badge-pill {{ ($summary['sms_active'] ?? false) ? 'rsl-badge-pill--ok' : 'rsl-badge-pill--muted' }}">
                         {{ ($summary['sms_active'] ?? false) ? 'Active' : 'Not set' }}
                     </span>
                 </div>
             </a>
-
-            <a href="{{ route('reseller.settings.payment') }}" class="rsl-card block p-6 transition hover:shadow-md">
-                <div class="flex items-start justify-between gap-3">
+            <a href="{{ route('reseller.settings.payment') }}" class="rsl-settings-tile">
+                <div style="display:flex;justify-content:space-between;gap:0.5rem">
                     <div>
-                        <h2 class="font-semibold text-slate-900">Personal bKash / Nagad</h2>
-                        <p class="mt-1 text-sm text-slate-600">Send Money numbers and SMS auto-verify.</p>
+                        <h2>Personal bKash / Nagad</h2>
+                        <p>With SMS auto-verify</p>
                     </div>
-                    <span class="rounded-full px-2 py-0.5 text-xs font-bold {{ (($summary['bkash_active'] ?? false) || ($summary['nagad_active'] ?? false)) ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-600' }}">
+                    <span class="rsl-badge-pill {{ (($summary['bkash_active'] ?? false) || ($summary['nagad_active'] ?? false)) ? 'rsl-badge-pill--ok' : 'rsl-badge-pill--muted' }}">
                         {{ (($summary['bkash_active'] ?? false) || ($summary['nagad_active'] ?? false)) ? 'Active' : 'Not set' }}
                     </span>
                 </div>
@@ -49,12 +54,12 @@
     </div>
 
     @if ($canIntegrations ?? false)
-        <div class="rsl-card mt-6 p-6 text-sm text-slate-600">
-            <p class="font-semibold text-slate-800">Integrations</p>
+        <div class="rsl-panel rsl-panel-pad mt-4 text-sm" style="color:var(--rsl-text-muted)">
+            <p class="rsl-panel-title">Notes</p>
             <ul class="mt-2 list-disc space-y-1 pl-5">
-                <li>SMS uses your API keys and sender name for your subscribers.</li>
-                <li>Personal MFS numbers appear on customer payment pages.</li>
-                <li>MFS SMS forwarder auto-verifies TrxID with your device key.</li>
+                <li>SMS — message subscribers with your API key</li>
+                <li>MFS — your number on the customer pay page</li>
+                <li>SMS forwarder — TrxID auto-verify</li>
             </ul>
         </div>
     @endif

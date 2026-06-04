@@ -1,10 +1,10 @@
 @extends('reseller.layout')
 
-@section('title', 'ড্যাশবোর্ড')
+@section('title', 'Dashboard')
 
 @php
     $hour = (int) now()->format('G');
-    $greeting = $hour < 12 ? 'সুপ্রভাত' : ($hour < 17 ? 'শুভ অপরাহ্ন' : 'শুভ সন্ধ্যা');
+    $greeting = $hour < 12 ? 'Good morning' : ($hour < 17 ? 'Good afternoon' : 'Good evening');
     $collectionRate = min(100, max(0, (float) ($metrics['collection_rate'] ?? 0)));
     $creditLimit = (float) ($metrics['credit_limit'] ?? 0);
     $available = (float) ($metrics['available_balance'] ?? $metrics['wallet'] ?? 0);
@@ -37,7 +37,7 @@
             </svg>
             <div class="rsl-pro-ring-label">
                 <span class="rsl-pro-ring-value">{{ number_format($collectionRate, 0) }}%</span>
-                <span class="rsl-pro-ring-caption">আদায়</span>
+                <span class="rsl-pro-ring-caption">Collection</span>
             </div>
         </div>
     </header>
@@ -46,69 +46,69 @@
         @if ($portal->canPortal(\App\Support\ResellerPortalPermission::PAYMENT_COLLECT))
             <a href="{{ $dueUrl }}" class="rsl-pro-action rsl-pro-action--primary">
                 <x-reseller-icon name="collect" class="rsl-icon-svg" />
-                বকেয়া আদায়
+                Due Collection
             </a>
         @endif
         @if ($portal->canPortal(\App\Support\ResellerPortalPermission::CUSTOMER_CREATE))
             <a href="{{ route('reseller.customers.create') }}" class="rsl-pro-action">
                 <x-reseller-icon name="plus" class="rsl-icon-svg" />
-                নতুন গ্রাহক
+                New subscriber
             </a>
         @endif
         @if ($portal->canPortal(\App\Support\ResellerPortalPermission::CUSTOMER_VIEW))
             <a href="{{ route('reseller.customers.index') }}" class="rsl-pro-action">
                 <x-reseller-icon name="users" class="rsl-icon-svg" />
-                তালিকা
+                List
             </a>
         @endif
         @if ($portal->canPortal(\App\Support\ResellerPortalPermission::INVOICE_GENERATE) && \Illuminate\Support\Facades\Route::has('reseller.invoices.index'))
             <a href="{{ route('reseller.invoices.index') }}" class="rsl-pro-action">
                 <x-reseller-icon name="invoice" class="rsl-icon-svg" />
-                বিল
+                Bills
             </a>
         @endif
     </div>
 
-    <section class="rsl-pro-bento" aria-label="মূল হিসাব">
+    <section class="rsl-pro-bento" aria-label="Key figures">
         <a href="{{ $dueUrl }}" class="rsl-pro-tile rsl-pro-tile--due rsl-pro-tile--span2">
-            <span class="rsl-pro-tile-label">কাস্টমার বকেয়া</span>
-            <span class="rsl-pro-tile-value">{{ number_format($metrics['due_amount'], 0) }} <small>৳</small></span>
-            <span class="rsl-pro-tile-sub">{{ $metrics['due_customers'] }} জনের বিল বাকি</span>
+            <span class="rsl-pro-tile-label">Customer due</span>
+            <span class="rsl-pro-tile-value">{{ number_format($metrics['due_amount'], 0) }} <small> BDT</small></span>
+            <span class="rsl-pro-tile-sub">{{ $metrics['due_customers'] }} subscribers with due bills</span>
         </a>
         @if ($portal->canPortal(\App\Support\ResellerPortalPermission::WALLET_VIEW))
             <a href="{{ $walletUrl }}" class="rsl-pro-tile rsl-pro-tile--wallet">
-                <span class="rsl-pro-tile-label">ওয়ালেট</span>
-                <span class="rsl-pro-tile-value">{{ number_format($metrics['wallet'], 0) }} <small>৳</small></span>
-                <span class="rsl-pro-tile-sub">উপলব্ধ {{ number_format($available, 0) }} ৳</span>
+                <span class="rsl-pro-tile-label">Wallet</span>
+                <span class="rsl-pro-tile-value">{{ number_format($metrics['wallet'], 0) }} <small> BDT</small></span>
+                <span class="rsl-pro-tile-sub">Available {{ number_format($available, 0) }} BDT</span>
             </a>
         @endif
         <article class="rsl-pro-tile rsl-pro-tile--today">
-            <span class="rsl-pro-tile-label">আজকের আদায়</span>
-            <span class="rsl-pro-tile-value">{{ number_format($metrics['today_collection'], 0) }} <small>৳</small></span>
-            <span class="rsl-pro-tile-sub">{{ $metrics['today_collection_count'] }} পেমেন্ট</span>
+            <span class="rsl-pro-tile-label">Today's collection</span>
+            <span class="rsl-pro-tile-value">{{ number_format($metrics['today_collection'], 0) }} <small> BDT</small></span>
+            <span class="rsl-pro-tile-sub">{{ $metrics['today_collection_count'] }} payments</span>
         </article>
         <article class="rsl-pro-tile rsl-pro-tile--month">
-            <span class="rsl-pro-tile-label">এই মাসে</span>
-            <span class="rsl-pro-tile-value">{{ number_format($metrics['month_collection'], 0) }} <small>৳</small></span>
-            <span class="rsl-pro-tile-sub">{{ $metrics['customers_total'] }} মোট গ্রাহক</span>
+            <span class="rsl-pro-tile-label">This month</span>
+            <span class="rsl-pro-tile-value">{{ number_format($metrics['month_collection'], 0) }} <small> BDT</small></span>
+            <span class="rsl-pro-tile-sub">{{ $metrics['customers_total'] }} total subscribers</span>
         </article>
         @if ($hqDueUrl)
             <a href="{{ $hqDueUrl }}" class="rsl-pro-tile rsl-pro-tile--hq">
-                <span class="rsl-pro-tile-label">HQ বকেয়া</span>
-                <span class="rsl-pro-tile-value">{{ number_format($metrics['admin_receivable_due'] ?? 0, 0) }} <small>৳</small></span>
-                <span class="rsl-pro-tile-sub">হোলসেল লেজার</span>
+                <span class="rsl-pro-tile-label">HQ due</span>
+                <span class="rsl-pro-tile-value">{{ number_format($metrics['admin_receivable_due'] ?? 0, 0) }} <small> BDT</small></span>
+                <span class="rsl-pro-tile-sub">Wholesale ledger</span>
             </a>
         @endif
         <article class="rsl-pro-tile rsl-pro-tile--subs">
-            <span class="rsl-pro-tile-label">সক্রিয় / মোট</span>
+            <span class="rsl-pro-tile-label">Active / total</span>
             <span class="rsl-pro-tile-value">{{ $metrics['customers_active'] }} <small>/ {{ $metrics['customers_total'] }}</small></span>
-            <span class="rsl-pro-tile-sub">সাসপেন্ড {{ $metrics['customers_suspended'] ?? 0 }} · ONU {{ $metrics['onu_online'] }}</span>
+            <span class="rsl-pro-tile-sub">Suspended {{ $metrics['customers_suspended'] ?? 0 }} · ONU {{ $metrics['onu_online'] }}</span>
         </article>
     </section>
 
     @if (!empty($metrics['alerts']))
         <section class="rsl-pro-panel">
-            <h2 class="rsl-pro-panel-title">সতর্কতা</h2>
+            <h2 class="rsl-pro-panel-title">Alerts</h2>
             <div class="rsl-pro-alerts">
                 @foreach ($metrics['alerts'] as $alert)
                     <article class="rsl-pro-alert rsl-pro-alert--{{ $alert['tone'] ?? 'info' }}">
@@ -121,20 +121,20 @@
         </section>
     @endif
 
-    <section class="rsl-pro-stats" aria-label="অপারেশন">
-        <div class="rsl-pro-stat"><span class="rsl-pro-stat-val">{{ number_format($metrics['pending_commission'], 0) }}</span><span class="rsl-pro-stat-lbl">কমিশন বাকি</span></div>
-        <div class="rsl-pro-stat"><span class="rsl-pro-stat-val">{{ $metrics['customers_new_month'] ?? 0 }}</span><span class="rsl-pro-stat-lbl">নতুন (মাস)</span></div>
-        <div class="rsl-pro-stat"><span class="rsl-pro-stat-val">{{ number_format($collectionRate, 0) }}%</span><span class="rsl-pro-stat-lbl">আদায়ের হার</span></div>
+    <section class="rsl-pro-stats" aria-label="Operations">
+        <div class="rsl-pro-stat"><span class="rsl-pro-stat-val">{{ number_format($metrics['pending_commission'], 0) }}</span><span class="rsl-pro-stat-lbl">Pending commission</span></div>
+        <div class="rsl-pro-stat"><span class="rsl-pro-stat-val">{{ $metrics['customers_new_month'] ?? 0 }}</span><span class="rsl-pro-stat-lbl">New (month)</span></div>
+        <div class="rsl-pro-stat"><span class="rsl-pro-stat-val">{{ number_format($collectionRate, 0) }}%</span><span class="rsl-pro-stat-lbl">Collection rate</span></div>
         @if ($creditUsedPct !== null)
-            <div class="rsl-pro-stat"><span class="rsl-pro-stat-val">{{ $creditUsedPct }}%</span><span class="rsl-pro-stat-lbl">ক্রেডিট ব্যবহার</span></div>
+            <div class="rsl-pro-stat"><span class="rsl-pro-stat-val">{{ $creditUsedPct }}%</span><span class="rsl-pro-stat-lbl">Credit used</span></div>
         @endif
     </section>
 
     @if (!empty($chartData))
         <section class="rsl-pro-panel">
-            <h2 class="rsl-pro-panel-title">৩০ দিনের ট্রেন্ড</h2>
+            <h2 class="rsl-pro-panel-title">30-day trend</h2>
             <div class="rsl-pro-charts">
-                @foreach (['collection' => 'আদায়', 'revenue' => 'কমিশন', 'growth' => 'গ্রাহক'] as $key => $chartTitle)
+                @foreach (['collection' => 'Collection', 'revenue' => 'Commission', 'growth' => 'Subscribers'] as $key => $chartTitle)
                     <div class="rsl-pro-chart-box">
                         <h3 class="rsl-pro-chart-label">{{ $chartTitle }}</h3>
                         <div class="rsl-pro-chart-canvas"><canvas id="chart-{{ $key }}"></canvas></div>
@@ -168,13 +168,13 @@
         @if ($portal->canPortal(\App\Support\ResellerPortalPermission::PAYMENT_COLLECT))
             <section class="rsl-pro-panel">
                 <div class="rsl-pro-panel-header">
-                    <h2 class="rsl-pro-panel-title">সাম্প্রতিক আদায়</h2>
-                    <a href="{{ route('reseller.customers.index') }}" class="rsl-pro-panel-link">সব</a>
+                    <h2 class="rsl-pro-panel-title">Recent collections</h2>
+                    <a href="{{ route('reseller.customers.index') }}" class="rsl-pro-panel-link">All</a>
                 </div>
                 <ul class="rsl-pro-feed rsl-pro-panel-body">
                     @forelse (($recentPayments ?? collect())->take(6) as $pay)
                         @php
-                            $name = $pay->customer?->name ?? 'গ্রাহক';
+                            $name = $pay->customer?->name ?? 'Subscribers';
                             $ini = collect(explode(' ', $name))->filter()->take(2)->map(fn ($w) => mb_strtoupper(mb_substr($w, 0, 1)))->implode('');
                         @endphp
                         <li>
@@ -188,7 +188,7 @@
                             </a>
                         </li>
                     @empty
-                        <li class="rsl-pro-feed-empty">এখনও কোনো আদায় নেই।</li>
+                        <li class="rsl-pro-feed-empty">No collections yet.</li>
                     @endforelse
                 </ul>
             </section>
@@ -197,8 +197,8 @@
         @if ($portal->canPortal(\App\Support\ResellerPortalPermission::COMMISSION_VIEW))
             <section class="rsl-pro-panel">
                 <div class="rsl-pro-panel-header">
-                    <h2 class="rsl-pro-panel-title">কমিশন</h2>
-                    <a href="{{ route('reseller.commissions.index') }}" class="rsl-pro-panel-link">সব</a>
+                    <h2 class="rsl-pro-panel-title">Commission</h2>
+                    <a href="{{ route('reseller.commissions.index') }}" class="rsl-pro-panel-link">All</a>
                 </div>
                 <ul class="rsl-pro-feed rsl-pro-panel-body">
                     @forelse ($recentCommissions->take(6) as $row)
@@ -215,7 +215,7 @@
                             <span class="rsl-pro-feed-amount">+{{ number_format((float) $row->commission_amount, 0) }}</span>
                         </li>
                     @empty
-                        <li class="rsl-pro-feed-empty">কমিশন নেই।</li>
+                        <li class="rsl-pro-feed-empty">No commissions yet.</li>
                     @endforelse
                 </ul>
             </section>

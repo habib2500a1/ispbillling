@@ -3,43 +3,35 @@
 @section('title', 'Invoices')
 
 @section('content')
-    <div class="rsl-card p-6">
-        <div class="flex flex-wrap items-start justify-between gap-4">
-            <div>
-                <h1 class="rsl-title">Invoices</h1>
-                <p class="rsl-subtitle mt-1">Partner {{ $reseller->code }} · {{ $eligibleSubscribers }} active subscribers</p>
-            </div>
-            @if ($portal->canPortal(\App\Support\ResellerPortalPermission::INVOICE_GENERATE) && ($bulkGenerateEnabled ?? true))
-                <form method="post" action="{{ route('reseller.invoices.generate-all') }}"
-                      onsubmit="return confirm('Generate monthly bills for all active subscribers who do not already have a bill for this period?');">
-                    @csrf
-                    <button type="submit" class="rsl-btn">Generate all monthly bills</button>
-                </form>
-            @endif
-        </div>
+    @include('reseller.partials.page-header', [
+        'title' => 'Invoices',
+        'subtitle' => $reseller->code.' · '.$eligibleSubscribers.' active subscribers',
+    ])
 
+    <div class="rsl-panel rsl-panel-pad">
         @if ($portal->canPortal(\App\Support\ResellerPortalPermission::INVOICE_GENERATE) && ($bulkGenerateEnabled ?? true))
-            <div class="mt-4 rounded-xl border border-indigo-200 bg-indigo-50 p-4 text-sm text-indigo-950">
+            <form method="post" action="{{ route('reseller.invoices.generate-all') }}" class="mb-4"
+                  onsubmit="return confirm('Generate monthly bills for all active subscribers who do not already have a bill for this period?');">
+                @csrf
+                <button type="submit" class="rsl-btn">Generate all monthly bills</button>
+            </form>
+            <div class="rsl-callout rsl-callout--info mb-4">
                 <p class="font-semibold">Monthly bill run</p>
-                <p class="mt-1 text-indigo-900">
-                    Creates one invoice per active subscriber for the current billing period (package price, proration rules, ONU lines).
-                    Subscribers who already have a bill this month are skipped.
-                    HQ wholesale due accrues when your account uses postpaid settlement.
-                </p>
+                <p class="mt-1 text-sm">One bill per active subscriber this month. Skips if a bill exists. Postpaid may accrue HQ wholesale due.</p>
             </div>
         @endif
-
-        <form method="get" class="mt-4 flex flex-wrap gap-2">
-            <select name="status" class="rsl-input w-auto">
+        <form method="get" class="rsl-toolbar">
+            <select name="status" class="rsl-input" style="width:auto;min-width:10rem">
                 <option value="">All statuses</option>
                 @foreach (['open', 'partial', 'paid', 'void'] as $s)
                     <option value="{{ $s }}" @selected(request('status') === $s)>{{ ucfirst($s) }}</option>
                 @endforeach
             </select>
-            <button type="submit" class="rsl-btn-sm">Filter</button>
+            <button type="submit" class="rsl-btn-sm rsl-btn-sm--outline">Filter</button>
         </form>
     </div>
-    <div class="rsl-card mt-6 overflow-hidden">
+
+    <div class="rsl-panel mt-4 overflow-hidden">
         <table class="rsl-table w-full text-sm">
             <thead><tr><th class="px-4 py-3">Invoice</th><th class="px-4 py-3">Subscriber</th><th class="px-4 py-3">Total</th><th class="px-4 py-3">Paid</th><th class="px-4 py-3">Status</th><th class="px-4 py-3"></th></tr></thead>
             <tbody>

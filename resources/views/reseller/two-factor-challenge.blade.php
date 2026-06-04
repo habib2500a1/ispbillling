@@ -3,12 +3,16 @@
 @section('title', '2FA')
 
 @section('content')
-    <div class="rsl-card p-6 max-w-sm mx-auto">
-        <h1 class="text-xl font-bold">Two-factor code</h1>
-        <form method="post" action="{{ route('reseller.two-factor.verify') }}" class="mt-4">
-            @csrf
-            <input name="code" inputmode="numeric" autocomplete="one-time-code" required class="w-full rounded-lg border px-3 py-3 text-center text-lg tracking-widest">
-            <button type="submit" class="rsl-btn w-full mt-4">Verify</button>
-        </form>
+    <div class="rsl-2fa-narrow">
+        <div class="rsl-panel rsl-panel-pad text-center">
+            <h1 class="rsl-page-title">Two-factor code</h1>
+            <p class="rsl-page-sub mt-2">Enter the 6-digit code from your app</p>
+            <form method="post" action="{{ route('reseller.two-factor.verify') }}" class="mt-6">
+                @csrf
+                <input name="code" inputmode="numeric" autocomplete="one-time-code" required
+                    class="rsl-input text-center text-lg tracking-widest" style="letter-spacing:0.3em">
+                <button type="submit" class="rsl-btn w-full mt-4" style="width:100%;margin-top:1rem">Verify</button>
+            </form>
+        </div>
     </div>
 @endsection

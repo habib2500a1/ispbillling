@@ -3,41 +3,41 @@
 @section('title', 'Settlements')
 
 @section('content')
-    <div class="rsl-card p-6">
-        <h1 class="text-xl font-bold text-slate-900">Settlement requests</h1>
-        <p class="mt-1 text-sm text-slate-600">Available for settlement: <strong>{{ number_format($outstanding, 2) }} BDT</strong> (wallet + pending commission − pending requests)</p>
-    </div>
+    @include('reseller.partials.page-header', [
+        'title' => 'Settlement requests',
+        'subtitle' => 'Withdrawable: '.number_format($outstanding, 2).' BDT (wallet + pending commission − pending requests)',
+    ])
 
-    <div class="rsl-card mt-6 p-6">
-        <h2 class="font-semibold text-slate-900">New request</h2>
-        <form method="post" action="{{ route('reseller.settlements.store') }}" class="mt-4 grid gap-4 sm:grid-cols-2">
+    <div class="rsl-panel rsl-panel-pad">
+        <h2 class="rsl-panel-title">New request</h2>
+        <form method="post" action="{{ route('reseller.settlements.store') }}" class="rsl-form-grid rsl-form-grid--2 mt-4">
             @csrf
-            <div>
-                <label class="block text-xs font-bold uppercase text-slate-500">Amount (BDT)</label>
-                <input type="number" name="amount" step="0.01" min="1" required class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-base" />
+            <div class="rsl-field">
+                <label class="rsl-field-label" for="amount">Amount (BDT)</label>
+                <input id="amount" type="number" name="amount" step="0.01" min="1" required class="rsl-input">
             </div>
-            <div>
-                <label class="block text-xs font-bold uppercase text-slate-500">Expense deduction</label>
-                <input type="number" name="expense_deduction" step="0.01" min="0" value="0" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-base" />
+            <div class="rsl-field">
+                <label class="rsl-field-label" for="expense_deduction">Expense deduction</label>
+                <input id="expense_deduction" type="number" name="expense_deduction" step="0.01" min="0" value="0" class="rsl-input">
             </div>
-            <div>
-                <label class="block text-xs font-bold uppercase text-slate-500">Payment method</label>
-                <input type="text" name="payment_method" placeholder="cash / bank" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" />
+            <div class="rsl-field">
+                <label class="rsl-field-label" for="payment_method">Payment method</label>
+                <input id="payment_method" type="text" name="payment_method" placeholder="cash / bank" class="rsl-input">
             </div>
-            <div>
-                <label class="block text-xs font-bold uppercase text-slate-500">Reference</label>
-                <input type="text" name="reference" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" />
+            <div class="rsl-field">
+                <label class="rsl-field-label" for="reference">Reference</label>
+                <input id="reference" type="text" name="reference" class="rsl-input">
             </div>
-            <div class="sm:col-span-2">
-                <label class="block text-xs font-bold uppercase text-slate-500">Notes</label>
-                <textarea name="notes" rows="2" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2"></textarea>
+            <div class="rsl-field" style="grid-column:1/-1">
+                <label class="rsl-field-label" for="notes">Notes</label>
+                <textarea id="notes" name="notes" rows="2" class="rsl-input"></textarea>
             </div>
-            <div class="sm:col-span-2">
+            <div style="grid-column:1/-1">
                 <button type="submit" class="rsl-btn">Submit for approval</button>
             </div>
         </form>
         @if ($errors->any())
-            <ul class="mt-3 text-sm text-rose-600">
+            <ul class="mt-3 text-sm" style="color:var(--rsl-danger)">
                 @foreach ($errors->all() as $error)
                     <li>{{ $error }}</li>
                 @endforeach
@@ -45,13 +45,13 @@
         @endif
     </div>
 
-    <div class="rsl-card mt-6 overflow-hidden">
-        <div class="border-b border-slate-200 px-6 py-4">
-            <h2 class="font-semibold text-slate-900">History</h2>
+    <div class="rsl-panel">
+        <div class="rsl-panel-head">
+            <h2 class="rsl-panel-title">History</h2>
         </div>
-        <div class="overflow-x-auto">
+        <div class="rsl-table-wrap">
             <table class="rsl-table w-full text-left text-sm">
-                <thead class="border-b border-slate-200 bg-slate-50">
+                <thead>
                     <tr>
                         <th class="px-4 py-3">Number</th>
                         <th class="px-4 py-3">Net</th>
@@ -61,7 +61,7 @@
                 </thead>
                 <tbody>
                     @forelse ($rows as $row)
-                        <tr class="border-b border-slate-100">
+                        <tr>
                             <td class="px-4 py-3 font-mono text-xs">{{ $row->settlement_number }}</td>
                             <td class="px-4 py-3">{{ number_format((float) $row->net_amount, 2) }} BDT</td>
                             <td class="px-4 py-3 capitalize">{{ $row->statusLabel() }}</td>
@@ -69,12 +69,14 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="4" class="px-4 py-8 text-center text-slate-500">No settlement requests yet.</td>
+                            <td colspan="4" class="px-4 py-10 text-center" style="color:var(--rsl-text-muted)">No requests yet.</td>
                         </tr>
                     @endforelse
                 </tbody>
             </table>
         </div>
-        <div class="px-4 py-3">{{ $rows->links() }}</div>
+        @if ($rows->hasPages())
+            <div class="rsl-panel-pad border-t" style="border-color:var(--rsl-border)">{{ $rows->links() }}</div>
+        @endif
     </div>
 @endsection

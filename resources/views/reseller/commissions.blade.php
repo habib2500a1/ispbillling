@@ -1,35 +1,41 @@
 @extends('reseller.layout')
 
-@section('title', 'Commissions')
+@section('title', 'Commission')
 
 @section('content')
-    <div class="rsl-card p-6">
-        <h1 class="rsl-title">Commission ledger</h1>
-        <p class="rsl-subtitle mt-2">
-            Pending: <strong class="text-amber-700">{{ number_format($totals['pending'], 2) }} BDT</strong>
-            · Paid: <strong class="text-emerald-700">{{ number_format($totals['paid'], 2) }} BDT</strong>
-        </p>
-        <div class="mt-4 flex flex-wrap gap-2">
+    @include('reseller.partials.page-header', [
+        'title' => 'Commission ledger',
+        'subtitle' => 'Pending '.number_format($totals['pending'], 2).' BDT · Paid '.number_format($totals['paid'], 2).' BDT',
+    ])
+
+    <div class="rsl-panel rsl-panel-pad">
+        <div class="rsl-toolbar">
             @foreach (['' => 'All', 'pending' => 'Pending', 'paid' => 'Paid', 'cancelled' => 'Cancelled'] as $key => $label)
                 <a href="{{ route('reseller.commissions.index', $key ? ['status' => $key] : []) }}"
-                   class="rsl-btn-sm {{ $status === $key ? '' : 'rsl-btn-sm--outline' }}">
-                    {{ $label }}
-                </a>
+                   class="rsl-btn-sm {{ $status === $key ? '' : 'rsl-btn-sm--outline' }}">{{ $label }}</a>
             @endforeach
         </div>
-        <form method="get" action="{{ route('reseller.commissions.statement.pdf') }}" class="mt-4 flex flex-wrap items-end gap-2 border-t border-slate-200 pt-4">
-            <div><label class="text-xs rsl-text-muted">PDF from</label><input type="date" name="from" value="{{ $pdfFrom }}" class="rsl-input mt-1"></div>
-            <div><label class="text-xs rsl-text-muted">To</label><input type="date" name="to" value="{{ $pdfTo }}" class="rsl-input mt-1"></div>
+        <form method="get" action="{{ route('reseller.commissions.statement.pdf') }}" class="rsl-form-grid rsl-form-grid--2 mt-4 pt-4" style="border-top:1px solid var(--rsl-border);max-width:28rem">
+            <div class="rsl-field">
+                <label class="rsl-field-label">PDF from</label>
+                <input type="date" name="from" value="{{ $pdfFrom }}" class="rsl-input">
+            </div>
+            <div class="rsl-field">
+                <label class="rsl-field-label">To</label>
+                <input type="date" name="to" value="{{ $pdfTo }}" class="rsl-input">
+            </div>
             @if ($status)
                 <input type="hidden" name="status" value="{{ $status }}">
             @endif
-            <button type="submit" class="rsl-btn-sm rsl-btn-sm--outline">Download statement PDF</button>
+            <div style="grid-column:1/-1">
+                <button type="submit" class="rsl-btn-sm rsl-btn-sm--outline">Download statement PDF</button>
+            </div>
         </form>
     </div>
 
-    <div class="rsl-card mt-6 overflow-hidden">
-        <div class="overflow-x-auto">
-            <table class="rsl-table w-full text-left text-sm">
+    <div class="rsl-panel mt-4">
+        <div class="rsl-table-wrap">
+            <table class="rsl-table w-full text-sm">
                 <thead>
                     <tr>
                         <th class="px-4 py-3">Earned</th>
@@ -46,22 +52,24 @@
                         <tr>
                             <td class="px-4 py-3">{{ $row->earned_at?->format('d M Y H:i') ?? '—' }}</td>
                             <td class="px-4 py-3">{{ $row->customer?->name ?? '—' }}</td>
-                            <td class="px-4 py-3">{{ number_format((float) $row->gross_amount, 2) }} BDT</td>
-                            <td class="px-4 py-3 font-semibold text-emerald-700">{{ number_format((float) $row->commission_amount, 2) }} BDT</td>
-                            <td class="px-4 py-3 capitalize">{{ $row->payment?->method ?? '—' }}</td>
-                            <td class="px-4 py-3 capitalize">{{ $row->status }}</td>
-                            <td class="px-4 py-3"><a href="{{ route('reseller.commissions.show.pdf', $row) }}" class="rsl-link text-xs" target="_blank" rel="noopener">View</a></td>
+                            <td class="px-4 py-3">{{ number_format((float) $row->gross_amount, 2) }}</td>
+                            <td class="px-4 py-3 font-semibold">{{ number_format((float) $row->commission_amount, 2) }}</td>
+                            <td class="px-4 py-3">{{ $row->payment?->method ?? '—' }}</td>
+                            <td class="px-4 py-3">
+                                <span class="rsl-badge-pill rsl-badge-pill--muted">{{ $row->status }}</span>
+                            </td>
+                            <td class="px-4 py-3">
+                                <a href="{{ route('reseller.commissions.show.pdf', $row) }}" class="rsl-link-action" target="_blank" rel="noopener">PDF</a>
+                            </td>
                         </tr>
                     @empty
-                        <tr>
-                            <td colspan="7" class="px-4 py-8 text-center rsl-text-muted">No commission records.</td>
-                        </tr>
+                        <tr><td colspan="7" class="px-4 py-10 text-center" style="color:var(--rsl-text-muted)">No records yet.</td></tr>
                     @endforelse
                 </tbody>
             </table>
         </div>
         @if ($commissions->hasPages())
-            <div class="border-t border-slate-200 px-4 py-3">{{ $commissions->links() }}</div>
+            <div class="p-4">{{ $commissions->links() }}</div>
         @endif
     </div>
 @endsection

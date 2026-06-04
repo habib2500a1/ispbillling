@@ -1,26 +1,31 @@
 @extends('reseller.layout')
 
-@section('title', 'Transfer customer')
+@section('title', 'Customer transfers')
 
 @section('content')
-    <div class="rsl-card p-6 max-w-lg">
-        <h1 class="rsl-title">Transfer subscriber</h1>
-        <p class="rsl-subtitle">{{ $customer->name }} ({{ $customer->customer_code }})</p>
-        <form method="post" action="{{ route('reseller.customer-transfers.store', $customer) }}" class="mt-6 space-y-4">
+    @include('reseller.partials.page-header', [
+        'title' => 'Customer transfers',
+        'subtitle' => $customer->name.' ('.$customer->customer_code.')',
+        'backUrl' => route('reseller.customer-transfers.index'),
+        'backLabel' => '← Transfers',
+    ])
+
+    <div class="rsl-panel rsl-panel-pad" style="max-width:28rem">
+        <form method="post" action="{{ route('reseller.customer-transfers.store', $customer) }}" class="rsl-form-grid">
             @csrf
-            <div>
-                <label class="text-sm rsl-text-muted">Transfer to</label>
-                <select name="to_reseller_id" required class="rsl-input mt-1 w-full">
+            <div class="rsl-field">
+                <label class="rsl-field-label" for="to_reseller_id">Transfer to</label>
+                <select id="to_reseller_id" name="to_reseller_id" required class="rsl-input">
                     @foreach ($targets as $target)
                         <option value="{{ $target->id }}">{{ $target->name }} ({{ $target->code }})</option>
                     @endforeach
                 </select>
             </div>
-            <div>
-                <label class="text-sm rsl-text-muted">Reason</label>
-                <textarea name="reason" rows="3" class="rsl-input mt-1 w-full"></textarea>
+            <div class="rsl-field">
+                <label class="rsl-field-label" for="reason">Reason</label>
+                <textarea id="reason" name="reason" rows="3" class="rsl-input"></textarea>
             </div>
-            <button type="submit" class="rsl-btn-sm">Submit transfer request</button>
+            <button type="submit" class="rsl-btn">Submit request</button>
         </form>
     </div>
 @endsection

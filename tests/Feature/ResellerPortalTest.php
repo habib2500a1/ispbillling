@@ -78,4 +78,29 @@ class ResellerPortalTest extends TestCase
     {
         $this->get(route('reseller.dashboard'))->assertRedirect(route('reseller.login'));
     }
+
+    public function test_sub_reseller_create_page_loads_before_numeric_child_route(): void
+    {
+        $reseller = Reseller::query()->create([
+            'tenant_id' => 1,
+            'name' => 'Master Partner',
+            'code' => 'RSL-MASTER-01',
+            'franchise_type' => 'master_reseller',
+            'commission_type' => 'percent',
+            'commission_value' => 5,
+            'wallet_balance' => 0,
+            'is_active' => true,
+            'portal_password' => Hash::make('secret-pass'),
+        ]);
+
+        $this->actingAs($reseller, 'reseller')
+            ->get(route('reseller.sub-resellers.create'))
+            ->assertOk()
+            ->assertSee('New sub-partner', false);
+
+        $this->actingAs($reseller, 'reseller')
+            ->get(route('reseller.sub-resellers.index'))
+            ->assertOk()
+            ->assertSee('Sub-partners', false);
+    }
 }

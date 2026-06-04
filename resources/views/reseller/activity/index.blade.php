@@ -3,13 +3,16 @@
 @section('title', 'Activity log')
 
 @section('content')
-    <div class="rsl-card p-6">
-        <h1 class="rsl-title">Activity log</h1>
-        <p class="rsl-subtitle">Who did what in your partner portal and API</p>
-        <form method="get" class="mt-4 flex flex-wrap gap-2 items-end">
-            <div>
-                <label class="text-xs rsl-text-muted">Action</label>
-                <select name="action" class="rsl-input mt-1 w-auto min-w-[12rem]">
+    @include('reseller.partials.page-header', [
+        'title' => 'Activity log',
+        'subtitle' => 'Portal and API activity.',
+    ])
+
+    <div class="rsl-panel rsl-panel-pad">
+        <form method="get" class="rsl-toolbar">
+            <div class="rsl-field" style="margin:0">
+                <label class="rsl-field-label">Action</label>
+                <select name="action" class="rsl-input" style="min-width:12rem">
                     <option value="">All actions</option>
                     @foreach ($actionOptions as $key => $label)
                         <option value="{{ $key }}" @selected(request('action') === $key)>{{ $label }}</option>
@@ -19,7 +22,7 @@
             <button type="submit" class="rsl-btn-sm">Filter</button>
         </form>
     </div>
-    <div class="rsl-card mt-6 overflow-hidden">
+    <div class="rsl-panel mt-4 overflow-hidden">
         <table class="rsl-table w-full text-sm">
             <thead>
                 <tr>

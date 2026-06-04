@@ -3,21 +3,15 @@
 @section('title', 'Subscribers')
 
 @section('content')
-    <div class="rsl-card p-6">
-        <div class="flex flex-wrap items-center justify-between gap-4">
-            <div>
-                <h1 class="rsl-title">Your subscribers</h1>
-                <p class="rsl-subtitle">{{ $customers->total() }} assigned to {{ $reseller->code }}</p>
-                @if ($dueCustomerCount > 0)
-                    <p class="mt-2 text-sm font-semibold text-rose-700">
-                        {{ $dueCustomerCount }} with due · {{ number_format($totalDue, 2) }} BDT total outstanding
-                    </p>
-                @endif
-            </div>
-            <div class="flex flex-wrap gap-2">
-                @if ($portal->canPortal(\App\Support\ResellerPortalPermission::CUSTOMER_CREATE))
-                    <a href="{{ route('reseller.customers.create') }}" class="rsl-btn-sm">+ New subscriber</a>
-                @endif
+    @include('reseller.partials.page-header', [
+        'title' => 'Your subscribers',
+        'subtitle' => $customers->total().'  ·  '.$reseller->code.($dueCustomerCount > 0 ? ' · Due '.$dueCustomerCount.' ('.number_format($totalDue, 2).' BDT)' : ''),
+        'actionUrl' => $portal->canPortal(\App\Support\ResellerPortalPermission::CUSTOMER_CREATE) ? route('reseller.customers.create') : null,
+        'actionLabel' => $portal->canPortal(\App\Support\ResellerPortalPermission::CUSTOMER_CREATE) ? '+ New' : null,
+    ])
+
+    <div class="rsl-panel rsl-panel-pad">
+        <div class="rsl-toolbar">
                 @if ($portal->canPortal(\App\Support\ResellerPortalPermission::INVOICE_GENERATE) && config('reseller_billing.portal_bulk_invoice_generate', true))
                     <a href="{{ route('reseller.invoices.index') }}" class="rsl-btn-sm rsl-btn-sm--outline">Generate monthly bills</a>
                 @endif
@@ -41,18 +35,17 @@
                         <button type="submit" class="rsl-btn-sm rsl-btn-sm--outline">Remind all due</button>
                     </form>
                 @endif
-                <form method="get" class="flex gap-2">
+                <form method="get" class="rsl-toolbar-search">
                     @if ($dueOnly)
                         <input type="hidden" name="due" value="1">
                     @endif
-                    <input type="search" name="q" value="{{ $search }}" placeholder="Search" class="rsl-input max-w-xs">
+                    <input type="search" name="q" value="{{ $search }}" placeholder="Search…" class="rsl-input">
                     <button type="submit" class="rsl-btn-sm rsl-btn-sm--outline">Search</button>
                 </form>
-            </div>
         </div>
     </div>
 
-    <div class="rsl-card mt-6 overflow-hidden">
+    <div class="rsl-panel mt-4 overflow-hidden">
         <div class="overflow-x-auto">
             <table class="rsl-table w-full text-left text-sm">
                 <thead class="border-b border-slate-200 bg-slate-50">

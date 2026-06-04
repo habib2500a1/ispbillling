@@ -64,7 +64,7 @@ php artisan isp:build-styles
 | File | Lines | Note |
 |------|-------|------|
 | `portal.css` | ~3000 | Customer portal (আলাদা app) |
-| `reseller-portal-v2.css` | ~1600 | Reseller portal |
+| `reseller-portal-pro.css` | ~2700+ | Reseller portal (pro) |
 | `*-hub-pro.css` | 400–1400 | Hub প্রতি এক ফাইল — পরে `admin/hubs/` এ ভাগ করা যাবে |
 
 ## আর্কিটেকচার

@@ -278,12 +278,13 @@ Route::middleware(['auth:reseller', 'reseller.2fa', 'reseller.ip'])->prefix('res
     Route::get('/sub-resellers', [ResellerSubResellerController::class, 'index'])
         ->middleware('reseller.permission:'.ResellerPortalPermission::SUB_RESELLER_VIEW)
         ->name('sub-resellers.index');
-    Route::get('/sub-resellers/{child}', [ResellerSubResellerController::class, 'show'])
-        ->middleware('reseller.permission:'.ResellerPortalPermission::SUB_RESELLER_VIEW)
-        ->name('sub-resellers.show');
     Route::get('/sub-resellers/create', [\App\Http\Controllers\Reseller\ResellerSubResellerCreateController::class, 'create'])
         ->middleware('reseller.permission:'.ResellerPortalPermission::SUB_RESELLER_CREATE)
         ->name('sub-resellers.create');
+    Route::get('/sub-resellers/{child}', [ResellerSubResellerController::class, 'show'])
+        ->whereNumber('child')
+        ->middleware('reseller.permission:'.ResellerPortalPermission::SUB_RESELLER_VIEW)
+        ->name('sub-resellers.show');
     Route::post('/sub-resellers', [\App\Http\Controllers\Reseller\ResellerSubResellerCreateController::class, 'store'])
         ->middleware('reseller.permission:'.ResellerPortalPermission::SUB_RESELLER_CREATE)
         ->name('sub-resellers.store');

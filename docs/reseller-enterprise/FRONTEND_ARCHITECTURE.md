@@ -9,7 +9,7 @@
 ## Partner portal (Blade + Tailwind)
 
 - Layout: `resources/views/reseller/layout.blade.php`
-- CSS: `public/css/reseller-portal.css`
+- CSS: `public/css/reseller-portal-pro.css` (legacy `reseller-portal.css` / `reseller-portal-v2.css` removed)
 - Enterprise views: `resources/views/reseller/enterprise/*`
 - Real-time: existing `ResellerRealtimeController` + WebSockets (Laravel Echo)
 

@@ -4,14 +4,16 @@
 
 @section('content')
     <div class="mb-4">
-        <a href="{{ route('reseller.settings.index') }}" class="text-sm font-semibold text-sky-700">← Integrations</a>
+        <a href="{{ route('reseller.settings.index') }}" class="rsl-page-back">← Settings</a>
     </div>
 
-    <div class="rsl-card p-6 max-w-xl">
-        <h1 class="text-xl font-bold text-slate-900">SMS gateway</h1>
-        <p class="mt-1 text-sm text-slate-600">Customer SMS for your subscribers only.</p>
+    @include('reseller.partials.page-header', [
+        'title' => 'SMS gateway',
+        'subtitle' => 'Customer SMS for your subscribers only.',
+    ])
 
-        <form method="post" action="{{ route('reseller.settings.sms.update') }}" class="mt-6 grid gap-4">
+    <div class="rsl-panel rsl-panel-pad" style="max-width:32rem">
+        <form method="post" action="{{ route('reseller.settings.sms.update') }}" class="rsl-form-grid">
             @csrf
             @method('PUT')
 
@@ -21,8 +23,8 @@
             </label>
 
             <div>
-                <label class="block text-xs font-bold uppercase text-slate-500">Provider</label>
-                <select name="sms_provider" class="mt-1 w-full rounded-lg border px-3 py-2 text-base">
+                <label class="rsl-field-label">Provider</label>
+                <select name="sms_provider" class="rsl-input text-base">
                     @foreach (['khudebarta' => 'KhudeBarta', 'bulksmsbd' => 'BulkSMSBD', 'sslwireless' => 'SSL Wireless', 'custom' => 'Custom HTTP'] as $value => $label)
                         <option value="{{ $value }}" @selected($state['sms_provider'] === $value)>{{ $label }}</option>
                     @endforeach
@@ -30,24 +32,24 @@
             </div>
 
             <div>
-                <label class="block text-xs font-bold uppercase text-slate-500">API URL</label>
-                <input type="url" name="sms_api_url" value="{{ old('sms_api_url', $state['sms_api_url']) }}" class="mt-1 w-full rounded-lg border px-3 py-2 text-base">
+                <label class="rsl-field-label">API URL</label>
+                <input type="url" name="sms_api_url" value="{{ old('sms_api_url', $state['sms_api_url']) }}" class="rsl-input text-base">
             </div>
 
             <div>
-                <label class="block text-xs font-bold uppercase text-slate-500">Sender ID</label>
-                <input name="sms_sender_id" value="{{ old('sms_sender_id', $state['sms_sender_id']) }}" maxlength="32" class="mt-1 w-full rounded-lg border px-3 py-2 text-base" placeholder="YourBrand">
+                <label class="rsl-field-label">Sender ID</label>
+                <input name="sms_sender_id" value="{{ old('sms_sender_id', $state['sms_sender_id']) }}" maxlength="32" class="rsl-input text-base" placeholder="YourBrand">
                 <p class="mt-1 text-xs text-slate-500">Name shown on SMS to your customers. Must match your gateway account (e.g. KhudeBarta approved sender).</p>
             </div>
 
             <div>
-                <label class="block text-xs font-bold uppercase text-slate-500">API key</label>
-                <input type="password" name="sms_api_key" placeholder="{{ $state['sms_api_key_set'] ? '•••••••• (leave blank to keep)' : 'Enter API key' }}" class="mt-1 w-full rounded-lg border px-3 py-2 text-base" autocomplete="new-password">
+                <label class="rsl-field-label">API key</label>
+                <input type="password" name="sms_api_key" placeholder="{{ $state['sms_api_key_set'] ? '•••••••• (leave blank to keep)' : 'Enter API key' }}" class="rsl-input text-base" autocomplete="new-password">
             </div>
 
             <div>
-                <label class="block text-xs font-bold uppercase text-slate-500">Secret key</label>
-                <input type="password" name="sms_secret_key" placeholder="{{ $state['sms_secret_key_set'] ? '•••••••• (leave blank to keep)' : 'Enter secret key' }}" class="mt-1 w-full rounded-lg border px-3 py-2 text-base" autocomplete="new-password">
+                <label class="rsl-field-label">Secret key</label>
+                <input type="password" name="sms_secret_key" placeholder="{{ $state['sms_secret_key_set'] ? '•••••••• (leave blank to keep)' : 'Enter secret key' }}" class="rsl-input text-base" autocomplete="new-password">
             </div>
 
             <button type="submit" class="rsl-btn w-full">Save SMS settings</button>

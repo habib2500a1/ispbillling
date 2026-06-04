@@ -3,16 +3,20 @@
 @section('title', 'Network')
 
 @section('content')
-    <div class="rsl-card p-6">
-        <h1 class="rsl-title">PPPoE sessions</h1>
-        <p class="rsl-subtitle mt-1">Live download/upload rates and session uptime from MikroTik polling.</p>
-        <div class="mt-4 flex flex-wrap gap-2">
+    @include('reseller.partials.page-header', [
+        'title' => 'Network',
+        'subtitle' => 'PPPoE sessions — live rates and uptime.',
+    ])
+
+    <div class="rsl-panel rsl-panel-pad">
+        <div class="rsl-toolbar">
             <a href="{{ route('reseller.network.index', ['filter' => 'online']) }}" class="rsl-btn-sm {{ $filter === 'online' ? '' : 'rsl-btn-sm--outline' }}">Online ({{ $onlineCount }})</a>
-            <a href="{{ route('reseller.network.index', ['filter' => 'offline']) }}" class="rsl-btn-sm {{ $filter === 'offline' ? '' : 'rsl-btn-sm--outline' }}">Offline active ({{ $offlineCount }})</a>
+            <a href="{{ route('reseller.network.index', ['filter' => 'offline']) }}" class="rsl-btn-sm {{ $filter === 'offline' ? '' : 'rsl-btn-sm--outline' }}">Offline ({{ $offlineCount }})</a>
             <a href="{{ route('reseller.network.index', ['filter' => 'all']) }}" class="rsl-btn-sm {{ $filter === 'all' ? '' : 'rsl-btn-sm--outline' }}">All</a>
         </div>
     </div>
-    <div class="rsl-card mt-6 overflow-hidden">
+
+    <div class="rsl-panel mt-4 overflow-hidden">
         <div class="overflow-x-auto">
             <table class="rsl-table w-full text-sm" id="network-table">
                 <thead>

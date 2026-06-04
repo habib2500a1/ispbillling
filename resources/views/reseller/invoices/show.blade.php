@@ -3,10 +3,15 @@
 @section('title', $invoice->invoice_number)
 
 @section('content')
-    <div class="rsl-card p-6">
-        <h1 class="rsl-title">{{ $invoice->invoice_number }}</h1>
-        <p class="rsl-subtitle">{{ $invoice->customer?->name }} · {{ $invoice->customer?->customer_code }}</p>
-        <div class="mt-4 flex flex-wrap gap-2">
+    @include('reseller.partials.page-header', [
+        'title' => $invoice->invoice_number,
+        'subtitle' => ($invoice->customer?->name ?? '—').' · '.($invoice->customer?->customer_code ?? ''),
+        'backUrl' => route('reseller.invoices.index'),
+        'backLabel' => '← Invoices',
+    ])
+
+    <div class="rsl-panel rsl-panel-pad">
+        <div class="rsl-toolbar">
             <a href="{{ route('reseller.invoices.pdf', $invoice) }}" class="rsl-btn-sm" target="_blank">Download PDF</a>
             @if ($portal->canPortal(\App\Support\ResellerPortalPermission::PAYMENT_COLLECT))
                 <a href="{{ route('reseller.customers.collect', $invoice->customer) }}" class="rsl-btn-sm rsl-btn-sm--outline">Collect payment</a>
@@ -17,7 +22,7 @@
         $balanceDue = max(0, (float) $invoice->total - (float) $invoice->amount_paid);
     @endphp
 
-    <div class="rsl-kpi-grid mt-6">
+    <div class="rsl-metric-grid mt-6">
         <div class="rsl-metric"><p class="rsl-metric-label">Total</p><p class="rsl-metric-value text-base">{{ number_format((float) $invoice->total, 2) }} BDT</p></div>
         <div class="rsl-metric"><p class="rsl-metric-label">Paid</p><p class="rsl-metric-value text-base">{{ number_format((float) $invoice->amount_paid, 2) }} BDT</p></div>
         <div class="rsl-metric"><p class="rsl-metric-label">Due</p><p class="rsl-metric-value text-rose-700">{{ number_format($balanceDue, 2) }} BDT</p></div>
@@ -28,7 +33,7 @@
     </div>
 
     @if ($portal->canPortal(\App\Support\ResellerPortalPermission::INVOICE_ADJUST) && $balanceDue > 0 && ! in_array($invoice->status, ['paid', 'void', 'cancelled']))
-        <div class="rsl-card mt-6 p-6">
+        <div class="rsl-panel mt-6 p-6">
             <h2 class="rsl-heading">Discount / waive</h2>
             <p class="rsl-subtitle mt-1">Reduce bill for this subscriber. HQ wholesale due is not changed automatically.</p>
             <form method="post" action="{{ route('reseller.invoices.adjust', $invoice) }}" class="mt-4 grid gap-4 max-w-md">
@@ -51,7 +56,7 @@
     @endif
 
     @if ($portal->canPortal(\App\Support\ResellerPortalPermission::BILLING_VIEW) && $balanceDue > 0)
-        <div class="rsl-card mt-6 p-6 flex flex-wrap items-center justify-between gap-3">
+        <div class="rsl-panel mt-6 p-6 flex flex-wrap items-center justify-between gap-3">
             <div>
                 <h2 class="rsl-heading text-sm">Due reminder</h2>
                 <p class="rsl-subtitle mt-1">SMS/email to subscriber (once per 24h per bill).</p>
@@ -64,7 +69,7 @@
     @endif
 
     @if ($portal->canPortal(\App\Support\ResellerPortalPermission::BILLING_VIEW) && ($notifyChannels['sms'] || $notifyChannels['email']))
-        <div class="rsl-card mt-6 p-6">
+        <div class="rsl-panel mt-6 p-6">
             <h2 class="rsl-heading">Send to subscriber</h2>
             <p class="rsl-subtitle mt-1">Invoice details with optional online payment link.</p>
             <form method="post" action="{{ route('reseller.invoices.send', $invoice) }}" class="mt-4 space-y-3 max-w-lg">
@@ -93,13 +98,13 @@
             </form>
         </div>
     @elseif ($portal->canPortal(\App\Support\ResellerPortalPermission::BILLING_VIEW))
-        <div class="rsl-card mt-6 p-6">
+        <div class="rsl-panel mt-6 p-6">
             <p class="text-sm rsl-text-muted">Add subscriber phone or email (and enable SMS gateway) to send this invoice.</p>
         </div>
     @endif
 
     @if ($invoice->items->isNotEmpty())
-        <div class="rsl-card mt-6 overflow-hidden">
+        <div class="rsl-panel mt-6 overflow-hidden">
             <table class="rsl-table w-full text-sm">
                 <thead>
                     <tr>
@@ -136,7 +141,7 @@
     @endif
 
     @if ($portal->canPortal(\App\Support\ResellerPortalPermission::INVOICE_EDIT) && ! in_array($invoice->status, ['paid', 'void', 'cancelled']))
-        <div class="rsl-card mt-6 p-6">
+        <div class="rsl-panel mt-6 p-6">
             <h2 class="rsl-heading">Add adjustment line</h2>
             <p class="rsl-subtitle mt-1">Positive or negative amount (e.g. -50 for credit). Totals recalculate automatically.</p>
             <form method="post" action="{{ route('reseller.invoices.lines.add', $invoice) }}" class="mt-4 grid gap-4 max-w-md">

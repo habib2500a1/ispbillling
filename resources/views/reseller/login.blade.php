@@ -7,7 +7,7 @@
     @include('partials.site-favicon')
     @include('partials.reseller-theme-head')
     @php
-        $rslPortalBuild = '2026.06.04-pro-redesign';
+        $rslPortalBuild = '2026.06.04-pro-en';
         $loginCssVer = (@filemtime(public_path('css/reseller-portal-pro.css')) ?: time()).'-'.$rslPortalBuild;
         $wl = app()->bound('reseller.white_label') ? app('reseller.white_label') : null;
         $companyName = $wl?->brand_name ?: config('app.name');
@@ -30,9 +30,9 @@
                 <h2 class="rsl-login-brand-title">{{ $companyName }}</h2>
                 <p class="rsl-login-brand-tagline">Enterprise partner portal</p>
                 <ul class="rsl-login-features">
-                    <li><span class="rsl-login-feature-dot"></span> বকেয়া আদায় ও লাইভ রিপোর্ট</li>
-                    <li><span class="rsl-login-feature-dot"></span> মোবাইল-ফ্রেন্ডলি ড্যাশবোর্ড</li>
-                    <li><span class="rsl-login-feature-dot"></span> নিরাপদ পার্টনার লগইন</li>
+                    <li><span class="rsl-login-feature-dot"></span> Due collection & live reports</li>
+                    <li><span class="rsl-login-feature-dot"></span> Mobile-friendly dashboard</li>
+                    <li><span class="rsl-login-feature-dot"></span> Secure partner login</li>
                 </ul>
             </div>
         </aside>
@@ -53,8 +53,8 @@
                     <button type="button" class="rsl-login-theme" onclick="portalCycleTheme()" id="rsl-login-theme" aria-label="Theme">◐</button>
                 </div>
                 <div class="rsl-login-card-body">
-                    <h1 class="rsl-login-title">পার্টনার লগইন</h1>
-                    <p class="rsl-login-sub">Partner ID, email বা phone দিয়ে সাইন ইন</p>
+                    <h1 class="rsl-login-title">Partner login</h1>
+                    <p class="rsl-login-sub">Sign in with partner ID, email, or phone</p>
 
                     @if ($wl && filled($wl->portal_login_message))
                         <p class="rsl-login-wl-msg">{{ $wl->portal_login_message }}</p>
@@ -66,7 +66,7 @@
                     <form method="post" action="{{ route('reseller.login.store') }}" class="rsl-login-form">
                         @csrf
                         <label class="rsl-login-label" for="login">Partner ID</label>
-                        <input id="login" name="login" type="text" value="{{ old('login') }}" required autofocus class="rsl-input rsl-login-input" placeholder="RSL-0001 বা email" autocomplete="username">
+                        <input id="login" name="login" type="text" value="{{ old('login') }}" required autofocus class="rsl-input rsl-login-input" placeholder="RSL-0001 or email" autocomplete="username">
 
                         <label class="rsl-login-label" for="password">Password</label>
                         <input id="password" name="password" type="password" required class="rsl-input rsl-login-input" autocomplete="current-password">
@@ -76,7 +76,7 @@
                             <span>Remember me</span>
                         </label>
 
-                        <button type="submit" class="rsl-btn rsl-login-submit">সাইন ইন</button>
+                        <button type="submit" class="rsl-btn rsl-login-submit">Sign in</button>
                     </form>
                 </div>
             </div>

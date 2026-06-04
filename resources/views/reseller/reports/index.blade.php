@@ -3,21 +3,25 @@
 @section('title', 'Reports')
 
 @section('content')
-    <div class="rsl-card p-6">
-        <h1 class="rsl-title">Reports</h1>
-        <form method="get" class="mt-4 flex flex-wrap gap-2 items-end">
-            <div><label class="text-xs rsl-text-muted">From</label><input type="date" name="from" value="{{ $from }}" class="rsl-input mt-1"></div>
-            <div><label class="text-xs rsl-text-muted">To</label><input type="date" name="to" value="{{ $to }}" class="rsl-input mt-1"></div>
-            <button type="submit" class="rsl-btn-sm">Apply</button>
+    @include('reseller.partials.page-header', [
+        'title' => 'Reports',
+        'subtitle' => 'Collections, commission, due, and subscribers.',
+    ])
+
+    <div class="rsl-panel rsl-panel-pad">
+        <form method="get" class="rsl-form-grid rsl-form-grid--2" style="max-width:20rem">
+            <div class="rsl-field"><label class="rsl-field-label">From</label><input type="date" name="from" value="{{ $from }}" class="rsl-input"></div>
+            <div class="rsl-field"><label class="rsl-field-label">To</label><input type="date" name="to" value="{{ $to }}" class="rsl-input"></div>
+            <div><button type="submit" class="rsl-btn-sm">Apply</button></div>
         </form>
     </div>
-    <div class="rsl-kpi-grid mt-6">
+    <div class="rsl-metric-grid mt-6">
         <div class="rsl-metric"><p class="rsl-metric-label">Collection</p><p class="rsl-metric-value text-emerald-700">{{ number_format($collectionTotal, 0) }} BDT</p></div>
         <div class="rsl-metric"><p class="rsl-metric-label">Commission</p><p class="rsl-metric-value text-violet-700">{{ number_format($commissionSummary['total_commission'], 0) }} BDT</p></div>
         <div class="rsl-metric"><p class="rsl-metric-label">Due outstanding</p><p class="rsl-metric-value text-rose-700">{{ number_format($dueTotal, 0) }} BDT</p></div>
         <div class="rsl-metric"><p class="rsl-metric-label">Clients</p><p class="rsl-metric-value">{{ $clientCount }}</p><p class="rsl-metric-sub">{{ $activeCount }} active</p></div>
     </div>
-    <div class="rsl-card mt-6 p-6">
+    <div class="rsl-panel rsl-panel-pad mt-6">
         <h2 class="rsl-heading mb-2">Export reports</h2>
         <p class="rsl-subtitle mb-4">CSV or Excel (.xlsx) — use the date range above for collection, commission and wallet.</p>
         @php

@@ -1,25 +1,44 @@
 @extends('reseller.layout')
 
-@section('title', 'ONU monitoring')
+@section('title', 'ONU')
 
 @section('content')
-    <div class="rsl-card p-6">
-        <h1 class="text-xl font-bold">ONU / GPON</h1>
-        <p class="text-sm text-slate-600">Live optical levels for your subscribers</p>
-    </div>
-    <div class="rsl-card mt-6 overflow-hidden">
-        <table class="rsl-table w-full text-sm">
-            <thead class="bg-slate-50 border-b"><tr><th class="px-4 py-3 text-left">Subscriber</th><th class="px-4 py-3">RX</th><th class="px-4 py-3">Status</th><th></th></tr></thead>
-            <tbody>
-                @foreach ($rows as $row)
-                    <tr class="border-b border-slate-100">
-                        <td class="px-4 py-3">{{ $row['customer']->name }}<br><span class="text-xs text-slate-500">{{ $row['customer']->customer_code }}</span></td>
-                        <td class="px-4 py-3">{{ $row['onu']['linked'] ? ($row['onu']['rx_dbm'] ?? '—').' dBm' : '—' }}</td>
-                        <td class="px-4 py-3">{{ $row['onu']['rx_level_label'] ?? '—' }}</td>
-                        <td class="px-4 py-3"><a href="{{ route('reseller.onu.show', $row['customer']) }}" class="text-indigo-600 font-semibold">Details</a></td>
+    @include('reseller.partials.page-header', [
+        'title' => 'ONU / GPON',
+        'subtitle' => 'Live optical levels for subscribers',
+    ])
+
+    <div class="rsl-panel">
+        <div class="rsl-table-wrap">
+            <table class="rsl-table w-full text-sm text-left">
+                <thead>
+                    <tr>
+                        <th class="px-4 py-3">Subscriber</th>
+                        <th class="px-4 py-3">RX</th>
+                        <th class="px-4 py-3">Status</th>
+                        <th class="px-4 py-3"></th>
                     </tr>
-                @endforeach
-            </tbody>
-        </table>
+                </thead>
+                <tbody>
+                    @forelse ($rows as $row)
+                        <tr>
+                            <td class="px-4 py-3">
+                                {{ $row['customer']->name }}<br>
+                                <span class="text-xs" style="color:var(--rsl-text-muted)">{{ $row['customer']->customer_code }}</span>
+                            </td>
+                            <td class="px-4 py-3">{{ $row['onu']['linked'] ? ($row['onu']['rx_dbm'] ?? '—').' dBm' : '—' }}</td>
+                            <td class="px-4 py-3">{{ $row['onu']['rx_level_label'] ?? '—' }}</td>
+                            <td class="px-4 py-3">
+                                <a href="{{ route('reseller.onu.show', $row['customer']) }}" class="rsl-link-action">Details</a>
+                            </td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="4" class="px-4 py-10 text-center" style="color:var(--rsl-text-muted)">No ONU data yet.</td>
+                        </tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
     </div>
 @endsection
