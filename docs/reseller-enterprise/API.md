@@ -1,6 +1,6 @@
 # Reseller Enterprise — API
 
-**OpenAPI 3:** [`/docs/reseller-openapi.yaml`](/docs/reseller-openapi.yaml) · interactive UI [`/docs/reseller-api.html`](/docs/reseller-api.html)
+**OpenAPI 3:** [`/docs/reseller-openapi.yaml`](/docs/reseller-openapi.yaml) · interactive UI [`/docs/reseller-api.html`](/docs/reseller-api.html) · mobile SDK [`mobile/reseller_sdk/README.md`](../../mobile/reseller_sdk/README.md) (`./scripts/generate-reseller-mobile-sdk.sh`)
 
 ## Sanctum partner API (existing)
 
