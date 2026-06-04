@@ -22,26 +22,13 @@
         : route('reseller.wallet.index');
 @endphp
 
-@push('styles')
-<style>
-    /* Inline fallback if CDN/browser cached old CSS */
-    .rsl-dash-money{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.6rem}
-    .rsl-dash-money-tile{display:flex;flex-direction:column;gap:.15rem;padding:.85rem .75rem;border-radius:1rem;border:1px solid #e2e8f0;background:#fff;text-decoration:none;min-height:5.25rem}
-    .rsl-dash-hero-cta{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.5rem;margin-top:1rem}
-    .rsl-dash-cta--primary{grid-column:1/-1;background:#fff;color:#312e81;font-weight:700;min-height:2.75rem;display:flex;align-items:center;justify-content:center;border-radius:.75rem;text-decoration:none}
-    @media(min-width:768px){.rsl-only-mobile{display:none!important}.rsl-dash-hero-cta{display:none}}
-    @media(max-width:767px){.rsl-only-desktop{display:none!important}}
-</style>
-@endpush
-
 @section('content')
     <div class="rsl-dash" data-dashboard="pro-mobile">
-        {{-- Hero --}}
         <section class="rsl-dash-hero">
             <div class="rsl-dash-hero-inner">
                 <div class="rsl-dash-hero-top">
                     <div class="rsl-dash-hero-copy">
-                        <p class="rsl-dash-greeting">{{ $greeting }}</p>
+                        <p class="rsl-dash-greeting">{{ $greeting }} · Dashboard</p>
                         <h1 class="rsl-dash-title">{{ $reseller->name }}</h1>
                         <div class="rsl-dash-meta">
                             @if ($reseller->code)
@@ -52,30 +39,40 @@
                             <span class="rsl-dash-meta-date rsl-only-desktop">{{ now()->translatedFormat('d M Y') }}</span>
                         </div>
                     </div>
+                    <div class="rsl-dash-ring rsl-only-desktop" aria-label="Collection rate {{ number_format($collectionRate, 0) }} percent">
+                        <svg class="rsl-dash-ring-svg" viewBox="0 0 36 36" role="img">
+                            <path class="rsl-dash-ring-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"/>
+                            <path class="rsl-dash-ring-fill" stroke-dasharray="{{ $collectionRate }}, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"/>
+                        </svg>
+                        <div class="rsl-dash-ring-label">
+                            <span class="rsl-dash-ring-value">{{ number_format($collectionRate, 0) }}%</span>
+                            <span class="rsl-dash-ring-caption">Collection</span>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="rsl-dash-hero-cta">
                     @if ($portal->canPortal(\App\Support\ResellerPortalPermission::PAYMENT_COLLECT))
                         <a href="{{ $dueUrl }}" class="rsl-dash-cta rsl-dash-cta--primary">
-                            <span class="rsl-dash-cta-icon" aria-hidden="true">💵</span>
-                            <span>Collect due</span>
+                            <x-reseller-icon name="collect" class="rsl-dash-cta-icon" />
+                            <span>বকেয়া আদায়</span>
                         </a>
                     @endif
                     @if ($portal->canPortal(\App\Support\ResellerPortalPermission::CUSTOMER_VIEW))
                         <a href="{{ route('reseller.customers.index') }}" class="rsl-dash-cta rsl-dash-cta--ghost">
-                            <span class="rsl-dash-cta-icon" aria-hidden="true">👥</span>
-                            <span>Subscribers</span>
+                            <x-reseller-icon name="users" class="rsl-dash-cta-icon" />
+                            <span>সাবস্ক্রাইবার</span>
                         </a>
                     @endif
                     @if ($portal->canPortal(\App\Support\ResellerPortalPermission::INVOICE_GENERATE) && \Illuminate\Support\Facades\Route::has('reseller.invoices.index'))
                         <a href="{{ route('reseller.invoices.index') }}" class="rsl-dash-cta rsl-dash-cta--ghost">
-                            <span class="rsl-dash-cta-icon" aria-hidden="true">🧾</span>
-                            <span>Monthly bills</span>
+                            <x-reseller-icon name="invoice" class="rsl-dash-cta-icon" />
+                            <span>মাসিক বিল</span>
                         </a>
                     @endif
                     @if ($hqDueUrl && $portal->canPortal(\App\Support\ResellerPortalPermission::WALLET_VIEW))
                         <a href="{{ $hqDueUrl }}" class="rsl-dash-cta rsl-dash-cta--ghost">
-                            <span class="rsl-dash-cta-icon" aria-hidden="true">🏢</span>
+                            <x-reseller-icon name="building" class="rsl-dash-cta-icon" />
                             <span>HQ due</span>
                         </a>
                     @endif
@@ -102,16 +99,34 @@
             </div>
         </section>
 
-        {{-- Mobile: tap KPI tiles --}}
+        <section class="rsl-dash-strip rsl-only-mobile" aria-label="Summary">
+            <div class="rsl-dash-strip-item">
+                <span class="rsl-dash-strip-value">{{ $metrics['customers_total'] }}</span>
+                <span class="rsl-dash-strip-label">Subs</span>
+            </div>
+            <div class="rsl-dash-strip-item">
+                <span class="rsl-dash-strip-value">{{ number_format($collectionRate, 0) }}%</span>
+                <span class="rsl-dash-strip-label">Collection</span>
+            </div>
+            <div class="rsl-dash-strip-item">
+                <span class="rsl-dash-strip-value">{{ number_format($metrics['today_collection'], 0) }}</span>
+                <span class="rsl-dash-strip-label">Today</span>
+            </div>
+            <div class="rsl-dash-strip-item">
+                <span class="rsl-dash-strip-value">{{ $metrics['customers_active'] }}</span>
+                <span class="rsl-dash-strip-label">Active</span>
+            </div>
+        </section>
+
         <section class="rsl-dash-money rsl-only-mobile" aria-label="Key balances">
             <a href="{{ $dueUrl }}" class="rsl-dash-money-tile rsl-dash-money-tile--rose">
-                <span class="rsl-dash-money-label">Customer due</span>
+                <span class="rsl-dash-money-label">কাস্টমার বকেয়া</span>
                 <span class="rsl-dash-money-value">{{ number_format($metrics['due_amount'], 0) }}</span>
                 <span class="rsl-dash-money-unit">BDT · {{ $metrics['due_customers'] }} subs</span>
             </a>
             @if ($portal->canPortal(\App\Support\ResellerPortalPermission::WALLET_VIEW))
                 <a href="{{ $walletUrl }}" class="rsl-dash-money-tile rsl-dash-money-tile--sky">
-                    <span class="rsl-dash-money-label">Wallet</span>
+                    <span class="rsl-dash-money-label">ওয়ালেট</span>
                     <span class="rsl-dash-money-value">{{ number_format($metrics['wallet'], 0) }}</span>
                     <span class="rsl-dash-money-unit">BDT available</span>
                 </a>
@@ -123,7 +138,7 @@
                 </div>
             @endif
             <a href="{{ $dueUrl }}" class="rsl-dash-money-tile rsl-dash-money-tile--emerald">
-                <span class="rsl-dash-money-label">Today collection</span>
+                <span class="rsl-dash-money-label">আজকের আদায়</span>
                 <span class="rsl-dash-money-value">{{ number_format($metrics['today_collection'], 0) }}</span>
                 <span class="rsl-dash-money-unit">BDT · {{ $metrics['today_collection_count'] }} payments</span>
             </a>
@@ -142,50 +157,49 @@
             @endif
         </section>
 
-        {{-- Quick actions (mobile-first) --}}
         <section class="rsl-dash-block" aria-label="Quick actions">
-            <p class="rsl-dash-section-title">Quick actions</p>
+            <p class="rsl-dash-section-title">দ্রুত কাজ</p>
             <div class="rsl-dash-quick-scroll">
                 <div class="rsl-dash-quick">
                     @if ($portal->canPortal(\App\Support\ResellerPortalPermission::CUSTOMER_CREATE))
                         <a href="{{ route('reseller.customers.create') }}" class="rsl-dash-quick-link">
-                            <span class="rsl-dash-quick-icon" aria-hidden="true">➕</span>
-                            <span class="rsl-dash-quick-label">New</span>
+                            <span class="rsl-dash-quick-icon"><x-reseller-icon name="plus" /></span>
+                            <span class="rsl-dash-quick-label">নতুন</span>
                         </a>
                     @endif
                     @if ($portal->canPortal(\App\Support\ResellerPortalPermission::PAYMENT_COLLECT))
                         <a href="{{ $dueUrl }}" class="rsl-dash-quick-link">
-                            <span class="rsl-dash-quick-icon" aria-hidden="true">💵</span>
-                            <span class="rsl-dash-quick-label">Collect</span>
+                            <span class="rsl-dash-quick-icon"><x-reseller-icon name="collect" /></span>
+                            <span class="rsl-dash-quick-label">আদায়</span>
                         </a>
                     @endif
                     @if ($portal->canPortal(\App\Support\ResellerPortalPermission::INVOICE_GENERATE) && \Illuminate\Support\Facades\Route::has('reseller.invoices.index'))
                         <a href="{{ route('reseller.invoices.index') }}" class="rsl-dash-quick-link">
-                            <span class="rsl-dash-quick-icon" aria-hidden="true">🧾</span>
-                            <span class="rsl-dash-quick-label">Bills</span>
+                            <span class="rsl-dash-quick-icon"><x-reseller-icon name="invoice" /></span>
+                            <span class="rsl-dash-quick-label">বিল</span>
                         </a>
                     @endif
                     @if ($hqDueUrl && $portal->canPortal(\App\Support\ResellerPortalPermission::WALLET_VIEW))
                         <a href="{{ $hqDueUrl }}" class="rsl-dash-quick-link">
-                            <span class="rsl-dash-quick-icon" aria-hidden="true">📊</span>
-                            <span class="rsl-dash-quick-label">Due</span>
+                            <span class="rsl-dash-quick-icon"><x-reseller-icon name="chart" /></span>
+                            <span class="rsl-dash-quick-label">HQ due</span>
                         </a>
                     @endif
                     @if ($portal->canPortal(\App\Support\ResellerPortalPermission::COMMISSION_VIEW))
                         <a href="{{ route('reseller.commissions.index') }}" class="rsl-dash-quick-link">
-                            <span class="rsl-dash-quick-icon" aria-hidden="true">⭐</span>
-                            <span class="rsl-dash-quick-label">Commission</span>
+                            <span class="rsl-dash-quick-icon"><x-reseller-icon name="star" /></span>
+                            <span class="rsl-dash-quick-label">কমিশন</span>
                         </a>
                     @endif
                     @if ($portal->canPortal(\App\Support\ResellerPortalPermission::CUSTOMER_VIEW))
                         <a href="{{ route('reseller.customers.index') }}" class="rsl-dash-quick-link">
-                            <span class="rsl-dash-quick-icon" aria-hidden="true">👥</span>
-                            <span class="rsl-dash-quick-label">List</span>
+                            <span class="rsl-dash-quick-icon"><x-reseller-icon name="users" /></span>
+                            <span class="rsl-dash-quick-label">তালিকা</span>
                         </a>
                     @endif
                     @if (\Illuminate\Support\Facades\Route::has('reseller.hub'))
                         <a href="{{ route('reseller.hub') }}" class="rsl-dash-quick-link">
-                            <span class="rsl-dash-quick-icon" aria-hidden="true">🏠</span>
+                            <span class="rsl-dash-quick-icon"><x-reseller-icon name="home" /></span>
                             <span class="rsl-dash-quick-label">Hub</span>
                         </a>
                     @endif
@@ -217,7 +231,7 @@
 
         {{-- Desktop featured KPIs --}}
         <section class="rsl-dash-block rsl-only-desktop" aria-label="Key metrics">
-            <p class="rsl-dash-section-title">Overview</p>
+            <p class="rsl-dash-section-title">সারসংক্ষেপ</p>
             <div class="rsl-dash-featured">
                 <div class="rsl-dash-card rsl-dash-card--emerald">
                     <div class="rsl-dash-card-head">
@@ -225,7 +239,7 @@
                             <p class="rsl-dash-card-label">Today collection</p>
                             <p class="rsl-dash-card-value">{{ number_format($metrics['today_collection'], 0) }} <span class="rsl-dash-unit">BDT</span></p>
                         </div>
-                        <span class="rsl-dash-card-icon" aria-hidden="true">💰</span>
+                        <span class="rsl-dash-card-icon" aria-hidden="true"><x-reseller-icon name="collect" class="rsl-icon-svg rsl-icon-svg--lg" /></span>
                     </div>
                     <p class="rsl-dash-card-sub">{{ $metrics['today_collection_count'] }} payment(s) · Month {{ number_format($metrics['month_collection'], 0) }} BDT</p>
                 </div>
@@ -235,7 +249,7 @@
                             <p class="rsl-dash-card-label">Customer due</p>
                             <p class="rsl-dash-card-value">{{ number_format($metrics['due_amount'], 0) }} <span class="rsl-dash-unit">BDT</span></p>
                         </div>
-                        <span class="rsl-dash-card-icon" aria-hidden="true">📋</span>
+                        <span class="rsl-dash-card-icon" aria-hidden="true"><x-reseller-icon name="invoice" class="rsl-icon-svg rsl-icon-svg--lg" /></span>
                     </div>
                     <p class="rsl-dash-card-sub">{{ $metrics['due_customers'] }} subscriber(s) · <a href="{{ $dueUrl }}" class="rsl-link">Collect</a></p>
                 </div>
@@ -245,7 +259,7 @@
                             <p class="rsl-dash-card-label">HQ payable</p>
                             <p class="rsl-dash-card-value">{{ number_format($metrics['admin_receivable_due'] ?? 0, 0) }} <span class="rsl-dash-unit">BDT</span></p>
                         </div>
-                        <span class="rsl-dash-card-icon" aria-hidden="true">🏢</span>
+                        <span class="rsl-dash-card-icon" aria-hidden="true"><x-reseller-icon name="building" class="rsl-icon-svg rsl-icon-svg--lg" /></span>
                     </div>
                     <p class="rsl-dash-card-sub">Wholesale to admin @if ($hqDueUrl)· <a href="{{ $hqDueUrl }}" class="rsl-link">Ledger</a>@endif</p>
                 </div>
@@ -255,7 +269,7 @@
                             <p class="rsl-dash-card-label">Main wallet</p>
                             <p class="rsl-dash-card-value">{{ number_format($metrics['wallet'], 0) }} <span class="rsl-dash-unit">BDT</span></p>
                         </div>
-                        <span class="rsl-dash-card-icon" aria-hidden="true">👛</span>
+                        <span class="rsl-dash-card-icon" aria-hidden="true"><x-reseller-icon name="wallet" class="rsl-icon-svg rsl-icon-svg--lg" /></span>
                     </div>
                     <p class="rsl-dash-card-sub">Available {{ number_format($available, 0) }} BDT</p>
                     @if ($creditUsedPct !== null)

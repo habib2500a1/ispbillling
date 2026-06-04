@@ -10,10 +10,10 @@
     @include('partials.site-favicon')
     @include('partials.isp-premium-theme', ['tailwind' => true])
     @php
+        $rslPortalBuild = '2026.06.04-dash-v2';
         $rslCssFile = 'css/reseller-portal-v2.css';
-        $rslCssVer = @filemtime(public_path($rslCssFile)) ?: time();
-        $rslJsVer = @filemtime(public_path('js/portal-theme.js')) ?: time();
-        $rslPortalBuild = '2026.06.01-mobile';
+        $rslCssVer = (@filemtime(public_path($rslCssFile)) ?: time()).'-'.$rslPortalBuild;
+        $rslJsVer = (@filemtime(public_path('js/portal-theme.js')) ?: time()).'-'.$rslPortalBuild;
     @endphp
     <link rel="stylesheet" href="{{ asset($rslCssFile) }}?v={{ $rslCssVer }}">
     @stack('styles')
