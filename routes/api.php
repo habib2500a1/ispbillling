@@ -336,6 +336,47 @@ Route::prefix('v1')->group(function (): void {
             ->middleware('reseller.api.permission:'.ResellerPortalPermission::INTERNAL_TICKET_MANAGE);
         Route::post('/internal-tickets', [\App\Http\Controllers\Api\V1\Reseller\ResellerApiInternalTicketController::class, 'store'])
             ->middleware('reseller.api.permission:'.ResellerPortalPermission::INTERNAL_TICKET_MANAGE);
+
+        Route::get('/wallet/overview', [\App\Http\Controllers\Api\V1\Reseller\ResellerApiWalletOverviewController::class, 'show'])
+            ->middleware('reseller.api.permission:'.ResellerPortalPermission::WALLET_VIEW);
+        Route::get('/reports/enterprise', [\App\Http\Controllers\Api\V1\Reseller\ResellerApiEnterpriseReportController::class, 'show'])
+            ->middleware('reseller.api.permission:'.ResellerPortalPermission::REPORTS_VIEW);
+
+        Route::get('/staff/permission-options', [\App\Http\Controllers\Api\V1\Reseller\ResellerApiStaffController::class, 'permissionOptions'])
+            ->middleware('reseller.api.permission:'.ResellerPortalPermission::STAFF_MANAGE);
+        Route::get('/staff', [\App\Http\Controllers\Api\V1\Reseller\ResellerApiStaffController::class, 'index'])
+            ->middleware('reseller.api.permission:'.ResellerPortalPermission::STAFF_MANAGE);
+        Route::post('/staff', [\App\Http\Controllers\Api\V1\Reseller\ResellerApiStaffController::class, 'store'])
+            ->middleware('reseller.api.permission:'.ResellerPortalPermission::STAFF_MANAGE);
+        Route::get('/staff/{staffMember}', [\App\Http\Controllers\Api\V1\Reseller\ResellerApiStaffController::class, 'show'])
+            ->whereNumber('staffMember')
+            ->middleware('reseller.api.permission:'.ResellerPortalPermission::STAFF_MANAGE);
+        Route::patch('/staff/{staffMember}', [\App\Http\Controllers\Api\V1\Reseller\ResellerApiStaffController::class, 'update'])
+            ->whereNumber('staffMember')
+            ->middleware('reseller.api.permission:'.ResellerPortalPermission::STAFF_MANAGE);
+        Route::delete('/staff/{staffMember}', [\App\Http\Controllers\Api\V1\Reseller\ResellerApiStaffController::class, 'destroy'])
+            ->whereNumber('staffMember')
+            ->middleware('reseller.api.permission:'.ResellerPortalPermission::STAFF_MANAGE);
+
+        Route::get('/api-keys', [\App\Http\Controllers\Api\V1\Reseller\ResellerApiKeyManagementController::class, 'index'])
+            ->middleware('reseller.api.permission:'.ResellerPortalPermission::API_KEYS_MANAGE);
+        Route::post('/api-keys', [\App\Http\Controllers\Api\V1\Reseller\ResellerApiKeyManagementController::class, 'store'])
+            ->middleware('reseller.api.permission:'.ResellerPortalPermission::API_KEYS_MANAGE);
+        Route::delete('/api-keys/{apiKey}', [\App\Http\Controllers\Api\V1\Reseller\ResellerApiKeyManagementController::class, 'destroy'])
+            ->whereNumber('apiKey')
+            ->middleware('reseller.api.permission:'.ResellerPortalPermission::API_KEYS_MANAGE);
+    });
+
+    // Reseller integrations using API keys (Bearer rsk_... or X-Reseller-Api-Key)
+    Route::middleware(['reseller.api_key', 'throttle:api'])->prefix('reseller/partner')->group(function (): void {
+        Route::get('/dashboard', [\App\Http\Controllers\Api\V1\Reseller\ResellerApiDashboardController::class, 'show']);
+        Route::get('/wallet', [\App\Http\Controllers\Api\V1\Reseller\ResellerApiWalletController::class, 'show'])
+            ->middleware('reseller.api.permission:'.ResellerPortalPermission::WALLET_VIEW);
+        Route::get('/customers', [\App\Http\Controllers\Api\V1\Reseller\ResellerApiCustomerController::class, 'index'])
+            ->middleware('reseller.api.permission:'.ResellerPortalPermission::CUSTOMER_VIEW);
+        Route::get('/commissions', [\App\Http\Controllers\Api\V1\Reseller\ResellerApiCommissionController::class, 'index'])
+            ->middleware('reseller.api.permission:'.ResellerPortalPermission::COMMISSION_VIEW);
+        Route::get('/notifications', [\App\Http\Controllers\Api\V1\Reseller\ResellerApiNotificationController::class, 'index']);
     });
 
     // Customer mobile app

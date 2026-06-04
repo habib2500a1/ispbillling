@@ -4,6 +4,7 @@ namespace App\Http\Middleware;
 
 use App\Models\ResellerApiKey;
 use App\Services\Resellers\ResellerApiKeyService;
+use App\Support\ResellerApiContext;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -40,6 +41,8 @@ class AuthenticateResellerApiKey
 
         $request->attributes->set('reseller_api_key', $apiKey);
         $request->attributes->set('reseller_api_reseller', $reseller);
+        $request->setUserResolver(static fn () => $reseller);
+        app(ResellerApiContext::class)->set($reseller, null);
 
         $start = microtime(true);
         $response = $next($request);

@@ -21,18 +21,26 @@ Enterprise endpoints follow existing `/api/v1/reseller/*` patterns. Enable per a
 
 Permissions match web: `reseller.api.permission:*` uses the same `ResellerPortalPermission` constants.
 
-## API key authentication (new)
+Additional Sanctum routes: `GET /wallet/overview`, `GET /reports/enterprise`, `GET|POST|PATCH|DELETE /staff`, `GET|POST|DELETE /api-keys`.
+
+## API key authentication
 
 Header: `Authorization: Bearer rsk_...` or `X-Reseller-Api-Key: rsk_...`
 
-Middleware: `reseller.api_key` (rate limit per key + usage logging).
+Middleware: `reseller.api_key` (rate limit per key + usage logging). Keys act as the reseller owner (no staff impersonation).
 
-Example (future route group):
+Partner read routes (prefix `/api/v1/reseller/partner`):
 
 ```http
-GET /api/v1/reseller/partner/vitals
+GET /api/v1/reseller/partner/dashboard
+GET /api/v1/reseller/partner/wallet
+GET /api/v1/reseller/partner/customers
+GET /api/v1/reseller/partner/commissions
+GET /api/v1/reseller/partner/notifications
 Authorization: Bearer rsk_xxxxxxxx
 ```
+
+Manage keys via Sanctum: `GET/POST /api/v1/reseller/api-keys`, `DELETE /api/v1/reseller/api-keys/{id}` (requires `API_KEYS_MANAGE` and `api_access_enabled`).
 
 ## Rate limiting
 
