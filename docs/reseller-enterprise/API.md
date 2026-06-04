@@ -29,18 +29,17 @@ Header: `Authorization: Bearer rsk_...` or `X-Reseller-Api-Key: rsk_...`
 
 Middleware: `reseller.api_key` (rate limit per key + usage logging). Keys act as the reseller owner (no staff impersonation).
 
-Partner read routes (prefix `/api/v1/reseller/partner`):
+Partner read routes (prefix `/api/v1/reseller/partner`) mirror Sanctum GET endpoints:
+
+`dashboard`, `wallet`, `wallet/overview`, `customers`, `customers/{id}`, `commissions`, `settlements`, `invoices`, `tickets`, `network`, `onu`, `reports/summary`, `reports/enterprise`, `activity`, `sub-resellers`, `sub-resellers/{id}`, `customer-transfers`, `announcements`, `due-account`, `notifications`
 
 ```http
-GET /api/v1/reseller/partner/dashboard
-GET /api/v1/reseller/partner/wallet
-GET /api/v1/reseller/partner/customers
-GET /api/v1/reseller/partner/commissions
-GET /api/v1/reseller/partner/notifications
 Authorization: Bearer rsk_xxxxxxxx
 ```
 
-Manage keys via Sanctum: `GET/POST /api/v1/reseller/api-keys`, `DELETE /api/v1/reseller/api-keys/{id}` (requires `API_KEYS_MANAGE` and `api_access_enabled`).
+Optional per-key `abilities` array (portal permission constants). Empty/null abilities = full owner scope. Restricted keys are enforced on partner routes.
+
+Manage keys via Sanctum: `GET/POST /api/v1/reseller/api-keys`, `DELETE /api/v1/reseller/api-keys/{id}` (requires `API_KEYS_MANAGE` and `api_access_enabled`). POST body may include `abilities: ["portal.customer.view", ...]`.
 
 ## Rate limiting
 

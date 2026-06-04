@@ -168,6 +168,18 @@ Request:
 - `GET /api/v1/reseller/onu`
 - `POST /api/v1/reseller/logout`
 
+Enterprise (Sanctum): `sub-resellers`, `customer-transfers`, `announcements`, `due-account`, `internal-tickets`, `wallet/overview`, `reports/enterprise`, `staff`, `api-keys`.
+
+### Partner API key (`rsk_...`)
+
+Enable `api_access_enabled` on the reseller. Create keys via portal or `POST /api/v1/reseller/api-keys` (optional `abilities` permission list).
+
+Read-only integration base: `/api/v1/reseller/partner/*` — same GET shapes as `/api/v1/reseller/*` (dashboard, customers, wallet, commissions, settlements, invoices, network, onu, reports, sub-resellers, etc.).
+
+```http
+Authorization: Bearer rsk_xxxxxxxx
+```
+
 ## Webhooks
 
 These endpoints should be protected by secrets and rate limiting:

@@ -42,7 +42,7 @@ class AuthenticateResellerApiKey
         $request->attributes->set('reseller_api_key', $apiKey);
         $request->attributes->set('reseller_api_reseller', $reseller);
         $request->setUserResolver(static fn () => $reseller);
-        app(ResellerApiContext::class)->set($reseller, null);
+        app(ResellerApiContext::class)->set($reseller, null, $apiKey);
 
         $start = microtime(true);
         $response = $next($request);

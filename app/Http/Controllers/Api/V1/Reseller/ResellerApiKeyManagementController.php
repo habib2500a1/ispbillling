@@ -5,8 +5,10 @@ namespace App\Http\Controllers\Api\V1\Reseller;
 use App\Http\Controllers\Controller;
 use App\Models\ResellerApiKey;
 use App\Services\Resellers\ResellerApiKeyService;
+use App\Support\ResellerPortalPermission;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class ResellerApiKeyManagementController extends Controller
 {
@@ -17,7 +19,7 @@ class ResellerApiKeyManagementController extends Controller
 
         $keys = $reseller->apiKeys()
             ->orderByDesc('id')
-            ->get(['id', 'name', 'key_prefix', 'is_active', 'last_used_at', 'expires_at', 'rate_limit_per_minute', 'created_at']);
+            ->get(['id', 'name', 'key_prefix', 'abilities', 'is_active', 'last_used_at', 'expires_at', 'rate_limit_per_minute', 'created_at']);
 
         return response()->json(['keys' => $keys]);
     }
@@ -27,11 +29,18 @@ class ResellerApiKeyManagementController extends Controller
         $reseller = $request->user();
         abort_unless($reseller->api_access_enabled, 403, 'API access is disabled for this account.');
 
+        $allowed = $reseller->portalPermissions();
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:128'],
+            'abilities' => ['nullable', 'array'],
+            'abilities.*' => ['string', Rule::in($allowed)],
         ]);
 
-        $result = $service->create($reseller, $validated['name']);
+        $abilities = isset($validated['abilities'])
+            ? array_values(array_intersect($validated['abilities'], $allowed))
+            : null;
+
+        $result = $service->create($reseller, $validated['name'], $abilities !== [] ? $abilities : null);
 
         return response()->json([
             'key' => [

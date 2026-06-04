@@ -148,4 +148,32 @@ class ResellerApiEnterpriseTest extends TestCase
             ->assertOk()
             ->assertJsonStructure(['metrics']);
     }
+
+    public function test_api_key_abilities_restrict_partner_endpoints(): void
+    {
+        $reseller = Reseller::query()->create([
+            'tenant_id' => 1,
+            'name' => 'Scoped Key',
+            'code' => 'RSL-SCOPE',
+            'franchise_type' => ResellerType::FRANCHISE,
+            'commission_type' => 'percent',
+            'commission_value' => 10,
+            'is_active' => true,
+            'api_access_enabled' => true,
+            'portal_password' => Hash::make('x'),
+            'portal_permissions' => ResellerPortalPermission::defaultsFor(ResellerType::FRANCHISE),
+        ]);
+
+        $plain = \App\Models\ResellerApiKey::generate($reseller, 'read-only', [
+            ResellerPortalPermission::CUSTOMER_VIEW,
+        ])['plain'];
+
+        $this->withHeader('Authorization', 'Bearer '.$plain)
+            ->getJson('/api/v1/reseller/partner/customers')
+            ->assertOk();
+
+        $this->withHeader('Authorization', 'Bearer '.$plain)
+            ->getJson('/api/v1/reseller/partner/commissions')
+            ->assertForbidden();
+    }
 }

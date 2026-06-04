@@ -75,6 +75,15 @@ final class ResellerPortalSession
             return false;
         }
 
+        $apiKey = request()->attributes->get('reseller_api_key')
+            ?? app(ResellerApiContext::class)->apiKey();
+        if ($apiKey instanceof \App\Models\ResellerApiKey) {
+            $abilities = $apiKey->abilities;
+            if (is_array($abilities) && $abilities !== []) {
+                return in_array($permission, $abilities, true);
+            }
+        }
+
         $staff = $this->staff();
         if ($staff !== null) {
             return $staff->canPortal($permission);

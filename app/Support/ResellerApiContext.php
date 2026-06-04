@@ -3,6 +3,7 @@
 namespace App\Support;
 
 use App\Models\Reseller;
+use App\Models\ResellerApiKey;
 use App\Models\ResellerStaff;
 
 /** Holds reseller + optional staff actor for Sanctum API requests. */
@@ -12,10 +13,23 @@ final class ResellerApiContext
 
     private ?ResellerStaff $staff = null;
 
-    public function set(Reseller $reseller, ?ResellerStaff $staff = null): void
+    private ?ResellerApiKey $apiKey = null;
+
+    public function set(Reseller $reseller, ?ResellerStaff $staff = null, ?ResellerApiKey $apiKey = null): void
     {
         $this->reseller = $reseller;
         $this->staff = $staff;
+        $this->apiKey = $apiKey;
+    }
+
+    public function apiKey(): ?ResellerApiKey
+    {
+        return $this->apiKey;
+    }
+
+    public function usesApiKey(): bool
+    {
+        return $this->apiKey !== null;
     }
 
     public function reseller(): ?Reseller
