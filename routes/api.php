@@ -311,6 +311,31 @@ Route::prefix('v1')->group(function (): void {
         Route::get('/onu/{customer}', [\App\Http\Controllers\Api\V1\Reseller\ResellerApiOnuController::class, 'show'])
             ->whereNumber('customer')
             ->middleware('reseller.api.permission:'.ResellerPortalPermission::ONU_VIEW);
+
+        Route::get('/sub-resellers', [\App\Http\Controllers\Api\V1\Reseller\ResellerApiSubResellerController::class, 'index'])
+            ->middleware('reseller.api.permission:'.ResellerPortalPermission::SUB_RESELLER_VIEW);
+        Route::post('/sub-resellers', [\App\Http\Controllers\Api\V1\Reseller\ResellerApiSubResellerController::class, 'store'])
+            ->middleware('reseller.api.permission:'.ResellerPortalPermission::SUB_RESELLER_CREATE);
+        Route::get('/sub-resellers/{child}', [\App\Http\Controllers\Api\V1\Reseller\ResellerApiSubResellerController::class, 'show'])
+            ->whereNumber('child')
+            ->middleware('reseller.api.permission:'.ResellerPortalPermission::SUB_RESELLER_VIEW);
+
+        Route::get('/customer-transfers', [\App\Http\Controllers\Api\V1\Reseller\ResellerApiCustomerTransferController::class, 'index'])
+            ->middleware('reseller.api.permission:'.ResellerPortalPermission::CUSTOMER_TRANSFER);
+        Route::post('/customers/{customer}/transfer', [\App\Http\Controllers\Api\V1\Reseller\ResellerApiCustomerTransferController::class, 'store'])
+            ->whereNumber('customer')
+            ->middleware('reseller.api.permission:'.ResellerPortalPermission::CUSTOMER_TRANSFER);
+
+        Route::get('/announcements', [\App\Http\Controllers\Api\V1\Reseller\ResellerApiAnnouncementController::class, 'index'])
+            ->middleware('reseller.api.permission:'.ResellerPortalPermission::ANNOUNCEMENTS_VIEW);
+
+        Route::get('/due-account', [\App\Http\Controllers\Api\V1\Reseller\ResellerApiDueAccountController::class, 'show'])
+            ->middleware('reseller.api.permission:'.ResellerPortalPermission::RESELLER_BILLING_VIEW);
+
+        Route::get('/internal-tickets', [\App\Http\Controllers\Api\V1\Reseller\ResellerApiInternalTicketController::class, 'index'])
+            ->middleware('reseller.api.permission:'.ResellerPortalPermission::INTERNAL_TICKET_MANAGE);
+        Route::post('/internal-tickets', [\App\Http\Controllers\Api\V1\Reseller\ResellerApiInternalTicketController::class, 'store'])
+            ->middleware('reseller.api.permission:'.ResellerPortalPermission::INTERNAL_TICKET_MANAGE);
     });
 
     // Customer mobile app

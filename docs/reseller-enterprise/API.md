@@ -6,6 +6,21 @@ Base: `POST /api/v1/reseller/login` → Bearer token.
 
 Enterprise endpoints follow existing `/api/v1/reseller/*` patterns. Enable per account: `api_access_enabled = true`.
 
+### Enterprise parity (mobile)
+
+| Feature | Method | Path |
+|---------|--------|------|
+| Sub-partners list | GET | `/api/v1/reseller/sub-resellers` |
+| Sub-partner detail | GET | `/api/v1/reseller/sub-resellers/{id}` |
+| Create sub-partner | POST | `/api/v1/reseller/sub-resellers` |
+| Customer transfers | GET | `/api/v1/reseller/customer-transfers` |
+| Request transfer | POST | `/api/v1/reseller/customers/{id}/transfer` |
+| HQ announcements | GET | `/api/v1/reseller/announcements` |
+| Due account summary | GET | `/api/v1/reseller/due-account` |
+| Internal HQ tickets | GET/POST | `/api/v1/reseller/internal-tickets` |
+
+Permissions match web: `reseller.api.permission:*` uses the same `ResellerPortalPermission` constants.
+
 ## API key authentication (new)
 
 Header: `Authorization: Bearer rsk_...` or `X-Reseller-Api-Key: rsk_...`
