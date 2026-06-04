@@ -45,6 +45,8 @@ class ResellerHubController extends Controller
                 ? ['route' => 'reseller.branding.edit', 'label' => 'White-label', 'desc' => 'Logo, colors, domain', 'icon' => '🎨'] : null,
             $portal->canPortal(ResellerPortalPermission::API_KEYS_MANAGE) && $reseller->api_access_enabled
                 ? ['route' => 'reseller.api-keys.index', 'label' => 'API keys', 'desc' => 'Integrations & logs', 'icon' => '🔑'] : null,
+            $reseller->api_access_enabled
+                ? ['route' => 'docs.reseller-api', 'label' => 'API docs', 'desc' => 'OpenAPI & Swagger UI', 'icon' => '📘'] : null,
             $portal->canPortal(ResellerPortalPermission::INTERNAL_TICKET_MANAGE)
                 ? ['route' => 'reseller.internal-tickets.index', 'label' => 'HQ support', 'desc' => 'Internal tickets', 'icon' => '🎫'] : null,
             ['route' => 'reseller.security.index', 'label' => 'Security', 'desc' => 'Login history & IP', 'icon' => '🔒'],

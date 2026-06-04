@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: ISP Platform — Reseller Partner API
-  version: 1.0.0
+  version: 1.1.0
   description: |
     Enterprise reseller API for mobile apps (Sanctum) and integrations (read-only `rsk_` API keys).
 
@@ -99,22 +99,37 @@ paths:
       tags: [Read (Sanctum or API key)]
       summary: List subscribers
       x-permission: portal.customer.view
+      parameters:
+        - $ref: '#/components/parameters/searchQ'
+        - $ref: '#/components/parameters/perPage'
       responses:
         '200':
-          description: Customer list
+          description: Laravel pagination JSON (data, links, meta)
           content:
             application/json:
               schema:
-                type: object
-                additionalProperties: true
+                $ref: '#/components/schemas/PaginatedCustomers'
     post:
       tags: [Write (Sanctum only)]
       summary: Create subscriber
       x-permission: portal.customer.create
       x-api-key: forbidden
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CustomerCreateRequest'
       responses:
         '201':
-          description: Created
+          description: Created (customer, optional bill/payment)
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '422':
+          $ref: '#/components/responses/ValidationError'
         '405':
           $ref: '#/components/responses/ApiKeyReadOnly'
 
@@ -127,20 +142,115 @@ paths:
       x-permission: portal.customer.view
       responses:
         '200':
-          description: Customer
+          description: Customer with package
           content:
             application/json:
               schema:
-                type: object
-                additionalProperties: true
+                $ref: '#/components/schemas/Customer'
     patch:
       tags: [Write (Sanctum only)]
       summary: Update subscriber
       x-permission: portal.customer.edit
       x-api-key: forbidden
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CustomerUpdateRequest'
       responses:
         '200':
-          description: Updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  customer:
+                    $ref: '#/components/schemas/Customer'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '405':
+          $ref: '#/components/responses/ApiKeyReadOnly'
+
+  /reseller/customers/{customer}/payments:
+    parameters:
+      - $ref: '#/components/parameters/customerId'
+    post:
+      tags: [Write (Sanctum only)]
+      summary: Collect payment
+      x-permission: portal.payment.collect
+      x-api-key: forbidden
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PaymentCollectRequest'
+      responses:
+        '201':
+          description: Payment recorded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentCollectResponse'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '405':
+          $ref: '#/components/responses/ApiKeyReadOnly'
+
+  /reseller/customers/{customer}/renew:
+    parameters:
+      - $ref: '#/components/parameters/customerId'
+    post:
+      tags: [Write (Sanctum only)]
+      summary: Renew billing cycle
+      x-permission: portal.customer.edit
+      x-api-key: forbidden
+      responses:
+        '200':
+          description: Renewed
+        '405':
+          $ref: '#/components/responses/ApiKeyReadOnly'
+
+  /reseller/customers/{customer}/suspend:
+    parameters:
+      - $ref: '#/components/parameters/customerId'
+    post:
+      tags: [Write (Sanctum only)]
+      summary: Suspend subscriber
+      x-permission: portal.customer.suspend
+      x-api-key: forbidden
+      responses:
+        '200':
+          description: Suspended
+        '405':
+          $ref: '#/components/responses/ApiKeyReadOnly'
+
+  /reseller/customers/{customer}/reconnect:
+    parameters:
+      - $ref: '#/components/parameters/customerId'
+    post:
+      tags: [Write (Sanctum only)]
+      summary: Reconnect subscriber
+      x-permission: portal.customer.suspend
+      x-api-key: forbidden
+      responses:
+        '200':
+          description: Reconnected
+        '405':
+          $ref: '#/components/responses/ApiKeyReadOnly'
+
+  /reseller/customers/{customer}/invoice:
+    parameters:
+      - $ref: '#/components/parameters/customerId'
+    post:
+      tags: [Write (Sanctum only)]
+      summary: Generate invoice for subscriber
+      x-permission: portal.invoice.generate
+      x-api-key: forbidden
+      responses:
+        '201':
+          description: Invoice created
         '405':
           $ref: '#/components/responses/ApiKeyReadOnly'
 
@@ -602,8 +712,170 @@ components:
       required: true
       schema:
         type: integer
+    searchQ:
+      name: q
+      in: query
+      schema:
+        type: string
+      description: Search name, customer code, or phone
+    perPage:
+      name: per_page
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 50
+        default: 20
 
   schemas:
+    Customer:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        customer_code:
+          type: string
+        phone:
+          type: string
+        status:
+          type: string
+        package_id:
+          type: integer
+        package:
+          type: object
+          nullable: true
+          additionalProperties: true
+
+    PaginatedCustomers:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Customer'
+        links:
+          type: object
+          additionalProperties: true
+        meta:
+          type: object
+          additionalProperties: true
+
+    CustomerCreateRequest:
+      type: object
+      required: [name, phone, address, package_id]
+      properties:
+        name:
+          type: string
+          maxLength: 255
+        phone:
+          type: string
+          maxLength: 32
+        email:
+          type: string
+          format: email
+        address:
+          type: string
+          maxLength: 500
+        package_id:
+          type: integer
+        area_id:
+          type: integer
+        zone_id:
+          type: integer
+        customer_code:
+          type: string
+        billing_mode:
+          type: string
+          enum: [prepaid, postpaid]
+        billing_day:
+          type: integer
+          minimum: 1
+          maximum: 28
+        grace_period_days:
+          type: integer
+          minimum: 0
+          maximum: 90
+        joined_at:
+          type: string
+          format: date
+        notes:
+          type: string
+        provision_mikrotik:
+          type: boolean
+        generate_bill:
+          type: boolean
+        collect_payment:
+          type: boolean
+        payment_amount:
+          type: number
+        payment_method:
+          $ref: '#/components/schemas/PaymentMethod'
+
+    CustomerUpdateRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        phone:
+          type: string
+        email:
+          type: string
+          format: email
+        address:
+          type: string
+        package_id:
+          type: integer
+        area_id:
+          type: integer
+        zone_id:
+          type: integer
+        status:
+          type: string
+        billing_mode:
+          type: string
+          enum: [prepaid, postpaid]
+        grace_period_days:
+          type: integer
+        notes:
+          type: string
+        provision_mikrotik:
+          type: boolean
+
+    PaymentMethod:
+      type: string
+      enum: [cash, bkash, nagad, rocket, bank, other]
+
+    PaymentCollectRequest:
+      type: object
+      required: [amount]
+      properties:
+        amount:
+          type: number
+          minimum: 0
+        method:
+          $ref: '#/components/schemas/PaymentMethod'
+        reference:
+          type: string
+          maxLength: 128
+        notes:
+          type: string
+          maxLength: 500
+        invoice_id:
+          type: integer
+          description: Optional invoice to apply payment against
+
+    PaymentCollectResponse:
+      type: object
+      properties:
+        payment:
+          type: object
+          additionalProperties: true
+        receipt_url:
+          type: string
+          format: uri
+
     LoginRequest:
       type: object
       required: [login, password]

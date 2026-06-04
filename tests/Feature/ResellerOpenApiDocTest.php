@@ -18,6 +18,8 @@ class ResellerOpenApiDocTest extends TestCase
         $this->assertArrayHasKey('/reseller/dashboard', $spec['paths']);
         $this->assertArrayHasKey('sanctumBearer', $spec['components']['securitySchemes']);
         $this->assertArrayHasKey('apiKeyBearer', $spec['components']['securitySchemes']);
+        $this->assertArrayHasKey('CustomerCreateRequest', $spec['components']['schemas']);
+        $this->assertArrayHasKey('/reseller/customers/{customer}/payments', $spec['paths']);
     }
 
     public function test_reseller_openapi_routes_serve_public_docs(): void
