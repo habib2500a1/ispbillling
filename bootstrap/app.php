@@ -79,6 +79,8 @@ return Application::configure(basePath: dirname(__DIR__))
             'reseller.owner' => \App\Http\Middleware\EnsureResellerOwner::class,
             'reseller.2fa' => \App\Http\Middleware\EnsureResellerTwoFactorVerified::class,
             'reseller.api' => \App\Http\Middleware\EnsureSanctumReseller::class,
+            'reseller.api.auth' => \App\Http\Middleware\AuthenticateResellerApi::class,
+            'reseller.api.readonly' => \App\Http\Middleware\EnsureResellerApiKeyReadOnly::class,
             'reseller.api.permission' => \App\Http\Middleware\EnsureResellerApiPermission::class,
             'reseller.ip' => \App\Http\Middleware\EnsureResellerIpAllowed::class,
             'reseller.api_key' => \App\Http\Middleware\AuthenticateResellerApiKey::class,

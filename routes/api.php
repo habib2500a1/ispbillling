@@ -196,23 +196,19 @@ Route::prefix('v1')->group(function (): void {
         });
     });
 
-    // Reseller partner API (Sanctum token on Reseller model)
+    $registerResellerApiReads = require base_path('routes/reseller-api-read-routes.php');
+
+    // Reseller partner API (Sanctum token or rsk_ API key on Reseller model)
     Route::post('/reseller/login', [\App\Http\Controllers\Api\V1\Reseller\ResellerAuthController::class, 'login'])
         ->middleware('throttle:15,1');
 
-    Route::middleware(['auth:sanctum', 'reseller.api', 'throttle:api'])->prefix('reseller')->group(function (): void {
+    Route::middleware(['reseller.api.auth', 'reseller.api.readonly', 'reseller.api', 'throttle:api'])->prefix('reseller')->group(function () use ($registerResellerApiReads): void {
+        $registerResellerApiReads();
+
         Route::get('/me', [\App\Http\Controllers\Api\V1\Reseller\ResellerAuthController::class, 'me']);
         Route::post('/logout', [\App\Http\Controllers\Api\V1\Reseller\ResellerAuthController::class, 'logout']);
-        Route::get('/dashboard', [\App\Http\Controllers\Api\V1\Reseller\ResellerApiDashboardController::class, 'show']);
-
-        Route::get('/notifications', [\App\Http\Controllers\Api\V1\Reseller\ResellerApiNotificationController::class, 'index']);
         Route::post('/notifications/{notification}/read', [\App\Http\Controllers\Api\V1\Reseller\ResellerApiNotificationController::class, 'markRead'])
             ->whereNumber('notification');
-
-        Route::middleware('reseller.api.permission:'.ResellerPortalPermission::CUSTOMER_VIEW)->group(function (): void {
-            Route::get('/customers', [\App\Http\Controllers\Api\V1\Reseller\ResellerApiCustomerController::class, 'index']);
-            Route::get('/customers/{customer}', [\App\Http\Controllers\Api\V1\Reseller\ResellerApiCustomerController::class, 'show'])->whereNumber('customer');
-        });
         Route::post('/customers', [\App\Http\Controllers\Api\V1\Reseller\ResellerApiCustomerController::class, 'store'])
             ->middleware('reseller.api.permission:'.ResellerPortalPermission::CUSTOMER_CREATE);
         Route::patch('/customers/{customer}', [\App\Http\Controllers\Api\V1\Reseller\ResellerApiCustomerController::class, 'update'])
@@ -244,28 +240,20 @@ Route::prefix('v1')->group(function (): void {
             ->middleware('reseller.api.permission:'.ResellerPortalPermission::PAYMENT_COLLECT);
         Route::get('/payments/{payment}/receipt/pdf', [PaymentReceiptController::class, 'show'])
             ->whereNumber('payment')
-            ->middleware(['auth:sanctum', 'reseller.api', 'reseller.api.permission:'.ResellerPortalPermission::PAYMENT_COLLECT]);
+            ->middleware('reseller.api.permission:'.ResellerPortalPermission::PAYMENT_COLLECT);
 
-        Route::get('/commissions', [\App\Http\Controllers\Api\V1\Reseller\ResellerApiCommissionController::class, 'index'])
-            ->middleware('reseller.api.permission:'.ResellerPortalPermission::COMMISSION_VIEW);
         Route::get('/commissions/statement', [\App\Http\Controllers\Api\V1\Reseller\ResellerApiCommissionController::class, 'statement'])
             ->middleware('reseller.api.permission:'.ResellerPortalPermission::COMMISSION_VIEW);
         Route::get('/commissions/{commission}/statement', [\App\Http\Controllers\Api\V1\Reseller\ResellerApiCommissionController::class, 'showStatement'])
             ->whereNumber('commission')
             ->middleware('reseller.api.permission:'.ResellerPortalPermission::COMMISSION_VIEW);
-        Route::get('/wallet', [\App\Http\Controllers\Api\V1\Reseller\ResellerApiWalletController::class, 'show'])
-            ->middleware('reseller.api.permission:'.ResellerPortalPermission::WALLET_VIEW);
         Route::post('/wallet/recharge', [\App\Http\Controllers\Api\V1\Reseller\ResellerApiWalletController::class, 'submitRecharge'])
             ->middleware('reseller.api.permission:'.ResellerPortalPermission::WALLET_VIEW);
         Route::post('/wallet/recharge/piprapay', [\App\Http\Controllers\Api\V1\Reseller\ResellerApiWalletController::class, 'pipraPay'])
             ->middleware('reseller.api.permission:'.ResellerPortalPermission::WALLET_VIEW);
-        Route::get('/settlements', [\App\Http\Controllers\Api\V1\Reseller\ResellerApiSettlementController::class, 'index'])
-            ->middleware('reseller.api.permission:'.ResellerPortalPermission::SETTLEMENT_MANAGE);
         Route::post('/settlements', [\App\Http\Controllers\Api\V1\Reseller\ResellerApiSettlementController::class, 'store'])
             ->middleware('reseller.api.permission:'.ResellerPortalPermission::SETTLEMENT_MANAGE);
 
-        Route::get('/invoices', [\App\Http\Controllers\Api\V1\Reseller\ResellerApiInvoiceController::class, 'index'])
-            ->middleware('reseller.api.permission:'.ResellerPortalPermission::BILLING_VIEW);
         Route::get('/invoices/{invoice}', [\App\Http\Controllers\Api\V1\Reseller\ResellerApiInvoiceController::class, 'show'])
             ->whereNumber('invoice')
             ->middleware('reseller.api.permission:'.ResellerPortalPermission::BILLING_VIEW);
@@ -279,8 +267,6 @@ Route::prefix('v1')->group(function (): void {
             ->whereNumber('invoice')
             ->middleware('reseller.api.permission:'.ResellerPortalPermission::BILLING_VIEW);
 
-        Route::get('/tickets', [\App\Http\Controllers\Api\V1\Reseller\ResellerApiTicketController::class, 'index'])
-            ->middleware('reseller.api.permission:'.ResellerPortalPermission::TICKET_CREATE);
         Route::post('/tickets', [\App\Http\Controllers\Api\V1\Reseller\ResellerApiTicketController::class, 'store'])
             ->middleware('reseller.api.permission:'.ResellerPortalPermission::TICKET_CREATE);
         Route::get('/tickets/{ticket}', [\App\Http\Controllers\Api\V1\Reseller\ResellerApiTicketController::class, 'show'])
@@ -290,15 +276,9 @@ Route::prefix('v1')->group(function (): void {
             ->whereNumber('ticket')
             ->middleware('reseller.api.permission:'.ResellerPortalPermission::TICKET_CREATE);
 
-        Route::get('/reports/summary', [\App\Http\Controllers\Api\V1\Reseller\ResellerApiReportController::class, 'summary'])
-            ->middleware('reseller.api.permission:'.ResellerPortalPermission::REPORTS_VIEW);
         Route::get('/reports/export', [\App\Http\Controllers\Api\V1\Reseller\ResellerApiReportController::class, 'export'])
             ->middleware('reseller.api.permission:'.ResellerPortalPermission::REPORTS_VIEW);
-        Route::get('/activity', [\App\Http\Controllers\Api\V1\Reseller\ResellerApiActivityController::class, 'index'])
-            ->middleware('reseller.api.permission:'.ResellerPortalPermission::REPORTS_VIEW);
 
-        Route::get('/network', [\App\Http\Controllers\Api\V1\Reseller\ResellerApiNetworkController::class, 'index'])
-            ->middleware('reseller.api.permission:'.ResellerPortalPermission::NETWORK_VIEW);
         Route::get('/network/{customer}/session', [\App\Http\Controllers\Api\V1\Reseller\ResellerApiNetworkController::class, 'session'])
             ->whereNumber('customer')
             ->middleware('reseller.api.permission:'.ResellerPortalPermission::NETWORK_VIEW);
@@ -306,41 +286,21 @@ Route::prefix('v1')->group(function (): void {
             ->whereNumber('customer')
             ->middleware('reseller.api.permission:'.ResellerPortalPermission::NETWORK_VIEW);
 
-        Route::get('/onu', [\App\Http\Controllers\Api\V1\Reseller\ResellerApiOnuController::class, 'index'])
-            ->middleware('reseller.api.permission:'.ResellerPortalPermission::ONU_VIEW);
         Route::get('/onu/{customer}', [\App\Http\Controllers\Api\V1\Reseller\ResellerApiOnuController::class, 'show'])
             ->whereNumber('customer')
             ->middleware('reseller.api.permission:'.ResellerPortalPermission::ONU_VIEW);
 
-        Route::get('/sub-resellers', [\App\Http\Controllers\Api\V1\Reseller\ResellerApiSubResellerController::class, 'index'])
-            ->middleware('reseller.api.permission:'.ResellerPortalPermission::SUB_RESELLER_VIEW);
         Route::post('/sub-resellers', [\App\Http\Controllers\Api\V1\Reseller\ResellerApiSubResellerController::class, 'store'])
             ->middleware('reseller.api.permission:'.ResellerPortalPermission::SUB_RESELLER_CREATE);
-        Route::get('/sub-resellers/{child}', [\App\Http\Controllers\Api\V1\Reseller\ResellerApiSubResellerController::class, 'show'])
-            ->whereNumber('child')
-            ->middleware('reseller.api.permission:'.ResellerPortalPermission::SUB_RESELLER_VIEW);
 
-        Route::get('/customer-transfers', [\App\Http\Controllers\Api\V1\Reseller\ResellerApiCustomerTransferController::class, 'index'])
-            ->middleware('reseller.api.permission:'.ResellerPortalPermission::CUSTOMER_TRANSFER);
         Route::post('/customers/{customer}/transfer', [\App\Http\Controllers\Api\V1\Reseller\ResellerApiCustomerTransferController::class, 'store'])
             ->whereNumber('customer')
             ->middleware('reseller.api.permission:'.ResellerPortalPermission::CUSTOMER_TRANSFER);
-
-        Route::get('/announcements', [\App\Http\Controllers\Api\V1\Reseller\ResellerApiAnnouncementController::class, 'index'])
-            ->middleware('reseller.api.permission:'.ResellerPortalPermission::ANNOUNCEMENTS_VIEW);
-
-        Route::get('/due-account', [\App\Http\Controllers\Api\V1\Reseller\ResellerApiDueAccountController::class, 'show'])
-            ->middleware('reseller.api.permission:'.ResellerPortalPermission::RESELLER_BILLING_VIEW);
 
         Route::get('/internal-tickets', [\App\Http\Controllers\Api\V1\Reseller\ResellerApiInternalTicketController::class, 'index'])
             ->middleware('reseller.api.permission:'.ResellerPortalPermission::INTERNAL_TICKET_MANAGE);
         Route::post('/internal-tickets', [\App\Http\Controllers\Api\V1\Reseller\ResellerApiInternalTicketController::class, 'store'])
             ->middleware('reseller.api.permission:'.ResellerPortalPermission::INTERNAL_TICKET_MANAGE);
-
-        Route::get('/wallet/overview', [\App\Http\Controllers\Api\V1\Reseller\ResellerApiWalletOverviewController::class, 'show'])
-            ->middleware('reseller.api.permission:'.ResellerPortalPermission::WALLET_VIEW);
-        Route::get('/reports/enterprise', [\App\Http\Controllers\Api\V1\Reseller\ResellerApiEnterpriseReportController::class, 'show'])
-            ->middleware('reseller.api.permission:'.ResellerPortalPermission::REPORTS_VIEW);
 
         Route::get('/staff/permission-options', [\App\Http\Controllers\Api\V1\Reseller\ResellerApiStaffController::class, 'permissionOptions'])
             ->middleware('reseller.api.permission:'.ResellerPortalPermission::STAFF_MANAGE);
@@ -367,49 +327,10 @@ Route::prefix('v1')->group(function (): void {
             ->middleware('reseller.api.permission:'.ResellerPortalPermission::API_KEYS_MANAGE);
     });
 
-    // Reseller integrations using API keys (Bearer rsk_... or X-Reseller-Api-Key)
-    Route::middleware(['reseller.api_key', 'throttle:api'])->prefix('reseller/partner')->group(function (): void {
-        Route::get('/dashboard', [\App\Http\Controllers\Api\V1\Reseller\ResellerApiDashboardController::class, 'show']);
-        Route::get('/wallet', [\App\Http\Controllers\Api\V1\Reseller\ResellerApiWalletController::class, 'show'])
-            ->middleware('reseller.api.permission:'.ResellerPortalPermission::WALLET_VIEW);
-        Route::get('/wallet/overview', [\App\Http\Controllers\Api\V1\Reseller\ResellerApiWalletOverviewController::class, 'show'])
-            ->middleware('reseller.api.permission:'.ResellerPortalPermission::WALLET_VIEW);
-        Route::get('/customers', [\App\Http\Controllers\Api\V1\Reseller\ResellerApiCustomerController::class, 'index'])
-            ->middleware('reseller.api.permission:'.ResellerPortalPermission::CUSTOMER_VIEW);
-        Route::get('/customers/{customer}', [\App\Http\Controllers\Api\V1\Reseller\ResellerApiCustomerController::class, 'show'])
-            ->whereNumber('customer')
-            ->middleware('reseller.api.permission:'.ResellerPortalPermission::CUSTOMER_VIEW);
-        Route::get('/commissions', [\App\Http\Controllers\Api\V1\Reseller\ResellerApiCommissionController::class, 'index'])
-            ->middleware('reseller.api.permission:'.ResellerPortalPermission::COMMISSION_VIEW);
-        Route::get('/settlements', [\App\Http\Controllers\Api\V1\Reseller\ResellerApiSettlementController::class, 'index'])
-            ->middleware('reseller.api.permission:'.ResellerPortalPermission::SETTLEMENT_MANAGE);
-        Route::get('/invoices', [\App\Http\Controllers\Api\V1\Reseller\ResellerApiInvoiceController::class, 'index'])
-            ->middleware('reseller.api.permission:'.ResellerPortalPermission::BILLING_VIEW);
-        Route::get('/tickets', [\App\Http\Controllers\Api\V1\Reseller\ResellerApiTicketController::class, 'index'])
-            ->middleware('reseller.api.permission:'.ResellerPortalPermission::TICKET_CREATE);
-        Route::get('/network', [\App\Http\Controllers\Api\V1\Reseller\ResellerApiNetworkController::class, 'index'])
-            ->middleware('reseller.api.permission:'.ResellerPortalPermission::NETWORK_VIEW);
-        Route::get('/onu', [\App\Http\Controllers\Api\V1\Reseller\ResellerApiOnuController::class, 'index'])
-            ->middleware('reseller.api.permission:'.ResellerPortalPermission::ONU_VIEW);
-        Route::get('/reports/summary', [\App\Http\Controllers\Api\V1\Reseller\ResellerApiReportController::class, 'summary'])
-            ->middleware('reseller.api.permission:'.ResellerPortalPermission::REPORTS_VIEW);
-        Route::get('/reports/enterprise', [\App\Http\Controllers\Api\V1\Reseller\ResellerApiEnterpriseReportController::class, 'show'])
-            ->middleware('reseller.api.permission:'.ResellerPortalPermission::REPORTS_VIEW);
-        Route::get('/activity', [\App\Http\Controllers\Api\V1\Reseller\ResellerApiActivityController::class, 'index'])
-            ->middleware('reseller.api.permission:'.ResellerPortalPermission::REPORTS_VIEW);
-        Route::get('/sub-resellers', [\App\Http\Controllers\Api\V1\Reseller\ResellerApiSubResellerController::class, 'index'])
-            ->middleware('reseller.api.permission:'.ResellerPortalPermission::SUB_RESELLER_VIEW);
-        Route::get('/sub-resellers/{child}', [\App\Http\Controllers\Api\V1\Reseller\ResellerApiSubResellerController::class, 'show'])
-            ->whereNumber('child')
-            ->middleware('reseller.api.permission:'.ResellerPortalPermission::SUB_RESELLER_VIEW);
-        Route::get('/customer-transfers', [\App\Http\Controllers\Api\V1\Reseller\ResellerApiCustomerTransferController::class, 'index'])
-            ->middleware('reseller.api.permission:'.ResellerPortalPermission::CUSTOMER_TRANSFER);
-        Route::get('/announcements', [\App\Http\Controllers\Api\V1\Reseller\ResellerApiAnnouncementController::class, 'index'])
-            ->middleware('reseller.api.permission:'.ResellerPortalPermission::ANNOUNCEMENTS_VIEW);
-        Route::get('/due-account', [\App\Http\Controllers\Api\V1\Reseller\ResellerApiDueAccountController::class, 'show'])
-            ->middleware('reseller.api.permission:'.ResellerPortalPermission::RESELLER_BILLING_VIEW);
-        Route::get('/notifications', [\App\Http\Controllers\Api\V1\Reseller\ResellerApiNotificationController::class, 'index']);
-    });
+    // Legacy alias: same read routes as /api/v1/reseller/* (API keys or Sanctum)
+    Route::middleware(['reseller.api.auth', 'reseller.api.readonly', 'reseller.api', 'throttle:api'])
+        ->prefix('reseller/partner')
+        ->group($registerResellerApiReads);
 
     // Customer mobile app
     Route::prefix('customer')->group(function (): void {

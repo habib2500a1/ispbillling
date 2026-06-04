@@ -147,6 +147,33 @@ class ResellerApiEnterpriseTest extends TestCase
             ->getJson('/api/v1/reseller/partner/dashboard')
             ->assertOk()
             ->assertJsonStructure(['metrics']);
+
+        $this->withHeader('Authorization', 'Bearer '.$plain)
+            ->getJson('/api/v1/reseller/dashboard')
+            ->assertOk()
+            ->assertJsonStructure(['metrics']);
+    }
+
+    public function test_api_key_rejects_write_on_canonical_reseller_routes(): void
+    {
+        $reseller = Reseller::query()->create([
+            'tenant_id' => 1,
+            'name' => 'Write Block',
+            'code' => 'RSL-WRITE',
+            'franchise_type' => ResellerType::FRANCHISE,
+            'commission_type' => 'percent',
+            'commission_value' => 10,
+            'is_active' => true,
+            'api_access_enabled' => true,
+            'portal_password' => Hash::make('x'),
+            'portal_permissions' => ResellerPortalPermission::defaultsFor(ResellerType::FRANCHISE),
+        ]);
+
+        $plain = \App\Models\ResellerApiKey::generate($reseller, 'read-only')['plain'];
+
+        $this->withHeader('Authorization', 'Bearer '.$plain)
+            ->postJson('/api/v1/reseller/customers', ['name' => 'Should Fail'])
+            ->assertStatus(405);
     }
 
     public function test_api_key_abilities_restrict_partner_endpoints(): void

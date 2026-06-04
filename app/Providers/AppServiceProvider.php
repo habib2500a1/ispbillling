@@ -37,6 +37,7 @@ use App\Services\Network\RadiusNetworkProvisioner;
 use App\Support\DemoMode;
 use App\Support\EnsureStorageWritable;
 use App\Support\MobileAppLinks;
+use App\Support\ResellerApiContext;
 use App\Listeners\RecordStaffLogout;
 use App\Models\User;
 use App\Livewire\Filament\SafeGlobalSearch;
@@ -74,6 +75,7 @@ class AppServiceProvider extends ServiceProvider
         }
 
         $this->app->bind(NavigationManager::class, IspNavigationManager::class);
+        $this->app->singleton(ResellerApiContext::class);
 
         // Laravel picks resources/lang when that folder exists; app strings live in /lang.
         if (is_dir($lang = base_path('lang'))) {
