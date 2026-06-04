@@ -130,8 +130,15 @@ class InventoryHub extends Page
                 'tone' => 'amber',
             ],
             [
-                'title' => 'Products',
-                'desc' => 'SKU · barcode · buy/sell price · shop visibility.',
+                'title' => 'New product',
+                'desc' => 'Barcode · SKU · buy/sell · opening warehouse stock.',
+                'url' => ProductResource::getUrl('create'),
+                'icon' => 'heroicon-o-plus-circle',
+                'tone' => 'teal',
+            ],
+            [
+                'title' => 'All products',
+                'desc' => 'Search · adjust stock · low-stock alerts.',
                 'url' => ProductResource::getUrl(),
                 'icon' => 'heroicon-o-shopping-bag',
                 'tone' => 'teal',

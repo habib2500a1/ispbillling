@@ -188,6 +188,24 @@ class OnusRelationManager extends RelationManager
                     ->color(fn (Device $record): string => OnuSignalLevel::filamentColor(
                         OnuSignalLevel::classifyTx($record->tx_power_dbm !== null ? (float) $record->tx_power_dbm : null),
                     )),
+                Tables\Columns\TextColumn::make('onu_temperature')
+                    ->label('Temp')
+                    ->state(function (Device $record): string {
+                        $c = \App\Support\OnuEnvironmentalMetrics::fromDevice($record)['temperature_c'];
+
+                        return \App\Support\OnuEnvironmentalMetrics::formatTemperature($c);
+                    })
+                    ->color(fn (Device $record): string => \App\Support\OnuEnvironmentalMetrics::temperatureTone(
+                        \App\Support\OnuEnvironmentalMetrics::fromDevice($record)['temperature_c'],
+                    )),
+                Tables\Columns\TextColumn::make('onu_voltage')
+                    ->label('Voltage')
+                    ->state(function (Device $record): string {
+                        $v = \App\Support\OnuEnvironmentalMetrics::fromDevice($record)['voltage_v'];
+
+                        return \App\Support\OnuEnvironmentalMetrics::formatVoltage($v);
+                    })
+                    ->toggleable(),
                 Tables\Columns\TextColumn::make('rx_level')
                     ->label('Signal')
                     ->badge()

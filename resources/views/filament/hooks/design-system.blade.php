@@ -16,20 +16,37 @@
     document.documentElement.dataset.themeMode = pref;
 })();
 </script>
-<link rel="stylesheet" href="{{ asset('css/admin-saas.css') }}?v={{ @filemtime(public_path('css/admin-saas.css')) ?: '25' }}">
-@include('partials.isp-premium-theme', ['tailwind' => true, 'motion' => true])
 @unless (request()->routeIs('filament.admin.auth.*'))
-<link rel="stylesheet" href="{{ asset('css/clients-hub-pro.css') }}?v={{ @filemtime(public_path('css/clients-hub-pro.css')) ?: 1 }}">
-<link rel="stylesheet" href="{{ asset('css/billing-hub-pro.css') }}?v={{ @filemtime(public_path('css/billing-hub-pro.css')) ?: 1 }}">
-<link rel="stylesheet" href="{{ asset('css/inventory-hub-pro.css') }}?v={{ @filemtime(public_path('css/inventory-hub-pro.css')) ?: 1 }}">
-<link rel="stylesheet" href="{{ asset('css/olt-hub-pro.css') }}?v={{ @filemtime(public_path('css/olt-hub-pro.css')) ?: 1 }}">
-<link rel="stylesheet" href="{{ asset('css/subscriber-view-pro.css') }}?v={{ @filemtime(public_path('css/subscriber-view-pro.css')) ?: 1 }}">
-<link rel="stylesheet" href="{{ asset('css/optical-noc.css') }}?v={{ @filemtime(public_path('css/optical-noc.css')) ?: 1 }}">
+@php($mobileBarCssV = @filemtime(public_path('css/admin-mobile-bar.css')) ?: 1)
+@include('filament.hooks.mobile-bar-critical-css')
+<link rel="preload" href="{{ \App\Support\AdminSaasStyles::preloadHref() }}" as="style">
+<link rel="stylesheet" href="{{ asset('css/admin-mobile-bar.css') }}?v={{ $mobileBarCssV }}" media="(max-width: 1023px)">
 @endunless
-<script src="{{ asset('js/admin-theme.js') }}?v=4" data-cfasync="false"></script>
+{!! \App\Support\AdminSaasStyles::html() !!}
+@unless (\App\Support\AdminSaasStyles::bundleIncludesExtras())
+<link rel="stylesheet" href="{{ asset('css/admin-utilities.css') }}?v={{ @filemtime(public_path('css/admin-utilities.css')) ?: 1 }}">
+@endunless
+@include('partials.isp-premium-theme', ['tailwind' => false, 'motion' => false, 'fonts' => false])
+@unless (request()->routeIs('filament.admin.auth.*') || \App\Support\AdminSaasStyles::bundleIncludesExtras())
+<link rel="stylesheet" href="{{ asset('css/admin-responsive.css') }}?v={{ @filemtime(public_path('css/admin-responsive.css')) ?: 1 }}">
+@endunless
+@unless (request()->routeIs('filament.admin.auth.*'))
+@php($dashHomeCssV = @filemtime(public_path('css/admin/saas/12-dashboard-home.css')) ?: 1)
+@php($dashInsightsCssV = @filemtime(public_path('css/admin/saas/13-dashboard-insights.css')) ?: 1)
+@php($revChartFixV = @filemtime(public_path('css/dashboard-revenue-chart-fix.css')) ?: 1)
+@php($opsFeedFixV = @filemtime(public_path('css/dashboard-ops-feed-fix.css')) ?: 1)
+<link rel="stylesheet" href="{{ asset('css/admin/saas/12-dashboard-home.css') }}?v={{ $dashHomeCssV }}">
+<link rel="stylesheet" href="{{ asset('css/admin/saas/13-dashboard-insights.css') }}?v={{ $dashInsightsCssV }}">
+@if (request()->routeIs('filament.admin.pages.dashboard'))
+<link rel="stylesheet" href="{{ asset('css/dashboard-revenue-chart-fix.css') }}?v={{ $revChartFixV }}" data-isp-rev-chart-fix="1">
+<link rel="stylesheet" href="{{ asset('css/dashboard-ops-feed-fix.css') }}?v={{ $opsFeedFixV }}" data-isp-ops-feed-fix="1">
+@endif
+@include('filament.hooks.today-snapshot-fix')
+@endunless
+<script src="{{ asset('js/admin-theme.js') }}?v={{ @filemtime(public_path('js/admin-theme.js')) ?: 4 }}" defer data-cfasync="false"></script>
 @unless (request()->routeIs('filament.admin.auth.*'))
 <script src="{{ asset('js/admin-sidebar-search.js') }}?v={{ @filemtime(public_path('js/admin-sidebar-search.js')) ?: 1 }}" defer data-cfasync="false"></script>
-@if (request()->routeIs('filament.admin.pages.dashboard*', 'filament.admin.pages.dashboard-hub*', 'filament.admin.pages.*-dashboard*', 'filament.admin.pages.operations-hub'))
+@if (request()->routeIs('filament.admin.*') && ! request()->routeIs('filament.admin.auth.*'))
 <script src="{{ asset('js/isp-dashboard-realtime.js') }}?v={{ @filemtime(public_path('js/isp-dashboard-realtime.js')) ?: 1 }}" defer data-cfasync="false"></script>
 @endif
 @endunless

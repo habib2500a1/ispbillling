@@ -7,51 +7,62 @@
         id="speed-test-panel"
         data-ping-url="{{ route('portal.speed-test.ping') }}"
         data-download-url="{{ route('portal.speed-test.download') }}"
-        data-upload-url="{{ route('portal.speed-test.upload') }}">
-        <div class="portal-page-head">
+        data-upload-url="{{ route('portal.speed-test.upload') }}"
+        data-upload-bytes="{{ (int) config('portal.speed_test.upload_bytes', 262_144) }}">
+        <div class="portal-page-head portal-page-head--stack">
             <div>
                 <h1 class="portal-page-title">Internet speed test</h1>
-                <p class="portal-page-lead">Measure latency, download, and upload speed against the ISP portal test server.</p>
+                <p class="portal-page-lead">Measure ping, download, and upload against your ISP portal test server.</p>
             </div>
-            <a href="{{ route('portal.usage.index') }}" class="portal-card-button">Open live usage</a>
+            <a href="{{ route('portal.usage.index') }}" class="portal-card-button">Live usage</a>
         </div>
+
+        <section class="portal-usage-quick portal-speed-hero">
+            <div class="portal-usage-quick__hero">
+                <div id="st-ring" class="portal-usage-quick__ring portal-speed-hero__ring" aria-hidden="true">
+                    <span class="portal-usage-quick__ring-label">Speed test</span>
+                    <span id="st-ring-value" class="portal-usage-quick__ring-value">—</span>
+                    <span class="portal-usage-quick__ring-unit">Tap run below</span>
+                </div>
+                <div class="portal-usage-quick__side">
+                    <div class="portal-usage-quick__metric">
+                        <p class="portal-usage-quick__metric-label">Ping</p>
+                        <p class="portal-usage-quick__metric-value"><span id="st-ping">—</span> <span class="portal-usage-quick__metric-unit">ms</span></p>
+                    </div>
+                    <div class="portal-usage-quick__metric">
+                        <p class="portal-usage-quick__metric-label">Download</p>
+                        <p class="portal-usage-quick__metric-value"><span id="st-down">—</span> <span class="portal-usage-quick__metric-unit">Mbps</span></p>
+                    </div>
+                    <div class="portal-usage-quick__metric">
+                        <p class="portal-usage-quick__metric-label">Upload</p>
+                        <p class="portal-usage-quick__metric-value"><span id="st-up">—</span> <span class="portal-usage-quick__metric-unit">Mbps</span></p>
+                    </div>
+                </div>
+            </div>
+            <div class="portal-usage-quick__actions">
+                <button type="button" id="st-run" class="portal-btn-primary portal-usage-quick__btn">Run speed test</button>
+                <p id="st-status" class="portal-usage-quick__status">Ready to start.</p>
+            </div>
+        </section>
 
         <div class="portal-summary-grid">
             <article class="portal-summary-card portal-summary-card--info">
                 <p class="portal-summary-card__eyebrow">Best practice</p>
                 <p class="portal-summary-card__value">Single device</p>
-                <p class="portal-summary-card__meta">Pause large downloads, streaming, and cloud sync to get a cleaner result.</p>
+                <p class="portal-summary-card__meta">Pause large downloads, streaming, and cloud sync for a cleaner result.</p>
             </article>
             <article class="portal-summary-card portal-summary-card--warn">
                 <p class="portal-summary-card__eyebrow">For accuracy</p>
-                <p class="portal-summary-card__value">Use Wi-Fi carefully</p>
-                <p class="portal-summary-card__meta">LAN cable gives the most accurate speed reading; Wi-Fi may vary by distance and router quality.</p>
+                <p class="portal-summary-card__value">Prefer LAN cable</p>
+                <p class="portal-summary-card__meta">Wi-Fi speed varies by distance, walls, and router quality.</p>
             </article>
-        </div>
-
-        <div class="portal-speed-grid">
-            <div class="portal-speed-card">
-                <p class="portal-speed-card__label">Ping</p>
-                <p id="st-ping" class="portal-speed-card__value">-</p>
-                <p class="portal-speed-card__unit">ms</p>
-            </div>
-            <div class="portal-speed-card">
-                <p class="portal-speed-card__label">Download</p>
-                <p id="st-down" class="portal-speed-card__value">-</p>
-                <p class="portal-speed-card__unit">Mbps</p>
-            </div>
-            <div class="portal-speed-card">
-                <p class="portal-speed-card__label">Upload</p>
-                <p id="st-up" class="portal-speed-card__value">-</p>
-                <p class="portal-speed-card__unit">Mbps</p>
-            </div>
         </div>
 
         <section class="portal-surface-card">
             <div class="portal-section-head">
                 <div class="portal-label-stack">
-                    <h2 class="portal-surface-card__title">Run test</h2>
-                    <p class="portal-surface-card__meta">The test measures ping first, then download, then upload using your browser.</p>
+                    <h2 class="portal-surface-card__title">Test stages</h2>
+                    <p class="portal-surface-card__meta">Ping first, then download (~1 MB), then upload (~256 KB).</p>
                 </div>
             </div>
 
@@ -60,98 +71,10 @@
                 <span id="stage-down" class="portal-test-stage__item">2. Download</span>
                 <span id="stage-up" class="portal-test-stage__item">3. Upload</span>
             </div>
-
-            <div class="portal-form-actions">
-                <button type="button" id="st-run" class="portal-btn-primary">Run speed test</button>
-                <p id="st-status" class="portal-surface-card__meta">Ready to start.</p>
-            </div>
         </section>
     </div>
 
     @push('scripts')
-        <script>
-            const speedTestPanel = document.getElementById('speed-test-panel');
-            const pingUrl = speedTestPanel.dataset.pingUrl;
-            const downUrl = speedTestPanel.dataset.downloadUrl;
-            const upUrl = speedTestPanel.dataset.uploadUrl;
-            const csrf = document.querySelector('meta[name="csrf-token"]').content;
-            const stages = {
-                ping: document.getElementById('stage-ping'),
-                down: document.getElementById('stage-down'),
-                up: document.getElementById('stage-up'),
-            };
-
-            function resetStages() {
-                Object.values(stages).forEach((el) => {
-                    el.className = 'portal-test-stage__item';
-                });
-            }
-
-            function setStage(name, state) {
-                stages[name].className = 'portal-test-stage__item' + (state === 'active' ? ' is-active' : state === 'done' ? ' is-done' : '');
-            }
-
-            async function measurePing(samples = 5) {
-                const times = [];
-                for (let i = 0; i < samples; i++) {
-                    const t0 = performance.now();
-                    await fetch(pingUrl + '?_=' + Date.now(), { cache: 'no-store' });
-                    times.push(performance.now() - t0);
-                }
-                times.sort((a, b) => a - b);
-                return times[Math.floor(times.length / 2)];
-            }
-
-            async function measureDownload() {
-                const t0 = performance.now();
-                const res = await fetch(downUrl + '?_=' + Date.now(), { cache: 'no-store' });
-                const blob = await res.blob();
-                const sec = (performance.now() - t0) / 1000;
-                const mbps = (blob.size * 8) / sec / 1_000_000;
-                return mbps;
-            }
-
-            async function measureUpload() {
-                const payload = new Uint8Array(512 * 1024);
-                crypto.getRandomValues(payload);
-                const t0 = performance.now();
-                await fetch(upUrl, {
-                    method: 'POST',
-                    headers: { 'X-CSRF-TOKEN': csrf, 'Content-Type': 'application/octet-stream' },
-                    body: payload,
-                });
-                const sec = (performance.now() - t0) / 1000;
-                return (payload.length * 8) / sec / 1_000_000;
-            }
-
-            document.getElementById('st-run').addEventListener('click', async () => {
-                const btn = document.getElementById('st-run');
-                const status = document.getElementById('st-status');
-                btn.disabled = true;
-                resetStages();
-                setStage('ping', 'active');
-                status.textContent = 'Testing ping...';
-                try {
-                    const ping = await measurePing();
-                    document.getElementById('st-ping').textContent = ping.toFixed(0);
-                    setStage('ping', 'done');
-                    setStage('down', 'active');
-                    status.textContent = 'Testing download...';
-                    const down = await measureDownload();
-                    document.getElementById('st-down').textContent = down.toFixed(2);
-                    setStage('down', 'done');
-                    setStage('up', 'active');
-                    status.textContent = 'Testing upload...';
-                    const up = await measureUpload();
-                    document.getElementById('st-up').textContent = up.toFixed(2);
-                    setStage('up', 'done');
-                    status.textContent = 'Done at ' + new Date().toLocaleTimeString();
-                } catch (e) {
-                    status.textContent = 'Test failed. Try again.';
-                    resetStages();
-                }
-                btn.disabled = false;
-            });
-        </script>
+        <script src="{{ asset('js/portal-speed-test.js') }}?v=2" defer></script>
     @endpush
 @endsection

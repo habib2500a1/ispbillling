@@ -172,7 +172,7 @@ final class StaffCapability
             'HR & Payroll' => $this->canHrm(),
             'Inventory' => $this->canInventory(),
             'Inventory Pro' => $this->canInventory(),
-            'Finance' => $this->canAccounting(),
+            'Finance', 'Accounts' => $this->canAccounting() || $this->canBilling() || $this->canPayments(),
             'Resellers' => $this->canResellers(),
             'Reports' => $this->canReports(),
             'System' => $this->isTenantAdmin() || $this->canSystemSettings(),
@@ -215,10 +215,12 @@ final class StaffCapability
     public function canSeeWidget(string $widgetClass): bool
     {
         return match ($widgetClass) {
+            \App\Filament\Widgets\TodaySnapshotWidget::class => $this->canPayments() || $this->canBilling() || $this->canCustomers() || $this->isTenantAdmin(),
             \App\Filament\Widgets\PendingMfsVerifyAlertWidget::class => $this->canSeeBillingWidget() || $this->canPayments(),
             \App\Filament\Widgets\BillingExecutiveDashboardWidget::class => $this->canSeeBillingWidget(),
             \App\Filament\Widgets\OperationsCommandCenterWidget::class => $this->canSeeOperationsWidget(),
             \App\Filament\Widgets\DashboardCommandStripWidget::class => $this->canSeeCommandStrip(),
+            \App\Filament\Widgets\DashboardInsightsRowWidget::class => $this->canSeeRevenueChart() || $this->canSeeOnlineChart(),
             \App\Filament\Widgets\RevenueTrendChartWidget::class => $this->canSeeRevenueChart(),
             \App\Filament\Widgets\OnlineUsersChartWidget::class => $this->canSeeOnlineChart(),
             default => $this->isTenantAdmin(),

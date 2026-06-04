@@ -5,11 +5,16 @@ namespace App\Services\Optical;
 use App\Models\Device;
 use App\Models\OnuSignalLog;
 use App\Models\PonSignalStat;
+use App\Services\Olt\OltPortCatalogService;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Cache;
 
 final class OpticalSignalHistoryService
 {
+    public function __construct(
+        private readonly OltPortCatalogService $portCatalog,
+    ) {}
     /** @var array<string, int> */
     public const PERIODS = [
         '1h' => 1,
@@ -83,53 +88,86 @@ final class OpticalSignalHistoryService
     public function tenantAverageTrend(int $tenantId, int $hours = 24): array
     {
         $since = now()->subHours($hours);
-
         $warn = (float) config('optical.rx_thresholds.warning', -25);
-        $logs = OnuSignalLog::query()
+        $bucketExpr = $this->hourBucketExpression();
+
+        $rows = OnuSignalLog::query()
             ->where('tenant_id', $tenantId)
             ->where('sampled_at', '>=', $since)
             ->whereNotNull('rx_power_dbm')
-            ->orderBy('sampled_at')
-            ->get(['sampled_at', 'rx_power_dbm']);
-
-        $buckets = [];
-        foreach ($logs as $log) {
-            $key = $log->sampled_at->format('Y-m-d H:00');
-            if (! isset($buckets[$key])) {
-                $buckets[$key] = ['sum' => 0.0, 'count' => 0, 'weak' => 0];
-            }
-            $rx = (float) $log->rx_power_dbm;
-            $buckets[$key]['sum'] += $rx;
-            $buckets[$key]['count']++;
-            if ($rx < $warn) {
-                $buckets[$key]['weak']++;
-            }
-        }
+            ->selectRaw("{$bucketExpr} as bucket")
+            ->selectRaw('AVG(rx_power_dbm) as avg_rx')
+            ->selectRaw('SUM(CASE WHEN rx_power_dbm < ? THEN 1 ELSE 0 END) as weak_count', [$warn])
+            ->groupByRaw('bucket')
+            ->orderByRaw('bucket')
+            ->get();
 
         $labels = [];
         $avgRx = [];
         $weak = [];
 
-        foreach ($buckets as $key => $row) {
-            $labels[] = Carbon::parse($key)->format('M j H:i');
-            $avgRx[] = $row['count'] > 0 ? round($row['sum'] / $row['count'], 2) : null;
-            $weak[] = $row['weak'];
+        foreach ($rows as $row) {
+            $labels[] = Carbon::parse((string) $row->bucket)->format('M j H:i');
+            $avgRx[] = $row->avg_rx !== null ? round((float) $row->avg_rx, 2) : null;
+            $weak[] = (int) $row->weak_count;
         }
 
         return ['labels' => $labels, 'avg_rx' => $avgRx, 'weak_count' => $weak];
     }
 
+    private function hourBucketExpression(): string
+    {
+        return match (OnuSignalLog::query()->getConnection()->getDriverName()) {
+            'pgsql' => "date_trunc('hour', sampled_at)",
+            'sqlite' => "strftime('%Y-%m-%d %H:00:00', sampled_at)",
+            default => "DATE_FORMAT(sampled_at, '%Y-%m-%d %H:00:00')",
+        };
+    }
+
     /**
+     * Latest snapshot per OLT PON (card/pon), not duplicate poll history rows.
+     *
      * @return Collection<int, PonSignalStat>
      */
-    public function ponPortStats(int $tenantId, int $limit = 50): Collection
+    public function ponPortStats(int $tenantId, int $limit = 0): Collection
     {
-        return PonSignalStat::query()
-            ->where('tenant_id', $tenantId)
-            ->with(['olt:id,display_name,serial_number'])
-            ->orderByDesc('computed_at')
-            ->limit($limit)
-            ->get();
+        $this->portCatalog->ensureForTenant($tenantId);
+
+        if (config('optical.refresh_pon_stats_on_noc_view', true)) {
+            $cacheKey = "pon_stats_refresh:{$tenantId}";
+            if (! Cache::has($cacheKey)) {
+                $health = app(PonPortHealthService::class);
+                Device::query()
+                    ->withoutGlobalScopes()
+                    ->where('tenant_id', $tenantId)
+                    ->where('type', 'olt')
+                    ->where('status', '!=', 'decommissioned')
+                    ->each(fn (Device $olt) => $health->aggregateForOlt($olt, now()));
+                Cache::put($cacheKey, true, now()->addMinutes(2));
+            }
+        }
+
+        $stats = PonSignalStat::query()
+            ->where('pon_signal_stats.tenant_id', $tenantId)
+            ->latestPerPort($tenantId)
+            ->with([
+                'olt:id,display_name,serial_number',
+                'oltPort:id,device_id,card_index,pon_index,label,meta',
+            ])
+            ->get()
+            ->sortBy(fn (PonSignalStat $s): string => sprintf(
+                '%s|%03d|%03d',
+                $s->olt?->display_name ?? '',
+                (int) ($s->card_no ?? 0),
+                (int) ($s->pon_no ?? 0),
+            ))
+            ->values();
+
+        if ($limit > 0) {
+            return $stats->take($limit);
+        }
+
+        return $stats;
     }
 
     /**

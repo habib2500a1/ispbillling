@@ -1,0 +1,2 @@
+# Marker: block php artisan test on this server (see tests/bootstrap.php).
+# Remove only if you intentionally run CI tests here.

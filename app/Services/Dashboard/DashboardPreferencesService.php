@@ -10,26 +10,32 @@ final class DashboardPreferencesService
 {
     /** @var list<class-string> */
     public const DEFAULT_WIDGETS = [
+        \App\Filament\Widgets\TodaySnapshotWidget::class,
         \App\Filament\Widgets\PendingMfsVerifyAlertWidget::class,
         \App\Filament\Widgets\BillingExecutiveDashboardWidget::class,
         \App\Filament\Widgets\OperationsCommandCenterWidget::class,
         \App\Filament\Widgets\DashboardCommandStripWidget::class,
-        \App\Filament\Widgets\RevenueTrendChartWidget::class,
-        \App\Filament\Widgets\OnlineUsersChartWidget::class,
+        \App\Filament\Widgets\DashboardInsightsRowWidget::class,
     ];
 
     /** @return array<class-string, string> */
     public static function layoutWidgetLabels(): array
     {
         return [
+            \App\Filament\Widgets\TodaySnapshotWidget::class => 'Today snapshot (collection, due, expiring)',
             \App\Filament\Widgets\PendingMfsVerifyAlertWidget::class => 'MFS pending verify alert',
             \App\Filament\Widgets\BillingExecutiveDashboardWidget::class => 'Billing overview (KPIs + chart)',
             \App\Filament\Widgets\OperationsCommandCenterWidget::class => 'Operations command center',
             \App\Filament\Widgets\DashboardCommandStripWidget::class => 'Quick tools strip',
-            \App\Filament\Widgets\RevenueTrendChartWidget::class => 'Revenue chart',
-            \App\Filament\Widgets\OnlineUsersChartWidget::class => 'Online users chart',
+            \App\Filament\Widgets\DashboardInsightsRowWidget::class => 'Insights row (revenue + online)',
         ];
     }
+
+    /** Standalone chart widgets — replaced by {@see DashboardInsightsRowWidget}. */
+    private const STANDALONE_CHART_WIDGETS = [
+        \App\Filament\Widgets\RevenueTrendChartWidget::class,
+        \App\Filament\Widgets\OnlineUsersChartWidget::class,
+    ];
 
     /** @var array<string, class-string|null> */
     private const LEGACY_WIDGET_MAP = [
@@ -39,6 +45,8 @@ final class DashboardPreferencesService
         'App\\Filament\\Widgets\\UnifiedOperationsWidget' => null,
         'App\\Filament\\Widgets\\SmartOpsCommandCenterWidget' => null,
         'App\\Filament\\Widgets\\DashboardLayoutCustomizer' => null,
+        'App\\Filament\\Widgets\\RevenueTrendChartWidget' => \App\Filament\Widgets\DashboardInsightsRowWidget::class,
+        'App\\Filament\\Widgets\\OnlineUsersChartWidget' => \App\Filament\Widgets\DashboardInsightsRowWidget::class,
     ];
 
     /** @return list<class-string> */
@@ -80,7 +88,36 @@ final class DashboardPreferencesService
             return array_values(array_intersect(self::DEFAULT_WIDGETS, array_keys($permitted)));
         }
 
-        return $ordered;
+        return self::dedupeInsightsWidget($ordered);
+    }
+
+    /**
+     * @param  list<class-string>  $widgets
+     * @return list<class-string>
+     */
+    public static function dedupeInsightsWidget(array $widgets): array
+    {
+        $insights = \App\Filament\Widgets\DashboardInsightsRowWidget::class;
+        $seenInsights = false;
+        $out = [];
+
+        foreach ($widgets as $class) {
+            if (in_array($class, self::STANDALONE_CHART_WIDGETS, true)) {
+                continue;
+            }
+
+            if ($class === $insights) {
+                if ($seenInsights) {
+                    continue;
+                }
+
+                $seenInsights = true;
+            }
+
+            $out[] = $class;
+        }
+
+        return array_values($out);
     }
 
     /**
@@ -105,7 +142,7 @@ final class DashboardPreferencesService
                 ? $locked->dashboard_preferences
                 : [];
 
-            $prefs['widgets'] = $this->normalizeWidgetList($widgets);
+            $prefs['widgets'] = $this->normalizeWidgetListFor($locked, $widgets);
 
             if ($compact !== null) {
                 $prefs['compact'] = $compact;
@@ -123,7 +160,15 @@ final class DashboardPreferencesService
      */
     public function normalizeWidgetList(array $widgets): array
     {
-        $user = auth()->user();
+        return $this->normalizeWidgetListFor(auth()->user(), $widgets);
+    }
+
+    /**
+     * @param  list<class-string>  $widgets
+     * @return list<class-string>
+     */
+    public function normalizeWidgetListFor(?User $user, array $widgets): array
+    {
         $permitted = array_flip(StaffCapability::for($user)->allowedDashboardWidgets());
         $ordered = [];
 
@@ -144,10 +189,10 @@ final class DashboardPreferencesService
         }
 
         if ($ordered === []) {
-            return StaffCapability::for($user)->allowedDashboardWidgets();
+            return self::dedupeInsightsWidget(StaffCapability::for($user)->allowedDashboardWidgets());
         }
 
-        return array_values($ordered);
+        return self::dedupeInsightsWidget(array_values($ordered));
     }
 
     public function repairUserPreferences(?User $user): void
@@ -163,7 +208,7 @@ final class DashboardPreferencesService
             return;
         }
 
-        $repaired = $this->normalizeWidgetList($saved);
+        $repaired = $this->normalizeWidgetListFor($user, $saved);
 
         if ($repaired === $saved && ! $this->prefsNeedLegacyStrip($saved)) {
             return;
@@ -178,9 +223,20 @@ final class DashboardPreferencesService
      */
     private function prefsNeedLegacyStrip(array $saved): bool
     {
+        $insights = \App\Filament\Widgets\DashboardInsightsRowWidget::class;
+        $insightsCount = 0;
+
         foreach ($saved as $class) {
             if (! is_string($class)) {
                 return true;
+            }
+
+            if (in_array($class, self::STANDALONE_CHART_WIDGETS, true)) {
+                return true;
+            }
+
+            if ($class === $insights) {
+                $insightsCount++;
             }
 
             if (array_key_exists($class, self::LEGACY_WIDGET_MAP) && self::LEGACY_WIDGET_MAP[$class] !== $class) {
@@ -188,7 +244,7 @@ final class DashboardPreferencesService
             }
         }
 
-        return false;
+        return $insightsCount > 1;
     }
 
     public function isCompact(?User $user): bool
@@ -213,40 +269,8 @@ final class DashboardPreferencesService
                     return;
                 }
 
-                $migrated = false;
-                $newWidgets = [];
-
-                foreach ($saved as $class) {
-                    if (! is_string($class)) {
-                        $migrated = true;
-                        continue;
-                    }
-
-                    $mapped = self::LEGACY_WIDGET_MAP[$class] ?? $class;
-
-                    if ($mapped === null || ! class_exists($mapped)) {
-                        $migrated = true;
-                        continue;
-                    }
-
-                    if (! in_array($mapped, $newWidgets, true)) {
-                        $newWidgets[] = $mapped;
-                    }
-
-                    if ($mapped !== $class) {
-                        $migrated = true;
-                    }
-                }
-
-                $newWidgets = array_values(array_intersect(
-                    $newWidgets,
-                    StaffCapability::for($user)->allowedDashboardWidgets(),
-                ));
-
-                if ($newWidgets === []) {
-                    $newWidgets = StaffCapability::for($user)->allowedDashboardWidgets();
-                    $migrated = true;
-                }
+                $newWidgets = $this->normalizeWidgetListFor($user, $saved);
+                $migrated = $newWidgets !== $saved || $this->prefsNeedLegacyStrip($saved);
 
                 if ($migrated) {
                     $prefs['widgets'] = $newWidgets;

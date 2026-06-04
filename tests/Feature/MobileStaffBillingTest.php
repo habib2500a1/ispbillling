@@ -10,6 +10,7 @@ use App\Models\Tenant;
 use App\Models\User;
 use App\Services\Mobile\StaffBillingMobileService;
 use App\Services\Mobile\StaffMobileService;
+use App\Support\TenantResolver;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
 use Spatie\Permission\Models\Role;
@@ -18,6 +19,14 @@ use Tests\TestCase;
 class MobileStaffBillingTest extends TestCase
 {
     use RefreshDatabase;
+
+    private function createTenant(string $name, string $slug): Tenant
+    {
+        $tenant = Tenant::query()->create(['name' => $name, 'slug' => $slug, 'is_active' => true]);
+        TenantResolver::fake($tenant->id);
+
+        return $tenant;
+    }
 
     private function staffUser(Tenant $tenant): User
     {
@@ -110,7 +119,7 @@ class MobileStaffBillingTest extends TestCase
 
     public function test_billing_summary_matches_dashboard(): void
     {
-        $tenant = Tenant::query()->create(['name' => 'Billing ISP', 'slug' => 'billing-isp', 'is_active' => true]);
+        $tenant = $this->createTenant('Billing ISP', 'billing-isp');
         $user = $this->staffUser($tenant);
         $this->seedBillingScenario($tenant);
 
@@ -126,7 +135,7 @@ class MobileStaffBillingTest extends TestCase
 
     public function test_billing_due_list_returns_customer_with_balance(): void
     {
-        $tenant = Tenant::query()->create(['name' => 'Due ISP', 'slug' => 'due-isp', 'is_active' => true]);
+        $tenant = $this->createTenant('Due ISP', 'due-isp');
         $user = $this->staffUser($tenant);
         $seed = $this->seedBillingScenario($tenant);
 
@@ -141,7 +150,7 @@ class MobileStaffBillingTest extends TestCase
 
     public function test_billing_invoices_filters_due_and_paid(): void
     {
-        $tenant = Tenant::query()->create(['name' => 'Inv ISP', 'slug' => 'inv-isp', 'is_active' => true]);
+        $tenant = $this->createTenant('Inv ISP', 'inv-isp');
         $user = $this->staffUser($tenant);
         $this->seedBillingScenario($tenant);
 
@@ -157,7 +166,7 @@ class MobileStaffBillingTest extends TestCase
 
     public function test_billing_collections_lists_payment(): void
     {
-        $tenant = Tenant::query()->create(['name' => 'Col ISP', 'slug' => 'col-isp', 'is_active' => true]);
+        $tenant = $this->createTenant('Col ISP', 'col-isp');
         $user = $this->staffUser($tenant);
         $this->seedBillingScenario($tenant);
 
@@ -173,13 +182,17 @@ class MobileStaffBillingTest extends TestCase
 
     public function test_staff_can_record_payment_via_api(): void
     {
-        $tenant = Tenant::query()->create(['name' => 'Pay ISP', 'slug' => 'pay-isp', 'is_active' => true]);
+        $tenant = $this->createTenant('Pay ISP', 'pay-isp');
         $user = $this->staffUser($tenant);
         $seed = $this->seedBillingScenario($tenant);
 
         Sanctum::actingAs($user, ['staff']);
 
-        $invoice = Invoice::query()->where('customer_id', $seed['dueCustomer']->id)->first();
+        $invoice = Invoice::query()
+            ->withoutGlobalScopes()
+            ->where('customer_id', $seed['dueCustomer']->id)
+            ->first();
+        $this->assertNotNull($invoice);
 
         $response = $this->postJson('/api/v1/staff/payments', [
             'customer_id' => $seed['dueCustomer']->id,
@@ -199,7 +212,7 @@ class MobileStaffBillingTest extends TestCase
 
     public function test_customer_search_includes_balance_due(): void
     {
-        $tenant = Tenant::query()->create(['name' => 'Search ISP', 'slug' => 'search-isp', 'is_active' => true]);
+        $tenant = $this->createTenant('Search ISP', 'search-isp');
         $user = $this->staffUser($tenant);
         $this->seedBillingScenario($tenant);
 
@@ -221,7 +234,7 @@ class MobileStaffBillingTest extends TestCase
 
     public function test_staff_can_extend_service_via_api(): void
     {
-        $tenant = Tenant::query()->create(['name' => 'Ext ISP', 'slug' => 'ext-isp', 'is_active' => true]);
+        $tenant = $this->createTenant('Ext ISP', 'ext-isp');
         $user = $this->staffUser($tenant);
         $seed = $this->seedBillingScenario($tenant);
         $customer = $seed['dueCustomer'];
@@ -239,7 +252,7 @@ class MobileStaffBillingTest extends TestCase
 
     public function test_due_list_includes_mobile_card_fields(): void
     {
-        $tenant = Tenant::query()->create(['name' => 'Due ISP', 'slug' => 'due-isp', 'is_active' => true]);
+        $tenant = $this->createTenant('Due ISP', 'due-isp');
         $user = $this->staffUser($tenant);
         $this->seedBillingScenario($tenant);
 

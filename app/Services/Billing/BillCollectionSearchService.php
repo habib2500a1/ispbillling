@@ -11,6 +11,7 @@ use App\Models\Invoice;
 use App\Models\Payment;
 use App\Services\Network\CustomerConnectionStatusService;
 use App\Support\CustomerSearchPresenter;
+use App\Support\PaymentCollectionSource;
 use App\Support\PaymentType;
 use Illuminate\Support\Collection;
 
@@ -19,6 +20,7 @@ final class BillCollectionSearchService
     public function __construct(
         private readonly CustomerConnectionStatusService $connectionStatus,
         private readonly CustomerSearchPresenter $searchPresenter,
+        private readonly SubscriberBillingStatementService $statements,
     ) {}
     /**
      * @return Collection<int, array<string, mixed>>
@@ -32,11 +34,16 @@ final class BillCollectionSearchService
 
         $digits = preg_replace('/\D+/', '', $query) ?? '';
         $like = '%'.$query.'%';
+        $numericId = ctype_digit($query) ? (int) $query : 0;
 
         $customers = Customer::query()
             ->with(['area', 'zone', 'subzone', 'package'])
-            ->where(function ($w) use ($query, $like, $digits): void {
-                $w->where('customer_code', 'like', $like)
+            ->where(function ($w) use ($query, $like, $digits, $numericId): void {
+                if ($numericId > 0) {
+                    $w->where('id', $numericId);
+                }
+
+                $w->orWhere('customer_code', 'like', $like)
                     ->orWhere('name', 'like', $like)
                     ->orWhere('email', 'like', $like)
                     ->orWhere('address', 'like', $like)
@@ -60,18 +67,21 @@ final class BillCollectionSearchService
             })
             ->limit($limit * 2)
             ->get()
-            ->sortBy(function (Customer $customer) use ($query): int {
-                if (strcasecmp((string) $customer->customer_code, $query) === 0) {
+            ->sortBy(function (Customer $customer) use ($query, $numericId): int {
+                if ($numericId > 0 && (int) $customer->id === $numericId) {
                     return 0;
                 }
-                if (str_starts_with(strtolower((string) $customer->customer_code), strtolower($query))) {
+                if (strcasecmp((string) $customer->customer_code, $query) === 0) {
                     return 1;
                 }
-                if (str_contains(strtolower((string) $customer->name), strtolower($query))) {
+                if (str_starts_with(strtolower((string) $customer->customer_code), strtolower($query))) {
                     return 2;
                 }
+                if (str_contains(strtolower((string) $customer->name), strtolower($query))) {
+                    return 3;
+                }
 
-                return 3;
+                return 4;
             })
             ->take($limit);
 
@@ -159,28 +169,26 @@ final class BillCollectionSearchService
         if ($detailed) {
             $row['invoices'] = $openInvoices->map(fn (Invoice $inv): array => $this->invoiceRow($inv))->values()->all();
 
-            $allInvoices = Invoice::withoutGlobalScopes()
-                ->where('customer_id', $customer->id)
-                ->orderByDesc('issue_date')
-                ->orderByDesc('id')
-                ->limit(30)
-                ->get();
+            $row['bill_history'] = $this->statements->invoiceHistoryRows($customer);
 
-            $row['bill_history'] = $allInvoices
-                ->map(fn (Invoice $inv): array => $this->invoiceRow($inv))
-                ->values()
-                ->all();
+            $row['collection_history'] = $this->statements->paymentHistoryRows($customer, 'all');
 
-            $row['collection_history'] = Payment::query()
+            $row['collection_history_legacy_portal'] = $this->statements->paymentHistoryRows($customer, 'legacy_portal');
+
+            $payments = Payment::query()
                 ->where('customer_id', $customer->id)
-                ->with(['invoice:id,invoice_number', 'recorder:id,name'])
                 ->orderByDesc('paid_at')
-                ->orderByDesc('id')
-                ->limit(40)
-                ->get()
-                ->map(fn (Payment $payment): array => $this->paymentRow($payment))
-                ->values()
-                ->all();
+                ->limit($this->statements->paymentHistoryLimit())
+                ->get();
+            $legacyPortalOnly = PaymentCollectionSource::filterLegacyPortalParity($payments);
+            $localOnly = PaymentCollectionSource::filterLocalOnly($payments);
+
+            $row['collection_sync'] = [
+                'legacy_portal_count' => count($legacyPortalOnly),
+                'local_only_count' => count($localOnly),
+                'show_legacy_portal_hint' => \App\Support\LegacyPortalSource::isImportedSource($customer->import_source)
+                    && count($localOnly) > 0,
+            ];
         }
 
         return $row;
@@ -191,19 +199,7 @@ final class BillCollectionSearchService
      */
     private function invoiceRow(Invoice $inv): array
     {
-        return [
-            'id' => $inv->id,
-            'invoice_number' => $inv->invoice_number,
-            'issue_date' => $inv->issue_date?->toDateString(),
-            'due_date' => $inv->due_date?->toDateString(),
-            'total' => round((float) $inv->total, 2),
-            'amount_paid' => round((float) $inv->amount_paid, 2),
-            'balance_due' => $inv->balanceDue(),
-            'status' => $inv->status,
-            'is_overdue' => $inv->isOverdue(),
-            'edit_url' => InvoiceResource::getUrl('edit', ['record' => $inv]),
-            'pdf_url' => route('invoices.pdf', $inv),
-        ];
+        return $this->statements->invoiceRow($inv);
     }
 
     /**
@@ -211,26 +207,17 @@ final class BillCollectionSearchService
      */
     private function paymentRow(Payment $payment): array
     {
-        return [
-            'id' => $payment->id,
-            'receipt_number' => $payment->receipt_number,
-            'paid_at' => $payment->paid_at?->format('Y-m-d H:i') ?? '—',
-            'amount' => round((float) $payment->amount, 2),
-            'method' => $payment->methodLabel(),
-            'status' => $payment->status,
-            'payment_type' => $payment->typeLabel(),
-            'invoice_id' => $payment->invoice_id,
-            'invoice_number' => $payment->invoice?->invoice_number,
-            'recorded_by' => $payment->recorder?->name ?? '—',
+        $row = $this->statements->paymentRow($payment);
+
+        return array_merge($row, [
             'recorded_by_id' => $payment->recorded_by,
             'reference' => $payment->reference,
             'notes' => $payment->notes,
-            'receipt_url' => route('payments.receipt', $payment),
             'edit_url' => PaymentResource::getUrl('edit', ['record' => $payment]),
             'can_correct' => $payment->status === 'completed'
                 && in_array($payment->payment_type ?? PaymentType::PAYMENT, [PaymentType::PAYMENT, PaymentType::WALLET_APPLY], true),
             'can_void' => app(PaymentVoidService::class)->canVoid($payment),
             'is_void' => $payment->status === 'void',
-        ];
+        ]);
     }
 }

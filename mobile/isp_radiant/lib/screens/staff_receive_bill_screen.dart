@@ -5,7 +5,6 @@ import '../services/api_service.dart';
 import '../theme/app_theme.dart';
 import '../utils/app_nav.dart';
 import '../widgets/payment_success_sheet.dart';
-import '../widgets/isp_ui_kit.dart';
 import '../widgets/staff_blue_app_bar.dart';
 
 /// Reference "Receive Bill" screen — client card, payment method, summary grid, submit.
@@ -144,7 +143,6 @@ class _StaffReceiveBillScreenState extends State<StaffReceiveBillScreen> {
     final gross = _payable;
 
     return Scaffold(
-      backgroundColor: IspUiKit.panelBg,
       appBar: const StaffBlueAppBar(title: 'Receive Bill'),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
@@ -368,9 +366,12 @@ class _StaffReceiveBillScreenState extends State<StaffReceiveBillScreen> {
 
   Widget _sectionCard({required Widget child, Color? color}) {
     return Card(
-      elevation: 1,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      color: color ?? const Color(0xFFE3F2FD),
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(color: Theme.of(context).colorScheme.outline),
+      ),
+      color: color ?? Theme.of(context).colorScheme.surface,
       child: Padding(padding: const EdgeInsets.all(14), child: child),
     );
   }

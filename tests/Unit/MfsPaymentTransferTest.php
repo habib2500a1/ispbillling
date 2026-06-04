@@ -84,6 +84,7 @@ final class MfsPaymentTransferTest extends TestCase
         $payment = Payment::createTrusted([
             'tenant_id' => 1,
             'customer_id' => $wrong->id,
+            'invoice_id' => $invoiceWrong->id,
             'amount' => 500,
             'method' => PaymentGateway::BKASH,
             'gateway' => PaymentGateway::BKASH,
@@ -106,6 +107,7 @@ final class MfsPaymentTransferTest extends TestCase
         $this->assertSame($wrong->id, $moved->meta['transferred_from_customer_id']);
 
         $this->assertLessThan(0.02, (float) $invoiceWrong->fresh()->amount_paid);
-        $this->assertGreaterThan(0, (float) $invoiceRight->fresh()->amount_paid);
+        $right->refresh();
+        $this->assertGreaterThan(0, (float) $right->account_balance);
     }
 }

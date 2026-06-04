@@ -1,7 +1,4 @@
 <?php
 
-return [
-    'base_url' => rtrim((string) env('ISP_DIGITAL_URL', 'https://pay.anetbd.com'), '/'),
-    'username' => (string) env('ISP_DIGITAL_USERNAME', 'admin'),
-    'password' => (string) env('ISP_DIGITAL_PASSWORD', ''),
-];
+/** @deprecated Use config/legacy_portal.php — kept so cached config references keep working. */
+return require __DIR__.'/legacy_portal.php';

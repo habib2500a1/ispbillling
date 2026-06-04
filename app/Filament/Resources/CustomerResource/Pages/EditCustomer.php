@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\CustomerResource\Pages;
 
+use App\Filament\Concerns\HandlesStrayChartPolls;
 use App\Filament\Resources\CustomerResource;
 use App\Filament\Resources\CustomerResource\Pages\Concerns\HasMobileSubscriberFormLayout;
 use App\Models\Customer;
@@ -15,6 +16,7 @@ use Filament\Resources\Pages\EditRecord;
 
 class EditCustomer extends EditRecord
 {
+    use HandlesStrayChartPolls;
     use HasMobileSubscriberFormLayout;
 
     protected static string $resource = CustomerResource::class;

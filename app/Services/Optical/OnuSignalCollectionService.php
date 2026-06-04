@@ -5,6 +5,7 @@ namespace App\Services\Optical;
 use App\Models\Device;
 use App\Models\OnuSignalLog;
 use App\Services\Network\GponIntelligenceService;
+use App\Support\OnuEnvironmentalMetrics;
 use App\Support\OnuSignalLevel;
 use Carbon\Carbon;
 
@@ -40,7 +41,7 @@ final class OnuSignalCollectionService
             $olt->onus()
                 ->withoutGlobalScopes()
                 ->where('tenant_id', $tenantId)
-                ->select(['id', 'rx_power_dbm', 'tx_power_dbm', 'onu_oper_status', 'olt_id', 'tenant_id', 'type'])
+                ->select(['id', 'rx_power_dbm', 'tx_power_dbm', 'onu_oper_status', 'olt_id', 'tenant_id', 'type', 'meta'])
                 ->chunkById(50, function ($onus) use ($now, &$logged, &$alertCount): void {
                     foreach ($onus as $onu) {
                         if ($onu->rx_power_dbm === null && $onu->tx_power_dbm === null) {
@@ -93,6 +94,7 @@ final class OnuSignalCollectionService
         $tx = $onu->tx_power_dbm !== null ? (float) $onu->tx_power_dbm : null;
         $oper = strtolower((string) ($onu->onu_oper_status ?? 'unknown'));
         $rxLevel = OnuSignalLevel::classifyRx($rx, $oper);
+        $env = OnuEnvironmentalMetrics::fromDevice($onu);
 
         OnuSignalLog::query()->create([
             'tenant_id' => $onu->tenant_id,
@@ -103,6 +105,8 @@ final class OnuSignalCollectionService
             'tx_power_dbm' => $tx,
             'raw_rx_power_dbm' => $rx,
             'raw_tx_power_dbm' => $tx,
+            'temperature_c' => $env['temperature_c'],
+            'voltage_v' => $env['voltage_v'],
             'rx_level' => $rxLevel,
             'tx_level' => OnuSignalLevel::classifyTx($tx),
             'onu_oper_status' => $oper,

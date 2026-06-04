@@ -4,6 +4,7 @@ namespace App\Services\Mikrotik;
 
 use App\Models\Customer;
 use App\Models\MikrotikSessionAlert;
+use App\Services\Import\LegacyPortalOverdueEvaluator;
 use App\Support\CustomerPppLoginResolver;
 use App\Support\CustomerStatus;
 final class MikrotikSessionIntegrityService
@@ -77,7 +78,7 @@ final class MikrotikSessionIntegrityService
                     }
                 }
 
-                if ($this->networkAccess->hasOverdueOpenBalance($customer)
+                if ($this->shouldRaiseOverdueOnlineAlert($customer)
                     && CustomerStatus::normalize((string) $customer->status) === CustomerStatus::ACTIVE
                     && ($customer->network_access_state ?? 'active') === 'active') {
                     $fp = $this->fingerprint(MikrotikSessionAlert::TYPE_OVERDUE_ONLINE, $login, $customer->id);
@@ -98,6 +99,15 @@ final class MikrotikSessionIntegrityService
             'alerts_resolved' => $resolved,
             'sessions' => count($sessions),
         ];
+    }
+
+    private function shouldRaiseOverdueOnlineAlert(Customer $customer): bool
+    {
+        if (\App\Support\LegacyPortalSource::isImportedSource($customer->import_source ?? null)) {
+            return app(LegacyPortalOverdueEvaluator::class)->shouldAlertOverdueOnlineSession($customer);
+        }
+
+        return $this->networkAccess->hasOverdueOpenBalance($customer);
     }
 
     private function fingerprint(string $type, string $login, ?int $customerId): string

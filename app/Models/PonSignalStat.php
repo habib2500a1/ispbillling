@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Concerns\BelongsToTenant;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -49,5 +50,20 @@ class PonSignalStat extends Model
     public function oltPort(): BelongsTo
     {
         return $this->belongsTo(OltPort::class);
+    }
+
+    /**
+     * Keep only the newest poll row per OLT card/PON (avoids duplicate history in NOC tables).
+     */
+    public function scopeLatestPerPort(Builder $query, int $tenantId): Builder
+    {
+        $table = $query->getModel()->getTable();
+
+        return $query->whereIn($table.'.id', function ($sub) use ($tenantId, $table): void {
+            $sub->selectRaw('MAX(id)')
+                ->from($table)
+                ->where('tenant_id', $tenantId)
+                ->groupBy('olt_id', 'card_no', 'pon_no');
+        });
     }
 }

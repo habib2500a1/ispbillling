@@ -175,6 +175,7 @@ final class ReportsSidebarRegistry
             'monthly' => BillingReports::canAccess(),
             'gateway' => GatewayReconciliationReport::canAccess(),
             'btrc' => BtrcReport::canAccess(),
+            'payment_reports' => PaymentsReport::canAccess(),
             default => PaymentsReport::canAccess(),
         };
     }

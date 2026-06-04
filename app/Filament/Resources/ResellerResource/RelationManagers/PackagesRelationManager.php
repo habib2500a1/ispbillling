@@ -15,7 +15,7 @@ class PackagesRelationManager extends RelationManager
 {
     protected static string $relationship = 'resellerPackages';
 
-    protected static ?string $title = 'Packages & selling price';
+    protected static ?string $title = 'Packages & reseller rate';
 
     protected static ?string $icon = 'heroicon-o-currency-dollar';
 
@@ -31,12 +31,20 @@ class PackagesRelationManager extends RelationManager
                             ->where('reseller_id', $reseller->id)
                             ->pluck('package_id');
 
-                        return Package::query()
+                        $query = Package::query()
                             ->where('tenant_id', $reseller->tenant_id)
-                            ->where('is_active', true)
-                            ->when($assigned->isNotEmpty(), fn ($q) => $q->whereNotIn('id', $assigned))
+                            ->where('is_active', true);
+
+                        if ($assigned->isNotEmpty()) {
+                            $query->whereNotIn('id', $assigned);
+                        }
+
+                        return $query
                             ->orderBy('name')
-                            ->pluck('name', 'id')
+                            ->get()
+                            ->mapWithKeys(fn (Package $package): array => [
+                                $package->id => $package->adminSelectLabel(),
+                            ])
                             ->all();
                     })
                     ->searchable()
@@ -44,24 +52,27 @@ class PackagesRelationManager extends RelationManager
                     ->required()
                     ->disabled(fn (?ResellerPackage $record): bool => $record !== null)
                     ->dehydrated(fn (?ResellerPackage $record): bool => $record === null)
-                    ->live()
-                    ->afterStateUpdated(function (Get $get, Forms\Set $set): void {
+                    ->live(),
+                Forms\Components\Placeholder::make('customer_bill_price')
+                    ->label('Customer bill price')
+                    ->content(function (Get $get): string {
                         $packageId = $get('package_id');
                         if (! $packageId) {
-                            return;
+                            return 'Select a package — subscriber bills use the package list price (e.g. 500 BDT).';
                         }
-                        $base = Package::query()->find($packageId)?->price_monthly;
-                        if ($base !== null && blank($get('selling_price'))) {
-                            $set('selling_price', $base);
-                        }
+                        $price = Package::query()->find($packageId)?->price_monthly;
+
+                        return $price !== null
+                            ? number_format((float) $price, 2).' BDT / month (auto on subscriber invoice)'
+                            : '—';
                     }),
-                Forms\Components\TextInput::make('selling_price')
-                    ->label('Selling price (BDT)')
+                Forms\Components\TextInput::make('wholesale_price')
+                    ->label('Reseller rate (admin)')
                     ->numeric()
                     ->required()
                     ->minValue(0)
                     ->suffix('BDT')
-                    ->helperText('Price this reseller charges subscribers for this package.'),
+                    ->helperText('What this reseller pays you per active subscriber for this package (e.g. 200 BDT).'),
                 Forms\Components\Toggle::make('is_active')
                     ->label('Active')
                     ->default(true),
@@ -77,15 +88,24 @@ class PackagesRelationManager extends RelationManager
                     ->searchable()
                     ->sortable()
                     ->weight('bold'),
+                Tables\Columns\TextColumn::make('package.mikrotik_profile_name')
+                    ->label('Profile code')
+                    ->fontFamily('mono')
+                    ->placeholder('—')
+                    ->toggleable(),
                 Tables\Columns\TextColumn::make('package.download_mbps')
                     ->label('Speed')
                     ->suffix(' Mbps'),
                 Tables\Columns\TextColumn::make('package.price_monthly')
-                    ->label('Base price')
-                    ->money('BDT'),
-                Tables\Columns\TextColumn::make('selling_price')
-                    ->label('Reseller selling price')
+                    ->label('Customer bill')
                     ->money('BDT')
+                    ->description('Auto on invoice'),
+                Tables\Columns\TextColumn::make('wholesale_price')
+                    ->label('Reseller rate')
+                    ->money('BDT')
+                    ->placeholder(fn (ResellerPackage $record): string => $record->selling_price > 0
+                        ? number_format((float) $record->selling_price, 2).' (legacy)'
+                        : '—')
                     ->sortable(),
                 Tables\Columns\IconColumn::make('is_active')->boolean()->label('Active'),
             ])
@@ -97,6 +117,7 @@ class PackagesRelationManager extends RelationManager
                         $reseller = $this->getOwnerRecord();
                         $data['tenant_id'] = $reseller->tenant_id;
                         $data['reseller_id'] = $reseller->id;
+                        $data['selling_price'] = 0;
 
                         return $data;
                     }),
@@ -106,6 +127,6 @@ class PackagesRelationManager extends RelationManager
                 Tables\Actions\DeleteAction::make()->label('Remove'),
             ])
             ->emptyStateHeading('No packages assigned')
-            ->emptyStateDescription('Assign packages and set each reseller’s selling price. Until you assign any package, this reseller sees all active packages.');
+            ->emptyStateDescription('Assign packages and set the reseller rate (wholesale). Customer bills always use the package list price.');
     }
 }

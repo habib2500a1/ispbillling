@@ -1,0 +1,646 @@
+/**
+ * Aurora ISP admin — Mobile dock & hub link cards
+ * @module admin/saas/05-mobile-dock.css
+ */
+    justify-content: space-around;
+    gap: 0.25rem;
+    padding: 0.35rem 0.5rem calc(0.35rem + env(safe-area-inset-bottom, 0px));
+    background: var(--isp-glass);
+    border-top: 1px solid rgba(148, 163, 184, 0.15);
+    backdrop-filter: blur(16px);
+    box-shadow: 0 -8px 30px rgba(15, 23, 42, 0.08);
+}
+
+.dark .isp-mobile-dock {
+    background: rgba(15, 23, 42, 0.92);
+    border-top-color: rgba(148, 163, 184, 0.1);
+}
+
+@media (min-width: 1024px) {
+    .isp-mobile-dock {
+        display: none;
+    }
+}
+
+.isp-mobile-dock-item {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.15rem;
+    min-width: 0;
+    padding: 0.4rem 0.25rem;
+    border-radius: 0.625rem;
+    font-size: 0.625rem;
+    font-weight: 600;
+    color: #64748b;
+    text-decoration: none;
+    transition: background 0.15s, color 0.15s;
+}
+
+.isp-mobile-dock-item:hover,
+.isp-mobile-dock-item--active {
+    background: rgba(13, 148, 136, 0.12);
+    color: var(--isp-primary-dark);
+}
+
+.dark .isp-mobile-dock-item {
+    color: #94a3b8;
+}
+
+.dark .isp-mobile-dock-item:hover,
+.dark .isp-mobile-dock-item--active {
+    color: #5eead4;
+    background: rgba(45, 212, 191, 0.15);
+}
+
+/* Mobile bottom bar (all admin pages) — matches mobile-dock.blade.php */
+.isp-mobile-bar {
+    position: fixed !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    width: 100%;
+    z-index: 55 !important;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    padding: 0.5rem 0.65rem calc(0.55rem + env(safe-area-inset-bottom, 0px));
+    margin: 0 !important;
+    inset-inline: 0;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.97) 0%, rgba(248, 250, 252, 0.98) 100%);
+    border-top: 1px solid rgba(148, 163, 184, 0.22);
+    backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+    box-shadow: 0 -10px 40px -8px rgba(15, 23, 42, 0.18);
+}
+
+.dark .isp-mobile-bar,
+[data-theme='dark'] .isp-mobile-bar {
+    background: linear-gradient(180deg, rgba(15, 23, 42, 0.96) 0%, rgba(11, 18, 32, 0.98) 100%);
+    border-top-color: rgba(71, 85, 105, 0.45);
+    box-shadow: 0 -12px 36px -6px rgba(0, 0, 0, 0.45);
+}
+
+@media (min-width: 1024px) {
+    .isp-mobile-bar {
+        display: none !important;
+    }
+}
+
+.isp-mobile-bar__search {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    width: 100%;
+    min-height: 2.5rem;
+    padding: 0.45rem 0.75rem;
+    border: 1px solid rgba(148, 163, 184, 0.35);
+    border-radius: 0.75rem;
+    background: #fff;
+    color: var(--isp-text);
+    font-size: 0.8125rem;
+    font-weight: 500;
+    text-align: left;
+    cursor: pointer;
+    transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.isp-mobile-bar__search:hover {
+    border-color: rgba(13, 148, 136, 0.45);
+    box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.12);
+}
+
+.dark .isp-mobile-bar__search,
+[data-theme='dark'] .isp-mobile-bar__search {
+    background: rgb(30 41 59);
+    border-color: rgba(71, 85, 105, 0.6);
+    color: #e2e8f0;
+}
+
+.isp-mobile-bar__search-icon {
+    display: flex;
+    color: var(--isp-primary);
+    flex-shrink: 0;
+}
+
+.isp-mobile-bar__search-text {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--isp-text-muted);
+}
+
+.isp-mobile-bar__nav {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+    gap: 0.35rem;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    padding-bottom: 0.05rem;
+}
+
+.isp-mobile-bar__nav::-webkit-scrollbar {
+    display: none;
+}
+
+.isp-mobile-bar__chip {
+    flex: 1 1 0;
+    flex-shrink: 0;
+    min-width: 3.1rem;
+    max-width: 4.5rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.12rem;
+    padding: 0.4rem 0.2rem;
+    overflow: hidden;
+    border: 1px solid transparent;
+    border-radius: 0.7rem;
+    background: #f1f5f9;
+    color: #475569;
+    font-size: 0.625rem;
+    font-weight: 700;
+    text-decoration: none;
+    cursor: pointer;
+    transition: transform 0.12s, box-shadow 0.12s, border-color 0.12s;
+}
+
+.isp-mobile-bar__chip:hover {
+    transform: translateY(-1px);
+}
+
+.isp-mobile-bar__chip--active {
+    box-shadow: 0 4px 14px -4px rgba(15, 23, 42, 0.25);
+    transform: translateY(-1px);
+}
+
+.isp-mobile-bar__chip-icon {
+    display: flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+}
+
+.isp-mobile-bar__chip-label {
+    display: block;
+    width: 100%;
+    max-width: 100%;
+    line-height: 1.1;
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex-shrink: 0;
+}
+
+.isp-mobile-bar--color .isp-mobile-bar__chip--home {
+    background: linear-gradient(145deg, #ccfbf1, #99f6e4);
+    color: #0f766e;
+    border-color: rgba(13, 148, 136, 0.25);
+}
+.isp-mobile-bar--color .isp-mobile-bar__chip--home.isp-mobile-bar__chip--active {
+    background: linear-gradient(145deg, #14b8a6, #0d9488);
+    color: #fff;
+}
+
+.isp-mobile-bar--color .isp-mobile-bar__chip--collect {
+    background: linear-gradient(145deg, #d1fae5, #a7f3d0);
+    color: #047857;
+    border-color: rgba(16, 185, 129, 0.25);
+}
+.isp-mobile-bar--color .isp-mobile-bar__chip--collect.isp-mobile-bar__chip--active {
+    background: linear-gradient(145deg, #10b981, #059669);
+    color: #fff;
+}
+
+.isp-mobile-bar--color .isp-mobile-bar__chip--users {
+    background: linear-gradient(145deg, #ede9fe, #ddd6fe);
+    color: #6d28d9;
+    border-color: rgba(139, 92, 246, 0.25);
+}
+.isp-mobile-bar--color .isp-mobile-bar__chip--users.isp-mobile-bar__chip--active {
+    background: linear-gradient(145deg, #8b5cf6, #7c3aed);
+    color: #fff;
+}
+
+.isp-mobile-bar--color .isp-mobile-bar__chip--sms {
+    background: linear-gradient(145deg, #ffedd5, #fed7aa);
+    color: #c2410c;
+    border-color: rgba(249, 115, 22, 0.25);
+}
+.isp-mobile-bar--color .isp-mobile-bar__chip--sms.isp-mobile-bar__chip--active {
+    background: linear-gradient(145deg, #f97316, #ea580c);
+    color: #fff;
+}
+
+.isp-mobile-bar--color .isp-mobile-bar__chip--net {
+    background: linear-gradient(145deg, #e0f2fe, #bae6fd);
+    color: #0369a1;
+    border-color: rgba(14, 165, 233, 0.25);
+}
+.isp-mobile-bar--color .isp-mobile-bar__chip--net.isp-mobile-bar__chip--active {
+    background: linear-gradient(145deg, #0ea5e9, #0284c7);
+    color: #fff;
+}
+
+.isp-mobile-bar__badge {
+    position: absolute;
+    top: -0.35rem;
+    right: -0.45rem;
+    min-width: 1.05rem;
+    height: 1.05rem;
+    padding: 0 0.2rem;
+    border-radius: 9999px;
+    background: #f59e0b;
+    color: #1c1917;
+    font-size: 0.58rem;
+    font-weight: 800;
+    line-height: 1.05rem;
+    text-align: center;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+}
+
+.isp-mobile-bar--color .isp-mobile-bar__chip--leads {
+    background: rgba(245, 158, 11, 0.18);
+    border-color: rgba(245, 158, 11, 0.35);
+}
+
+.isp-mobile-bar--color .isp-mobile-bar__chip--leads.isp-mobile-bar__chip--active {
+    background: rgba(245, 158, 11, 0.35);
+    border-color: rgba(245, 158, 11, 0.55);
+}
+
+.isp-mobile-bar--color .isp-mobile-bar__chip--menu {
+    background: linear-gradient(145deg, #f1f5f9, #e2e8f0);
+    color: #334155;
+    border-color: rgba(100, 116, 139, 0.25);
+}
+.isp-mobile-bar--color .isp-mobile-bar__chip--menu.isp-mobile-bar__chip--active {
+    background: linear-gradient(145deg, #475569, #334155);
+    color: #fff;
+}
+
+.dark .isp-mobile-bar--color .isp-mobile-bar__chip:not(.isp-mobile-bar__chip--active) {
+    opacity: 0.92;
+}
+
+.isp-mobile-bar__tools {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+}
+
+.isp-mobile-bar__pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    min-height: 2rem;
+    padding: 0.3rem 0.65rem;
+    border-radius: 999px;
+    border: 1px solid rgba(148, 163, 184, 0.3);
+    background: #fff;
+    font-size: 0.6875rem;
+    font-weight: 700;
+    color: #475569;
+    cursor: pointer;
+}
+
+.dark .isp-mobile-bar__pill,
+[data-theme='dark'] .isp-mobile-bar__pill {
+    background: rgb(30 41 59);
+    border-color: rgba(71, 85, 105, 0.55);
+    color: #cbd5e1;
+}
+
+.isp-mobile-bar__pill--theme {
+    background: linear-gradient(135deg, #fef3c7, #fde68a);
+    border-color: rgba(245, 158, 11, 0.35);
+    color: #92400e;
+}
+
+.dark .isp-mobile-bar__pill--theme {
+    background: linear-gradient(135deg, #422006, #78350f);
+    border-color: rgba(245, 158, 11, 0.35);
+    color: #fde68a;
+}
+
+.isp-mobile-bar__pill-icon {
+    display: flex;
+}
+
+.isp-mobile-bar__locales {
+    display: none !important;
+}
+
+.dark .isp-mobile-bar__locales,
+[data-theme='dark'] .isp-mobile-bar__locales {
+    background: rgb(30 41 59);
+    border-color: rgba(71, 85, 105, 0.5);
+}
+
+.isp-mobile-bar__locale {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 2rem;
+    min-height: 1.75rem;
+    padding: 0 0.4rem;
+    border-radius: 999px;
+    font-size: 0.625rem;
+    font-weight: 800;
+    text-decoration: none;
+    color: #64748b;
+}
+
+.isp-mobile-bar__locale--active {
+    background: var(--isp-primary);
+    color: #fff;
+}
+
+@media (max-width: 1023px) {
+    :root {
+        --isp-mobile-bar-height: 9.75rem;
+    }
+
+    .fi-main-ctn {
+        padding-bottom: calc(var(--isp-mobile-bar-height) + env(safe-area-inset-bottom, 0px)) !important;
+    }
+
+    .isp-hub-page {
+        padding-bottom: calc(var(--isp-mobile-bar-height) + 0.5rem + env(safe-area-inset-bottom, 0px));
+    }
+
+    /* Hub pages: use global fixed bar, not inline footer grid */
+    .isp-hub-footer {
+        display: none;
+    }
+
+    /* Keep both search bars on phones, but compact the topbar layout */
+    .isp-topbar-extras {
+        display: none !important;
+    }
+
+    .fi-topbar {
+        gap: 0.5rem;
+        min-height: 3.9rem;
+        padding-inline: 0.75rem !important;
+    }
+
+    .isp-topbar-mobile-logo {
+        display: flex;
+        align-items: center;
+        flex: 0 0 auto;
+        min-width: 0;
+        max-width: 6.5rem;
+    }
+
+    .isp-topbar-mobile-logo__link {
+        display: inline-flex;
+        align-items: center;
+        max-width: 100%;
+    }
+
+    .isp-topbar-mobile-logo__link img,
+    .isp-topbar-mobile-logo__link svg {
+        max-height: 2rem;
+        width: auto;
+    }
+
+    .fi-topbar .fi-global-search,
+    .fi-topbar .fi-global-search-ctn,
+    .fi-topbar .fi-global-search-field {
+        display: flex !important;
+        flex: 1 1 auto;
+        min-width: 0;
+        max-width: none;
+    }
+
+    .fi-topbar [data-global-search-input],
+    .fi-topbar .fi-global-search-field input,
+    .fi-topbar .fi-input-wrp {
+        min-width: 0 !important;
+        width: 100% !important;
+        max-width: 100% !important;
+    }
+
+    .fi-topbar .fi-global-search-field {
+        width: 100%;
+    }
+
+    .fi-topbar [data-global-search-input] {
+        font-size: 0.85rem;
+    }
+
+    .isp-mobile-bar {
+        gap: 0.3rem;
+        padding: 0.4rem 0.55rem calc(0.45rem + env(safe-area-inset-bottom, 0px));
+    }
+
+    .isp-mobile-bar__chip,
+    .isp-mobile-bar__search,
+    .isp-mobile-bar__pill {
+        min-height: 44px;
+    }
+
+    .isp-mobile-bar__search {
+        min-height: 2.35rem;
+        padding: 0.4rem 0.7rem;
+        border-radius: 0.7rem;
+        font-size: 0.78rem;
+    }
+
+    .isp-mobile-bar__nav {
+        gap: 0.25rem;
+        overflow-x: auto;
+        scroll-snap-type: x proximity;
+    }
+
+    .isp-mobile-bar__chip {
+        min-width: 2.6rem;
+        max-width: 3.35rem;
+        padding: 0.35rem 0.15rem;
+        font-size: 0.56rem;
+        border-radius: 0.65rem;
+        scroll-snap-align: start;
+    }
+
+    .isp-mobile-bar__chip-icon {
+        transform: scale(0.92);
+    }
+
+    .isp-mobile-bar__chip-label {
+        line-height: 1.05;
+        font-size: 0.56rem;
+    }
+
+    .isp-mobile-bar__chip:hover {
+        transform: none;
+    }
+
+    .isp-mobile-bar__chip--active {
+        transform: none;
+    }
+
+    .isp-mobile-bar__tools {
+        gap: 0.35rem;
+    }
+
+    .isp-mobile-bar__pill {
+        min-height: 1.9rem;
+        padding: 0.25rem 0.55rem;
+        font-size: 0.625rem;
+    }
+
+    .isp-mobile-bar__locale {
+        min-width: 1.8rem;
+        min-height: 1.65rem;
+        font-size: 0.58rem;
+    }
+
+    body.isp-admin-sidebar-open .fi-sidebar,
+    body.isp-admin-sidebar-open .fi-main-sidebar .fi-sidebar {
+        overflow: hidden !important;
+    }
+
+    body.isp-admin-sidebar-open .fi-sidebar .fi-sidebar-header,
+    body.isp-admin-sidebar-open .fi-sidebar .isp-sidebar-toolbar,
+    body.isp-admin-sidebar-open .fi-sidebar .fi-sidebar-footer,
+    body.isp-admin-sidebar-open .fi-sidebar .isp-sidebar-footer {
+        flex-shrink: 0 !important;
+    }
+
+    body.isp-admin-sidebar-open .fi-sidebar .fi-sidebar-nav,
+    body.isp-admin-sidebar-open .fi-main-sidebar .fi-sidebar-nav {
+        flex: 1 1 auto !important;
+        min-height: 0 !important;
+        display: flex !important;
+        flex-direction: column !important;
+        overflow: hidden !important;
+        padding-bottom: 0.35rem;
+    }
+
+    body.isp-admin-sidebar-open .fi-sidebar .fi-sidebar-nav-groups,
+    body.isp-admin-sidebar-open .fi-sidebar .fi-sidebar-nav > div,
+    body.isp-admin-sidebar-open .fi-sidebar .fi-sidebar-nav > ul {
+        flex: 1 1 auto !important;
+        min-height: 0 !important;
+        max-height: none !important;
+        overflow-y: auto !important;
+        overflow-x: hidden !important;
+        -webkit-overflow-scrolling: touch !important;
+        overscroll-behavior: contain !important;
+        touch-action: pan-y !important;
+        padding-top: 0.35rem !important;
+        scroll-padding-bottom: calc(5rem + env(safe-area-inset-bottom, 0px)) !important;
+        padding-bottom: calc(5rem + env(safe-area-inset-bottom, 0px)) !important;
+        scrollbar-gutter: stable;
+    }
+
+    /* Mobile: keep exactly one scroll container inside sidebar */
+    body.isp-admin-sidebar-open .fi-sidebar .fi-sidebar-group.isp-sidebar-accordion-open > .fi-sidebar-group-items,
+    body.isp-admin-sidebar-open .fi-main-sidebar .fi-sidebar-group.isp-sidebar-accordion-open > .fi-sidebar-group-items {
+        max-height: none !important;
+        overflow: visible !important;
+        overscroll-behavior: auto !important;
+        scrollbar-width: none !important;
+        padding-bottom: 0 !important;
+    }
+
+    /*
+     * Filament modals use z-40; bottom bar is z-55 — bar was covering modal
+     * footers and stealing touch scroll on phones (e.g. Link SMS payment).
+     */
+    body:has(.fi-modal.fi-modal-open) .isp-mobile-bar {
+        display: none !important;
+    }
+
+    .fi-modal.fi-modal-open .fi-modal-close-overlay,
+    .fi-modal.fi-modal-open > div > .fixed.inset-0 {
+        z-index: 110 !important;
+    }
+
+    .fi-modal.fi-modal-open .fi-modal-window {
+        max-height: min(
+            92dvh,
+            calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 1.25rem)
+        );
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+        overscroll-behavior: contain;
+    }
+
+    .fi-modal.fi-modal-open .fi-modal-content {
+        touch-action: pan-y;
+    }
+
+    body:has(.fi-modal.fi-modal-open) .choices__list--dropdown {
+        z-index: 120 !important;
+    }
+}
+
+/* Hub link cards — force dark-friendly */
+.isp-hub-page .rounded-xl.border-gray-200.bg-white,
+.isp-hub-page .group.rounded-xl.border-gray-200.bg-white {
+    background: white;
+}
+
+.dark .isp-hub-page .rounded-xl.border-gray-200.bg-white,
+.dark .isp-hub-page .group.rounded-xl.border-gray-200.bg-white,
+[data-theme='dark'] .isp-hub-page .rounded-xl.border-gray-200.bg-white {
+    background: rgb(17 24 39) !important;
+    border-color: rgba(148, 163, 184, 0.12) !important;
+}
+
+.dark .isp-hub-page .text-gray-900,
+[data-theme='dark'] .isp-hub-page .font-semibold.text-gray-900 {
+    color: #f1f5f9 !important;
+}
+
+/* Responsive tables in custom pages */
+.isp-hub-page .overflow-x-auto {
+    -webkit-overflow-scrolling: touch;
+}
+
+.isp-hub-page table {
+    min-width: 100%;
+}
+
+@media (max-width: 640px) {
+    .fi-sidebar-open .fi-main {
+        margin-left: 0 !important;
+    }
+
+    .isp-hub-link,
+    .isp-module-card {
+        padding: 1rem;
+    }
+}
+
+/* Hub sections & quick nav */
+.isp-ops-section {
+    margin-bottom: 1.25rem;
+}
+
+.isp-ops-section-title {
+    margin-bottom: 0.65rem;
+    font-size: 0.6875rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #64748b;
+}
+
+.dark .isp-ops-section-title {
+    color: #94a3b8;
+}
+
+.isp-section-nav {

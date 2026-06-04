@@ -1,7 +1,20 @@
 import 'package:flutter/material.dart';
 
+import '../core/theme/design_tokens.dart';
+import '../core/widgets/skeleton.dart';
 import '../theme/app_theme.dart';
 import 'isp_ui_kit.dart';
+
+/// Shared premium loading placeholder (skeleton rows) — drop-in replacement for
+/// `Center(child: CircularProgressIndicator())` on list screens.
+class ListLoading extends StatelessWidget {
+  const ListLoading({super.key, this.count = 6, this.rowHeight = 84});
+  final int count;
+  final double rowHeight;
+
+  @override
+  Widget build(BuildContext context) => SkeletonList(count: count, rowHeight: rowHeight);
+}
 
 class ErrorBanner extends StatelessWidget {
   const ErrorBanner({super.key, required this.message, this.onRetry});
@@ -12,22 +25,24 @@ class ErrorBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: IspUiKit.cardDecoration(tint: const Color(0xFFFFF1F2)),
+      decoration: BoxDecoration(
+        color: DesignTokens.danger.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(DesignTokens.radius),
+        border: Border.all(color: DesignTokens.danger.withValues(alpha: 0.3)),
+      ),
       padding: const EdgeInsets.all(14),
       child: Row(
         children: [
-          const Icon(Icons.error_outline, color: AppTheme.danger),
+          const Icon(Icons.error_outline, color: DesignTokens.danger),
           const SizedBox(width: 12),
           Expanded(
-            child: Text(
-              message,
-              style: const TextStyle(color: Color(0xFF991B1B), fontWeight: FontWeight.w500),
-            ),
+            child: Text(message,
+                style: TextStyle(color: context.cs.onSurface, fontWeight: FontWeight.w500)),
           ),
           if (onRetry != null)
             TextButton(
               onPressed: onRetry,
-              style: TextButton.styleFrom(foregroundColor: AppTheme.danger),
+              style: TextButton.styleFrom(foregroundColor: DesignTokens.danger),
               child: const Text('Retry'),
             ),
         ],

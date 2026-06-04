@@ -30,15 +30,18 @@ class NetworkAccessSuspendTest extends TestCase
         ]);
 
         $customer = Customer::query()->create([
+            'tenant_id' => 1,
             'name' => 'Net Customer',
             'phone' => '01600000099',
             'status' => 'active',
             'billing_day' => 1,
             'package_id' => $package->id,
             'network_access_state' => 'active',
+            'grace_period_days' => 0,
         ]);
 
         Invoice::query()->create([
+            'tenant_id' => 1,
             'customer_id' => $customer->id,
             'issue_date' => now()->subDays(20)->toDateString(),
             'due_date' => now()->subDay()->toDateString(),
@@ -129,19 +132,22 @@ class NetworkAccessSuspendTest extends TestCase
         ]);
 
         $customer = Customer::query()->create([
+            'tenant_id' => 1,
             'name' => 'Net Customer C',
             'phone' => '01600000097',
             'status' => 'active',
             'billing_day' => 1,
             'package_id' => $package->id,
             'network_access_state' => 'active',
+            'grace_period_days' => 0,
             'meta' => ['auto_suspend' => true],
         ]);
 
         Invoice::query()->create([
+            'tenant_id' => 1,
             'customer_id' => $customer->id,
             'issue_date' => now()->toDateString(),
-            'due_date' => now()->addDays(10)->toDateString(),
+            'due_date' => now()->subDay()->toDateString(),
             'period_start' => now()->toDateString(),
             'period_end' => now()->addDays(30)->toDateString(),
             'subtotal' => 500,

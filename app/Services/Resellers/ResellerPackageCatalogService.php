@@ -2,13 +2,15 @@
 
 namespace App\Services\Resellers;
 
+use App\Models\Customer;
 use App\Models\Package;
 use App\Models\Reseller;
 use App\Models\ResellerPackage;
+use App\Services\Billing\PackagePriceResolver;
 use Illuminate\Database\Eloquent\Collection;
 
 /**
- * Which packages a reseller may sell and at what selling price (BDT).
+ * Packages a reseller may sell, customer bill price vs admin wholesale rate.
  */
 final class ResellerPackageCatalogService
 {
@@ -35,31 +37,53 @@ final class ResellerPackageCatalogService
         return $query->orderBy('name')->get();
     }
 
-    public function sellingPriceFor(Reseller $reseller, Package|int $package): ?float
+    public function assignmentFor(Reseller $reseller, Package|int $package): ?ResellerPackage
     {
         $packageId = $package instanceof Package ? (int) $package->id : $package;
 
-        $row = ResellerPackage::query()
+        return ResellerPackage::query()
             ->where('reseller_id', $reseller->id)
             ->where('package_id', $packageId)
             ->where('is_active', true)
             ->first();
+    }
 
-        if ($row !== null) {
-            return (float) $row->selling_price;
-        }
-
-        $assignedCount = ResellerPackage::query()
-            ->where('reseller_id', $reseller->id)
-            ->count();
-
-        if ($assignedCount > 0) {
+    /**
+     * Admin wholesale rate — what reseller pays admin per subscriber for this package.
+     */
+    public function wholesalePriceFor(Reseller $reseller, Package|int $package): ?float
+    {
+        $row = $this->assignmentFor($reseller, $package);
+        if ($row === null) {
             return null;
         }
 
-        $pkg = Package::withoutGlobalScopes()->find($packageId);
+        if ($row->wholesale_price !== null && (float) $row->wholesale_price > 0) {
+            return (float) $row->wholesale_price;
+        }
 
-        return $pkg !== null ? (float) $pkg->price_monthly : null;
+        // Legacy rows: selling_price was previously used as a custom rate field.
+        if ((float) $row->selling_price > 0) {
+            return (float) $row->selling_price;
+        }
+
+        return null;
+    }
+
+    /**
+     * Customer-facing monthly bill price (package list / zone / promo — not reseller wholesale).
+     */
+    public function customerBillPriceFor(Package $package, ?Customer $customer = null): float
+    {
+        return PackagePriceResolver::resolveBaseMonthlyPrice($package, $customer);
+    }
+
+    /** @deprecated Use wholesalePriceFor() or customerBillPriceFor() */
+    public function sellingPriceFor(Reseller $reseller, Package|int $package): ?float
+    {
+        return $this->customerBillPriceFor(
+            $package instanceof Package ? $package : Package::withoutGlobalScopes()->findOrFail($package),
+        );
     }
 
     public function resellerMaySellPackage(Reseller $reseller, int $packageId): bool
@@ -84,20 +108,23 @@ final class ResellerPackageCatalogService
     }
 
     /**
-     * @return list<array{id: int, name: string, price_monthly: float, selling_price: float}>
+     * @return list<array{id: int, name: string, price_monthly: float, customer_price: float, wholesale_price: ?float}>
      */
     public function portalPackageOptions(Reseller $reseller): array
     {
         $packages = $this->packagesForReseller($reseller, true);
 
         return $packages->map(function (Package $package) use ($reseller): array {
-            $selling = $this->sellingPriceFor($reseller, $package) ?? (float) $package->price_monthly;
+            $customerPrice = $this->customerBillPriceFor($package);
 
             return [
                 'id' => (int) $package->id,
                 'name' => (string) $package->name,
                 'price_monthly' => (float) $package->price_monthly,
-                'selling_price' => $selling,
+                'customer_price' => $customerPrice,
+                'wholesale_price' => $this->wholesalePriceFor($reseller, $package),
+                // Back-compat for older views
+                'selling_price' => $customerPrice,
             ];
         })->values()->all();
     }

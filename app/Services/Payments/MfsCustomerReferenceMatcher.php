@@ -67,13 +67,22 @@ final class MfsCustomerReferenceMatcher
             ];
         }
 
-        // Ref/Counter দেওয়া থাকলে ফোন দিয়ে অন্য ID-তে লাগানো যাবে না — admin assign বা pending।
-        if ($refIntent) {
+        if ($refIntent && $matches->count() > 1) {
             return [
                 'customer' => null,
                 'customers' => $matches->pluck('customer')->values()->all(),
                 'token' => $tokens[0] ?? null,
-                'matched_by' => $matches->count() > 1 ? 'sms_reference_ambiguous' : 'sms_reference_unmatched',
+                'matched_by' => 'sms_reference_ambiguous',
+                'candidates' => $tokens,
+            ];
+        }
+
+        if ($refIntent && $matches->isEmpty() && ! (bool) config('mfs_personal.sms_ingest.fallback_phone_when_ref_unmatched', true)) {
+            return [
+                'customer' => null,
+                'customers' => [],
+                'token' => $tokens[0] ?? null,
+                'matched_by' => 'sms_reference_unmatched',
                 'candidates' => $tokens,
             ];
         }

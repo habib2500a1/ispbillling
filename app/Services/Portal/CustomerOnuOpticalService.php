@@ -5,6 +5,7 @@ namespace App\Services\Portal;
 use App\Models\Customer;
 use App\Models\Device;
 use App\Support\OnuSignalLevel;
+use App\Support\SubscriberNetworkLabels;
 
 final class CustomerOnuOpticalService
 {
@@ -19,14 +20,21 @@ final class CustomerOnuOpticalService
                 ->withoutGlobalScopes()
                 ->where('type', 'onu')
                 ->where('customer_id', $customer->id)
-                ->with(['onuHealthScore:id,device_id,smoothed_rx_dbm,smoothed_tx_dbm,stability_score,fiber_health_score,health_score,root_cause_hint'])
+                ->with([
+                    'onuHealthScore:id,device_id,smoothed_rx_dbm,smoothed_tx_dbm,stability_score,fiber_health_score,health_score,root_cause_hint',
+                    'oltPort:id,device_id,card_index,pon_index,label',
+                    'olt:id,display_name,serial_number',
+                ])
                 ->first([
                     'id', 'customer_id', 'display_name', 'serial_number', 'mac_address', 'meta',
                     'onu_oper_status', 'rx_power_dbm', 'tx_power_dbm', 'last_polled_at',
+                    'olt_id', 'olt_port_id', 'card_no', 'pon_no', 'onu_index',
                 ]);
         } else {
-            $onu->loadMissing('onuHealthScore');
+            $onu->loadMissing(['onuHealthScore', 'oltPort', 'olt']);
         }
+
+        $customer->loadMissing('mikrotikServer');
 
         if ($onu === null) {
             return [
@@ -40,14 +48,28 @@ final class CustomerOnuOpticalService
         $oper = strtolower((string) ($onu->onu_oper_status ?? 'unknown'));
         $level = OnuSignalLevel::classifyRx($rx !== null ? (float) $rx : null, $oper);
         $health = $onu->onuHealthScore;
+        $meta = is_array($onu->meta) ? $onu->meta : [];
+        $linkedBy = (string) ($meta['linked_by'] ?? '');
 
         return [
             'linked' => true,
             'device_id' => $onu->id,
             'label' => $onu->display_name ?: $onu->serial_number,
+            'username' => $customer->pppLoginName(),
+            'port' => SubscriberNetworkLabels::ponPortLabel($onu, $customer),
+            'pon_port_name' => SubscriberNetworkLabels::ponPortLabel($onu, $customer),
+            'mikrotik_name' => SubscriberNetworkLabels::mikrotikName($customer),
+            'vlan' => SubscriberNetworkLabels::vlan($customer, $onu),
+            'detected_via' => $linkedBy,
+            'detected_label' => \App\Support\OnuLinkMethod::label($linkedBy),
+            'detected_auto' => \App\Support\OnuLinkMethod::isAuto($linkedBy),
             'mac' => $onu->mac_address,
             'serial' => $onu->serial_number,
-            'model' => is_array($onu->meta) ? ($onu->meta['model'] ?? $onu->meta['bdcom_label'] ?? null) : null,
+            'model' => $meta['model']
+                ?? ((($d = (string) ($meta['bdcom_description'] ?? '')) !== '' && ! \App\Support\BdcomOnuDescriptionHeuristic::isOltPlaceholderLabel($d)) ? $d : null),
+            'vendor' => \App\Support\MacVendor::lookup($onu->mac_address),
+            'distance_m' => isset($meta['bdcom_distance']) ? (int) $meta['bdcom_distance'] : (isset($meta['distance_m']) ? (int) $meta['distance_m'] : null),
+            'cust_mac_found' => isset($meta['fdb_synced_at']) ? \Illuminate\Support\Carbon::parse((string) $meta['fdb_synced_at'])->diffForHumans() : null,
             'oper_status' => $oper,
             'rx_dbm' => $rx !== null ? round((float) $rx, 2) : null,
             'tx_dbm' => $tx !== null ? round((float) $tx, 2) : null,

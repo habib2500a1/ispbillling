@@ -1,0 +1,180 @@
+/* WAN live chart — bandwidth monitor graphs tab */
+.isp-wan-chart-widget.fi-wi-chart {
+    --isp-wan-down: #0ea5e9;
+    --isp-wan-up: #f97316;
+}
+
+.isp-wan-chart {
+    background: var(--isp-card, #fff);
+    border: 1px solid var(--isp-card-border, rgba(148, 163, 184, 0.35));
+    border-radius: 1rem;
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06), 0 8px 24px rgba(15, 23, 42, 0.04);
+    padding: 1.1rem 1.15rem 1rem;
+    overflow: hidden;
+}
+
+.dark .isp-wan-chart {
+    background: rgb(17 24 39);
+    border-color: rgba(71, 85, 105, 0.55);
+    box-shadow: 0 8px 28px rgba(0, 0, 0, 0.35);
+}
+
+.isp-wan-chart__head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.85rem 1.25rem;
+    margin-bottom: 0.85rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid var(--isp-card-border, rgba(148, 163, 184, 0.25));
+}
+
+.isp-wan-chart__title-row {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.45rem 0.55rem;
+}
+
+.isp-wan-chart__icon {
+    width: 1.15rem;
+    height: 1.15rem;
+    color: var(--isp-wan-down);
+}
+
+.isp-wan-chart__title {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    color: var(--isp-text, #0f172a);
+}
+
+.dark .isp-wan-chart__title {
+    color: #f8fafc;
+}
+
+.isp-wan-chart__badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.15rem 0.45rem;
+    border-radius: 999px;
+    font-size: 0.62rem;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #047857;
+    background: rgba(16, 185, 129, 0.14);
+    border: 1px solid rgba(16, 185, 129, 0.35);
+}
+
+.dark .isp-wan-chart__badge {
+    color: #6ee7b7;
+    background: rgba(16, 185, 129, 0.12);
+}
+
+.isp-wan-chart__sub {
+    margin: 0.25rem 0 0;
+    font-size: 0.72rem;
+    line-height: 1.45;
+    color: var(--isp-text-muted, #64748b);
+    max-width: 36rem;
+}
+
+.isp-wan-chart__pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.isp-wan-chart__pill {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0.25rem;
+    padding: 0.45rem 0.75rem;
+    border-radius: 0.65rem;
+    font-variant-numeric: tabular-nums;
+    border: 1px solid transparent;
+}
+
+.isp-wan-chart__pill--down {
+    background: linear-gradient(135deg, rgba(14, 165, 233, 0.12), rgba(14, 165, 233, 0.04));
+    border-color: rgba(14, 165, 233, 0.28);
+    color: #0369a1;
+}
+
+.isp-wan-chart__pill--up {
+    background: linear-gradient(135deg, rgba(249, 115, 22, 0.12), rgba(249, 115, 22, 0.04));
+    border-color: rgba(249, 115, 22, 0.28);
+    color: #c2410c;
+}
+
+.dark .isp-wan-chart__pill--down {
+    color: #7dd3fc;
+    border-color: rgba(56, 189, 248, 0.35);
+}
+
+.dark .isp-wan-chart__pill--up {
+    color: #fdba74;
+    border-color: rgba(251, 146, 60, 0.35);
+}
+
+.isp-wan-chart__pill-value {
+    font-size: 1.15rem;
+    font-weight: 800;
+    line-height: 1;
+}
+
+.isp-wan-chart__pill-arrow {
+    font-size: 0.85rem;
+    font-weight: 700;
+}
+
+.isp-wan-chart__pill-unit {
+    font-size: 0.65rem;
+    font-weight: 700;
+    opacity: 0.85;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.isp-wan-chart__canvas-wrap {
+    position: relative;
+    min-height: 280px;
+}
+
+.isp-wan-chart__canvas {
+    height: 280px;
+    width: 100%;
+}
+
+.isp-wan-chart__canvas canvas {
+    width: 100% !important;
+    height: 100% !important;
+}
+
+@media (max-width: 640px) {
+    .isp-wan-chart {
+        padding: 0.85rem 0.75rem 0.75rem;
+    }
+
+    .isp-wan-chart__head {
+        flex-direction: column;
+    }
+
+    .isp-wan-chart__pills {
+        width: 100%;
+    }
+
+    .isp-wan-chart__pill {
+        flex: 1;
+        justify-content: center;
+    }
+
+    .isp-wan-chart__canvas-wrap,
+    .isp-wan-chart__canvas {
+        min-height: 220px;
+        height: 220px;
+    }
+}

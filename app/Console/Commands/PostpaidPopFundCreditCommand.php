@@ -14,7 +14,7 @@ class PostpaidPopFundCreditCommand extends Command
                             {--dry-run : Preview wallet applications only}
                             {--skip-suspend : Do not re-evaluate network access after apply}';
 
-    protected $description = 'Apply postpaid customer wallet to open invoices, then suspend still-unpaid (ISP Digital parity)';
+    protected $description = 'Apply postpaid customer wallet to open invoices, then suspend still-unpaid (legacy portal parity)';
 
     public function handle(
         PostpaidWalletAutoApplyService $walletApply,

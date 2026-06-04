@@ -11,14 +11,19 @@
             data: {
                 labels: @js($series['labels']),
                 datasets: [
-                    { label: 'RX dBm', data: @js($series['rx']), borderColor: '#10b981', tension: 0.3, spanGaps: true },
-                    { label: 'TX dBm', data: @js($series['tx']), borderColor: '#6366f1', tension: 0.3, spanGaps: true },
+                    { label: 'RX dBm', data: @js($series['rx']), borderColor: '#10b981', tension: 0.3, spanGaps: true, yAxisID: 'y' },
+                    { label: 'TX dBm', data: @js($series['tx']), borderColor: '#6366f1', tension: 0.3, spanGaps: true, yAxisID: 'y' },
+                    { label: 'Temp °C', data: @js($series['temperature'] ?? []), borderColor: '#f59e0b', tension: 0.3, spanGaps: true, yAxisID: 'y1', hidden: @js(collect($series['temperature'] ?? [])->filter()->isEmpty()) },
+                    { label: 'Voltage V', data: @js($series['voltage'] ?? []), borderColor: '#ec4899', tension: 0.3, spanGaps: true, yAxisID: 'y1', hidden: @js(collect($series['voltage'] ?? [])->filter()->isEmpty()) },
                 ],
             },
             options: {
                 responsive: true,
                 interaction: { mode: 'index', intersect: false },
-                scales: { y: { title: { display: true, text: 'dBm' } } },
+                scales: {
+                    y: { position: 'left', title: { display: true, text: 'dBm' } },
+                    y1: { position: 'right', grid: { drawOnChartArea: false }, title: { display: true, text: '°C / V' } },
+                },
             },
         });
     }

@@ -1,122 +1,24 @@
 @auth
-    @php
-        $onDashboard = request()->routeIs('filament.admin.pages.dashboard', 'filament.admin.pages.dashboard-hub');
-        $onSubscribers = request()->routeIs(
-            'filament.admin.pages.subscriber-lists-hub',
-            'filament.admin.resources.subscribers.*',
-        );
-        $onBilling = request()->routeIs(
-            'filament.admin.pages.bill-collection*',
-            'filament.admin.pages.billing-overview',
-            'filament.admin.pages.collector-mobile',
-        );
-        $onSms = request()->routeIs(
-            'filament.admin.pages.sms-gateway',
-            'filament.admin.pages.send-sms',
-            'filament.admin.pages.notifications-hub',
-            'filament.admin.pages.bulk-sms-campaign',
-            'filament.admin.pages.manage-notifications',
-            'filament.admin.resources.sms-delivery-reports.*',
-            'filament.admin.resources.notification-logs.*',
-        );
-        $onNetwork = request()->routeIs(
-            'filament.admin.pages.operations-hub',
-            'filament.admin.pages.network-intelligence-hub',
-            'filament.admin.pages.online-clients-monitoring',
-            'filament.admin.pages.optical-monitoring-hub',
-            'filament.admin.resources.mikrotik-servers.*',
-        );
-        $onConnections = request()->routeIs(
-            'filament.admin.resources.sales-leads.*',
-            'filament.admin.pages.sales-lead-pipeline',
-        );
-        $newConnections = \App\Models\SalesLead::query()->where('status', \App\Models\SalesLead::STATUS_NEW)->count();
-        $connectionsUrl = \App\Support\SalesLeadPanelAccess::canView()
-            ? \App\Filament\Resources\SalesLeadResource::getUrl()
-            : null;
-        $smsUrl = \App\Support\AdminNavUrl::for(\App\Filament\Pages\SmsGatewaySetup::class);
-        $networkUrl = \App\Support\AdminNavUrl::for(\App\Filament\Pages\OperationsHub::class);
-        $subscribersUrl = \App\Support\AdminNavUrl::for(\App\Filament\Pages\SubscriberListsHub::class);
-        $currentLocale = app()->getLocale();
-        $localeLabels = config('locales.labels', []);
-    @endphp
-
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            // Watch for sidebar open/close to sync body class
-            function syncSidebarBodyClass() {
-                if (!window.Alpine || !window.Alpine.store('sidebar')) return;
-                const open = window.Alpine.store('sidebar').isOpen;
-                const desktop = window.matchMedia('(min-width: 1024px)').matches;
-                document.body.classList.toggle('isp-admin-sidebar-open', !desktop && open);
-            }
-
-            if (window.Alpine && window.Alpine.store('sidebar')) {
-                window.Alpine.effect(() => {
-                    syncSidebarBodyClass();
-                });
-            }
-        });
-    </script>
-
-    <aside
-        class="isp-mobile-bar isp-mobile-bar--color"
-        aria-label="Mobile quick actions"
-        x-data="{
-            theme: window.ispGetTheme?.() || 'system',
-            setTheme(mode) {
-                window.ispSetTheme?.(mode);
-                this.theme = mode;
-            },
-            cycleTheme() {
-                const order = ['light', 'dark', 'system'];
-                const i = Math.max(0, order.indexOf(this.theme));
-                this.setTheme(order[(i + 1) % order.length]);
-            },
-            themeLabel() {
-                return { light: 'Light', dark: 'Dark', system: 'Auto' }[this.theme] || 'Theme';
-            },
-            syncSidebarBodyClass() {
-                const open = $store.sidebar.isOpen;
-                const desktop = window.matchMedia('(min-width: 1024px)').matches;
-                document.body.classList.toggle('isp-admin-sidebar-open', !desktop && open);
-                document.body.classList.toggle('isp-sidebar-desktop-collapsed', desktop && !open);
-                document.body.classList.toggle('isp-sidebar-desktop-expanded', desktop && open);
-            },
-        }"
-        x-init="
-            syncSidebarBodyClass();
-            $watch('$store.sidebar.isOpen', (isOpen) => {
-                syncSidebarBodyClass();
-                if (isOpen) {
-                    setTimeout(() => {
-                        const navGroups = document.querySelector('.fi-sidebar-nav-groups');
-                        if (navGroups) {
-                            navGroups.style.overflowY = 'auto';
-                            navGroups.style.webkitOverflowScrolling = 'touch';
-                        }
-                    }, 50);
-                }
-            });
-        "
-        @isp-theme-changed.window="theme = $event.detail.mode"
-    >
+    @php($dock = \App\Support\MobileDockPresenter::data())
+    <aside class="isp-mobile-bar isp-mobile-bar--color" aria-label="Mobile quick actions">
         <button
             type="button"
             class="isp-mobile-bar__search"
             title="Search subscribers"
-            @click.stop="window.dispatchEvent(new CustomEvent('isp-open-command-palette'))"
+            onclick="window.dispatchEvent(new CustomEvent('isp-open-command-palette'))"
         >
             <span class="isp-mobile-bar__search-icon" aria-hidden="true">
-                <x-filament::icon icon="heroicon-m-magnifying-glass" class="h-5 w-5" />
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" width="20" height="20" aria-hidden="true">
+                    <path fill-rule="evenodd" d="M9 3.5a5.5 5.5 0 1 0 0 11 5.5 5.5 0 0 0 0-11ZM2 9a7 7 0 1 1 12.452 4.391l3.328 3.329a.75.75 0 1 1-1.06 1.06l-3.329-3.328A7 7 0 0 1 2 9Z" clip-rule="evenodd" />
+                </svg>
             </span>
             <span class="isp-mobile-bar__search-text">Search ID, name, phone…</span>
         </button>
 
         <nav class="isp-mobile-bar__nav" aria-label="Quick navigation">
             <a
-                href="{{ \App\Filament\Pages\Dashboard::getUrl() }}"
-                class="isp-mobile-bar__chip isp-mobile-bar__chip--home {{ $onDashboard ? 'isp-mobile-bar__chip--active' : '' }}"
+                href="{{ $dock['dashboardUrl'] }}"
+                class="isp-mobile-bar__chip isp-mobile-bar__chip--home {{ $dock['onDashboard'] ? 'isp-mobile-bar__chip--active' : '' }}"
             >
                 <span class="isp-mobile-bar__chip-icon">
                     <x-filament::icon icon="heroicon-o-home" class="h-5 w-5" />
@@ -124,8 +26,8 @@
                 <span class="isp-mobile-bar__chip-label">Home</span>
             </a>
             <a
-                href="{{ \App\Filament\Pages\BillCollectionDesk::getUrl() }}"
-                class="isp-mobile-bar__chip isp-mobile-bar__chip--collect {{ $onBilling ? 'isp-mobile-bar__chip--active' : '' }}"
+                href="{{ $dock['billingUrl'] }}"
+                class="isp-mobile-bar__chip isp-mobile-bar__chip--collect {{ $dock['onBilling'] ? 'isp-mobile-bar__chip--active' : '' }}"
             >
                 <span class="isp-mobile-bar__chip-icon">
                     <x-filament::icon icon="heroicon-o-currency-bangladeshi" class="h-5 w-5" />
@@ -133,32 +35,32 @@
                 <span class="isp-mobile-bar__chip-label">Collect</span>
             </a>
             <a
-                href="{{ $subscribersUrl }}"
-                class="isp-mobile-bar__chip isp-mobile-bar__chip--users {{ $onSubscribers ? 'isp-mobile-bar__chip--active' : '' }}"
+                href="{{ $dock['subscribersUrl'] }}"
+                class="isp-mobile-bar__chip isp-mobile-bar__chip--users {{ $dock['onSubscribers'] ? 'isp-mobile-bar__chip--active' : '' }}"
             >
                 <span class="isp-mobile-bar__chip-icon">
                     <x-filament::icon icon="heroicon-o-users" class="h-5 w-5" />
                 </span>
                 <span class="isp-mobile-bar__chip-label">Users</span>
             </a>
-            @if ($connectionsUrl)
+            @if ($dock['connectionsUrl'])
                 <a
-                    href="{{ $connectionsUrl }}"
-                    class="isp-mobile-bar__chip isp-mobile-bar__chip--leads {{ $onConnections ? 'isp-mobile-bar__chip--active' : '' }}"
+                    href="{{ $dock['connectionsUrl'] }}"
+                    class="isp-mobile-bar__chip isp-mobile-bar__chip--leads {{ $dock['onConnections'] ? 'isp-mobile-bar__chip--active' : '' }}"
                     title="Portal new connection requests"
                 >
                     <span class="isp-mobile-bar__chip-icon" style="position:relative">
                         <x-filament::icon icon="heroicon-o-user-plus" class="h-5 w-5" />
-                        @if ($newConnections > 0)
-                            <span class="isp-mobile-bar__badge">{{ $newConnections > 9 ? '9+' : $newConnections }}</span>
+                        @if ($dock['newConnections'] > 0)
+                            <span class="isp-mobile-bar__badge">{{ $dock['newConnections'] > 9 ? '9+' : $dock['newConnections'] }}</span>
                         @endif
                     </span>
                     <span class="isp-mobile-bar__chip-label">Leads</span>
                 </a>
             @endif
             <a
-                href="{{ $smsUrl }}"
-                class="isp-mobile-bar__chip isp-mobile-bar__chip--sms {{ $onSms ? 'isp-mobile-bar__chip--active' : '' }}"
+                href="{{ $dock['smsUrl'] }}"
+                class="isp-mobile-bar__chip isp-mobile-bar__chip--sms {{ $dock['onSms'] ? 'isp-mobile-bar__chip--active' : '' }}"
             >
                 <span class="isp-mobile-bar__chip-icon">
                     <x-filament::icon icon="heroicon-o-chat-bubble-left-ellipsis" class="h-5 w-5" />
@@ -166,8 +68,8 @@
                 <span class="isp-mobile-bar__chip-label">SMS</span>
             </a>
             <a
-                href="{{ $networkUrl }}"
-                class="isp-mobile-bar__chip isp-mobile-bar__chip--net {{ $onNetwork ? 'isp-mobile-bar__chip--active' : '' }}"
+                href="{{ $dock['networkUrl'] }}"
+                class="isp-mobile-bar__chip isp-mobile-bar__chip--net {{ $dock['onNetwork'] ? 'isp-mobile-bar__chip--active' : '' }}"
             >
                 <span class="isp-mobile-bar__chip-icon">
                     <x-filament::icon icon="heroicon-o-signal" class="h-5 w-5" />
@@ -177,6 +79,17 @@
             <button
                 type="button"
                 class="isp-mobile-bar__chip isp-mobile-bar__chip--menu"
+                title="Full menu"
+                x-data="{
+                    syncSidebarBodyClass() {
+                        const open = $store.sidebar.isOpen;
+                        const desktop = window.matchMedia('(min-width: 1024px)').matches;
+                        document.body.classList.toggle('isp-admin-sidebar-open', !desktop && open);
+                        document.body.classList.toggle('isp-sidebar-desktop-collapsed', desktop && !open);
+                        document.body.classList.toggle('isp-sidebar-desktop-expanded', desktop && open);
+                    },
+                }"
+                x-init="syncSidebarBodyClass(); $watch('$store.sidebar.isOpen', () => syncSidebarBodyClass())"
                 x-on:click.stop="
                     if ($store.sidebar.isOpen) {
                         $store.sidebar.close();
@@ -188,7 +101,6 @@
                 "
                 :class="{ 'isp-mobile-bar__chip--active': $store.sidebar.isOpen }"
                 :aria-expanded="$store.sidebar.isOpen"
-                title="Full menu"
             >
                 <span class="isp-mobile-bar__chip-icon">
                     <x-filament::icon icon="heroicon-o-bars-3" class="h-5 w-5" />
@@ -197,7 +109,25 @@
             </button>
         </nav>
 
-        <div class="isp-mobile-bar__tools">
+        <div
+            class="isp-mobile-bar__tools"
+            x-data="{
+                theme: window.ispGetTheme?.() || 'system',
+                setTheme(mode) {
+                    window.ispSetTheme?.(mode);
+                    this.theme = mode;
+                },
+                cycleTheme() {
+                    const order = ['light', 'dark', 'system'];
+                    const i = Math.max(0, order.indexOf(this.theme));
+                    this.setTheme(order[(i + 1) % order.length]);
+                },
+                themeLabel() {
+                    return { light: 'Light', dark: 'Dark', system: 'Auto' }[this.theme] || 'Theme';
+                },
+            }"
+            @isp-theme-changed.window="theme = $event.detail.mode"
+        >
             <button
                 type="button"
                 class="isp-mobile-bar__pill isp-mobile-bar__pill--theme"
@@ -211,16 +141,6 @@
                 </span>
                 <span x-text="themeLabel()"></span>
             </button>
-
-            <div class="isp-mobile-bar__locales" role="group" aria-label="Language">
-                @foreach (config('locales.supported', ['en']) as $code)
-                    <a
-                        href="{{ route('locale.switch', $code) }}"
-                        class="isp-mobile-bar__locale {{ $currentLocale === $code ? 'isp-mobile-bar__locale--active' : '' }}"
-                        title="{{ $localeLabels[$code] ?? $code }}"
-                    >{{ strtoupper($code) }}</a>
-                @endforeach
-            </div>
         </div>
     </aside>
 @endauth

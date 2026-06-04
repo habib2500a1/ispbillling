@@ -39,6 +39,8 @@ class ResellerCommissionController extends Controller
             'commissions' => $commissions,
             'status' => $status,
             'totals' => $totals,
+            'pdfFrom' => $request->input('from', now()->startOfMonth()->toDateString()),
+            'pdfTo' => $request->input('to', now()->toDateString()),
         ]);
     }
 }

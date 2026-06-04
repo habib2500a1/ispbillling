@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(awk '/function collectedToday/{f=1} f{print NR\": \"$0} f&&/^    }/{exit}' app/Services/Dashboard/DashboardMetricsService.php)",
+      "Bash(php -l app/Filament/Widgets/TodaySnapshotWidget.php)",
+      "Bash(php -r 'require \"vendor/autoload.php\"; $app=require \"bootstrap/app.php\"; $k=$app->make\\(Illuminate\\\\Contracts\\\\Console\\\\Kernel::class\\);$k->bootstrap\\(\\); var_export\\(defined\\(\\\\App\\\\Support\\\\CustomerBalanceDue::class.\"::OPEN_INVOICE_STATUSES\"\\)\\);')",
+      "Bash(php -l app/Services/Dashboard/DashboardPreferencesService.php)",
+      "Bash(php -r ' *)",
+      "Bash(curl -sk --resolve bill.flixbd.xyz:443:127.0.0.1 https://bill.flixbd.xyz/css/admin-responsive.css)"
+    ]
+  }
+}

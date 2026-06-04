@@ -68,6 +68,26 @@
         </article>
     </div>
 
+    @if (($prepayEnabled ?? false) && ($prepayQuote ?? null) && empty($bill['has_due']))
+        <div style="margin-top: 1.25rem;">
+            <x-customer-prepay-form
+                :quote="$prepayQuote"
+                :action="route('portal.prepay.store')"
+                :payment-methods="$paymentMethods ?? []"
+                :max-months="$prepayMaxMonths"
+                :quick-months="$prepayQuickMonths"
+                variant="portal"
+            />
+        </div>
+    @elseif (($prepayEnabled ?? false) && empty($bill['has_due']))
+        <div class="portal-panel" style="margin-top: 1.25rem;">
+            <p class="portal-panel__title">Pay advance months</p>
+            <p class="portal-summary-card__meta">
+                <a href="{{ route('portal.bills.index') }}" class="portal-link">Open My bills</a> to pay 1, 2, or more months in advance.
+            </p>
+        </div>
+    @endif
+
     @if (($movieServers ?? collect())->isNotEmpty())
         <div style="margin-top: 1.25rem;">
             <x-movie-servers-showcase :servers="$movieServers" variant="portal" />
@@ -144,6 +164,15 @@
                     {{ $onu['rx_level_label'] ?? 'Unknown' }}
                 </p>
                 <p class="portal-pro-card__meta">Stability: <span id="stat-stability">{{ $onu['stability_percent'] ?? 0 }}%</span></p>
+                @if (! empty($onu['port']))
+                    <p class="portal-pro-card__meta">Port: <span class="portal-mono">{{ $onu['port'] }}</span></p>
+                @endif
+                @if (! empty($onu['username']))
+                    <p class="portal-pro-card__meta">User: <span class="portal-mono">{{ $onu['username'] }}</span></p>
+                @endif
+                @if (! empty($onu['detected_auto']))
+                    <p class="portal-pro-card__meta" style="color: var(--portal-emerald, #059669);">✓ Auto-detected from OLT</p>
+                @endif
             @else
                 <p class="portal-pro-card__meta">{{ $onu['hint'] ?? 'ONU not linked' }}</p>
                 <a href="{{ route('portal.tickets.create') }}" class="portal-pro-card__link">Contact support</a>

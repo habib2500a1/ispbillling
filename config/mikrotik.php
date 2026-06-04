@@ -12,6 +12,15 @@ return [
     /** When true, scheduler runs isp:mikrotik-fetch-details (API-heavy; off by default). */
     'fetch_details_poll_enabled' => (bool) env('MIKROTIK_FETCH_DETAILS_POLL_ENABLED', false),
 
+    /** Copy VLAN from PPP secret comment/profile into customer.meta.vlan (NOC / PON tables). */
+    'auto_sync_vlan' => filter_var(env('MIKROTIK_AUTO_SYNC_VLAN', true), FILTER_VALIDATE_BOOL),
+
+    /** Throttle VLAN re-sync during bandwidth collect (minutes per tenant). */
+    'vlan_sync_throttle_minutes' => max(5, (int) env('MIKROTIK_VLAN_SYNC_THROTTLE', 30)),
+
+    /** Copy RouterOS interface name onto OLT PON port label (from linked subscribers). */
+    'auto_sync_pon_port_names' => filter_var(env('MIKROTIK_AUTO_SYNC_PON_PORT_NAMES', true), FILTER_VALIDATE_BOOL),
+
     /**
      * When true, suspend/unsuspend PPP only on the customer's assigned MikroTik (mikrotik_server_id).
      * Recommended when you have 2+ routers with different subscriber pools.

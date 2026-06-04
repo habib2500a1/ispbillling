@@ -24,6 +24,7 @@ trait NormalizesOltFormData
         }
 
         $meta = is_array($data['meta'] ?? null) ? $data['meta'] : [];
+        $extraMeta = is_array($data['meta_extra'] ?? null) ? $data['meta_extra'] : [];
         $webPassword = $data['olt_web_password'] ?? null;
         unset($data['olt_web_password']);
 
@@ -34,6 +35,20 @@ trait NormalizesOltFormData
             is_string($webPassword) ? $webPassword : null,
         );
         unset($data['olt_web_url'], $data['olt_web_username']);
+        unset($data['meta_extra']);
+
+        // Keep advanced key/value metadata separate from structured meta.* form fields.
+        if ($extraMeta !== []) {
+            foreach ($extraMeta as $key => $value) {
+                if (! is_string($key) || $key === '') {
+                    continue;
+                }
+
+                if (is_scalar($value) || $value === null) {
+                    $meta[$key] = $value;
+                }
+            }
+        }
 
         if (blank($meta[OltManagementHelper::META_WEB_URL] ?? null)
             && filled($data['management_ip'] ?? null)
@@ -68,9 +83,17 @@ trait NormalizesOltFormData
     protected function expandOltFormDataForFill(array $data): array
     {
         $meta = is_array($data['meta'] ?? null) ? $data['meta'] : [];
+        $metaExtra = $meta;
+        unset(
+            $metaExtra[OltManagementHelper::META_WEB_URL],
+            $metaExtra[OltManagementHelper::META_WEB_USERNAME],
+            $metaExtra[OltManagementHelper::META_WEB_PASSWORD],
+            $metaExtra['snmp_onu_oids'],
+        );
 
         $data['olt_web_url'] = $meta[OltManagementHelper::META_WEB_URL] ?? null;
         $data['olt_web_username'] = $meta[OltManagementHelper::META_WEB_USERNAME] ?? null;
+        $data['meta_extra'] = $metaExtra;
         $data['is_active'] = ($data['status'] ?? 'active') === 'active';
 
         return $data;

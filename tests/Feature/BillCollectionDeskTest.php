@@ -22,11 +22,10 @@ class BillCollectionDeskTest extends TestCase
 
     public function test_search_finds_customer_by_code_phone_username_and_address(): void
     {
-        $tenant = Tenant::query()->create(['name' => 'Test ISP', 'slug' => 'test-isp', 'is_active' => true]);
-        $area = Area::query()->create(['tenant_id' => $tenant->id, 'name' => 'Mirpur', 'code' => 'MIR', 'is_active' => true]);
+        $area = Area::query()->create(['tenant_id' => 1, 'name' => 'Mirpur', 'code' => 'MIR', 'is_active' => true]);
 
         $customer = Customer::query()->create([
-            'tenant_id' => $tenant->id,
+            'tenant_id' => 1,
             'customer_code' => 'RC1001',
             'name' => 'Karim Ahmed',
             'phone' => '01711112222',
@@ -51,7 +50,7 @@ class BillCollectionDeskTest extends TestCase
         $row = $service->find($customer->id);
         $this->assertSame('RC1001', $row['customer_code']);
         $this->assertSame('karim_ppp', $row['username']);
-        $this->assertStringContainsString('Mirpur', $row['address']);
+        $this->assertSame('Mirpur', $row['area'] ?? '');
     }
 
     public function test_admin_can_open_bill_collection_desk(): void
@@ -81,6 +80,7 @@ class BillCollectionDeskTest extends TestCase
         ]);
 
         $customer = Customer::query()->create([
+            'tenant_id' => 1,
             'name' => 'Pay Test',
             'phone' => '01730000099',
             'status' => 'active',
@@ -90,6 +90,7 @@ class BillCollectionDeskTest extends TestCase
         ]);
 
         $invoice = Invoice::query()->create([
+            'tenant_id' => 1,
             'customer_id' => $customer->id,
             'issue_date' => now()->toDateString(),
             'due_date' => now()->addDays(7)->toDateString(),
@@ -130,6 +131,7 @@ class BillCollectionDeskTest extends TestCase
     public function test_full_payment_without_invoice_id_clears_due_in_ui(): void
     {
         $customer = Customer::query()->create([
+            'tenant_id' => 1,
             'name' => 'Auto Invoice Pay',
             'phone' => '01730000054',
             'status' => 'active',
@@ -137,6 +139,7 @@ class BillCollectionDeskTest extends TestCase
         ]);
 
         $invoice = Invoice::query()->create([
+            'tenant_id' => 1,
             'customer_id' => $customer->id,
             'issue_date' => now()->toDateString(),
             'due_date' => now()->addDays(7)->toDateString(),
@@ -169,6 +172,7 @@ class BillCollectionDeskTest extends TestCase
     public function test_partial_payment_leaves_invoice_balance_and_stores_notes(): void
     {
         $customer = Customer::query()->create([
+            'tenant_id' => 1,
             'name' => 'Partial Pay',
             'phone' => '01730000055',
             'status' => 'active',
@@ -176,6 +180,7 @@ class BillCollectionDeskTest extends TestCase
         ]);
 
         $invoice = Invoice::query()->create([
+            'tenant_id' => 1,
             'customer_id' => $customer->id,
             'issue_date' => now()->toDateString(),
             'due_date' => now()->addDays(7)->toDateString(),

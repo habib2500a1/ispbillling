@@ -79,6 +79,36 @@
                 </a>
             </div>
 
+            @if (\App\Filament\Pages\ManagePortalNotices::canAccess())
+                <div class="bg-gray-900 border border-gray-800 rounded-xl p-6 hover:border-gray-700 transition-colors">
+                    <div class="flex items-center gap-4 mb-4">
+                        <div class="p-3 bg-lime-500/10 rounded-lg">
+                            <x-filament::icon icon="heroicon-o-megaphone" class="w-6 h-6 text-lime-400" />
+                        </div>
+                        <h3 class="text-lg font-semibold text-white">Portal Notices</h3>
+                    </div>
+                    <p class="text-sm text-gray-400 mb-6">All subscriber notices — landing page, customer portal, and mobile. Create, schedule, and hide from one list.</p>
+                    <a href="{{ \App\Filament\Pages\ManagePortalNotices::getUrl() }}" class="text-lime-400 hover:text-lime-300 text-sm font-medium flex items-center gap-2">
+                        Manage notices <x-filament::icon icon="heroicon-m-arrow-right" class="w-4 h-4" />
+                    </a>
+                </div>
+            @endif
+
+            @if (\App\Filament\Pages\ManageApiConfiguration::canAccess())
+                <div class="bg-gray-900 border border-gray-800 rounded-xl p-6 hover:border-gray-700 transition-colors">
+                    <div class="flex items-center gap-4 mb-4">
+                        <div class="p-3 bg-violet-500/10 rounded-lg">
+                            <x-filament::icon icon="heroicon-o-key" class="w-6 h-6 text-violet-400" />
+                        </div>
+                        <h3 class="text-lg font-semibold text-white">API configuration</h3>
+                    </div>
+                    <p class="text-sm text-gray-400 mb-6">Tenant host, HMAC webhook signatures, REST tokens — encrypted per tenant.</p>
+                    <a href="{{ \App\Filament\Pages\ManageApiConfiguration::getUrl() }}" class="text-violet-400 hover:text-violet-300 text-sm font-medium flex items-center gap-2">
+                        API settings <x-filament::icon icon="heroicon-m-arrow-right" class="w-4 h-4" />
+                    </a>
+                </div>
+            @endif
+
             <div class="bg-gray-900 border border-gray-800 rounded-xl p-6 hover:border-gray-700 transition-colors">
                 <div class="flex items-center gap-4 mb-4">
                     <div class="p-3 bg-violet-500/10 rounded-lg">

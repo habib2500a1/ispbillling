@@ -3,6 +3,8 @@
 namespace App\Support;
 
 use App\Filament\Pages\ResellerPackagePricesPage;
+use App\Filament\Pages\ResellerPendingWalletRechargesPage;
+use App\Filament\Pages\ResellerCollectionPerformancePage;
 use App\Filament\Pages\ResellerReportPage;
 use App\Filament\Pages\ResellerWalletHubPage;
 use App\Filament\Pages\ResellersHub;
@@ -56,19 +58,35 @@ final class ResellerSidebarRegistry
             ],
             [
                 'key' => 'report',
-                'label' => 'Report',
+                'label' => 'Commission report',
                 'icon' => 'heroicon-o-chart-bar-square',
                 'sort' => 4,
                 'url' => ResellerReportPage::getUrl(),
                 'active_routes' => ['filament.admin.pages.reseller-report'],
             ],
             [
+                'key' => 'collection_performance',
+                'label' => 'Collection performance',
+                'icon' => 'heroicon-o-chart-bar',
+                'sort' => 5,
+                'url' => ResellerCollectionPerformancePage::getUrl(),
+                'active_routes' => ['filament.admin.pages.reseller-collection-performance'],
+            ],
+            [
                 'key' => 'wallet',
                 'label' => 'Wallet',
                 'icon' => 'heroicon-o-wallet',
-                'sort' => 5,
+                'sort' => 6,
                 'url' => ResellerWalletHubPage::getUrl(),
                 'active_routes' => ['filament.admin.pages.reseller-wallet-hub'],
+            ],
+            [
+                'key' => 'pending_topups',
+                'label' => 'Pending top-ups',
+                'icon' => 'heroicon-o-banknotes',
+                'sort' => 7,
+                'url' => ResellerPendingWalletRechargesPage::getUrl(),
+                'active_routes' => ['filament.admin.pages.reseller-pending-wallet-recharges'],
             ],
         ];
     }
@@ -89,12 +107,20 @@ final class ResellerSidebarRegistry
                 continue;
             }
 
-            $items[] = NavigationItem::make($entry['label'])
+            $item = NavigationItem::make($entry['label'])
                 ->url($entry['url'])
                 ->icon($entry['icon'])
                 ->group('Resellers')
-                ->sort($entry['sort'])
-                ->isActiveWhen(function () use ($entry): bool {
+                ->sort($entry['sort']);
+
+            if ($entry['key'] === 'pending_topups') {
+                $pending = ResellerPendingWalletRechargesPage::pendingCount();
+                if ($pending > 0) {
+                    $item->badge((string) $pending, color: 'warning');
+                }
+            }
+
+            $item->isActiveWhen(function () use ($entry): bool {
                     foreach ($entry['active_routes'] as $route) {
                         if (request()->routeIs($route)) {
                             return true;
@@ -103,6 +129,8 @@ final class ResellerSidebarRegistry
 
                     return false;
                 });
+
+            $items[] = $item;
         }
 
         return $items;
@@ -114,7 +142,9 @@ final class ResellerSidebarRegistry
             'hub' => ResellersHub::canAccess(),
             'package_prices' => ResellerPackagePricesPage::canAccess(),
             'report' => ResellerReportPage::canAccess(),
+            'collection_performance' => ResellerCollectionPerformancePage::canAccess(),
             'wallet' => ResellerWalletHubPage::canAccess(),
+            'pending_topups' => ResellerPendingWalletRechargesPage::canAccess(),
             'add' => ResellerResource::canCreate(),
             default => ResellerResource::canViewAny(),
         };

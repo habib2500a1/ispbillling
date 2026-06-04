@@ -30,8 +30,8 @@ final class PackagePriceResolver
             $zp = $package->zonePrices()
                 ->where('zone_id', $customer->zone_id)
                 ->value('price_monthly');
-            if ($zp !== null) {
-                return (float) $zp;
+            if ($zp !== null && (float) $zp > 0) {
+                return self::applyCustomerMonthlyDiscount((float) $zp, $customer);
             }
         }
 
@@ -39,8 +39,8 @@ final class PackagePriceResolver
             $ap = $package->areaPrices()
                 ->where('area_id', $customer->area_id)
                 ->value('price_monthly');
-            if ($ap !== null) {
-                return (float) $ap;
+            if ($ap !== null && (float) $ap > 0) {
+                return self::applyCustomerMonthlyDiscount((float) $ap, $customer);
             }
         }
 
@@ -49,11 +49,18 @@ final class PackagePriceResolver
             $d = $onDate->toDateString();
             if ($d >= $package->promo_starts_at->toDateString()
                 && $d <= $package->promo_ends_at->toDateString()) {
-                return (float) $package->promo_price_monthly;
+                return self::applyCustomerMonthlyDiscount((float) $package->promo_price_monthly, $customer);
             }
         }
 
-        return (float) $package->price_monthly;
+        return self::applyCustomerMonthlyDiscount((float) $package->price_monthly, $customer);
+    }
+
+    private static function applyCustomerMonthlyDiscount(float $monthly, ?Customer $customer): float
+    {
+        $discount = (float) data_get($customer?->meta, 'monthly_discount_bdt', 0);
+
+        return max(0, round($monthly - $discount, 2));
     }
 
     public static function scaleToCycle(float $monthlyAmount, Package $package): float

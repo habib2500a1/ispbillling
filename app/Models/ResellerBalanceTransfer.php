@@ -20,6 +20,10 @@ class ResellerBalanceTransfer extends Model
 
     public const TYPE_PARENT_SHARE = 'parent_share';
 
+    public const TYPE_SELF_RECHARGE = 'self_recharge';
+
+    public const TYPE_WHOLESALE_DEBIT = 'wholesale_debit';
+
     protected $fillable = [
         'tenant_id',
         'from_reseller_id',
@@ -59,6 +63,10 @@ class ResellerBalanceTransfer extends Model
             self::TYPE_CREDIT => 'Credit (top-up)',
             self::TYPE_DEBIT => 'Debit',
             self::TYPE_COMMISSION_PAYOUT => 'Commission payout',
+            self::TYPE_PARENT_SHARE => 'Parent revenue share',
+            self::TYPE_SELF_RECHARGE => 'Wallet top-up',
+            self::TYPE_WHOLESALE_DEBIT => 'Wholesale (subscriber bill)',
+            self::TYPE_TRANSFER => 'Balance transfer',
             default => 'Balance transfer',
         };
     }

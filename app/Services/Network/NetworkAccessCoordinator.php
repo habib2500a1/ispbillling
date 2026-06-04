@@ -5,8 +5,11 @@ namespace App\Services\Network;
 use App\Contracts\NetworkAccessProvisioner;
 use App\Models\Customer;
 use App\Models\Invoice;
+use App\Services\Billing\CustomerLineGraceService;
+use App\Services\Import\LegacyPortalOverdueEvaluator;
 use App\Services\Subscribers\SubscriberPolicyService;
 use App\Support\CustomerStatus;
+use App\Support\LegacyPortalSource;
 use Illuminate\Support\Facades\DB;
 
 final class NetworkAccessCoordinator
@@ -20,7 +23,18 @@ final class NetworkAccessCoordinator
      */
     public function hasOverdueOpenBalance(Customer $customer): bool
     {
-        $graceDays = max(0, (int) config('network.auto_suspend_grace_days', 0));
+        if (CustomerLineGraceService::hasActiveLineGrace($customer)) {
+            return false;
+        }
+
+        if (LegacyPortalSource::isImportedSource($customer->import_source ?? null)) {
+            return app(LegacyPortalOverdueEvaluator::class)->hasOverdueOpenBalance($customer);
+        }
+
+        $graceDays = max(0, (int) ($customer->grace_period_days ?? config('network.auto_suspend_grace_days', 0)));
+        if ($customer->reseller_id !== null) {
+            $graceDays = app(\App\Services\Resellers\ResellerCustomerBillingEngine::class)->defaultGraceDaysFor($customer);
+        }
         $minBalance = max(0.0, (float) config('network.auto_suspend_min_balance', 1));
         $asOf = now()->subDays($graceDays);
 
@@ -37,6 +51,10 @@ final class NetworkAccessCoordinator
 
     public function desiredNetworkAccessState(Customer $customer): string
     {
+        if ($this->isExplicitlyInactiveInLegacyPortal($customer)) {
+            return 'suspended';
+        }
+
         $policy = app(SubscriberPolicyService::class);
 
         // Service date past: suspend line only when there is overdue invoice due (not expiry alone).
@@ -85,6 +103,7 @@ final class NetworkAccessCoordinator
 
     public function syncCustomer(Customer $customer): void
     {
+        $customer = $this->alignAccountStatusWithLegacyPortalInactive($customer);
         $customer = $this->restoreServiceValidityIfNeeded($customer);
         $customer = $this->applyServiceExpiryIfNeeded($customer);
 
@@ -129,6 +148,10 @@ final class NetworkAccessCoordinator
      */
     private function restoreServiceValidityIfNeeded(Customer $customer): Customer
     {
+        if ($this->isExplicitlyInactiveInLegacyPortal($customer)) {
+            return $customer;
+        }
+
         if (! app(SubscriberPolicyService::class)->shouldApplyServiceExpiry($customer)) {
             return $customer;
         }
@@ -192,6 +215,54 @@ final class NetworkAccessCoordinator
 
     public function canAdminForceNetOn(Customer $customer): bool
     {
+        if ($this->isExplicitlyInactiveInLegacyPortal($customer)) {
+            return false;
+        }
+
         return ! $this->hasOverdueOpenBalance($customer);
+    }
+
+    private function alignAccountStatusWithLegacyPortalInactive(Customer $customer): Customer
+    {
+        if (! $this->isExplicitlyInactiveInLegacyPortal($customer)) {
+            return $customer;
+        }
+
+        if (CustomerStatus::normalize((string) $customer->status) === CustomerStatus::SUSPENDED
+            && ($customer->network_access_state ?? '') === 'suspended') {
+            return $customer;
+        }
+
+        $customer->forceFill([
+            'status' => CustomerStatus::SUSPENDED,
+            'network_access_state' => 'suspended',
+            'is_ppp_online' => false,
+        ])->saveQuietly();
+
+        return $customer->fresh() ?? $customer;
+    }
+
+    private function isExplicitlyInactiveInLegacyPortal(Customer $customer): bool
+    {
+        if (! LegacyPortalSource::isImportedSource($customer->import_source ?? null)) {
+            return false;
+        }
+
+        $meta = is_array($customer->meta) ? $customer->meta : [];
+        $raw = LegacyPortalSource::rawSnapshot($meta);
+        if ($raw === []) {
+            return false;
+        }
+
+        if (filter_var($raw['Disabled'] ?? false, FILTER_VALIDATE_BOOLEAN)) {
+            return true;
+        }
+
+        $short = strtolower((string) ($raw['ShortStatus'] ?? ''));
+        $status = strtolower((string) ($raw['Status'] ?? ''));
+
+        return in_array($short, ['inactive', 'suspended', 'off'], true)
+            || str_contains($status, 'inactive')
+            || str_contains($status, 'suspend');
     }
 }

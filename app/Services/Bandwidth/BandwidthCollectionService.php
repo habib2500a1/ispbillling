@@ -9,6 +9,7 @@ use App\Models\BandwidthUsageDaily;
 use App\Models\Customer;
 use App\Models\Device;
 use App\Models\MikrotikServer;
+use App\Services\Mikrotik\MikrotikCustomerVlanSyncService;
 use App\Services\Mikrotik\MikrotikFleetCoordinator;
 use App\Services\Mikrotik\MikrotikServerService;
 use App\Services\Radius\RadiusAccountingService;
@@ -177,6 +178,8 @@ final class BandwidthCollectionService
             'samples' => $samples,
             'wan_samples' => $wanSamples,
         ]);
+
+        $this->maybeSyncMikrotikVlan($tenantId, $apiOk);
 
         \App\Services\Clients\ClientsDashboardService::flushSummaryCache($tenantId);
 
@@ -421,6 +424,8 @@ final class BandwidthCollectionService
             'fast_mode' => true,
         ]);
 
+        $this->maybeSyncMikrotikVlan($tenantId, $apiOk);
+
         \App\Services\Clients\ClientsDashboardService::flushSummaryCache($tenantId);
 
         CustomerPppLoginResolver::clearIndexCache();
@@ -438,6 +443,30 @@ final class BandwidthCollectionService
             'api_errors' => $apiResult['errors'],
             'api_ok' => $apiOk,
         ];
+    }
+
+    private function maybeSyncMikrotikVlan(int $tenantId, bool $apiOk): void
+    {
+        if (! $apiOk || ! config('mikrotik.auto_sync_vlan', true)) {
+            return;
+        }
+
+        $minutes = (int) config('mikrotik.vlan_sync_throttle_minutes', 30);
+        $cacheKey = 'mikrotik_vlan_sync_tenant_'.$tenantId;
+
+        if (Cache::has($cacheKey)) {
+            return;
+        }
+
+        try {
+            app(MikrotikCustomerVlanSyncService::class)->syncTenant($tenantId);
+            Cache::put($cacheKey, true, now()->addMinutes(max(5, $minutes)));
+        } catch (\Throwable $e) {
+            Log::warning('mikrotik.vlan_sync_failed', [
+                'tenant_id' => $tenantId,
+                'error' => $e->getMessage(),
+            ]);
+        }
     }
 
     /**
@@ -675,6 +704,10 @@ final class BandwidthCollectionService
             return;
         }
 
+        if ($this->tenantHasRecentOnlinePollEvidence($tenantId)) {
+            return;
+        }
+
         $now = now();
         $this->syncCustomerOnlineFlags($tenantId, []);
         $this->closeStaleSessions($tenantId, [], $now);
@@ -705,6 +738,10 @@ final class BandwidthCollectionService
             return;
         }
 
+        if ($this->tenantHasRecentOnlinePollEvidence($tenantId)) {
+            return;
+        }
+
         $now = now();
         $this->syncCustomerOnlineFlags($tenantId, []);
         $this->closeStaleSessions($tenantId, [], $now);
@@ -728,6 +765,22 @@ final class BandwidthCollectionService
             ->where('tenant_id', $tenantId)
             ->where('is_enabled', true)
             ->where('last_api_status', 'online')
+            ->exists();
+    }
+
+    /**
+     * Recent successful poll left online flags — do not mass-clear on a transient API probe failure.
+     */
+    public function tenantHasRecentOnlinePollEvidence(int $tenantId): bool
+    {
+        $intervalMinutes = max(1, (int) config('bandwidth.poll_interval_minutes', 5));
+        $cutoff = now()->subMinutes($intervalMinutes * 4);
+
+        return Customer::query()
+            ->withoutGlobalScopes()
+            ->where('tenant_id', $tenantId)
+            ->where('is_ppp_online', true)
+            ->where('ppp_last_seen_at', '>=', $cutoff)
             ->exists();
     }
 
@@ -817,15 +870,21 @@ final class BandwidthCollectionService
      */
     public function activeSessionCustomerIds(int $tenantId): array
     {
-        return PppSessionLog::withoutGlobalScopes()
-            ->where('tenant_id', $tenantId)
-            ->where('status', 'active')
-            ->whereNull('ended_at')
-            ->whereNotNull('customer_id')
-            ->distinct()
-            ->pluck('customer_id')
-            ->map(fn ($id): int => (int) $id)
-            ->all();
+        $ttl = max(30, (int) config('bandwidth.session_ids_cache_seconds', 60));
+
+        return Cache::remember(
+            'ppp_active_session_customer_ids:'.$tenantId,
+            $ttl,
+            fn (): array => PppSessionLog::withoutGlobalScopes()
+                ->where('tenant_id', $tenantId)
+                ->where('status', 'active')
+                ->whereNull('ended_at')
+                ->whereNotNull('customer_id')
+                ->distinct()
+                ->pluck('customer_id')
+                ->map(fn ($id): int => (int) $id)
+                ->all(),
+        );
     }
 
     /**
@@ -837,12 +896,8 @@ final class BandwidthCollectionService
             return $query->where('is_ppp_online', $wantOnline);
         }
 
-        $sessionCustomerIds = $this->activeSessionCustomerIds($tenantId);
-
-        if ($sessionCustomerIds !== []) {
-            return $wantOnline
-                ? $query->whereIn('id', $sessionCustomerIds)
-                : $query->whereNotIn('id', $sessionCustomerIds);
+        if ($this->tenantHasActivePppSessions($tenantId)) {
+            return $this->applyActivePppSessionSubquery($query, $tenantId, $wantOnline);
         }
 
         if ($this->freshBandwidthSyncShowsActiveSubscribers($tenantId)) {
@@ -850,6 +905,31 @@ final class BandwidthCollectionService
         }
 
         return $wantOnline ? $query->whereRaw('0 = 1') : $query;
+    }
+
+    public function tenantHasActivePppSessions(int $tenantId): bool
+    {
+        return PppSessionLog::withoutGlobalScopes()
+            ->where('tenant_id', $tenantId)
+            ->where('status', 'active')
+            ->whereNull('ended_at')
+            ->whereNotNull('customer_id')
+            ->exists();
+    }
+
+    public function applyActivePppSessionSubquery(Builder $query, int $tenantId, bool $wantOnline): Builder
+    {
+        $table = $query->getModel()->getTable();
+        $method = $wantOnline ? 'whereExists' : 'whereNotExists';
+
+        return $query->{$method}(function ($sub) use ($tenantId, $table): void {
+            $sub->selectRaw('1')
+                ->from('ppp_session_logs')
+                ->whereColumn('ppp_session_logs.customer_id', "{$table}.id")
+                ->where('ppp_session_logs.tenant_id', $tenantId)
+                ->where('ppp_session_logs.status', 'active')
+                ->whereNull('ppp_session_logs.ended_at');
+        });
     }
 
     public function displayedOnlineCount(int $tenantId, ?Builder $scopedQuery = null): int
@@ -867,6 +947,10 @@ final class BandwidthCollectionService
         }
 
         if ($this->freshBandwidthSyncShowsActiveSubscribers($tenantId)) {
+            return (int) (clone $query)->where('is_ppp_online', true)->count();
+        }
+
+        if ($this->tenantHasRecentOnlinePollEvidence($tenantId)) {
             return (int) (clone $query)->where('is_ppp_online', true)->count();
         }
 
@@ -1236,6 +1320,10 @@ final class BandwidthCollectionService
             ->get();
 
         foreach ($servers as $server) {
+            if ($this->shouldSkipWanServer($server)) {
+                continue;
+            }
+
             try {
                 $ifaces = $this->mikrotik->fetchWanInterfaceCounters($server);
             } catch (\Throwable $e) {
@@ -1243,6 +1331,7 @@ final class BandwidthCollectionService
                     'server_id' => $server->id,
                     'error' => $e->getMessage(),
                 ]);
+                Cache::put('mikrotik_wan_skip:'.$server->id, true, now()->addMinutes(5));
 
                 continue;
             }
@@ -1269,6 +1358,47 @@ final class BandwidthCollectionService
         }
 
         return $count;
+    }
+
+    /**
+     * Lightweight MikroTik WAN poll for live graphs (throttled per tenant).
+     */
+    public function refreshWanLiveSamples(int $tenantId, bool $force = false): int
+    {
+        if (! config('bandwidth.collection_enabled', true)) {
+            return 0;
+        }
+
+        $throttle = max(2, (int) config('bandwidth.wan_live_poll_throttle_seconds', 3));
+        $key = 'wan_live_collect:'.$tenantId;
+
+        if (! $force && Cache::has($key)) {
+            return 0;
+        }
+
+        Cache::put($key, true, now()->addSeconds($throttle));
+
+        return $this->collectWanInterfaces($tenantId);
+    }
+
+    private function shouldSkipWanServer(MikrotikServer $server): bool
+    {
+        if (Cache::has('mikrotik_wan_skip:'.$server->id)) {
+            return true;
+        }
+
+        if ($server->last_api_status === 'online') {
+            return false;
+        }
+
+        $cooldown = max(60, (int) config('bandwidth.wan_skip_offline_seconds', 300));
+        $checkedAt = $server->last_api_checked_at;
+
+        if ($server->last_api_status !== 'online' && $checkedAt !== null && $checkedAt->gt(now()->subSeconds($cooldown))) {
+            return true;
+        }
+
+        return false;
     }
 
     /**
@@ -1446,6 +1576,112 @@ final class BandwidthCollectionService
         }
 
         usort($series, fn (array $a, array $b) => strcmp($a['label'], $b['label']));
+
+        return ['labels' => $labels, 'series' => $series];
+    }
+
+    /**
+     * Optimized WAN live chart payload (cached DB read, idle ports hidden).
+     *
+     * @return array{
+     *   labels: list<string>,
+     *   series: list<array{label: string, download_mbps: list<float>, upload_mbps: list<float>}>,
+     *   down_mbps: float,
+     *   up_mbps: float
+     * }
+     */
+    public static function aggregateWanLiveChartSeries(int $tenantId, ?int $maxPoints = null): array
+    {
+        $maxPoints = max(30, min(300, $maxPoints ?? (int) config('bandwidth.monitor_wan_chart_points', 120)));
+        $minutes = max(2, (int) config('bandwidth.monitor_wan_chart_minutes', 3));
+        $cacheKey = "wan_live_chart_series:{$tenantId}:{$maxPoints}:{$minutes}";
+
+        $payload = Cache::remember($cacheKey, 1, function () use ($tenantId, $minutes, $maxPoints): array {
+            $ifaces = self::aggregateWanInterfacesMbpsPerSecond($tenantId, $minutes, $maxPoints);
+
+            if ($ifaces['series'] !== []) {
+                $active = array_values(array_filter($ifaces['series'], function (array $series): bool {
+                    $peakDown = $series['download_mbps'] === [] ? 0.0 : max($series['download_mbps']);
+                    $peakUp = $series['upload_mbps'] === [] ? 0.0 : max($series['upload_mbps']);
+
+                    return ($peakDown + $peakUp) >= 0.05;
+                }));
+
+                $series = $active !== [] ? $active : array_slice($ifaces['series'], 0, 1);
+
+                return [
+                    'labels' => $ifaces['labels'],
+                    'series' => $series,
+                ];
+            }
+
+            $total = self::aggregateWanLiveMbpsPerSecond($tenantId, $minutes, $maxPoints);
+            if ($total['labels'] === []) {
+                return ['labels' => [], 'series' => []];
+            }
+
+            return [
+                'labels' => $total['labels'],
+                'series' => [[
+                    'label' => 'WAN total',
+                    'download_mbps' => $total['download_mbps'],
+                    'upload_mbps' => $total['upload_mbps'],
+                ]],
+            ];
+        });
+
+        $live = self::currentWanLiveBps($tenantId);
+        $padded = self::padWanChartSeriesToNow($payload['labels'], $payload['series'], $maxPoints);
+
+        return [
+            'labels' => $padded['labels'],
+            'series' => $padded['series'],
+            'down_mbps' => round($live['down_bps'] / 1_000_000, 2),
+            'up_mbps' => round($live['up_bps'] / 1_000_000, 2),
+        ];
+    }
+
+    /**
+     * @param  list<string>  $labels
+     * @param  list<array{label: string, download_mbps: list<float>, upload_mbps: list<float>}>  $series
+     * @return array{labels: list<string>, series: list<array{label: string, download_mbps: list<float>, upload_mbps: list<float>}>}
+     */
+    private static function padWanChartSeriesToNow(array $labels, array $series, int $maxPoints): array
+    {
+        if ($series === []) {
+            return ['labels' => [], 'series' => []];
+        }
+
+        $nowLabel = now()->format('H:i:s');
+
+        if ($labels === []) {
+            $labels = [$nowLabel];
+            foreach ($series as &$entry) {
+                $entry['download_mbps'] = [0.0];
+                $entry['upload_mbps'] = [0.0];
+            }
+            unset($entry);
+
+            return ['labels' => $labels, 'series' => $series];
+        }
+
+        if (end($labels) !== $nowLabel) {
+            $labels[] = $nowLabel;
+            foreach ($series as &$entry) {
+                $entry['download_mbps'][] = end($entry['download_mbps']) ?: 0.0;
+                $entry['upload_mbps'][] = end($entry['upload_mbps']) ?: 0.0;
+            }
+            unset($entry);
+        }
+
+        if (count($labels) > $maxPoints) {
+            $labels = array_slice($labels, -$maxPoints);
+            foreach ($series as &$entry) {
+                $entry['download_mbps'] = array_slice($entry['download_mbps'], -$maxPoints);
+                $entry['upload_mbps'] = array_slice($entry['upload_mbps'], -$maxPoints);
+            }
+            unset($entry);
+        }
 
         return ['labels' => $labels, 'series' => $series];
     }

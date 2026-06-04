@@ -2,7 +2,9 @@
     x-data="{
         open: false,
         q: '',
-        items: @js($commandItems ?? []),
+        items: [],
+        itemsLoaded: false,
+        itemsUrl: @js(route('admin.command-palette.items')),
         entityResults: [],
         searching: false,
         searchError: '',
@@ -17,6 +19,24 @@
                 return false;
             };
             return !s ? this.items.slice(0, 10) : this.items.filter(match).slice(0, 12);
+        },
+        async ensureItems() {
+            if (this.itemsLoaded) {
+                return;
+            }
+            try {
+                const r = await fetch(this.itemsUrl, {
+                    headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+                    credentials: 'same-origin',
+                });
+                if (r.ok) {
+                    const j = await r.json();
+                    this.items = j.items || [];
+                }
+            } catch (e) {
+                this.items = [];
+            }
+            this.itemsLoaded = true;
         },
         async searchEntities() {
             if (this.q.length < 2) { this.entityResults = []; this.searchError = ''; return; }
@@ -41,7 +61,7 @@
             this.searching = false;
         },
     }"
-    @isp-open-command-palette.window="open = true; q = ''; entityResults = []; searchError = ''; $nextTick(() => $refs.search?.focus())"
+    @isp-open-command-palette.window="open = true; q = ''; entityResults = []; searchError = ''; ensureItems(); $nextTick(() => $refs.search?.focus())"
     @keydown.escape.window="open = false"
 >
     <template x-if="open">
@@ -102,6 +122,7 @@
                     <p x-show="searchError" class="px-4 py-2 text-sm text-rose-600" x-text="searchError"></p>
                     <p x-show="filtered.length === 0 && entityResults.length === 0 && !searching && !searchError && q.length >= 2" class="px-4 py-6 text-sm text-gray-500">No matches.</p>
                     <p x-show="searching" class="px-4 py-4 text-sm text-gray-500">Searching…</p>
+                    <p x-show="!itemsLoaded && open" class="px-4 py-4 text-sm text-gray-500">Loading menu…</p>
                 </div>
             </div>
         </div>

@@ -3,6 +3,8 @@
 use Illuminate\Console\Scheduling\Schedule;
 use App\Http\Middleware\DisconnectIdleDatabase;
 use App\Http\Middleware\EnsureCustomerPortalEnabled;
+use App\Http\Middleware\ExpireLegacySessionCookie;
+use App\Http\Middleware\GuardLivewireUpdateRequests;
 use App\Http\Middleware\IdentifyTenantFromSubdomain;
 use App\Http\Middleware\SecurityHeaders;
 use App\Http\Middleware\SetAppLocale;
@@ -11,8 +13,11 @@ use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
+use Illuminate\Session\TokenMismatchException;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use Symfony\Component\HttpKernel\Exception\HttpException;
+use Symfony\Component\HttpKernel\Exception\MethodNotAllowedHttpException;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -26,9 +31,16 @@ return Application::configure(basePath: dirname(__DIR__))
         $schedule->useCache('file');
 
         // Single entry point — schedules are defined in admin → Automatic process (DB).
+        // Do not use runInBackground() here — mutex releases when the parent exits, so
+        // overlapping isp:run-automatic-processes workers pile up and exhaust PHP-FPM (502).
         $schedule->command('isp:run-automatic-processes')
             ->everyMinute()
-            ->withoutOverlapping(30)
+            ->withoutOverlapping(300)
+            ->onOneServer();
+
+        $schedule->command('isp:scheduler-guard')
+            ->everyFiveMinutes()
+            ->withoutOverlapping(4)
             ->onOneServer();
 
         $schedule->command('mfs:match-pending-payments')
@@ -36,6 +48,12 @@ return Application::configure(basePath: dirname(__DIR__))
             ->withoutOverlapping(2)
             ->onOneServer()
             ->when(fn (): bool => (bool) config('mfs_personal.sms_ingest.enabled', false));
+
+        $schedule->command('isp:sync-legacy-portal-daily')
+            ->dailyAt((string) config('legacy_portal.daily_sync_at', '02:30'))
+            ->withoutOverlapping(180)
+            ->onOneServer()
+            ->when(fn (): bool => (bool) config('legacy_portal.daily_sync_enabled', true));
 
         foreach ($schedule->events() as $event) {
             $event->appendOutputTo(storage_path('logs/scheduler.log'));
@@ -46,6 +64,8 @@ return Application::configure(basePath: dirname(__DIR__))
             'webhooks/sms/khudebarta/dlr',
             'piprapay/webhook',
             'api/webhooks/*',
+            'livewire/update',
+            'livewire/upload-file',
         ]);
 
         $trusted = env('TRUSTED_PROXIES');
@@ -56,19 +76,27 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'portal.enabled' => EnsureCustomerPortalEnabled::class,
             'reseller.permission' => \App\Http\Middleware\EnsureResellerPortalPermission::class,
+            'reseller.owner' => \App\Http\Middleware\EnsureResellerOwner::class,
             'reseller.2fa' => \App\Http\Middleware\EnsureResellerTwoFactorVerified::class,
             'reseller.api' => \App\Http\Middleware\EnsureSanctumReseller::class,
+            'reseller.api.permission' => \App\Http\Middleware\EnsureResellerApiPermission::class,
+            'reseller.ip' => \App\Http\Middleware\EnsureResellerIpAllowed::class,
+            'reseller.api_key' => \App\Http\Middleware\AuthenticateResellerApiKey::class,
         ]);
 
         $middleware->appendToGroup('web', \App\Http\Middleware\ResolveResellerWhiteLabel::class);
+        $middleware->appendToGroup('web', ExpireLegacySessionCookie::class);
+        $middleware->prependToGroup('web', GuardLivewireUpdateRequests::class);
 
         $middleware->appendToGroup('web', SecurityHeaders::class);
         $middleware->appendToGroup('api', SecurityHeaders::class);
 
         $middleware->prependToGroup('web', IdentifyTenantFromSubdomain::class);
+        $middleware->appendToGroup('web', \App\Http\Middleware\EnsurePlatformLicense::class);
         $middleware->appendToGroup('web', SetAppLocale::class);
         $middleware->appendToGroup('web', DisconnectIdleDatabase::class);
         $middleware->prependToGroup('api', IdentifyTenantFromSubdomain::class);
+        $middleware->appendToGroup('api', \App\Http\Middleware\EnsurePlatformLicense::class);
 
         RedirectIfAuthenticated::redirectUsing(function () {
             if (Auth::guard('reseller')->check()) {
@@ -96,9 +124,51 @@ return Application::configure(basePath: dirname(__DIR__))
         });
     })
     ->withExceptions(function (Exceptions $exceptions) {
-        $exceptions->render(function (HttpException $e, Request $request) {
-            if ($e->getStatusCode() !== 419) {
+        $exceptions->render(function (MethodNotAllowedHttpException $e, Request $request) {
+            if (! ($request->is('livewire/update') || $request->is('livewire/update/*'))) {
                 return null;
+            }
+
+            if (auth()->check()) {
+                return redirect()->route('filament.admin.pages.dashboard');
+            }
+
+            return redirect()->route('filament.admin.auth.login');
+        });
+
+        $exceptions->render(function (Throwable $e, Request $request) {
+            $isSessionExpired = ($e instanceof HttpException && $e->getStatusCode() === 419)
+                || $e instanceof TokenMismatchException;
+
+            if (! $isSessionExpired) {
+                return null;
+            }
+
+            $isLivewireRequest = $request->is('livewire') || $request->is('livewire/*');
+            $isAdminLivewire = $isLivewireRequest
+                && str_contains((string) $request->headers->get('referer', ''), '/admin');
+
+            // Livewire update endpoints must always get a JSON response.
+            // Redirecting these requests causes browser GET to /livewire/update -> 405.
+            if ($isLivewireRequest) {
+                $components = $request->input('components', []);
+                $firstComponent = is_array($components) ? ($components[0] ?? null) : null;
+                $snapshot = is_array($firstComponent) ? json_decode((string) ($firstComponent['snapshot'] ?? ''), true) : null;
+
+                Log::warning('livewire.419', [
+                    'url' => $request->fullUrl(),
+                    'referer' => $request->headers->get('referer'),
+                    'has_x_livewire' => $request->headers->has('X-Livewire'),
+                    'component_name' => $snapshot['memo']['name'] ?? null,
+                    'updates_keys' => array_keys((array) ($firstComponent['updates'] ?? [])),
+                    'calls_count' => count((array) ($firstComponent['calls'] ?? [])),
+                    'exception' => $e::class,
+                    'message' => $e->getMessage(),
+                ]);
+
+                return response()->json([
+                    'message' => __('Your session expired. The page will refresh.'),
+                ], 419);
             }
 
             if ($request->is('reseller') || $request->is('reseller/*')) {
@@ -113,7 +183,7 @@ return Application::configure(basePath: dirname(__DIR__))
                     ->withInput($request->except('password', '_token'));
             }
 
-            if ($request->is('admin') || $request->is('admin/*')) {
+            if ($request->is('admin') || $request->is('admin/*') || $isAdminLivewire) {
                 if ($request->expectsJson()
                     || $request->header('X-Livewire')
                     || $request->header('X-Livewire-Navigate')) {
@@ -127,8 +197,26 @@ return Application::configure(basePath: dirname(__DIR__))
                     ->with('session_expired', true);
             }
 
+            if ($request->is('pay') || $request->is('pay/*')
+                || $request->is('shop') || $request->is('shop/*')
+                || $request->is('hotspot') || $request->is('hotspot/*')) {
+                return redirect()
+                    ->back()
+                    ->withInput($request->except('password', '_token', 'code'))
+                    ->with('danger', __('Session expired. Please try again.'));
+            }
+
             if (! $request->is('portal') && ! $request->is('portal/*')) {
-                return null;
+                if ($request->expectsJson()) {
+                    return response()->json([
+                        'message' => __('Your session expired. Please refresh the page and try again.'),
+                    ], 419);
+                }
+
+                return redirect()
+                    ->back()
+                    ->withInput($request->except('password', '_token', 'code'))
+                    ->with('danger', __('Session expired. Please try again.'));
             }
 
             if ($request->expectsJson()) {

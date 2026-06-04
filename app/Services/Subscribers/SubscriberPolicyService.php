@@ -42,6 +42,11 @@ final class SubscriberPolicyService
             return ! filter_var($override, FILTER_VALIDATE_BOOLEAN);
         }
 
+        if ($customer->reseller_id !== null
+            && app(\App\Services\Resellers\ResellerBillingPolicyService::class)->isCustomerExemptFromAutoSuspend($customer)) {
+            return true;
+        }
+
         return SubscriberType::isExemptFromAutoSuspend((string) ($customer->subscriber_type ?? SubscriberType::STANDARD));
     }
 

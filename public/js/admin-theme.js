@@ -109,4 +109,32 @@
             window.dispatchEvent(new CustomEvent('isp-open-command-palette'));
         }
     });
+
+    function ispPurgeLocaleSwitcher() {
+        document.querySelectorAll('.isp-mobile-bar__locales').forEach((el) => el.remove());
+
+        document.querySelectorAll('a[href*="/locale/"]').forEach((link) => {
+            const topbarGroup = link.closest('.isp-topbar-extras .rounded-lg.border');
+            if (topbarGroup) {
+                topbarGroup.remove();
+                return;
+            }
+
+            if (link.closest('.isp-mobile-bar__locales, .portal-locale-bar')) {
+                link.remove();
+            }
+        });
+
+        document.querySelectorAll('.portal-locale-label, .portal-locale-bar__sep').forEach((el) => el.remove());
+
+        document.querySelectorAll('.portal-locale-bar').forEach((bar) => {
+            if (!bar.querySelector('a')) {
+                bar.remove();
+            }
+        });
+    }
+
+    ispPurgeLocaleSwitcher();
+    document.addEventListener('DOMContentLoaded', ispPurgeLocaleSwitcher);
+    document.addEventListener('livewire:navigated', ispPurgeLocaleSwitcher);
 })();

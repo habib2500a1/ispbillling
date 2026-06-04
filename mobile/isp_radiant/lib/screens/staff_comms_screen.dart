@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../features/staff_comms/data/comms_repository.dart';
 import '../services/api_service.dart';
 import '../theme/app_theme.dart';
 import '../utils/app_nav.dart';
@@ -16,6 +17,7 @@ class StaffCommsScreen extends StatefulWidget {
 }
 
 class _StaffCommsScreenState extends State<StaffCommsScreen> {
+  late final CommsRepository _repo = CommsRepository(widget.api);
   final _noticeCtrl = TextEditingController();
   final _bulkMsgCtrl = TextEditingController();
   bool _sending = false;
@@ -29,14 +31,14 @@ class _StaffCommsScreenState extends State<StaffCommsScreen> {
 
   Future<void> _bulkDue() async {
     setState(() => _sending = true);
-    try {
-      final res = await widget.api.staffSmsBulkDue(message: _bulkMsgCtrl.text.trim().isEmpty ? null : _bulkMsgCtrl.text.trim());
-      if (mounted) showSnack(context, res['message']?.toString() ?? 'Sent');
-    } on ApiException catch (e) {
-      if (mounted) showSnack(context, e.message, isError: true);
-    } finally {
-      if (mounted) setState(() => _sending = false);
-    }
+    final msg = _bulkMsgCtrl.text.trim();
+    final res = await _repo.sendBulkDue(message: msg.isEmpty ? null : msg);
+    if (!mounted) return;
+    setState(() => _sending = false);
+    res.when(
+      ok: (m) => showSnack(context, m),
+      err: (f) => showSnack(context, f.message, isError: true),
+    );
   }
 
   Future<void> _broadcast() async {
@@ -46,14 +48,13 @@ class _StaffCommsScreenState extends State<StaffCommsScreen> {
       return;
     }
     setState(() => _sending = true);
-    try {
-      final res = await widget.api.staffBroadcastNotice(msg, target: 'active');
-      if (mounted) showSnack(context, res['message']?.toString() ?? 'Sent');
-    } on ApiException catch (e) {
-      if (mounted) showSnack(context, e.message, isError: true);
-    } finally {
-      if (mounted) setState(() => _sending = false);
-    }
+    final res = await _repo.broadcastNotice(msg, target: 'active');
+    if (!mounted) return;
+    setState(() => _sending = false);
+    res.when(
+      ok: (m) => showSnack(context, m),
+      err: (f) => showSnack(context, f.message, isError: true),
+    );
   }
 
   @override

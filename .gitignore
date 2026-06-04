@@ -6,6 +6,7 @@
 /public/hot
 /public/storage
 /storage/*.key
+/storage/license/
 /storage/pail
 /storage/framework/views-testing
 /vendor

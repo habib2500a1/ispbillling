@@ -4,6 +4,7 @@ namespace App\Support;
 
 use App\Filament\Pages\BandwidthMonitor;
 use App\Filament\Pages\ManageNetworkSettings;
+use App\Filament\Pages\FiberPlantMap;
 use App\Filament\Pages\ImportFromMikrotikPage;
 use App\Filament\Pages\NetflowAnalysis;
 use App\Filament\Pages\NetworkIntelligenceHub;
@@ -138,6 +139,14 @@ final class NetworkSidebarRegistry
                 'active_routes' => ['filament.admin.pages.network-topology'],
             ],
             [
+                'key' => 'fiber_map',
+                'label' => 'Fiber plant map',
+                'icon' => 'heroicon-o-map',
+                'sort' => 11,
+                'url' => FiberPlantMap::getUrl(),
+                'active_routes' => ['filament.admin.pages.fiber-plant-map'],
+            ],
+            [
                 'key' => 'radius',
                 'label' => 'RADIUS users',
                 'icon' => 'heroicon-o-circle-stack',
@@ -256,6 +265,7 @@ final class NetworkSidebarRegistry
             'packages' => PackageResource::canViewAny(),
             'bandwidth' => BandwidthMonitor::canAccess(),
             'topology' => NetworkTopology::canAccess(),
+            'fiber_map' => FiberPlantMap::canAccess(),
             'radius' => RadiusUserAdmin::canAccess(),
             'traffic' => SubscriberTrafficMonitor::canAccess(),
             'snmp' => SnmpMonitor::canAccess(),

@@ -4,7 +4,9 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\SmsTemplateResource\Pages;
 use App\Models\SmsTemplate;
+use App\Models\VoiceTemplate;
 use App\Services\Sms\SmsTemplateService;
+use App\Support\TenantResolver;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Notifications\Notification;
@@ -53,9 +55,27 @@ class SmsTemplateResource extends Resource
                             ->default('default')
                             ->native(false),
                         Forms\Components\Toggle::make('is_enabled')
-                            ->label('SMS enabled')
-                            ->helperText('When off, this automated SMS will not be sent.')
-                            ->default(true),
+                            ->label('SMS reminder')
+                            ->helperText('চালু = শুধু SMS। বন্ধ = SMS যাবে না, নিচের ভয়েস কল (যদি সেট করা থাকে)।')
+                            ->default(true)
+                            ->live(),
+                        Forms\Components\Toggle::make('voice_enabled')
+                            ->label('Voice when SMS is off')
+                            ->helperText('SMS বন্ধ থাকলে এই টেমপ্লেটের ভয়েস কল যাবে। SMS চালু থাকলে ভয়েস যাবে না।')
+                            ->default(true)
+                            ->live(),
+                        Forms\Components\Select::make('voice_template_id')
+                            ->label('Voice template (SMS off হলে)')
+                            ->options(fn (): array => VoiceTemplate::query()
+                                ->where('tenant_id', TenantResolver::requiredTenantId())
+                                ->where('is_active', true)
+                                ->orderBy('name')
+                                ->pluck('name', 'id')
+                                ->all())
+                            ->searchable()
+                            ->visible(fn (Forms\Get $get): bool => ! (bool) $get('is_enabled') || (bool) $get('voice_enabled'))
+                            ->required(fn (Forms\Get $get): bool => ! (bool) $get('is_enabled') && (bool) $get('voice_enabled'))
+                            ->helperText('কলে যে বার্তা বলা হবে (transcript / audio)।'),
                         Forms\Components\Textarea::make('body')
                             ->label('Message')
                             ->required()
@@ -90,8 +110,11 @@ class SmsTemplateResource extends Resource
                     ->limit(60)
                     ->tooltip(fn (SmsTemplate $record): string => $record->body),
                 Tables\Columns\ToggleColumn::make('is_enabled')
-                    ->label('On')
+                    ->label('SMS')
                     ->onColor('success'),
+                Tables\Columns\ToggleColumn::make('voice_enabled')
+                    ->label('Voice if SMS off')
+                    ->onColor('warning'),
                 Tables\Columns\TextColumn::make('event_key')
                     ->label('Event')
                     ->placeholder('—')

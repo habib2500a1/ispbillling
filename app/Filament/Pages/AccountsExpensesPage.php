@@ -83,7 +83,14 @@ class AccountsExpensesPage extends Page implements HasTable
             ->query($this->getTableQuery())
             ->columns([
                 Tables\Columns\TextColumn::make('payment_date')->label('Date')->date()->sortable(),
-                Tables\Columns\TextColumn::make('vendor.name')->label('Vendor')->searchable(),
+                Tables\Columns\TextColumn::make('expense_type')
+                    ->label('Type')
+                    ->formatStateUsing(fn (VendorPayment $record): string => $record->typeLabel())
+                    ->badge()
+                    ->color(fn (VendorPayment $record): string => $record->isVendorExpense() ? 'info' : 'warning'),
+                Tables\Columns\TextColumn::make('display_name')
+                    ->label('Payee / vendor')
+                    ->getStateUsing(fn (VendorPayment $record): string => $record->displayName()),
                 Tables\Columns\TextColumn::make('payment_method')->label('Method')->badge(),
                 Tables\Columns\TextColumn::make('amount')->money('BDT')->sortable()->weight('bold'),
                 Tables\Columns\TextColumn::make('reference')->placeholder('—'),

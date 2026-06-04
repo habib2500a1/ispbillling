@@ -38,7 +38,14 @@ class AccountsWalletHubPage extends Page implements HasTable
 
     public static function canAccess(): bool
     {
-        return \App\Support\Rbac\StaffCapability::for(auth()->user())->canAccounting();
+        $user = auth()->user();
+        if ($user === null) {
+            return false;
+        }
+
+        $cap = StaffCapability::for($user);
+
+        return $cap->canAccounting() || $cap->canBilling() || $cap->canPayments();
     }
 
     /**

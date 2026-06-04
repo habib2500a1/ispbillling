@@ -36,13 +36,19 @@ class ResellerSettlementController extends Controller
             'reference' => ['nullable', 'string', 'max:128'],
         ]);
 
-        $settlements->submitRequest(
+        $settlement = $settlements->submitRequest(
             $reseller,
             (float) $validated['amount'],
             $validated['notes'] ?? null,
             (float) ($validated['expense_deduction'] ?? 0),
             $validated['payment_method'] ?? null,
             $validated['reference'] ?? null,
+        );
+
+        app(\App\Services\Resellers\ResellerPortalNotifier::class)->settlementSubmitted(
+            $reseller,
+            (float) $settlement->net_amount,
+            $settlement->settlement_number,
         );
 
         return back()->with('status', 'Settlement request submitted for admin approval.');

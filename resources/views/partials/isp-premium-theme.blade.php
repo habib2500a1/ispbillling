@@ -6,11 +6,13 @@
     $premiumCssV = @filemtime(public_path('css/isp-premium-glass.css')) ?: 2;
     $motionJsV = @filemtime(public_path('js/isp-premium-motion.js')) ?: 2;
 @endphp
+@if ($fonts ?? true)
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+@endif
 <link rel="stylesheet" href="{{ asset('css/isp-premium-glass.css') }}?v={{ $premiumCssV }}">
-@if ($tailwind ?? true)
+@if ($tailwind ?? false)
 <script src="https://cdn.tailwindcss.com"></script>
 <script data-cfasync="false">
     tailwind.config = {

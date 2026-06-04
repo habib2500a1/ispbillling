@@ -5,10 +5,13 @@ namespace App\Services\Optical;
 use App\Models\Customer;
 use App\Models\Device;
 use App\Support\MacAddress;
+use App\Support\MacVendor;
 use App\Services\Optical\Normalization\OpticalPowerNormalizer;
 use App\Support\BdcomOnuDescriptionHeuristic;
+use App\Support\OnuEnvironmentalMetrics;
 use App\Support\OnuSignalLevel;
 use App\Support\OpticalThresholds;
+use App\Support\SubscriberNetworkLabels;
 use Carbon\Carbon;
 
 /**
@@ -22,7 +25,7 @@ final class SubscriberOpticalPowerPresenter
      *   rows: list<array<string, mixed>>,
      *   hint: ?string,
      *   onu_billing: array<string, string>,
-     *   isp_digital_synced_at: ?string,
+     *   legacy_portal_synced_at: ?string,
      * }
      */
     public function forCustomer(Customer $customer): array
@@ -55,7 +58,7 @@ final class SubscriberOpticalPowerPresenter
                 'ppp_login' => $login,
                 'hint' => $this->unlinkHint($customer, $login, $suggestions),
                 'onu_billing' => $onuBilling,
-                'isp_digital_synced_at' => $meta['isp_digital_details_synced_at'] ?? null,
+                'legacy_portal_synced_at' => $meta['legacy_portal_details_synced_at'] ?? null,
                 'suggestions' => array_map(fn (array $s): array => [
                     'id' => $s['onu']->id,
                     'label' => trim(sprintf(
@@ -73,14 +76,19 @@ final class SubscriberOpticalPowerPresenter
             fn (Device $onu, int $index): array => $this->rowForOnu($onu, $index + 1),
         )->all();
 
+        $primaryMeta = is_array($onus->first()?->meta) ? $onus->first()->meta : [];
+
         return [
             'linked' => true,
             'rows' => $rows,
             'ppp_login' => $customer->pppLoginName(),
             'hint' => null,
             'onu_billing' => $onuBilling,
-            'isp_digital_synced_at' => $meta['isp_digital_details_synced_at'] ?? null,
+            'legacy_portal_synced_at' => $meta['legacy_portal_details_synced_at'] ?? null,
             'suggestions' => [],
+            'detected_via' => (string) ($primaryMeta['linked_by'] ?? ''),
+            'detected_label' => \App\Support\OnuLinkMethod::label((string) ($primaryMeta['linked_by'] ?? '')),
+            'fdb_synced_at' => $primaryMeta['fdb_synced_at'] ?? null,
         ];
     }
 
@@ -184,7 +192,9 @@ final class SubscriberOpticalPowerPresenter
             'onu_mac' => $onu->mac_address
                 ? (MacAddress::normalizeColon($onu->mac_address) ?? $onu->mac_address)
                 : '—',
-            'olt_port' => $this->oltPortLabel($onu),
+            'olt_port' => SubscriberNetworkLabels::ponPortLabel($onu, $guestCustomer),
+            'mikrotik_name' => SubscriberNetworkLabels::mikrotikName($guestCustomer),
+            'vlan' => SubscriberNetworkLabels::vlan($guestCustomer, $onu),
             'onu_status' => $this->formatStatus((string) ($onu->onu_oper_status ?? 'unknown')),
             'description' => $this->firstFilled(
                 $meta['bdcom_description'] ?? null,
@@ -192,12 +202,16 @@ final class SubscriberOpticalPowerPresenter
                 $onu->notes,
             ) ?: '—',
             'last_deregister_time' => $this->formatDeregisterTime($meta, $oper),
-            'distance' => $distance !== null && $distance !== '' ? (string) $distance : '—',
+            'distance' => $this->formatDistance($distance),
+            'model' => $this->onuModel($onu, $meta),
+            'vendor' => MacVendor::lookup($onu->mac_address) ?: '—',
+            'cust_mac_found' => $this->custMacFound($meta),
             'deregister_reason' => $this->formatDeregisterReason($onu, $meta, $oper),
             'last_synced_time' => $lastSync?->format('n/j/Y, g:i:s A') ?? '—',
             'is_high_laser' => OpticalThresholds::isHighRx($rx) || OpticalThresholds::isHighTx(
                 $onu->tx_power_dbm !== null ? (float) $onu->tx_power_dbm : null,
             ),
+            ...$this->environmentalFields($onu),
         ];
     }
 
@@ -259,7 +273,9 @@ final class SubscriberOpticalPowerPresenter
             'onu_mac' => $onu->mac_address
                 ? (MacAddress::normalizeColon($onu->mac_address) ?? $onu->mac_address)
                 : '—',
-            'olt_port' => $this->oltPortLabel($onu),
+            'olt_port' => SubscriberNetworkLabels::ponPortLabel($onu, $customer),
+            'mikrotik_name' => SubscriberNetworkLabels::mikrotikName($customer),
+            'vlan' => SubscriberNetworkLabels::vlan($customer, $onu),
             'onu_status' => $this->formatStatus((string) ($onu->onu_oper_status ?? 'unknown')),
             'description' => $this->firstFilled(
                 $meta['bdcom_description'] ?? null,
@@ -268,28 +284,33 @@ final class SubscriberOpticalPowerPresenter
                 $onu->notes,
             ) ?: '—',
             'last_deregister_time' => $this->formatDeregisterTime($meta, $oper),
-            'distance' => $distance !== null && $distance !== '' ? (string) $distance : '—',
+            'distance' => $this->formatDistance($distance),
+            'model' => $this->onuModel($onu, $meta),
+            'vendor' => MacVendor::lookup($onu->mac_address) ?: '—',
+            'cust_mac_found' => $this->custMacFound($meta),
             'deregister_reason' => $this->formatDeregisterReason($onu, $meta, $oper),
             'last_synced_time' => $lastSync?->format('n/j/Y, g:i:s A') ?? '—',
             'is_high_laser' => OpticalThresholds::isHighRx($rx) || OpticalThresholds::isHighTx(
                 $onu->tx_power_dbm !== null ? (float) $onu->tx_power_dbm : null,
             ),
+            ...$this->environmentalFields($onu),
         ];
     }
 
-    private function oltPortLabel(Device $onu): string
+    /**
+     * @return array{temperature: string, temperature_c: ?float, temperature_tone: string, voltage: string, voltage_v: ?float}
+     */
+    private function environmentalFields(Device $onu): array
     {
-        if (filled($onu->display_name)) {
-            return (string) $onu->display_name;
-        }
+        $env = OnuEnvironmentalMetrics::fromDevice($onu);
 
-        $parts = array_filter([
-            $onu->card_no !== null ? 'C'.$onu->card_no : null,
-            $onu->pon_no !== null ? 'P'.$onu->pon_no : null,
-            $onu->onu_index !== null ? ':'.$onu->onu_index : null,
-        ]);
-
-        return $parts !== [] ? implode('', $parts) : '—';
+        return [
+            'temperature' => OnuEnvironmentalMetrics::formatTemperature($env['temperature_c']),
+            'temperature_c' => $env['temperature_c'],
+            'temperature_tone' => OnuEnvironmentalMetrics::temperatureTone($env['temperature_c']),
+            'voltage' => OnuEnvironmentalMetrics::formatVoltage($env['voltage_v']),
+            'voltage_v' => $env['voltage_v'],
+        ];
     }
 
     private function formatStatus(string $status): string
@@ -339,6 +360,53 @@ final class SubscriberOpticalPowerPresenter
             $oper === 'los' ? 'LOS' : null,
             $oper === 'offline' ? 'Power Off' : null,
         ) ?: '—';
+    }
+
+    /** Distance in metres for display, e.g. "142 m". */
+    private function formatDistance(mixed $distance): string
+    {
+        if ($distance === null || $distance === '' || ! is_numeric($distance)) {
+            return '—';
+        }
+
+        return ((int) round((float) $distance)).' m';
+    }
+
+    /**
+     * ONU hardware model from the OLT (BDCOM description, e.g. "010T").
+     *
+     * @param  array<string, mixed>  $meta
+     */
+    private function onuModel(Device $onu, array $meta): string
+    {
+        $desc = (string) ($meta['bdcom_description'] ?? '');
+        $descModel = ($desc !== '' && ! BdcomOnuDescriptionHeuristic::isOltPlaceholderLabel($desc))
+            ? $desc
+            : null;
+
+        return $this->firstFilled(
+            $meta['model'] ?? null,
+            $meta['onu_model'] ?? null,
+            $descModel,
+        ) ?: '—';
+    }
+
+    /**
+     * "Customer MAC last seen behind ONU" — when the OLT FDB last learned it.
+     *
+     * @param  array<string, mixed>  $meta
+     */
+    private function custMacFound(array $meta): string
+    {
+        $raw = $meta['fdb_synced_at'] ?? null;
+        if (! $raw) {
+            return '—';
+        }
+        try {
+            return Carbon::parse((string) $raw)->diffForHumans();
+        } catch (\Throwable) {
+            return '—';
+        }
     }
 
     private function firstFilled(mixed ...$values): ?string

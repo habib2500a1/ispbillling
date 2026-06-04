@@ -12,6 +12,7 @@ use App\Filament\Pages\SupportHub;
 use App\Filament\Resources\HotspotVoucherResource;
 use App\Filament\Resources\CustomerResource;
 use App\Filament\Resources\CustomerResource\Pages\ListSuspendedCustomers;
+use App\Filament\Resources\ResellerResource;
 use App\Filament\Resources\InvoiceResource;
 use App\Filament\Resources\PendingGatewayPaymentResource;
 use App\Filament\Resources\PopBoxResource;
@@ -40,6 +41,7 @@ final class OperationsDashboardService
 {
     public function __construct(
         private readonly DashboardMetricsService $metrics,
+        private readonly SubscriberSegmentMetrics $segments,
     ) {}
 
     /**
@@ -65,6 +67,7 @@ final class OperationsDashboardService
     {
         $snap = $this->metrics->snapshot($tenantId);
         $c = $this->customerBreakdown($tenantId);
+        $seg = $this->segments->forTenant($tenantId);
         $billingCounts = $this->safeBillingCounts();
         $sales = $this->salesTotals($tenantId);
         $sms = app(SmsBalanceFetcher::class)->fetch();
@@ -76,20 +79,103 @@ final class OperationsDashboardService
             ->where('is_active', true)
             ->count();
 
+        $revenueTrend = ($capability->canBilling() || $capability->canReports())
+            ? $this->metrics->revenueTrend(14, $tenantId)
+            : null;
+
         $payload = [
             'updated_at' => now()->toIso8601String(),
             'company' => CompanyBranding::name(),
             'highlights' => $this->highlights($snap, $sms, $tenantId, $capability),
-            'primary' => $this->primaryKpis($snap, $c, $online, $capability),
+            'primary' => $this->primaryKpis($snap, $c, $seg, $online, $capability),
             'sections' => $this->groupedSections($tenantId, $snap, $c, $billingCounts, $sales, $online, $active, $pops, $capability),
             'feeds' => $this->feeds($tenantId, $capability),
             'mfs_pending_verify' => $this->mfsPendingVerify($tenantId, $capability),
-            'revenue_chart' => ($capability->canBilling() || $capability->canReports())
-                ? $this->metrics->revenueTrend(14, $tenantId)
-                : null,
+            'billing_aside' => $this->billingAside($snap, $revenueTrend, $capability),
         ];
 
         return $payload;
+    }
+
+    /**
+     * Compact sidebar (replaces large revenue trend chart).
+     *
+     * @param  array<string, mixed>  $snap
+     * @param  array{labels: list<string>, collected: list<float>, invoiced: list<float>}|null  $revenueTrend
+     * @return array{title: string, stats: list<array{label: string, value: string, hint?: string, url?: string}>, links: list<array{label: string, url: string, icon: string}>}|null
+     */
+    private function billingAside(array $snap, ?array $revenueTrend, StaffCapability $capability): ?array
+    {
+        $stats = [];
+        $links = [];
+
+        if ($capability->canPayments() || $capability->canBilling()) {
+            $collected14 = $revenueTrend ? array_sum($revenueTrend['collected'] ?? []) : 0.0;
+            $invoiced14 = $revenueTrend ? array_sum($revenueTrend['invoiced'] ?? []) : 0.0;
+
+            $stats = [
+                [
+                    'label' => 'Collected today',
+                    'value' => number_format((float) ($snap['collected_today'] ?? 0), 0).' ৳',
+                    'hint' => 'Cash & gateway',
+                    'url' => BillCollectionDesk::getUrl(),
+                ],
+                [
+                    'label' => 'Collected · 14 days',
+                    'value' => number_format($collected14, 0).' ৳',
+                    'hint' => 'Rolling total',
+                    'url' => BillCollectionDesk::getUrl(),
+                ],
+                [
+                    'label' => 'Invoiced · 14 days',
+                    'value' => number_format($invoiced14, 0).' ৳',
+                    'hint' => 'Issue date',
+                    'url' => InvoiceResource::getUrl('index'),
+                ],
+                [
+                    'label' => 'Outstanding',
+                    'value' => number_format((float) ($snap['outstanding'] ?? 0), 0).' ৳',
+                    'hint' => 'Open invoices',
+                    'url' => BillCollectionDesk::getUrl(),
+                ],
+                [
+                    'label' => 'Due accounts',
+                    'value' => number_format((int) ($snap['due_customers'] ?? 0)),
+                    'hint' => 'With balance',
+                    'url' => CustomerResource::getUrl('index'),
+                ],
+            ];
+
+            $links[] = ['label' => 'Collection desk', 'url' => BillCollectionDesk::getUrl(), 'icon' => 'heroicon-m-banknotes'];
+            $links[] = ['label' => 'Payments', 'url' => \App\Filament\Resources\PaymentResource::getUrl('index'), 'icon' => 'heroicon-m-currency-dollar'];
+            $links[] = ['label' => 'Invoices', 'url' => InvoiceResource::getUrl('index'), 'icon' => 'heroicon-m-document-text'];
+            if ($capability->canReports()) {
+                $links[] = ['label' => 'Billing reports', 'url' => BillingDashboard::getUrl(), 'icon' => 'heroicon-m-chart-bar'];
+            }
+        }
+
+        if ($capability->canMikrotik()) {
+            $links[] = ['label' => 'Online users', 'url' => OnlineClientsMonitoring::getUrl(), 'icon' => 'heroicon-m-signal'];
+            $links[] = ['label' => 'Network hub', 'url' => MikrotikDashboard::getUrl(), 'icon' => 'heroicon-m-server'];
+        }
+
+        if ($capability->canSupport()) {
+            $links[] = ['label' => 'Support hub', 'url' => SupportHub::getUrl(), 'icon' => 'heroicon-m-lifebuoy'];
+        }
+
+        if ($capability->canCustomers()) {
+            $links[] = ['label' => 'Subscribers', 'url' => CustomerResource::getUrl('index'), 'icon' => 'heroicon-m-users'];
+        }
+
+        if ($stats === [] && $links === []) {
+            return null;
+        }
+
+        return [
+            'title' => $stats !== [] ? 'Billing snapshot' : 'Quick actions',
+            'stats' => $stats,
+            'links' => $links,
+        ];
     }
 
     /**
@@ -175,6 +261,9 @@ final class OperationsDashboardService
     private function feeds(int $tenantId, StaffCapability $capability): array
     {
         return [
+            'recent_payments' => ($capability->canPayments() || $capability->canBilling())
+                ? $this->recentPayments($tenantId)
+                : [],
             'invoices' => $capability->canBilling() ? $this->latestInvoices($tenantId) : [],
             'upcoming_expire' => $capability->canCustomers() ? $this->upcomingExpire($tenantId) : [],
             'latest_expired' => $capability->canCustomers() ? $this->latestExpired($tenantId) : [],
@@ -182,22 +271,78 @@ final class OperationsDashboardService
         ];
     }
 
+    /** @return list<array{gateway: string, trx: string, amount: string, customer: string, at: string, url?: string}> */
+    private function recentPayments(int $tenantId): array
+    {
+        return Payment::withoutGlobalScopes()
+            ->where('tenant_id', $tenantId)
+            ->where('status', 'completed')
+            ->where('payment_type', PaymentType::PAYMENT)
+            ->with('customer:id,name,customer_code')
+            ->orderByDesc('paid_at')
+            ->limit(8)
+            ->get(['id', 'customer_id', 'gateway', 'method', 'gateway_transaction_id', 'amount', 'paid_at', 'receipt_number'])
+            ->map(fn (Payment $p): array => [
+                'gateway' => strtoupper((string) ($p->gateway ?: $p->method ?: '—')),
+                'trx' => $p->gateway_transaction_id ?: $p->receipt_number ?: '—',
+                'amount' => number_format((float) $p->amount, 2),
+                'customer' => $p->customer?->name ?: $p->customer?->customer_code ?: '—',
+                'at' => $p->paid_at?->format('d M, H:i') ?? '—',
+                'url' => $p->customer_id
+                    ? CustomerResource::getUrl('view', ['record' => $p->customer_id])
+                    : null,
+            ])
+            ->all();
+    }
+
     /**
      * @param  array<string, mixed>  $snap
      * @param  array<string, int>  $c
      * @return list<array{label: string, value: string, hint: string, url?: string}>
      */
-    private function primaryKpis(array $snap, array $c, int $online, StaffCapability $capability): array
+    /**
+     * @param  array<string, int>  $seg
+     */
+    private function primaryKpis(array $snap, array $c, array $seg, int $online, StaffCapability $capability): array
     {
         $n = fn (int|float $v): string => number_format((float) $v, 0);
         $kpis = [];
 
         if ($capability->canCustomers()) {
-            $kpis[] = ['label' => 'Active subscribers', 'value' => $n($c['active']), 'hint' => 'Live accounts', 'url' => CustomerResource::getUrl('active'), 'tone' => 'teal'];
+            $partners = (int) ($seg['active_reseller_partners'] ?? 0);
+            $kpis[] = [
+                'label' => 'Direct active',
+                'value' => $n($seg['direct_active'] ?? $c['active']),
+                'hint' => 'Own / ISP clients',
+                'url' => CustomerResource::getUrl('active'),
+                'tone' => 'teal',
+            ];
+            $kpis[] = [
+                'label' => 'Reseller active',
+                'value' => $n($seg['reseller_clients_active'] ?? 0),
+                'hint' => $partners > 0
+                    ? "{$partners} partner(s) · client lines"
+                    : 'Under reseller',
+                'url' => ResellerResource::getUrl('index'),
+                'tone' => 'cyan',
+            ];
         }
 
         if ($capability->canMikrotik()) {
-            $kpis[] = ['label' => 'Online now', 'value' => $n($online), 'hint' => 'PPPoE sessions', 'url' => OnlineClientsMonitoring::getUrl(), 'tone' => 'sky'];
+            $kpis[] = [
+                'label' => 'Online (direct)',
+                'value' => $n($seg['direct_online'] ?? $online),
+                'hint' => 'PPPoE · own clients',
+                'url' => OnlineClientsMonitoring::getUrl(),
+                'tone' => 'sky',
+            ];
+            $kpis[] = [
+                'label' => 'Online (reseller)',
+                'value' => $n($seg['reseller_clients_online'] ?? 0),
+                'hint' => 'PPPoE · reseller clients',
+                'url' => OnlineClientsMonitoring::getUrl(),
+                'tone' => 'blue',
+            ];
         }
 
         if ($capability->canPayments() || $capability->canBilling()) {

@@ -5,7 +5,7 @@ namespace App\Support;
 use Illuminate\Database\Eloquent\Builder;
 
 /**
- * Shared filters for subscriber list pages (active / expired / left).
+ * Shared filters for subscriber list pages (active / expired / left / due).
  */
 final class CustomerAccountScopes
 {
@@ -35,6 +35,24 @@ final class CustomerAccountScopes
             });
     }
 
+    /**
+     * Subscribers with open invoice balance or legacy portal due snapshot.
+     */
+    public static function applyWithBalanceDue(Builder $query, ?int $tenantId = null): Builder
+    {
+        $tenantId ??= \App\Support\TenantResolver::currentTenantId();
+
+        return $query
+            ->where('status', '!=', CustomerStatus::TERMINATED)
+            ->whereHas('invoices', function (Builder $inv) use ($tenantId): void {
+                if ($tenantId !== null) {
+                    $inv->where('tenant_id', $tenantId);
+                }
+                $inv->whereIn('status', CustomerBalanceDue::OPEN_INVOICE_STATUSES)
+                    ->whereRaw('(total - amount_paid) > 0.009');
+            });
+    }
+
     public static function applyLeft(Builder $query): Builder
     {
         return $query->where(function (Builder $q): void {
@@ -52,15 +70,26 @@ final class CustomerAccountScopes
 
     public static function legacyLeft(Builder $query): Builder
     {
-        return $query
-            ->whereRaw("LOWER(COALESCE(meta->'isp_digital_raw'->>'Status', '')) LIKE ?", ['%left%'])
-            ->orWhereRaw("LOWER(COALESCE(meta->'isp_digital_raw'->>'ShortStatus', '')) = ?", ['left']);
+        return $query->where(function (Builder $q): void {
+            $q->whereRaw(self::legacyRawStatusSql().' LIKE ?', ['%left%'])
+                ->orWhereRaw(self::legacyRawShortStatusSql().' = ?', ['left']);
+        });
     }
 
     public static function notLegacyLeft(Builder $query): Builder
     {
         return $query
-            ->whereRaw("LOWER(COALESCE(meta->'isp_digital_raw'->>'Status', '')) NOT LIKE ?", ['%left%'])
-            ->whereRaw("LOWER(COALESCE(meta->'isp_digital_raw'->>'ShortStatus', '')) != ?", ['left']);
+            ->whereRaw(self::legacyRawStatusSql().' NOT LIKE ?', ['%left%'])
+            ->whereRaw(self::legacyRawShortStatusSql().' != ?', ['left']);
+    }
+
+    private static function legacyRawStatusSql(): string
+    {
+        return "LOWER(COALESCE(meta->'legacy_portal_raw'->>'Status', meta->'isp_digital_raw'->>'Status', ''))";
+    }
+
+    private static function legacyRawShortStatusSql(): string
+    {
+        return "LOWER(COALESCE(meta->'legacy_portal_raw'->>'ShortStatus', meta->'isp_digital_raw'->>'ShortStatus', ''))";
     }
 }

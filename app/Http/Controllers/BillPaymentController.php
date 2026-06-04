@@ -11,6 +11,7 @@ use App\Services\BillPayment\PaymentLinkService;
 use App\Services\BillPayment\PublicBillPaymentService;
 use App\Services\Billing\CustomerPrepayService;
 use App\Services\Payments\PublicPaymentOrchestrator;
+use App\Services\Reseller\ResellerPaymentContext;
 use App\Support\PaymentGateway;
 use App\Support\PortalPaymentGateways;
 use App\Support\PublicPaymentMethod;
@@ -86,8 +87,10 @@ class BillPaymentController extends Controller
 
         $hasDue = $service->totalDue($customer) > 0;
         $canWallet = config('bill_payment.wallet_topup_enabled', true);
+        $prepay = app(CustomerPrepayService::class);
+        $canPrepay = $prepay->isEnabled() && $prepay->monthlyRate($customer) !== null;
 
-        if (! $hasDue && ! $canWallet) {
+        if (! $hasDue && ! $canWallet && ! $canPrepay) {
             return back()->withInput()->withErrors([
                 'client_code' => 'No due bill found for this client code.',
             ]);
@@ -110,7 +113,7 @@ class BillPaymentController extends Controller
 
         $request->session()->put(self::SESSION_VERIFIED, true);
 
-        return redirect()->route('bill-payment.invoice');
+        return $this->redirectToInvoice($customer);
     }
 
     public function verify(Request $request, BillPaymentOtpService $otp): View|RedirectResponse
@@ -121,13 +124,13 @@ class BillPaymentController extends Controller
         }
 
         if ($request->session()->get(self::SESSION_VERIFIED)) {
-            return redirect()->route('bill-payment.invoice');
+            return $this->redirectToInvoice($customer);
         }
 
         if (! $otp->isEnabled()) {
             $request->session()->put(self::SESSION_VERIFIED, true);
 
-            return redirect()->route('bill-payment.invoice');
+            return $this->redirectToInvoice($customer);
         }
 
         return view('bill-payment.verify', [
@@ -156,7 +159,7 @@ class BillPaymentController extends Controller
 
         $request->session()->put(self::SESSION_VERIFIED, true);
 
-        return redirect()->route('bill-payment.invoice');
+        return $this->redirectToInvoice($customer);
     }
 
     public function resendOtp(Request $request, BillPaymentOtpService $otp): RedirectResponse
@@ -182,13 +185,16 @@ class BillPaymentController extends Controller
             return redirect()->route('bill-payment.index');
         }
 
+        $customer->loadMissing('package');
+
         $summary = $service->customerSummary($customer);
         $prepayQuote = $prepay->isEnabled() ? $prepay->quote($customer, 1) : null;
         $linkAmount = session(self::SESSION_LINK_AMOUNT);
         $linkInvoiceId = session(self::SESSION_LINK_INVOICE);
-        $activeTab = in_array($request->query('tab'), ['invoices', 'wallet', 'prepay', 'link'], true)
+        $allowedTabs = ['invoices', 'wallet', 'prepay', 'link'];
+        $activeTab = in_array($request->query('tab'), $allowedTabs, true)
             ? $request->query('tab')
-            : 'invoices';
+            : ($prepay->isEnabled() && $summary['total_due'] <= 0 ? 'prepay' : 'invoices');
 
         $recentLinks = PaymentLink::query()
             ->withoutGlobalScopes()
@@ -198,7 +204,7 @@ class BillPaymentController extends Controller
             ->limit(3)
             ->get();
 
-        $paymentMethods = PortalPaymentGateways::methodsForPublicBillPay();
+        $paymentMethods = PortalPaymentGateways::methodsForPublicBillPay($customer);
         $gateways = PublicPaymentMethod::legacyFlags($paymentMethods);
 
         return view('bill-payment.invoice', [
@@ -237,7 +243,7 @@ class BillPaymentController extends Controller
 
         $balance = $invoice->balanceDue();
         $validated = $request->validate([
-            'gateway' => ['required', 'in:'.implode(',', [PaymentGateway::BKASH, PaymentGateway::SSLCOMMERZ, PaymentGateway::NAGAD, PaymentGateway::ROCKET, PaymentGateway::PIPRAPAY])],
+            'gateway' => ['required', 'in:'.implode(',', ResellerPaymentContext::allowedCheckoutGateways($customer))],
             'amount' => ['prohibited'],
         ]);
 
@@ -255,7 +261,7 @@ class BillPaymentController extends Controller
 
         $min = (float) config('bill_payment.wallet_topup_min', 100);
         $validated = $request->validate([
-            'gateway' => ['required', 'in:'.implode(',', [PaymentGateway::BKASH, PaymentGateway::SSLCOMMERZ, PaymentGateway::NAGAD, PaymentGateway::ROCKET, PaymentGateway::PIPRAPAY])],
+            'gateway' => ['required', 'in:'.implode(',', ResellerPaymentContext::allowedCheckoutGateways($customer))],
             'amount' => ['required', 'numeric', 'min:'.$min, 'max:500000'],
         ]);
 
@@ -272,7 +278,7 @@ class BillPaymentController extends Controller
         $maxMonths = $prepay->maxMonths();
         $validated = $request->validate([
             'months' => ['required', 'integer', 'min:1', 'max:'.$maxMonths],
-            'gateway' => ['required', 'in:'.implode(',', [PaymentGateway::BKASH, PaymentGateway::SSLCOMMERZ, PaymentGateway::NAGAD, PaymentGateway::ROCKET, PaymentGateway::PIPRAPAY])],
+            'gateway' => ['required', 'in:'.implode(',', ResellerPaymentContext::allowedCheckoutGateways($customer))],
         ]);
 
         $quote = $prepay->assertQuote($customer, (int) $validated['months']);
@@ -364,7 +370,6 @@ class BillPaymentController extends Controller
         $payment->load(['invoice', 'customer']);
 
         return view('bill-payment.receipt', [
-            'companyName' => config('isp.company_name'),
             'payment' => $payment,
         ]);
     }
@@ -389,7 +394,10 @@ class BillPaymentController extends Controller
             return null;
         }
 
-        $customer = Customer::query()->withoutGlobalScopes()->find($id);
+        $customer = Customer::query()
+            ->withoutGlobalScopes()
+            ->with(['package'])
+            ->find($id);
         if ($customer === null) {
             return null;
         }
@@ -428,5 +436,19 @@ class BillPaymentController extends Controller
         }
 
         return null;
+    }
+
+    private function redirectToInvoice(Customer $customer): RedirectResponse
+    {
+        $customer->loadMissing('package');
+        $prepay = app(CustomerPrepayService::class);
+        $hasDue = app(PublicBillPaymentService::class)->totalDue($customer) > 0;
+        $canPrepay = $prepay->isEnabled() && $prepay->monthlyRate($customer) !== null;
+
+        if (! $hasDue && $prepay->isEnabled()) {
+            return redirect()->route('bill-payment.invoice', ['tab' => 'prepay']);
+        }
+
+        return redirect()->route('bill-payment.invoice');
     }
 }

@@ -53,9 +53,9 @@ class CustomerConnectionStatusTest extends TestCase
         $this->assertSame($ended->format('d M Y, h:i A'), $summary['last_disconnect_formatted']);
     }
 
-    public function test_isp_digital_row_maps_online_flag(): void
+    public function test_legacy_portal_row_maps_online_flag(): void
     {
-        $importer = new \App\Services\Import\IspDigitalCustomerImporter;
+        $importer = new \App\Services\Import\LegacyPortalCustomerImporter;
         $customer = $importer->importRow([
             'CustomerId' => 'T'.random_int(10000, 99999),
             'CustomerName' => 'Online Test',
@@ -73,9 +73,9 @@ class CustomerConnectionStatusTest extends TestCase
         $this->assertSame('active', $customer->network_access_state);
     }
 
-    public function test_isp_digital_import_sets_mikrotik_profile_on_package(): void
+    public function test_legacy_portal_import_sets_mikrotik_profile_on_package(): void
     {
-        $importer = new \App\Services\Import\IspDigitalCustomerImporter;
+        $importer = new \App\Services\Import\LegacyPortalCustomerImporter;
         $code = 'T'.random_int(10000, 99999);
 
         $customer = $importer->importRow([
@@ -95,7 +95,7 @@ class CustomerConnectionStatusTest extends TestCase
         $this->assertSame('Packages>>1', $package->mikrotik_profile_name);
     }
 
-    public function test_isp_digital_import_links_existing_package_by_mikrotik_profile(): void
+    public function test_legacy_portal_import_links_existing_package_by_mikrotik_profile(): void
     {
         $existing = Package::query()->create([
             'tenant_id' => 1,
@@ -111,7 +111,7 @@ class CustomerConnectionStatusTest extends TestCase
             'is_active' => true,
         ]);
 
-        $importer = new \App\Services\Import\IspDigitalCustomerImporter;
+        $importer = new \App\Services\Import\LegacyPortalCustomerImporter;
         $customer = $importer->importRow([
             'CustomerId' => 'T'.random_int(10000, 99999),
             'CustomerName' => 'Link By Profile',

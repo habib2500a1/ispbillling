@@ -7,19 +7,39 @@ use App\Models\Reseller;
 use App\Models\User;
 use App\Services\Billing\StaffCollectionPaymentService;
 use App\Support\ResellerPortalPermission;
+use App\Support\ResellerPortalSession;
 use Illuminate\Validation\ValidationException;
 
 final class ResellerCollectionPaymentService
 {
     public function collect(Reseller $reseller, Customer $customer, array $data): array
     {
-        if (! $reseller->canPortal(ResellerPortalPermission::PAYMENT_COLLECT)) {
+        if (! app(ResellerPortalSession::class)->canPortal(ResellerPortalPermission::PAYMENT_COLLECT)) {
             throw ValidationException::withMessages(['permission' => 'Payment collection is not allowed.']);
         }
 
         app(ResellerCustomerService::class)->assertOwned($reseller, $customer);
 
         $user = $this->recorderUser($reseller);
+        $mode = (string) ($data['allocation_mode'] ?? ResellerPaymentAllocationService::MODE_SINGLE);
+
+        if ($mode === ResellerPaymentAllocationService::MODE_FIFO) {
+            return app(ResellerPaymentAllocationService::class)->recordFifo(
+                $user,
+                $customer,
+                $data,
+                'reseller-portal',
+            );
+        }
+
+        if ($mode === ResellerPaymentAllocationService::MODE_ADVANCE) {
+            return app(ResellerPaymentAllocationService::class)->recordAdvanceWallet(
+                $user,
+                $customer,
+                $data,
+                'reseller-portal',
+            );
+        }
 
         return app(StaffCollectionPaymentService::class)->record(
             $user,

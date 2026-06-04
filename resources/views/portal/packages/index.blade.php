@@ -89,6 +89,9 @@
                         @if ($quote['is_upgrade'])
                             <p class="font-semibold">Upgrade estimate ({{ $quote['days_remaining'] }} days left)</p>
                             <p>Pay now: <strong>{{ number_format($quote['net_due'], 2) }} BDT</strong></p>
+                            @if (($quote['promotional_discount'] ?? 0) > 0)
+                                <p>Promotion: −{{ number_format($quote['promotional_discount'], 2) }} BDT</p>
+                            @endif
                             <p>Credit {{ number_format($quote['credit_amount'], 2) }} · New {{ number_format($quote['new_charge'], 2) }}</p>
                         @else
                             <p class="font-semibold">Downgrade</p>

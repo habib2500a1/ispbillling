@@ -96,7 +96,7 @@ class AppSetting extends Model
      */
     public static function syncPublicPaymentGatewayFlags(): void
     {
-        $bkashOn = \App\Support\BkashSettings::isActiveForChannel(
+        $bkashOn = \App\Support\BkashSettings::isEnabledForChannel(
             \App\Support\BkashSettings::CHANNEL_PUBLIC_PAY,
         );
 
@@ -158,7 +158,10 @@ class AppSetting extends Model
             return in_array(strtolower($value), ['1', 'true', 'yes', 'on'], true);
         }
 
-        if (str_ends_with($key, '.enabled') || str_ends_with($key, '.auto_verify') || str_ends_with($key, '.sandbox')) {
+        if (str_ends_with($key, '.enabled')
+            || str_ends_with($key, '_enabled')
+            || str_ends_with($key, '.auto_verify')
+            || str_ends_with($key, '.sandbox')) {
             return in_array(strtolower($value), ['1', 'true', 'yes', 'on'], true);
         }
 

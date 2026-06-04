@@ -1,11 +1,19 @@
-@php $wan = $this->getWanLive(); @endphp
+@php $wan = $this->getWanLive(); $statsPoll = max(3, (int) config('bandwidth.monitor_wan_collect_seconds', 3)); @endphp
 
 <x-filament-widgets::widget>
-    <div class="isp-wan-live-hero">
+    <div
+        class="isp-wan-live-hero"
+        wire:poll.{{ $statsPoll }}s="$refresh"
+    >
         <div class="isp-wan-live-hero__head">
             <div>
                 <h2 class="isp-wan-live-hero__title">WAN port — live now</h2>
-                <p class="isp-wan-live-hero__sub">Total uplink throughput (Mbps per second)</p>
+                <p class="isp-wan-live-hero__sub">
+                    Total uplink throughput (Mbps per second)
+                    @if (count($wan['interfaces']) > 0)
+                        · {{ count($wan['interfaces']) }} interface{{ count($wan['interfaces']) === 1 ? '' : 's' }}
+                    @endif
+                </p>
             </div>
             <span class="isp-wan-live-hero__pulse">
                 <span class="isp-kpi-wall__dot"></span>
@@ -40,8 +48,8 @@
             </div>
         @elseif (! $wan['has_data'])
             <p class="mt-3 text-sm text-amber-700 dark:text-amber-300">
-                No WAN rate yet — click <strong>Sync now</strong> twice (~{{ config('bandwidth.poll_interval_minutes', 2) }} min apart), or set
-                <span class="font-mono text-xs">BANDWIDTH_WAN_INTERFACES=ether1</span> in .env.
+                WAN rates warming up — first sample needs ~{{ max(3, (int) config('bandwidth.wan_live_poll_throttle_seconds', 3)) }}s, then Mbps/s appears.
+                If still empty, set <span class="font-mono text-xs">BANDWIDTH_WAN_INTERFACES=ether1</span> or add WAN name under MikroTik server settings.
             </p>
         @endif
     </div>

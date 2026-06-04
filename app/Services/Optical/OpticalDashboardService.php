@@ -21,15 +21,14 @@ final class OpticalDashboardService
             return $this->emptySnapshot();
         }
 
-        $onus = Device::query()
+        $summary = FiberFaultDetector::aggregateOnuStats($tenantId);
+
+        $avgRx = Device::query()
             ->withoutGlobalScopes()
             ->where('tenant_id', $tenantId)
             ->where('type', 'onu')
-            ->get();
-
-        $summary = FiberFaultDetector::summarizeOnus($onus);
-
-        $rxValues = $onus->map(fn (Device $o) => $o->rx_power_dbm !== null ? (float) $o->rx_power_dbm : null)->filter();
+            ->whereNotNull('rx_power_dbm')
+            ->avg('rx_power_dbm');
 
         $openAlerts = SignalAlert::query()
             ->where('tenant_id', $tenantId)
@@ -52,7 +51,7 @@ final class OpticalDashboardService
             'warning_onus' => $summary['warning'],
             'offline_onus' => $summary['offline'],
             'excellent_onus' => $summary['excellent'],
-            'avg_rx_dbm' => $rxValues->isNotEmpty() ? round($rxValues->avg(), 2) : null,
+            'avg_rx_dbm' => $avgRx !== null ? round((float) $avgRx, 2) : null,
             'open_alerts' => $openAlerts,
             'fiber_faults' => $fiberFaults,
             'avg_health' => $avgHealth,
@@ -111,8 +110,11 @@ final class OpticalDashboardService
         $logs = OnuSignalLog::query()
             ->where('device_id', $deviceId)
             ->where('sampled_at', '>=', $since)
-            ->orderBy('sampled_at')
-            ->get(['sampled_at', 'rx_power_dbm', 'tx_power_dbm', 'granularity']);
+            ->orderByDesc('sampled_at')
+            ->limit(500)
+            ->get(['sampled_at', 'rx_power_dbm', 'tx_power_dbm', 'granularity'])
+            ->reverse()
+            ->values();
 
         $labels = [];
         $rx = [];

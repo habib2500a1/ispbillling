@@ -76,7 +76,7 @@ class _StaffApprovalsScreenState extends State<StaffApprovalsScreen> {
       title: 'Pending approvals',
       useGradientBody: true,
       body: _loading
-          ? const Center(child: CircularProgressIndicator())
+          ? const ListLoading()
           : _error != null
               ? Center(child: ErrorBanner(message: _error!, onRetry: _load))
               : _items.isEmpty

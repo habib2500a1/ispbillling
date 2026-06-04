@@ -10,9 +10,10 @@ class NormalizeBillingDayCommand extends Command
 {
     protected $signature = 'isp:normalize-billing-day
                             {--day= : Bill day 1-28 (default from config)}
+                            {--grace= : Set grace_period_days for all subscribers (e.g. 0 = due on bill day)}
                             {--enable-auto-invoice : Turn on meta.auto_invoice for all subscribers}';
 
-    protected $description = 'Set every subscriber bill day to 1 (or --day=N) so monthly bills run on the same date regardless of join date or due.';
+    protected $description = 'Set every subscriber bill day to 1 (or --day=N) and optionally grace days so monthly bills and line-off rules align.';
 
     public function handle(): int
     {
@@ -22,6 +23,12 @@ class NormalizeBillingDayCommand extends Command
 
         $updated = Customer::withoutGlobalScopes()->update(['billing_day' => $day]);
         $this->info("Set billing_day={$day} on {$updated} subscriber(s).");
+
+        if ($this->option('grace') !== null) {
+            $grace = max(0, min(90, (int) $this->option('grace')));
+            $graceUpdated = Customer::withoutGlobalScopes()->update(['grace_period_days' => $grace]);
+            $this->info("Set grace_period_days={$grace} on {$graceUpdated} subscriber(s).");
+        }
 
         if ($this->option('enable-auto-invoice')) {
             $count = 0;

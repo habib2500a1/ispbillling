@@ -2,33 +2,29 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Customer;
+use App\Http\Controllers\Concerns\AuthorizesBillingDocumentAccess;
 use App\Models\Payment;
+use App\Support\ResellerBranding;
 use Illuminate\Http\Response;
-use Illuminate\Support\Facades\Auth;
 use Mpdf\Mpdf;
 use Mpdf\Output\Destination;
 
 class PaymentReceiptController extends Controller
 {
+    use AuthorizesBillingDocumentAccess;
+
     public function show(Payment $payment): Response
     {
-        $webUser = Auth::guard('web')->user() ?? Auth::guard('sanctum')->user();
-        $customer = Auth::guard('customer')->user();
-
-        if ($webUser) {
-            // Staff (Filament / mobile API token)
-        } elseif ($customer instanceof Customer) {
-            abort_unless((int) $payment->customer_id === (int) $customer->getAuthIdentifier(), 403);
-        } else {
-            abort(401);
-        }
+        $this->authorizePaymentReceipt($payment);
 
         abort_unless($payment->status === 'completed', 404);
 
         $payment->load(['customer', 'invoice', 'parentPayment']);
 
-        $html = view('payments.receipt', ['payment' => $payment])->render();
+        $html = view('payments.receipt', array_merge(
+            ['payment' => $payment],
+            ResellerBranding::letterheadVars($payment->customer),
+        ))->render();
 
         $tmpDir = storage_path('app/mpdf-tmp');
         if (! is_dir($tmpDir)) {

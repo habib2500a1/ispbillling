@@ -8,7 +8,7 @@ use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
 
 /**
- * ISP Digital–style optical database grid (all ONUs for tenant).
+ * legacy portal–style optical database grid (all ONUs for tenant).
  */
 final class OpticalDatabasePresenter
 {
@@ -27,9 +27,11 @@ final class OpticalDatabasePresenter
             ->where('type', 'onu')
             ->with([
                 'customer.activePppSession',
+                'customer.mikrotikServer:id,name',
                 'customer.devices' => fn ($q) => $q->whereIn('type', ['router', 'onu'])->select([
                     'id', 'customer_id', 'type', 'mac_address', 'framed_ip_address',
                 ]),
+                'oltPort:id,device_id,card_index,pon_index,label',
                 'olt:id,tenant_id,display_name,serial_number',
                 'oltPort:id,olt_id,card_no,pon_no,fiber_distance_m',
             ])
@@ -86,7 +88,7 @@ final class OpticalDatabasePresenter
     }
 
     /**
-     * @return array{total: int, with_rx: int, linked: int}
+     * @return array{total: int, with_rx: int, linked: int, auto_detected: int}
      */
     public function summary(int $tenantId): array
     {
@@ -96,6 +98,7 @@ final class OpticalDatabasePresenter
             'total' => (clone $base)->count(),
             'with_rx' => (clone $base)->whereNotNull('rx_power_dbm')->count(),
             'linked' => (clone $base)->whereNotNull('customer_id')->count(),
+            'auto_detected' => (clone $base)->where('meta->linked_by', 'olt_fdb_mac')->count(),
         ];
     }
 }

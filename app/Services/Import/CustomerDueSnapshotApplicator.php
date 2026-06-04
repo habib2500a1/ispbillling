@@ -9,18 +9,18 @@ use App\Support\CustomerBalanceDue;
 use Carbon\Carbon;
 
 /**
- * Applies ISP Digital billing grid to monthly + prior-balance invoices (visible in collection/history).
+ * Applies legacy portal billing grid to monthly + prior-balance invoices (visible in collection/history).
  */
 final class CustomerDueSnapshotApplicator
 {
     public function __construct(
         private readonly int $tenantId = 1,
-        private readonly ?IspDigitalBillingReconciler $reconciler = null,
+        private readonly ?LegacyPortalBillingReconciler $reconciler = null,
     ) {}
 
-    private function reconciler(): IspDigitalBillingReconciler
+    private function reconciler(): LegacyPortalBillingReconciler
     {
-        return $this->reconciler ?? app(IspDigitalBillingReconciler::class);
+        return $this->reconciler ?? app(LegacyPortalBillingReconciler::class);
     }
 
     public function apply(
@@ -69,7 +69,7 @@ final class CustomerDueSnapshotApplicator
                     $dueDate,
                     $priorDue,
                     $paidToPrior,
-                    $sourceNote.' · Prior balance (ISP Digital)',
+                    $sourceNote.' · Prior balance (legacy portal)',
                 );
             }
 
@@ -89,6 +89,10 @@ final class CustomerDueSnapshotApplicator
             );
         });
 
+        $aligner = app(LegacyPortalInvoiceAligner::class);
+        $aligner->voidStaleOpenInvoices($customer, $periodKey);
+        $aligner->voidAllOpenInvoicesWhenIspDueZero($customer, $balanceDue);
+
         $reconciler = $this->reconciler();
         $reconciler->reconcile($customer, $currentNumber, $payable, $paid, $balanceDue);
 
@@ -96,15 +100,13 @@ final class CustomerDueSnapshotApplicator
         $resolved = CustomerBalanceDue::resolve($customer);
 
         $meta = is_array($customer->meta) ? $customer->meta : [];
-        foreach (CustomerBalanceDue::legacyMetaDueKeys() as $legacyKey) {
-            unset($meta[$legacyKey]);
-        }
-        $meta['balance_due'] = $resolved['balance_due'];
-        $meta['billing_payment_state'] = $resolved['payment_state'];
-        $meta['isp_digital_payable'] = $payable;
-        $meta['isp_digital_paid_mtd'] = $paid;
-        $meta['isp_digital_advance'] = 0;
-        $meta['isp_digital_billing_synced_at'] = now()->toIso8601String();
+        $meta['balance_due'] = $balanceDue > 0.009 ? $balanceDue : $resolved['balance_due'];
+        $meta['billing_payment_state'] = $reconciler->resolvePaymentState($balanceDue, $paid, $payable);
+        $meta['legacy_portal_payable'] = $payable;
+        $meta['legacy_portal_paid_mtd'] = $paid;
+        $meta['legacy_portal_balance_due'] = $balanceDue;
+        $meta['legacy_portal_advance'] = 0;
+        $meta['legacy_portal_billing_synced_at'] = now()->toIso8601String();
         $meta['due_snapshot_source'] = $sourceNote;
         $meta['due_snapshot_at'] = now()->toIso8601String();
         $meta['local_due_synced_at'] = now()->toIso8601String();
@@ -152,7 +154,7 @@ final class CustomerDueSnapshotApplicator
     }
 
     /**
-     * ISP Digital grid can lag behind local collection — never downgrade a paid local invoice.
+     * legacy portal grid can lag behind local collection — never downgrade a paid local invoice.
      *
      * @param  array<string, mixed>  $attrs
      * @return array<string, mixed>

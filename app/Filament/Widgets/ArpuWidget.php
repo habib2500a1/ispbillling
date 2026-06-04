@@ -6,6 +6,7 @@ use App\Models\Customer;
 use App\Models\Payment;
 use Filament\Widgets\StatsOverviewWidget as BaseWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 
 class ArpuWidget extends BaseWidget
@@ -31,32 +32,36 @@ class ArpuWidget extends BaseWidget
 
     protected function getStats(): array
     {
-        $start = now()->startOfMonth();
-        $end = now()->endOfMonth();
+        $data = Cache::remember('widget:arpu:'.now()->format('Y-m'), now()->addMinutes(5), function (): array {
+            $start = now()->startOfMonth();
+            $end = now()->endOfMonth();
 
-        $collected = (float) Payment::query()
-            ->where('status', 'completed')
-            ->whereBetween('paid_at', [$start, $end])
-            ->sum('amount');
+            $collected = (float) Payment::query()
+                ->where('status', 'completed')
+                ->whereBetween('paid_at', [$start, $end])
+                ->sum('amount');
 
-        $active = Customer::query()->where('status', 'active')->count();
-        $arpu = $active > 0 ? round($collected / $active, 2) : 0.0;
+            $active = Customer::query()->where('status', 'active')->count();
+            $arpu = $active > 0 ? round($collected / $active, 2) : 0.0;
 
-        $byMethod = Payment::query()
-            ->select('method', DB::raw('SUM(amount) as total'))
-            ->where('status', 'completed')
-            ->whereBetween('paid_at', [$start, $end])
-            ->groupBy('method')
-            ->orderByDesc('total')
-            ->limit(5)
-            ->get()
-            ->map(fn ($r) => ($r->method ?? 'unknown').': '.number_format((float) $r->total, 0))
-            ->implode(' · ');
+            $byMethod = Payment::query()
+                ->select('method', DB::raw('SUM(amount) as total'))
+                ->where('status', 'completed')
+                ->whereBetween('paid_at', [$start, $end])
+                ->groupBy('method')
+                ->orderByDesc('total')
+                ->limit(5)
+                ->get()
+                ->map(fn ($r) => ($r->method ?? 'unknown').': '.number_format((float) $r->total, 0))
+                ->implode(' · ');
+
+            return ['arpu' => $arpu, 'byMethod' => $byMethod];
+        });
 
         return [
-            Stat::make('ARPU (this month)', number_format($arpu, 2, '.', ',').' BDT')
+            Stat::make('ARPU (this month)', number_format($data['arpu'], 2, '.', ',').' BDT')
                 ->description('Collected / active customers (proxy)'),
-            Stat::make('Top payment methods', $byMethod !== '' ? $byMethod : '—')
+            Stat::make('Top payment methods', $data['byMethod'] !== '' ? $data['byMethod'] : '—')
                 ->description('Completed payments this month'),
         ];
     }

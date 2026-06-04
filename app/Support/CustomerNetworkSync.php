@@ -65,15 +65,10 @@ final class CustomerNetworkSync
         }
 
         if ($openDue <= 0.01 || $paidInvoiceCleared) {
-            $customer->forceFill([
-                'status' => CustomerStatus::ACTIVE,
-                'network_access_state' => 'active',
-            ])->saveQuietly();
-            $customer = $customer->fresh() ?? $customer;
-            static::pushMikrotikApiIfAvailable($customer);
-        }
+            static::forceNetOn($customer);
 
-        static::runNow($customer);
+            return;
+        }
     }
 
     /**
@@ -90,10 +85,6 @@ final class CustomerNetworkSync
     }
 
     /**
-     * When tenant has MikroTik API configured, always push PPP secret enable/disable
-     * (even if NETWORK_PROVISIONER_DRIVER is null/log).
-     */
-    /**
      * Net ON / admin rescue: set panel active and push MikroTik enable immediately.
      * Does not run full policy job first (avoids expiry job re-suspending before API push).
      */
@@ -105,15 +96,35 @@ final class CustomerNetworkSync
             return;
         }
 
+        // saveQuietly: do not fire CustomerObserver (it runs heavy runNow() and blocks Net ON).
         $customer->forceFill([
             'status' => CustomerStatus::ACTIVE,
             'network_access_state' => 'active',
-        ])->save();
+        ])->saveQuietly();
 
-        static::pushMikrotikApiIfAvailable($customer->fresh() ?? $customer);
-        static::runNow($customer->fresh() ?? $customer);
+        static::pushMikrotikEnableNow($customer->fresh() ?? $customer);
     }
 
+    /**
+     * Admin Net ON: upsert PPP secret and set disabled=no (no policy job, no observer).
+     */
+    public static function pushMikrotikEnableNow(Customer $customer): void
+    {
+        if (! (bool) config('network.mikrotik_push_enabled', true)) {
+            return;
+        }
+
+        if (! static::tenantHasMikrotikApi((int) $customer->tenant_id)) {
+            return;
+        }
+
+        app(MikrotikNetworkProvisioner::class)->unsuspendCustomer($customer->fresh() ?? $customer);
+    }
+
+    /**
+     * When tenant has MikroTik API configured, always push PPP secret enable/disable
+     * (even if NETWORK_PROVISIONER_DRIVER is null/log).
+     */
     public static function pushMikrotikApiIfAvailable(Customer $customer): void
     {
         if (! (bool) config('network.mikrotik_push_enabled', true)) {

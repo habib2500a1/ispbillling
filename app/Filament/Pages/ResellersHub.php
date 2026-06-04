@@ -3,6 +3,7 @@
 namespace App\Filament\Pages;
 
 use App\Filament\Pages\ResellerPackagePricesPage;
+use App\Filament\Pages\ResellerPendingWalletRechargesPage;
 use App\Filament\Pages\ResellerReportPage;
 use App\Filament\Pages\ResellerWalletHubPage;
 use App\Filament\Resources\ResellerResource;
@@ -31,20 +32,192 @@ class ResellersHub extends Page
      */
     public function getStats(): array
     {
+        $total = Reseller::query()->count();
+        $active = Reseller::query()->where('is_active', true)->count();
+
         return [
-            'total' => Reseller::query()->count(),
-            'active' => Reseller::query()->where('is_active', true)->count(),
-            'franchises' => Reseller::query()->where('franchise_type', 'franchise')->count(),
+            'total' => $total,
+            'active' => $active,
+            'inactive' => max(0, $total - $active),
+            'franchises' => Reseller::query()->where('franchise_type', \App\Support\ResellerType::FRANCHISE)->count(),
+            'sub_resellers' => Reseller::query()->where('franchise_type', \App\Support\ResellerType::SUB_RESELLER)->count(),
             'white_label' => Reseller::query()->where('white_label_enabled', true)->count(),
+            'customers_total' => (int) \App\Models\Customer::query()->whereNotNull('reseller_id')->count(),
             'wallet_total' => (float) Reseller::query()->sum('wallet_balance'),
             'pending_commission' => (float) ResellerCommission::query()
                 ->where('status', ResellerCommission::STATUS_PENDING)
                 ->sum('commission_amount'),
+            'pending_wallet_topups' => ResellerPendingWalletRechargesPage::pendingCount(),
+            'admin_receivable_total' => (float) Reseller::query()->sum('admin_receivable_due'),
+            'new_customers_month' => (int) \App\Models\Customer::query()
+                ->whereNotNull('reseller_id')
+                ->whereMonth('created_at', now()->month)
+                ->whereYear('created_at', now()->year)
+                ->count(),
         ];
+    }
+
+    /**
+     * Top partners ranked by linked customer count, with a meter width
+     * relative to the busiest partner for the leaderboard bar.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public function getTopPartners(): array
+    {
+        $partners = Reseller::query()
+            ->withCount('customers')
+            ->orderByDesc('customers_count')
+            ->orderByDesc('wallet_balance')
+            ->limit(6)
+            ->get();
+
+        $max = (int) ($partners->max('customers_count') ?: 0);
+
+        return $partners->map(fn (Reseller $reseller): array => [
+            'id' => $reseller->getKey(),
+            'name' => $reseller->name,
+            'type' => $reseller->franchiseTypeLabel(),
+            'customers' => (int) $reseller->customers_count,
+            'wallet' => (float) $reseller->wallet_balance,
+            'active' => (bool) $reseller->is_active,
+            'url' => ResellerResource::getUrl('view', ['record' => $reseller]),
+            'portal_login_url' => route('staff.resellers.portal-login', ['reseller' => $reseller->getKey()]),
+            'width' => $max > 0 ? (int) round(($reseller->customers_count / $max) * 100) : 0,
+        ])->all();
+    }
+
+    /**
+     * Partner counts grouped by franchise type, each with a share of total.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public function getPartnerMix(): array
+    {
+        $rows = Reseller::query()
+            ->selectRaw('franchise_type, COUNT(*) as aggregate')
+            ->groupBy('franchise_type')
+            ->pluck('aggregate', 'franchise_type');
+
+        $total = (int) $rows->sum();
+        $labels = \App\Support\ResellerType::labels();
+
+        return collect($rows)
+            ->map(fn (int $count, ?string $type): array => [
+                'label' => $labels[$type] ?? ucfirst((string) ($type ?: 'Reseller')),
+                'count' => $count,
+                'share' => $total > 0 ? (int) round(($count / $total) * 100) : 0,
+            ])
+            ->sortByDesc('count')
+            ->values()
+            ->all();
+    }
+
+    /**
+     * Commission settlement snapshot: pending / paid / cancelled amounts and
+     * counts, plus the pending share of the settle-able total for a meter.
+     *
+     * @return array<string, int|float>
+     */
+    public function getSettlement(): array
+    {
+        $byStatus = ResellerCommission::query()
+            ->selectRaw('status, COUNT(*) as cnt, COALESCE(SUM(commission_amount), 0) as amt')
+            ->groupBy('status')
+            ->get()
+            ->keyBy('status');
+
+        $row = fn (string $status, string $key): float => (float) ($byStatus[$status]->{$key} ?? 0);
+
+        $pending = $row(ResellerCommission::STATUS_PENDING, 'amt');
+        $paid = $row(ResellerCommission::STATUS_PAID, 'amt');
+        $settleable = $pending + $paid;
+
+        return [
+            'pending_amount' => $pending,
+            'pending_count' => (int) $row(ResellerCommission::STATUS_PENDING, 'cnt'),
+            'paid_amount' => $paid,
+            'paid_count' => (int) $row(ResellerCommission::STATUS_PAID, 'cnt'),
+            'cancelled_amount' => $row(ResellerCommission::STATUS_CANCELLED, 'amt'),
+            'cancelled_count' => (int) $row(ResellerCommission::STATUS_CANCELLED, 'cnt'),
+            'pending_share' => $settleable > 0 ? (int) round(($pending / $settleable) * 100) : 0,
+        ];
+    }
+
+    /**
+     * Recent commission entries for the activity feed (last 8).
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public function getRecentCommissions(): array
+    {
+        return ResellerCommission::query()
+            ->with('reseller:id,name')
+            ->orderByDesc('created_at')
+            ->limit(8)
+            ->get()
+            ->map(fn (ResellerCommission $c): array => [
+                'reseller' => $c->reseller?->name ?? '—',
+                'amount'   => (float) $c->commission_amount,
+                'status'   => $c->status,
+                'date'     => $c->created_at?->diffForHumans() ?? '—',
+                'url'      => ResellerResource::getUrl('view', ['record' => $c->reseller_id]),
+            ])
+            ->all();
     }
 
     public static function canAccess(): bool
     {
         return \App\Support\Rbac\StaffCapability::for(auth()->user())->canResellers();
+    }
+
+    /**
+     * Network financial overview (wallet, receivable, credit utilisation, commission lifetime).
+     *
+     * @return array<string, float|int>
+     */
+    public function getFinancialOverview(): array
+    {
+        return app(\App\Services\Resellers\ResellerAnalyticsService::class)->financialOverview();
+    }
+
+    /**
+     * Commission + gross-revenue trend for the last 6 months.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public function getCommissionTrend(): array
+    {
+        return app(\App\Services\Resellers\ResellerAnalyticsService::class)->commissionTrend(6);
+    }
+
+    /**
+     * New reseller customers per month (growth) for the last 6 months.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public function getCustomerGrowth(): array
+    {
+        return app(\App\Services\Resellers\ResellerAnalyticsService::class)->customerGrowth(6);
+    }
+
+    /**
+     * Top partners by performance score (size + collection + low risk).
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public function getPerformanceScores(): array
+    {
+        return app(\App\Services\Resellers\ResellerAnalyticsService::class)->performanceScores(6);
+    }
+
+    /**
+     * Risk watchlist — partners flagged by credit/wallet/risk.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public function getRiskWatchlist(): array
+    {
+        return app(\App\Services\Resellers\ResellerAnalyticsService::class)->riskWatchlist(6);
     }
 }

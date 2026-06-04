@@ -151,7 +151,23 @@ class OltResource extends Resource
                     ])
                     ->columns(2)
                     ->visible(fn (Get $get): bool => OltManagementHelper::isAveisDriver($get('olt_driver'))
-                        || in_array($get('olt_driver'), ['vsol_gpon', 'ecom_gpon', 'ecom_epon', 'cdata_gpon'], true)),
+                        || OltManagementHelper::isConfigDrivenDriver($get('olt_driver'))),
+                Forms\Components\Section::make('SNMP ONU OIDs (this OLT / model)')
+                    ->description('যেকোনো মডেল — .env ছাড়াও শুধু এই OLT-এর জন্য OID দিন। খালি = global VSOL_SNMP_ONU_* বা vendor .env।')
+                    ->schema([
+                        Forms\Components\TextInput::make('meta.snmp_onu_oids.desc')->label('Description OID')->placeholder('1.3.6.…'),
+                        Forms\Components\TextInput::make('meta.snmp_onu_oids.mac')->label('MAC OID'),
+                        Forms\Components\TextInput::make('meta.snmp_onu_oids.sn')->label('Serial OID'),
+                        Forms\Components\TextInput::make('meta.snmp_onu_oids.rx')->label('RX power OID'),
+                        Forms\Components\TextInput::make('meta.snmp_onu_oids.tx')->label('TX power OID'),
+                        Forms\Components\TextInput::make('meta.snmp_onu_oids.temp')->label('Temperature OID'),
+                        Forms\Components\TextInput::make('meta.snmp_onu_oids.voltage')->label('Voltage OID'),
+                        Forms\Components\TextInput::make('meta.snmp_onu_oids.status')->label('Status OID'),
+                    ])
+                    ->columns(2)
+                    ->collapsible()
+                    ->collapsed()
+                    ->visible(fn (Get $get): bool => OltManagementHelper::isConfigDrivenDriver($get('olt_driver'))),
                 Forms\Components\Section::make('Run status (advanced)')
                     ->schema([
                         Forms\Components\Select::make('status')
@@ -260,7 +276,7 @@ class OltResource extends Resource
                     ->collapsed(),
                 Forms\Components\Textarea::make('notes')
                     ->columnSpanFull(),
-                Forms\Components\KeyValue::make('meta')
+                Forms\Components\KeyValue::make('meta_extra')
                     ->label('Extra metadata')
                     ->keyLabel('Key')
                     ->valueLabel('Value')

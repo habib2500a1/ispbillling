@@ -1,212 +1,225 @@
-@php $r = $this->getReport(); @endphp
-<x-filament-panels::page>
-    <div class="mb-4 flex flex-wrap items-center gap-3">
-        <a href="{{ \App\Filament\Pages\BillCollectionDesk::getUrl() }}" class="text-sm text-primary-600 hover:underline">← Bill collection desk</a>
-        <a href="{{ \App\Filament\Pages\BillingFundFlowReport::getUrl() }}" class="text-sm text-violet-600 hover:underline">Bill money trail (cost breakdown) →</a>
-        <a href="{{ \App\Filament\Pages\CollectorVisitsReport::getUrl() }}" class="text-sm text-teal-600 hover:underline">Collector visits (GPS) →</a>
-    </div>
+@php
+    $r = $this->getReport();
+    $activePreset = $this->activeDatePreset();
+@endphp
 
-    <div class="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-900">
-        <p class="mb-2 text-xs font-bold uppercase text-gray-500">Quick date</p>
-        <div class="mb-3 flex flex-wrap gap-2">
-            <button type="button" wire:click="setDatePreset('today')" class="rounded-full border border-gray-300 px-3 py-1 text-xs font-semibold hover:bg-gray-100 dark:border-gray-600 dark:hover:bg-gray-800">Today</button>
-            <button type="button" wire:click="setDatePreset('yesterday')" class="rounded-full border border-gray-300 px-3 py-1 text-xs font-semibold hover:bg-gray-100 dark:border-gray-600 dark:hover:bg-gray-800">Yesterday</button>
-            <button type="button" wire:click="setDatePreset('last7')" class="rounded-full border border-gray-300 px-3 py-1 text-xs font-semibold hover:bg-gray-100 dark:border-gray-600 dark:hover:bg-gray-800">Last 7 days</button>
-            <button type="button" wire:click="setDatePreset('week')" class="rounded-full border border-gray-300 px-3 py-1 text-xs font-semibold hover:bg-gray-100 dark:border-gray-600 dark:hover:bg-gray-800">This week</button>
-            <button type="button" wire:click="setDatePreset('month')" class="rounded-full border border-gray-300 px-3 py-1 text-xs font-semibold hover:bg-gray-100 dark:border-gray-600 dark:hover:bg-gray-800">This month</button>
-        </div>
-        <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+<x-filament-panels::page class="isp-cdr-page">
+    @include('filament.partials.ensure-route-stylesheet', ['file' => 'collection-desk-report-pro.css'])
+
+    <div class="cdr-pro">
+        <header class="cdr-hero">
             <div>
-                <label class="mb-1 block text-xs font-bold uppercase text-gray-500">From date</label>
-                <input type="date" wire:model.live="dateFrom" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-800" />
+                <p class="cdr-hero__eyebrow">Billing · Collections</p>
+                <h1 class="cdr-hero__title">Collection report</h1>
+                <p class="cdr-hero__sub">
+                    {{ $r['from'] }} → {{ $r['to'] }} · {{ number_format($r['count']) }} payment{{ $r['count'] === 1 ? '' : 's' }}
+                </p>
+                <div class="cdr-hero__stats">
+                    <span class="cdr-hero__stat">
+                        <strong>{{ number_format($r['total'], 0) }}</strong>
+                        Total received (BDT)
+                    </span>
+                    <span class="cdr-hero__stat">
+                        <strong>{{ number_format($r['cash_total'], 0) }}</strong>
+                        Cash / bank
+                    </span>
+                    <span class="cdr-hero__stat">
+                        <strong>{{ number_format($r['online_total'], 0) }}</strong>
+                        bKash / online
+                    </span>
+                </div>
             </div>
-            <div>
-                <label class="mb-1 block text-xs font-bold uppercase text-gray-500">To date</label>
-                <input type="date" wire:model.live="dateTo" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-800" />
+            <div class="cdr-hero__actions">
+                @foreach ($this->getCachedHeaderActions() as $action)
+                    {{ $action }}
+                @endforeach
+                <a href="{{ \App\Filament\Pages\BillCollectionDesk::getUrl() }}" class="cdr-preset">Collection desk</a>
             </div>
-            <div>
-                <label class="mb-1 block text-xs font-bold uppercase text-gray-500">Collector (user)</label>
-                <select wire:model.live="collectorId" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-800">
-                    <option value="">All collectors</option>
-                    @foreach ($this->getCollectorOptions() as $opt)
-                        <option value="{{ $opt['id'] }}">{{ $opt['name'] }}</option>
-                    @endforeach
-                </select>
-            </div>
-            <div class="sm:col-span-2">
-                <label class="mb-1 block text-xs font-bold uppercase text-gray-500">Search name, ID, phone, receipt, TRX</label>
-                <input type="search" wire:model.live.debounce.400ms="search" placeholder="Type to filter…" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-800" />
-            </div>
-        </div>
-    </div>
+        </header>
 
-    <div class="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-        <div class="rounded-xl border bg-white p-4 dark:border-gray-700 dark:bg-gray-900">
-            <p class="text-xs uppercase text-gray-500">Total collected</p>
-            <p class="text-2xl font-bold text-emerald-700 dark:text-emerald-400">{{ number_format($r['total'], 2) }} BDT</p>
-            <p class="text-xs text-gray-500">{{ $r['count'] }} payment{{ $r['count'] === 1 ? '' : 's' }}</p>
-        </div>
-        <div class="rounded-xl border bg-white p-4 dark:border-gray-700 dark:bg-gray-900">
-            <p class="text-xs uppercase text-gray-500">Period</p>
-            <p class="text-sm font-semibold">{{ $r['from'] }} → {{ $r['to'] }}</p>
-        </div>
-        <div class="rounded-xl border bg-white p-4 dark:border-gray-700 dark:bg-gray-900">
-            <p class="text-xs uppercase text-gray-500">Cash / bank</p>
-            <p class="text-lg font-bold">{{ number_format($r['cash_total'], 2) }}</p>
-        </div>
-        <div class="rounded-xl border bg-white p-4 dark:border-gray-700 dark:bg-gray-900">
-            <p class="text-xs uppercase text-gray-500">Online gateways</p>
-            <p class="text-lg font-bold">{{ number_format($r['online_total'], 2) }}</p>
-        </div>
-        <div class="rounded-xl border bg-white p-4 dark:border-gray-700 dark:bg-gray-900">
-            <p class="text-xs uppercase text-gray-500">With GPS tag</p>
-            <p class="text-lg font-bold">{{ $r['with_gps'] }}</p>
-        </div>
-    </div>
+        <section class="cdr-filters">
+            <div class="mb-3 flex flex-wrap gap-2">
+                @foreach ([
+                    'today' => 'Today',
+                    'yesterday' => 'Yesterday',
+                    'last7' => 'Last 7 days',
+                    'week' => 'This week',
+                    'month' => 'This month',
+                ] as $key => $label)
+                    <button type="button" wire:click="setDatePreset('{{ $key }}')" @class([
+                        'cdr-preset',
+                        'cdr-preset--active' => $activePreset === $key,
+                    ])>{{ $label }}</button>
+                @endforeach
+            </div>
+            <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-6">
+                <div class="cdr-field">
+                    <label>From date</label>
+                    <input type="date" wire:model.live="dateFrom" />
+                </div>
+                <div class="cdr-field">
+                    <label>To date</label>
+                    <input type="date" wire:model.live="dateTo" />
+                </div>
+                <div class="cdr-field">
+                    <label>Collector (staff)</label>
+                    @if ($this->isStaffCollectorReportScoped())
+                        <p class="rounded-lg border px-3 py-2 text-sm font-semibold">{{ $this->scopedCollectorDisplayName() }}</p>
+                    @else
+                        <select wire:model.live="collectorId">
+                            <option value="">All collectors</option>
+                            @foreach ($this->getCollectorOptions() as $opt)
+                                <option value="{{ $opt['id'] }}">{{ $opt['name'] }}</option>
+                            @endforeach
+                        </select>
+                    @endif
+                </div>
+                <div class="cdr-field">
+                    <label>Payment method</label>
+                    <select wire:model.live="methodFilter">
+                        <option value="all">All</option>
+                        <option value="bkash">bKash</option>
+                        <option value="cash">Cash</option>
+                        <option value="bank">Bank</option>
+                        <option value="nagad">Nagad</option>
+                    </select>
+                </div>
+                <div class="cdr-field sm:col-span-2">
+                    <label>Search — name, PPP, staff (Habib), invoice, bKash TRX</label>
+                    <input type="search" wire:model.live.debounce.400ms="search" placeholder="Type to filter…" />
+                </div>
+            </div>
+            <div class="mt-3 flex flex-wrap items-center gap-2 border-t border-gray-200 pt-3 dark:border-gray-700">
+                <span class="text-xs font-bold uppercase text-gray-500">Source:</span>
+                @foreach ([
+                    'all' => 'All combined',
+                    'legacy_portal' => \App\Support\BillingPortalLabel::collectionFilter(),
+                    'desk' => 'Desk only',
+                ] as $key => $label)
+                    <button type="button" wire:click="$set('sourceFilter', '{{ $key }}')" @class([
+                        'cdr-source-btn',
+                        'cdr-source-btn--active' => $sourceFilter === $key,
+                    ])>{{ $label }}</button>
+                @endforeach
+            </div>
+        </section>
 
-    <div class="mt-6 grid gap-6 lg:grid-cols-2">
-        <div class="rounded-xl border overflow-hidden dark:border-gray-700">
-            <h3 class="bg-gray-50 px-4 py-2 text-sm font-semibold dark:bg-gray-800">By payment method</h3>
-            <table class="w-full text-sm">
-                <thead class="text-xs uppercase text-gray-500">
-                    <tr class="border-b dark:border-gray-800">
-                        <th class="px-4 py-2 text-left">Method</th>
-                        <th class="px-4 py-2 text-right">Amount</th>
-                        <th class="px-4 py-2 text-right">Count</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @forelse ($r['by_method'] as $method => $row)
-                        <tr class="border-t dark:border-gray-800">
-                            <td class="px-4 py-2">{{ \App\Support\PaymentGateway::label($method) }}</td>
-                            <td class="px-4 py-2 text-right font-medium">{{ number_format($row['total'], 2) }}</td>
-                            <td class="px-4 py-2 text-right text-gray-500">{{ $row['count'] }}</td>
-                        </tr>
-                    @empty
-                        <tr><td colspan="3" class="px-4 py-6 text-center text-gray-500">No payments in range</td></tr>
-                    @endforelse
-                </tbody>
-            </table>
-        </div>
-        <div class="rounded-xl border overflow-hidden dark:border-gray-700">
-            <h3 class="bg-gray-50 px-4 py-2 text-sm font-semibold dark:bg-gray-800">By collector (staff user)</h3>
-            <table class="w-full text-sm">
-                <thead class="text-xs uppercase text-gray-500">
-                    <tr class="border-b dark:border-gray-800">
-                        <th class="px-4 py-2 text-left">Name</th>
-                        <th class="px-4 py-2 text-right">Amount</th>
-                        <th class="px-4 py-2 text-right">Count</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @forelse ($r['by_collector'] as $row)
-                        <tr class="border-t dark:border-gray-800">
-                            <td class="px-4 py-2">
-                                @if ($row['collector_id'])
-                                    <button type="button" wire:click="$set('collectorId', {{ $row['collector_id'] }})" class="font-medium text-violet-600 hover:underline">{{ $row['collector'] }}</button>
-                                @else
-                                    {{ $row['collector'] }}
-                                @endif
-                            </td>
-                            <td class="px-4 py-2 text-right font-medium">{{ number_format($row['total'], 2) }}</td>
-                            <td class="px-4 py-2 text-right text-gray-500">{{ $row['count'] }}</td>
-                        </tr>
-                    @empty
-                        <tr><td colspan="3" class="px-4 py-6 text-center text-gray-500">—</td></tr>
-                    @endforelse
-                </tbody>
-            </table>
-        </div>
-    </div>
-
-    <div class="mt-6 rounded-xl border overflow-hidden dark:border-gray-700">
-        <h3 class="bg-gray-50 px-4 py-3 text-sm font-semibold dark:bg-gray-800">
-            Collection detail — date, collector, customer name &amp; ID
-        </h3>
-        <div class="max-h-[32rem] overflow-auto">
-            <table class="min-w-full text-sm">
-                <thead class="sticky top-0 z-10 bg-gray-50 text-xs uppercase text-gray-500 dark:bg-gray-800">
-                    <tr>
-                        <th class="px-3 py-2 text-left whitespace-nowrap">Date / time</th>
-                        <th class="px-3 py-2 text-left">Receipt</th>
-                        <th class="px-3 py-2 text-left">Collector</th>
-                        <th class="px-3 py-2 text-left">Customer name</th>
-                        <th class="px-3 py-2 text-left">ID / phone</th>
-                        <th class="px-3 py-2 text-left">Invoice</th>
-                        <th class="px-3 py-2 text-left whitespace-nowrap">Valid / off</th>
-                        <th class="px-3 py-2 text-right">Amount</th>
-                        <th class="px-3 py-2 text-left">Method</th>
-                        <th class="px-3 py-2 text-left">Reference</th>
-                        <th class="px-3 py-2 text-center">GPS</th>
-                        <th class="px-3 py-2 text-right">Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @forelse ($r['rows'] as $row)
-                        <tr class="border-t dark:border-gray-800 hover:bg-gray-50/80 dark:hover:bg-gray-800/50">
-                            <td class="px-3 py-2 whitespace-nowrap">
-                                <span class="font-medium">{{ $row['date'] }}</span>
-                                <span class="text-gray-500">{{ $row['time'] }}</span>
-                            </td>
-                            <td class="px-3 py-2 font-mono text-xs">{{ $row['receipt_number'] }}</td>
-                            <td class="px-3 py-2">
-                                <span class="font-medium">{{ $row['collector_name'] }}</span>
-                                @if ($row['collector_email'])
-                                    <span class="block text-xs text-gray-500">{{ $row['collector_email'] }}</span>
-                                @endif
-                            </td>
-                            <td class="px-3 py-2 font-medium">{{ $row['customer_name'] }}</td>
-                            <td class="px-3 py-2 text-xs">
-                                <span class="font-mono">{{ $row['customer_code'] }}</span>
-                                @if ($row['customer_phone'] !== '—')
-                                    <span class="block text-gray-500">{{ $row['customer_phone'] }}</span>
-                                @endif
-                                @if (! empty($row['customer_area']))
-                                    <span class="block text-gray-400">{{ $row['customer_area'] }}</span>
-                                @endif
-                            </td>
-                            <td class="px-3 py-2 text-xs">{{ $row['invoice_number'] ?? '—' }}</td>
-                            <td class="px-3 py-2 text-xs">
-                                @if ($row['service_valid_until'])
-                                    <span class="block">বৈধ: {{ $row['service_valid_until'] }}</span>
-                                    <span class="block {{ ($row['days_until_off'] ?? 1) < 0 ? 'text-rose-600' : 'text-amber-700' }}">
-                                        Off: {{ $row['service_off_date'] }}
-                                    </span>
-                                @else
-                                    —
-                                @endif
-                            </td>
-                            <td class="px-3 py-2 text-right font-bold whitespace-nowrap">{{ number_format($row['amount'], 2) }}</td>
-                            <td class="px-3 py-2">{{ $row['method_label'] }}</td>
-                            <td class="px-3 py-2 text-xs text-gray-600 dark:text-gray-400 max-w-[8rem] truncate" title="{{ $row['reference'] ?? $row['gateway_transaction_id'] }}">
-                                {{ $row['reference'] ?: ($row['gateway_transaction_id'] ?: '—') }}
-                            </td>
-                            <td class="px-3 py-2 text-center">
-                                @if ($row['has_gps'])
-                                    <a href="https://maps.google.com/?q={{ $row['latitude'] }},{{ $row['longitude'] }}" target="_blank" class="text-teal-600 hover:underline" title="View on map">✓</a>
-                                @else
-                                    <span class="text-gray-300">—</span>
-                                @endif
-                            </td>
-                            <td class="px-3 py-2 text-right whitespace-nowrap">
-                                <a href="{{ $row['receipt_url'] }}" target="_blank" class="text-xs font-semibold text-violet-600 hover:underline">Receipt</a>
-                                <span class="text-gray-300">·</span>
-                                <a href="{{ $row['edit_url'] }}" class="text-xs font-semibold text-amber-700 hover:underline">Edit pay</a>
-                                @if ($row['subscriber_edit_url'])
-                                    <span class="text-gray-300">·</span>
-                                    <a href="{{ $row['subscriber_edit_url'] }}" class="text-xs font-semibold text-teal-600 hover:underline">Subscriber</a>
-                                @endif
-                            </td>
-                        </tr>
-                    @empty
+        <section class="cdr-grid-wrap">
+            <div class="cdr-grid-scroll">
+                <table class="cdr-table">
+                    <thead>
                         <tr>
-                            <td colspan="12" class="px-4 py-12 text-center text-gray-500">
-                                No collections found for this period or filter.
-                            </td>
+                            <th>Date &amp; time</th>
+                            <th>Bill #</th>
+                            <th>User name</th>
+                            <th>Full name</th>
+                            <th>Phone number</th>
+                            <th>Note / remarks</th>
+                            <th class="text-right">Total</th>
+                            <th class="text-right">Received</th>
+                            <th class="text-right">VAT</th>
+                            <th class="text-right">Discount</th>
+                            <th class="text-right">Balance</th>
+                            <th>Payment method</th>
+                            <th>Received by</th>
+                            <th>Approved by</th>
+                            <th>Created by</th>
+                            <th class="text-center">Action</th>
                         </tr>
-                    @endforelse
-                </tbody>
-            </table>
-        </div>
+                    </thead>
+                    <tbody>
+                        @forelse ($r['rows'] as $row)
+                            <tr>
+                                <td class="whitespace-nowrap">
+                                    <span class="font-semibold">{{ $row['date'] }}</span>
+                                    <span class="block text-xs opacity-70">{{ $row['time'] }}</span>
+                                </td>
+                                <td class="font-mono text-xs">{{ $row['bill_number'] }}</td>
+                                <td class="font-mono text-xs">{{ $row['username'] }}</td>
+                                <td class="font-medium">{{ $row['customer_name'] }}</td>
+                                <td class="whitespace-nowrap text-xs">{{ $row['customer_phone'] }}</td>
+                                <td class="max-w-[7rem] truncate text-xs" title="{{ $row['notes'] }}">{{ $row['notes'] ?: '—' }}</td>
+                                <td class="text-right">{{ number_format($row['bill_total'], 0) }}</td>
+                                <td class="text-right font-semibold">{{ number_format($row['amount'], 0) }}</td>
+                                <td class="text-right">{{ number_format($row['vat'] ?? 0, 0) }}</td>
+                                <td class="text-right">{{ number_format($row['discount'], 0) }}</td>
+                                <td class="text-right {{ $row['balance_due'] > 0 ? 'text-rose-600 dark:text-rose-400' : '' }}">{{ number_format($row['balance_due'], 2) }}</td>
+                                <td>
+                                    <span @class([
+                                        'cdr-method',
+                                        'cdr-method--bkash' => $row['is_bkash'],
+                                        'cdr-method--cash' => ($row['method'] ?? '') === 'cash',
+                                    ])>{{ $row['method_label'] }}</span>
+                                </td>
+                                <td><span class="cdr-staff">{{ $row['received_by'] }}</span></td>
+                                <td class="text-xs">{{ $row['approved_by'] }}</td>
+                                <td class="text-xs">{{ $row['created_by'] }}</td>
+                                <td class="text-center">
+                                    <a href="{{ $row['receipt_url'] }}" target="_blank" class="cdr-ok" title="Receipt">✓</a>
+                                </td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="16" class="py-12 text-center text-gray-500">
+                                    No collections — select <strong>All combined</strong> or widen dates.
+                                </td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                    @if (($r['count'] ?? 0) > 0)
+                        <tfoot>
+                            <tr>
+                                <td colspan="6" class="text-right">Total</td>
+                                <td class="text-right">{{ number_format($r['row_totals']['bill_total'] ?? 0, 0) }}</td>
+                                <td class="text-right">{{ number_format($r['row_totals']['received'] ?? 0, 0) }}</td>
+                                <td class="text-right">0</td>
+                                <td class="text-right">{{ number_format($r['row_totals']['discount'] ?? 0, 0) }}</td>
+                                <td class="text-right">{{ number_format($r['row_totals']['balance_due'] ?? 0, 2) }}</td>
+                                <td colspan="5"></td>
+                            </tr>
+                        </tfoot>
+                    @endif
+                </table>
+            </div>
+        </section>
+
+        @if (count($r['by_method'] ?? []) > 0 || count($r['by_collector'] ?? []) > 0)
+            <div class="cdr-mini-tables">
+                <div class="cdr-mini">
+                    <h3>By payment method</h3>
+                    <table class="w-full text-sm">
+                        <tbody>
+                            @foreach ($r['by_method'] as $method => $row)
+                                <tr class="border-t dark:border-gray-800">
+                                    <td class="px-3 py-2">{{ \App\Support\PaymentGateway::label($method) }}</td>
+                                    <td class="px-3 py-2 text-right font-medium">{{ number_format($row['total'], 0) }}</td>
+                                    <td class="px-3 py-2 text-right text-gray-500">{{ $row['count'] }}</td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+                <div class="cdr-mini">
+                    <h3>By collector</h3>
+                    <table class="w-full text-sm">
+                        <tbody>
+                            @foreach ($r['by_collector'] as $row)
+                                <tr class="border-t dark:border-gray-800">
+                                    <td class="px-3 py-2">
+                                        @if ($row['collector_id'] && ! $this->isStaffCollectorReportScoped())
+                                            <button type="button" wire:click="$set('collectorId', {{ $row['collector_id'] }})" class="font-medium text-violet-600 hover:underline">{{ $row['collector'] }}</button>
+                                        @else
+                                            {{ $row['collector'] }}
+                                        @endif
+                                    </td>
+                                    <td class="px-3 py-2 text-right font-medium">{{ number_format($row['total'], 0) }}</td>
+                                    <td class="px-3 py-2 text-right text-gray-500">{{ $row['count'] }}</td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        @endif
     </div>
 </x-filament-panels::page>

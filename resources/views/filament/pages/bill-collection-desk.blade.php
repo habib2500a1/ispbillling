@@ -136,7 +136,7 @@
                         'rounded-lg px-4 py-2 text-sm font-semibold transition',
                         'bg-teal-600 text-white' => $activeTab === 'history',
                         'text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800' => $activeTab !== 'history',
-                    ])>Collection history ({{ count($selectedCustomer['collection_history'] ?? []) }})</button>
+                    ])>{{ $this->collectionHistoryTabLabel() }}</button>
                 </nav>
 
                 @if ($activeTab === 'collect')
@@ -157,8 +157,9 @@
                                 @enderror
                             </div>
                         @elseif (! $this->canPickCollector())
-                            <p class="rounded-lg bg-gray-50 px-3 py-2 text-xs text-gray-600 dark:bg-gray-800 dark:text-gray-400">
-                                Collector: <strong>{{ auth()->user()?->name }}</strong>
+                            <p class="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-950 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-100">
+                                Collection credited to: <strong>{{ auth()->user()?->name }}</strong>
+                                <span class="block text-xs font-normal opacity-90">শুধু আপনার নামে entry — অন্য staff-এর নাম বেছে নেওয়া যাবে না।</span>
                             </p>
                         @endif
 
@@ -306,6 +307,7 @@
                             <thead class="bg-gray-50 text-xs uppercase text-gray-500 dark:bg-gray-800">
                                 <tr>
                                     <th class="px-3 py-2 text-left">Invoice</th>
+                                    <th class="px-3 py-2 text-left">Month</th>
                                     <th class="px-3 py-2 text-left">Due</th>
                                     <th class="px-3 py-2 text-right">Total</th>
                                     <th class="px-3 py-2 text-right">Paid</th>
@@ -318,6 +320,7 @@
                                 @forelse ($selectedCustomer['bill_history'] ?? [] as $bill)
                                     <tr wire:key="bill-{{ $bill['id'] }}">
                                         <td class="px-3 py-2 font-mono font-semibold">{{ $bill['invoice_number'] }}</td>
+                                        <td class="px-3 py-2 text-xs">{{ $bill['period_label'] ?? '—' }}</td>
                                         <td class="px-3 py-2">{{ $bill['due_date'] }}</td>
                                         <td class="px-3 py-2 text-right">{{ number_format($bill['total'], 2) }}</td>
                                         <td class="px-3 py-2 text-right">{{ number_format($bill['amount_paid'], 2) }}</td>
@@ -339,7 +342,7 @@
                                     </tr>
                                 @empty
                                     <tr>
-                                        <td colspan="7" class="px-3 py-8 text-center text-gray-500">No invoices for this subscriber.</td>
+                                        <td colspan="8" class="px-3 py-8 text-center text-gray-500">No invoices for this subscriber.</td>
                                     </tr>
                                 @endforelse
                             </tbody>
@@ -349,6 +352,29 @@
                 @endif
 
                 @if ($activeTab === 'history')
+                    @php
+                        $sync = $selectedCustomer['collection_sync'] ?? [];
+                        $localOnly = (int) ($sync['local_only_count'] ?? 0);
+                    @endphp
+                    <div class="mb-3 flex flex-wrap items-center gap-2">
+                        <span class="text-xs font-semibold uppercase text-gray-500">Show</span>
+                        <button type="button" wire:click="$set('collectionHistoryFilter', 'legacy_portal')" @class([
+                            'rounded-lg px-3 py-1.5 text-xs font-semibold',
+                            'bg-teal-600 text-white' => $collectionHistoryFilter === 'legacy_portal',
+                            'bg-gray-100 text-gray-700 dark:bg-gray-800' => $collectionHistoryFilter !== 'legacy_portal',
+                        ])>{{ \App\Support\BillingPortalLabel::collectionFilter() }}</button>
+                        <button type="button" wire:click="$set('collectionHistoryFilter', 'all')" @class([
+                            'rounded-lg px-3 py-1.5 text-xs font-semibold',
+                            'bg-teal-600 text-white' => $collectionHistoryFilter === 'all',
+                            'bg-gray-100 text-gray-700 dark:bg-gray-800' => $collectionHistoryFilter !== 'all',
+                        ])>All in this system</button>
+                    </div>
+                    @if (($sync['show_legacy_portal_hint'] ?? false) && $collectionHistoryFilter === 'all' && $localOnly > 0)
+                        <p class="mb-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-100">
+                            <strong>{{ $localOnly }}</strong> collection(s) were entered on this desk only — not in the online billing portal.
+                            Use <strong>{{ \App\Support\BillingPortalLabel::collectionFilter() }}</strong> to match the old portal.
+                        </p>
+                    @endif
                     @if ($editingPaymentId)
                         <form wire:submit="savePaymentCorrection" class="mb-4 max-w-2xl space-y-3 rounded-xl border border-amber-300 bg-amber-50/80 p-4 dark:border-amber-700 dark:bg-amber-950/30">
                             <p class="text-sm font-bold text-amber-900 dark:text-amber-200">Correct wrong collection</p>
@@ -395,18 +421,26 @@
                                     <th class="px-3 py-2 text-left">Receipt</th>
                                     <th class="px-3 py-2 text-right">Amount</th>
                                     <th class="px-3 py-2 text-left">Method</th>
+                                    <th class="px-3 py-2 text-left">Source</th>
                                     <th class="px-3 py-2 text-left">Invoice</th>
                                     <th class="px-3 py-2 text-left">Collected by</th>
                                     <th class="px-3 py-2 text-right">Actions</th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-gray-100 bg-white dark:divide-gray-800 dark:bg-gray-900">
-                                @forelse ($selectedCustomer['collection_history'] ?? [] as $pay)
+                                @forelse ($this->filteredCollectionHistory() as $pay)
                                     <tr wire:key="pay-{{ $pay['id'] }}" @class(['bg-amber-50/50 dark:bg-amber-950/20' => $editingPaymentId === $pay['id']])>
                                         <td class="px-3 py-2 whitespace-nowrap">{{ $pay['paid_at'] }}</td>
                                         <td class="px-3 py-2 font-mono text-xs">{{ $pay['receipt_number'] }}</td>
                                         <td class="px-3 py-2 text-right font-semibold">{{ number_format($pay['amount'], 2) }}</td>
                                         <td class="px-3 py-2">{{ $pay['method'] }}</td>
+                                        <td class="px-3 py-2 text-xs">
+                                            <span @class([
+                                                'rounded px-1.5 py-0.5 font-semibold',
+                                                'bg-sky-100 text-sky-800 dark:bg-sky-900/40 dark:text-sky-200' => $pay['is_legacy_portal_import'] ?? false,
+                                                'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-200' => ! ($pay['is_legacy_portal_import'] ?? false),
+                                            ])>{{ $pay['source_label'] ?? '—' }}</span>
+                                        </td>
                                         <td class="px-3 py-2 font-mono text-xs">{{ $pay['invoice_number'] ?? '—' }}</td>
                                         <td class="px-3 py-2">{{ $pay['recorded_by'] }}</td>
                                         <td class="px-3 py-2 text-right whitespace-nowrap">
@@ -432,7 +466,13 @@
                                     </tr>
                                 @empty
                                     <tr>
-                                        <td colspan="7" class="px-3 py-8 text-center text-gray-500">No collections yet for this subscriber.</td>
+                                        <td colspan="8" class="px-3 py-8 text-center text-gray-500">
+                                            @if ($collectionHistoryFilter === 'legacy_portal')
+                                                No online-portal collections imported yet for this subscriber.
+                                            @else
+                                                No collections yet for this subscriber.
+                                            @endif
+                                        </td>
                                     </tr>
                                 @endforelse
                             </tbody>

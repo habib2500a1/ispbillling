@@ -2,6 +2,7 @@
 
 namespace App\Support;
 
+use App\Models\Customer;
 use App\Models\Device;
 
 /**
@@ -45,6 +46,42 @@ final class BdcomOnuDescriptionHeuristic
         }
 
         return false;
+    }
+
+    /**
+     * Whether to ignore an ONU description/label when auto-linking to a subscriber.
+     *
+     * Numeric ISP client codes (e.g. 252) and PPP logins can match BDCOM port-tag patterns
+     * but are valid when they resolve to a real customer.
+     */
+    public static function shouldSkipDescriptionForLinking(int $tenantId, string $hint): bool
+    {
+        $hint = trim($hint);
+        if ($hint === '') {
+            return true;
+        }
+
+        if (! self::isOltPlaceholderLabel($hint)) {
+            return false;
+        }
+
+        if ($tenantId <= 0) {
+            return true;
+        }
+
+        if (Customer::query()
+            ->withoutGlobalScopes()
+            ->where('tenant_id', $tenantId)
+            ->where('customer_code', $hint)
+            ->exists()) {
+            return false;
+        }
+
+        if (CustomerPppLoginResolver::resolve($tenantId, $hint) !== null) {
+            return false;
+        }
+
+        return true;
     }
 
     /**

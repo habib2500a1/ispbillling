@@ -105,7 +105,7 @@ final class PaymentVoidService
         if ($payment->customer_id) {
             $customer = $payment->customer?->fresh();
             if ($customer !== null) {
-                BillingDueRealtimeSync::afterPayment($customer, queueNetwork: true);
+                BillingDueRealtimeSync::afterPayment($customer, queueNetwork: false);
             }
         }
 

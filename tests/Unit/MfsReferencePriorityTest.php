@@ -40,7 +40,34 @@ final class MfsReferencePriorityTest extends TestCase
         $this->assertSame('0782', $resolved['customer']?->customer_code);
     }
 
-    public function test_ref_in_sms_does_not_fallback_to_sender_phone_when_id_unknown(): void
+    public function test_ref_unmatched_falls_back_to_sender_phone_by_default(): void
+    {
+        $package = $this->package();
+        $customer = Customer::query()->create([
+            'name' => 'Habib',
+            'customer_code' => 'habibfree',
+            'phone' => '01841558023',
+            'status' => 'active',
+            'billing_day' => 1,
+            'package_id' => $package->id,
+            'tenant_id' => 1,
+        ]);
+
+        config(['mfs_personal.sms_ingest.fallback_phone_when_ref_unmatched' => true]);
+
+        $resolved = app(MfsCustomerReferenceMatcher::class)->resolve(
+            1,
+            'You have received payment Tk 500.00 from 01841558023. Ref 99999. TrxID TESTREF99',
+            '99999',
+            'TESTREF99',
+            '01841558023',
+        );
+
+        $this->assertSame($customer->id, $resolved['customer']?->id);
+        $this->assertSame('sms_sender_phone', $resolved['matched_by']);
+    }
+
+    public function test_ref_unmatched_skips_phone_when_fallback_disabled(): void
     {
         $package = $this->package();
         Customer::query()->create([
@@ -52,6 +79,8 @@ final class MfsReferencePriorityTest extends TestCase
             'package_id' => $package->id,
             'tenant_id' => 1,
         ]);
+
+        config(['mfs_personal.sms_ingest.fallback_phone_when_ref_unmatched' => false]);
 
         $resolved = app(MfsCustomerReferenceMatcher::class)->resolve(
             1,

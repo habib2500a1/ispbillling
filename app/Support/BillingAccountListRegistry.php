@@ -34,6 +34,22 @@ final class BillingAccountListRegistry
                 'count_key' => 'active',
             ],
             [
+                'key' => 'free',
+                'label' => 'Free clients',
+                'route' => 'free',
+                'icon' => 'heroicon-o-gift',
+                'sort' => 12,
+                'count_key' => 'free',
+            ],
+            [
+                'key' => 'vip',
+                'label' => 'VIP clients',
+                'route' => 'vip',
+                'icon' => 'heroicon-o-star',
+                'sort' => 13,
+                'count_key' => 'vip',
+            ],
+            [
                 'key' => 'today',
                 'label' => "Today's clients",
                 'route' => 'today',

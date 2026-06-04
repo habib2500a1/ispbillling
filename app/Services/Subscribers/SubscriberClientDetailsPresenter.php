@@ -8,6 +8,7 @@ use App\Filament\Resources\InvoiceResource;
 use App\Filament\Resources\NotificationLogResource;
 use App\Models\Branch;
 use App\Models\Customer;
+use App\Services\Billing\CustomerPrepayService;
 use App\Models\CustomerContact;
 use App\Models\Invoice;
 use App\Models\NotificationLog;
@@ -15,12 +16,14 @@ use App\Models\Payment;
 use App\Models\User;
 use App\Support\NotificationEvent;
 use App\Services\Network\CustomerConnectionStatusService;
+use App\Services\Optical\OnuNetworkDiagnosticsPresenter;
 use App\Services\Optical\SubscriberOpticalPowerPresenter;
 use App\Support\MacAddress;
+use App\Support\SubscriberContactLinks;
 use App\Support\SubscriberType;
 
 /**
- * Full ISP Digital–style Client Details (all stored subscriber fields for view + PDF parity).
+ * Full legacy portal–style Client Details (all stored subscriber fields for view + PDF parity).
  */
 final class SubscriberClientDetailsPresenter
 {
@@ -34,11 +37,13 @@ final class SubscriberClientDetailsPresenter
         'notify_sms', 'notify_whatsapp', 'notify_email', 'notify_push',
         'auto_invoice', 'auto_pppoe', 'auto_onu', 'auto_activate', 'auto_suspend', 'auto_renew',
         'tag_vip', 'tag_gaming', 'tag_corporate', 'tag_late_payer',
-        'discount_note', 'mikrotik_comment', 'legacy_id', 'legacy_client_id',
+        'discount_note', 'monthly_discount_bdt', 'mikrotik_comment', 'legacy_id', 'legacy_client_id',
+        'district', 'thana', 'house_no', 'road_no', 'box_name', 'connection_type', 'customer_type',
     ];
 
     public function __construct(
         private readonly SubscriberOpticalPowerPresenter $optical,
+        private readonly OnuNetworkDiagnosticsPresenter $onuDiagnostics,
         private readonly CustomerConnectionStatusService $connectionStatus,
     ) {}
 
@@ -64,7 +69,7 @@ final class SubscriberClientDetailsPresenter
 
         $openBalance = (float) $customer->invoices()
             ->whereIn('status', ['open', 'partial', 'sent', 'overdue'])
-            ->selectRaw('COALESCE(SUM(GREATEST(total - amount_paid, 0)), 0) as open_balance')
+            ->selectRaw(\App\Support\CustomerBalanceDue::sumOpenInvoiceBalanceSelect('open_balance'))
             ->value('open_balance');
 
         $lastPayment = Payment::query()
@@ -73,19 +78,21 @@ final class SubscriberClientDetailsPresenter
             ->orderByDesc('paid_at')
             ->first();
 
+        $statements = app(\App\Services\Billing\SubscriberBillingStatementService::class);
+
         $recentPayments = Payment::query()
             ->where('customer_id', $customer->id)
             ->where('status', 'completed')
             ->orderByDesc('paid_at')
-            ->limit(15)
+            ->limit($statements->paymentHistoryLimit())
             ->with('recorder:id,name')
             ->get();
 
-        $recentInvoices = Invoice::query()
-            ->where('customer_id', $customer->id)
-            ->orderByDesc('issue_date')
-            ->limit(15)
+        $recentInvoices = $statements->invoiceHistoryQuery($customer)
+            ->limit($statements->invoiceHistoryLimit())
             ->get();
+
+        $legacyPortalPayments = collect($statements->paymentHistoryRows($customer, 'legacy_portal'));
 
         $recentSmsLogs = NotificationLog::query()
             ->where('customer_id', $customer->id)
@@ -146,8 +153,8 @@ final class SubscriberClientDetailsPresenter
                 'speed' => $customer->package
                     ? ($customer->package->download_mbps ?? '?').' / '.($customer->package->upload_mbps ?? '?').' Mbps'
                     : '—',
-                'monthly_bill' => $customer->package?->price_monthly
-                    ? number_format((float) $customer->package->price_monthly, 2).' BDT'
+                'monthly_bill' => ($monthly = app(CustomerPrepayService::class)->monthlyRate($customer)) !== null
+                    ? number_format($monthly, 2).' BDT'
                     : '—',
                 'valid_until' => $customer->service_expires_at?->format('d-M-Y') ?? '—',
                 'activation_date' => $customer->joined_at?->format('d-M-Y') ?? '—',
@@ -178,8 +185,11 @@ final class SubscriberClientDetailsPresenter
                 'whatsapp' => $c->is_whatsapp,
             ])->all(),
             'optical' => $this->optical->forCustomer($customer),
+            'network_diagnostics' => $this->onuDiagnostics->forCustomer($customer),
             'recent_payments' => $recentPayments,
             'recent_invoices' => $recentInvoices,
+            'legacy_portal_payments' => $legacyPortalPayments,
+            'invoice_pdf_base' => url('/admin/invoices'),
             'recent_sms_logs' => $recentSmsLogs,
             'sms_stats' => $smsStats,
             'urls' => [
@@ -198,6 +208,7 @@ final class SubscriberClientDetailsPresenter
                 ]),
             ],
             'sms_event_labels' => NotificationEvent::labels(),
+            'contact' => SubscriberContactLinks::forCustomer($customer, round($openBalance, 2)),
         ];
     }
 
@@ -225,12 +236,17 @@ final class SubscriberClientDetailsPresenter
             $customer->subzone?->name,
         ])->filter()->implode(' · ');
 
+        $contact = SubscriberContactLinks::forCustomer($customer, $openBalance);
+
         return [
             'account' => array_filter([
                 'Phone' => $customer->phone ?: null,
                 'Email' => $customer->email ?: null,
                 'Address' => $customer->address ?: null,
+                'District' => $contact['district'],
+                'Thana' => $contact['thana'],
                 'Area / Zone' => $location !== '' ? $location : null,
+                'GPS' => $contact['gps_display'],
                 'Reseller' => $customer->reseller?->name,
                 'NID' => $customer->nid_number ?: null,
             ], fn ($v) => filled($v)),
@@ -298,13 +314,16 @@ final class SubscriberClientDetailsPresenter
      */
     private function sectionLocation(Customer $customer, array $meta): array
     {
+        $contact = SubscriberContactLinks::forCustomer($customer);
+
         return [
             'Address' => $customer->address ?: '—',
+            'District' => $contact['district'] ?? '—',
+            'Thana' => $contact['thana'] ?? '—',
             'Area' => $customer->area?->name ?? '—',
             'Zone' => $customer->zone?->name ?? '—',
             'Sub Zone' => $customer->subzone?->name ?? '—',
-            'GPS Latitude' => (string) ($meta['gps_lat'] ?? '—'),
-            'GPS Longitude' => (string) ($meta['gps_lng'] ?? '—'),
+            'GPS Coordinates' => $contact['gps_display'] ?? '—',
             'Reseller' => $customer->reseller?->name ?? '—',
         ];
     }
@@ -377,7 +396,8 @@ final class SubscriberClientDetailsPresenter
                 ? (string) \App\Support\BillingDefaults::expireDayFromDate($customer->service_expires_at)
                 : '—',
             'Line Off From' => $customer->serviceOffDate()?->format('d-M-Y') ?? '—',
-            'Late Fee Grace' => ((int) $customer->grace_period_days).' days after due',
+            'Invoice grace' => ((int) $customer->grace_period_days).' days after bill (0 = due on bill day)',
+            'Line grace (admin)' => \App\Services\Billing\CustomerLineGraceService::label($customer) ?? '—',
             'Wallet Balance' => number_format((float) $customer->account_balance, 2).' BDT',
             'Open Due' => number_format($openBalance, 2).' BDT',
             'Credit Limit' => $customer->credit_limit !== null
@@ -450,7 +470,7 @@ final class SubscriberClientDetailsPresenter
      */
     private function sectionOnuBilling(array $meta): array
     {
-        $network = is_array($meta['isp_digital_network'] ?? null) ? $meta['isp_digital_network'] : [];
+        $network = is_array($meta['legacy_portal_network'] ?? null) ? $meta['legacy_portal_network'] : [];
         $fmt = static fn ($v): string => isset($v) && $v !== '' && (float) $v > 0
             ? number_format((float) $v, 2).' BDT'
             : '—';
@@ -460,9 +480,9 @@ final class SubscriberClientDetailsPresenter
             'ONU Installment' => $fmt($meta['onu_installment'] ?? null),
             'ONU Deposit' => $fmt($meta['onu_deposit'] ?? null),
             'Router Rent / month' => $fmt($meta['router_rent'] ?? null),
-            'ISP Digital server' => (string) ($network['server'] ?? '—'),
-            'Connection (ISP Digital)' => (string) ($network['connection_type'] ?? '—'),
-            'Device (ISP Digital)' => (string) ($meta['device'] ?? $network['device'] ?? '—'),
+            'Network server' => (string) ($network['server'] ?? '—'),
+            'Connection type' => (string) ($network['connection_type'] ?? '—'),
+            'CPE device' => (string) ($meta['device'] ?? $network['device'] ?? '—'),
             'Device MAC / Serial' => (string) ($meta['onu_mac'] ?? $network['device_mac_serial_no'] ?? '—'),
             'Fiber / Cable' => trim(implode(' · ', array_filter([
                 filled($meta['fiber_code'] ?? null) ? 'Fiber: '.$meta['fiber_code'] : null,
@@ -470,8 +490,8 @@ final class SubscriberClientDetailsPresenter
                     ? 'Cable: '.(float) $meta['cable_length_m'].' m'
                     : null,
             ]))) ?: '—',
-            'ISP Digital sync' => filled($meta['isp_digital_details_synced_at'] ?? null)
-                ? \Illuminate\Support\Carbon::parse((string) $meta['isp_digital_details_synced_at'])->format('d-M-Y H:i')
+            'Portal sync' => filled($meta['legacy_portal_details_synced_at'] ?? null)
+                ? \Illuminate\Support\Carbon::parse((string) $meta['legacy_portal_details_synced_at'])->format('d-M-Y H:i')
                 : '—',
         ];
 

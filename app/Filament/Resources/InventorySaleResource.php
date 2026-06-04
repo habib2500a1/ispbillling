@@ -3,16 +3,10 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Concerns\ChecksIspPermission;
+use App\Filament\Forms\InventorySaleFormSchema;
 use App\Filament\Resources\InventorySaleResource\Pages;
 use App\Models\InventorySale;
-use App\Models\Product;
-use App\Filament\Support\InventoryWarehouseSelect;
-use App\Services\Inventory\ProductBarcodeLookup;
-use App\Services\Inventory\WarehouseResolver;
-use Filament\Forms;
 use Filament\Forms\Form;
-use Filament\Forms\Get;
-use Filament\Forms\Set;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -35,116 +29,7 @@ class InventorySaleResource extends Resource
 
     public static function form(Form $form): Form
     {
-        return $form->schema([
-            Forms\Components\Section::make('Sale')
-                ->schema([
-                    Forms\Components\TextInput::make('sale_number')
-                        ->default(fn () => InventorySale::generateSaleNumber((int) auth()->user()?->tenant_id))
-                        ->disabled()
-                        ->dehydrated(),
-                    Forms\Components\Select::make('channel')
-                        ->options([
-                            'counter' => 'Counter / desk',
-                            'shop' => 'Public shop',
-                            'field' => 'Field',
-                        ])
-                        ->default('counter')
-                        ->native(false),
-                    Forms\Components\Select::make('payment_method')
-                        ->options([
-                            'cash' => 'Cash',
-                            'bkash' => 'bKash',
-                            'nagad' => 'Nagad',
-                            'bank' => 'Bank',
-                        ])
-                        ->default('cash')
-                        ->native(false),
-                    Forms\Components\TextInput::make('customer_name'),
-                    Forms\Components\TextInput::make('customer_phone')->tel(),
-                    Forms\Components\TextInput::make('discount')->numeric()->default(0)->live(),
-                    InventoryWarehouseSelect::make(),
-                ])->columns(2),
-            Forms\Components\Section::make('Barcode scan')
-                ->schema([
-                    Forms\Components\TextInput::make('barcode_scan')
-                        ->label('Scan barcode / SKU')
-                        ->placeholder('Scan or type — adds one line on save')
-                        ->helperText('USB scanner: focus here, scan, then add qty in lines or save.'),
-                ]),
-            Forms\Components\Section::make('Items')
-                ->schema([
-                    Forms\Components\Repeater::make('lines')
-                        ->schema([
-                            Forms\Components\Select::make('product_id')
-                                ->label('Product')
-                                ->options(function (Get $get): array {
-                                    $tenantId = (int) auth()->user()?->tenant_id;
-                                    $warehouseId = app(WarehouseResolver::class)->resolveWarehouseId(
-                                        $tenantId,
-                                        $get('../../warehouse_id') ? (int) $get('../../warehouse_id') : null,
-                                    );
-
-                                    return Product::query()
-                                        ->where('is_active', true)
-                                        ->orderBy('name')
-                                        ->get()
-                                        ->filter(function (Product $p) use ($warehouseId): bool {
-                                            return app(WarehouseResolver::class)->stockAt($p, $warehouseId) > 0
-                                                || (int) $p->stock_qty > 0;
-                                        })
-                                        ->mapWithKeys(function (Product $p) use ($warehouseId): array {
-                                            $whStock = app(WarehouseResolver::class)->stockAt($p, $warehouseId);
-
-                                            return [
-                                                $p->id => $p->name
-                                                    .($p->barcode ? ' ['.$p->barcode.']' : '')
-                                                    .' · wh '.$whStock
-                                                    .' · sell '.number_format($p->effectiveSellPrice(), 0),
-                                            ];
-                                        })
-                                        ->all();
-                                })
-                                ->searchable()
-                                ->required()
-                                ->live()
-                                ->afterStateUpdated(function ($state, Set $set): void {
-                                    if ($state) {
-                                        $p = Product::find($state);
-                                        if ($p) {
-                                            $set('unit_price', $p->effectiveSellPrice());
-                                        }
-                                    }
-                                }),
-                            Forms\Components\TextInput::make('barcode_quick')
-                                ->label('Barcode')
-                                ->live(debounce: 400)
-                                ->afterStateUpdated(function (?string $state, Set $set, Get $get): void {
-                                    if (! $state) {
-                                        return;
-                                    }
-                                    $tenantId = (int) auth()->user()?->tenant_id;
-                                    $p = app(ProductBarcodeLookup::class)->find($tenantId, $state);
-                                    if ($p) {
-                                        $set('product_id', $p->id);
-                                        $set('unit_price', $p->effectiveSellPrice());
-                                    }
-                                }),
-                            Forms\Components\TextInput::make('quantity')->numeric()->integer()->default(1)->minValue(1)->required()->live(),
-                            Forms\Components\TextInput::make('unit_price')->numeric()->required()->live(),
-                            Forms\Components\Placeholder::make('line_total')
-                                ->content(function (Get $get): string {
-                                    $qty = (int) ($get('quantity') ?? 1);
-                                    $price = (float) ($get('unit_price') ?? 0);
-
-                                    return number_format($qty * $price, 2).' BDT';
-                                }),
-                        ])
-                        ->columns(4)
-                        ->minItems(1)
-                        ->columnSpanFull(),
-                ]),
-            Forms\Components\Textarea::make('notes')->columnSpanFull(),
-        ]);
+        return InventorySaleFormSchema::configure($form);
     }
 
     public static function table(Table $table): Table
@@ -160,7 +45,24 @@ class InventorySaleResource extends Resource
             Tables\Columns\TextColumn::make('payment_method'),
         ])
             ->defaultSort('sold_at', 'desc')
-            ->actions([Tables\Actions\ViewAction::make()]);
+            ->actions([
+                Tables\Actions\ActionGroup::make([
+                    Tables\Actions\Action::make('print_receipt')
+                        ->label('Thermal print')
+                        ->icon('heroicon-o-printer')
+                        ->url(fn (InventorySale $record): string => route('inventory-sales.receipt', $record).'?print=1')
+                        ->openUrlInNewTab(),
+                    Tables\Actions\Action::make('pdf_receipt')
+                        ->label('PDF (A4)')
+                        ->icon('heroicon-o-document-arrow-down')
+                        ->url(fn (InventorySale $record): string => route('inventory-sales.receipt.pdf', $record))
+                        ->openUrlInNewTab(),
+                ])
+                    ->icon('heroicon-m-printer')
+                    ->color('gray')
+                    ->tooltip('Receipts'),
+                Tables\Actions\ViewAction::make(),
+            ]);
     }
 
     public static function getPages(): array

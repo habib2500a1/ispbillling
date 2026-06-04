@@ -3,6 +3,8 @@
 namespace App\Console\Commands;
 
 use App\Jobs\ImportMikrotikFleetJob;
+use App\Models\MikrotikServer;
+use App\Services\Mikrotik\MikrotikCustomerVlanSyncService;
 use App\Services\Mikrotik\MikrotikFleetCoordinator;
 use App\Support\QueueJobDispatcher;
 use Illuminate\Console\Command;
@@ -17,7 +19,7 @@ class ImportMikrotikPppSecretsCommand extends Command
 
     protected $description = 'Import PPP secrets from MikroTik router(s) into subscribers';
 
-    public function handle(MikrotikFleetCoordinator $fleet): int
+    public function handle(MikrotikFleetCoordinator $fleet, MikrotikCustomerVlanSyncService $vlanSync): int
     {
         if (! config('subscriber.auto_import_secrets_enabled', false) && ! $this->option('server')) {
             $this->warn('Pass --server=ID to import, or set SUBSCRIBER_AUTO_IMPORT_MIKROTIK_SECRETS=true for scheduled runs.');
@@ -69,6 +71,26 @@ class ImportMikrotikPppSecretsCommand extends Command
             $result['skipped'],
             count($result['by_server']),
         ));
+
+        if (config('mikrotik.auto_sync_vlan', true)) {
+            $vlanUpdated = 0;
+            $serverIds = $onlyServerId
+                ? [$onlyServerId]
+                : array_column($result['by_server'], 'server_id');
+
+            foreach (array_unique(array_filter($serverIds)) as $serverId) {
+                $server = MikrotikServer::withoutGlobalScopes()->find((int) $serverId);
+                if ($server === null) {
+                    continue;
+                }
+                $vlan = $vlanSync->syncServer($server);
+                $vlanUpdated += $vlan['updated'];
+            }
+
+            if ($vlanUpdated > 0) {
+                $this->info("VLAN sync: {$vlanUpdated} subscriber(s) updated from router.");
+            }
+        }
 
         return self::SUCCESS;
     }

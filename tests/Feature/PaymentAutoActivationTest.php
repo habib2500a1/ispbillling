@@ -7,6 +7,7 @@ use App\Models\Invoice;
 use App\Models\Package;
 use App\Models\Payment;
 use App\Models\User;
+use App\Services\Billing\BillingDueRealtimeSync;
 use App\Support\CustomerStatus;
 use App\Support\PaymentType;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -27,6 +28,7 @@ class PaymentAutoActivationTest extends TestCase
         ]);
 
         $customer = Customer::query()->create([
+            'tenant_id' => 1,
             'name' => 'Expired Payer',
             'phone' => '01730000099',
             'status' => CustomerStatus::EXPIRED,
@@ -37,6 +39,7 @@ class PaymentAutoActivationTest extends TestCase
         ]);
 
         $invoice = Invoice::query()->create([
+            'tenant_id' => 1,
             'customer_id' => $customer->id,
             'issue_date' => now()->toDateString(),
             'due_date' => now()->toDateString(),
@@ -46,8 +49,8 @@ class PaymentAutoActivationTest extends TestCase
             'tax_amount' => 0,
             'discount_amount' => 0,
             'total' => 500,
-            'amount_paid' => 500,
-            'status' => 'paid',
+            'amount_paid' => 0,
+            'status' => 'open',
         ]);
 
         Payment::createTrusted([
@@ -60,6 +63,8 @@ class PaymentAutoActivationTest extends TestCase
             'status' => 'completed',
             'paid_at' => now(),
         ]);
+
+        BillingDueRealtimeSync::afterPayment($customer->fresh());
 
         $customer = $customer->fresh();
 

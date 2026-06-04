@@ -17,17 +17,10 @@ class BandwidthWanLiveStatsWidget extends Widget
 
     protected int|string|array $columnSpan = 'full';
 
-    protected function getPollingInterval(): ?string
-    {
-        $seconds = (int) config('bandwidth.monitor_wan_poll_seconds', 0);
-
-        return $seconds > 0 ? "{$seconds}s" : null;
-    }
-
     #[On('bandwidth-refresh')]
     public function refreshWan(): void
     {
-        //
+        // Page poll collects WAN samples; this re-renders stats from DB.
     }
 
     /**

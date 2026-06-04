@@ -1,10 +1,15 @@
 import 'package:flutter/material.dart';
 
+import '../core/network/api_result.dart';
+import '../core/theme/design_tokens.dart';
+import '../core/widgets/cards.dart';
+import '../core/widgets/skeleton.dart';
+import '../core/widgets/states.dart';
+import '../features/customer/data/customer_repository.dart';
+import '../features/customer/domain/customer_models.dart';
 import '../services/api_service.dart';
-import '../theme/app_theme.dart';
 import '../utils/app_nav.dart';
 import '../widgets/page_scaffold.dart';
-import '../widgets/state_views.dart';
 
 class CustomerOnuScreen extends StatefulWidget {
   const CustomerOnuScreen({super.key, required this.api});
@@ -16,9 +21,10 @@ class CustomerOnuScreen extends StatefulWidget {
 }
 
 class _CustomerOnuScreenState extends State<CustomerOnuScreen> {
-  Map<String, dynamic>? _onu;
+  late final CustomerRepository _repo = CustomerRepository(widget.api);
+  OnuStatus? _onu;
   bool _loading = true;
-  String? _error;
+  Failure? _error;
   bool _rebooting = false;
 
   @override
@@ -32,67 +38,125 @@ class _CustomerOnuScreenState extends State<CustomerOnuScreen> {
       _loading = true;
       _error = null;
     });
-    try {
-      final body = await widget.api.customerOnuStatus();
-      if (mounted) setState(() => _onu = body['onu'] as Map<String, dynamic>?);
-    } on ApiException catch (e) {
-      if (mounted) setState(() => _error = e.message);
-    } finally {
-      if (mounted) setState(() => _loading = false);
-    }
+    final res = await _repo.onuStatus();
+    if (!mounted) return;
+    res.when(
+      ok: (o) => setState(() {
+        _onu = o;
+        _loading = false;
+      }),
+      err: (f) => setState(() {
+        _error = f;
+        _loading = false;
+      }),
+    );
   }
 
   Future<void> _reboot() async {
     setState(() => _rebooting = true);
-    try {
-      final res = await widget.api.customerOnuReboot();
-      if (mounted) showSnack(context, res['message']?.toString() ?? 'Request sent');
-    } on ApiException catch (e) {
-      if (mounted) showSnack(context, e.message, isError: true);
-    } finally {
-      if (mounted) setState(() => _rebooting = false);
-    }
+    final res = await _repo.rebootOnu();
+    if (!mounted) return;
+    setState(() => _rebooting = false);
+    res.when(
+      ok: (msg) => showSnack(context, msg),
+      err: (f) => showSnack(context, f.message, isError: true),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    final linked = _onu?['linked'] == true;
-
     return PageScaffold(
       title: 'ONU Status',
       useGradientBody: true,
-      body: _loading
-          ? const Center(child: CircularProgressIndicator())
-          : ListView(
-              padding: const EdgeInsets.all(16),
-              children: [
-                if (_error != null) ErrorBanner(message: _error!, onRetry: _load),
-                Card(
-                  child: ListTile(
-                    leading: Icon(linked ? Icons.router : Icons.router_outlined, color: linked ? AppTheme.success : Colors.grey),
-                    title: Text(linked ? (_onu?['label']?.toString() ?? 'ONU') : 'No ONU linked'),
-                    subtitle: Text(_onu?['serial']?.toString() ?? _onu?['message']?.toString() ?? ''),
-                  ),
-                ),
-                if (linked) ...[
-                  _row('RX power', _onu?['rx_dbm']?.toString()),
-                  _row('TX power', _onu?['tx_dbm']?.toString()),
-                  _row('Status', _onu?['status']?.toString()),
-                  const SizedBox(height: 16),
-                  FilledButton.icon(
-                    onPressed: _rebooting ? null : _reboot,
-                    icon: _rebooting
-                        ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                        : const Icon(Icons.restart_alt),
-                    label: const Text('Request ONU reboot'),
-                  ),
-                ],
-              ],
-            ),
+      body: _buildBody(),
     );
   }
 
-  Widget _row(String label, String? value) {
-    return ListTile(title: Text(label), trailing: Text(value ?? '—'));
+  Widget _buildBody() {
+    if (_loading) {
+      return ListView(padding: const EdgeInsets.all(16), children: const [
+        SkeletonCard(height: 90),
+        SizedBox(height: 12),
+        SkeletonCard(height: 56),
+        SizedBox(height: 8),
+        SkeletonCard(height: 56),
+      ]);
+    }
+    if (_error != null && _onu == null) return ErrorStateView(failure: _error!, onRetry: _load);
+
+    final o = _onu ?? OnuStatus.empty;
+    return RefreshIndicator(
+      onRefresh: _load,
+      color: DesignTokens.primary,
+      child: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          AppCard(
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(11),
+                  decoration: BoxDecoration(
+                    color: (o.linked ? DesignTokens.success : context.brand.textMuted)
+                        .withValues(alpha: 0.14),
+                    borderRadius: BorderRadius.circular(DesignTokens.radiusSm),
+                  ),
+                  child: Icon(o.linked ? Icons.router_rounded : Icons.router_outlined,
+                      color: o.linked ? DesignTokens.success : context.brand.textMuted),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(o.linked ? o.label : 'No ONU linked',
+                          style: const TextStyle(fontWeight: FontWeight.w700)),
+                      if ((o.serial.isNotEmpty) || (o.message.isNotEmpty))
+                        Text(o.serial.isNotEmpty ? o.serial : o.message,
+                            style: TextStyle(fontSize: 12, color: context.brand.textMuted)),
+                    ],
+                  ),
+                ),
+                if (o.linked)
+                  StatusPill(label: o.status, color: DesignTokens.success),
+              ],
+            ),
+          ),
+          if (o.linked) ...[
+            const SizedBox(height: 12),
+            AppCard(
+              child: Column(
+                children: [
+                  _row(context, 'RX power', o.rxDbm),
+                  Divider(height: 18, color: context.brand.border),
+                  _row(context, 'TX power', o.txDbm),
+                  Divider(height: 18, color: context.brand.border),
+                  _row(context, 'Status', o.status),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+            FilledButton.icon(
+              onPressed: _rebooting ? null : _reboot,
+              icon: _rebooting
+                  ? const SizedBox(
+                      width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                  : const Icon(Icons.restart_alt_rounded),
+              label: const Text('Request ONU reboot'),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _row(BuildContext context, String label, String value) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(label, style: TextStyle(color: context.brand.textMuted)),
+        Text(value, style: const TextStyle(fontWeight: FontWeight.w700)),
+      ],
+    );
   }
 }

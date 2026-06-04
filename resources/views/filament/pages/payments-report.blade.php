@@ -10,6 +10,7 @@
             <div class="isp-reports-hero__main">
                 <p class="isp-reports-hero__eyebrow">Reports</p>
                 <h2 class="isp-reports-hero__title">Payments Report</h2>
+                <span class="isp-reports-filter-badge">{{ $this->gatewayFilterLabel }}</span>
                 <span class="isp-reports-filter-badge">{{ $this->walletFilterLabel }}</span>
             </div>
             @unless ($isPrint)
@@ -21,6 +22,16 @@
                     <div class="isp-reports-filters__field">
                         <label for="pay-to">To</label>
                         <input id="pay-to" type="date" wire:model.live="dateTo" class="isp-reports-filters__input" />
+                    </div>
+                    <div class="isp-reports-filters__field">
+                        <label for="pay-gateway">Method</label>
+                        <select id="pay-gateway" wire:model.live="gatewayFilter" class="isp-reports-filters__input">
+                            <option value="all">All methods</option>
+                            <option value="bkash">bKash</option>
+                            <option value="nagad">Nagad</option>
+                            <option value="cash">Cash</option>
+                            <option value="bank">Bank</option>
+                        </select>
                     </div>
                     <div class="isp-reports-filters__field">
                         <label for="pay-wallet">Wallet</label>

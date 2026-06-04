@@ -7,6 +7,7 @@ use App\Filament\Pages\Concerns\HidesHubNavigation;
 use App\Support\Rbac\StaffCapability;
 use App\Models\Invoice;
 use App\Models\Payment;
+use App\Services\Billing\AdminBillingNoticesService;
 use App\Services\Billing\BillingOpsMetricsService;
 use Filament\Pages\Page;
 
@@ -168,12 +169,31 @@ class BillingOverview extends Page
         ];
     }
 
+    public function getNoticeCount(): int
+    {
+        return app(AdminBillingNoticesService::class)->actionableCount();
+    }
+
     /**
      * @return list<array{title: string, desc: string, url: string, icon: string, tone: string, featured?: bool, external?: bool}>
      */
     public function getActionCards(): array
     {
+        $cards = [];
+
+        if (BillingNoticesPage::canAccess() && $this->getNoticeCount() > 0) {
+            $cards[] = [
+                'title' => 'Billing notices',
+                'desc' => 'MFS verify pending · overdue · due in 3 days',
+                'url' => BillingNoticesPage::getUrl(),
+                'icon' => 'heroicon-o-bell-alert',
+                'tone' => 'rose',
+                'featured' => true,
+            ];
+        }
+
         return [
+            ...$cards,
             [
                 'title' => 'Bill collection desk',
                 'desc' => 'Cashier — search ID, phone, name & collect payment.',
@@ -230,6 +250,27 @@ class BillingOverview extends Page
                 'url' => CollectionDeskReport::getUrl(),
                 'icon' => 'heroicon-o-calendar-days',
                 'tone' => 'sky',
+            ],
+            [
+                'title' => 'Payment & bKash report',
+                'desc' => 'All collections · filter bKash · CSV export.',
+                'url' => \App\Filament\Pages\PaymentsReport::getUrl(),
+                'icon' => 'heroicon-o-document-chart-bar',
+                'tone' => 'emerald',
+            ],
+            [
+                'title' => 'bKash collections',
+                'desc' => 'Personal & merchant bKash receipts.',
+                'url' => \App\Filament\Pages\PaymentsReport::getUrl().'?gateway=bkash',
+                'icon' => 'heroicon-o-device-phone-mobile',
+                'tone' => 'pink',
+            ],
+            [
+                'title' => 'Wallets',
+                'desc' => 'Cashbook · bank · collector · reseller balances.',
+                'url' => \App\Filament\Pages\AccountsWalletHubPage::getUrl(),
+                'icon' => 'heroicon-o-wallet',
+                'tone' => 'indigo',
             ],
             [
                 'title' => 'Gateway reconciliation',

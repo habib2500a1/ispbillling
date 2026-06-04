@@ -5,6 +5,7 @@ namespace App\Services\Olt;
 use App\Models\Device;
 use App\Services\Network\GponIntelligenceService;
 use App\Services\Network\OltSnmpMonitorService;
+use App\Services\Olt\OltPortCatalogService;
 use Illuminate\Support\Str;
 
 /**
@@ -57,6 +58,8 @@ final class OltProvisioningService
             'location' => $input['location'] ?? null,
             'status' => $input['status'] ?? 'active',
         ]);
+
+        app(OltPortCatalogService::class)->ensureForOlt($olt);
 
         $poll = null;
         if ($pollAfterCreate) {

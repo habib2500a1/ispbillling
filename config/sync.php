@@ -34,8 +34,8 @@ return [
     /** Skip GPON meta sync per OLT during poll when BDCOM/sync-onu handles it. */
     'skip_gpon_meta_in_olt_poll' => filter_var(env('SYNC_SKIP_GPON_IN_POLL', true), FILTER_VALIDATE_BOOL),
 
-    /** WAN sampling during bandwidth collect (heavy). */
-    'wan_on_bandwidth_collect' => filter_var(env('SYNC_WAN_ON_BANDWIDTH', false), FILTER_VALIDATE_BOOL),
+    /** WAN sampling during bandwidth collect (interface byte counters). */
+    'wan_on_bandwidth_collect' => filter_var(env('SYNC_WAN_ON_BANDWIDTH', true), FILTER_VALIDATE_BOOL),
 
     /** network-evaluate-access: only overdue + suspended subscribers. */
     'network_evaluate_only_candidates' => filter_var(env('SYNC_NETWORK_EVAL_FILTER', true), FILTER_VALIDATE_BOOL),

@@ -94,10 +94,11 @@ final class SubscriberFormSchema
                                         return;
                                     }
                                     $phone = CustomerContact::normalizePhone((string) $value);
-                                    $exists = Customer::query()
-                                        ->when($record?->id, fn ($q) => $q->where('id', '!=', $record->id))
-                                        ->where('phone', $phone)
-                                        ->exists();
+                                    $duplicateQuery = Customer::query()->where('phone', $phone);
+                                    if ($record?->id) {
+                                        $duplicateQuery->where('id', '!=', $record->id);
+                                    }
+                                    $exists = $duplicateQuery->exists();
                                     if ($exists) {
                                         $fail('This phone number is already registered.');
                                     }
@@ -240,11 +241,12 @@ final class SubscriberFormSchema
                                 .' <span class="isp-sub-muted">(day of month, 1–31)</span>'
                             )),
                         Forms\Components\TextInput::make('grace_period_days')
-                            ->label('Grace days')
+                            ->label('Invoice grace days')
                             ->numeric()
-                            ->default(10)
+                            ->default(BillingDefaults::defaultGracePeriodDays())
                             ->minValue(0)
                             ->maxValue(90)
+                            ->helperText('0 = due on bill day; line off when unpaid. Admin can add one-month line grace from subscriber view.')
                             ->live(),
                         Forms\Components\Select::make('meta.payment_renewal_base')
                             ->label('Renew from (when bill paid)')
@@ -369,6 +371,15 @@ final class SubscriberFormSchema
                         Forms\Components\TextInput::make('meta.static_ip')
                             ->label('Static IP (if any)')
                             ->maxLength(45),
+                        Forms\Components\Select::make('meta.connection_type')
+                            ->label('Connection type')
+                            ->options(self::connectionTypeOptions())
+                            ->default('fiber')
+                            ->native(false),
+                        Forms\Components\TextInput::make('meta.box_name')
+                            ->label('TJ box / port')
+                            ->maxLength(120)
+                            ->placeholder('Box name or port label'),
                         Forms\Components\TextInput::make('meta.mac_binding')
                             ->label('MAC binding (router / CPE)')
                             ->placeholder('00:AD:24:F0:FB:3C')
@@ -422,31 +433,9 @@ final class SubscriberFormSchema
             ->icon('heroicon-o-map-pin')
             ->schema([
                 Forms\Components\Section::make('Address')
-                    ->schema([
-                        Forms\Components\Textarea::make('address')
-                            ->label('Full address')
-                            ->rows(2)
-                            ->columnSpanFull(),
-                        Forms\Components\Select::make('area_id')
-                            ->label('Area')
-                            ->relationship('area', 'name')
-                            ->searchable()
-                            ->preload()
-                            ->live(),
-                        Forms\Components\Select::make('zone_id')
-                            ->label('Zone')
-                            ->relationship('zone', 'name')
-                            ->searchable()
-                            ->preload(),
-                        Forms\Components\Select::make('subzone_id')
-                            ->label('Sub zone')
-                            ->relationship('subzone', 'name')
-                            ->searchable()
-                            ->preload(),
-                        Forms\Components\TextInput::make('meta.gps_lat')->label('GPS latitude')->maxLength(32),
-                        Forms\Components\TextInput::make('meta.gps_lng')->label('GPS longitude')->maxLength(32),
-                    ])
+                    ->schema(self::locationFields())
                     ->columns(self::grid()),
+                self::gpsMapSection(),
                 Forms\Components\Section::make('Staff assignment')
                     ->schema([
                         Forms\Components\Select::make('meta.collector_id')
@@ -463,11 +452,15 @@ final class SubscriberFormSchema
                             ->native(false),
                         Forms\Components\Select::make('meta.branch_id')
                             ->label('Branch')
-                            ->options(fn (): array => Branch::query()
-                                ->when($tid = TenantResolver::currentTenantId(), fn ($q) => $q->where('tenant_id', $tid))
-                                ->orderBy('name')
-                                ->pluck('name', 'id')
-                                ->all())
+                            ->options(function (): array {
+                                $query = Branch::query();
+                                $tid = TenantResolver::currentTenantId();
+                                if ($tid !== null) {
+                                    $query->where('tenant_id', $tid);
+                                }
+
+                                return $query->orderBy('name')->pluck('name', 'id')->all();
+                            })
                             ->searchable()
                             ->preload()
                             ->native(false),
@@ -704,7 +697,7 @@ final class SubscriberFormSchema
     {
         $pkg = self::resolvePackage($get);
         $expires = $get('service_expires_at');
-        $grace = (int) ($get('grace_period_days') ?? 10);
+        $grace = (int) ($get('grace_period_days') ?? BillingDefaults::defaultGracePeriodDays());
 
         $lines = [
             '<strong>Package:</strong> '.($pkg?->name ?? '—'),
@@ -754,7 +747,7 @@ final class SubscriberFormSchema
 
     private static function dueDatePreview(Get $get): HtmlString
     {
-        $grace = (int) ($get('grace_period_days') ?? 10);
+        $grace = (int) ($get('grace_period_days') ?? BillingDefaults::defaultGracePeriodDays());
         $day = max(1, min(28, (int) ($get('billing_day') ?? 1)));
         $bill = now()->day > $day ? now()->addMonth()->day($day) : now()->day($day);
         $due = $bill->copy()->addDays($grace);
@@ -837,6 +830,7 @@ final class SubscriberFormSchema
                 ->required()
                 ->maxLength(500)
                 ->columnSpan(['default' => 'full', 'lg' => 2]),
+            ...self::addressMetaFields(),
             Forms\Components\Select::make('area_id')
                 ->label('Area')
                 ->relationship('area', 'name')
@@ -847,16 +841,217 @@ final class SubscriberFormSchema
                 ->native(false),
             Forms\Components\Select::make('zone_id')
                 ->label('Zone')
-                ->options(fn (Get $get): array => \App\Models\Zone::query()
-                    ->when(filled($get('area_id')), fn ($q) => $q->where('area_id', (int) $get('area_id')))
-                    ->orderBy('name')
-                    ->pluck('name', 'id')
-                    ->all())
+                ->options(function (Get $get): array {
+                    $query = \App\Models\Zone::query();
+                    if (filled($get('area_id'))) {
+                        $query->where('area_id', (int) $get('area_id'));
+                    }
+
+                    return $query->orderBy('name')->pluck('name', 'id')->all();
+                })
                 ->searchable()
                 ->preload()
                 ->required(fn (): bool => \App\Models\Zone::query()->exists())
+                ->live()
+                ->native(false),
+            Forms\Components\Select::make('subzone_id')
+                ->label('Sub zone / TJ area')
+                ->options(function (Get $get): array {
+                    $query = \App\Models\Subzone::query()->where('is_active', true);
+                    if (filled($get('zone_id'))) {
+                        $query->where('zone_id', (int) $get('zone_id'));
+                    }
+
+                    return $query->orderBy('name')->pluck('name', 'id')->all();
+                })
+                ->searchable()
+                ->preload()
                 ->native(false),
         ];
+    }
+
+    /**
+     * District / thana / house — legacy portal parity (stored in meta).
+     *
+     * @return array<int, Forms\Components\Component>
+     */
+    private static function addressMetaFields(): array
+    {
+        return [
+            Forms\Components\TextInput::make('meta.district')
+                ->label('District')
+                ->maxLength(120),
+            Forms\Components\TextInput::make('meta.thana')
+                ->label('Thana / upazila')
+                ->maxLength(120),
+            Forms\Components\TextInput::make('meta.house_no')
+                ->label('House no')
+                ->maxLength(64),
+            Forms\Components\TextInput::make('meta.road_no')
+                ->label('Road / street')
+                ->maxLength(120),
+        ];
+    }
+
+    /** @return array<string, string> */
+    private static function connectionTypeOptions(): array
+    {
+        return [
+            'fiber' => 'Fiber (FTTH)',
+            'wireless' => 'Wireless',
+            'dedicated' => 'Dedicated line',
+            'hotspot' => 'Hotspot',
+            'other' => 'Other',
+        ];
+    }
+
+    /** @return array<string, string> */
+    private static function clientSegmentOptions(): array
+    {
+        return [
+            'residential' => 'Home / residential',
+            'corporate' => 'Corporate',
+            'commercial' => 'Commercial',
+            'vip' => 'VIP',
+        ];
+    }
+
+    /**
+     * Extra identity fields on create wizard (step 1).
+     *
+     * @return array<int, Forms\Components\Component>
+     */
+    private static function createWizardIdentityFields(): array
+    {
+        return [
+            Forms\Components\TextInput::make('alternate_phone')
+                ->label('Alternate phone')
+                ->tel()
+                ->maxLength(32)
+                ->dehydrated(false),
+            Forms\Components\TextInput::make('email')
+                ->label('Email')
+                ->email()
+                ->maxLength(255),
+            Forms\Components\TextInput::make('nid_number')
+                ->label('NID number')
+                ->maxLength(255),
+            Forms\Components\FileUpload::make('photo_path')
+                ->label('Profile photo')
+                ->image()
+                ->disk('local')
+                ->directory('subscribers/draft')
+                ->visibility('private')
+                ->maxSize(4096)
+                ->columnSpan(['default' => 'full', 'lg' => 1]),
+            Forms\Components\Select::make('segment')
+                ->label('Client type')
+                ->options(self::clientSegmentOptions())
+                ->default('residential')
+                ->native(false),
+            Forms\Components\Select::make('subscriber_type')
+                ->label('Billing category')
+                ->options(SubscriberType::options())
+                ->default(SubscriberType::STANDARD)
+                ->required()
+                ->native(false),
+        ];
+    }
+
+    /**
+     * Monthly discount + bill preview on create.
+     *
+     * @return array<int, Forms\Components\Component>
+     */
+    private static function createWizardBillingFields(): array
+    {
+        return [
+            Forms\Components\TextInput::make('meta.monthly_discount_bdt')
+                ->label('Monthly discount (BDT)')
+                ->numeric()
+                ->minValue(0)
+                ->default(0)
+                ->live(onBlur: true),
+            Forms\Components\Placeholder::make('monthly_bill_preview')
+                ->label('Estimated monthly bill')
+                ->content(fn (Get $get): HtmlString => self::monthlyBillPreview($get)),
+            Forms\Components\Textarea::make('notes')
+                ->label('Remarks / notes')
+                ->rows(2)
+                ->maxLength(2000)
+                ->columnSpan(['default' => 'full', 'lg' => 2]),
+        ];
+    }
+
+    /**
+     * ONU / connection fields on create wizard step 2.
+     *
+     * @return array<int, Forms\Components\Component>
+     */
+    private static function createWizardNetworkFields(): array
+    {
+        return [
+            Forms\Components\Select::make('meta.connection_type')
+                ->label('Connection type')
+                ->options(self::connectionTypeOptions())
+                ->default('fiber')
+                ->native(false),
+            Forms\Components\TextInput::make('meta.box_name')
+                ->label('TJ box / port')
+                ->maxLength(120),
+            Forms\Components\TextInput::make('meta.epon_port')
+                ->label('EPON port')
+                ->placeholder('EPON0/4:29')
+                ->maxLength(32),
+            Forms\Components\TextInput::make('meta.onu_mac')
+                ->label('ONU MAC')
+                ->placeholder('00AD24F0FB3C')
+                ->maxLength(32),
+        ];
+    }
+
+    private static function monthlyBillPreview(Get $get): HtmlString
+    {
+        $package = self::resolvePackage($get);
+        if ($package === null) {
+            return new HtmlString('<span class="isp-sub-muted">Select a package</span>');
+        }
+
+        $customer = new Customer([
+            'area_id' => $get('area_id'),
+            'zone_id' => $get('zone_id'),
+            'meta' => ['monthly_discount_bdt' => $get('meta.monthly_discount_bdt') ?? 0],
+        ]);
+
+        $monthly = \App\Services\Billing\PackagePriceResolver::resolveBaseMonthlyPrice($package, $customer);
+
+        return new HtmlString('<strong>'.number_format($monthly, 2).' BDT</strong> / month');
+    }
+
+    /**
+     * GPS coordinates + interactive map (auto-capture on load).
+     *
+     * @return array<int, Forms\Components\Component>
+     */
+    private static function gpsLocationFields(): array
+    {
+        return [
+            Forms\Components\Hidden::make('meta.gps_lat'),
+            Forms\Components\Hidden::make('meta.gps_lng'),
+            Forms\Components\Placeholder::make('gps_map_embed')
+                ->hiddenLabel()
+                ->content(fn (): HtmlString => new HtmlString(view('filament.forms.subscriber-gps-picker')->render()))
+                ->columnSpanFull(),
+        ];
+    }
+
+    /** Legacy-style GPS coordinates field + map (full width). */
+    private static function gpsMapSection(): Forms\Components\Section
+    {
+        return Forms\Components\Section::make('Location GPS')
+            ->schema(self::gpsLocationFields())
+            ->columnSpanFull()
+            ->collapsible(false);
     }
 
     private static function lastPaidPreview(?Customer $record): HtmlString
@@ -1012,16 +1207,22 @@ final class SubscriberFormSchema
                                         ->default('this_month')
                                         ->visible(fn (Get $get): bool => in_array((string) ($get('billing_mode') ?? ''), ['prepaid', 'advance'], true))
                                         ->native(false),
+                                    ...self::createWizardIdentityFields(),
                                     ...self::locationFields(),
+                                    ...self::createWizardBillingFields(),
                                     self::customerCodeInput(),
                                 ])
                                 ->columns(self::grid()),
+                            self::gpsMapSection(),
                         ]),
                     Forms\Components\Wizard\Step::make('PPPoE & line')
                         ->icon('heroicon-o-wifi')
-                        ->description('Optional PPP login')
+                        ->description('Router, PPPoE & ONU')
                         ->schema([
                             self::pppCredentialsSection(),
+                            Forms\Components\Section::make('Connection & ONU')
+                                ->schema(self::createWizardNetworkFields())
+                                ->columns(self::grid()),
                             Forms\Components\Section::make('Line')
                                 ->schema([
                                     Forms\Components\Select::make('network_access_state')
@@ -1134,11 +1335,13 @@ final class SubscriberFormSchema
                     if (! filled($value)) {
                         return;
                     }
-                    $exists = Customer::withoutGlobalScopes()
+                    $codeQuery = Customer::withoutGlobalScopes()
                         ->where('tenant_id', TenantResolver::requiredTenantId())
-                        ->where('customer_code', trim((string) $value))
-                        ->when($record?->id, fn ($q, $id) => $q->where('id', '!=', $id))
-                        ->exists();
+                        ->where('customer_code', trim((string) $value));
+                    if ($record?->id) {
+                        $codeQuery->where('id', '!=', $record->id);
+                    }
+                    $exists = $codeQuery->exists();
                     if ($exists) {
                         $fail('This Customer ID is already in use.');
                     }

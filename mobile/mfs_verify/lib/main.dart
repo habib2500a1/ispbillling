@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'config/app_branding.dart';
 import 'services/api_service.dart';
+import 'services/background_service.dart';
 import 'services/sms_listener.dart';
 import 'utils/api_url_normalizer.dart';
 import 'utils/mfs_sms_parser.dart';
@@ -14,8 +15,9 @@ import 'widgets/brand_header.dart';
 const _kApiUrl = 'mfs_api_base_url';
 const _kDeviceKey = 'mfs_device_key';
 
-void main() {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await initializeBackgroundService();
   runApp(const MfsVerifyApp());
 }
 
@@ -114,16 +116,21 @@ class _MfsVerifyHomeState extends State<MfsVerifyHome> with WidgetsBindingObserv
   }
 
   Future<void> _toggleAuto(bool v) async {
-    if (v && !await SmsListenerService.instance.ensurePermissions()) {
-      _snack('SMS permission required', error: true);
-      return;
+    if (v) {
+      if (!await SmsListenerService.instance.ensurePermissions()) {
+        _snack('SMS permission required', error: true);
+        return;
+      }
+      // Ask for battery-unrestricted so the foreground service survives Doze/OEM kills.
+      await SmsListenerService.instance.requestBatteryExemption();
     }
+    // Starts/stops the persistent foreground service (keeps reading while locked).
     await SmsListenerService.instance.setAutoEnabled(v);
     setState(() => _auto = v);
     if (v && _api != null) {
       await SmsListenerService.instance.start(_api!);
     }
-    _snack(v ? 'Auto SMS ON' : 'Auto SMS OFF');
+    _snack(v ? 'Auto SMS ON — background এ চলবে' : 'Auto SMS OFF');
   }
 
   Future<void> _pasteAndSend() async {

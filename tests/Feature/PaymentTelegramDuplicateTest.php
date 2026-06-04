@@ -13,6 +13,7 @@ use App\Services\Billing\StaffCollectionPaymentService;
 use App\Support\NotificationChannel;
 use App\Support\NotificationEvent;
 use App\Support\PaymentType;
+use App\Support\TenantResolver;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
@@ -72,6 +73,7 @@ class PaymentTelegramDuplicateTest extends TestCase
         Http::fake(['*' => Http::response(['ok' => true])]);
 
         $tenant = Tenant::query()->create(['name' => 'T', 'slug' => 'dup-isp', 'is_active' => true]);
+        TenantResolver::fake($tenant->id);
         $user = User::factory()->create(['tenant_id' => $tenant->id]);
         $customer = $this->makeCustomer($tenant);
         $invoice = Invoice::createTrusted([

@@ -23,6 +23,7 @@ class ManagePaymentSettingsTest extends TestCase
 
         Livewire::actingAs($user)
             ->test(ManagePaymentSettings::class)
+            ->set('activeGatewayTab', 'bkash')
             ->set('data.bkash_environment', BkashSettings::ENV_SANDBOX)
             ->set('data.bkash_app_key', 'test_app_key')
             ->set('data.bkash_app_secret', 'test_secret')
@@ -52,6 +53,7 @@ class ManagePaymentSettingsTest extends TestCase
 
         Livewire::actingAs($user)
             ->test(ManagePaymentSettings::class)
+            ->set('activeGatewayTab', 'bkash')
             ->set('data.bkash_environment', BkashSettings::ENV_LIVE)
             ->set('data.bkash_app_key', 'live_key')
             ->set('data.bkash_app_secret', 'live_secret')

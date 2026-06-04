@@ -1,0 +1,42 @@
+/**
+ * Clients directory — Table layout, columns, name cell
+ * Fixes vertical letter-stacking when columns are squeezed.
+ */
+
+.cl-dir-table .fi-ta-content {
+    overflow-x: auto !important;
+    overflow-y: visible !important;
+    -webkit-overflow-scrolling: touch;
+}
+
+.cl-dir-table .fi-ta-table {
+    width: 100% !important;
+    min-width: 72rem !important;
+    table-layout: auto !important;
+}
+
+.cl-dir-table .cl-dir-col-name,
+.cl-dir-table .fi-ta-cell.cl-dir-col-name {
+    min-width: 15rem !important;
+    width: 20% !important;
+    white-space: normal !important;
+}
+
+.cl-dir-client {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    min-width: 13rem !important;
+    width: 100% !important;
+}
+
+.cl-dir-client__name {
+    word-break: normal !important;
+    overflow-wrap: break-word !important;
+    white-space: normal !important;
+}
+
+.cl-dir-client__ppp {
+    word-break: break-all !important;
+    overflow-wrap: anywhere !important;
+}

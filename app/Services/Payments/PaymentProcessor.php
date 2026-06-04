@@ -55,6 +55,7 @@ final class PaymentProcessor
         float $amount,
         string $reference,
         array $meta = [],
+        string $paymentType = PaymentType::PAYMENT,
     ): Payment {
         $existing = Payment::query()
             ->withoutGlobalScopes()
@@ -80,7 +81,7 @@ final class PaymentProcessor
             'reference' => $reference,
             'status' => 'completed',
             'paid_at' => now(),
-            'payment_type' => PaymentType::PAYMENT,
+            'payment_type' => $paymentType,
             'receipt_number' => Payment::generateReceiptNumber(
                 (int) (Customer::withoutGlobalScopes()->whereKey($customerId)->value('tenant_id') ?? 1)
             ),
@@ -126,6 +127,18 @@ final class PaymentProcessor
         $amount = (float) $payment->amount;
         $customer = $payment->customer;
         if ($customer === null) {
+            return;
+        }
+
+        $fifo = $payment->meta['fifo_allocations'] ?? null;
+        if (is_array($fifo) && $fifo !== []) {
+            $surplus = app(\App\Services\Resellers\ResellerPaymentAllocationService::class)
+                ->applyFifoAllocations($payment, $customer, $fifo);
+
+            if ($surplus > 0.009 && config('payments.overpayment_to_wallet', true)) {
+                static::addWallet($customer, $surplus, $payment, 'fifo_surplus');
+            }
+
             return;
         }
 

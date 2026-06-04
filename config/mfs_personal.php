@@ -19,6 +19,8 @@ return [
         'auto_approve_by_reference' => (bool) env('MFS_SMS_AUTO_APPROVE_BY_REFERENCE', true),
         /** Match registered panel phone on SMS sender number. */
         'match_sender_phone' => (bool) env('MFS_SMS_MATCH_SENDER_PHONE', true),
+        /** Ref/Counter মিল না হলে SMS sender নম্বর দিয়ে subscriber খোঁজা (registered phone). */
+        'fallback_phone_when_ref_unmatched' => (bool) env('MFS_SMS_FALLBACK_PHONE_WHEN_REF_UNMATCHED', true),
         /** One phone → multiple subscriber IDs: split payment across open dues. */
         'split_same_phone_customers' => (bool) env('MFS_SMS_SPLIT_SAME_PHONE', true),
     ],

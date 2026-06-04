@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Services\Dashboard\DashboardPreferencesService;
+use App\Services\Platform\PlatformLicenseService;
 use App\Support\EnsureStorageWritable;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Artisan;
@@ -65,11 +66,27 @@ class ProductionAuditCommand extends Command
             $this->warn('[!] SMS and Telegram both disabled — ops alerts may be silent');
         }
 
+        $license = app(PlatformLicenseService::class);
+        if ($license->isSaasDeployment()) {
+            $this->line('[ok] Deployment mode: SaaS (rent) — license lock off');
+        } elseif ($license->isEnforced()) {
+            $check = $license->validate();
+            if ($check['valid']) {
+                $this->line('[ok] On-premise license valid');
+            } else {
+                $this->error('[X] On-premise license: '.$check['message']);
+                $issues++;
+            }
+        } else {
+            $this->warn('[!] On-premise mode but ISP_LICENSE_ENFORCE=false — enable for sold copies');
+        }
+
         if (app()->environment('production')) {
             foreach ([
                 'support.webhook_secret' => 'ISP_SUPPORT_WEBHOOK_SECRET',
                 'netflow.webhook_secret' => 'NETFLOW_WEBHOOK_SECRET',
                 'optical.webhook_secret' => 'OPTICAL_WEBHOOK_SECRET',
+                'call_center.webhook_secret' => 'CALL_CENTER_WEBHOOK_SECRET',
             ] as $key => $env) {
                 if (blank(config($key))) {
                     $this->warn("[!] {$env} not set — related webhook rejects requests in production");

@@ -59,6 +59,23 @@ class GponIntelligenceService
             }
         }
 
+        $optical = is_array($meta['optical'] ?? null) ? $meta['optical'] : [];
+        foreach (['temperature_c' => 'temperature_c', 'voltage_v' => 'voltage_v'] as $metaKey => $configKey) {
+            $aliases = $keys[$configKey] ?? [];
+            foreach ($aliases as $alias) {
+                if (isset($meta[$alias]) && $meta[$alias] !== '' && is_numeric($meta[$alias])) {
+                    $optical[$metaKey] = (float) $meta[$alias];
+                    $updated = true;
+                    break;
+                }
+            }
+        }
+        if ($optical !== ($meta['optical'] ?? [])) {
+            $meta['optical'] = $optical;
+            $onu->meta = $meta;
+            $updated = true;
+        }
+
         $statusAliases = $keys['onu_oper_status'] ?? [];
         foreach ($statusAliases as $alias) {
             if (isset($meta[$alias]) && $meta[$alias] !== '') {

@@ -21,9 +21,9 @@ class CustomerBalanceDueTest extends TestCase
             'phone' => '01700000002',
             'status' => 'active',
             'meta' => [
-                'isp_digital_billing_synced_at' => now()->toIso8601String(),
-                'isp_digital_balance_due' => 500,
-                'isp_digital_payment_state' => 'unpaid',
+                'legacy_portal_billing_synced_at' => now()->toIso8601String(),
+                'legacy_portal_balance_due' => 500,
+                'legacy_portal_payment_state' => 'unpaid',
             ],
         ]);
 
@@ -53,8 +53,8 @@ class CustomerBalanceDueTest extends TestCase
             'phone' => '01700000003',
             'status' => 'active',
             'meta' => [
-                'isp_digital_billing_synced_at' => now()->toIso8601String(),
-                'isp_digital_balance_due' => 500,
+                'legacy_portal_billing_synced_at' => now()->toIso8601String(),
+                'legacy_portal_balance_due' => 500,
             ],
         ]);
 
@@ -103,9 +103,9 @@ class CustomerBalanceDueTest extends TestCase
             'phone' => '01700000004',
             'status' => 'active',
             'meta' => [
-                'isp_digital_billing_synced_at' => now()->toIso8601String(),
-                'isp_digital_balance_due' => 500,
-                'isp_digital_payment_state' => 'unpaid',
+                'legacy_portal_billing_synced_at' => now()->toIso8601String(),
+                'legacy_portal_balance_due' => 500,
+                'legacy_portal_payment_state' => 'unpaid',
             ],
         ]);
 
@@ -126,7 +126,7 @@ class CustomerBalanceDueTest extends TestCase
         CustomerBalanceDue::refreshMetaAfterPayment($customer->fresh());
 
         $meta = $customer->fresh()->meta;
-        $this->assertArrayNotHasKey('isp_digital_balance_due', $meta);
+        $this->assertArrayNotHasKey('legacy_portal_balance_due', $meta);
         $this->assertSame(0.0, (float) ($meta['balance_due'] ?? -1));
         $this->assertSame('paid', $meta['billing_payment_state'] ?? '');
     }

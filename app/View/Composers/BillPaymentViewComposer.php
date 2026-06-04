@@ -3,6 +3,7 @@
 namespace App\View\Composers;
 
 use App\Services\BillPayment\BillPaymentOtpService;
+use App\Support\ResellerBranding;
 use Illuminate\View\View;
 
 final class BillPaymentViewComposer
@@ -13,6 +14,11 @@ final class BillPaymentViewComposer
 
     public function compose(View $view): void
     {
-        $view->with('otpEnabled', $this->otp->isEnabled());
+        $customer = ResellerBranding::customerFromContext();
+
+        $view->with(array_merge(
+            ResellerBranding::forCustomer($customer),
+            ['otpEnabled' => $this->otp->isEnabled()],
+        ));
     }
 }

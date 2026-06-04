@@ -5,12 +5,14 @@ import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 
 import '../config/remote_config.dart';
+import '../core/theme/design_tokens.dart';
+import '../core/widgets/cards.dart';
+import '../core/widgets/skeleton.dart';
+import '../core/widgets/states.dart';
 import '../services/api_service.dart';
-import '../theme/app_theme.dart';
 import '../utils/app_nav.dart';
 import '../widgets/customer_profile_hero.dart';
 import '../widgets/staff_blue_app_bar.dart';
-import '../widgets/state_views.dart';
 import '../widgets/usage_area_chart.dart';
 import 'staff_customer_edit_screen.dart';
 import 'staff_receive_bill_screen.dart';
@@ -120,7 +122,6 @@ class _StaffCustomerDetailScreenState extends State<StaffCustomerDetailScreen> {
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle.light,
       child: Scaffold(
-        backgroundColor: const Color(0xFFF0F4FF),
         appBar: StaffBlueAppBar(
           title: name,
           actions: [
@@ -157,9 +158,9 @@ class _StaffCustomerDetailScreenState extends State<StaffCustomerDetailScreen> {
           ],
         ),
         body: _loading
-            ? const Center(child: CircularProgressIndicator())
+            ? const SkeletonList(count: 4, rowHeight: 120)
             : _customer == null
-                ? const EmptyState(icon: Icons.person_off, title: 'Customer not found', subtitle: '')
+                ? const EmptyStateView(icon: Icons.person_off_rounded, title: 'Customer not found')
                 : Column(
                     children: [
                       CustomerProfileHero(
@@ -176,72 +177,85 @@ class _StaffCustomerDetailScreenState extends State<StaffCustomerDetailScreen> {
                           child: ListView(
                             padding: const EdgeInsets.all(16),
                             children: [
-                              Card(
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                                child: Padding(
-                                  padding: const EdgeInsets.all(14),
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Row(
-                                        children: [
-                                          Icon(Icons.show_chart, color: AppTheme.primary, size: 22),
-                                          const SizedBox(width: 8),
-                                          const Text('Live usage', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
-                                          const Spacer(),
-                                          Container(
-                                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                            decoration: BoxDecoration(
-                                              color: AppTheme.success.withValues(alpha: 0.15),
-                                              borderRadius: BorderRadius.circular(8),
-                                            ),
-                                            child: const Text(
-                                              'LIVE',
-                                              style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppTheme.success),
-                                            ),
+                              AppCard(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        const Icon(Icons.show_chart_rounded, color: DesignTokens.primary, size: 22),
+                                        const SizedBox(width: 8),
+                                        Text('Live usage',
+                                            style: context.text.titleSmall?.copyWith(fontWeight: FontWeight.w700)),
+                                        const Spacer(),
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                          decoration: BoxDecoration(
+                                            color: DesignTokens.success.withValues(alpha: 0.15),
+                                            borderRadius: BorderRadius.circular(8),
                                           ),
-                                        ],
-                                      ),
-                                      const SizedBox(height: 12),
-                                      UsageAreaChart(chart: _usage?['chart'] as Map<String, dynamic>?),
-                                      const SizedBox(height: 10),
-                                      Text(
-                                        '↓ ${_usage?['download_human'] ?? '—'} · ↑ ${_usage?['upload_human'] ?? '—'}',
-                                        style: const TextStyle(fontWeight: FontWeight.w600, color: AppTheme.primary),
-                                      ),
-                                    ],
-                                  ),
+                                          child: const Text('LIVE',
+                                              style: TextStyle(
+                                                  fontSize: 10, fontWeight: FontWeight.bold, color: DesignTokens.success)),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 12),
+                                    UsageAreaChart(chart: _usage?['chart'] as Map<String, dynamic>?),
+                                    const SizedBox(height: 10),
+                                    Text(
+                                      '↓ ${_usage?['download_human'] ?? '—'} · ↑ ${_usage?['upload_human'] ?? '—'}',
+                                      style: const TextStyle(fontWeight: FontWeight.w600, color: DesignTokens.primary),
+                                    ),
+                                  ],
                                 ),
                               ),
                               const SizedBox(height: 16),
                               FilledButton.icon(
                                 onPressed: () => _openReceiveBill(),
-                                icon: const Icon(Icons.receipt_long),
+                                icon: const Icon(Icons.receipt_long_rounded),
                                 label: Text(due > 0 ? 'Receive bill · Due ${_fmt.format(due)} BDT' : 'Receive bill'),
-                                style: FilledButton.styleFrom(
-                                  backgroundColor: AppTheme.primary,
-                                  minimumSize: const Size.fromHeight(52),
-                                ),
+                                style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(52)),
                               ),
                               if (_invoices.isNotEmpty) ...[
                                 const SizedBox(height: 20),
-                                const Text('Open invoices', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                                const SizedBox(height: 8),
+                                const SectionHeader(title: 'Open invoices'),
                                 ..._invoices.map((m) {
                                   final invDue = (m['balance_due'] as num?)?.toDouble() ?? 0;
-                                  return Card(
-                                    margin: const EdgeInsets.only(bottom: 8),
-                                    child: ListTile(
-                                      leading: const Icon(Icons.description_outlined, color: AppTheme.primary),
-                                      title: Text(m['invoice_number']?.toString() ?? 'Invoice'),
-                                      subtitle: Text('Due ${_fmt.format(invDue)} BDT'),
-                                      trailing: FilledButton(
-                                        onPressed: () => _openReceiveBill(invoice: m),
-                                        style: FilledButton.styleFrom(
-                                          backgroundColor: AppTheme.success,
-                                          visualDensity: VisualDensity.compact,
-                                        ),
-                                        child: const Text('Receive'),
+                                  return Padding(
+                                    padding: const EdgeInsets.only(bottom: 10),
+                                    child: AppCard(
+                                      onTap: () => _openReceiveBill(invoice: m),
+                                      child: Row(
+                                        children: [
+                                          Container(
+                                            padding: const EdgeInsets.all(9),
+                                            decoration: BoxDecoration(
+                                                color: DesignTokens.primary.withValues(alpha: 0.14),
+                                                borderRadius: BorderRadius.circular(DesignTokens.radiusSm)),
+                                            child: const Icon(Icons.description_rounded, color: DesignTokens.primary, size: 20),
+                                          ),
+                                          const SizedBox(width: 12),
+                                          Expanded(
+                                            child: Column(
+                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                              children: [
+                                                Text(m['invoice_number']?.toString() ?? 'Invoice',
+                                                    style: const TextStyle(fontWeight: FontWeight.w700)),
+                                                Text('Due ৳${_fmt.format(invDue)}',
+                                                    style: TextStyle(fontSize: 12, color: context.brand.textMuted)),
+                                              ],
+                                            ),
+                                          ),
+                                          FilledButton(
+                                            onPressed: () => _openReceiveBill(invoice: m),
+                                            style: FilledButton.styleFrom(
+                                              backgroundColor: DesignTokens.success,
+                                              visualDensity: VisualDensity.compact,
+                                            ),
+                                            child: const Text('Receive'),
+                                          ),
+                                        ],
                                       ),
                                     ),
                                   );

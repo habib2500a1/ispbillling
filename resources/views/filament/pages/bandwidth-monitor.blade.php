@@ -3,11 +3,19 @@
     $api = $sync['api'] ?? [];
     $radius = $sync['radius'] ?? [];
     $updated = $sync['updated_at'] ?? null;
-    $chartPoll = (int) config('bandwidth.monitor_wan_poll_seconds', 10);
+    $wanCollect = max(3, (int) config('bandwidth.monitor_wan_collect_seconds', 3));
+    $syncRunning = \App\Services\Bandwidth\BandwidthSyncStatus::isRunning(
+        \App\Support\TenantResolver::requiredTenantId()
+    );
 @endphp
 
 <x-filament-panels::page>
-    <div class="space-y-4">
+    <div
+        class="space-y-4"
+        @if ($activeTab === 'graphs' && $wanCollect > 0)
+            wire:poll.{{ $wanCollect }}s="refreshLiveData"
+        @endif
+    >
         <div class="grid gap-4 lg:grid-cols-3">
             <div class="rounded-2xl border border-sky-200 bg-gradient-to-br from-sky-50 to-white p-5 shadow-sm dark:border-sky-900/50 dark:from-sky-950/40 dark:to-gray-900">
                 <div class="flex items-center justify-between">
@@ -83,6 +91,12 @@
                 @endforeach
             </nav>
         </div>
+
+        @if ($syncRunning)
+            <p class="mt-2 text-sm text-sky-700 dark:text-sky-300">
+                Background sync running on server — charts refresh automatically without Cloudflare timeout.
+            </p>
+        @endif
 
         <div class="rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-600 dark:border-gray-700 dark:bg-gray-900/50 dark:text-gray-400">
             <p class="font-semibold text-gray-900 dark:text-white">Dual sync (API + RADIUS)</p>

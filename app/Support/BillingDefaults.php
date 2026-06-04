@@ -86,4 +86,9 @@ final class BillingDefaults
 
         return (string) self::expireDayFromDate($date);
     }
+
+    public static function defaultGracePeriodDays(): int
+    {
+        return max(0, (int) config('billing.default_grace_period_days', 0));
+    }
 }

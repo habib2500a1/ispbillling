@@ -1,0 +1,27 @@
+/** Clients directory — Page shell & tokens */
+/** Bundled from public/css/admin/clients-directory/ — run ./scripts/concat-clients-directory-css.sh */
+
+/* --- 01-page-shell.css --- */
+/** Clients directory — Page shell & tokens */
+/**
+ * Clients directory — optional bundle.
+ * Edit: public/css/admin/clients-directory/*.css
+ * Load: App\Support\ClientsDirectoryStyles
+ */
+@import url('admin/clients-directory/01-page-shell.css');
+@import url('admin/clients-directory/02-chrome-toolbar.css');
+@import url('admin/clients-directory/03-table.css');
+@import url('admin/clients-directory/04-due-page.css');
+@import url('admin/clients-directory/05-vip-page.css');
+
+/* --- 02-chrome-toolbar.css --- */
+/** Clients directory — Toolbar, stats, tabs */
+
+/* --- 03-table.css --- */
+/** Clients directory — Table layout & actions */
+
+/* --- 04-due-page.css --- */
+/** Clients directory — Due clients variant */
+
+/* --- 05-vip-page.css --- */
+/** Clients directory — VIP clients variant */

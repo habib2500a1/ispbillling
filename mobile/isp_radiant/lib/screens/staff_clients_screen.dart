@@ -3,10 +3,15 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../core/network/api_result.dart';
+import '../core/theme/design_tokens.dart';
+import '../core/widgets/client_card.dart';
+import '../core/widgets/skeleton.dart';
+import '../core/widgets/states.dart';
+import '../features/staff_customers/data/staff_customers_repository.dart';
+import '../features/staff_customers/domain/customer_list_item.dart';
 import '../services/api_service.dart';
-import '../theme/app_theme.dart';
 import '../utils/app_nav.dart';
-import '../widgets/customer_search_result_tile.dart';
 import '../widgets/page_scaffold.dart';
 import 'staff_add_customer_screen.dart';
 import 'staff_customer_detail_screen.dart';
@@ -22,62 +27,35 @@ class StaffClientsScreen extends StatefulWidget {
 }
 
 class _StaffClientsScreenState extends State<StaffClientsScreen> {
+  late final StaffCustomersRepository _repo = StaffCustomersRepository(widget.api);
   final _search = TextEditingController();
-  List<Map<String, dynamic>> _list = [];
+  List<CustomerListItem> _list = [];
   bool _loading = false;
+  bool _loadingMore = false;
+  Failure? _error;
   int _page = 1;
-  bool _hasMore = true;
+  int _lastPage = 1;
+  int _total = 0;
   String _statusFilter = '';
   bool _dueOnly = false;
-  Timer? _debounce;
   bool _searchMode = false;
+  Timer? _debounce;
 
-  Future<void> _load({String? q, bool reset = true}) async {
-    if (reset) {
-      _page = 1;
-      _hasMore = true;
-    }
-    setState(() => _loading = true);
-    try {
-      if (q != null && q.length >= 2) {
-        final list = await widget.api.searchCustomers(q);
-        if (mounted) setState(() {
-          _list = list;
-          _searchMode = true;
-        });
-      } else {
-        if (mounted) setState(() => _searchMode = false);
-        final body = await widget.api.staffCustomers(
-          page: _page,
-          status: _statusFilter.isEmpty ? null : _statusFilter,
-          dueOnly: _dueOnly,
-        );
-        final list = (body['data'] as List<dynamic>?)?.map((e) => Map<String, dynamic>.from(e as Map)).toList() ?? [];
-        final meta = body['meta'] as Map<String, dynamic>? ?? {};
-        final lastPage = (meta['last_page'] as num?)?.toInt() ?? 1;
-        if (mounted) {
-          setState(() {
-            if (reset) {
-              _list = list;
-            } else {
-              _list = [..._list, ...list];
-            }
-            _hasMore = _page < lastPage;
-          });
-        }
-      }
-    } on ApiException catch (e) {
-      if (mounted) showSnack(context, e.message, isError: true);
-    } finally {
-      if (mounted) setState(() => _loading = false);
-    }
-  }
+  bool get _hasMore => !_searchMode && _page < _lastPage;
 
   @override
   void initState() {
     super.initState();
     _load();
     _search.addListener(_onSearchChanged);
+  }
+
+  @override
+  void dispose() {
+    _debounce?.cancel();
+    _search.removeListener(_onSearchChanged);
+    _search.dispose();
+    super.dispose();
   }
 
   void _onSearchChanged() {
@@ -90,12 +68,110 @@ class _StaffClientsScreenState extends State<StaffClientsScreen> {
     _debounce = Timer(const Duration(milliseconds: 400), () => _load(q: q));
   }
 
-  @override
-  void dispose() {
-    _debounce?.cancel();
-    _search.removeListener(_onSearchChanged);
-    _search.dispose();
-    super.dispose();
+  Future<void> _load({String? q}) async {
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+    if (q != null && q.length >= 2) {
+      final res = await _repo.search(q);
+      if (!mounted) return;
+      res.when(
+        ok: (list) => setState(() {
+          _list = list;
+          _searchMode = true;
+          _loading = false;
+        }),
+        err: (f) => setState(() {
+          _error = f;
+          _loading = false;
+        }),
+      );
+      return;
+    }
+    _page = 1;
+    final res = await _repo.list(page: 1, status: _statusFilter, dueOnly: _dueOnly);
+    if (!mounted) return;
+    res.when(
+      ok: (p) => setState(() {
+        _searchMode = false;
+        _list = p.items;
+        _lastPage = p.lastPage;
+        _total = p.total;
+        _loading = false;
+      }),
+      err: (f) => setState(() {
+        _error = f;
+        _loading = false;
+      }),
+    );
+  }
+
+  Future<void> _loadMore() async {
+    if (_loadingMore || !_hasMore) return;
+    setState(() => _loadingMore = true);
+    final res = await _repo.list(page: _page + 1, status: _statusFilter, dueOnly: _dueOnly);
+    if (!mounted) return;
+    res.when(
+      ok: (p) => setState(() {
+        _page = p.page;
+        _lastPage = p.lastPage;
+        _list = [..._list, ...p.items];
+        _loadingMore = false;
+      }),
+      err: (_) => setState(() => _loadingMore = false),
+    );
+  }
+
+  void _setFilter({String status = '', bool dueOnly = false}) {
+    setState(() {
+      _statusFilter = status;
+      _dueOnly = dueOnly;
+    });
+    _load();
+  }
+
+  Future<void> _openDetail(CustomerListItem c) async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => StaffCustomerDetailScreen(api: widget.api, customerId: c.id)),
+    );
+    _load(q: _searchMode ? _search.text.trim() : null);
+  }
+
+  Future<void> _openEdit(CustomerListItem c) async {
+    final res = await _repo.detail(c.id);
+    if (!mounted) return;
+    await res.when(
+      ok: (detail) async {
+        final ok = await Navigator.push<bool>(
+          context,
+          MaterialPageRoute(builder: (_) => StaffCustomerEditScreen(api: widget.api, customer: detail)),
+        );
+        if (ok == true) _load();
+      },
+      err: (f) async => showSnack(context, f.message, isError: true),
+    );
+  }
+
+  Future<void> _toggle(CustomerListItem c) async {
+    final res = await _repo.toggleNetwork(c.id);
+    if (!mounted) return;
+    res.when(ok: (_) => _load(), err: (f) => showSnack(context, f.message, isError: true));
+  }
+
+  Future<void> _call(CustomerListItem c) async {
+    final uri = Uri.parse('tel:${c.phone}');
+    if (await canLaunchUrl(uri)) await launchUrl(uri);
+  }
+
+  Future<void> _sms(CustomerListItem c) async {
+    final res = await _repo.smsReminder(c.id);
+    if (!mounted) return;
+    res.when(
+      ok: (_) => showSnack(context, 'SMS sent'),
+      err: (f) => showSnack(context, f.message, isError: true),
+    );
   }
 
   @override
@@ -107,200 +183,122 @@ class _StaffClientsScreenState extends State<StaffClientsScreen> {
         onPressed: () => Navigator.push(
           context,
           MaterialPageRoute(builder: (_) => StaffAddCustomerScreen(api: widget.api)),
-        ),
-        icon: const Icon(Icons.person_add),
+        ).then((_) => _load()),
+        backgroundColor: DesignTokens.primary,
+        foregroundColor: Colors.white,
+        icon: const Icon(Icons.person_add_rounded),
         label: const Text('New'),
       ),
       body: Column(
         children: [
-          Material(
-            color: AppTheme.card,
-            elevation: 2,
-            child: Padding(
-              padding: const EdgeInsets.all(12),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: _search,
-                      decoration: const InputDecoration(
-                        hintText: 'Search code, name, phone…',
-                        prefixIcon: Icon(Icons.search),
-                        isDense: true,
-                      ),
-                      onSubmitted: (v) => _load(q: v),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  FilledButton(onPressed: () => _load(q: _search.text.trim()), child: const Text('Search')),
-                ],
-              ),
-            ),
-          ),
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            child: Row(
+          Container(
+            color: context.cs.surface,
+            padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
+            child: Column(
               children: [
-                FilterChip(label: const Text('All'), selected: _statusFilter.isEmpty && !_dueOnly, onSelected: (_) => setState(() { _statusFilter = ''; _dueOnly = false; _load(); })),
-                FilterChip(label: const Text('Active'), selected: _statusFilter == 'active', onSelected: (_) => setState(() { _statusFilter = 'active'; _dueOnly = false; _load(); })),
-                FilterChip(label: const Text('Suspended'), selected: _statusFilter == 'suspended', onSelected: (_) => setState(() { _statusFilter = 'suspended'; _dueOnly = false; _load(); })),
-                FilterChip(label: const Text('Due only'), selected: _dueOnly, onSelected: (_) => setState(() { _dueOnly = true; _statusFilter = ''; _load(); })),
+                TextField(
+                  controller: _search,
+                  decoration: InputDecoration(
+                    hintText: 'Name / Code / Mobile / User ID / IP',
+                    prefixIcon: const Icon(Icons.search_rounded),
+                    suffixIcon: _search.text.isEmpty
+                        ? null
+                        : IconButton(
+                            icon: const Icon(Icons.close_rounded),
+                            onPressed: () {
+                              _search.clear();
+                              _load();
+                            },
+                          ),
+                    isDense: true,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: [
+                      _chip('All', _statusFilter.isEmpty && !_dueOnly, () => _setFilter()),
+                      _chip('Active', _statusFilter == 'active', () => _setFilter(status: 'active')),
+                      _chip('Suspended', _statusFilter == 'suspended', () => _setFilter(status: 'suspended')),
+                      _chip('Due only', _dueOnly, () => _setFilter(dueOnly: true)),
+                    ],
+                  ),
+                ),
               ],
             ),
           ),
-          if (_loading) const LinearProgressIndicator(minHeight: 3, color: AppTheme.accent),
-          Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.all(12),
-              itemCount: _list.length + (_hasMore && _search.text.trim().length < 2 ? 1 : 0),
-              itemBuilder: (context, i) {
-                if (i >= _list.length) {
-                  return Padding(
-                    padding: const EdgeInsets.all(8),
-                    child: OutlinedButton(
-                      onPressed: _loading
-                          ? null
-                          : () {
-                              _page++;
-                              _load(reset: false);
-                            },
-                      child: const Text('Load more customers'),
-                    ),
-                  );
-                }
-                final c = _list[i];
-                final id = (c['id'] as num).toInt();
-                if (_searchMode) {
-                  return CustomerSearchResultTile(
-                    customer: c,
-                    showDue: true,
-                    onTap: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => StaffCustomerDetailScreen(api: widget.api, customerId: id),
-                      ),
-                    ).then((_) => _load(q: _search.text.trim().length >= 2 ? _search.text.trim() : null)),
-                  );
-                }
-                final online = c['is_online'] == true;
-                final monthly = (c['monthly_bill'] as num?)?.toDouble() ?? 0;
-                final networkOn = c['network_on'] != false;
-                final phone = c['phone']?.toString() ?? '';
-                return Card(
-                  margin: const EdgeInsets.only(bottom: 8),
-                  clipBehavior: Clip.antiAlias,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                  elevation: 2,
-                  child: InkWell(
-                    onTap: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => StaffCustomerDetailScreen(api: widget.api, customerId: id),
-                      ),
-                    ).then((_) => _load()),
-                    onLongPress: () async {
-                      final detail = await widget.api.staffCustomerDetail(id);
-                      if (!context.mounted) return;
-                      final ok = await Navigator.push<bool>(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => StaffCustomerEditScreen(api: widget.api, customer: detail),
-                        ),
-                      );
-                      if (ok == true) _load();
-                    },
-                    child: Column(
-                      children: [
-                        Padding(
-                          padding: const EdgeInsets.fromLTRB(12, 10, 12, 4),
-                          child: Row(
-                            children: [
-                              Icon(Icons.circle, size: 10, color: online ? AppTheme.success : Colors.grey.shade400),
-                              const SizedBox(width: 6),
-                              Expanded(
-                                child: Text(
-                                  c['name']?.toString() ?? '',
-                                  style: const TextStyle(fontWeight: FontWeight.w700),
-                                ),
-                              ),
-                              Text(
-                                '${monthly.toStringAsFixed(1)} M.bill',
-                                style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.red, fontSize: 13),
-                              ),
-                            ],
-                          ),
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 12),
-                          child: Align(
-                            alignment: Alignment.centerLeft,
-                            child: Text(
-                              '${c['username'] ?? c['customer_code']} · ${c['package'] ?? ''} · ${c['customer_code']}',
-                              style: const TextStyle(fontSize: 11, color: Colors.black54),
-                            ),
-                          ),
-                        ),
-                        if ((c['zone']?.toString() ?? '').isNotEmpty)
-                          Padding(
-                            padding: const EdgeInsets.fromLTRB(12, 2, 12, 4),
-                            child: Align(
-                              alignment: Alignment.centerLeft,
-                              child: Text(
-                                c['zone'].toString(),
-                                style: const TextStyle(fontSize: 11, color: Colors.deepOrange, fontWeight: FontWeight.w600),
-                              ),
-                            ),
-                          ),
-                        Container(
-                          color: AppTheme.primary.withValues(alpha: 0.08),
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                          child: Row(
-                            children: [
-                              const Text('MikroTik', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600)),
-                              Switch.adaptive(
-                                value: networkOn,
-                                onChanged: (_) async {
-                                  try {
-                                    await widget.api.staffToggleNetwork(id);
-                                    _load();
-                                  } on ApiException catch (e) {
-                                    if (context.mounted) showSnack(context, e.message, isError: true);
-                                  }
-                                },
-                              ),
-                              const Spacer(),
-                              if (phone.isNotEmpty)
-                                IconButton(
-                                  icon: const Icon(Icons.phone, color: AppTheme.success, size: 22),
-                                  onPressed: () async {
-                                    final uri = Uri.parse('tel:$phone');
-                                    if (await canLaunchUrl(uri)) await launchUrl(uri);
-                                  },
-                                  tooltip: phone,
-                                ),
-                              IconButton(
-                                icon: const Icon(Icons.chat_bubble_outline, size: 20),
-                                onPressed: () async {
-                                  try {
-                                    await widget.api.staffSmsReminder(id);
-                                    if (context.mounted) showSnack(context, 'SMS sent');
-                                  } on ApiException catch (e) {
-                                    if (context.mounted) showSnack(context, e.message, isError: true);
-                                  }
-                                },
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              },
+          if (!_loading && _error == null)
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
+                child: Text(
+                  _searchMode
+                      ? 'Search · ${_list.length} result(s)'
+                      : 'Showing ${_list.length}${_total > 0 ? ' of $_total' : ''}',
+                  style: TextStyle(fontSize: 12, color: context.brand.textMuted),
+                ),
+              ),
             ),
-          ),
+          Expanded(child: _buildList()),
         ],
+      ),
+    );
+  }
+
+  Widget _chip(String label, bool selected, VoidCallback onTap) {
+    return Padding(
+      padding: const EdgeInsets.only(right: 8),
+      child: ChoiceChip(
+        label: Text(label),
+        selected: selected,
+        onSelected: (_) => onTap(),
+        selectedColor: DesignTokens.primary.withValues(alpha: 0.2),
+        labelStyle: TextStyle(
+          color: selected ? DesignTokens.primary : context.brand.textMuted,
+          fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildList() {
+    if (_loading) return const SkeletonList(count: 6, rowHeight: 120);
+    if (_error != null && _list.isEmpty) return ErrorStateView(failure: _error!, onRetry: _load);
+    if (_list.isEmpty) {
+      return const EmptyStateView(icon: Icons.people_outline_rounded, title: 'No clients found');
+    }
+
+    return RefreshIndicator(
+      onRefresh: _load,
+      color: DesignTokens.primary,
+      child: ListView.builder(
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 96),
+        itemCount: _list.length + (_hasMore ? 1 : 0),
+        itemBuilder: (context, i) {
+          if (i >= _list.length) {
+            return Padding(
+              padding: const EdgeInsets.all(8),
+              child: OutlinedButton(
+                onPressed: _loadingMore ? null : _loadMore,
+                child: _loadingMore
+                    ? const SizedBox(
+                        width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
+                    : const Text('Load more customers'),
+              ),
+            );
+          }
+          final c = _list[i];
+          return ClientCard(
+            client: c,
+            onTap: () => _openDetail(c),
+            onLongPress: () => _openEdit(c),
+            onToggleNetwork: (_) => _toggle(c),
+            onCall: c.phone.isEmpty ? null : () => _call(c),
+            onSms: () => _sms(c),
+          );
+        },
       ),
     );
   }

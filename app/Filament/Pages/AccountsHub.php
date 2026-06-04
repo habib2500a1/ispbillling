@@ -33,7 +33,14 @@ class AccountsHub extends Page
 
     public static function canAccess(): bool
     {
-        return StaffCapability::for(auth()->user())->canAccounting();
+        $user = auth()->user();
+        if ($user === null) {
+            return false;
+        }
+
+        $cap = StaffCapability::for($user);
+
+        return $cap->canAccounting() || $cap->canBilling() || $cap->canPayments();
     }
 
     /**

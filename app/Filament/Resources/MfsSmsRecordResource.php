@@ -43,7 +43,7 @@ class MfsSmsRecordResource extends Resource
     {
         return $table
             ->heading('RCL SMS ledger')
-            ->description('ভুল subscriber: **Transfer** কলাম (Amount-এর পরে) — ক্লিক করলে সঠিক ID-তে সরান। Payments → All payments-তেও Transfer আছে।')
+            ->description('Match order: **Ref/PPPoE** in SMS first → if no match, **sender mobile** vs registered phone → auto bill. Wrong subscriber: use **Transfer**.')
             ->columns([
                 Tables\Columns\TextColumn::make('created_at')->dateTime()->sortable(),
                 Tables\Columns\TextColumn::make('gateway')->badge(),
@@ -64,14 +64,7 @@ class MfsSmsRecordResource extends Resource
                     ->color(fn (MfsSmsRecord $r): string => MfsSmsBillPaymentState::color(
                         MfsSmsBillPaymentState::resolve($r),
                     ))
-                    ->description(fn (MfsSmsRecord $r): ?string => match (MfsSmsBillPaymentState::resolve($r)) {
-                        MfsSmsBillPaymentState::LINKED => $r->payment_id ? 'Payment #'.$r->payment_id : 'Bill updated',
-                        MfsSmsBillPaymentState::PENDING_MATCH => ($r->meta['reference_match'] ?? '') === 'needs_assignment'
-                            ? 'Assign subscriber ID in admin'
-                            : 'SMS OK — bill not linked yet',
-                        MfsSmsBillPaymentState::DUPLICATE_TRX => 'TrxID already on another payment',
-                        default => null,
-                    }),
+                    ->description(fn (MfsSmsRecord $r): ?string => self::billPaymentDescription($r)),
                 Tables\Columns\TextColumn::make('subscriber_id')
                     ->label('ID')
                     ->toggleable(false)
@@ -272,6 +265,46 @@ class MfsSmsRecordResource extends Resource
         return [
             'index' => Pages\ListMfsSmsRecords::route('/'),
         ];
+    }
+
+    public static function billPaymentDescription(MfsSmsRecord $record): ?string
+    {
+        $state = MfsSmsBillPaymentState::resolve($record);
+        $meta = $record->meta ?? [];
+        $ref = filled($meta['reference_token'] ?? null) ? (string) $meta['reference_token'] : null;
+        $matchedBy = (string) ($meta['matched_by'] ?? '');
+
+        if ($state === MfsSmsBillPaymentState::LINKED) {
+            $line = $record->payment_id ? 'Payment #'.$record->payment_id : 'Bill updated';
+            if ($matchedBy === 'sms_sender_phone' && $ref !== null) {
+                return $line.' · Ref '.$ref.' → phone match';
+            }
+            if ($matchedBy === 'sms_reference') {
+                return $line.($ref !== null ? ' · Ref '.$ref : '');
+            }
+
+            return $line;
+        }
+
+        if ($state === MfsSmsBillPaymentState::PENDING_MATCH) {
+            if (($meta['reference_match'] ?? '') === 'needs_assignment') {
+                return $ref !== null
+                    ? 'Ref '.$ref.' — assign subscriber in admin'
+                    : 'Assign subscriber ID in admin';
+            }
+
+            if ($ref !== null && filled($record->sender_phone)) {
+                return 'Ref '.$ref.' scanned — checking phone '.$record->sender_phone;
+            }
+
+            return 'SMS OK — bill not linked yet';
+        }
+
+        if ($state === MfsSmsBillPaymentState::DUPLICATE_TRX) {
+            return 'TrxID already on another payment';
+        }
+
+        return null;
     }
 
     public static function subscriberField(MfsSmsRecord $record, string $field): ?string

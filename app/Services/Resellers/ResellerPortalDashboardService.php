@@ -7,6 +7,8 @@ use App\Models\Payment;
 use App\Models\Reseller;
 use App\Models\ResellerCommission;
 use App\Models\ResellerSettlement;
+use App\Support\CustomerBalanceDue;
+use App\Support\CustomerStatus;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 
@@ -20,7 +22,13 @@ final class ResellerPortalDashboardService
         $customerIds = $reseller->customers()->pluck('id');
         $customerBase = $reseller->customers();
         $totalCustomers = (clone $customerBase)->count();
-        $activeCustomers = (clone $customerBase)->where('status', 'active')->count();
+        $activeCustomers = (clone $customerBase)->where('status', CustomerStatus::ACTIVE)->count();
+        $expiredCustomers = (clone $customerBase)->where('status', CustomerStatus::EXPIRED)->count();
+        $newCustomersMonth = (clone $customerBase)
+            ->whereMonth('created_at', now()->month)
+            ->whereYear('created_at', now()->year)
+            ->count();
+        $suspendedCustomers = (clone $customerBase)->where('status', CustomerStatus::SUSPENDED)->count();
         $onlineCustomers = (clone $customerBase)->where('is_ppp_online', true)->count();
 
         $todayCollection = 0.0;
@@ -50,7 +58,8 @@ final class ResellerPortalDashboardService
             $dueAmount = (float) Invoice::query()
                 ->whereIn('customer_id', $customerIds)
                 ->whereIn('status', ['open', 'partial', 'draft'])
-                ->sum(DB::raw('GREATEST(0, total - amount_paid)'));
+                ->selectRaw(CustomerBalanceDue::sumOpenInvoiceBalanceSelect('due'))
+                ->value('due');
 
             $monthInvoiced = (float) Invoice::query()
                 ->whereIn('customer_id', $customerIds)
@@ -69,13 +78,14 @@ final class ResellerPortalDashboardService
             ->count();
 
         $onuOnline = (clone $customerBase)
-            ->whereNotNull('onu_device_id')
             ->where('is_ppp_online', true)
+            ->whereHas('onuDevice')
             ->count();
 
         $weakSignal = (clone $customerBase)
-            ->whereNotNull('onu_rx_dbm')
-            ->where('onu_rx_dbm', '<', -27)
+            ->whereHas('onuDevice', fn ($q) => $q
+                ->whereNotNull('rx_power_dbm')
+                ->where('rx_power_dbm', '<', -27))
             ->count();
 
         $pendingSettlements = (float) $reseller->settlements()
@@ -87,6 +97,7 @@ final class ResellerPortalDashboardService
             ->whereMonth('paid_at', now()->month)
             ->whereYear('paid_at', now()->year)
             ->sum('commission_amount');
+        $totalCommission = (float) $reseller->commissions()->sum('commission_amount');
         $openTickets = $this->openTicketCount($reseller);
 
         $alerts = [];
@@ -126,11 +137,20 @@ final class ResellerPortalDashboardService
         return [
             'customers_total' => $totalCustomers,
             'customers_active' => $activeCustomers,
+            'customers_expired' => $expiredCustomers,
+            'customers_new_month' => $newCustomersMonth,
+            'admin_receivable_due' => round((float) ($reseller->admin_receivable_due ?? 0), 2),
+            'customers_suspended' => $suspendedCustomers,
             'customers_online' => $onlineCustomers,
             'customers_offline' => max(0, $activeCustomers - $onlineCustomers),
             'sub_resellers' => $reseller->children()->count(),
             'wallet' => (float) $reseller->wallet_balance,
+            'bonus_wallet' => (float) $reseller->bonus_wallet_balance,
+            'total_wallet' => $reseller->totalWalletBalance(),
+            'credit_limit' => (float) $reseller->credit_limit,
+            'available_balance' => app(ResellerWalletLedgerService::class)->availableMainBalance($reseller),
             'pending_commission' => (float) $reseller->commissions()->where('status', ResellerCommission::STATUS_PENDING)->sum('commission_amount'),
+            'total_commission' => $totalCommission,
             'paid_commission_month' => $paidCommissionMonth,
             'today_collection' => $todayCollection,
             'today_collection_count' => $todayCollectionCount,
@@ -146,7 +166,72 @@ final class ResellerPortalDashboardService
             'outstanding_balance' => app(ResellerSettlementService::class)->outstandingBalance($reseller),
             'recent_payment_at' => $recentPaymentAt ? Carbon::parse($recentPaymentAt)->diffForHumans() : null,
             'alerts' => $alerts,
+            'charts' => $this->chartData($reseller, $customerIds),
         ];
+    }
+
+    /**
+     * @return array{collection: array{labels: list<string>, values: list<float>}, revenue: array{labels: list<string>, values: list<float>}, growth: array{labels: list<string>, values: list<int>}}
+     */
+    public function chartData(Reseller $reseller, $customerIds = null): array
+    {
+        $customerIds ??= $reseller->customers()->pluck('id');
+        $labels = [];
+        $collectionValues = [];
+        $revenueValues = [];
+        $growthValues = [];
+
+        for ($i = 29; $i >= 0; $i--) {
+            $date = now()->subDays($i)->startOfDay();
+            $labels[] = $date->format('d M');
+
+            if ($customerIds->isEmpty()) {
+                $collectionValues[] = 0.0;
+                $revenueValues[] = 0.0;
+                $growthValues[] = 0;
+                continue;
+            }
+
+            $collectionValues[] = round((float) Payment::query()
+                ->whereIn('customer_id', $customerIds)
+                ->where('status', 'completed')
+                ->whereDate('paid_at', $date)
+                ->sum('amount'), 2);
+
+            $revenueValues[] = round((float) ResellerCommission::query()
+                ->where('reseller_id', $reseller->id)
+                ->whereDate('earned_at', $date)
+                ->sum('commission_amount'), 2);
+
+            $growthValues[] = (int) $reseller->customers()
+                ->whereDate('created_at', '<=', $date->endOfDay())
+                ->count();
+        }
+
+        return [
+            'collection' => ['labels' => $labels, 'values' => $collectionValues],
+            'revenue' => ['labels' => $labels, 'values' => $revenueValues],
+            'growth' => ['labels' => $labels, 'values' => $growthValues],
+        ];
+    }
+
+    /**
+     * @return \Illuminate\Support\Collection<int, Payment>
+     */
+    public function recentPayments(Reseller $reseller, int $limit = 10)
+    {
+        $customerIds = $reseller->customers()->pluck('id');
+        if ($customerIds->isEmpty()) {
+            return collect();
+        }
+
+        return Payment::query()
+            ->whereIn('customer_id', $customerIds)
+            ->where('status', 'completed')
+            ->with(['customer:id,name,customer_code'])
+            ->latest('paid_at')
+            ->limit($limit)
+            ->get();
     }
 
     private function openTicketCount(Reseller $reseller): int

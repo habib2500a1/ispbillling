@@ -11,6 +11,7 @@ use App\Support\OltManagementHelper;
 use App\Services\Network\BdcomEponOnuSyncService;
 use App\Services\Network\HuaweiGponOnuSyncService;
 use App\Services\Network\OltOnuSyncCoordinator;
+use App\Services\Network\VsolGponOnuSyncService;
 use App\Services\Network\GponIntelligenceService;
 use App\Services\Optical\OnuSignalCollectionService;
 use Filament\Actions;
@@ -97,17 +98,13 @@ class EditOlt extends EditRecord
                     $this->dispatch('refresh');
                 }),
             Actions\Action::make('sync_vendor_gpon')
-                ->label('Sync VSOL / Ecom ONUs')
+                ->label('Sync ONUs (SNMP)')
                 ->icon('heroicon-o-cloud-arrow-down')
                 ->color('gray')
                 ->visible(function (): bool {
                     $olt = $this->getRecord();
-                    $coord = app(OltOnuSyncCoordinator::class);
 
-                    return $coord->supportsOlt($olt)
-                        && ! app(AveisGponOnuSyncService::class)->supportsDriver($olt)
-                        && ! app(BdcomEponOnuSyncService::class)->supportsDriver($olt)
-                        && ! app(HuaweiGponOnuSyncService::class)->supportsDriver($olt);
+                    return app(VsolGponOnuSyncService::class)->supportsDriver($olt);
                 })
                 ->requiresConfirmation()
                 ->action(function (): void {
@@ -122,7 +119,7 @@ class EditOlt extends EditRecord
                     $this->dispatch('refresh');
                 }),
             Actions\Action::make('sync_bdcom_epon')
-                ->label('Sync BDCOM ONUs')
+                ->label('Sync BDCOM EPON/GPON ONUs')
                 ->icon('heroicon-o-cloud-arrow-down')
                 ->color('info')
                 ->visible(fn (): bool => app(BdcomEponOnuSyncService::class)->supportsDriver($this->getRecord()))

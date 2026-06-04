@@ -1,0 +1,192 @@
+/**
+ * Dashboard insights row — revenue + online (full-width pro layout)
+ * @module admin/saas/13-dashboard-insights.css
+ */
+
+.isp-dash-insights {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.85rem;
+    width: 100%;
+}
+
+.isp-dash-insights--2col {
+    grid-template-columns: 1fr;
+}
+
+@media (min-width: 1024px) {
+    .isp-dash-insights--2col {
+        grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+    }
+
+    .isp-dash-insights--1col {
+        grid-template-columns: 1fr;
+    }
+}
+
+.isp-dash-insights__panel {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    background: var(--isp-card);
+    border: 1px solid var(--isp-card-border);
+    border-radius: var(--isp-radius-xl);
+    box-shadow: var(--isp-shadow);
+    padding: 1rem 1.1rem 0.85rem;
+    overflow: hidden;
+}
+
+.isp-dash-insights__panel--revenue {
+    border-top: 3px solid var(--isp-primary, #0d9488);
+}
+
+.isp-dash-insights__panel--online {
+    border-top: 3px solid #06b6d4;
+}
+
+.isp-dash-insights__head {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 0.65rem;
+    margin-bottom: 0.75rem;
+}
+
+.isp-dash-insights__title {
+    margin: 0;
+    font-size: 0.95rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    color: var(--isp-text);
+}
+
+.isp-dash-insights__sub {
+    margin: 0.2rem 0 0;
+    font-size: 0.68rem;
+    color: var(--isp-text-muted);
+}
+
+.isp-dash-insights__kpis {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+}
+
+.isp-dash-insights__kpi {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+    padding: 0.4rem 0.6rem;
+    border-radius: 0.55rem;
+    border: 1px solid var(--isp-card-border);
+    background: rgba(148, 163, 184, 0.08);
+    min-width: 5.5rem;
+}
+
+.isp-dash-insights__kpi-label {
+    font-size: 0.58rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--isp-text-muted);
+}
+
+.isp-dash-insights__kpi strong {
+    font-size: 0.88rem;
+    font-weight: 800;
+    color: var(--isp-text);
+}
+
+.isp-dash-insights__kpi--violet {
+    border-color: rgba(99, 102, 241, 0.25);
+    background: rgba(99, 102, 241, 0.08);
+}
+
+.isp-dash-insights__kpi--violet strong {
+    color: #6366f1;
+}
+
+.dark .isp-dash-insights__kpi--violet strong,
+[data-theme='dark'] .isp-dash-insights__kpi--violet strong {
+    color: #a78bfa;
+}
+
+.isp-dash-insights__kpi--cyan {
+    border-color: rgba(6, 182, 212, 0.3);
+    background: rgba(6, 182, 212, 0.1);
+}
+
+.isp-dash-insights__kpi--cyan strong {
+    color: #0891b2;
+}
+
+.dark .isp-dash-insights__kpi--cyan strong,
+[data-theme='dark'] .isp-dash-insights__kpi--cyan strong {
+    color: #22d3ee;
+}
+
+/* Bar charts use .isp-rev-chart / .isp-onl-chart (inline + blade critical CSS) */
+
+.isp-dash-insights__legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-top: 0.65rem;
+    padding-top: 0.55rem;
+    border-top: 1px solid var(--isp-card-border);
+    font-size: 0.68rem;
+    font-weight: 600;
+    color: var(--isp-text-muted);
+    position: relative;
+    z-index: 3;
+    clear: both;
+}
+
+.isp-dash-insights__dot {
+    display: inline-block;
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 50%;
+    margin-right: 0.3rem;
+    vertical-align: middle;
+}
+
+.isp-dash-insights__dot--col {
+    background: var(--isp-primary, #0d9488);
+}
+
+.isp-dash-insights__dot--inv {
+    background: #6366f1;
+}
+
+.isp-dash-insights__dot--online {
+    background: #06b6d4;
+}
+
+/* Dashboard widget shell — keep chart fallbacks clipped (no overlap on ops center) */
+.fi-dashboard-page .fi-wi-widget:has(.isp-dash-insights) > div {
+    padding: 0.5rem 0.65rem !important;
+    overflow: hidden !important;
+}
+
+.fi-dashboard-page .fi-wi-widget:has(.isp-dash-insights) {
+    overflow: hidden;
+    min-width: 0;
+}
+
+.fi-dashboard-page .isp-dash-insights__panel {
+    background: var(--isp-card) !important;
+    border-color: var(--isp-card-border) !important;
+}
+
+@media (max-width: 1023px) {
+    .isp-dash-insights__canvas {
+        height: 220px;
+        min-height: 200px;
+    }
+
+    .isp-dash-insights__kpis {
+        width: 100%;
+    }
+}

@@ -3,18 +3,16 @@
 namespace App\Filament\Resources\CustomerResource\Pages;
 
 use App\Filament\Resources\CustomerResource;
+use App\Filament\Resources\CustomerResource\Pages\Concerns\UsesClientsDirectoryLayout;
 use App\Models\Package;
-use App\Services\Clients\ClientsDashboardService;
 use App\Services\Import\IspDigitalCurrentBillingSyncService;
 use App\Services\Import\IspDigitalPriceSyncService;
 use App\Services\Import\IspDigitalSessionClient;
-use App\Support\CustomerBalanceDue;
 use App\Support\CustomerStatus;
 use App\Support\TenantResolver;
 use Filament\Actions;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\ListRecords;
-use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Cache;
 use Livewire\Attributes\Url;
@@ -22,6 +20,8 @@ use Throwable;
 
 class ListCustomers extends ListRecords
 {
+    use UsesClientsDirectoryLayout;
+
     protected static string $resource = CustomerResource::class;
 
     protected static string $view = 'filament.resources.customer-resource.pages.list-customers';
@@ -36,20 +36,12 @@ class ListCustomers extends ListRecords
 
     public function getHeading(): string
     {
-        return 'All clients';
+        return '';
     }
 
     public function getSubheading(): ?string
     {
-        return 'Search by name, code, phone, or PPPoE ID. Use tabs and filters — bulk actions are in the table toolbar.';
-    }
-
-    /**
-     * @return array<string, int>
-     */
-    public function getClientStats(): array
-    {
-        return app(ClientsDashboardService::class)->summary();
+        return null;
     }
 
     /**
@@ -68,18 +60,9 @@ class ListCustomers extends ListRecords
         ];
     }
 
-    public function table(Table $table): Table
-    {
-        return CustomerResource::clientsDirectoryTable($table);
-    }
-
     protected function getTableQuery(): ?Builder
     {
-        $query = parent::getTableQuery();
-
-        if ($query === null) {
-            return null;
-        }
+        $query = CustomerResource::clientsDirectoryEloquentQuery();
 
         $tenantId = \App\Support\TenantResolver::requiredTenantId();
         $bandwidth = app(\App\Services\Bandwidth\BandwidthCollectionService::class);
@@ -171,14 +154,6 @@ class ListCustomers extends ListRecords
                             ->send();
                     }
                 }),
-            Actions\Action::make('export')
-                ->label('Export')
-                ->icon('heroicon-o-arrow-down-tray')
-                ->color('gray')
-                ->url(\App\Filament\Pages\ExportClientsReport::getUrl()),
-            Actions\CreateAction::make()
-                ->label('Add client')
-                ->icon('heroicon-o-user-plus'),
         ];
     }
 }

@@ -13,7 +13,7 @@
         $optical = $details['optical'];
         $sections = $details['sections'];
         $overview = $details['sections_overview'];
-        $moreKeys = ['fees', 'installation', 'staff', 'onu_billing', 'notifications', 'automation', 'tags', 'kyc', 'system'];
+        $moreKeys = ['fees', 'installation', 'notifications', 'automation', 'tags', 'kyc', 'system'];
         if (($sections['legacy_meta'] ?? []) !== []) {
             $moreKeys[] = 'legacy_meta';
         }
@@ -25,22 +25,22 @@
         ];
         $heroKpis = [
             [
-                'label' => 'Open due',
+                'label' => 'Total due',
                 'value' => number_format($h['open_balance'], 2),
-                'meta' => 'BDT outstanding',
-                'icon' => 'heroicon-o-exclamation-triangle',
-                'tone' => $h['open_balance'] > 0 ? 'amber' : 'emerald',
+                'meta' => $h['open_balance'] > 0 ? 'BDT outstanding' : 'No due',
+                'icon' => 'heroicon-o-banknotes',
+                'tone' => $h['open_balance'] > 0 ? 'rose' : 'emerald',
             ],
             [
                 'label' => 'Valid until',
                 'value' => $h['valid_until'],
-                'meta' => $h['expired'] ? 'Renew required' : 'Service window',
+                'meta' => $h['expired'] ? 'Renew required' : ($h['off_date'] !== '—' ? 'Off from '.$h['off_date'] : 'Service window'),
                 'icon' => 'heroicon-o-calendar-days',
                 'tone' => $h['expired'] ? 'rose' : 'sky',
             ],
             [
                 'label' => 'Package',
-                'value' => \Illuminate\Support\Str::limit($h['package'], 22),
+                'value' => \Illuminate\Support\Str::limit($h['package'], 24),
                 'meta' => $h['speed'],
                 'icon' => 'heroicon-o-cube',
                 'tone' => 'violet',
@@ -48,34 +48,19 @@
             [
                 'label' => 'Monthly bill',
                 'value' => $h['monthly_bill'],
-                'meta' => 'Recurring charge',
+                'meta' => 'Wallet '.number_format($h['balance'], 2).' BDT',
                 'icon' => 'heroicon-o-receipt-percent',
                 'tone' => 'emerald',
             ],
-            [
-                'label' => 'Wallet',
-                'value' => number_format($h['balance'], 2),
-                'meta' => 'BDT advance',
-                'icon' => 'heroicon-o-wallet',
-                'tone' => 'slate',
-            ],
         ];
-        if ($h['online'] && ! empty($h['connection_duration']) && $h['connection_duration'] !== '—') {
-            $heroKpis[] = [
-                'label' => 'Session',
-                'value' => $h['connection_duration'],
-                'meta' => 'PPPoE online now',
-                'icon' => 'heroicon-o-bolt',
-                'tone' => 'cyan',
-            ];
-        }
         $quickLinks = [
             ['label' => 'Collect payment', 'url' => $details['urls']['collect'], 'icon' => 'heroicon-o-banknotes', 'btn' => 'white'],
-            ['label' => 'Portal login', 'url' => $details['urls']['portal_login'], 'icon' => 'heroicon-o-arrow-right-on-rectangle', 'btn' => 'glass', 'external' => true, 'class' => 'sub-hero__portal-desktop'],
             ['label' => 'Edit profile', 'url' => $details['urls']['edit'], 'icon' => 'heroicon-o-pencil-square', 'btn' => 'glass'],
             ['label' => 'Invoices', 'url' => $details['urls']['invoices'], 'icon' => 'heroicon-o-document-text', 'btn' => 'glass'],
         ];
     @endphp
+
+    {!! \App\Support\SubscriberViewStyles::navigatedScriptWithOlt() !!}
 
     <div class="sub-pro olt-pro" wire:key="client-view-{{ $record->getKey() }}" x-data="{ tab: 'overview' }">
         <header class="olt-hero sub-hero">
@@ -135,7 +120,7 @@
             </div>
         </header>
 
-        <div class="sub-rail">
+        <div class="sub-rail sub-rail--dates">
             <div class="sub-rail__item">
                 <span class="sub-rail__label">Activated</span>
                 <strong class="sub-rail__value">{{ $h['activation_date'] }}</strong>
@@ -172,6 +157,33 @@
             @endforeach
         </div>
 
+        <nav class="sub-quickbar no-print" aria-label="Quick actions">
+            <a href="{{ $details['urls']['collect'] }}" class="sub-quickbar__btn sub-quickbar__btn--primary">
+                <x-filament::icon icon="heroicon-o-banknotes" class="h-4 w-4" />
+                Collect
+            </a>
+            <a href="{{ $details['urls']['portal_login'] }}" class="sub-quickbar__btn" target="_blank" rel="noopener">
+                <x-filament::icon icon="heroicon-o-arrow-right-on-rectangle" class="h-4 w-4" />
+                Portal
+            </a>
+            <button type="button" class="sub-quickbar__btn" wire:click="extendDaysLive(5)" wire:loading.attr="disabled">
+                <x-filament::icon icon="heroicon-o-calendar" class="h-4 w-4" />
+                +5d
+            </button>
+            <button type="button" class="sub-quickbar__btn" wire:click="extendDaysLive(30)" wire:loading.attr="disabled">
+                <x-filament::icon icon="heroicon-o-calendar" class="h-4 w-4" />
+                +30d
+            </button>
+            <button type="button" class="sub-quickbar__btn" wire:click="toggleNetworkAccess" wire:loading.attr="disabled">
+                <x-filament::icon icon="heroicon-o-signal-slash" class="h-4 w-4" />
+                {{ ($h['network'] ?? 'active') === 'suspended' ? 'Net ON' : 'Net OFF' }}
+            </button>
+            <a href="{{ $details['urls']['edit'] }}" class="sub-quickbar__btn">
+                <x-filament::icon icon="heroicon-o-pencil-square" class="h-4 w-4" />
+                Edit
+            </a>
+        </nav>
+
         <nav class="sub-tabs no-print" role="tablist" aria-label="Client sections">
             @foreach ($tabItems as $item)
                 <button
@@ -191,6 +203,7 @@
                 'sections' => $overview,
                 'optical' => $optical,
                 'urls' => $details['urls'],
+                'notes' => filled($record->notes) ? $record->notes : null,
             ])
             @if ($details['recent_payments']->isNotEmpty() || $details['recent_invoices']->isNotEmpty())
                 <div class="isp-cv-recent">
@@ -303,7 +316,8 @@
         </div>
 
         <div x-show="tab === 'network'" x-cloak class="sub-pane">
-            <section class="isp-cv-card isp-cv-card--full" wire:poll.60s>
+            @include('filament.resources.customer-resource.partials.client-fiber-path', ['customer' => $record])
+            <section class="isp-cv-card isp-cv-card--full" wire:poll.60s wire:key="onu-optical-{{ $record->getKey() }}-v2">
                 <h3 class="isp-cv-card__title">ONU / Optical</h3>
                 @include('filament.resources.customer-resource.partials.client-details-onu-table', [
                     'snapshot' => $optical,
@@ -340,7 +354,7 @@
                     ])
                 </section>
             </div>
-            <p class="isp-cv-muted text-sm mb-2">Extra billing, install, automation &amp; system fields (Edit client for changes).</p>
+            <p class="isp-cv-muted text-sm mb-2">Billing, install, automation &amp; system fields (Edit client to change).</p>
             @include('filament.resources.customer-resource.partials.client-details-sections', [
                 'sections' => $sections,
                 'keys' => $moreKeys,
@@ -358,7 +372,11 @@
                     <x-filament::icon icon="heroicon-o-arrow-right-on-rectangle" />
                     <span>Portal</span>
                 </a>
-                <button type="button" class="olt-dock__link border-0 bg-transparent" wire:click="extendThirtyDays" wire:loading.attr="disabled">
+                <button type="button" class="olt-dock__link border-0 bg-transparent" wire:click="extendDaysLive(5)" wire:loading.attr="disabled">
+                    <x-filament::icon icon="heroicon-o-calendar" />
+                    <span>+5d</span>
+                </button>
+                <button type="button" class="olt-dock__link border-0 bg-transparent" wire:click="extendDaysLive(30)" wire:loading.attr="disabled">
                     <x-filament::icon icon="heroicon-o-calendar" />
                     <span>+30d</span>
                 </button>

@@ -31,11 +31,9 @@ final class CustomerPortalDashboardService
             ->where('customer_id', $customer->id)
             ->whereIn('status', ['open', 'partial', 'draft']);
 
-        $totalDue = (float) (Invoice::query()->getConnection()->getDriverName() === 'sqlite'
-            ? $invoiceDueQuery->get(['total', 'amount_paid'])->sum(
-                fn (Invoice $inv) => max(0, round((float) $inv->total - (float) $inv->amount_paid, 2))
-            )
-            : $invoiceDueQuery->selectRaw('COALESCE(SUM(GREATEST(0, total - amount_paid)), 0) as due')->value('due') ?? 0);
+        $totalDue = (float) ($invoiceDueQuery
+            ->selectRaw(\App\Support\CustomerBalanceDue::sumOpenInvoiceBalanceSelect('due'))
+            ->value('due') ?? 0);
 
         $nextDue = Invoice::query()
             ->where('customer_id', $customer->id)

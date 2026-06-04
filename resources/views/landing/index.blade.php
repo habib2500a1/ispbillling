@@ -7,7 +7,7 @@
     <meta name="description" content="{{ $tagline }}">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    @include('partials.isp-premium-theme')
+    @include('partials.isp-premium-theme', ['tailwind' => true])
     <style>
         :root {
             --bg: #030712;

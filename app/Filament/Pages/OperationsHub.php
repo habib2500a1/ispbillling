@@ -8,7 +8,7 @@ use App\Support\Rbac\StaffCapability;
 use Filament\Pages\Page;
 
 /**
- * Master index of all ISP operations modules (parity with ISP Digital admin menus).
+ * Master index of all ISP operations modules (parity with legacy portal admin menus).
  */
 class OperationsHub extends Page
 {

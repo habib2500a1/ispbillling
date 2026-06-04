@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../core/widgets/theme_toggle_tile.dart';
 import '../services/api_service.dart';
 import '../utils/app_nav.dart';
 import '../widgets/page_scaffold.dart';
@@ -71,6 +72,8 @@ class _StaffProfileScreenState extends State<StaffProfileScreen> {
               isThreeLine: true,
             ),
           ),
+          const SizedBox(height: 16),
+          const ThemeToggleTile(),
           const SizedBox(height: 20),
           const Text('Change password', style: TextStyle(fontWeight: FontWeight.bold)),
           const SizedBox(height: 8),

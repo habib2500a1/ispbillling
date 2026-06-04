@@ -24,7 +24,7 @@ final class OltHealthProbeService
     public function probeAndPersist(Device $olt, array $pollContext = []): array
     {
         $profile = $this->resolveProfile($olt);
-        $oids = $this->oidsForProfile($profile);
+        $oids = $this->oidsForProfile($profile, $olt);
 
         $result = [
             'profile' => $profile,
@@ -66,6 +66,8 @@ final class OltHealthProbeService
         $result = array_merge($result, $meta);
 
         $result['health_score'] = $this->computeHealthScore($result);
+        $result['metrics_available'] = $this->countMetricsAvailable($result);
+        $result['health_data_complete'] = $result['metrics_available'] >= 3;
         $result['fan_status'] = $result['fan_status'] ?? $this->inferFanStatus($result);
         $result['power_supply_status'] = $result['power_supply_status'] ?? 'unknown';
 
@@ -76,6 +78,8 @@ final class OltHealthProbeService
             'fan_status' => $result['fan_status'],
             'power_supply_status' => $result['power_supply_status'],
             'health_score' => $result['health_score'],
+            'health_data_complete' => $result['health_data_complete'],
+            'metrics_available' => $result['metrics_available'],
             'health_profile' => $profile,
             'health_polled_at' => now()->toIso8601String(),
             'health_snmp_ok' => $result['snmp_ok'] || filled($meta['cpu_percent'] ?? null),
@@ -121,6 +125,12 @@ final class OltHealthProbeService
 
     public function resolveProfile(Device $olt): string
     {
+        $driver = strtolower((string) ($olt->olt_driver ?? ''));
+        $fromDriver = config("olt_health.driver_to_profile.{$driver}");
+        if (is_string($fromDriver) && $fromDriver !== '') {
+            return $fromDriver;
+        }
+
         $vendor = strtolower((string) ($olt->vendor ?? ''));
         $mapped = config("olt_health.vendor_to_profile.{$vendor}");
 
@@ -134,14 +144,32 @@ final class OltHealthProbeService
     /**
      * @return array<string, mixed>
      */
-    public function oidsForProfile(string $profile): array
+    public function oidsForProfile(string $profile, ?Device $olt = null): array
     {
         $profiles = config('olt_health.profiles', []);
         $cfg = $profiles[$profile] ?? $profiles['host_resources'] ?? [];
 
-        if (isset($cfg['extends'])) {
-            $parent = $profiles[$cfg['extends']] ?? [];
+        $seen = [];
+        while (isset($cfg['extends']) && ! isset($seen[$cfg['extends']])) {
+            $parentKey = (string) $cfg['extends'];
+            $seen[$parentKey] = true;
+            $parent = $profiles[$parentKey] ?? [];
             $cfg = array_merge($parent, $cfg);
+        }
+
+        unset($cfg['extends'], $cfg['label']);
+
+        $globalSensor = config('olt_health.entity_sensor_value');
+        if ($globalSensor && ! isset($cfg['entity_sensor_value'])) {
+            $cfg['entity_sensor_value'] = $globalSensor;
+        }
+
+        if ($olt !== null) {
+            $meta = is_array($olt->meta) ? $olt->meta : [];
+            $custom = is_array($meta['snmp_health_oids'] ?? null) ? $meta['snmp_health_oids'] : [];
+            if ($custom !== []) {
+                $cfg = array_merge($cfg, $custom);
+            }
         }
 
         return $cfg;
@@ -152,6 +180,13 @@ final class OltHealthProbeService
      */
     private function pollCpu(string $peer, string $community, array $oids): ?int
     {
+        foreach ((array) ($oids['cpu_scalars'] ?? []) as $scalarOid) {
+            $scalar = $this->pollScalarPercent($peer, $community, (string) $scalarOid);
+            if ($scalar !== null) {
+                return $scalar;
+            }
+        }
+
         if (isset($oids['cpu_usage'])) {
             $walk = SnmpClient::walk($peer, $community, (string) $oids['cpu_usage']);
             $max = $this->maxNumericWalk($walk);
@@ -228,24 +263,60 @@ final class OltHealthProbeService
      */
     private function pollTemperature(string $peer, string $community, array $oids): ?float
     {
-        if (! isset($oids['temperature'])) {
-            return null;
+        foreach (['temperature', 'temperature_fallback'] as $key) {
+            if (! isset($oids[$key])) {
+                continue;
+            }
+            $reading = $this->maxTemperatureWalk($peer, $community, (string) $oids[$key]);
+            if ($reading !== null) {
+                return $reading;
+            }
         }
 
-        $walk = SnmpClient::walk($peer, $community, (string) $oids['temperature']);
+        if (isset($oids['entity_sensor_value'])) {
+            return $this->maxTemperatureWalk($peer, $community, (string) $oids['entity_sensor_value']);
+        }
+
+        return null;
+    }
+
+    private function maxTemperatureWalk(string $peer, string $community, string $baseOid): ?float
+    {
+        $walk = SnmpClient::walk($peer, $community, $baseOid);
+        if ($walk === []) {
+            $scalar = SnmpClient::get($peer, $community, $baseOid);
+            if ($scalar !== null && is_numeric($scalar)) {
+                $walk = ['0' => $scalar];
+            }
+        }
+
         $max = null;
         foreach ($walk as $value) {
             if (! is_numeric($value)) {
                 continue;
             }
             $v = (float) $value;
-            if ($v > 200) {
-                $v = $v / 10;
+            if ($v <= 0 || $v > 150) {
+                if ($v > 200) {
+                    $v = $v / 10;
+                } else {
+                    continue;
+                }
             }
             $max = $max === null ? $v : max($max, $v);
         }
 
         return $max;
+    }
+
+    private function pollScalarPercent(string $peer, string $community, string $oid): ?int
+    {
+        $raw = SnmpClient::get($peer, $community, $oid);
+        if ($raw === null || ! is_numeric($raw)) {
+            return null;
+        }
+
+        return (int) min(100, round((float) $raw));
     }
 
     /**
@@ -377,7 +448,30 @@ final class OltHealthProbeService
             $score -= 25;
         }
 
+        if ($this->countMetricsAvailable($metrics) < 2) {
+            $score = min($score, 85);
+        }
+
         return (int) max(0, min(100, $score));
+    }
+
+    /**
+     * @param  array<string, mixed>  $metrics
+     */
+    private function countMetricsAvailable(array $metrics): int
+    {
+        $n = 0;
+        if (($metrics['cpu_percent'] ?? null) !== null) {
+            $n++;
+        }
+        if (($metrics['memory_percent'] ?? null) !== null) {
+            $n++;
+        }
+        if (($metrics['temperature_c'] ?? null) !== null) {
+            $n++;
+        }
+
+        return $n;
     }
 
     /**

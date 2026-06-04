@@ -34,12 +34,15 @@ use App\Services\Network\MikrotikNetworkProvisioner;
 use App\Services\Network\NetworkAccessCoordinator;
 use App\Services\Network\NullNetworkProvisioner;
 use App\Services\Network\RadiusNetworkProvisioner;
+use App\Support\DemoMode;
 use App\Support\EnsureStorageWritable;
 use App\Support\MobileAppLinks;
 use App\Listeners\RecordStaffLogout;
 use App\Models\User;
+use App\Livewire\Filament\SafeGlobalSearch;
 use App\View\Composers\BillPaymentViewComposer;
 use App\View\Composers\PortalViewComposer;
+use Filament\Livewire\GlobalSearch as FilamentGlobalSearch;
 use Illuminate\Support\Facades\View;
 use Illuminate\Auth\Events\Logout;
 use Illuminate\Cache\RateLimiting\Limit;
@@ -61,6 +64,15 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
+        if (PHP_SAPI === 'cli' && is_file(storage_path('.production-live'))) {
+            $argv = $_SERVER['argv'] ?? [];
+            if (($argv[1] ?? null) === 'test') {
+                fwrite(STDERR, "php artisan test is disabled on this production server.\n");
+                fwrite(STDERR, "Remove storage/.production-live or run tests on a staging machine.\n");
+                exit(1);
+            }
+        }
+
         $this->app->bind(NavigationManager::class, IspNavigationManager::class);
 
         // Laravel picks resources/lang when that folder exists; app strings live in /lang.
@@ -69,13 +81,13 @@ class AppServiceProvider extends ServiceProvider
         }
 
         $this->app->singleton(NetworkAccessProvisioner::class, function ($app): NetworkAccessProvisioner {
+            $mikrotik = $app->make(MikrotikNetworkProvisioner::class);
+            $radius = $app->make(RadiusNetworkProvisioner::class);
+
             return match (config('network.provisioner_driver', 'null')) {
                 'log' => new LogNetworkProvisioner,
-                'mikrotik', 'radius', 'both' => new CompositeNetworkProvisioner(
-                    $app->make(MikrotikNetworkProvisioner::class),
-                    $app->make(RadiusNetworkProvisioner::class),
-                ),
-                default => new NullNetworkProvisioner,
+                'mikrotik', 'radius', 'both' => new CompositeNetworkProvisioner($mikrotik, $radius),
+                default => static::optionalMikrotikProvisioner($mikrotik),
             };
         });
 
@@ -84,6 +96,21 @@ class AppServiceProvider extends ServiceProvider
                 $app->make(NetworkAccessProvisioner::class),
             );
         });
+
+        Auth::provider('customer', function ($app, array $config): CustomerUserProvider {
+            return new CustomerUserProvider($app['hash'], $config['model']);
+        });
+    }
+
+    /**
+     * When provisioner_driver is null, still push PPP enable/disable if always_push is on (panel default).
+     */
+    private static function optionalMikrotikProvisioner(NetworkAccessProvisioner $mikrotik): NetworkAccessProvisioner
+    {
+        $alwaysPush = (bool) config('network.mikrotik_always_push_ppp_on_customer_save', true);
+        $pushEnabled = (bool) config('network.mikrotik_push_enabled', true);
+
+        return $alwaysPush && $pushEnabled ? $mikrotik : new NullNetworkProvisioner;
     }
 
     /**
@@ -97,10 +124,6 @@ class AppServiceProvider extends ServiceProvider
                 'hint' => 'Run: sudo scripts/fix-storage-permissions.sh',
             ]);
         }
-
-        Auth::provider('customer', function ($app, array $config): CustomerUserProvider {
-            return new CustomerUserProvider($app['hash'], $config['model']);
-        });
 
         InvoiceItem::observe(InvoiceItemObserver::class);
         Payment::observe(PaymentObserver::class);
@@ -120,6 +143,9 @@ class AppServiceProvider extends ServiceProvider
 
         View::composer('bill-payment.*', BillPaymentViewComposer::class);
         View::composer('portal.*', PortalViewComposer::class);
+        View::composer('reseller.*', function ($view): void {
+            $view->with('portal', app(\App\Support\ResellerPortalSession::class));
+        });
 
         View::share('mobileAppDownloadUrl', MobileAppLinks::downloadUrl());
 
@@ -128,6 +154,8 @@ class AppServiceProvider extends ServiceProvider
                 // Must run every request: caching sync caused OTP/toggles to revert to config defaults.
                 AppSetting::syncToRuntimeConfig();
             }
+
+            DemoMode::applySafetyOverrides();
 
             if (Schema::hasTable('sms_templates') && SmsTemplate::query()->count() === 0) {
                 app(SmsTemplateService::class)->seedDefaults();
@@ -154,6 +182,12 @@ class AppServiceProvider extends ServiceProvider
         Livewire::useScriptTagAttributes([
             'data-cfasync' => 'false',
         ]);
+
+        // Must run after Filament panel registers Livewire components (otherwise overwritten).
+        $this->app->booted(function (): void {
+            Livewire::component('filament.livewire.global-search', SafeGlobalSearch::class);
+            Livewire::component(FilamentGlobalSearch::class, SafeGlobalSearch::class);
+        });
 
         config([
             'livewire.temporary_file_upload.disk' => 'local',

@@ -1,3 +1,16 @@
+@if (auth()->check() && \App\Support\WebSipFeature::isEnabledForUser(auth()->user()))
+    {{-- Mobile: topbar-extras is hidden on small screens — keep one call control here. --}}
+    <button
+        type="button"
+        class="isp-topbar-live-call isp-topbar-live-call--compact mr-2 inline-flex shrink-0 items-center gap-1 rounded-lg border-2 border-white bg-emerald-600 px-2.5 py-1.5 text-xs font-bold text-white shadow-sm hover:bg-emerald-700 dark:border-gray-700 lg:hidden"
+        title="লাইভ কল (WebSIP)"
+        aria-label="লাইভ কল"
+        onclick="window.ispWebSipOpenDialer?.('')"
+    >
+        <x-filament::icon icon="heroicon-m-phone" class="h-4 w-4" />
+    </button>
+@endif
+
 <div
     class="isp-topbar-extras flex shrink-0 items-center gap-2"
     x-data="{
@@ -46,6 +59,19 @@
             <x-filament::icon icon="heroicon-m-computer-desktop" class="h-4 w-4" />
         </button>
     </div>
+    @if (auth()->check() && \App\Support\WebSipFeature::isEnabledForUser(auth()->user()))
+        {{-- Desktop: inside theme / search cluster (extras hidden on mobile). --}}
+        <button
+            type="button"
+            class="isp-topbar-live-call hidden items-center gap-1 rounded-lg border-2 border-white bg-emerald-600 px-2.5 py-1.5 text-xs font-bold text-white shadow-sm hover:bg-emerald-700 dark:border-gray-700 lg:inline-flex"
+            title="লাইভ কল (WebSIP)"
+            aria-label="লাইভ কল"
+            onclick="window.ispWebSipOpenDialer?.('')"
+        >
+            <x-filament::icon icon="heroicon-m-phone" class="h-4 w-4" />
+            <span class="hidden xl:inline">কল</span>
+        </button>
+    @endif
     <button
         type="button"
         class="isp-topbar-menu-search inline-flex items-center gap-1 rounded-lg border border-gray-200 bg-white/80 px-2.5 py-1.5 text-xs font-semibold text-gray-600 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-900/80 dark:text-gray-300"
@@ -65,17 +91,4 @@
     >
         ⌘K
     </button>
-    @php
-        $currentLocale = app()->getLocale();
-        $localeLabels = config('locales.labels', []);
-    @endphp
-    <div class="flex items-center gap-1 rounded-lg border border-gray-200 bg-white/80 px-1 dark:border-gray-600 dark:bg-gray-900/80">
-        @foreach (config('locales.supported', ['en']) as $code)
-            <a
-                href="{{ route('locale.switch', $code) }}"
-                class="rounded px-2 py-1 text-xs font-semibold {{ $currentLocale === $code ? 'bg-teal-100 text-teal-800 dark:bg-teal-900/50 dark:text-teal-200' : 'text-gray-500 hover:text-gray-800 dark:text-gray-400' }}"
-                title="{{ $localeLabels[$code] ?? $code }}"
-            >{{ strtoupper($code) }}</a>
-        @endforeach
-    </div>
 </div>

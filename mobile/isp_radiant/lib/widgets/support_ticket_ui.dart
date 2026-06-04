@@ -188,7 +188,7 @@ class SupportTicketUi {
     final dept = ticket['department']?.toString().replaceAll('_', ' ');
 
     return Container(
-      decoration: IspUiKit.cardDecoration(tint: const Color(0xFFF8FAFC)),
+      decoration: IspUiKit.cardDecoration(),
       padding: const EdgeInsets.all(14),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

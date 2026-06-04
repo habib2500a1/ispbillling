@@ -12,7 +12,7 @@ class SyncCustomersFromServersCommand extends Command
                             {--no-create : Do not create new subscribers}
                             {--no-update : Do not update existing subscribers}';
 
-    protected $description = 'Sync all subscribers from MikroTik server(s) (ISP Digital: Sync All Customer By Servers)';
+    protected $description = 'Sync all subscribers from MikroTik server(s) (legacy portal: Sync All Customer By Servers)';
 
     public function handle(): int
     {

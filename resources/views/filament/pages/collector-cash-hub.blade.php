@@ -38,14 +38,14 @@
             </ul>
         @endif
 
-        @if ($this->canApprove())
+        @if ($this->canPickCollector())
             <nav class="isp-collector-nav">
                 <button type="button" wire:click="$set('activeView', 'mine')" @class(['isp-collector-nav__btn', 'isp-collector-nav__btn--active' => $activeView === 'mine'])>My wallet</button>
                 <button type="button" wire:click="$set('activeView', 'admin')" @class(['isp-collector-nav__btn', 'isp-collector-nav__btn--active' => $activeView === 'admin'])>Admin control</button>
             </nav>
         @endif
 
-        @if ($activeView === 'mine' || ! $this->canApprove())
+        @if ($activeView === 'mine' || ! $this->canPickCollector())
             <nav class="isp-collector-tabs">
                 @foreach (['wallet' => 'Wallet', 'settle' => 'Settlement', 'expense' => 'Expenses', 'closing' => 'Daily closing', 'ledger' => 'Ledger'] as $key => $label)
                     <button type="button" wire:click="$set('activeTab', '{{ $key }}')" @class(['isp-collector-tabs__btn', 'isp-collector-tabs__btn--active' => $activeTab === $key])>{{ $label }}</button>

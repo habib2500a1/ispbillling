@@ -15,6 +15,7 @@ class ResellerPackage extends Model
         'reseller_id',
         'package_id',
         'selling_price',
+        'wholesale_price',
         'is_active',
     ];
 
@@ -22,6 +23,7 @@ class ResellerPackage extends Model
     {
         return [
             'selling_price' => 'decimal:2',
+            'wholesale_price' => 'decimal:2',
             'is_active' => 'boolean',
         ];
     }

@@ -193,6 +193,9 @@ class ApiService {
   Future<Map<String, dynamic>> initiateBillPayment(int invoiceId, {required String gateway}) =>
       _post('/customer/bills/$invoiceId/pay', {'gateway': gateway});
 
+  Future<Map<String, dynamic>> initiatePrepayPayment({required int months, required String gateway}) =>
+      _post('/customer/bills/prepay', {'months': months, 'gateway': gateway});
+
   Future<List<Map<String, dynamic>>> customerTickets() async {
     final body = await _get('/customer/tickets');
     return _listFrom(body['data']);

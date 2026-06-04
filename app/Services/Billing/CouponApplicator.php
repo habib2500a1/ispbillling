@@ -48,6 +48,8 @@ final class CouponApplicator
 
         $discount = static::computeDiscount($coupon, $subtotal, $customer);
 
+        PromotionalOfferApplicator::clear($invoice);
+
         $invoice->forceFill([
             'coupon_id' => $coupon->id,
             'coupon_discount_amount' => $discount,
@@ -68,6 +70,7 @@ final class CouponApplicator
         ])->saveQuietly();
 
         InvoiceCalculator::recalculate($invoice->fresh());
+        PromotionalOfferApplicator::applyBestToInvoice($invoice->fresh(), incrementRedemption: false);
     }
 
     public static function computeDiscount(Coupon $coupon, float $subtotal, Customer $customer): float

@@ -236,7 +236,7 @@ class CollectorMobile extends Page
             ->success()
             ->send();
 
-        $due = BillingDueRealtimeSync::afterPayment($customer, queueNetwork: true);
+        $due = BillingDueRealtimeSync::afterPayment($customer, queueNetwork: false);
         $this->selectedCustomer = app(BillCollectionSearchService::class)->find((int) $customer->id);
         $this->runSearch();
         $this->resetCollectionDiscountFields();

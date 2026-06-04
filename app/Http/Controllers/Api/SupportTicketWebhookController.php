@@ -5,19 +5,22 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Customer;
 use App\Models\SupportTicket;
+use App\Services\Integrations\WebhookAuthenticator;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
 class SupportTicketWebhookController extends Controller
 {
-    public function store(Request $request): JsonResponse
+    public function store(Request $request, WebhookAuthenticator $webhooks): JsonResponse
     {
-        if (! filled(config('support.webhook_secret'))) {
+        $tenantId = (int) ($request->input('tenant_id') ?? 0);
+
+        if ($webhooks->missingSecretInProduction('support.webhook_secret', $tenantId > 0 ? $tenantId : null)) {
             abort(503, 'Webhook secret not configured');
         }
 
-        if ($request->header('X-ISP-Webhook-Secret') !== config('support.webhook_secret')) {
+        if (! $webhooks->authorize($request, 'support.webhook_secret', $tenantId > 0 ? $tenantId : null)) {
             abort(403);
         }
 

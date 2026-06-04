@@ -17,17 +17,11 @@ return [
 
     'radius_push_enabled' => (bool) env('NETWORK_RADIUS_PUSH_ENABLED', true),
 
-    'auto_suspend_enabled' => (bool) env('NETWORK_AUTO_SUSPEND_ENABLED', false),
+    'auto_suspend_enabled' => (bool) env('NETWORK_AUTO_SUSPEND_ENABLED', true),
 
     'auto_suspend_grace_days' => (int) env('NETWORK_AUTO_SUSPEND_GRACE_DAYS', 0),
 
     'auto_suspend_min_balance' => (float) env('NETWORK_AUTO_SUSPEND_MIN_BALANCE', 1),
-
-    /**
-     * When true, suspend PPP when CustomerBalanceDue > 0 (not only past invoice due_date).
-     * When false, only suspend after due_date + grace (legacy behaviour).
-     */
-    'suspend_on_any_balance_due' => (bool) env('NETWORK_SUSPEND_ON_ANY_BALANCE_DUE', true),
 
     'session_integrity_enabled' => (bool) env('NETWORK_SESSION_INTEGRITY_ENABLED', true),
 
@@ -50,12 +44,6 @@ return [
 
     'olt_snmp_poll_enabled' => (bool) env('NETWORK_OLT_SNMP_POLL_ENABLED', true),
 
-    /** CPU/RAM/temperature SNMP during isp:poll-olt-intelligence */
-    'olt_health_poll_enabled' => (bool) env('NETWORK_OLT_HEALTH_POLL_ENABLED', true),
-
-    /**
-     * Legacy single-router env (unused). Use Filament → MikroTik servers (per-tenant DB credentials).
-     */
     'mikrotik' => [
         'base_url' => rtrim((string) env('MIKROTIK_API_URL', ''), '/'),
         'user' => env('MIKROTIK_API_USER'),
@@ -73,10 +61,9 @@ return [
         'provisioner_driver' => env('NETWORK_PROVISIONER_DRIVER', 'null'),
         'mikrotik_push_enabled' => (bool) env('NETWORK_MIKROTIK_PUSH_ENABLED', true),
         'radius_push_enabled' => (bool) env('NETWORK_RADIUS_PUSH_ENABLED', true),
-        'auto_suspend_enabled' => (bool) env('NETWORK_AUTO_SUSPEND_ENABLED', false),
+        'auto_suspend_enabled' => (bool) env('NETWORK_AUTO_SUSPEND_ENABLED', true),
         'auto_suspend_grace_days' => (int) env('NETWORK_AUTO_SUSPEND_GRACE_DAYS', 0),
         'auto_suspend_min_balance' => (float) env('NETWORK_AUTO_SUSPEND_MIN_BALANCE', 1),
-        'suspend_on_any_balance_due' => (bool) env('NETWORK_SUSPEND_ON_ANY_BALANCE_DUE', true),
         'session_integrity_enabled' => (bool) env('NETWORK_SESSION_INTEGRITY_ENABLED', true),
         'integrity_auto_suspend_overdue' => (bool) env('NETWORK_INTEGRITY_AUTO_SUSPEND_OVERDUE', false),
         'service_expiry_enforced' => (bool) env('NETWORK_SERVICE_EXPIRY_ENFORCED', true),

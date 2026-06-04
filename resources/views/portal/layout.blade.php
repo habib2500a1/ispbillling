@@ -6,36 +6,37 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <meta name="theme-color" content="#312e81">
     <title>@yield('title', __('portal.customer_portal')) — {{ $companyName ?? config('app.name') }}</title>
-    @include('partials.site-favicon')
-    <link rel="stylesheet" href="{{ asset('css/portal.css') }}?v=12">
-    @include('partials.isp-premium-theme')
+    @if (! empty($companyLogo))
+        <link rel="icon" href="{{ $companyLogo }}" />
+        <link rel="apple-touch-icon" href="{{ $companyLogo }}" />
+    @else
+        @include('partials.site-favicon')
+    @endif
+    <link rel="stylesheet" href="{{ asset('css/portal.css') }}?v=15">
+    <link rel="stylesheet" href="{{ asset('css/portal-utilities.css') }}?v={{ @filemtime(public_path('css/portal-utilities.css')) ?: 1 }}">
+    @include('partials.isp-premium-theme', ['tailwind' => false])
     <link rel="stylesheet" href="{{ asset('css/bill-payment.css') }}?v=5">
+    <link rel="stylesheet" href="{{ asset('css/portal-responsive.css') }}?v={{ @filemtime(public_path('css/portal-responsive.css')) ?: 1 }}">
     @livewireStyles
     <script src="{{ asset('js/portal-theme.js') }}?v=1"></script>
+    @if (! empty($whiteLabelPrimaryColor))
+        <style>:root { --portal-violet: {{ $whiteLabelPrimaryColor }}; --portal-indigo: {{ $whiteLabelPrimaryColor }}; }</style>
+    @endif
     @stack('head')
 </head>
 <body class="portal-body antialiased">
-    @php
-        $localeLabels = config('locales.labels', []);
-    @endphp
-    <div class="portal-locale-bar">
-        <span class="portal-locale-label">{{ __('portal.language') }}:</span>
-        @foreach (config('locales.supported', ['en']) as $code)
-            <a href="{{ route('locale.switch', $code) }}" class="portal-locale-link {{ app()->getLocale() === $code ? 'portal-locale-link--active' : '' }}">
-                {{ $localeLabels[$code] ?? strtoupper($code) }}
-            </a>
-        @endforeach
-        @guest('customer')
-            <span class="portal-locale-bar__sep" aria-hidden="true">|</span>
+    @guest('customer')
+        <div class="portal-locale-bar">
             <a href="{{ $mobileAppDownloadUrl ?? \App\Support\MobileAppLinks::downloadUrl() }}" class="portal-locale-link portal-locale-link--app">📱 Mobile app</a>
-        @endguest
-    </div>
+        </div>
+    @endguest
     @auth('customer')
         @php
             $customer = auth('customer')->user();
             $navMain = [
                 ['portal.dashboard', 'Home', 'heroicon-o-home'],
                 ['portal.bills.index', 'Bills', 'heroicon-o-document-text'],
+                ['portal.payments.index', 'Payments', 'heroicon-o-credit-card'],
                 ['portal.usage.index', 'Usage', 'heroicon-o-chart-bar'],
                 ['portal.tickets.index', 'Support', 'heroicon-o-lifebuoy'],
                 ['portal.profile.index', 'Profile', 'heroicon-o-user-circle'],
@@ -54,6 +55,7 @@
                 'Account' => [
                     ['portal.speed-test.index', 'Speed test'],
                     ['portal.tickets.index', 'Support'],
+                    ['portal.live-chat', 'Live chat'],
                     ['portal.profile.index', 'Settings'],
                 ],
             ];
@@ -90,6 +92,7 @@
                     $dockIcons = [
                         'Home' => '⌂',
                         'Bills' => '৳',
+                        'Payments' => '💳',
                         'Usage' => '↕',
                         'Support' => '✦',
                         'Profile' => '☺',

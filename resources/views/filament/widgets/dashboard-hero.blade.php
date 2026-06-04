@@ -34,14 +34,24 @@
 
             <div class="isp-dash-kpi-grid">
                 <div class="isp-dash-kpi">
-                    <span class="isp-dash-kpi-label">Active subscribers</span>
-                    <strong>{{ number_format($m['active_subscribers']) }}</strong>
-                    <span class="isp-dash-kpi-sub">+{{ number_format($m['new_subscribers'] ?? 0) }} this month</span>
+                    <span class="isp-dash-kpi-label">Direct active</span>
+                    <strong>{{ number_format($m['direct_active'] ?? $m['active_subscribers']) }}</strong>
+                    <span class="isp-dash-kpi-sub">Own / ISP clients · +{{ number_format($m['new_subscribers'] ?? 0) }} MTD</span>
                 </div>
                 <div class="isp-dash-kpi">
-                    <span class="isp-dash-kpi-label">Online now</span>
-                    <strong class="isp-dash-kpi--ok">{{ number_format($m['online_now']) }}</strong>
-                    <span class="isp-dash-kpi-sub">PPPoE sessions</span>
+                    <span class="isp-dash-kpi-label">Reseller active</span>
+                    <strong>{{ number_format($m['reseller_clients_active'] ?? 0) }}</strong>
+                    <span class="isp-dash-kpi-sub">{{ number_format($m['active_reseller_partners'] ?? 0) }} partner(s)</span>
+                </div>
+                <div class="isp-dash-kpi">
+                    <span class="isp-dash-kpi-label">Online (direct)</span>
+                    <strong class="isp-dash-kpi--ok">{{ number_format($m['direct_online'] ?? $m['online_now']) }}</strong>
+                    <span class="isp-dash-kpi-sub">PPPoE · own</span>
+                </div>
+                <div class="isp-dash-kpi">
+                    <span class="isp-dash-kpi-label">Online (reseller)</span>
+                    <strong class="isp-dash-kpi--ok">{{ number_format($m['reseller_clients_online'] ?? 0) }}</strong>
+                    <span class="isp-dash-kpi-sub">PPPoE · reseller</span>
                 </div>
                 <div class="isp-dash-kpi">
                     <span class="isp-dash-kpi-label">Collected today</span>

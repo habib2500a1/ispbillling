@@ -7,8 +7,10 @@ use App\Filament\Auth\EditAdminProfile;
 use App\Filament\GlobalSearch\IspGlobalSearchProvider;
 use App\Support\CompanyBranding;
 use App\Http\Middleware\EnsureStaffTwoFactorVerified;
+use App\Http\Middleware\RedirectSubscribersOnlinePreset;
 use App\Http\Middleware\SetAppLocale;
 use App\Support\AdminCommandPalette;
+use App\Support\AdminRouteAssets;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
@@ -41,7 +43,7 @@ class AdminPanelProvider extends PanelProvider
             ->brandLogo(fn (): ?string => CompanyBranding::logoUrl())
             ->brandLogoHeight('2.25rem')
             ->favicon(fn (): ?string => CompanyBranding::faviconUrl())
-            ->databaseNotificationsPolling('30s')
+            ->databaseNotificationsPolling('120s')
             ->colors([
                 'primary' => Color::Violet,
                 'success' => Color::Emerald,
@@ -67,7 +69,7 @@ class AdminPanelProvider extends PanelProvider
                 NavigationGroup::make('Billing')->collapsed(true),
                 NavigationGroup::make('Payments')->collapsed(true),
                 NavigationGroup::make('Inventory Pro')->collapsed(true),
-                NavigationGroup::make('OLT & Tools')->collapsed(false),
+                NavigationGroup::make('OLT & Tools')->collapsed(true),
                 NavigationGroup::make('Network')->collapsed(true),
                 NavigationGroup::make('SMS Service')->collapsed(true),
                 NavigationGroup::make('Support')->collapsed(true),
@@ -100,6 +102,7 @@ class AdminPanelProvider extends PanelProvider
             ->authMiddleware([
                 Authenticate::class,
                 EnsureStaffTwoFactorVerified::class,
+                RedirectSubscribersOnlinePreset::class,
             ])
             ->renderHook(
                 PanelsRenderHook::HEAD_END,
@@ -109,7 +112,10 @@ class AdminPanelProvider extends PanelProvider
                         $html .= view('filament.hooks.auth-head')->render();
                     }
 
-                    return $html.view('filament.hooks.design-system')->render();
+                    $html .= view('filament.hooks.design-system')->render();
+                    $html .= AdminRouteAssets::headLinks();
+
+                    return $html;
                 },
             )
             ->renderHook(
@@ -147,12 +153,20 @@ class AdminPanelProvider extends PanelProvider
                         return '';
                     }
 
-                    return view('filament.hooks.command-palette', [
+                    $html = view('filament.hooks.command-palette', [
                         'commandItems' => AdminCommandPalette::items(),
                     ])->render()
                         .'<script src="'.asset('js/admin-sidebar-layout.js').'?v='.(filemtime(public_path('js/admin-sidebar-layout.js')) ?: 1).'" data-cfasync="false"></script>'
                         .'<script src="'.asset('js/mobile-sidebar-fix.js').'?v='.(filemtime(public_path('js/mobile-sidebar-fix.js')) ?: 1).'" data-cfasync="false"></script>'
+                        .'<script src="'.asset('js/mobile-dock-pin.js').'?v='.(filemtime(public_path('js/mobile-dock-pin.js')) ?: 1).'" data-cfasync="false" data-navigate-once></script>'
                         .view('filament.hooks.mobile-dock')->render();
+
+                    $user = auth()->user();
+                    if ($user !== null && \App\Support\WebSipFeature::showsLiveCallUi($user)) {
+                        $html .= view('filament.call-center.websip-widget')->render();
+                    }
+
+                    return $html;
                 },
             );
     }

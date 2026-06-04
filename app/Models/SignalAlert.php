@@ -26,6 +26,8 @@ class SignalAlert extends Model
 
     public const TYPE_LOS = 'los';
 
+    public const TYPE_HIGH_TEMPERATURE = 'high_temperature';
+
     protected $fillable = [
         'tenant_id',
         'device_id',

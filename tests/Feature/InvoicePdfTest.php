@@ -34,6 +34,27 @@ class InvoicePdfTest extends TestCase
         $this->assertStringStartsWith('%PDF', $response->getContent());
     }
 
+    public function test_staff_pdf_works_when_reseller_session_also_active(): void
+    {
+        $user = User::factory()->create();
+        $invoice = $this->makeInvoice();
+
+        $reseller = \App\Models\Reseller::query()->create([
+            'name' => 'MAC Test',
+            'code' => 'MAC-TEST',
+            'email' => 'mac-test@example.com',
+            'password' => \Illuminate\Support\Facades\Hash::make('secret'),
+            'is_active' => true,
+        ]);
+
+        $response = $this->actingAs($user)
+            ->actingAs($reseller, 'reseller')
+            ->get(route('invoices.pdf', $invoice));
+
+        $response->assertOk();
+        $this->assertStringStartsWith('%PDF', $response->getContent());
+    }
+
     public function test_customer_can_download_own_invoice_pdf(): void
     {
         $package = Package::query()->create([

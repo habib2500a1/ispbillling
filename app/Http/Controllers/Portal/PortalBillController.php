@@ -15,6 +15,7 @@ class PortalBillController extends Controller
     public function index(Request $request, CustomerPrepayService $prepay): View
     {
         $customer = $request->user('customer');
+        $customer->loadMissing('package');
 
         $invoiceQuery = Invoice::query()
             ->where('customer_id', $customer->id);
@@ -30,7 +31,7 @@ class PortalBillController extends Controller
 
         $totalDue = $dueInvoices->sum(fn (Invoice $inv) => max(0, round((float) $inv->total - (float) $inv->amount_paid, 2)));
 
-        $paymentMethods = PortalPaymentGateways::methodsForCustomerPortal();
+        $paymentMethods = PortalPaymentGateways::methodsForCustomerPortal($customer);
         $gateways = PublicPaymentMethod::legacyFlags($paymentMethods);
 
         return view('portal.bills.index', [

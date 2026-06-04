@@ -50,12 +50,18 @@
                 </div>
                 <div>
                     <label class="mb-1 block text-xs font-bold uppercase text-gray-500">Collector</label>
-                    <select wire:model.live="collectorId" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-800">
-                        <option value="">All collectors</option>
-                        @foreach ($this->getCollectorOptions() as $opt)
-                            <option value="{{ $opt['id'] }}">{{ $opt['name'] }}</option>
-                        @endforeach
-                    </select>
+                    @if ($this->isStaffCollectorReportScoped())
+                        <p class="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm font-semibold text-gray-800 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100">
+                            {{ $this->scopedCollectorDisplayName() }} <span class="font-normal text-gray-500">(your collections & costs)</span>
+                        </p>
+                    @else
+                        <select wire:model.live="collectorId" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-800">
+                            <option value="">All collectors</option>
+                            @foreach ($this->getCollectorOptions() as $opt)
+                                <option value="{{ $opt['id'] }}">{{ $opt['name'] }}</option>
+                            @endforeach
+                        </select>
+                    @endif
                 </div>
                 <div class="sm:col-span-2">
                     <label class="mb-1 block text-xs font-bold uppercase text-gray-500">Search</label>

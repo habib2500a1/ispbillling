@@ -1,0 +1,137 @@
+/**
+ * Portal responsive overrides — loaded LAST in portal/layout.blade.php so it wins
+ * the cascade without touching portal.css / portal-premium.css. Mobile + tablet only.
+ *
+ * Goal: make existing pages comfortable on phones/tablets without changing markup.
+ * Strategy for data tables: keep the table, but make horizontal scroll obvious and
+ * pin the first column so the row identity stays visible while scrolling sideways.
+ */
+
+/* ---------- Tablet (<= 1024px): tighten the main column gutters ---------- */
+@media (max-width: 1024px) {
+    .portal-main {
+        padding-left: clamp(0.75rem, 3vw, 1.5rem);
+        padding-right: clamp(0.75rem, 3vw, 1.5rem);
+    }
+
+    .portal-summary-grid {
+        gap: clamp(0.75rem, 2.5vw, 1rem);
+    }
+}
+
+/* ---------- Phones (<= 640px) ---------- */
+@media (max-width: 640px) {
+    /* Page headers stack instead of fighting for one row */
+    .portal-page-head {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.6rem;
+    }
+
+    .portal-page-title {
+        font-size: clamp(1.25rem, 6vw, 1.6rem);
+        line-height: 1.2;
+    }
+
+    .portal-page-lead {
+        font-size: 0.9rem;
+    }
+
+    /* Summary KPI cards: single column, fluid padding */
+    .portal-summary-grid,
+    .portal-summary-grid--wide,
+    .portal-dash-grid {
+        grid-template-columns: 1fr !important;
+        gap: 0.75rem;
+    }
+
+    .portal-summary-card,
+    .portal-pro-card {
+        padding: clamp(0.9rem, 4vw, 1.15rem) clamp(0.9rem, 4vw, 1.2rem);
+    }
+
+    .portal-summary-card__value {
+        font-size: clamp(1.3rem, 7vw, 1.7rem);
+    }
+
+    /* ----- Data tables: scrollable with a pinned first column ----- */
+    .portal-table-wrap {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        /* subtle right-edge shadow hints there is more to scroll */
+        background:
+            linear-gradient(to right, #fff 30%, rgba(255, 255, 255, 0)) left center,
+            linear-gradient(to left, #fff 30%, rgba(255, 255, 255, 0)) right center;
+        background-repeat: no-repeat;
+        background-size: 28px 100%, 28px 100%;
+        background-attachment: local, local;
+    }
+
+    .portal-billing-table {
+        min-width: 640px;       /* keep columns legible; wrap forces scroll instead of squish */
+        font-size: 0.82rem;
+    }
+
+    .portal-billing-table th,
+    .portal-billing-table td {
+        padding-left: 0.6rem !important;
+        padding-right: 0.6rem !important;
+        padding-top: 0.55rem !important;
+        padding-bottom: 0.55rem !important;
+        white-space: nowrap;
+    }
+
+    /* Pin the first column (invoice no. / identity) so rows stay readable */
+    .portal-billing-table thead th:first-child,
+    .portal-billing-table tbody td:first-child {
+        position: sticky;
+        left: 0;
+        z-index: 1;
+        background: #fff;
+    }
+    .portal-billing-table thead th:first-child {
+        background: #faf5ff; /* matches the violet-50 header tint */
+    }
+
+    /* Action buttons in tables wrap nicely and stay tappable (>=40px) */
+    .portal-action-stack {
+        flex-wrap: wrap;
+        gap: 0.35rem;
+        justify-content: flex-end;
+    }
+
+    .portal-card-button,
+    .portal-pay-button {
+        min-height: 40px;
+        display: inline-flex;
+        align-items: center;
+    }
+
+    /* Inputs / prepay fields go full width so they are easy to tap */
+    .portal-prepay-card__input,
+    .portal-form input,
+    .portal-form select {
+        max-width: 100% !important;
+        width: 100%;
+    }
+
+    /* Bottom dock: ensure tap targets are big enough and labels don't clip */
+    .portal-dock-link {
+        max-width: none;
+        min-height: 48px;
+    }
+
+    /* Page bottom breathing room so the dock never covers the last row */
+    .portal-main {
+        padding-bottom: 5.5rem;
+    }
+}
+
+/* Reduce motion preference — disable heavy animations on portal */
+@media (prefers-reduced-motion: reduce) {
+    .portal-pro-card,
+    .portal-summary-card {
+        transition: none !important;
+        animation: none !important;
+    }
+}

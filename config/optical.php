@@ -4,19 +4,22 @@ return [
 
     'enabled' => (bool) env('OPTICAL_MONITORING_ENABLED', true),
 
-    /**
-     * ISP Digital style: OLT SNMP inventory → match PPP login on ONU description → show dBm on subscriber.
-     */
-    'isp_digital_auto_sync' => (bool) env('OPTICAL_ISP_DIGITAL_AUTO_SYNC', true),
+    /** Refresh PON port stats when opening Optical NOC (throttled ~2 min per tenant). */
+    'refresh_pon_stats_on_noc_view' => (bool) env('OPTICAL_REFRESH_PON_STATS_ON_NOC', true),
 
-    /** Pull OLT inventory when opening subscriber view if no ONU / no RX (queued job). */
-    'auto_sync_on_customer_view' => (bool) env('OPTICAL_AUTO_SYNC_ON_CUSTOMER_VIEW', true),
+    /**
+     * legacy portal style: OLT SNMP inventory → match PPP login on ONU description → show dBm on subscriber.
+     */
+    'legacy_portal_auto_sync' => (bool) env('OPTICAL_LEGACY_PORTAL_AUTO_SYNC', env('OPTICAL_ISP_DIGITAL_AUTO_SYNC', true)),
+
+    /** Pull OLT inventory when opening subscriber view if no ONU / no RX (queued job). Off by default — use Retest ONU or scheduler. */
+    'auto_sync_on_customer_view' => (bool) env('OPTICAL_AUTO_SYNC_ON_CUSTOMER_VIEW', false),
 
     /** After create/update PPP login — queue OLT sync + link. */
     'auto_sync_on_customer_save' => (bool) env('OPTICAL_AUTO_SYNC_ON_CUSTOMER_SAVE', true),
 
     /** Re-use inventory without new SNMP walk if synced within N seconds. */
-    'isp_digital_inventory_max_age_seconds' => (int) env('OPTICAL_ISP_DIGITAL_INVENTORY_MAX_AGE', 180),
+    'legacy_portal_inventory_max_age_seconds' => (int) env('OPTICAL_LEGACY_PORTAL_INVENTORY_MAX_AGE', env('OPTICAL_ISP_DIGITAL_INVENTORY_MAX_AGE', 180)),
 
     /** When MAC lookup misses inventory, run BDCOM SNMP sync then retry (00:AD:24:F0:FB:3C = 00AD24F0FB3C). */
     'auto_sync_olt_on_mac_lookup' => (bool) env('OPTICAL_AUTO_SYNC_OLT_ON_MAC_LOOKUP', true),
@@ -25,7 +28,7 @@ return [
      * Per-subscriber OLT sync job connection. Use "sync" when no queue:work/Horizon (auto still runs after save/view).
      * Set to "redis" when a worker is running.
      */
-    'customer_sync_connection' => env('OPTICAL_CUSTOMER_SYNC_QUEUE', 'sync'),
+    'customer_sync_connection' => env('OPTICAL_CUSTOMER_SYNC_QUEUE', env('QUEUE_CONNECTION', 'sync')),
 
     /**
      * Pull EPON/MAC from MikroTik PPP (comment, caller-id, last-caller-id) then search OLT inventory.
@@ -42,7 +45,7 @@ return [
      * Auto-create/link an ONU row per subscriber (for panel RX/TX + scheduled optical sync).
      * Requires at least one OLT in the tenant (or OPTICAL_DEFAULT_OLT_ID).
      */
-    'auto_provision_customer_onu' => (bool) env('OPTICAL_AUTO_PROVISION_ONU', true),
+    'auto_provision_customer_onu' => (bool) env('OPTICAL_AUTO_PROVISION_ONU', false),
 
     /** When true, do not create SUB-* placeholder ONUs on subscriber view if BDCOM SNMP inventory exists. */
     'prefer_bdcom_snmp_inventory' => (bool) env('OPTICAL_PREFER_BDCOM_SNMP', true),
@@ -50,7 +53,28 @@ return [
     /** After BDCOM SNMP sync, auto-link ONUs to subscribers by MAC + PPP login. */
     'auto_link_on_bdcom_sync' => (bool) env('OPTICAL_AUTO_LINK_ON_BDCOM_SYNC', true),
 
-    /** Pull live PPP sessions from MikroTik (Client IP, caller-id) before ONU link — ISP Digital style. */
+    /** After Aveis/BDCOM SNMP sync — smart-link ONUs to subscribers (MAC, login, OLT description). */
+    'auto_link_on_olt_sync' => (bool) env('OPTICAL_AUTO_LINK_ON_OLT_SYNC', true),
+
+    /**
+     * isp:smart-link-customer-onus uses full pipeline (FDB + PPP + hints + VLAN), not smart-relink only.
+     */
+    'auto_link_full_pipeline' => (bool) env('OPTICAL_AUTO_LINK_FULL_PIPELINE', true),
+
+    /**
+     * OLT drivers to attempt the FDB MAC-bridge on (learns the customer router MAC behind each ONU
+     * from the OLT forwarding table → matches PPPoE caller_id). Uses standard BRIDGE-MIB so it is
+     * attempted on every listed vendor; OLTs that don't expose a usable per-ONU FDB simply store 0
+     * MACs (safe no-op) and fall back to description/login matching.
+     *
+     * @var list<string>
+     */
+    'fdb_bridge_drivers' => array_values(array_filter(array_map('trim', explode(',', (string) env(
+        'OPTICAL_FDB_BRIDGE_DRIVERS',
+        'bdcom_epon,bdcom_gpon,aveis_gpon,aveis_epon,huawei_gpon,vsol_gpon,ecom_gpon,ecom_epon,cdata_gpon,zte_epon,zte_gpon'
+    ))))),
+
+    /** Pull live PPP sessions from MikroTik (Client IP, caller-id) before ONU link — legacy portal style. */
     'auto_fetch_ppp_sessions' => (bool) env('OPTICAL_AUTO_FETCH_PPP_SESSIONS', true),
 
     /** Minimum match score (0–100) to auto-link. */
@@ -134,6 +158,11 @@ return [
     /** Create alerts when laser power exceeds high thresholds. */
     'alert_on_high_rx' => (bool) env('OPTICAL_ALERT_ON_HIGH_RX', true),
     'alert_on_high_tx' => (bool) env('OPTICAL_ALERT_ON_HIGH_TX', true),
+
+    /** ONU CPE temperature alerts (from SNMP / NMS meta). */
+    'onu_temperature_warning_c' => (float) env('ONU_TEMP_WARN_C', 65),
+    'onu_temperature_critical_c' => (float) env('ONU_TEMP_CRIT_C', 75),
+    'alert_on_high_temperature' => (bool) env('OPTICAL_ALERT_ON_HIGH_TEMP', true),
 
     /** Sudden RX drop (dB) within one poll → alert. */
     'sudden_drop_db' => (float) env('OPTICAL_SUDDEN_DROP_DB', 3.0),

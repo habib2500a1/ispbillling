@@ -41,12 +41,12 @@ class CustomerAccountScopesTest extends TestCase
         $this->assertSame(1, CustomerAccountScopes::applyActive(Customer::query())->count());
     }
 
-    public function test_left_includes_legacy_isp_digital_marker(): void
+    public function test_left_includes_legacy_legacy_portal_marker(): void
     {
         $this->customer([
             'status' => CustomerStatus::SUSPENDED,
             'meta' => [
-                'isp_digital_raw' => [
+                'legacy_portal_raw' => [
                     'Status' => 'Left Customer',
                     'ShortStatus' => 'left',
                 ],
@@ -62,7 +62,7 @@ class CustomerAccountScopesTest extends TestCase
             'status' => CustomerStatus::EXPIRED,
             'service_expires_at' => now()->subDays(3)->toDateString(),
             'meta' => [
-                'isp_digital_raw' => [
+                'legacy_portal_raw' => [
                     'Status' => 'Left',
                     'ShortStatus' => 'left',
                 ],

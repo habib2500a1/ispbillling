@@ -8,6 +8,7 @@ use App\Filament\Pages\ManageStaffSecurity;
 use App\Filament\Pages\PermissionMatrix;
 use App\Filament\Pages\SecurityDashboard;
 use App\Filament\Pages\StaffControlHub;
+use App\Filament\Pages\SystemErrorLogsPage;
 use App\Filament\Pages\TwoFactorSetup;
 use App\Filament\Pages\MobileAppsHub;
 use App\Filament\Resources\ActivityLogResource;
@@ -72,6 +73,14 @@ final class SystemSidebarRegistry
                 'sort' => 4,
                 'url' => ActivityLogResource::getUrl(),
                 'active_routes' => ['filament.admin.resources.activity-logs.index'],
+            ],
+            [
+                'key' => 'error_logs',
+                'label' => 'Error logs',
+                'icon' => 'heroicon-o-exclamation-triangle',
+                'sort' => 4.5,
+                'url' => SystemErrorLogsPage::getUrl(),
+                'active_routes' => ['filament.admin.pages.system-error-logs'],
             ],
             [
                 'key' => 'backups',
@@ -197,6 +206,7 @@ final class SystemSidebarRegistry
             'roles' => RoleResource::canViewAny(),
             'permissions' => PermissionMatrix::canAccess(),
             'activity' => ActivityLogResource::canViewAny(),
+            'error_logs' => SystemErrorLogsPage::canAccess(),
             'backups' => ManagePlatformBackups::canAccess(),
             'backups-google' => ManagePlatformBackups::canAccess(),
             'integrations' => ManageAppSettings::canAccess(),

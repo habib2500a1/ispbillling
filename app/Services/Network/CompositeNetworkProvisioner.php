@@ -18,10 +18,18 @@ final class CompositeNetworkProvisioner implements NetworkAccessProvisioner
 
     private function useMikrotik(): bool
     {
+        if (! (bool) config('network.mikrotik_push_enabled', true)) {
+            return false;
+        }
+
         $driver = (string) config('network.provisioner_driver', 'null');
 
-        return in_array($driver, ['mikrotik', 'both'], true)
-            && (bool) config('network.mikrotik_push_enabled', true);
+        if (in_array($driver, ['mikrotik', 'both'], true)) {
+            return true;
+        }
+
+        return (bool) config('network.mikrotik_always_push_ppp_on_customer_save', true)
+            && $driver === 'radius';
     }
 
     private function useRadius(): bool

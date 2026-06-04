@@ -9,6 +9,16 @@ use Filament\Widgets\ChartWidget;
 class RevenueTrendChartWidget extends ChartWidget
 {
     use ChecksDashboardWidgetAccess;
+
+    public static function canView(): bool
+    {
+        if (request()->routeIs('filament.admin.pages.dashboard')) {
+            return false;
+        }
+
+        return parent::canView();
+    }
+
     protected static bool $isDiscovered = false;
 
     protected static bool $isLazy = true;

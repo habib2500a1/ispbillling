@@ -24,6 +24,12 @@ return [
     'prepaid_auto_invoice' => (bool) env('BILLING_PREPAID_AUTO_INVOICE', true),
 
     /**
+     * When prepaid/advance payment completes, generate forward month invoice(s) in the same step
+     * (so bill + line renew together).
+     */
+    'prepaid_forward_invoices_on_payment' => (bool) env('BILLING_PREPAID_FORWARD_INVOICES', true),
+
+    /**
      * Prepaid/advance on registration: this_month = bill today; next_month = wait for bill day.
      */
     'default_first_bill_cycle_prepaid' => env('BILLING_FIRST_BILL_PREPAID', 'this_month'),
@@ -36,7 +42,12 @@ return [
     /**
      * Default grace days when subscriber has none set.
      */
-    'default_grace_period_days' => (int) env('BILLING_DEFAULT_GRACE_DAYS', 10),
+    'default_grace_period_days' => (int) env('BILLING_DEFAULT_GRACE_DAYS', 0),
+
+    /**
+     * Prepaid / advance invoices: due date is issue date + min(this cap, subscriber grace).
+     */
+    'prepaid_advance_due_days' => (int) env('BILLING_PREPAID_ADVANCE_DUE_DAYS', 3),
 
     /**
      * How service_expires_at is extended when a bill is fully paid.
@@ -156,4 +167,9 @@ return [
             ],
         ],
     ],
+
+    /**
+     * Auto-apply active promotional offers (package + date) on generated invoices and upgrades.
+     */
+    'auto_apply_promotional_offers' => (bool) env('BILLING_AUTO_APPLY_PROMOTIONAL_OFFERS', true),
 ];

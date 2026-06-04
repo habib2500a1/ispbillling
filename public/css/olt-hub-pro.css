@@ -443,3 +443,22 @@
 }
 
 .olt-dock__link svg { width: 1.25rem; height: 1.25rem; }
+
+.olt-noc-panel__grid {
+    display: grid;
+    gap: 1rem;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+}
+
+.olt-noc-panel__card {
+    background: var(--olt-card);
+    border: 1px solid var(--olt-border);
+    border-radius: var(--olt-radius-sm);
+    padding: 1rem 1.1rem;
+    box-shadow: var(--olt-shadow);
+}
+
+.dark .olt-noc-panel__card {
+    background: #111827;
+    border-color: rgba(71, 85, 105, 0.45);
+}

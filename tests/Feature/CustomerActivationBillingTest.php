@@ -47,10 +47,9 @@ class CustomerActivationBillingTest extends TestCase
         $this->assertDatabaseCount('invoices', 1);
 
         $customer->refresh();
-        $this->assertSame(
-            $result['invoice']->period_end?->toDateString(),
-            $customer->service_expires_at?->toDateString(),
-        );
+        $invoice = $result['invoice']->fresh();
+        $expectedExpiry = ($invoice->due_date ?? $invoice->period_end)?->toDateString();
+        $this->assertSame($expectedExpiry, $customer->service_expires_at?->toDateString());
     }
 
     public function test_next_month_skips_invoice_today(): void

@@ -3,7 +3,6 @@
 namespace App\Filament\GlobalSearch;
 
 use App\Services\Search\GlobalSmartSearchService;
-use Filament\GlobalSearch\Actions\Action;
 use Filament\GlobalSearch\Contracts\GlobalSearchProvider;
 use Filament\GlobalSearch\GlobalSearchResult;
 use Filament\GlobalSearch\GlobalSearchResults;
@@ -41,13 +40,10 @@ final class IspGlobalSearchProvider implements GlobalSearchProvider
                 default => 'Other',
             };
 
-            $actions = $this->subscriberActions($item);
-
             $grouped[$category][] = new GlobalSearchResult(
                 title: $item['label'],
                 url: $item['url'],
                 details: $item['sublabel'] !== '' ? ['Info' => $item['sublabel']] : [],
-                actions: $actions,
             );
         }
 
@@ -56,32 +52,5 @@ final class IspGlobalSearchProvider implements GlobalSearchProvider
         }
 
         return $builder;
-    }
-
-    /**
-     * @param  array<string, mixed>  $item
-     * @return list<Action>
-     */
-    private function subscriberActions(array $item): array
-    {
-        if (! in_array($item['type'], ['customer', 'online'], true)) {
-            return [];
-        }
-
-        if (! isset($item['view_url'], $item['edit_url'], $item['pay_url'])) {
-            return [];
-        }
-
-        return [
-            Action::make('view')
-                ->label('View')
-                ->url($item['view_url']),
-            Action::make('edit')
-                ->label('Edit')
-                ->url($item['edit_url']),
-            Action::make('pay')
-                ->label('Collect payment')
-                ->url($item['pay_url']),
-        ];
     }
 }

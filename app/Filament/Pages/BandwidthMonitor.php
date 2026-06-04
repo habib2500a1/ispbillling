@@ -12,7 +12,7 @@ use App\Filament\Widgets\BandwidthWanLiveChartWidget;
 use App\Filament\Widgets\BandwidthWanLiveStatsWidget;
 use App\Filament\Widgets\BandwidthOnlineSessionsWidget;
 use App\Filament\Widgets\BandwidthSessionHistoryWidget;
-use App\Services\Bandwidth\BandwidthCollectionService;
+use App\Services\Bandwidth\BandwidthSyncDispatcher;
 use App\Services\Bandwidth\BandwidthSyncStatus;
 use App\Support\TenantResolver;
 use Filament\Actions\Action;
@@ -25,11 +25,25 @@ class BandwidthMonitor extends Page
     protected static ?string $slug = 'bandwidth-monitor';
 
     /**
-     * Lightweight poll: refresh charts from DB only (no MikroTik API — avoids gateway timeout).
+     * Poll WAN graphs tab: fetch interface counters from MikroTik (throttled).
      */
     public function refreshLiveData(): void
     {
+        if ($this->activeTab === 'graphs') {
+            app(BandwidthSyncDispatcher::class)->queueRefreshWanLiveSamples(
+                TenantResolver::requiredTenantId(),
+            );
+        }
+
         $this->dispatch('bandwidth-refresh');
+    }
+
+    private function bootstrapWanLive(): void
+    {
+        app(BandwidthSyncDispatcher::class)->queueRefreshWanLiveSamples(
+            TenantResolver::requiredTenantId(),
+            force: true,
+        );
     }
 
     protected static ?string $navigationIcon = 'heroicon-o-chart-bar';
@@ -85,6 +99,10 @@ class BandwidthMonitor extends Page
         }
 
         $this->activeTab = $tab;
+
+        if ($tab === 'graphs') {
+            $this->bootstrapWanLive();
+        }
     }
 
     /**
@@ -118,54 +136,36 @@ class BandwidthMonitor extends Page
                 ->label('Sync now')
                 ->icon('heroicon-o-arrow-path')
                 ->action(function (): void {
-                    try {
-                        $tenantId = TenantResolver::requiredTenantId();
-                        $result = app(BandwidthCollectionService::class)->collectForTenant($tenantId);
-                        $this->dispatch('bandwidth-refresh');
-                        $lines = [
-                            sprintf(
-                                'Router: %d session(s) · WAN samples: %d · Matched: %d · Online: %d',
-                                $result['api_sessions'],
-                                $result['wan_samples'] ?? 0,
-                                $result['matched_subscribers'],
-                                $result['sessions_open'],
-                            ),
-                        ];
+                    $tenantId = TenantResolver::requiredTenantId();
+                    $dispatcher = app(BandwidthSyncDispatcher::class);
 
-                        if ($result['api_errors'] !== []) {
-                            $lines[] = 'API: '.implode(' | ', array_slice($result['api_errors'], 0, 2));
-                        }
-
-                        if ($result['unmatched_logins'] !== []) {
-                            $sample = implode(', ', array_slice($result['unmatched_logins'], 0, 5));
-                            $more = count($result['unmatched_logins']) > 5
-                                ? ' (+'.(count($result['unmatched_logins']) - 5).' more)'
-                                : '';
-                            $lines[] = 'Unmatched PPP logins: '.$sample.$more;
-                        }
-
-                        if (! $result['api_ok'] && $result['api_sessions'] === 0) {
-                            Notification::make()
-                                ->title('Sync incomplete — MikroTik not reachable')
-                                ->body(implode("\n", $lines))
-                                ->warning()
-                                ->send();
-
-                            return;
-                        }
-
+                    if (BandwidthSyncStatus::isRunning($tenantId)) {
                         Notification::make()
-                            ->title('PPP online sync complete')
-                            ->body(implode("\n", $lines))
-                            ->success()
+                            ->title('Sync already running')
+                            ->body('Background sync is in progress — this page will refresh automatically.')
+                            ->info()
                             ->send();
-                    } catch (\Throwable $e) {
-                        Notification::make()
-                            ->title('Sync failed')
-                            ->body($e->getMessage())
-                            ->danger()
-                            ->send();
+
+                        return;
                     }
+
+                    if (! $dispatcher->queueCollectForTenant($tenantId)) {
+                        Notification::make()
+                            ->title('Sync unavailable')
+                            ->body('Bandwidth collection is disabled.')
+                            ->warning()
+                            ->send();
+
+                        return;
+                    }
+
+                    $this->dispatch('bandwidth-refresh');
+
+                    Notification::make()
+                        ->title('Sync started')
+                        ->body('Running in background — counts and graphs update without blocking the page.')
+                        ->success()
+                        ->send();
                 }),
         ];
     }

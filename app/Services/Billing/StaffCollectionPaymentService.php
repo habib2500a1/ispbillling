@@ -6,6 +6,7 @@ use App\Models\Customer;
 use App\Models\Invoice;
 use App\Models\Payment;
 use App\Models\User;
+use App\Services\Collector\CollectorStaffResolver;
 use App\Services\Collector\CollectorVisitService;
 use App\Services\Billing\BillingDueRealtimeSync;
 use App\Support\PaymentGateway;
@@ -20,6 +21,12 @@ final class StaffCollectionPaymentService
      */
     public function record(User $user, Customer $customer, array $data, string $source = 'mobile-api'): array
     {
+        $requestedCollector = isset($data['collector_user_id']) ? (int) $data['collector_user_id'] : null;
+        if ($requestedCollector === 0 && isset($data['collector_id'])) {
+            $requestedCollector = (int) $data['collector_id'];
+        }
+        app(CollectorStaffResolver::class)->requireSelfCollectorId($requestedCollector, $user);
+
         $amount = round((float) ($data['amount'] ?? 0), 2);
         $presetId = (string) ($data['discount_preset'] ?? 'none');
         $customDiscount = (string) ($data['discount_custom'] ?? '');
@@ -39,7 +46,7 @@ final class StaffCollectionPaymentService
         if ($amount > 0) {
             $duplicate = $this->findRecentDuplicatePayment($user, $customer, $invoice?->id, $amount);
             if ($duplicate !== null) {
-                $due = BillingDueRealtimeSync::afterPayment($customer, queueNetwork: true);
+                $due = BillingDueRealtimeSync::afterPayment($customer, queueNetwork: false);
 
                 return [
                     'payment' => $duplicate->fresh(),
@@ -62,12 +69,15 @@ final class StaffCollectionPaymentService
             ]);
         }
 
-        $meta = CollectionPaymentClassifier::paymentMeta(
-            $customer,
-            $invoice,
-            $amount,
-            $discountBdt,
-            $discountBdt > 0 ? ['discount' => $discountBdt] : [],
+        $meta = array_merge(
+            app(CollectorStaffResolver::class)->paymentMetaForCollector((int) $user->id, (int) $user->id),
+            CollectionPaymentClassifier::paymentMeta(
+                $customer,
+                $invoice,
+                $amount,
+                $discountBdt,
+                $discountBdt > 0 ? ['discount' => $discountBdt] : [],
+            ),
         );
 
         $payment = Payment::createTrusted([
@@ -111,7 +121,7 @@ final class StaffCollectionPaymentService
             $message .= ' Discount '.number_format($discountBdt, 2).' BDT.';
         }
 
-        $due = BillingDueRealtimeSync::afterPayment($customer, queueNetwork: true);
+        $due = BillingDueRealtimeSync::afterPayment($customer, queueNetwork: false);
 
         return [
             'payment' => $payment->fresh(),

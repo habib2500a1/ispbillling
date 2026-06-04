@@ -147,7 +147,7 @@ final class BillingFundFlowService
 
             $vendorExpenseTotal = round((float) $vendorPayments->sum('amount'), 2);
             $vendorByCategory = $vendorPayments
-                ->groupBy(fn (VendorPayment $p) => $p->vendor?->name ?? 'Vendor')
+                ->groupBy(fn (VendorPayment $p) => $p->displayName())
                 ->map(fn ($group, string $name): array => [
                     'category' => $name,
                     'total' => round((float) $group->sum('amount'), 2),

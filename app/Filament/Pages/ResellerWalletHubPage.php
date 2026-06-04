@@ -71,6 +71,13 @@ class ResellerWalletHubPage extends Page implements HasTable
                 Tables\Columns\IconColumn::make('is_active')->boolean(),
             ])
             ->actions([
+                Tables\Actions\Action::make('reseller_portal_login')
+                    ->label('Portal login')
+                    ->icon('heroicon-o-arrow-right-on-rectangle')
+                    ->color('success')
+                    ->extraAttributes(['class' => 'isp-portal-login-btn'])
+                    ->url(fn (Reseller $record): string => route('staff.resellers.portal-login', ['reseller' => $record->getKey()]))
+                    ->openUrlInNewTab(),
                 Tables\Actions\Action::make('credit')
                     ->label('Top up')
                     ->icon('heroicon-o-plus-circle')

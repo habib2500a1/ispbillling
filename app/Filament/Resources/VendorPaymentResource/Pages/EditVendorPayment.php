@@ -8,4 +8,9 @@ use Filament\Resources\Pages\EditRecord;
 class EditVendorPayment extends EditRecord
 {
     protected static string $resource = VendorPaymentResource::class;
+
+    protected function mutateFormDataBeforeSave(array $data): array
+    {
+        return CreateVendorPayment::normalizeExpensePayload($data);
+    }
 }

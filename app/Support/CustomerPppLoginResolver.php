@@ -59,7 +59,7 @@ final class CustomerPppLoginResolver
             ->select([
                 'id', 'tenant_id', 'customer_code', 'phone', 'mikrotik_secret_name',
                 'radius_username', 'status', 'network_access_state', 'package_id',
-                'mikrotik_server_id',
+                'mikrotik_server_id', 'import_source', 'billing_day', 'meta',
             ])
             ->orderBy('id')
             ->chunkById(500, function ($customers) use (&$index): void {
@@ -93,7 +93,7 @@ final class CustomerPppLoginResolver
             ->select([
                 'id', 'tenant_id', 'customer_code', 'phone', 'mikrotik_secret_name',
                 'radius_username', 'status', 'network_access_state', 'package_id',
-                'mikrotik_server_id',
+                'mikrotik_server_id', 'import_source', 'billing_day', 'meta',
             ])
             ->orderBy('id')
             ->chunkById(500, function ($customers) use (&$index): void {
@@ -153,17 +153,11 @@ final class CustomerPppLoginResolver
         }
 
         if ($customer === null) {
-            $fallback = self::indexForTenant($tenantId)[$normalized] ?? null;
-            if ($fallback !== null) {
-                $homeServer = (int) ($fallback->mikrotik_server_id ?? 0);
-                if ($mikrotikServerId === null || $mikrotikServerId <= 0 || $homeServer <= 0 || $homeServer === $mikrotikServerId) {
-                    $customer = $fallback;
-                }
-            }
+            $customer = self::indexForTenant($tenantId)[$normalized] ?? null;
         }
 
         if ($customer !== null) {
-            self::ensureLoginLinked($customer, $raw);
+            self::ensureLoginLinked($customer, $raw, $mikrotikServerId);
         }
 
         return $customer;
@@ -172,7 +166,7 @@ final class CustomerPppLoginResolver
     /**
      * Persist PPP login on subscriber when missing (fixes imports with auto-generated codes).
      */
-    public static function ensureLoginLinked(Customer $customer, string $sessionUsername): void
+    public static function ensureLoginLinked(Customer $customer, string $sessionUsername, ?int $sessionServerId = null): void
     {
         $sessionUsername = trim($sessionUsername);
         if ($sessionUsername === '') {
@@ -189,8 +183,16 @@ final class CustomerPppLoginResolver
             $updates['radius_username'] = $sessionUsername;
         }
 
+        if ($sessionServerId !== null && $sessionServerId > 0) {
+            $homeServer = (int) ($customer->mikrotik_server_id ?? 0);
+            if ($homeServer !== $sessionServerId) {
+                $updates['mikrotik_server_id'] = $sessionServerId;
+            }
+        }
+
         if ($updates !== []) {
             $customer->forceFill($updates)->saveQuietly();
+            self::clearIndexCache();
         }
     }
 }

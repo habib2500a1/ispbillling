@@ -5,6 +5,7 @@ namespace App\Services\Optical;
 use App\Models\Customer;
 use App\Models\Device;
 use App\Models\PppSessionLog;
+use App\Support\BdcomOnuDescriptionHeuristic;
 use App\Support\CustomerPppLoginResolver;
 use App\Support\EponLabel;
 use App\Support\MacAddress;
@@ -58,6 +59,32 @@ final class CustomerOnuMatcher
 
         if ($session?->customer_id) {
             return Customer::query()->withoutGlobalScopes()->find($session->customer_id);
+        }
+
+        foreach (['onu_mac', 'mac_binding', 'cpe_mac', 'router_mac'] as $metaKey) {
+            $customer = Customer::query()
+                ->withoutGlobalScopes()
+                ->where('tenant_id', $tenantId)
+                ->where(function ($q) use ($metaKey, $variants, $macCompact): void {
+                    foreach ($variants as $variant) {
+                        $compact = strtoupper(str_replace(':', '', $variant));
+                        $q->orWhereRaw(
+                            "REPLACE(UPPER(COALESCE(meta->>?, '')), ':', '') = ?",
+                            [$metaKey, $compact],
+                        );
+                    }
+                    if ($macCompact !== '') {
+                        $q->orWhereRaw(
+                            "REPLACE(UPPER(COALESCE(meta->>?, '')), ':', '') = ?",
+                            [$metaKey, strtoupper($macCompact)],
+                        );
+                    }
+                })
+                ->first();
+
+            if ($customer !== null) {
+                return $customer;
+            }
         }
 
         return null;
@@ -176,7 +203,7 @@ final class CustomerOnuMatcher
         }
 
         if (config('optical.auto_sync_olt_on_mac_lookup', true)) {
-            app(IspDigitalOnuPipelineService::class)->syncAllBdcomOlts($tenantId);
+            app(LegacyPortalOnuPipelineService::class)->syncAllBdcomOlts($tenantId);
         }
 
         return $tryFind();
@@ -265,7 +292,9 @@ final class CustomerOnuMatcher
             ->where(function ($q) use ($normalized): void {
                 $q->where('display_name', $normalized)
                     ->orWhere('display_name', 'ilike', $normalized)
-                    ->orWhere('meta->bdcom_label', $normalized);
+                    ->orWhere('meta->bdcom_label', $normalized)
+                    ->orWhere('meta->aveis_label', $normalized)
+                    ->orWhere('meta->aveis_description', $normalized);
             })
             ->orderByDesc('rx_power_dbm')
             ->orderByDesc('last_polled_at')
@@ -325,12 +354,16 @@ final class CustomerOnuMatcher
                 $q->orWhere('meta->ppp_login', $login)
                     ->orWhere('meta->subscriber_login', $login)
                     ->orWhere('meta->username', $login)
-                    ->orWhereRaw("LOWER(COALESCE(meta->>'bdcom_description', '')) = ?", [Str::lower($login)]);
+                    ->orWhereRaw("LOWER(COALESCE(meta->>'bdcom_description', '')) = ?", [Str::lower($login)])
+                    ->orWhereRaw("LOWER(COALESCE(meta->>'aveis_description', '')) = ?", [Str::lower($login)])
+                    ->orWhereRaw("LOWER(COALESCE(meta->>'aveis_label', '')) = ?", [Str::lower($login)]);
 
                 if ($normalized !== '' && $normalized !== Str::lower($login)) {
                     $q->orWhere('meta->ppp_login', $normalized)
                         ->orWhere('meta->subscriber_login', $normalized)
-                        ->orWhereRaw("LOWER(COALESCE(meta->>'bdcom_description', '')) = ?", [Str::lower($normalized)]);
+                        ->orWhereRaw("LOWER(COALESCE(meta->>'bdcom_description', '')) = ?", [Str::lower($normalized)])
+                        ->orWhereRaw("LOWER(COALESCE(meta->>'aveis_description', '')) = ?", [Str::lower($normalized)])
+                        ->orWhereRaw("LOWER(COALESCE(meta->>'aveis_label', '')) = ?", [Str::lower($normalized)]);
                 }
 
                 if ($compactMac !== null) {
@@ -427,6 +460,32 @@ final class CustomerOnuMatcher
 
         foreach ($loginHints as $hint) {
             $customer = CustomerPppLoginResolver::resolve($tenantId, (string) $hint);
+            if ($customer !== null) {
+                return $customer;
+            }
+        }
+
+        foreach ([
+            $meta['bdcom_description'] ?? null,
+            $meta['aveis_description'] ?? null,
+            $meta['aveis_label'] ?? null,
+            $onu->display_name,
+        ] as $hint) {
+            $hint = trim((string) $hint);
+            if (BdcomOnuDescriptionHeuristic::shouldSkipDescriptionForLinking($tenantId, $hint)) {
+                continue;
+            }
+
+            $customer = CustomerPppLoginResolver::resolve($tenantId, $hint);
+            if ($customer !== null) {
+                return $customer;
+            }
+
+            $customer = Customer::query()
+                ->withoutGlobalScopes()
+                ->where('tenant_id', $tenantId)
+                ->where('customer_code', $hint)
+                ->first();
             if ($customer !== null) {
                 return $customer;
             }

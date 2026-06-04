@@ -1,0 +1,219 @@
+/**
+ * Aurora ISP admin — Subscriber 360 & billing notices
+ * @module admin/saas/11-subscriber-view-legacy.css
+ */
+    gap: 0.5rem;
+    margin-bottom: 0.85rem;
+}
+
+.isp-cv-card__title {
+    font-size: 0.74rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #64748b;
+}
+
+.isp-cv-link {
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: #0d9488;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+}
+
+.isp-cv-fields {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+
+.isp-cv-fields--inline {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.35rem 0.75rem;
+}
+
+.isp-cv-field {
+    display: grid;
+    grid-template-columns: minmax(5.5rem, 7rem) minmax(0, 1fr);
+    gap: 0.35rem 0.65rem;
+    font-size: 0.84rem;
+    align-items: baseline;
+    padding: 0.35rem 0;
+    border-bottom: 1px dashed rgba(148, 163, 184, 0.16);
+}
+
+.isp-cv-fields--inline .isp-cv-field {
+    padding: 0.3rem 0;
+}
+
+.isp-cv-field dt {
+    font-weight: 600;
+    color: #94a3b8;
+    margin: 0;
+}
+
+.isp-cv-field dd {
+    margin: 0;
+    color: var(--isp-text, #0f172a);
+    word-break: break-word;
+}
+
+.isp-cv-muted {
+    color: #94a3b8;
+}
+
+.isp-cv-recent {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+    gap: 0.75rem;
+}
+
+.isp-cv-split {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr));
+    gap: 0.75rem;
+}
+
+.isp-cv-more-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+    gap: 0.75rem;
+}
+
+.isp-cv-table-wrap {
+    overflow-x: auto;
+    border-radius: 0.9rem;
+    border: 1px solid rgba(148, 163, 184, 0.14);
+}
+
+.isp-cv-table {
+    width: 100%;
+    font-size: 0.83rem;
+    border-collapse: collapse;
+    background: transparent;
+}
+
+.isp-cv-table th {
+    text-align: left;
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: #94a3b8;
+    padding: 0.68rem 0.75rem;
+    border-bottom: 1px solid rgba(148, 163, 184, 0.14);
+    background: rgba(148, 163, 184, 0.06);
+}
+
+.isp-cv-table td {
+    padding: 0.7rem 0.75rem;
+    border-bottom: 1px solid rgba(148, 163, 184, 0.08);
+}
+
+.isp-cv-table tbody tr:hover td {
+    background: rgba(20, 184, 166, 0.04);
+}
+
+.isp-cv-records {
+    margin-top: 1.25rem;
+    padding-top: 1rem;
+    border-top: 1px dashed #e2e8f0;
+}
+
+.isp-cv-records__toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    padding: 0.65rem 0.85rem;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: #64748b;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 0.5rem;
+    cursor: pointer;
+}
+
+.isp-cv-records__body {
+    margin-top: 0.75rem;
+}
+
+@media (max-width: 1023px) {
+    .isp-cv-hero {
+        padding: 1rem;
+        border-radius: 0.95rem;
+    }
+
+    .isp-cv-hero__top,
+    .isp-cv-hero__main,
+    .isp-cv-hero__actions {
+        width: 100%;
+    }
+
+    .isp-cv-hero__rail,
+    .isp-cv-quick,
+    .isp-cv-kpis {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .isp-cv-tabs {
+        padding: 0.25rem;
+    }
+
+    .isp-cv-tabs__btn {
+        justify-content: center;
+    }
+
+    .isp-cv-page .fi-page-header-actions {
+        width: 100%;
+    }
+
+    .isp-cv-page .fi-page-header-actions .fi-ac-btn-group {
+        width: 100%;
+    }
+
+    .isp-cv-page .fi-page-header-actions .fi-ac-btn-group > .fi-btn {
+        flex: 1;
+    }
+}
+
+@media (max-width: 640px) {
+    .isp-cv-hero__rail,
+    .isp-cv-quick,
+    .isp-cv-kpis,
+    .isp-cv-split,
+    .isp-cv-recent,
+    .isp-cv-more-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .isp-cv-kpi__value {
+        font-size: 1.02rem;
+    }
+}
+
+@media print {
+    .isp-cv-hero__actions,
+    .isp-cv-tabs,
+    .isp-cv-records,
+    .isp-cv-mobile-bar,
+    .no-print {
+        display: none !important;
+    }
+
+    .isp-cv-page [x-show] {
+        display: block !important;
+    }
+}
+
+/* Hide legacy client-details markup if any cached fragment remains */
+.isp-cv-page .isp-client-details__store-note,
+.isp-cv-page .isp-client-details__titlebar,
+.isp-cv-page .isp-client-details__summary,
+.isp-cv-page .isp-client-details__tablist {
+    display: none !important;
+}

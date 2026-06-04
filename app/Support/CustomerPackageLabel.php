@@ -13,9 +13,9 @@ final class CustomerPackageLabel
         }
 
         $meta = is_array($record->meta) ? $record->meta : [];
-        $display = trim((string) ($meta['isp_digital_package_label'] ?? ''));
+        $display = trim((string) ($meta['legacy_portal_package_label'] ?? ''));
         $profile = trim((string) ($meta['mikrotik_profile'] ?? $record->package?->mikrotik_profile_name ?? ''));
-        $monthly = (float) ($meta['isp_digital_monthly_bill'] ?? $record->package?->price_monthly ?? 0);
+        $monthly = (float) ($meta['legacy_portal_monthly_bill'] ?? $record->package?->price_monthly ?? 0);
         $billSuffix = $monthly > 0 ? ' · '.number_format($monthly, 0).' BDT/mo' : '';
 
         if ($display !== '') {

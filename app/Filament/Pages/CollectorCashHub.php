@@ -108,9 +108,14 @@ class CollectorCashHub extends Page
         $wallet = $this->getWallet();
         $this->closingDeclaredCash = (string) ($wallet['cash_in_hand'] ?? 0);
 
-        if ($this->canApprove()) {
+        if (app(CollectorStaffResolver::class)->canPickCollector()) {
             $this->activeView = 'admin';
         }
+    }
+
+    public function canPickCollector(): bool
+    {
+        return app(CollectorStaffResolver::class)->canPickCollector();
     }
 
     public function canApprove(): bool

@@ -111,21 +111,9 @@ class CustomerNetworkSyncDispatchTest extends TestCase
             'network.provisioner_driver' => 'null',
             'network.mikrotik_push_enabled' => true,
             'network.mikrotik_always_push_ppp_on_customer_save' => false,
+            'network.mikrotik_provision_on_customer_create' => false,
         ]);
         Bus::fake();
-
-        MikrotikServer::query()->create([
-            'tenant_id' => 1,
-            'name' => 'mt-off',
-            'host' => '127.0.0.1',
-            'api_port' => 8728,
-            'use_ssl' => false,
-            'legacy_login' => false,
-            'api_username' => 'admin',
-            'api_password' => 'admin',
-            'is_enabled' => true,
-            'last_api_status' => 'unknown',
-        ]);
 
         $package = Package::query()->create([
             'name' => 'Plan3',

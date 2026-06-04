@@ -11,6 +11,7 @@ use App\Models\InvoiceItem;
 use App\Models\Payment;
 use App\Models\User;
 use App\Services\Billing\InvoiceCalculator;
+use App\Services\Billing\PromotionalOfferApplicator;
 use App\Services\Inventory\InvoiceHardwareLineService;
 use App\Services\Optical\CustomerOnuAutoProvisionService;
 use App\Support\CustomerBalanceDue;
@@ -390,6 +391,8 @@ final class CustomerLineActivationService
         if ($lineCharge > 0 && ($device === null || $deviceCharge <= 0)) {
             InvoiceCalculator::recalculate($invoice->fresh());
         }
+
+        PromotionalOfferApplicator::applyBestToInvoice($invoice->fresh());
 
         return $invoice->fresh();
     }

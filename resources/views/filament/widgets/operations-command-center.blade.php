@@ -2,7 +2,7 @@
     $primary = $ops['primary'] ?? [];
     $sections = $ops['sections'] ?? [];
     $feeds = $ops['feeds'] ?? [];
-    $chart = $ops['revenue_chart'] ?? ['labels' => [], 'collected' => [], 'invoiced' => []];
+    $billingAside = $ops['billing_aside'] ?? null;
     $highlights = $ops['highlights'] ?? [];
     $mfsPending = $ops['mfs_pending_verify'] ?? ['count' => 0, 'url' => null, 'items' => []];
     $updated = $ops['updated_at'] ?? null;
@@ -103,136 +103,72 @@
             @endforeach
         </div>
 
-        <div class="isp-cmd-feeds">
-            @if (($mfsPending['count'] ?? 0) > 0)
+        <div @class(['isp-cmd-body', 'isp-cmd-body--has-aside' => is_array($billingAside)])>
+            <div class="isp-cmd-feeds">
+                @if (($mfsPending['count'] ?? 0) > 0)
+                    @include('filament.widgets.partials.ops-feed-table', [
+                        'title' => 'MFS pending verify (wrong TrxID / SMS)',
+                        'columns' => ['Gateway', 'TrxID', 'BDT', 'Subscriber', 'When'],
+                        'rows' => collect($mfsPending['items'] ?? [])->map(fn ($r) => [
+                            ['text' => $r['gateway']],
+                            ['text' => $r['trx'], 'url' => $r['url'] ?? null],
+                            ['text' => $r['amount']],
+                            ['text' => $r['customer']],
+                            ['text' => $r['at']],
+                        ]),
+                    ])
+                @endif
                 @include('filament.widgets.partials.ops-feed-table', [
-                    'title' => 'MFS pending verify (wrong TrxID / SMS)',
+                    'title' => 'Recent collections',
                     'columns' => ['Gateway', 'TrxID', 'BDT', 'Subscriber', 'When'],
-                    'rows' => collect($mfsPending['items'] ?? [])->map(fn ($r) => [
+                    'rows' => collect($feeds['recent_payments'] ?? [])->map(fn ($r) => [
                         ['text' => $r['gateway']],
-                        ['text' => $r['trx'], 'url' => $r['url'] ?? null],
+                        ['text' => $r['trx']],
                         ['text' => $r['amount']],
-                        ['text' => $r['customer']],
+                        ['text' => $r['customer'], 'url' => $r['url'] ?? null],
                         ['text' => $r['at']],
                     ]),
                 ])
+                @include('filament.widgets.partials.ops-feed-table', [
+                    'title' => 'Recent invoices',
+                    'columns' => ['Invoice', 'Subscriber', 'BDT'],
+                    'rows' => collect($feeds['invoices'] ?? [])->map(fn ($r) => [
+                        ['text' => $r['no'], 'url' => $r['url']],
+                        ['text' => $r['user'], 'url' => $r['url']],
+                        ['text' => $r['amount']],
+                    ]),
+                ])
+                @include('filament.widgets.partials.ops-feed-table', [
+                    'title' => 'Expiring soon (7 days)',
+                    'columns' => ['Subscriber', 'Package BDT', 'Expires'],
+                    'rows' => collect($feeds['upcoming_expire'] ?? [])->map(fn ($r) => [
+                        ['text' => $r['user'], 'url' => $r['url']],
+                        ['text' => $r['bill']],
+                        ['text' => $r['expire']],
+                    ]),
+                ])
+                @include('filament.widgets.partials.ops-feed-table', [
+                    'title' => 'Recently expired',
+                    'columns' => ['Subscriber', 'Package BDT', 'Expired'],
+                    'rows' => collect($feeds['latest_expired'] ?? [])->map(fn ($r) => [
+                        ['text' => $r['user'], 'url' => $r['url']],
+                        ['text' => $r['bill']],
+                        ['text' => $r['expire']],
+                    ]),
+                ])
+                @include('filament.widgets.partials.ops-feed-table', [
+                    'title' => 'Top due balance',
+                    'columns' => ['Subscriber', 'Due BDT'],
+                    'rows' => collect($feeds['top_due'] ?? [])->map(fn ($r) => [
+                        ['text' => $r['user'], 'url' => $r['url']],
+                        ['text' => $r['due']],
+                    ]),
+                ])
+            </div>
+
+            @if (is_array($billingAside))
+                @include('filament.widgets.partials.ops-billing-aside', ['aside' => $billingAside])
             @endif
-            @include('filament.widgets.partials.ops-feed-table', [
-                'title' => 'Recent invoices',
-                'columns' => ['Invoice', 'Subscriber', 'BDT'],
-                'rows' => collect($feeds['invoices'] ?? [])->map(fn ($r) => [
-                    ['text' => $r['no'], 'url' => $r['url']],
-                    ['text' => $r['user'], 'url' => $r['url']],
-                    ['text' => $r['amount']],
-                ]),
-            ])
-            @include('filament.widgets.partials.ops-feed-table', [
-                'title' => 'Expiring soon (7 days)',
-                'columns' => ['Subscriber', 'Package BDT', 'Expires'],
-                'rows' => collect($feeds['upcoming_expire'] ?? [])->map(fn ($r) => [
-                    ['text' => $r['user'], 'url' => $r['url']],
-                    ['text' => $r['bill']],
-                    ['text' => $r['expire']],
-                ]),
-            ])
-            @include('filament.widgets.partials.ops-feed-table', [
-                'title' => 'Recently expired',
-                'columns' => ['Subscriber', 'Package BDT', 'Expired'],
-                'rows' => collect($feeds['latest_expired'] ?? [])->map(fn ($r) => [
-                    ['text' => $r['user'], 'url' => $r['url']],
-                    ['text' => $r['bill']],
-                    ['text' => $r['expire']],
-                ]),
-            ])
-            @include('filament.widgets.partials.ops-feed-table', [
-                'title' => 'Top due balance',
-                'columns' => ['Subscriber', 'Due BDT'],
-                'rows' => collect($feeds['top_due'] ?? [])->map(fn ($r) => [
-                    ['text' => $r['user'], 'url' => $r['url']],
-                    ['text' => $r['due']],
-                ]),
-            ])
         </div>
-
-        <section class="isp-cmd-chart">
-            <header class="isp-cmd-chart__head">
-                <h3>Revenue trend</h3>
-                <span>Collection vs invoice · 14 days</span>
-            </header>
-            <div class="isp-cmd-chart__canvas">
-                <canvas
-                    id="isp-cmd-revenue-chart"
-                    wire:ignore
-                    data-labels="{{ json_encode($chart['labels'] ?? []) }}"
-                    data-collected="{{ json_encode($chart['collected'] ?? []) }}"
-                    data-invoiced="{{ json_encode($chart['invoiced'] ?? []) }}"
-                ></canvas>
-            </div>
-            <div class="isp-cmd-chart__legend">
-                <span><i class="isp-cmd-legend-dot isp-cmd-legend-dot--collected"></i> Collected</span>
-                <span><i class="isp-cmd-legend-dot isp-cmd-legend-dot--invoiced"></i> Invoiced</span>
-            </div>
-        </section>
     </div>
-
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" defer></script>
-    <script>
-        (function () {
-            function themeColors() {
-                var dark = document.documentElement.classList.contains('dark');
-                return {
-                    grid: dark ? 'rgba(148,163,184,0.12)' : 'rgba(148,163,184,0.2)',
-                    text: dark ? '#94a3b8' : '#64748b',
-                };
-            }
-            function paintOpsChart() {
-                var el = document.getElementById('isp-cmd-revenue-chart');
-                if (!el || typeof Chart === 'undefined') return;
-                var c = themeColors();
-                var labels = JSON.parse(el.dataset.labels || '[]');
-                var collected = JSON.parse(el.dataset.collected || '[]');
-                var invoiced = JSON.parse(el.dataset.invoiced || '[]');
-                if (el._ispChart) el._ispChart.destroy();
-                el._ispChart = new Chart(el, {
-                    type: 'line',
-                    data: {
-                        labels: labels,
-                        datasets: [
-                            {
-                                label: 'Collected',
-                                data: collected,
-                                borderColor: '#0d9488',
-                                backgroundColor: 'rgba(13,148,136,0.12)',
-                                fill: true,
-                                tension: 0.35,
-                            },
-                            {
-                                label: 'Invoiced',
-                                data: invoiced,
-                                borderColor: '#f97316',
-                                backgroundColor: 'rgba(249,115,22,0.08)',
-                                fill: true,
-                                tension: 0.35,
-                            },
-                        ],
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: { legend: { display: false } },
-                        scales: {
-                            x: { ticks: { color: c.text, maxTicksLimit: 8 }, grid: { color: c.grid } },
-                            y: { ticks: { color: c.text }, grid: { color: c.grid } },
-                        },
-                    },
-                });
-            }
-            function boot() {
-                if (typeof Chart === 'undefined') { setTimeout(boot, 80); return; }
-                paintOpsChart();
-            }
-            document.addEventListener('DOMContentLoaded', boot);
-            document.addEventListener('livewire:navigated', boot);
-        })();
-    </script>
 </x-filament-widgets::widget>

@@ -106,6 +106,23 @@ return new class extends Migration
             $table->unique(['employee_id', 'work_date']);
         });
 
+        if (Schema::hasTable('attendance_office_locations') && ! Schema::hasColumn('attendance_records', 'attendance_office_location_id')) {
+            Schema::table('attendance_records', function (Blueprint $table): void {
+                $table->foreignId('attendance_office_location_id')
+                    ->nullable()
+                    ->after('employee_id')
+                    ->constrained('attendance_office_locations')
+                    ->nullOnDelete();
+                $table->decimal('latitude', 10, 7)->nullable()->after('check_out');
+                $table->decimal('longitude', 10, 7)->nullable()->after('latitude');
+                $table->unsignedSmallInteger('accuracy_meters')->nullable()->after('longitude');
+                $table->unsignedInteger('distance_meters')->nullable()->after('accuracy_meters');
+                $table->string('client_ip', 45)->nullable()->after('distance_meters');
+                $table->boolean('location_verified')->default(false)->after('client_ip');
+                $table->boolean('geofence_override')->default(false)->after('location_verified');
+            });
+        }
+
         Schema::create('sms_campaigns', function (Blueprint $table): void {
             $table->id();
             $table->foreignId('tenant_id')->constrained()->cascadeOnDelete();

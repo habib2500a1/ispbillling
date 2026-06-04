@@ -6,6 +6,10 @@ final class PaymentGateway
 {
     public const BKASH = 'bkash';
 
+    public const BKASH_PERSONAL = 'bkash_personal';
+
+    public const BKASH_MERCHANT = 'bkash_merchant';
+
     public const NAGAD = 'nagad';
 
     public const ROCKET = 'rocket';
@@ -33,6 +37,8 @@ final class PaymentGateway
             self::CASH => 'Cash',
             self::BANK => 'Bank transfer',
             self::BKASH => 'bKash',
+            self::BKASH_PERSONAL => 'bKash (personal)',
+            self::BKASH_MERCHANT => 'bKash (merchant)',
             self::NAGAD => 'Nagad',
             self::ROCKET => 'Rocket',
             self::SSLCOMMERZ => 'SSLCommerz',
@@ -61,5 +67,35 @@ final class PaymentGateway
             self::STRIPE,
             self::PAYPAL,
         ];
+    }
+
+    /**
+     * Gateway values accepted from customer checkout forms.
+     *
+     * @return list<string>
+     */
+    public static function customerCheckoutGateways(): array
+    {
+        return [
+            self::BKASH,
+            self::BKASH_PERSONAL,
+            self::BKASH_MERCHANT,
+            self::NAGAD,
+            self::ROCKET,
+            self::SSLCOMMERZ,
+            self::PIPRAPAY,
+        ];
+    }
+
+    /**
+     * @return array{gateway: string, mode: ?string}
+     */
+    public static function resolveCheckoutSelection(string $selection): array
+    {
+        return match (strtolower(trim($selection))) {
+            self::BKASH_PERSONAL => ['gateway' => self::BKASH, 'mode' => 'personal'],
+            self::BKASH_MERCHANT => ['gateway' => self::BKASH, 'mode' => 'merchant'],
+            default => ['gateway' => strtolower(trim($selection)), 'mode' => null],
+        };
     }
 }

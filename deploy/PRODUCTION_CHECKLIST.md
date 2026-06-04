@@ -8,6 +8,8 @@
 - [ ] `php artisan config:cache` (after `.env` final)
 - [ ] `php artisan route:cache`
 - [ ] Cron: `* * * * * cd /var/www/isp-platform && php artisan schedule:run >> storage/logs/scheduler.log 2>&1`
+- [ ] Scheduler guard runs via schedule (`isp:scheduler-guard` every 5 min) — keeps web fast when MikroTik/OLT jobs are slow
+- [ ] Optional monitor: `scripts/health-check.sh` (alerts if `isp:run-automatic-processes` count > 1)
 - [ ] Queue: `QUEUE_HEAVY_JOBS_ENABLED=true` + Horizon or `php artisan queue:work redis --sleep=3`
 - [ ] Copy `deploy/laravel-horizon.service.example` → `/etc/systemd/system/laravel-horizon.service` and enable
 
@@ -35,6 +37,7 @@
 
 ## Security
 
+- [ ] Rent/Sell policy: `docs/PLATFORM_RENT_SELL_SECURITY.md` (tenant isolation, secrets, what not to ship)
 - [ ] `.env` not web-readable, `APP_DEBUG=false`
 - [ ] `TRUSTED_PROXIES` set to load balancer / CDN IPs (not `*` in production)
 - [ ] Webhook secrets set (`PAYMENT_WEBHOOK_SECRET`, `ROCKET_WEBHOOK_SECRET`, `ISP_SUPPORT_WEBHOOK_SECRET`, `NETFLOW_WEBHOOK_SECRET`, `OPTICAL_WEBHOOK_SECRET`)

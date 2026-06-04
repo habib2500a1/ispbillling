@@ -86,6 +86,46 @@ final class FiberFaultDetector
     }
 
     /**
+     * Count-based NOC KPIs (avoids loading every ONU into memory).
+     *
+     * @return array{total: int, critical: int, warning: int, offline: int, excellent: int, good: int}
+     */
+    public static function aggregateOnuStats(int $tenantId): array
+    {
+        $bands = \App\Support\OpticalThresholds::rxBands();
+        $offlineStatuses = ['offline', 'los', 'power_fail'];
+        $base = Device::query()
+            ->withoutGlobalScopes()
+            ->where('tenant_id', $tenantId)
+            ->where('type', 'onu');
+
+        $countOnlineRx = static function (callable $rxBand) use ($base, $offlineStatuses): int {
+            $q = (clone $base)
+                ->whereNotIn('onu_oper_status', $offlineStatuses)
+                ->whereNotNull('rx_power_dbm');
+            $rxBand($q);
+
+            return $q->count();
+        };
+
+        return [
+            'total' => (clone $base)->count(),
+            'offline' => (clone $base)->whereIn('onu_oper_status', $offlineStatuses)->count(),
+            'excellent' => $countOnlineRx(fn ($q) => $q
+                ->where('rx_power_dbm', '<=', $bands['excellent_max'])
+                ->where('rx_power_dbm', '>', $bands['excellent_min'])),
+            'good' => $countOnlineRx(fn ($q) => $q
+                ->where('rx_power_dbm', '<=', $bands['excellent_min'])
+                ->where('rx_power_dbm', '>', $bands['good_min'])),
+            'warning' => $countOnlineRx(fn ($q) => $q
+                ->where('rx_power_dbm', '<=', $bands['good_min'])
+                ->where('rx_power_dbm', '>', $bands['weak_min'])),
+            'critical' => $countOnlineRx(fn ($q) => $q
+                ->where('rx_power_dbm', '<=', $bands['weak_min'])),
+        ];
+    }
+
+    /**
      * @return array{total: int, critical: int, warning: int, offline: int, excellent: int}
      */
     public static function summarizeOnus(iterable $onus): array

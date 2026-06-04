@@ -3,6 +3,7 @@
 namespace App\Services\BillPayment;
 
 use App\Models\Customer;
+use App\Support\SubscriberContactLinks;
 use App\Models\Invoice;
 use App\Models\PaymentLink;
 use App\Services\Notifications\NotificationDispatcher;
@@ -63,15 +64,9 @@ class PaymentLinkService
             return null;
         }
 
-        $digits = preg_replace('/\D+/', '', (string) $customer->phone) ?? '';
-        if ($digits === '') {
+        $digits = SubscriberContactLinks::toWhatsAppDigits($customer->phone);
+        if ($digits === null) {
             return null;
-        }
-
-        if (str_starts_with($digits, '0')) {
-            $digits = '880'.substr($digits, 1);
-        } elseif (! str_starts_with($digits, '880')) {
-            $digits = '880'.$digits;
         }
 
         $company = (string) config('isp.company_name', 'ISP');
