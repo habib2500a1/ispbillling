@@ -10,6 +10,7 @@ use App\Models\Payment;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Support\NotificationEvent;
+use App\Support\TenantResolver;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
@@ -33,6 +34,7 @@ class PaymentTelegramOpsTest extends TestCase
         ]);
 
         $tenant = Tenant::query()->create(['name' => 'T', 'slug' => 'tg-isp', 'is_active' => true]);
+        TenantResolver::fake($tenant->id);
         $package = Package::query()->create([
             'tenant_id' => $tenant->id,
             'name' => '10M',

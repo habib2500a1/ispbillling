@@ -3,6 +3,7 @@
 namespace App\Services\Reports;
 
 use App\Models\Payment;
+use App\Services\Collector\CollectorStaffResolver;
 use App\Support\PaymentGateway;
 use App\Support\PaymentType;
 use App\Support\TenantResolver;
@@ -31,9 +32,10 @@ class PaymentsReportService
         string $walletFilter = self::WALLET_ALL,
         string $gatewayFilter = self::GATEWAY_ALL,
         ?int $tenantId = null,
+        ?int $collectorScope = null,
     ): array {
         $tenantId = $tenantId ?? TenantResolver::requiredTenantId();
-        $query = $this->baseQuery($from, $to, $walletFilter, $gatewayFilter, $tenantId);
+        $query = $this->baseQuery($from, $to, $walletFilter, $gatewayFilter, $tenantId, $collectorScope);
 
         $totalAmount = (float) (clone $query)->sum('amount');
         $totalRows = (int) (clone $query)->count();
@@ -62,10 +64,11 @@ class PaymentsReportService
         string $walletFilter = self::WALLET_ALL,
         string $gatewayFilter = self::GATEWAY_ALL,
         ?int $tenantId = null,
+        ?int $collectorScope = null,
     ): Builder {
         $tenantId = $tenantId ?? TenantResolver::requiredTenantId();
 
-        return $this->baseQuery($from, $to, $walletFilter, $gatewayFilter, $tenantId)
+        return $this->baseQuery($from, $to, $walletFilter, $gatewayFilter, $tenantId, $collectorScope)
             ->with(['customer', 'invoice', 'recorder']);
     }
 
@@ -116,8 +119,9 @@ class PaymentsReportService
         string $walletFilter = self::WALLET_ALL,
         string $gatewayFilter = self::GATEWAY_ALL,
         ?int $tenantId = null,
+        ?int $collectorScope = null,
     ): array {
-        return $this->tableQuery($from, $to, $walletFilter, $gatewayFilter, $tenantId)
+        return $this->tableQuery($from, $to, $walletFilter, $gatewayFilter, $tenantId, $collectorScope)
             ->orderByDesc('paid_at')
             ->limit(10000)
             ->get()
@@ -154,12 +158,22 @@ class PaymentsReportService
         };
     }
 
-    private function baseQuery(Carbon $from, Carbon $to, string $walletFilter, string $gatewayFilter, int $tenantId): Builder
-    {
+    private function baseQuery(
+        Carbon $from,
+        Carbon $to,
+        string $walletFilter,
+        string $gatewayFilter,
+        int $tenantId,
+        ?int $collectorScope = null,
+    ): Builder {
         $query = Payment::withoutGlobalScopes()
             ->where('tenant_id', $tenantId)
             ->where('status', 'completed')
             ->whereBetween('paid_at', [$from, $to]);
+
+        if ($collectorScope !== null && $collectorScope > 0) {
+            app(CollectorStaffResolver::class)->scopePaymentsToCollector($query, $collectorScope);
+        }
 
         if ($gatewayFilter === self::GATEWAY_BKASH) {
             $query->whereIn('method', [

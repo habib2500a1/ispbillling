@@ -44,6 +44,14 @@
                         $cost = $product->effectiveCost();
                     @endphp
                     <article class="rounded-2xl border border-slate-800 bg-slate-900 p-5 shadow-lg">
+                        @if ($product->imageUrl())
+                            <img
+                                src="{{ $product->imageUrl() }}"
+                                alt="{{ $product->name }}"
+                                class="mb-4 aspect-[4/3] w-full rounded-xl border border-slate-800 object-cover"
+                                loading="lazy"
+                            >
+                        @endif
                         <div class="flex items-start justify-between gap-2">
                             <div>
                                 <h2 class="text-lg font-semibold">{{ $product->name }}</h2>

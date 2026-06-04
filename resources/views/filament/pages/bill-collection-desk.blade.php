@@ -157,8 +157,9 @@
                                 @enderror
                             </div>
                         @elseif (! $this->canPickCollector())
-                            <p class="rounded-lg bg-gray-50 px-3 py-2 text-xs text-gray-600 dark:bg-gray-800 dark:text-gray-400">
-                                Collector: <strong>{{ auth()->user()?->name }}</strong>
+                            <p class="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-950 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-100">
+                                Collection credited to: <strong>{{ auth()->user()?->name }}</strong>
+                                <span class="block text-xs font-normal opacity-90">শুধু আপনার নামে entry — অন্য staff-এর নাম বেছে নেওয়া যাবে না।</span>
                             </p>
                         @endif
 

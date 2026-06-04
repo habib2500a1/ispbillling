@@ -7,6 +7,7 @@
         <span class="isp-cmd-feed__count">{{ $rows->count() }}</span>
     </header>
     <div class="isp-cmd-feed__body">
+        <div class="isp-cmd-feed__scroll">
         <table class="isp-cmd-feed__table">
             <thead>
                 <tr>
@@ -35,5 +36,6 @@
                 @endforelse
             </tbody>
         </table>
+        </div>
     </div>
 </section>

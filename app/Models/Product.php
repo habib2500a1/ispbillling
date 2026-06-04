@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Models\Concerns\BelongsToTenant;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\Storage;
 
 class Product extends Model
 {
@@ -16,6 +17,7 @@ class Product extends Model
         'barcode',
         'name',
         'description',
+        'image_path',
         'unit',
         'unit_price',
         'cost_price',
@@ -91,5 +93,20 @@ class Product extends Model
     public function isLowStock(): bool
     {
         return (int) $this->reorder_level > 0 && (int) $this->stock_qty <= (int) $this->reorder_level;
+    }
+
+    public function imageUrl(): ?string
+    {
+        if (blank($this->image_path)) {
+            return null;
+        }
+
+        $path = (string) $this->image_path;
+
+        if (str_starts_with($path, 'http://') || str_starts_with($path, 'https://')) {
+            return $path;
+        }
+
+        return Storage::disk('public')->url($path);
     }
 }

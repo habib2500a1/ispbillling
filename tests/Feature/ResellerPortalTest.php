@@ -14,7 +14,7 @@ class ResellerPortalTest extends TestCase
 
     public function test_reseller_login_page_loads(): void
     {
-        $this->get('/reseller/login')->assertOk()->assertSee('Reseller portal');
+        $this->get('/reseller/login')->assertOk()->assertSee('Enterprise partner portal');
     }
 
     public function test_reseller_can_login_and_view_dashboard(): void

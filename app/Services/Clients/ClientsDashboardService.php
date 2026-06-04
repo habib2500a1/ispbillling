@@ -120,6 +120,13 @@ final class ClientsDashboardService
     {
         Cache::forget('clients_list_preset_summary:'.$tenantId);
         Cache::forget('clients_dashboard_summary:'.$tenantId.':'.md5('all'));
+        Cache::forget('clients_directory_stats:'.$tenantId);
         Cache::forget('ppp_active_session_customer_ids:'.$tenantId);
+        Cache::forget('tenant_open_invoice_due_sum:'.$tenantId);
+        Cache::forget('staff_billing_kpi:'.$tenantId);
+        Cache::forget('staff_billing_due_clients:'.$tenantId);
+        Cache::forget('clients_filter_packages:'.$tenantId);
+        Cache::forget('clients_filter_zones:'.$tenantId);
+        Cache::forget('clients_filter_resellers:'.$tenantId);
     }
 }

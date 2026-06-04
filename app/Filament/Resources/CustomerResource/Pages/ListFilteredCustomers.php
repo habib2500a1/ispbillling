@@ -20,8 +20,8 @@ abstract class ListFilteredCustomers extends ListRecords
 
     protected function getTableQuery(): ?Builder
     {
-        $query = parent::getTableQuery();
-
-        return $query === null ? null : $this->applyFilter($query);
+        return $this->applyFilter(
+            CustomerResource::clientsDirectoryEloquentQuery($this->getDirectoryPageVariant()),
+        );
     }
 }

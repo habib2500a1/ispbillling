@@ -2,6 +2,7 @@
 
 namespace App\Filament\Pages;
 
+use App\Filament\Pages\Concerns\ScopesStaffCollectorReports;
 use App\Services\Billing\CollectionDeskReportService;
 use App\Services\Billing\CollectionReportCsvExporter;
 use Carbon\Carbon;
@@ -11,6 +12,8 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class CollectionDeskReport extends Page
 {
+    use ScopesStaffCollectorReports;
+
     protected static ?string $navigationIcon = 'heroicon-o-chart-bar';
 
     protected static string $view = 'filament.pages.collection-desk-report';
@@ -63,6 +66,8 @@ class CollectionDeskReport extends Page
         if ($this->sourceFilter === '') {
             $this->sourceFilter = 'all';
         }
+
+        $this->mountStaffCollectorReportScope();
     }
 
     public function setDatePreset(string $preset): void
@@ -100,6 +105,32 @@ class CollectionDeskReport extends Page
         $this->dateTo = now()->toDateString();
     }
 
+    public function activeDatePreset(): ?string
+    {
+        if ($this->dateFrom === now()->toDateString() && $this->dateTo === now()->toDateString()) {
+            return 'today';
+        }
+
+        $yesterday = now()->subDay()->toDateString();
+        if ($this->dateFrom === $yesterday && $this->dateTo === $yesterday) {
+            return 'yesterday';
+        }
+
+        if ($this->dateFrom === now()->subDays(6)->toDateString() && $this->dateTo === now()->toDateString()) {
+            return 'last7';
+        }
+
+        if ($this->dateFrom === now()->startOfWeek()->toDateString() && $this->dateTo === now()->toDateString()) {
+            return 'week';
+        }
+
+        if ($this->dateFrom === now()->startOfMonth()->toDateString() && $this->dateTo === now()->toDateString()) {
+            return 'month';
+        }
+
+        return null;
+    }
+
     public static function canAccess(): bool
     {
         $user = auth()->user();
@@ -128,7 +159,7 @@ class CollectionDeskReport extends Page
         return app(CollectionDeskReportService::class)->report(
             Carbon::parse($this->dateFrom ?: now()->toDateString()),
             Carbon::parse($this->dateTo ?: now()->toDateString()),
-            $this->collectorId ?: null,
+            $this->effectiveReportCollectorId(),
             $this->search ?: null,
             null,
             $this->customerId ?: null,
@@ -154,7 +185,7 @@ class CollectionDeskReport extends Page
         return app(CollectionReportCsvExporter::class)->download(
             Carbon::parse($this->dateFrom),
             Carbon::parse($this->dateTo),
-            $this->collectorId ?: null,
+            $this->effectiveReportCollectorId(),
             $this->search ?: null,
             $this->customerId ?: null,
             $this->sourceFilter ?: null,

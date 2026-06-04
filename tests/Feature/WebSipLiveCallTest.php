@@ -20,8 +20,8 @@ class WebSipLiveCallTest extends TestCase
         Role::findOrCreate('isp-admin');
 
         $tenant = Tenant::query()->firstOrCreate(
-            ['slug' => 'live-call-isp'],
-            ['name' => 'Live Call ISP', 'is_active' => true],
+            ['slug' => 'default'],
+            ['name' => 'Default ISP', 'is_active' => true],
         );
 
         $meta = $configured
@@ -105,6 +105,7 @@ class WebSipLiveCallTest extends TestCase
 
         $user = $this->adminWithWebSip(true);
         CallCenterSetting::query()
+            ->withoutGlobalScopes()
             ->where('tenant_id', $user->tenant_id)
             ->update(['websip_enabled' => false]);
 
@@ -147,6 +148,7 @@ class WebSipLiveCallTest extends TestCase
             ->assertHasNoFormErrors();
 
         $settings = CallCenterSetting::query()
+            ->withoutGlobalScopes()
             ->where('tenant_id', $user->tenant_id)
             ->first();
 

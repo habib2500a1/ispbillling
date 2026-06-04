@@ -19,6 +19,7 @@
     </source>
     <php>
         <env name="APP_ENV" value="testing"/>
+        <env name="ALLOW_PRODUCTION_TESTS" value="1"/>
         <env name="APP_MAINTENANCE_DRIVER" value="file"/>
         <env name="BCRYPT_ROUNDS" value="4"/>
         <env name="CACHE_STORE" value="array"/>
@@ -30,5 +31,7 @@
         <env name="QUEUE_CONNECTION" value="sync"/>
         <env name="SESSION_DRIVER" value="array"/>
         <env name="TELESCOPE_ENABLED" value="false"/>
+        <!-- Never compile Blade into production view cache (phpunit often runs as root on the server). -->
+        <env name="VIEW_COMPILED_PATH" value="storage/framework/views-testing"/>
     </php>
 </phpunit>

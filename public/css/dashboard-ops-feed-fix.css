@@ -1,0 +1,48 @@
+/**
+ * Ops command center feed layout — standalone (Cloudflare may cache admin-saas.css).
+ * Loaded only on filament.admin.pages.dashboard.
+ */
+.fi-dashboard-page .isp-cmd-feeds {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: 0.85rem !important;
+    width: 100% !important;
+    min-width: 0 !important;
+}
+
+@media (min-width: 900px) {
+    .fi-dashboard-page .isp-cmd-body:not(.isp-cmd-body--has-aside) .isp-cmd-feeds {
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    }
+}
+
+@media (min-width: 1280px) {
+    .fi-dashboard-page .isp-cmd-body--has-aside .isp-cmd-feeds {
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    }
+}
+
+.fi-dashboard-page .isp-cmd-feed--pro {
+    background: var(--isp-card, #fff) !important;
+    border: 1px solid var(--isp-card-border, #e2e8f0) !important;
+    border-radius: 0.75rem !important;
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08) !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    overflow: hidden !important;
+}
+
+.fi-dashboard-page .fi-wi-widget:has(.isp-cmd-center--pro) > div {
+    overflow: visible !important;
+    max-width: 100% !important;
+}
+
+.fi-dashboard-page .isp-cmd-feed__scroll {
+    max-height: 14rem;
+    overflow: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.fi-dashboard-page .isp-cmd-feed__table {
+    min-width: 17rem;
+}

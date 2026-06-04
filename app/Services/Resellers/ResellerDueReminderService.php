@@ -4,6 +4,7 @@ namespace App\Services\Resellers;
 
 use App\Models\Reseller;
 use App\Models\ResellerPortalNotification;
+use App\Support\CustomerBalanceDue;
 use App\Support\CustomerStatus;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -115,7 +116,7 @@ final class ResellerDueReminderService
             ->groupBy('c.reseller_id')
             ->selectRaw('c.reseller_id as reseller_id')
             ->selectRaw('COUNT(DISTINCT c.id) as due_customers')
-            ->selectRaw('SUM(GREATEST(0, i.total - i.amount_paid)) as due_amount')
+            ->selectRaw('SUM('.CustomerBalanceDue::invoiceBalanceExpressionAliased('i').') as due_amount')
             ->get();
 
         return $rows->mapWithKeys(fn ($row): array => [

@@ -3,6 +3,7 @@
 namespace App\Filament\Pages;
 
 use App\Filament\Pages\Concerns\HidesHubNavigation;
+use App\Filament\Pages\Concerns\ScopesStaffCollectorReports;
 use App\Services\Billing\BillingFundFlowCsvExporter;
 use App\Services\Billing\BillingFundFlowService;
 use App\Support\CompanyBranding;
@@ -14,6 +15,7 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 class BillingFundFlowReport extends Page
 {
     use HidesHubNavigation;
+    use ScopesStaffCollectorReports;
 
     protected static ?string $navigationIcon = 'heroicon-o-arrows-right-left';
 
@@ -57,6 +59,8 @@ class BillingFundFlowReport extends Page
         if (request()->boolean('includeCompanyExpenses') && $this->canSeeCompanyExpenses()) {
             $this->includeCompanyExpenses = true;
         }
+
+        $this->mountStaffCollectorReportScope();
     }
 
     protected function getHeaderActions(): array
@@ -99,7 +103,7 @@ class BillingFundFlowReport extends Page
         return app(BillingFundFlowCsvExporter::class)->download(
             Carbon::parse($this->dateFrom),
             Carbon::parse($this->dateTo),
-            $this->collectorId ?: null,
+            $this->effectiveReportCollectorId(),
             $this->search ?: null,
             $includeVendor,
         );
@@ -176,7 +180,7 @@ class BillingFundFlowReport extends Page
         return app(BillingFundFlowService::class)->report(
             Carbon::parse($this->dateFrom ?: now()->toDateString()),
             Carbon::parse($this->dateTo ?: now()->toDateString()),
-            $this->collectorId ?: null,
+            $this->effectiveReportCollectorId(),
             $this->search ?: null,
             null,
             $includeVendor,

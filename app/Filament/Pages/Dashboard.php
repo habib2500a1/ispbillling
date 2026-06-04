@@ -2,10 +2,14 @@
 
 namespace App\Filament\Pages;
 
+use App\Filament\Widgets\DashboardInsightsRowWidget;
+use App\Filament\Widgets\OnlineUsersChartWidget;
+use App\Filament\Widgets\RevenueTrendChartWidget;
 use App\Services\Dashboard\DashboardPreferencesService;
 use App\Support\Rbac\StaffCapability;
 use Filament\Notifications\Notification;
 use Filament\Pages\Dashboard as BaseDashboard;
+use Filament\Widgets\WidgetConfiguration;
 use Illuminate\Support\Facades\Log;
 
 class Dashboard extends BaseDashboard
@@ -62,6 +66,27 @@ class Dashboard extends BaseDashboard
     public function getWidgets(): array
     {
         return app(DashboardPreferencesService::class)->widgetsFor(auth()->user());
+    }
+
+    public function getVisibleWidgets(): array
+    {
+        $blocked = [
+            RevenueTrendChartWidget::class,
+            OnlineUsersChartWidget::class,
+        ];
+
+        $widgets = parent::getVisibleWidgets();
+
+        return array_values(array_filter(
+            $widgets,
+            function (string|WidgetConfiguration $widget) use ($blocked): bool {
+                $class = $widget instanceof WidgetConfiguration
+                    ? $widget->widget
+                    : $widget;
+
+                return ! in_array($class, $blocked, true);
+            },
+        ));
     }
 
     public function getColumns(): int|string|array

@@ -73,7 +73,7 @@ class PortalUsageTest extends TestCase
         $this->actingAs($customer, 'customer')
             ->get('/portal/usage')
             ->assertOk()
-            ->assertSee('Live internet usage', false);
+            ->assertSee('Live usage', false);
     }
 
     public function test_live_usage_json_endpoint(): void

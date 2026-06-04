@@ -1,0 +1,157 @@
+/**
+ * Today snapshot (TodaySnapshotWidget)
+ * Icon: <svg class="isp-today-tile__icon-svg">
+ */
+.isp-today-snapshot-wi {
+    width: 100%;
+    max-width: 100%;
+    overflow: hidden;
+}
+
+.isp-today-strip {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 0.75rem;
+    width: 100%;
+    max-width: 100%;
+    overflow: hidden;
+}
+
+.isp-today-tile {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 0.7rem;
+    overflow: hidden;
+    max-width: 100%;
+    min-width: 0;
+    padding: 0.85rem 1rem;
+    border-radius: 1rem;
+    border: 1px solid rgba(148, 163, 184, 0.25);
+    background: rgba(255, 255, 255, 0.65);
+    text-decoration: none;
+    color: rgb(15, 23, 42);
+}
+
+.dark .isp-today-tile,
+[data-theme='dark'] .isp-today-tile {
+    background: rgba(30, 41, 59, 0.55);
+    border-color: rgba(148, 163, 184, 0.18);
+    color: rgb(226, 232, 240);
+}
+
+/* Icon box — never grow with flex parent (fixes ~760px stretch) */
+.isp-today-tile__icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.5rem !important;
+    height: 2.5rem !important;
+    min-width: 2.5rem !important;
+    max-width: 2.5rem !important;
+    min-height: 2.5rem !important;
+    max-height: 2.5rem !important;
+    flex: 0 0 2.5rem !important;
+    flex-shrink: 0 !important;
+    overflow: hidden !important;
+    line-height: 0;
+    border-radius: 0.75rem;
+    box-sizing: border-box;
+}
+
+/* Fixed icon size — blocks container stretch */
+svg.isp-today-tile__icon-svg,
+.isp-today-tile__icon > svg.isp-today-tile__icon-svg {
+    display: block !important;
+    width: 24px !important;
+    height: 24px !important;
+    min-width: 24px !important;
+    min-height: 24px !important;
+    max-width: 24px !important;
+    max-height: 24px !important;
+    flex: 0 0 24px !important;
+    box-sizing: border-box !important;
+    contain: strict !important;
+    overflow: hidden !important;
+}
+
+/* Mini heroicons (fill) */
+svg.isp-today-tile__icon-svg[fill='currentColor'],
+svg.isp-today-tile__icon-svg[viewBox='0 0 20 20'] {
+    fill: currentColor !important;
+    stroke: none !important;
+}
+
+/* Outline heroicons (stroke) — fill none + currentColor stroke */
+svg.isp-today-tile__icon-svg[fill='none'] {
+    fill: none !important;
+    stroke: currentColor !important;
+    stroke-width: 2px;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+svg.isp-today-tile__icon-svg[viewBox='0 0 24 24'] {
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2px;
+}
+
+.isp-today-tile__body {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    flex: 1 1 auto;
+}
+
+.isp-today-tile__value {
+    font-size: 1.25rem;
+    font-weight: 700;
+}
+
+.isp-today-tile__label {
+    font-size: 0.72rem;
+    opacity: 0.7;
+}
+
+/* Tone colors on icon wrapper (visible on light + dark tiles) */
+.isp-today-tile--emerald .isp-today-tile__icon { background: rgba(16, 185, 129, 0.14); color: #059669 !important; }
+.isp-today-tile--rose .isp-today-tile__icon { background: rgba(244, 63, 94, 0.14); color: #e11d48 !important; }
+.isp-today-tile--amber .isp-today-tile__icon { background: rgba(245, 158, 11, 0.16); color: #d97706 !important; }
+.isp-today-tile--slate .isp-today-tile__icon { background: rgba(100, 116, 139, 0.16); color: #475569 !important; }
+
+.dark .isp-today-tile--emerald .isp-today-tile__icon { color: #34d399 !important; }
+.dark .isp-today-tile--rose .isp-today-tile__icon { color: #fb7185 !important; }
+.dark .isp-today-tile--amber .isp-today-tile__icon { color: #fbbf24 !important; }
+.dark .isp-today-tile--slate .isp-today-tile__icon { color: #94a3b8 !important; }
+
+/* Filament widget shell must not stretch snapshot icons */
+.fi-dashboard-page .fi-wi-widget:has(.isp-today-snapshot-wi) > div,
+.fi-dashboard-page .isp-today-snapshot-wi {
+    overflow: hidden !important;
+    max-width: 100% !important;
+}
+
+.fi-dashboard-page .fi-wi-widget .isp-today-strip svg.isp-today-tile__icon-svg,
+.fi-dashboard-page .isp-today-snapshot-wi svg.isp-today-tile__icon-svg {
+    width: 24px !important;
+    height: 24px !important;
+    max-width: 24px !important;
+    max-height: 24px !important;
+}
+
+@media (max-width: 1024px) {
+    .isp-today-strip { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+@media (max-width: 640px) {
+    .isp-today-strip {
+        display: flex;
+        overflow-x: auto;
+        gap: 0.75rem;
+    }
+    .isp-today-tile {
+        flex: 0 0 70%;
+        max-width: 78%;
+    }
+}

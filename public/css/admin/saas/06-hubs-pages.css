@@ -2,105 +2,6 @@
  * Aurora ISP admin — Hub pages, billing desk, HR, quick actions
  * @module admin/saas/06-hubs-pages.css
  */
-    }
-
-    body.isp-websip-panel-open .isp-mobile-bar {
-        display: none !important;
-    }
-
-    .fi-modal.fi-modal-open .fi-modal-close-overlay,
-    .fi-modal.fi-modal-open > div > .fixed.inset-0 {
-        z-index: 110 !important;
-    }
-
-    .fi-modal.fi-modal-open .fi-modal-window {
-        max-height: min(
-            92dvh,
-            calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 1.25rem)
-        );
-        overflow-y: auto;
-        -webkit-overflow-scrolling: touch;
-        overscroll-behavior: contain;
-    }
-
-    .fi-modal.fi-modal-open .fi-modal-content {
-        touch-action: pan-y;
-    }
-
-    body:has(.fi-modal.fi-modal-open) .choices__list--dropdown {
-        z-index: 120 !important;
-    }
-}
-
-/* Hub link cards — force dark-friendly */
-.isp-hub-page .rounded-xl.border-gray-200.bg-white,
-.isp-hub-page .group.rounded-xl.border-gray-200.bg-white {
-    background: white;
-
-/* --- 06-hubs-pages.css --- */
-/**
- * Aurora ISP admin — Hub pages, billing desk, HR, quick actions
- * @module admin/saas/06-hubs-pages.css
- */
-}
-
-.dark .isp-hub-page .rounded-xl.border-gray-200.bg-white,
-.dark .isp-hub-page .group.rounded-xl.border-gray-200.bg-white,
-[data-theme='dark'] .isp-hub-page .rounded-xl.border-gray-200.bg-white {
-    background: rgb(17 24 39) !important;
-    border-color: rgba(148, 163, 184, 0.12) !important;
-}
-
-.dark .isp-hub-page .text-gray-900,
-[data-theme='dark'] .isp-hub-page .font-semibold.text-gray-900 {
-    color: #f1f5f9 !important;
-}
-
-/* Responsive tables in custom pages */
-.isp-hub-page .overflow-x-auto {
-    -webkit-overflow-scrolling: touch;
-}
-
-.isp-hub-page table {
-    min-width: 100%;
-}
-
-@media (max-width: 640px) {
-    .fi-sidebar-open .fi-main {
-        margin-left: 0 !important;
-    }
-
-    .isp-hub-link,
-    .isp-module-card {
-        padding: 1rem;
-    }
-}
-
-
-/* --- 06-hubs-pages.css --- */
-/**
- * Aurora ISP admin — Hub pages, billing desk, HR, quick actions
- * @module admin/saas/06-hubs-pages.css
- */
-/* Hub sections & quick nav */
-.isp-ops-section {
-    margin-bottom: 1.25rem;
-}
-
-.isp-ops-section-title {
-    margin-bottom: 0.65rem;
-    font-size: 0.6875rem;
-    font-weight: 700;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: #64748b;
-}
-
-.dark .isp-ops-section-title {
-    color: #94a3b8;
-}
-
-.isp-section-nav {
     display: flex;
     flex-direction: column;
     gap: 0.75rem;
@@ -942,3 +843,102 @@
 
 .dark .isp-accounting-quick,
 [data-theme='dark'] .isp-accounting-quick {
+    background: linear-gradient(180deg, rgb(30 41 59) 0%, rgb(17 24 39) 100%);
+    border-color: rgba(148, 163, 184, 0.12);
+}
+
+.isp-accounting-quick-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    min-height: 5.5rem;
+    padding: 0.875rem 0.5rem;
+    border-radius: var(--isp-radius);
+    text-align: center;
+    text-decoration: none;
+    border: 1px solid rgba(148, 163, 184, 0.15);
+    background: white;
+    transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+}
+
+.isp-accounting-quick-btn:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--isp-shadow-lg);
+}
+
+.dark .isp-accounting-quick-btn,
+[data-theme='dark'] .isp-accounting-quick-btn {
+    background: rgb(30 41 59);
+    border-color: rgba(148, 163, 184, 0.12);
+}
+
+.isp-accounting-quick-btn-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.75rem;
+    height: 2.75rem;
+    border-radius: 0.875rem;
+}
+
+.isp-accounting-quick-btn-label {
+    font-size: 0.7rem;
+    font-weight: 700;
+    line-height: 1.2;
+    color: #334155;
+}
+
+.dark .isp-accounting-quick-btn-label,
+[data-theme='dark'] .isp-accounting-quick-btn-label {
+    color: #e2e8f0;
+}
+
+.isp-accounting-quick-btn--emerald .isp-accounting-quick-btn-icon { background: rgba(16, 185, 129, 0.15); color: #059669; }
+.isp-accounting-quick-btn--rose .isp-accounting-quick-btn-icon { background: rgba(244, 63, 94, 0.12); color: #e11d48; }
+.isp-accounting-quick-btn--violet .isp-accounting-quick-btn-icon { background: rgba(124, 58, 237, 0.12); color: #7c3aed; }
+.isp-accounting-quick-btn--amber .isp-accounting-quick-btn-icon { background: rgba(245, 158, 11, 0.15); color: #d97706; }
+.isp-accounting-quick-btn--cyan .isp-accounting-quick-btn-icon { background: rgba(6, 182, 212, 0.15); color: #0891b2; }
+.isp-accounting-quick-btn--indigo .isp-accounting-quick-btn-icon { background: rgba(99, 102, 241, 0.12); color: #4f46e5; }
+
+.isp-accounting-quick-btn--emerald:hover { border-color: rgba(16, 185, 129, 0.4); }
+.isp-accounting-quick-btn--rose:hover { border-color: rgba(244, 63, 94, 0.4); }
+.isp-accounting-quick-btn--violet:hover { border-color: rgba(124, 58, 237, 0.4); }
+.isp-accounting-quick-btn--amber:hover { border-color: rgba(245, 158, 11, 0.4); }
+.isp-accounting-quick-btn--cyan:hover { border-color: rgba(6, 182, 212, 0.4); }
+.isp-accounting-quick-btn--indigo:hover { border-color: rgba(99, 102, 241, 0.4); }
+
+@media (max-width: 640px) {
+    .isp-accounting-hero {
+        padding: 1.25rem;
+    }
+
+    .isp-accounting-section {
+        padding: 1rem;
+    }
+
+    .isp-accounting-quick {
+        padding: 1rem;
+    }
+}
+
+/* RBAC audit timeline */
+.isp-rbac-audit {
+    background: white;
+}
+
+.dark .isp-rbac-audit,
+[data-theme='dark'] .isp-rbac-audit {
+    background: rgb(17 24 39);
+}
+
+/* Subscribers list — responsive table */
+.fi-resource-subscribers .fi-ta-header-toolbar {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.fi-resource-subscribers .fi-ta-content {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;

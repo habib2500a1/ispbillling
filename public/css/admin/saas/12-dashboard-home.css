@@ -1,0 +1,453 @@
+/**
+ * Dashboard home — final layer (load after premium glass)
+ * @module admin/saas/12-dashboard-home.css
+ */
+
+/* ── Page shell ── */
+[data-isp-dashboard='1'] .fi-main,
+.fi-dashboard-page .fi-main {
+    padding-bottom: max(1.25rem, env(safe-area-inset-bottom));
+}
+
+@media (max-width: 1023px) {
+    [data-isp-dashboard='1'] .fi-main,
+    .fi-dashboard-page .fi-main {
+        padding-bottom: calc(4.75rem + env(safe-area-inset-bottom));
+    }
+}
+
+.fi-dashboard-page .fi-page-header-widgets,
+.fi-dashboard-page .fi-page-footer-widgets {
+    margin-bottom: 0;
+}
+
+/* Widget grid — readable gaps on PC & mobile */
+.fi-dashboard-page .fi-wi,
+[data-isp-dashboard='1'] .fi-wi {
+    gap: 0.85rem !important;
+}
+
+@media (min-width: 640px) {
+    .fi-dashboard-page .fi-wi,
+    [data-isp-dashboard='1'] .fi-wi {
+        gap: 1rem !important;
+    }
+}
+
+@media (min-width: 1280px) {
+    .fi-dashboard-page .fi-wi,
+    [data-isp-dashboard='1'] .fi-wi {
+        gap: 1.15rem !important;
+    }
+}
+
+/* Flex children must shrink (prevents giant SVG stretch) */
+.fi-dashboard-page .fi-wi-widget,
+.fi-dashboard-page .fi-wi-widget > div,
+.fi-dashboard-page .fi-wi-widget > div > * {
+    min-width: 0;
+}
+
+.fi-dashboard-page .fi-wi-widget > div {
+    overflow: hidden;
+}
+
+/* Hide legacy Filament chart widgets on home (revenue/online → insights row only) */
+.fi-dashboard-page .fi-wi-widget.fi-wi-chart {
+    display: none !important;
+}
+
+/* Dashboard cards — ISP tokens beat washed premium on home only */
+.fi-dashboard-page .fi-wi-widget > div,
+.fi-dashboard-page .fi-wi-chart > div,
+.fi-dashboard-page .fi-wi-stats-overview > div {
+    background: var(--isp-card) !important;
+    border: 1px solid var(--isp-card-border) !important;
+    border-radius: var(--isp-radius-lg) !important;
+    box-shadow: var(--isp-shadow) !important;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+}
+
+.dark .fi-dashboard-page .fi-wi-widget > div,
+.dark .fi-dashboard-page .fi-wi-chart > div,
+[data-theme='dark'] .fi-dashboard-page .fi-wi-widget > div,
+[data-theme='dark'] .fi-dashboard-page .fi-wi-chart > div {
+    background: var(--isp-card) !important;
+    border-color: var(--isp-card-border) !important;
+    box-shadow: var(--isp-shadow) !important;
+}
+
+.fi-dashboard-page .fi-wi-widget:hover > div {
+    transform: translateY(-1px);
+    box-shadow: var(--isp-shadow-lg) !important;
+}
+
+/* Ops command center inside widget — no double glass */
+.fi-dashboard-page .isp-cmd-center--pro,
+.fi-dashboard-page .isp-cmd-hero--pro,
+.fi-dashboard-page .isp-cmd-section {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+}
+
+.fi-dashboard-page .isp-cmd-feed--pro {
+    background: var(--isp-card) !important;
+    border: 1px solid var(--isp-card-border) !important;
+    border-radius: var(--isp-radius-lg) !important;
+    box-shadow: var(--isp-shadow) !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+}
+
+.fi-dashboard-page .fi-wi-widget:has(.isp-cmd-center--pro) > div {
+    padding: 0 !important;
+    overflow: visible !important;
+    max-width: 100% !important;
+    width: 100% !important;
+}
+
+.fi-dashboard-page .fi-wi-widget:has(#isp-dash-insights-root) > div {
+    padding: 0.5rem 0.65rem !important;
+    overflow: visible !important;
+    width: 100% !important;
+    max-width: 100% !important;
+}
+
+.fi-dashboard-page .isp-cmd-center--pro {
+    padding: 0.15rem 0 0.35rem;
+    gap: 1rem;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Hero — light/dark readable */
+.fi-dashboard-page .isp-cmd-hero--pro {
+    padding: 1.1rem 1.15rem !important;
+    border-radius: var(--isp-radius-xl) !important;
+    border: 1px solid var(--isp-card-border) !important;
+    background: linear-gradient(
+        135deg,
+        rgba(13, 148, 136, 0.1),
+        rgba(99, 102, 241, 0.08)
+    ) !important;
+    box-shadow: var(--isp-shadow) !important;
+}
+
+.dark .fi-dashboard-page .isp-cmd-hero--pro,
+[data-theme='dark'] .fi-dashboard-page .isp-cmd-hero--pro {
+    background: linear-gradient(
+        135deg,
+        rgba(45, 212, 191, 0.12),
+        rgba(129, 140, 248, 0.1)
+    ) !important;
+    border-color: rgba(148, 163, 184, 0.2) !important;
+}
+
+.fi-dashboard-page .isp-cmd-hero__title,
+.fi-dashboard-page .isp-cmd-hero__lead {
+    color: var(--isp-text) !important;
+}
+
+.fi-dashboard-page .isp-cmd-chip {
+    background: var(--isp-surface-elevated, rgba(255, 255, 255, 0.7)) !important;
+    border: 1px solid var(--isp-card-border) !important;
+    color: var(--isp-text) !important;
+}
+
+.dark .fi-dashboard-page .isp-cmd-chip,
+[data-theme='dark'] .fi-dashboard-page .isp-cmd-chip {
+    background: rgba(30, 41, 59, 0.65) !important;
+}
+
+/* KPI row — mobile scroll, desktop grid */
+.fi-dashboard-page .isp-cmd-primary {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.65rem;
+}
+
+@media (min-width: 640px) {
+    .fi-dashboard-page .isp-cmd-primary {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+}
+
+@media (min-width: 1024px) {
+    .fi-dashboard-page .isp-cmd-primary {
+        grid-template-columns: repeat(6, minmax(0, 1fr));
+        gap: 0.75rem;
+    }
+}
+
+@media (max-width: 479px) {
+    .fi-dashboard-page .isp-cmd-primary {
+        display: flex;
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        scroll-snap-type: x proximity;
+        padding-bottom: 0.2rem;
+    }
+
+    .fi-dashboard-page .isp-cmd-primary__card {
+        flex: 0 0 min(72%, 220px);
+        scroll-snap-align: start;
+    }
+}
+
+.fi-dashboard-page .isp-cmd-primary__card {
+    background: var(--isp-card) !important;
+    border: 1px solid var(--isp-card-border) !important;
+}
+
+/* Sections + feeds + chart layout */
+.fi-dashboard-page .isp-cmd-section {
+    background: var(--isp-card) !important;
+    border: 1px solid var(--isp-card-border) !important;
+    box-shadow: var(--isp-shadow) !important;
+}
+
+.fi-dashboard-page .isp-cmd-body,
+.fi-dashboard-page .isp-cmd-feeds,
+.fi-dashboard-page .isp-cmd-feed--pro {
+    min-width: 0;
+    max-width: 100%;
+}
+
+.fi-dashboard-page .isp-cmd-body {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.85rem;
+    align-items: start;
+    width: 100%;
+}
+
+@media (min-width: 1024px) {
+    .fi-dashboard-page .isp-cmd-body--has-aside {
+        grid-template-columns: minmax(0, 1fr) minmax(220px, 280px);
+    }
+}
+
+/* Feed tables: never 4-up inside dashboard widget (avoids overlap + stray scrollbars) */
+.fi-dashboard-page .isp-cmd-feeds {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: 0.85rem !important;
+    width: 100% !important;
+}
+
+@media (min-width: 900px) {
+    .fi-dashboard-page .isp-cmd-body:not(.isp-cmd-body--has-aside) .isp-cmd-feeds {
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    }
+}
+
+@media (min-width: 1280px) {
+    .fi-dashboard-page .isp-cmd-body--has-aside .isp-cmd-feeds {
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    }
+}
+
+.fi-dashboard-page .isp-cmd-aside {
+    background: var(--isp-card) !important;
+    border: 1px solid var(--isp-card-border) !important;
+    box-shadow: var(--isp-shadow) !important;
+    position: sticky;
+    top: 0.5rem;
+}
+
+.fi-dashboard-page .isp-cmd-aside__link-icon {
+    width: 1.1rem !important;
+    height: 1.1rem !important;
+    max-width: 1.1rem !important;
+    max-height: 1.1rem !important;
+}
+
+/* Today snapshot — icon sizing (wins over premium flex) */
+.fi-dashboard-page .isp-today-snapshot-wi,
+.fi-body .isp-today-snapshot-wi {
+    width: 100%;
+    max-width: 100%;
+    overflow: hidden;
+}
+
+.fi-dashboard-page .isp-today-strip,
+.fi-body .isp-today-strip {
+    display: grid !important;
+    grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
+    gap: 0.75rem !important;
+    width: 100% !important;
+    max-width: 100% !important;
+}
+
+.fi-dashboard-page .isp-today-tile,
+.fi-body .isp-today-tile {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    gap: 0.7rem !important;
+    overflow: hidden !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    padding: 0.85rem 1rem !important;
+    border-radius: 1rem !important;
+    border: 1px solid var(--isp-card-border) !important;
+    background: var(--isp-card) !important;
+    color: var(--isp-text) !important;
+    text-decoration: none !important;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.fi-dashboard-page .isp-today-tile:hover,
+.fi-body .isp-today-tile:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--isp-shadow) !important;
+}
+
+.dark .fi-dashboard-page .isp-today-tile,
+.dark .fi-body .isp-today-tile,
+[data-theme='dark'] .fi-dashboard-page .isp-today-tile,
+[data-theme='dark'] .fi-body .isp-today-tile {
+    background: rgba(30, 41, 59, 0.72) !important;
+    border-color: rgba(148, 163, 184, 0.22) !important;
+}
+
+.fi-dashboard-page .isp-today-tile__icon,
+.fi-body .isp-today-tile__icon {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 2.5rem !important;
+    height: 2.5rem !important;
+    min-width: 2.5rem !important;
+    max-width: 2.5rem !important;
+    min-height: 2.5rem !important;
+    max-height: 2.5rem !important;
+    flex: 0 0 2.5rem !important;
+    overflow: hidden !important;
+    line-height: 0 !important;
+    border-radius: 0.75rem !important;
+}
+
+.fi-dashboard-page svg.isp-today-tile__icon-svg,
+.fi-body svg.isp-today-tile__icon-svg,
+.fi-dashboard-page .isp-today-tile__icon > svg {
+    display: block !important;
+    width: 24px !important;
+    height: 24px !important;
+    min-width: 24px !important;
+    min-height: 24px !important;
+    max-width: 24px !important;
+    max-height: 24px !important;
+    flex: 0 0 24px !important;
+    box-sizing: border-box !important;
+    contain: strict !important;
+}
+
+.fi-dashboard-page svg.isp-today-tile__icon-svg[fill='none'],
+.fi-body svg.isp-today-tile__icon-svg[fill='none'] {
+    fill: none !important;
+    stroke: currentColor !important;
+    stroke-width: 2px;
+}
+
+.fi-dashboard-page svg.isp-today-tile__icon-svg[fill='currentColor'],
+.fi-body svg.isp-today-tile__icon-svg[fill='currentColor'] {
+    fill: currentColor !important;
+    stroke: none !important;
+}
+
+.fi-dashboard-page .isp-today-tile__value {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: var(--isp-text);
+}
+
+.fi-dashboard-page .isp-today-tile__label {
+    font-size: 0.72rem;
+    color: var(--isp-text-muted);
+}
+
+.fi-dashboard-page .isp-today-tile--emerald .isp-today-tile__icon,
+.fi-body .isp-today-tile--emerald .isp-today-tile__icon { color: #059669 !important; background: rgba(16, 185, 129, 0.14); }
+.fi-dashboard-page .isp-today-tile--rose .isp-today-tile__icon,
+.fi-body .isp-today-tile--rose .isp-today-tile__icon { color: #e11d48 !important; background: rgba(244, 63, 94, 0.14); }
+.fi-dashboard-page .isp-today-tile--amber .isp-today-tile__icon,
+.fi-body .isp-today-tile--amber .isp-today-tile__icon { color: #d97706 !important; background: rgba(245, 158, 11, 0.16); }
+.fi-dashboard-page .isp-today-tile--slate .isp-today-tile__icon,
+.fi-body .isp-today-tile--slate .isp-today-tile__icon { color: #475569 !important; background: rgba(100, 116, 139, 0.16); }
+
+.dark .fi-dashboard-page .isp-today-tile--emerald .isp-today-tile__icon,
+.dark .fi-body .isp-today-tile--emerald .isp-today-tile__icon,
+[data-theme='dark'] .fi-dashboard-page .isp-today-tile--emerald .isp-today-tile__icon { color: #34d399 !important; }
+.dark .fi-dashboard-page .isp-today-tile--rose .isp-today-tile__icon,
+.dark .fi-body .isp-today-tile--rose .isp-today-tile__icon { color: #fb7185 !important; }
+.dark .fi-dashboard-page .isp-today-tile--amber .isp-today-tile__icon,
+.dark .fi-body .isp-today-tile--amber .isp-today-tile__icon { color: #fbbf24 !important; }
+.dark .fi-dashboard-page .isp-today-tile--slate .isp-today-tile__icon,
+.dark .fi-body .isp-today-tile--slate .isp-today-tile__icon { color: #94a3b8 !important; }
+
+.fi-dashboard-page .fi-wi-widget:has(.isp-today-snapshot-wi) > div {
+    overflow: hidden !important;
+    max-width: 100% !important;
+    padding: 0.65rem 0.75rem !important;
+}
+
+@media (max-width: 1024px) {
+    .fi-dashboard-page .isp-today-strip,
+    .fi-body .isp-today-strip {
+        grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    }
+}
+
+@media (max-width: 640px) {
+    .fi-dashboard-page .isp-today-strip,
+    .fi-body .isp-today-strip {
+        display: flex !important;
+        flex-wrap: nowrap !important;
+        overflow-x: auto !important;
+        -webkit-overflow-scrolling: touch;
+        scroll-snap-type: x proximity;
+        gap: 0.65rem !important;
+        padding-bottom: 0.15rem;
+    }
+
+    .fi-dashboard-page .isp-today-tile,
+    .fi-body .isp-today-tile {
+        flex: 0 0 min(78%, 280px) !important;
+        max-width: 280px !important;
+        scroll-snap-align: start;
+    }
+}
+
+/* Stat widgets on dashboard */
+.fi-dashboard-page .fi-wi-stats-overview-stat {
+    background: var(--isp-card) !important;
+    border: 1px solid var(--isp-card-border) !important;
+}
+
+.fi-dashboard-page .fi-wi-stats-overview-stat-value {
+    color: var(--isp-text) !important;
+}
+
+.fi-dashboard-page .fi-wi-stats-overview-stat-label {
+    color: var(--isp-text-muted) !important;
+}
+
+/* Block decorative/unknown huge SVGs inside dashboard widgets */
+.fi-dashboard-page .fi-wi-widget svg:not(.isp-today-tile__icon-svg) {
+    max-width: 2.5rem;
+    max-height: 2.5rem;
+    flex-shrink: 0;
+}
+
+.fi-dashboard-page .fi-wi-stats-overview-stat-icon svg,
+.fi-dashboard-page .isp-cmd-section__icon svg {
+    width: 1.25rem !important;
+    height: 1.25rem !important;
+    max-width: 1.25rem !important;
+    max-height: 1.25rem !important;
+}

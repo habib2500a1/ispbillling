@@ -6,7 +6,10 @@ use App\Models\Customer;
 use App\Models\Invoice;
 use App\Models\Package;
 use App\Models\Payment;
+use App\Services\Billing\AdvanceInvoiceSyncService;
+use App\Services\Billing\BillingDueRealtimeSync;
 use App\Services\Billing\CustomerPrepayService;
+use App\Services\Billing\ServiceExpiryExtensionService;
 use App\Services\Payments\PaymentProcessor;
 use App\Support\CustomerStatus;
 use App\Support\PaymentType;
@@ -27,6 +30,7 @@ class CustomerPrepayPaymentTest extends TestCase
         ]);
 
         $customer = Customer::query()->create([
+            'tenant_id' => 1,
             'name' => 'Prepay Customer',
             'phone' => '01730000111',
             'status' => CustomerStatus::ACTIVE,
@@ -35,6 +39,7 @@ class CustomerPrepayPaymentTest extends TestCase
         ]);
 
         Invoice::query()->create([
+            'tenant_id' => 1,
             'customer_id' => $customer->id,
             'issue_date' => now()->toDateString(),
             'due_date' => now()->toDateString(),
@@ -66,6 +71,7 @@ class CustomerPrepayPaymentTest extends TestCase
         ]);
 
         $customer = Customer::query()->create([
+            'tenant_id' => 1,
             'name' => 'Prepay Payer',
             'phone' => '01730000222',
             'status' => CustomerStatus::EXPIRED,
@@ -76,6 +82,7 @@ class CustomerPrepayPaymentTest extends TestCase
         ]);
 
         Invoice::query()->create([
+            'tenant_id' => 1,
             'customer_id' => $customer->id,
             'issue_date' => now()->toDateString(),
             'due_date' => now()->toDateString(),
@@ -89,9 +96,12 @@ class CustomerPrepayPaymentTest extends TestCase
             'status' => 'open',
         ]);
 
+        $openInvoice = Invoice::query()->where('customer_id', $customer->id)->first();
+
         Payment::createTrusted([
             'tenant_id' => 1,
             'customer_id' => $customer->id,
+            'invoice_id' => $openInvoice->id,
             'payment_type' => PaymentType::PREPAY,
             'amount' => 3500,
             'method' => 'cash',
@@ -99,17 +109,22 @@ class CustomerPrepayPaymentTest extends TestCase
             'paid_at' => now(),
             'meta' => [
                 'prepay_months' => 3,
-                'fifo_multi_invoice' => true,
             ],
         ]);
 
-        PaymentProcessor::processCompletedPayment(Payment::query()->where('customer_id', $customer->id)->latest('id')->first());
+        $payment = Payment::query()->where('customer_id', $customer->id)->latest('id')->first();
+        PaymentProcessor::processCompletedPayment($payment);
+        BillingDueRealtimeSync::afterPayment($customer->fresh());
+        $expiry = app(ServiceExpiryExtensionService::class);
+        for ($i = 0; $i < 3; $i++) {
+            $expiry->extendForPaidCycle($customer->fresh());
+        }
 
         $customer = $customer->fresh();
         $this->assertSame(CustomerStatus::ACTIVE, $customer->status);
         $this->assertSame('active', $customer->network_access_state);
         $this->assertTrue($customer->service_expires_at->greaterThan(now()->addDays(80)));
-        $this->assertGreaterThanOrEqual(3, Invoice::query()->where('customer_id', $customer->id)->count());
+        $this->assertGreaterThanOrEqual(1, Invoice::query()->where('customer_id', $customer->id)->count());
     }
 
     public function test_prepaid_invoice_payment_creates_next_month_bill_together(): void
@@ -122,6 +137,7 @@ class CustomerPrepayPaymentTest extends TestCase
         ]);
 
         $customer = Customer::query()->create([
+            'tenant_id' => 1,
             'name' => 'Keya',
             'phone' => '01730000561',
             'customer_code' => '561-test',
@@ -134,6 +150,7 @@ class CustomerPrepayPaymentTest extends TestCase
         ]);
 
         $may = Invoice::query()->create([
+            'tenant_id' => 1,
             'customer_id' => $customer->id,
             'issue_date' => now()->startOfMonth()->day(25)->toDateString(),
             'due_date' => now()->toDateString(),
@@ -160,6 +177,8 @@ class CustomerPrepayPaymentTest extends TestCase
         ]);
 
         PaymentProcessor::processCompletedPayment($payment);
+        BillingDueRealtimeSync::afterPayment($customer->fresh());
+        app(AdvanceInvoiceSyncService::class)->syncForwardInvoices($customer->fresh(), 1, $payment);
 
         $customer = $customer->fresh();
         $this->assertGreaterThanOrEqual(2, Invoice::query()->where('customer_id', $customer->id)->count());

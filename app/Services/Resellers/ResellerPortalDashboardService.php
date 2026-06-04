@@ -7,6 +7,7 @@ use App\Models\Payment;
 use App\Models\Reseller;
 use App\Models\ResellerCommission;
 use App\Models\ResellerSettlement;
+use App\Support\CustomerBalanceDue;
 use App\Support\CustomerStatus;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -57,7 +58,8 @@ final class ResellerPortalDashboardService
             $dueAmount = (float) Invoice::query()
                 ->whereIn('customer_id', $customerIds)
                 ->whereIn('status', ['open', 'partial', 'draft'])
-                ->sum(DB::raw('GREATEST(0, total - amount_paid)'));
+                ->selectRaw(CustomerBalanceDue::sumOpenInvoiceBalanceSelect('due'))
+                ->value('due');
 
             $monthInvoiced = (float) Invoice::query()
                 ->whereIn('customer_id', $customerIds)

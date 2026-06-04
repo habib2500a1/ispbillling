@@ -64,6 +64,15 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
+        if (PHP_SAPI === 'cli' && is_file(storage_path('.production-live'))) {
+            $argv = $_SERVER['argv'] ?? [];
+            if (($argv[1] ?? null) === 'test') {
+                fwrite(STDERR, "php artisan test is disabled on this production server.\n");
+                fwrite(STDERR, "Remove storage/.production-live or run tests on a staging machine.\n");
+                exit(1);
+            }
+        }
+
         $this->app->bind(NavigationManager::class, IspNavigationManager::class);
 
         // Laravel picks resources/lang when that folder exists; app strings live in /lang.

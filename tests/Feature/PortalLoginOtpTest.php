@@ -20,7 +20,7 @@ class PortalLoginOtpTest extends TestCase
 
         $customer = $this->makeCustomerWithPortal('secret12', 'sub@example.com');
 
-        $this->post('/portal/login', [
+        $this->post('/login', [
             'login' => $customer->customer_code,
             'password' => 'secret12',
             '_token' => csrf_token(),
@@ -36,7 +36,7 @@ class PortalLoginOtpTest extends TestCase
 
         $customer = $this->makeCustomerWithPortal('secret12', null);
 
-        $this->post('/portal/login', [
+        $this->post('/login', [
             'login' => $customer->customer_code,
             'password' => 'secret12',
             '_token' => csrf_token(),
@@ -54,7 +54,7 @@ class PortalLoginOtpTest extends TestCase
 
         $customer = $this->makeCustomerWithPortal('secret12', null);
 
-        $this->post('/portal/login', [
+        $this->post('/login', [
             'login' => $customer->customer_code,
             'password' => 'secret12',
             '_token' => csrf_token(),
@@ -68,7 +68,7 @@ class PortalLoginOtpTest extends TestCase
             now()->addMinutes(10)
         );
 
-        $this->post('/portal/login/otp', [
+        $this->post('/login/otp', [
             'code' => '111111',
             '_token' => csrf_token(),
         ])->assertRedirect(route('portal.dashboard'));
@@ -83,7 +83,7 @@ class PortalLoginOtpTest extends TestCase
 
         $customer = $this->makeCustomerWithPortal('secret12', null);
 
-        $this->post('/portal/login', [
+        $this->post('/login', [
             'login' => $customer->customer_code,
             'password' => 'secret12',
             '_token' => csrf_token(),

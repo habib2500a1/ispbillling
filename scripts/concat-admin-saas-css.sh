@@ -15,6 +15,8 @@ MODULES=(
   09-forms-details
   10-filament-overrides
   11-subscriber-view-legacy
+  12-dashboard-home
+  13-dashboard-insights
 )
 
 {
@@ -32,7 +34,7 @@ MODULES=(
     echo "/* --- ${name}.css --- */"
     cat "$f"
   done
-  for extra in admin-utilities.css admin-responsive.css; do
+  for extra in admin-utilities.css admin-responsive.css admin-today-snapshot.css; do
     f="$ROOT/public/css/${extra}"
     if [[ -f "$f" ]]; then
       echo ""

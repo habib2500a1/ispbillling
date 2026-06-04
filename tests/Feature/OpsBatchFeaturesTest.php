@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Customer;
+use App\Models\Invoice;
 use App\Models\MikrotikSessionAlert;
 use App\Models\Package;
 use App\Models\PendingGatewayPayment;
@@ -45,6 +46,20 @@ class OpsBatchFeaturesTest extends TestCase
     public function test_session_alert_suspend_service(): void
     {
         $customer = $this->makeCustomer();
+        Invoice::query()->create([
+            'tenant_id' => 1,
+            'customer_id' => $customer->id,
+            'issue_date' => now()->subDays(5)->toDateString(),
+            'due_date' => now()->subDay()->toDateString(),
+            'period_start' => now()->subDays(5)->toDateString(),
+            'period_end' => now()->toDateString(),
+            'subtotal' => 500,
+            'tax_amount' => 0,
+            'discount_amount' => 0,
+            'total' => 500,
+            'amount_paid' => 0,
+            'status' => 'open',
+        ]);
         $alert = MikrotikSessionAlert::query()->create([
             'tenant_id' => 1,
             'customer_id' => $customer->id,
@@ -73,12 +88,14 @@ class OpsBatchFeaturesTest extends TestCase
         ]);
 
         return Customer::query()->create([
+            'tenant_id' => 1,
             'name' => 'Test',
             'phone' => '01710002222',
             'status' => 'active',
             'billing_day' => 1,
             'package_id' => $package->id,
-            'tenant_id' => 1,
+            'network_access_state' => 'active',
+            'grace_period_days' => 0,
         ]);
     }
 }

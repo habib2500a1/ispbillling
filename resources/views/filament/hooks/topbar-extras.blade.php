@@ -5,7 +5,7 @@
         class="isp-topbar-live-call isp-topbar-live-call--compact mr-2 inline-flex shrink-0 items-center gap-1 rounded-lg border-2 border-white bg-emerald-600 px-2.5 py-1.5 text-xs font-bold text-white shadow-sm hover:bg-emerald-700 dark:border-gray-700 lg:hidden"
         title="লাইভ কল (WebSIP)"
         aria-label="লাইভ কল"
-        onclick="if (window.ispWebSipOpenDialer) { window.ispWebSipOpenDialer(''); } else { document.querySelector('[data-isp-websip-fab]')?.click(); }"
+        onclick="window.ispWebSipOpenDialer?.('')"
     >
         <x-filament::icon icon="heroicon-m-phone" class="h-4 w-4" />
     </button>
@@ -66,7 +66,7 @@
             class="isp-topbar-live-call hidden items-center gap-1 rounded-lg border-2 border-white bg-emerald-600 px-2.5 py-1.5 text-xs font-bold text-white shadow-sm hover:bg-emerald-700 dark:border-gray-700 lg:inline-flex"
             title="লাইভ কল (WebSIP)"
             aria-label="লাইভ কল"
-            onclick="if (window.ispWebSipOpenDialer) { window.ispWebSipOpenDialer(''); } else { document.querySelector('[data-isp-websip-fab]')?.click(); }"
+            onclick="window.ispWebSipOpenDialer?.('')"
         >
             <x-filament::icon icon="heroicon-m-phone" class="h-4 w-4" />
             <span class="hidden xl:inline">কল</span>

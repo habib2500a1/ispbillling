@@ -37,6 +37,9 @@ class ResellerEnterpriseTest extends TestCase
             'is_active' => true,
         ]);
 
+        $hierarchy = app(ResellerHierarchyService::class);
+        $hierarchy->syncPath($parent->fresh());
+        $hierarchy->syncPath($child->fresh());
         $child = $child->fresh();
         $this->assertStringContainsString((string) $parent->id, (string) $child->hierarchy_path);
         $this->assertStringContainsString((string) $child->id, (string) $child->hierarchy_path);
@@ -172,6 +175,8 @@ class ResellerEnterpriseTest extends TestCase
         ]);
 
         $hierarchy = app(ResellerHierarchyService::class);
+        $hierarchy->syncPath($root->fresh());
+        $hierarchy->syncPath($child->fresh());
         $this->assertTrue($hierarchy->isDescendantOf($child->fresh(), $root));
     }
 }

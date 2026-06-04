@@ -15,6 +15,7 @@ class SubdomainTenantMiddlewareTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        TenantResolver::clearFake();
         config(['isp.tenant_base_domain' => 'isp.test']);
     }
 

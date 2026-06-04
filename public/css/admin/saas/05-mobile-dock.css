@@ -2,83 +2,6 @@
  * Aurora ISP admin — Mobile dock & hub link cards
  * @module admin/saas/05-mobile-dock.css
  */
-.dark .isp-ops-list__title,
-[data-theme='dark'] .isp-ops-list__title,
-.dark .isp-ai-card__value,
-[data-theme='dark'] .isp-ai-card__value {
-    color: #f8fafc;
-}
-
-.dark .isp-ops-panel__desc,
-[data-theme='dark'] .isp-ops-panel__desc,
-.dark .isp-ops-list__meta,
-[data-theme='dark'] .isp-ops-list__meta,
-.dark .isp-ai-card__label,
-[data-theme='dark'] .isp-ai-card__label,
-.dark .isp-ai-card__meta,
-[data-theme='dark'] .isp-ai-card__meta,
-.dark .isp-ops-table__sub,
-[data-theme='dark'] .isp-ops-table__sub {
-    color: #94a3b8;
-}
-
-.dark .isp-ops-list__item,
-[data-theme='dark'] .isp-ops-list__item {
-    background: rgba(15, 23, 42, 0.62);
-    border-color: rgba(148, 163, 184, 0.12);
-}
-
-.dark .isp-ops-pill--danger,
-[data-theme='dark'] .isp-ops-pill--danger {
-
-/* --- 05-mobile-dock.css --- */
-/**
- * Aurora ISP admin — Mobile dock & hub link cards
- * @module admin/saas/05-mobile-dock.css
- */
-    background: rgba(127, 29, 29, 0.42);
-    color: #fda4af;
-}
-
-.dark .isp-ops-pill--warn,
-[data-theme='dark'] .isp-ops-pill--warn {
-    background: rgba(120, 53, 15, 0.4);
-    color: #fcd34d;
-}
-
-.dark .isp-ops-pill--ok,
-[data-theme='dark'] .isp-ops-pill--ok {
-    background: rgba(6, 78, 59, 0.42);
-    color: #6ee7b7;
-}
-
-.dark .isp-ops-table thead th,
-[data-theme='dark'] .isp-ops-table thead th {
-    color: #94a3b8;
-    background: rgba(30, 41, 59, 0.9);
-    border-bottom-color: rgba(148, 163, 184, 0.1);
-}
-
-.dark .isp-ops-table tbody td,
-[data-theme='dark'] .isp-ops-table tbody td {
-    border-top-color: rgba(148, 163, 184, 0.08);
-}
-
-
-/* --- 05-mobile-dock.css --- */
-/**
- * Aurora ISP admin — Mobile dock & hub link cards
- * @module admin/saas/05-mobile-dock.css
- */
-/* Mobile bottom dock (admin) */
-.isp-mobile-dock {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    z-index: 40;
-    display: flex;
-    align-items: stretch;
     justify-content: space-around;
     gap: 0.25rem;
     padding: 0.35rem 0.5rem calc(0.35rem + env(safe-area-inset-bottom, 0px));
@@ -466,12 +389,6 @@
         display: none !important;
     }
 
-    /* Live call stays visible on mobile (topbar extras hidden) */
-    .fi-topbar .isp-topbar-live-call--compact {
-        display: inline-flex !important;
-        flex-shrink: 0;
-    }
-
     .fi-topbar {
         gap: 0.5rem;
         min-height: 3.9rem;
@@ -644,3 +561,86 @@
      */
     body:has(.fi-modal.fi-modal-open) .isp-mobile-bar {
         display: none !important;
+    }
+
+    .fi-modal.fi-modal-open .fi-modal-close-overlay,
+    .fi-modal.fi-modal-open > div > .fixed.inset-0 {
+        z-index: 110 !important;
+    }
+
+    .fi-modal.fi-modal-open .fi-modal-window {
+        max-height: min(
+            92dvh,
+            calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 1.25rem)
+        );
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+        overscroll-behavior: contain;
+    }
+
+    .fi-modal.fi-modal-open .fi-modal-content {
+        touch-action: pan-y;
+    }
+
+    body:has(.fi-modal.fi-modal-open) .choices__list--dropdown {
+        z-index: 120 !important;
+    }
+}
+
+/* Hub link cards — force dark-friendly */
+.isp-hub-page .rounded-xl.border-gray-200.bg-white,
+.isp-hub-page .group.rounded-xl.border-gray-200.bg-white {
+    background: white;
+}
+
+.dark .isp-hub-page .rounded-xl.border-gray-200.bg-white,
+.dark .isp-hub-page .group.rounded-xl.border-gray-200.bg-white,
+[data-theme='dark'] .isp-hub-page .rounded-xl.border-gray-200.bg-white {
+    background: rgb(17 24 39) !important;
+    border-color: rgba(148, 163, 184, 0.12) !important;
+}
+
+.dark .isp-hub-page .text-gray-900,
+[data-theme='dark'] .isp-hub-page .font-semibold.text-gray-900 {
+    color: #f1f5f9 !important;
+}
+
+/* Responsive tables in custom pages */
+.isp-hub-page .overflow-x-auto {
+    -webkit-overflow-scrolling: touch;
+}
+
+.isp-hub-page table {
+    min-width: 100%;
+}
+
+@media (max-width: 640px) {
+    .fi-sidebar-open .fi-main {
+        margin-left: 0 !important;
+    }
+
+    .isp-hub-link,
+    .isp-module-card {
+        padding: 1rem;
+    }
+}
+
+/* Hub sections & quick nav */
+.isp-ops-section {
+    margin-bottom: 1.25rem;
+}
+
+.isp-ops-section-title {
+    margin-bottom: 0.65rem;
+    font-size: 0.6875rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #64748b;
+}
+
+.dark .isp-ops-section-title {
+    color: #94a3b8;
+}
+
+.isp-section-nav {

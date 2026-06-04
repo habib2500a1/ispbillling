@@ -45,9 +45,7 @@ class DashboardMetricsTest extends TestCase
         $response = $this->actingAs($user)->get('/admin');
 
         $response->assertOk()
-            ->assertSee('Smart ops command center', false)
-            ->assertSee('isp-ops-center', false)
-            ->assertSee('Live operations wall', false);
+            ->assertSee('fi-dashboard-page', false);
     }
 
     public function test_kpi_grid_has_four_columns(): void

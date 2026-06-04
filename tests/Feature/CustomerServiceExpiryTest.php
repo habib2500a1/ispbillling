@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Customer;
+use App\Models\Invoice;
 use App\Models\Package;
 use App\Services\Network\NetworkAccessCoordinator;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -58,13 +59,30 @@ class CustomerServiceExpiryTest extends TestCase
         ]);
 
         $customer = Customer::query()->create([
+            'tenant_id' => 1,
             'name' => 'Exp2',
             'phone' => '01700000002',
             'status' => 'active',
             'billing_day' => 1,
             'package_id' => $package->id,
             'network_access_state' => 'active',
+            'grace_period_days' => 0,
             'service_expires_at' => now()->subDay()->toDateString(),
+        ]);
+
+        Invoice::query()->create([
+            'tenant_id' => 1,
+            'customer_id' => $customer->id,
+            'issue_date' => now()->subDays(10)->toDateString(),
+            'due_date' => now()->subDay()->toDateString(),
+            'period_start' => now()->subDays(10)->toDateString(),
+            'period_end' => now()->subDay()->toDateString(),
+            'subtotal' => 500,
+            'tax_amount' => 0,
+            'discount_amount' => 0,
+            'total' => 500,
+            'amount_paid' => 0,
+            'status' => 'open',
         ]);
 
         $provisioner = $this->createMock(\App\Contracts\NetworkAccessProvisioner::class);

@@ -34,6 +34,8 @@ final class AdminSaasStyles
             'admin/saas/09-forms-details.css',
             'admin/saas/10-filament-overrides.css',
             'admin/saas/11-subscriber-view-legacy.css',
+            'admin/saas/12-dashboard-home.css',
+            'admin/saas/13-dashboard-insights.css',
         ];
     }
 

@@ -60,11 +60,38 @@ final class EnsureStorageWritable
                 File::ensureDirectoryExists($dir, 0775);
             }
 
-            @chown($dir, $user);
-            @chgrp($dir, $group);
-            @chmod($dir, 0775);
+            self::chownTree($dir, $user, $group);
         }
 
         return self::findIssues() === [];
+    }
+
+    /**
+     * Recursive chown — required after `php artisan` run as root (compiled views).
+     */
+    private static function chownTree(string $path, string $user, string $group): void
+    {
+        if (! is_dir($path)) {
+            @chown($path, $user);
+            @chgrp($path, $group);
+
+            return;
+        }
+
+        @chown($path, $user);
+        @chgrp($path, $group);
+        @chmod($path, 0775);
+
+        $iterator = new \RecursiveIteratorIterator(
+            new \RecursiveDirectoryIterator($path, \FilesystemIterator::SKIP_DOTS),
+            \RecursiveIteratorIterator::SELF_FIRST,
+        );
+
+        foreach ($iterator as $item) {
+            $real = $item->getPathname();
+            @chown($real, $user);
+            @chgrp($real, $group);
+            @chmod($real, $item->isDir() ? 0775 : 0664);
+        }
     }
 }

@@ -21,7 +21,7 @@ class DashboardLayoutTest extends TestCase
         $user->assignRole('super-admin');
 
         $reordered = [
-            \App\Filament\Widgets\OnlineUsersChartWidget::class,
+            \App\Filament\Widgets\DashboardInsightsRowWidget::class,
             \App\Filament\Widgets\BillingExecutiveDashboardWidget::class,
             \App\Filament\Widgets\OperationsCommandCenterWidget::class,
         ];
@@ -58,7 +58,7 @@ class DashboardLayoutTest extends TestCase
         app(DashboardPreferencesService::class)->savePreferences(
             $user,
             [
-                \App\Filament\Widgets\RevenueTrendChartWidget::class,
+                \App\Filament\Widgets\DashboardInsightsRowWidget::class,
                 \App\Filament\Widgets\BillingExecutiveDashboardWidget::class,
                 \App\Filament\Widgets\OperationsCommandCenterWidget::class,
             ],

@@ -55,6 +55,7 @@ final class PaymentProcessor
         float $amount,
         string $reference,
         array $meta = [],
+        string $paymentType = PaymentType::PAYMENT,
     ): Payment {
         $existing = Payment::query()
             ->withoutGlobalScopes()
@@ -80,7 +81,7 @@ final class PaymentProcessor
             'reference' => $reference,
             'status' => 'completed',
             'paid_at' => now(),
-            'payment_type' => PaymentType::PAYMENT,
+            'payment_type' => $paymentType,
             'receipt_number' => Payment::generateReceiptNumber(
                 (int) (Customer::withoutGlobalScopes()->whereKey($customerId)->value('tenant_id') ?? 1)
             ),

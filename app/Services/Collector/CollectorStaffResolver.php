@@ -4,8 +4,11 @@ namespace App\Services\Collector;
 
 use App\Models\Payment;
 use App\Models\User;
+use App\Support\Rbac\StaffCapability;
 use App\Support\TenantResolver;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
+use Illuminate\Validation\ValidationException;
 
 final class CollectorStaffResolver
 {
@@ -31,6 +34,44 @@ final class CollectorStaffResolver
     }
 
     /**
+     * Field staff (cashier/collector) see only their own collections in reports; admin/finance see all.
+     */
+    public function scopedCollectorIdForReports(?User $user = null): ?int
+    {
+        $user ??= auth()->user();
+        if ($user === null || $this->canPickCollector($user)) {
+            return null;
+        }
+
+        $capability = StaffCapability::for($user);
+        if ($capability->canCollect() || $capability->canAny(['payments.add'])) {
+            return $this->defaultCollectorId($user);
+        }
+
+        return null;
+    }
+
+    public function paymentBelongsToCollector(Payment $payment, int $collectorId): bool
+    {
+        if ($collectorId < 1) {
+            return false;
+        }
+
+        $attributed = $this->resolveCollectorUserIdFromPayment($payment);
+
+        return $attributed === $collectorId
+            || (int) ($payment->recorded_by ?? 0) === $collectorId;
+    }
+
+    public function scopePaymentsToCollector(Builder $query, int $collectorId): Builder
+    {
+        return $query->where(function (Builder $q) use ($collectorId): void {
+            $q->where('recorded_by', $collectorId)
+                ->orWhere('meta->collector_attributed_to', $collectorId);
+        });
+    }
+
+    /**
      * @return array<int, string> id => display label
      */
     public function collectableStaffOptions(?int $tenantId = null): array
@@ -45,13 +86,13 @@ final class CollectorStaffResolver
             // Admin/manager: any active staff user in tenant.
             $query->orderBy('name');
         } else {
-            $roles = config('collector.collectable_roles', ['cashier', 'branch-manager']);
-            $query->where(function ($q) use ($roles): void {
-                $q->whereHas('roles', fn ($r) => $r->whereIn('name', $roles));
-                if (auth()->id()) {
-                    $q->orWhere('id', auth()->id());
-                }
-            })->orderBy('name');
+            // Field collector: only themselves — cannot attribute to another staff.
+            $selfId = auth()->id();
+            if ($selfId === null) {
+                $query->whereRaw('1 = 0');
+            } else {
+                $query->where('id', $selfId);
+            }
         }
 
         return $query->with('roles')->get(['id', 'name', 'email'])->mapWithKeys(function (User $user): array {
@@ -103,5 +144,44 @@ final class CollectorStaffResolver
     public function resolveCollectorUser(int $collectorId): User
     {
         return User::query()->findOrFail($collectorId);
+    }
+
+    /**
+     * Collection entry must be credited to this user (self for field staff).
+     */
+    public function requireSelfCollectorId(?int $requestedCollectorId = null, ?User $user = null): int
+    {
+        $user ??= auth()->user();
+        $selfId = $this->defaultCollectorId($user);
+
+        if ($this->canPickCollector($user)) {
+            if ($requestedCollectorId !== null && $requestedCollectorId > 0) {
+                $options = $this->collectableStaffOptions($user?->tenant_id);
+
+                if (! array_key_exists($requestedCollectorId, $options)) {
+                    throw ValidationException::withMessages([
+                        'collectorUserId' => 'Select a valid staff member for this collection.',
+                    ]);
+                }
+
+                return $requestedCollectorId;
+            }
+
+            if ($selfId > 0 && filter_var(env('PERMISSION_TESTING', false), FILTER_VALIDATE_BOOLEAN)) {
+                return $selfId;
+            }
+
+            throw ValidationException::withMessages([
+                'collectorUserId' => 'Select which staff member receives credit for this collection.',
+            ]);
+        }
+
+        if ($requestedCollectorId !== null && $requestedCollectorId > 0 && $requestedCollectorId !== $selfId) {
+            throw ValidationException::withMessages([
+                'collectorUserId' => 'You can only record collections under your own name.',
+            ]);
+        }
+
+        return $selfId;
     }
 }

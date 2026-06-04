@@ -17,6 +17,10 @@
                         <x-filament::icon icon="heroicon-m-qr-code" class="h-4 w-4" />
                         New sale (POS)
                     </a>
+                    <a href="{{ \App\Filament\Resources\ProductResource::getUrl('create') }}" class="iv-btn iv-btn--glass">
+                        <x-filament::icon icon="heroicon-m-plus" class="h-4 w-4" />
+                        New product
+                    </a>
                     <a href="{{ \App\Filament\Resources\ProductResource::getUrl() }}" class="iv-btn iv-btn--glass">
                         <x-filament::icon icon="heroicon-m-shopping-bag" class="h-4 w-4" />
                         Products

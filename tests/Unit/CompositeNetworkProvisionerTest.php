@@ -88,6 +88,7 @@ class CompositeNetworkProvisionerTest extends TestCase
         config([
             'network.provisioner_driver' => 'radius',
             'network.mikrotik_push_enabled' => true,
+            'network.mikrotik_always_push_ppp_on_customer_save' => false,
             'network.radius_push_enabled' => true,
         ]);
 

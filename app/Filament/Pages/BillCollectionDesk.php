@@ -244,6 +244,8 @@ class BillCollectionDesk extends Page
             ->where('customer_id', $this->selectedCustomerId)
             ->findOrFail($paymentId);
 
+        $this->assertCanManagePayment($payment);
+
         $this->editingPaymentId = $payment->id;
         $this->editPaymentAmount = (string) $payment->amount;
         $this->editPaymentInvoiceId = $payment->invoice_id;
@@ -268,6 +270,8 @@ class BillCollectionDesk extends Page
         $payment = Payment::query()
             ->where('customer_id', $this->selectedCustomerId)
             ->findOrFail($paymentId);
+
+        $this->assertCanManagePayment($payment);
 
         app(PaymentVoidService::class)->void($payment, $reason);
 
@@ -298,6 +302,8 @@ class BillCollectionDesk extends Page
         $payment = Payment::query()
             ->where('customer_id', $this->selectedCustomerId)
             ->findOrFail($this->editingPaymentId);
+
+        $this->assertCanManagePayment($payment);
 
         app(PaymentAllocationCorrectionService::class)->reassign(
             $payment,
@@ -589,5 +595,18 @@ class BillCollectionDesk extends Page
     private function renewalPolicyMeta(): array
     {
         return ['renewal_policy' => $this->renewalPolicy];
+    }
+
+    protected function assertCanManagePayment(Payment $payment): void
+    {
+        if (app(CollectorStaffResolver::class)->canPickCollector()) {
+            return;
+        }
+
+        abort_unless(
+            app(CollectorStaffResolver::class)->paymentBelongsToCollector($payment, (int) auth()->id()),
+            403,
+            'You can only change collections credited to your own name.',
+        );
     }
 }

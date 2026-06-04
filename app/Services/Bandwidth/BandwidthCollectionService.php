@@ -896,12 +896,8 @@ final class BandwidthCollectionService
             return $query->where('is_ppp_online', $wantOnline);
         }
 
-        $sessionCustomerIds = $this->activeSessionCustomerIds($tenantId);
-
-        if ($sessionCustomerIds !== []) {
-            return $wantOnline
-                ? $query->whereIn('id', $sessionCustomerIds)
-                : $query->whereNotIn('id', $sessionCustomerIds);
+        if ($this->tenantHasActivePppSessions($tenantId)) {
+            return $this->applyActivePppSessionSubquery($query, $tenantId, $wantOnline);
         }
 
         if ($this->freshBandwidthSyncShowsActiveSubscribers($tenantId)) {
@@ -909,6 +905,31 @@ final class BandwidthCollectionService
         }
 
         return $wantOnline ? $query->whereRaw('0 = 1') : $query;
+    }
+
+    public function tenantHasActivePppSessions(int $tenantId): bool
+    {
+        return PppSessionLog::withoutGlobalScopes()
+            ->where('tenant_id', $tenantId)
+            ->where('status', 'active')
+            ->whereNull('ended_at')
+            ->whereNotNull('customer_id')
+            ->exists();
+    }
+
+    public function applyActivePppSessionSubquery(Builder $query, int $tenantId, bool $wantOnline): Builder
+    {
+        $table = $query->getModel()->getTable();
+        $method = $wantOnline ? 'whereExists' : 'whereNotExists';
+
+        return $query->{$method}(function ($sub) use ($tenantId, $table): void {
+            $sub->selectRaw('1')
+                ->from('ppp_session_logs')
+                ->whereColumn('ppp_session_logs.customer_id', "{$table}.id")
+                ->where('ppp_session_logs.tenant_id', $tenantId)
+                ->where('ppp_session_logs.status', 'active')
+                ->whereNull('ppp_session_logs.ended_at');
+        });
     }
 
     public function displayedOnlineCount(int $tenantId, ?Builder $scopedQuery = null): int

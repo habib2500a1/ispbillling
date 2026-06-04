@@ -6,6 +6,7 @@ use App\Models\CallLog;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Services\CallCenter\CallCenterReportService;
+use App\Support\TenantResolver;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -19,6 +20,7 @@ class CallCenterReportServiceTest extends TestCase
             ['slug' => 'call-report-test'],
             ['name' => 'Call Report ISP', 'is_active' => true],
         );
+        TenantResolver::fake($tenant->id);
 
         $staff = User::factory()->create(['tenant_id' => $tenant->id]);
 

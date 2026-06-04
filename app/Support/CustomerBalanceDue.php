@@ -4,7 +4,9 @@ namespace App\Support;
 
 use App\Models\Customer;
 use App\Models\Invoice;
+use App\Services\Import\LegacyPortalDashboardSummaryProvider;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -84,19 +86,32 @@ final class CustomerBalanceDue
 
     public static function tenantOpenInvoiceDueSum(int $tenantId): float
     {
-        $total = 0.0;
+        return (float) Cache::remember(
+            'tenant_open_invoice_due_sum:'.$tenantId,
+            120,
+            fn (): float => self::tenantOpenInvoiceDueSumUncached($tenantId),
+        );
+    }
 
-        Customer::withoutGlobalScopes()
+    public static function tenantOpenInvoiceDueSumUncached(int $tenantId): float
+    {
+        $provider = app(LegacyPortalDashboardSummaryProvider::class);
+
+        if ($provider->tenantUsesLegacyPortal($tenantId)) {
+            $summary = $provider->summary($tenantId, false);
+            if ($summary !== null && isset($summary['due'])) {
+                return round(max(0, (float) $summary['due']), 2);
+            }
+        }
+
+        $driver = DB::connection()->getDriverName();
+        $balanceExpr = self::invoiceBalanceExpression($driver);
+
+        return round((float) Invoice::withoutGlobalScopes()
             ->where('tenant_id', $tenantId)
-            ->select(['id', 'meta', 'import_source'])
-            ->orderBy('id')
-            ->chunkById(200, function ($chunk) use (&$total): void {
-                foreach ($chunk as $customer) {
-                    $total += self::resolve($customer)['balance_due'];
-                }
-            });
-
-        return round($total, 2);
+            ->whereIn('status', self::OPEN_INVOICE_STATUSES)
+            ->selectRaw("COALESCE(SUM({$balanceExpr}), 0) as due")
+            ->value('due'), 2);
     }
 
     public static function sumOpenInvoiceDue(Builder $query): float
@@ -114,6 +129,31 @@ final class CustomerBalanceDue
             'sqlite' => 'MAX(0, total - amount_paid)',
             default => 'GREATEST(0, total - amount_paid)',
         };
+    }
+
+    public static function invoiceBalanceExpressionForConnection(?string $connection = null): string
+    {
+        $driver = DB::connection($connection)->getDriverName();
+
+        return self::invoiceBalanceExpression($driver);
+    }
+
+    public static function sumOpenInvoiceBalanceSelect(string $alias = 'due'): string
+    {
+        $expr = self::invoiceBalanceExpressionForConnection();
+
+        return "COALESCE(SUM({$expr}), 0) as {$alias}";
+    }
+
+    public static function invoiceBalanceExpressionAliased(string $tableAlias, ?string $connection = null): string
+    {
+        $expr = self::invoiceBalanceExpressionForConnection($connection);
+
+        return (string) preg_replace(
+            '/\b(total|amount_paid)\b/',
+            "{$tableAlias}.$1",
+            $expr,
+        );
     }
 
     /**
@@ -200,6 +240,10 @@ final class CustomerBalanceDue
         $meta['balance_due'] = $resolved['balance_due'];
         $meta['billing_payment_state'] = $resolved['payment_state'];
         $meta['local_due_synced_at'] = now()->toIso8601String();
+
+        foreach (self::legacyMetaDueKeys() as $legacyKey) {
+            unset($meta[$legacyKey]);
+        }
 
         $customer->updateQuietly(['meta' => $meta]);
     }

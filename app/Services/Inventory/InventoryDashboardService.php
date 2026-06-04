@@ -7,9 +7,15 @@ use App\Models\Product;
 use App\Models\PurchaseOrder;
 use App\Models\Warehouse;
 use App\Support\TenantResolver;
+use Illuminate\Support\Facades\Cache;
 
 final class InventoryDashboardService
 {
+    public static function flushSummaryCache(int $tenantId): void
+    {
+        Cache::forget('products_list_summary:'.$tenantId);
+    }
+
     /**
      * @return array<string, mixed>
      */

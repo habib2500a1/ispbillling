@@ -5,6 +5,7 @@ namespace App\Filament\Resources\CustomerResource\Pages\Concerns;
 use App\Filament\Resources\CustomerResource;
 use App\Services\Clients\ClientsDashboardService;
 use App\Services\Mobile\StaffBillingKpiResolver;
+use App\Support\CustomerBalanceDue;
 use App\Support\TenantResolver;
 use Filament\Tables\Table;
 use Illuminate\Support\Facades\Cache;
@@ -98,15 +99,13 @@ trait UsesClientsDirectoryLayout
             120,
             function () use ($tenantId): array {
                 $stats = $this->getClientStats();
-                $resolver = app(StaffBillingKpiResolver::class);
-                $billing = $resolver->resolve($tenantId);
 
                 return [
                     'total' => (int) ($stats['total'] ?? 0),
                     'active' => (int) ($stats['active'] ?? 0),
                     'inactive' => max(0, (int) ($stats['total'] ?? 0) - (int) ($stats['active'] ?? 0)),
-                    'due_clients' => $resolver->dueClientsCount($tenantId),
-                    'total_due' => (float) ($billing['due'] ?? 0),
+                    'due_clients' => app(StaffBillingKpiResolver::class)->dueClientsCount($tenantId),
+                    'total_due' => CustomerBalanceDue::tenantOpenInvoiceDueSum($tenantId),
                 ];
             },
         );

@@ -197,7 +197,8 @@ final class StaffMobileService
                     ->where('tenant_id', $tenantId)
                     ->whereIn('customer_id', $customerIds)
                     ->whereNotIn('status', ['paid', 'void', 'cancelled'])
-                    ->sum(DB::raw('GREATEST(total - amount_paid, 0)'));
+                    ->selectRaw(\App\Support\CustomerBalanceDue::sumOpenInvoiceBalanceSelect('due'))
+                    ->value('due');
             }
 
             $rows[] = [

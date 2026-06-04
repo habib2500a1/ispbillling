@@ -2,6 +2,7 @@
 
 namespace App\Services\Resellers;
 
+use App\Models\Customer;
 use App\Models\Invoice;
 use App\Models\Payment;
 use App\Models\Reseller;

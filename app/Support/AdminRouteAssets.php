@@ -24,6 +24,7 @@ final class AdminRouteAssets
             'filament.admin.pages.billing-dashboard' => ['billing-hub-pro.css'],
             'filament.admin.pages.accounting-hub' => ['billing-hub-pro.css'],
             'filament.admin.pages.accounts-hub' => ['billing-hub-pro.css'],
+            'filament.admin.pages.collection-desk-report' => ['collection-desk-report-pro.css'],
         ];
     }
 
@@ -33,6 +34,15 @@ final class AdminRouteAssets
 
         if (request()->routeIs('filament.admin.resources.subscribers.view')) {
             $html .= SubscriberViewStyles::html();
+        }
+
+        if (request()->routeIs('filament.admin.resources.subscribers.*')) {
+            $html .= ClientsDirectoryStyles::html();
+        }
+
+        if (request()->routeIs('filament.admin.resources.products.*')
+            || request()->routeIs('filament.admin.resources.inventory-sales.*')) {
+            $html .= self::linkTag('inventory-hub-pro.css');
         }
 
         foreach (self::stylesheetMap() as $pattern => $files) {

@@ -3,6 +3,7 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Concerns\ChecksIspPermission;
+use App\Filament\Forms\ProductFormSchema;
 use App\Filament\Resources\ProductResource\Pages;
 use App\Models\Product;
 use App\Filament\Support\InventoryWarehouseSelect;
@@ -14,7 +15,9 @@ use Filament\Forms\Get;
 use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Tables;
+use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 
 class ProductResource extends Resource
 {
@@ -34,76 +37,23 @@ class ProductResource extends Resource
 
     public static function form(Form $form): Form
     {
-        return $form->schema([
-            Forms\Components\Section::make('Product')
-                ->schema([
-                    Forms\Components\TextInput::make('sku')->maxLength(64)->unique(ignoreRecord: true),
-                    Forms\Components\TextInput::make('barcode')
-                        ->label('Barcode / EAN')
-                        ->maxLength(64)
-                        ->helperText('Scan at POS or search by barcode.'),
-                    Forms\Components\TextInput::make('name')->required(),
-                    Forms\Components\Textarea::make('description')->rows(3)->columnSpanFull(),
-                    Forms\Components\TextInput::make('unit')->default('pcs'),
-                ])->columns(2),
-            Forms\Components\Section::make('Pricing & margin')
-                ->description('Buy price (cost), sell price, and profit per unit.')
-                ->schema([
-                    Forms\Components\TextInput::make('cost_price')
-                        ->label('Buy / cost price (BDT)')
-                        ->numeric()
-                        ->default(0)
-                        ->live(),
-                    Forms\Components\TextInput::make('sell_price')
-                        ->label('Sell price (BDT)')
-                        ->numeric()
-                        ->default(0)
-                        ->live(),
-                    Forms\Components\Placeholder::make('margin_hint')
-                        ->label('Unit profit')
-                        ->content(function (?Product $record, Forms\Get $get): string {
-                            $cost = (float) ($get('cost_price') ?? $record?->cost_price ?? 0);
-                            $sell = (float) ($get('sell_price') ?? $record?->sell_price ?? 0);
-
-                            return number_format(max(0, $sell - $cost), 2).' BDT';
-                        }),
-                    Forms\Components\TextInput::make('unit_price')
-                        ->label('Legacy unit price')
-                        ->helperText('Used as fallback if cost/sell empty; PO default buy price.')
-                        ->numeric()
-                        ->default(0),
-                    Forms\Components\TextInput::make('last_purchase_cost')
-                        ->label('Last purchase cost')
-                        ->numeric()
-                        ->disabled()
-                        ->dehydrated(false),
-                ])->columns(2),
-            Forms\Components\Section::make('Stock')
-                ->schema([
-                    Forms\Components\TextInput::make('stock_qty')
-                        ->label('Stock on hand')
-                        ->numeric()
-                        ->integer()
-                        ->default(0)
-                        ->disabled()
-                        ->dehydrated(false),
-                    Forms\Components\TextInput::make('reorder_level')
-                        ->numeric()
-                        ->default(0)
-                        ->integer(),
-                    Forms\Components\Toggle::make('is_active')->default(true),
-                    Forms\Components\Toggle::make('show_on_shop')
-                        ->label('Show on public shop')
-                        ->default(false),
-                    Forms\Components\Textarea::make('notes')->columnSpanFull(),
-                ])->columns(2),
-        ]);
+        return ProductFormSchema::configure($form);
     }
 
     public static function table(Table $table): Table
     {
         return $table
             ->columns([
+                Tables\Columns\ImageColumn::make('image_path')
+                    ->label('Photo')
+                    ->disk('public')
+                    ->visibility('public')
+                    ->height(52)
+                    ->width(52)
+                    ->extraImgAttributes(['class' => 'iv-product-thumb'])
+                    ->defaultImageUrl(fn (Product $record): string => 'https://ui-avatars.com/api/?name='
+                        .urlencode(mb_substr((string) $record->name, 0, 2))
+                        .'&background=f97316&color=fff&size=128'),
                 Tables\Columns\TextColumn::make('sku')->fontFamily('mono')->searchable(),
                 Tables\Columns\TextColumn::make('barcode')->fontFamily('mono')->searchable()->toggleable(),
                 Tables\Columns\TextColumn::make('name')->searchable()->wrap(),
@@ -122,6 +72,24 @@ class ProductResource extends Resource
                 Tables\Columns\IconColumn::make('is_active')->boolean(),
             ])
             ->defaultSort('name')
+            ->filters([
+                TernaryFilter::make('show_on_shop')
+                    ->label('Public shop')
+                    ->placeholder('All'),
+                TernaryFilter::make('is_active')
+                    ->label('Active')
+                    ->placeholder('All'),
+                Tables\Filters\Filter::make('low_stock')
+                    ->label('Low stock')
+                    ->query(fn (Builder $query): Builder => $query
+                        ->where('reorder_level', '>', 0)
+                        ->whereColumn('stock_qty', '<=', 'reorder_level')),
+                Tables\Filters\Filter::make('has_image')
+                    ->label('Has photo')
+                    ->query(fn (Builder $query): Builder => $query->whereNotNull('image_path')->where('image_path', '!=', '')),
+            ])
+            ->filtersLayout(Tables\Enums\FiltersLayout::AboveContent)
+            ->persistFiltersInSession(false)
             ->actions([
                 Tables\Actions\EditAction::make(),
                 Tables\Actions\Action::make('adjust_stock')

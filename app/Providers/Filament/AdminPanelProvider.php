@@ -153,13 +153,20 @@ class AdminPanelProvider extends PanelProvider
                         return '';
                     }
 
-                    return view('filament.hooks.command-palette', [
+                    $html = view('filament.hooks.command-palette', [
                         'commandItems' => AdminCommandPalette::items(),
                     ])->render()
                         .'<script src="'.asset('js/admin-sidebar-layout.js').'?v='.(filemtime(public_path('js/admin-sidebar-layout.js')) ?: 1).'" data-cfasync="false"></script>'
                         .'<script src="'.asset('js/mobile-sidebar-fix.js').'?v='.(filemtime(public_path('js/mobile-sidebar-fix.js')) ?: 1).'" data-cfasync="false"></script>'
                         .'<script src="'.asset('js/mobile-dock-pin.js').'?v='.(filemtime(public_path('js/mobile-dock-pin.js')) ?: 1).'" data-cfasync="false" data-navigate-once></script>'
                         .view('filament.hooks.mobile-dock')->render();
+
+                    $user = auth()->user();
+                    if ($user !== null && \App\Support\WebSipFeature::showsLiveCallUi($user)) {
+                        $html .= view('filament.call-center.websip-widget')->render();
+                    }
+
+                    return $html;
                 },
             );
     }

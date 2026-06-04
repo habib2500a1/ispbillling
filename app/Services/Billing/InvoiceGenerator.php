@@ -236,7 +236,8 @@ final class InvoiceGenerator
         $mode = $customer->billing_mode ?? 'postpaid';
 
         if ($mode === 'prepaid' || $mode === 'advance') {
-            $due = $issueReference->copy()->addDays(max(1, $grace))->toDateString();
+            $cap = max(1, (int) config('billing.prepaid_advance_due_days', 3));
+            $due = $issueReference->copy()->addDays(min($cap, max(1, $grace)))->toDateString();
         } else {
             $due = $issueReference->copy()->addDays($grace)->toDateString();
         }

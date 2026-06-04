@@ -8,6 +8,7 @@ use App\Models\VoiceSmsCampaign;
 use App\Models\VoiceTemplate;
 use App\Services\CallCenter\VoiceSmsCampaignRunner;
 use App\Services\Sms\SmsTemplateService;
+use App\Support\TenantResolver;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -23,6 +24,7 @@ class VoiceDeliveryToggleTest extends TestCase
             ['slug' => 'voice-toggle-test'],
             ['name' => 'Voice ISP', 'is_active' => true],
         );
+        TenantResolver::fake($tenant->id);
 
         $voice = VoiceTemplate::query()->create([
             'tenant_id' => $tenant->id,

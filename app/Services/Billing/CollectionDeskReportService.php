@@ -5,6 +5,7 @@ namespace App\Services\Billing;
 use App\Models\CollectorVisit;
 use App\Models\Payment;
 use App\Models\User;
+use App\Services\Collector\CollectorStaffResolver;
 use App\Services\Mobile\StaffBillingKpiResolver;
 use App\Support\PaymentCollectionSource;
 use App\Support\PaymentGateway;
@@ -48,9 +49,9 @@ final class CollectionDeskReportService
         $tenantId = $tenantId ?? TenantResolver::requiredTenantId();
         $from = ($from ?? now())->copy()->startOfDay();
         $to = ($to ?? now())->copy()->endOfDay();
-        $sourceFilter = $sourceFilter ?? (string) config('legacy_portal.collection_report_default_source', 'legacy_portal');
+        $sourceFilter = $sourceFilter ?? 'all';
         if (! in_array($sourceFilter, ['all', 'desk', 'legacy_portal'], true)) {
-            $sourceFilter = 'legacy_portal';
+            $sourceFilter = 'all';
         }
 
         $payments = Payment::query()
@@ -58,8 +59,13 @@ final class CollectionDeskReportService
             ->where('tenant_id', $tenantId)
             ->where('status', 'completed')
             ->whereBetween('paid_at', [$from, $to])
-            ->when($collectorId, fn ($q) => $q->where('recorded_by', $collectorId))
-            ->when($customerId, fn ($q) => $q->where('customer_id', $customerId))
+            ->when($customerId, fn ($q) => $q->where('customer_id', $customerId));
+
+        if ($collectorId !== null && $collectorId > 0) {
+            app(CollectorStaffResolver::class)->scopePaymentsToCollector($payments, $collectorId);
+        }
+
+        $payments = $payments
             ->with([
                 'customer:id,name,customer_code,phone,area_id,service_expires_at,status,network_access_state,radius_username,mikrotik_secret_name',
                 'customer.area:id,name',
@@ -159,11 +165,13 @@ final class CollectionDeskReportService
             $byMethod[$method]['total'] += $amount;
             $byMethod[$method]['count']++;
 
-            $collectorIdRow = $payment->recorded_by ? (int) $payment->recorded_by : null;
+            $collectorIdRow = app(CollectorStaffResolver::class)->resolveCollectorUserIdFromPayment($payment);
             $receivedBy = $this->metaStaffName($meta, 'received_by')
                 ?? $payment->recorder?->name
                 ?? 'Online / gateway';
-            $collectorName = $payment->recorder?->name ?? $receivedBy;
+            $collectorName = $collectorIdRow !== null
+                ? (User::query()->find($collectorIdRow)?->name ?? $payment->recorder?->name ?? $receivedBy)
+                : ($payment->recorder?->name ?? $receivedBy);
             $approvedBy = $this->metaStaffName($meta, 'approved_by')
                 ?? $this->metaStaffName($meta, 'approved_by_name')
                 ?? ($payment->recorder?->name ?? $receivedBy);
@@ -229,6 +237,7 @@ final class CollectionDeskReportService
                 'invoice_number' => $payment->invoice?->invoice_number,
                 'bill_total' => $billTotal,
                 'discount' => $discount,
+                'vat' => 0.0,
                 'balance_due' => $balanceDue,
                 'amount' => $amount,
                 'method' => $method,

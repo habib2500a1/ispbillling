@@ -10,6 +10,7 @@ use App\Services\Billing\CouponApplicator;
 use App\Services\Billing\InvoiceGenerator;
 use App\Services\Billing\PackageChangeQuoteService;
 use App\Services\Billing\PromotionalOfferApplicator;
+use App\Support\TenantResolver;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -24,6 +25,7 @@ class PromotionalOfferBillingTest extends TestCase
             ['slug' => 'promo-direct-test'],
             ['name' => 'Direct ISP', 'is_active' => true],
         );
+        TenantResolver::fake($tenant->id);
 
         $package = Package::query()->create([
             'tenant_id' => $tenant->id,
@@ -115,6 +117,7 @@ class PromotionalOfferBillingTest extends TestCase
             ['slug' => 'promo-bill-test'],
             ['name' => 'Promo ISP', 'is_active' => true],
         );
+        TenantResolver::fake($tenant->id);
 
         $package = Package::query()->create([
             'tenant_id' => $tenant->id,
@@ -168,6 +171,7 @@ class PromotionalOfferBillingTest extends TestCase
             ['slug' => 'promo-coupon-test'],
             ['name' => 'Promo Coupon ISP', 'is_active' => true],
         );
+        TenantResolver::fake($tenant->id);
 
         $package = Package::query()->create([
             'tenant_id' => $tenant->id,

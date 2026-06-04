@@ -2,7 +2,9 @@
 
 namespace App\Filament\Pages;
 
+use App\Filament\Pages\Concerns\ScopesStaffCollectorReports;
 use App\Models\Payment;
+use App\Services\Collector\CollectorStaffResolver;
 use App\Services\Reports\PaymentsReportService;
 use Carbon\Carbon;
 use Filament\Actions\Action;
@@ -18,6 +20,9 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 class PaymentsReport extends Page implements HasTable
 {
     use InteractsWithTable;
+    use ScopesStaffCollectorReports;
+
+    public ?int $collectorId = null;
 
     protected static ?string $navigationIcon = 'heroicon-o-banknotes';
 
@@ -48,6 +53,7 @@ class PaymentsReport extends Page implements HasTable
             $this->gatewayFilter = $gateway;
         }
         $this->mountInteractsWithTable();
+        $this->mountStaffCollectorReportScope();
     }
 
     public static function canAccess(): bool
@@ -72,6 +78,8 @@ class PaymentsReport extends Page implements HasTable
             $this->periodTo(),
             $this->walletFilter,
             $this->gatewayFilter,
+            null,
+            app(CollectorStaffResolver::class)->scopedCollectorIdForReports(),
         );
     }
 
@@ -166,6 +174,8 @@ class PaymentsReport extends Page implements HasTable
             $this->periodTo(),
             $this->walletFilter,
             $this->gatewayFilter,
+            null,
+            app(CollectorStaffResolver::class)->scopedCollectorIdForReports(),
         );
     }
 
@@ -176,6 +186,8 @@ class PaymentsReport extends Page implements HasTable
             $this->periodTo(),
             $this->walletFilter,
             $this->gatewayFilter,
+            null,
+            app(CollectorStaffResolver::class)->scopedCollectorIdForReports(),
         );
 
         $filename = 'payments-report-'.now()->format('Y-m-d-His').'.csv';

@@ -141,6 +141,12 @@ Route::middleware('auth')->get('/admin/invoices/{invoice}/pdf', [InvoicePdfContr
 Route::middleware('auth')->get('/admin/payments/{payment}/receipt', [PaymentReceiptController::class, 'show'])
     ->name('payments.receipt');
 
+Route::middleware('auth')->get('/admin/inventory-sales/{sale}/receipt', [\App\Http\Controllers\InventorySaleReceiptController::class, 'show'])
+    ->name('inventory-sales.receipt');
+
+Route::middleware('auth')->get('/admin/inventory-sales/{sale}/receipt/pdf', [\App\Http\Controllers\InventorySaleReceiptController::class, 'pdf'])
+    ->name('inventory-sales.receipt.pdf');
+
 Route::middleware('auth')->get('/collector', function () {
     return redirect(\App\Filament\Pages\CollectorMobile::getUrl());
 })->name('collector.pwa');

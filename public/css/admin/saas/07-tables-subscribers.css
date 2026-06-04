@@ -2,262 +2,262 @@
  * Aurora ISP admin — Subscriber tables & sticky actions
  * @module admin/saas/07-tables-subscribers.css
  */
-    background: linear-gradient(180deg, rgb(30 41 59) 0%, rgb(17 24 39) 100%);
-    border-color: rgba(148, 163, 184, 0.12);
+    border-radius: var(--isp-radius-lg);
 }
 
-.isp-accounting-quick-btn {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 0.5rem;
-    min-height: 5.5rem;
-    padding: 0.875rem 0.5rem;
-    border-radius: var(--isp-radius);
-    text-align: center;
-    text-decoration: none;
-    border: 1px solid rgba(148, 163, 184, 0.15);
-    background: white;
-    transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+.fi-resource-subscribers .fi-ta-actions-header-cell,
+.fi-resource-subscribers .fi-ta-actions-cell {
+    position: sticky;
+    right: 0;
+    z-index: 3;
+    background: #fff;
+    box-shadow: -4px 0 8px -4px rgba(15, 23, 42, 0.12);
+    min-width: 9.5rem;
 }
 
-.isp-accounting-quick-btn:hover {
-    transform: translateY(-3px);
-    box-shadow: var(--isp-shadow-lg);
+.fi-resource-subscribers .fi-ta-actions {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 0.35rem;
 }
 
-.dark .isp-accounting-quick-btn,
-[data-theme='dark'] .isp-accounting-quick-btn {
-    background: rgb(30 41 59);
-    border-color: rgba(148, 163, 184, 0.12);
+.fi-resource-subscribers .isp-portal-login-col .fi-ta-text-item,
+.fi-resource-subscribers .isp-portal-login-col a {
+    color: rgb(22 163 74) !important;
+    font-weight: 600;
 }
 
-.isp-accounting-quick-btn-icon {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 2.75rem;
-    height: 2.75rem;
-    border-radius: 0.875rem;
+.dark .fi-resource-subscribers .isp-portal-login-col .fi-ta-text-item,
+.dark .fi-resource-subscribers .isp-portal-login-col a,
+[data-theme='dark'] .fi-resource-subscribers .isp-portal-login-col .fi-ta-text-item,
+[data-theme='dark'] .fi-resource-subscribers .isp-portal-login-col a {
+    color: rgb(74 222 128) !important;
 }
 
-
-/* --- 07-tables-subscribers.css --- */
-/**
- * Aurora ISP admin — Subscriber tables & sticky actions
- * @module admin/saas/07-tables-subscribers.css
- */
-.isp-accounting-quick-btn-label {
-    font-size: 0.7rem;
-    font-weight: 700;
-    line-height: 1.2;
-    color: #334155;
-}
-
-.dark .isp-accounting-quick-btn-label,
-[data-theme='dark'] .isp-accounting-quick-btn-label {
-    color: #e2e8f0;
-}
-
-.isp-accounting-quick-btn--emerald .isp-accounting-quick-btn-icon { background: rgba(16, 185, 129, 0.15); color: #059669; }
-.isp-accounting-quick-btn--rose .isp-accounting-quick-btn-icon { background: rgba(244, 63, 94, 0.12); color: #e11d48; }
-.isp-accounting-quick-btn--violet .isp-accounting-quick-btn-icon { background: rgba(124, 58, 237, 0.12); color: #7c3aed; }
-.isp-accounting-quick-btn--amber .isp-accounting-quick-btn-icon { background: rgba(245, 158, 11, 0.15); color: #d97706; }
-.isp-accounting-quick-btn--cyan .isp-accounting-quick-btn-icon { background: rgba(6, 182, 212, 0.15); color: #0891b2; }
-.isp-accounting-quick-btn--indigo .isp-accounting-quick-btn-icon { background: rgba(99, 102, 241, 0.12); color: #4f46e5; }
-
-.isp-accounting-quick-btn--emerald:hover { border-color: rgba(16, 185, 129, 0.4); }
-.isp-accounting-quick-btn--rose:hover { border-color: rgba(244, 63, 94, 0.4); }
-.isp-accounting-quick-btn--violet:hover { border-color: rgba(124, 58, 237, 0.4); }
-.isp-accounting-quick-btn--amber:hover { border-color: rgba(245, 158, 11, 0.4); }
-.isp-accounting-quick-btn--cyan:hover { border-color: rgba(6, 182, 212, 0.4); }
-.isp-accounting-quick-btn--indigo:hover { border-color: rgba(99, 102, 241, 0.4); }
-
-@media (max-width: 640px) {
-    .isp-accounting-hero {
-        padding: 1.25rem;
-    }
-
-    .isp-accounting-section {
-        padding: 1rem;
-    }
-
-    .isp-accounting-quick {
-        padding: 1rem;
-    }
-}
-
-
-/* --- 07-tables-subscribers.css --- */
-/**
- * Aurora ISP admin — Subscriber tables & sticky actions
- * @module admin/saas/07-tables-subscribers.css
- */
-/* RBAC audit timeline */
-.isp-rbac-audit {
-    background: white;
-}
-
-.dark .isp-rbac-audit,
-[data-theme='dark'] .isp-rbac-audit {
+.dark .fi-resource-subscribers .fi-ta-actions-header-cell,
+.dark .fi-resource-subscribers .fi-ta-actions-cell,
+[data-theme='dark'] .fi-resource-subscribers .fi-ta-actions-header-cell,
+[data-theme='dark'] .fi-resource-subscribers .fi-ta-actions-cell {
     background: rgb(17 24 39);
 }
 
-/* Subscribers list — responsive table */
-.fi-resource-subscribers .fi-ta-header-toolbar {
+@media (max-width: 767px) {
+    .fi-resource-subscribers .fi-ta-table {
+        min-width: 36rem;
+    }
+
+    .fi-resource-subscribers .fi-ta-header-cell:first-child,
+    .fi-resource-subscribers .fi-ta-cell:first-child {
+        position: sticky;
+        left: 0;
+        z-index: 2;
+        background: #fff;
+        box-shadow: 4px 0 8px -4px rgba(15, 23, 42, 0.12);
+    }
+
+    .dark .fi-resource-subscribers .fi-ta-header-cell:first-child,
+    .dark .fi-resource-subscribers .fi-ta-cell:first-child,
+    [data-theme='dark'] .fi-resource-subscribers .fi-ta-header-cell:first-child,
+    [data-theme='dark'] .fi-resource-subscribers .fi-ta-cell:first-child {
+        background: rgb(17 24 39);
+    }
+
+    .fi-resource-subscribers .fi-ta-actions {
+        position: sticky;
+        right: 0;
+        background: inherit;
+    }
+}
+
+.fi-resource-subscribers .fi-ta-row {
+    transition: background-color 0.12s ease;
+}
+
+.fi-resource-subscribers .fi-header-widgets {
+    margin-bottom: 0.5rem;
+}
+
+/* Compact dashboard */
+.isp-dashboard-compact .fi-wi-widget {
+    margin-bottom: 0.5rem;
+}
+
+.isp-dashboard-compact .isp-kpi-wall,
+.isp-dashboard-compact .isp-unified-section {
+    padding: 0.75rem 0.9rem;
+}
+
+.isp-dash-strip {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.isp-dash-strip__btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.45rem 0.75rem;
+    border-radius: var(--isp-radius-md);
+    font-size: 0.75rem;
+    font-weight: 600;
+    border: 1px solid rgba(148, 163, 184, 0.3);
+    background: white;
+    color: rgb(51 65 85);
+    text-decoration: none;
+}
+
+.dark .isp-dash-strip__btn {
+    background: rgb(30 41 59);
+    color: rgb(226 232 240);
+}
+
+.isp-dash-strip__btn--noc {
+    background: linear-gradient(135deg, #0e7490, #06b6d4);
+    color: #fff;
+    border-color: transparent;
+}
+
+.isp-dash-strip__btn--muted {
+    opacity: 0.85;
+}
+
+.isp-cmd-panel--wide {
+    max-width: 36rem;
+}
+
+.isp-layout-customizer {
+    border: 1px dashed rgba(148, 163, 184, 0.4);
+    border-radius: var(--isp-radius-lg);
+    padding: 0.75rem 1rem;
+}
+
+.isp-layout-customizer__summary {
+    cursor: pointer;
+    font-size: 0.875rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.isp-layout-check {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.8125rem;
+    padding: 0.35rem;
+}
+
+.isp-topology-widget {
+    border-radius: var(--isp-radius-lg);
+    border: 1px solid rgba(148, 163, 184, 0.25);
+    padding: 1rem;
+    background: rgba(255, 255, 255, 0.9);
+}
+
+.dark .isp-topology-widget {
+    background: rgba(17, 24, 39, 0.85);
+}
+
+.isp-topology-widget__head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 0.75rem;
+}
+
+.isp-topology-widget__chain {
+    display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: 0.65rem;
+    gap: 0.5rem;
 }
 
-.fi-resource-subscribers .fi-ta-header-toolbar .fi-ta-search-field {
-    display: flex !important;
-    position: relative;
-    z-index: 3;
-    pointer-events: auto !important;
-    flex: 1 1 100%;
+.isp-topo-node {
+    padding: 0.4rem 0.65rem;
+    border-radius: var(--isp-radius-md);
+    font-size: 0.75rem;
+    background: rgb(241 245 249);
+}
+
+.isp-topo-node--olt { background: #dbeafe; color: #1e40af; }
+.isp-topo-node--onu { background: #ede9fe; color: #5b21b6; }
+.isp-topo-node--online { background: #d1fae5; color: #047857; }
+
+.isp-topo-arrow { color: rgb(148 163 184); font-weight: 700; }
+
+.isp-ai-rec--high { border-color: rgb(239 68 68); background: rgb(254 242 242); }
+.isp-ai-rec--medium { border-color: rgb(245 158 11); }
+.isp-ai-rec--low { border-color: rgb(148 163 184); }
+
+/* NOC wall (fullscreen) */
+.isp-noc-wall-body {
+    margin: 0;
+    background: #020617;
+    color: #e2e8f0;
+    min-height: 100vh;
+}
+
+.isp-noc-wall {
+    padding: 1.5rem;
+    min-height: 100vh;
+}
+
+.isp-noc-wall__header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.isp-noc-wall__head-copy {
     min-width: 0;
-    max-width: 100%;
+    flex: 1;
 }
 
-.fi-resource-subscribers .fi-ta-header-toolbar .fi-ta-search-field input {
-    min-height: 2.5rem;
-    pointer-events: auto !important;
-}
-
-.fi-resource-subscribers .fi-ta-content {
-    overflow-x: auto;
-    overflow-y: visible;
-    overscroll-behavior-x: contain;
-    -webkit-overflow-scrolling: touch;
-    border-radius: var(--isp-radius-lg);
-    scroll-padding-right: var(--isp-ta-actions-w, 10.5rem);
-}
-
-/* Billing / filtered lists (left, pending, …) — sticky actions rail */
-.fi-resource-subscribers:not(.isp-clients-page) .fi-ta-ctn {
-    overflow: visible !important;
-    backdrop-filter: none !important;
-    -webkit-backdrop-filter: none !important;
-    transform: none !important;
-}
-
-.fi-resource-subscribers:not(.isp-clients-page) .fi-ta-ctn > .fi-ta-header-toolbar,
-.fi-resource-subscribers:not(.isp-clients-page) .fi-ta-ctn > .fi-ta-filters-above-content-ctn,
-.fi-resource-subscribers:not(.isp-clients-page) .fi-ta-ctn > .fi-ta-header-ctn,
-.fi-resource-subscribers:not(.isp-clients-page) .fi-ta-ctn > .fi-ta-pagination {
-    overflow: visible !important;
-}
-
-.fi-resource-subscribers:not(.isp-clients-page) {
-    --isp-ta-actions-w: 10.5rem;
-    --isp-ta-actions-bg: #ffffff;
-    --isp-ta-actions-bg-hover: #f8fafc;
-    --isp-ta-actions-border: rgba(148, 163, 184, 0.32);
-    --isp-ta-actions-shadow: -8px 0 18px -10px rgba(15, 23, 42, 0.22);
-    --isp-ta-actions-muted: #64748b;
-}
-
-.dark .fi-resource-subscribers:not(.isp-clients-page),
-[data-theme='dark'] .fi-resource-subscribers:not(.isp-clients-page) {
-    --isp-ta-actions-bg: rgb(17 24 39);
-    --isp-ta-actions-bg-hover: rgb(30 41 59);
-    --isp-ta-actions-border: rgba(148, 163, 184, 0.14);
-    --isp-ta-actions-shadow: -8px 0 20px -8px rgba(0, 0, 0, 0.65);
-    --isp-ta-actions-muted: #94a3b8;
-}
-
-.fi-resource-subscribers:not(.isp-clients-page) .fi-ta-table {
-    min-width: 52rem;
-    border-collapse: separate;
-    border-spacing: 0;
-}
-
-.fi-resource-subscribers:not(.isp-clients-page) th.fi-ta-actions-header-cell,
-.fi-resource-subscribers:not(.isp-clients-page) th.fi-ta-actions-header-cell.w-1,
-.fi-resource-subscribers:not(.isp-clients-page) td.fi-ta-actions-cell {
-    position: sticky !important;
-    right: 0 !important;
-    z-index: 4;
-    width: var(--isp-ta-actions-w) !important;
-    min-width: var(--isp-ta-actions-w) !important;
-    max-width: var(--isp-ta-actions-w) !important;
-    padding: 0.45rem 0.55rem !important;
-    vertical-align: middle !important;
-    background: var(--isp-ta-actions-bg) !important;
-    border-left: 1px solid var(--isp-ta-actions-border) !important;
-    box-shadow: var(--isp-ta-actions-shadow) !important;
-    box-sizing: border-box !important;
-    isolation: isolate;
-}
-
-.fi-resource-subscribers:not(.isp-clients-page) th.fi-ta-actions-header-cell,
-.fi-resource-subscribers:not(.isp-clients-page) th.fi-ta-actions-header-cell.w-1 {
-    z-index: 6;
-    font-size: 0.62rem !important;
-    font-weight: 700 !important;
-    letter-spacing: 0.07em;
+.isp-noc-wall__eyebrow {
+    margin: 0 0 0.25rem;
+    font-size: 0.72rem;
+    font-weight: 800;
     text-transform: uppercase;
-    color: var(--isp-ta-actions-muted) !important;
-    text-align: center !important;
-    white-space: nowrap;
+    letter-spacing: 0.08em;
+    color: #67e8f9;
 }
 
-.fi-resource-subscribers:not(.isp-clients-page) .fi-ta-row:hover > td.fi-ta-actions-cell {
-    background: var(--isp-ta-actions-bg-hover) !important;
+.isp-noc-wall__header h1 {
+    font-size: 1.5rem;
+    font-weight: 800;
+    flex: 1;
+    margin: 0;
 }
 
-.fi-resource-subscribers:not(.isp-clients-page) td.fi-ta-actions-cell > div {
-    padding: 0 !important;
+.isp-noc-wall__clock {
+    font-family: ui-monospace, monospace;
+    font-size: 1.25rem;
+    color: #22d3ee;
 }
 
-.fi-resource-subscribers:not(.isp-clients-page) .fi-ta-actions-cell .fi-ta-actions,
-.fi-resource-subscribers:not(.isp-clients-page) .fi-ta-actions-header-cell .fi-ta-actions {
-    display: flex !important;
-    flex-direction: row !important;
-    flex-wrap: nowrap !important;
-    align-items: center !important;
-    justify-content: center !important;
-    gap: 0.3rem !important;
-    width: 100% !important;
-    min-width: 0 !important;
-    margin: 0 !important;
-    pointer-events: auto !important;
+.isp-noc-wall__exit {
+    font-size: 0.875rem;
+    color: #94a3b8;
 }
 
-.fi-resource-subscribers:not(.isp-clients-page) .fi-ta-actions-cell .fi-ta-actions > *,
-.fi-resource-subscribers:not(.isp-clients-page) .fi-ta-actions-cell .fi-ta-actions .fi-ac-btn-action,
-.fi-resource-subscribers:not(.isp-clients-page) .fi-ta-actions-cell .fi-ta-actions .fi-icon-btn,
-.fi-resource-subscribers:not(.isp-clients-page) .fi-ta-actions-cell .fi-ta-actions .fi-dropdown,
-.fi-resource-subscribers:not(.isp-clients-page) .fi-ta-actions-cell .fi-ta-actions a,
-.fi-resource-subscribers:not(.isp-clients-page) .fi-ta-actions-cell .fi-ta-actions button {
-    flex: 0 0 auto !important;
-    margin: 0 !important;
-    pointer-events: auto !important;
+.isp-noc-wall__grid {
+    display: grid;
+    gap: 1rem;
+    grid-template-columns: repeat(2, 1fr);
 }
 
-.fi-resource-subscribers:not(.isp-clients-page) .fi-ta-actions-cell .fi-ac-btn-action.fi-icon-btn,
-.fi-resource-subscribers:not(.isp-clients-page) .fi-ta-actions-cell .fi-icon-btn,
-.fi-resource-subscribers:not(.isp-clients-page) .fi-ta-actions-cell .isp-portal-login-btn {
-    width: 2.125rem !important;
-    height: 2.125rem !important;
-    min-width: 2.125rem !important;
-    min-height: 2.125rem !important;
-    padding: 0 !important;
-    border-radius: 0.5rem !important;
+@media (min-width: 1024px) {
+    .isp-noc-wall__grid {
+        grid-template-columns: repeat(4, 1fr);
+    }
 }
 
-.fi-resource-subscribers:not(.isp-clients-page) .fi-ta-actions-cell .fi-ac-btn-action:not(.fi-icon-btn) {
-    display: inline-flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    gap: 0.2rem !important;
-    min-height: 2.125rem !important;
-    padding: 0.3rem 0.45rem !important;
-    border-radius: 0.5rem !important;
-    font-size: 0.68rem !important;
-    font-weight: 600 !important;
-    line-height: 1 !important;
-    white-space: nowrap !important;
-}
+.isp-noc-tile {
+    background: rgba(30, 41, 59, 0.8);
+    border: 1px solid rgba(71, 85, 105, 0.5);
+    border-radius: 1rem;
+    padding: 1.25rem;
+    animation: isp-noc-pulse 3s ease-in-out infinite;

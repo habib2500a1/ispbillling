@@ -22,8 +22,8 @@ class BillingOverviewTest extends TestCase
         Livewire::actingAs($user)
             ->test(BillingOverview::class)
             ->assertSuccessful()
-            ->assertSee('Billing center', false)
+            ->assertSee('Billing Center', false)
             ->assertSee('Invoices', false)
-            ->assertSee('outstanding', false);
+            ->assertSee('Outstanding', false);
     }
 }

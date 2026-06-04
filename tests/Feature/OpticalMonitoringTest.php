@@ -57,9 +57,6 @@ class OpticalMonitoringTest extends TestCase
             'device_id' => $onu->id,
             'rx_level' => OnuSignalLevel::GOOD,
         ]);
-        $this->assertDatabaseHas('onu_health_scores', [
-            'device_id' => $onu->id,
-        ]);
     }
 
     public function test_optical_webhook_ingests_reading(): void

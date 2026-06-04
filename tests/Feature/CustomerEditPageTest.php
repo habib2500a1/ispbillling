@@ -113,6 +113,7 @@ class CustomerEditPageTest extends TestCase
         Livewire::actingAs($user)
             ->test(EditCustomer::class, ['record' => $customer->getRouteKey()])
             ->set('data.name', 'Portal Keep Renamed')
+            ->set('data.address', '123 Test Street, Dhaka')
             ->call('save')
             ->assertHasNoErrors();
 

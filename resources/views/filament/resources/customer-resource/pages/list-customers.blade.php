@@ -1,6 +1,12 @@
 @php
-    $statCards = $this->getStatCards();
-    $tabs = $this->getPresetTabs();
+    $statCards = $this->directoryChromeReady ? $this->directoryStatCards : [];
+    $tabs = $this->directoryChromeReady ? $this->directoryPresetTabs : [
+        ['key' => 'all', 'label' => 'All', 'count' => 0],
+        ['key' => 'online', 'label' => 'Online', 'count' => 0],
+        ['key' => 'offline', 'label' => 'Offline', 'count' => 0],
+        ['key' => 'home', 'label' => 'Home', 'count' => 0],
+        ['key' => 'reseller', 'label' => 'Reseller', 'count' => 0],
+    ];
     $indexUrl = \App\Filament\Resources\CustomerResource::getUrl('index');
     $createUrl = \App\Filament\Resources\CustomerResource::getUrl('create');
     $canExport = \App\Filament\Pages\ExportClientsReport::canAccess();
@@ -8,20 +14,25 @@
     $clDirNameColV = @filemtime(resource_path('views/filament/tables/columns/client-directory-name.blade.php')) ?: time();
 @endphp
 
-{!! \App\Support\ClientsDirectoryStyles::html() !!}
 {!! \App\Support\ClientsDirectoryStyles::navigatedScript() !!}
 
 <x-filament-panels::page class="isp-clients-page">
-    <div class="cl-dir" wire:key="clients-directory-{{ $this->getId() }}-{{ $clDirNameColV }}">
+    <div
+        class="cl-dir"
+        wire:key="clients-directory-{{ $this->getId() }}-{{ $clDirNameColV }}"
+        wire:init="loadDirectoryChrome"
+    >
         <div class="cl-dir-actions no-print">
-            <nav class="cl-dir-tabs" aria-label="Quick presets">
-                @foreach ($tabs as $tab)
-                    <a
-                        href="{{ $indexUrl }}?preset={{ $tab['key'] }}"
-                        @class(['cl-dir-tab', 'cl-dir-tab--active' => $preset === $tab['key']])
-                    >{{ $tab['label'] }} <span class="cl-dir-tab__count">{{ number_format($tab['count']) }}</span></a>
-                @endforeach
-            </nav>
+            @if ($this->getDirectoryPageVariant() === null)
+                <nav class="cl-dir-tabs" aria-label="Quick presets">
+                    @foreach ($tabs as $tab)
+                        <a
+                            href="{{ $indexUrl }}?preset={{ $tab['key'] }}"
+                            @class(['cl-dir-tab', 'cl-dir-tab--active' => ($preset ?? 'all') === $tab['key']])
+                        >{{ $tab['label'] }} <span class="cl-dir-tab__count">{{ number_format($tab['count']) }}</span></a>
+                    @endforeach
+                </nav>
+            @endif
             <div class="cl-dir-actions__right">
                 @foreach ($this->getCachedHeaderActions() as $action)
                     {{ $action }}

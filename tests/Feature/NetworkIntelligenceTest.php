@@ -104,7 +104,7 @@ class NetworkIntelligenceTest extends TestCase
         $this->actingAs($user)
             ->get('/admin/network-intelligence-hub')
             ->assertOk()
-            ->assertSee('Network intelligence', false);
+            ->assertSee('Network center', false);
     }
 
     public function test_process_netflow_inbox_command(): void

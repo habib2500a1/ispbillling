@@ -2,50 +2,6 @@
  * Aurora ISP admin — Dashboard widgets & welcome
  * @module admin/saas/03-dashboard-widgets.css
  */
-
-.fi-sidebar-nav-groups .fi-sidebar-item:not(.fi-active):not(.fi-sidebar-item-active) > .fi-sidebar-item-button {
-    background: transparent !important;
-    box-shadow: none !important;
-}
-
-.fi-sidebar-group.fi-active > .fi-sidebar-group-button {
-    background: transparent !important;
-    box-shadow: none !important;
-}
-
-.fi-sidebar-group:has(> .fi-sidebar-group-items > li.fi-sidebar-item.fi-active) > .fi-sidebar-group-button .fi-sidebar-group-label {
-    color: rgba(94, 234, 212, 0.95) !important;
-}
-
-.fi-sidebar .fi-sidebar-item-icon,
-
-/* --- 03-dashboard-widgets.css --- */
-/**
- * Aurora ISP admin — Dashboard widgets & welcome
- * @module admin/saas/03-dashboard-widgets.css
- */
-.fi-sidebar .fi-sidebar-item-label {
-    color: inherit !important;
-}
-
-.fi-topbar {
-    backdrop-filter: blur(12px);
-    background: var(--isp-glass) !important;
-    border-bottom: 1px solid rgba(148, 163, 184, 0.12) !important;
-}
-
-.fi-main {
-    background: var(--isp-surface) !important;
-    color: var(--isp-text) !important;
-    min-height: 50vh;
-}
-
-
-/* --- 03-dashboard-widgets.css --- */
-/**
- * Aurora ISP admin — Dashboard widgets & welcome
- * @module admin/saas/03-dashboard-widgets.css
- */
 /* Prevent blank/black main panel when Livewire navigation is slow */
 .fi-main .fi-page,
 .fi-main .fi-ta,
@@ -890,7 +846,7 @@ a.isp-lifecycle-card:hover {
     }
 }
 
-/* Split auth login (unique Aurora palette) */
+/* Split auth login (ISP Digital–style layout, unique Aurora palette) */
 .isp-auth-split {
     display: grid;
     min-height: 100vh;
@@ -1047,3 +1003,47 @@ a.isp-lifecycle-card:hover {
 }
 
 .isp-hub-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+}
+
+.isp-hub-toolbar__meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.isp-hub-results {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.38rem 0.7rem;
+    border-radius: 9999px;
+    background: rgba(13, 148, 136, 0.08);
+    color: var(--isp-primary-dark);
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+}
+
+.isp-hub-empty {
+    margin-top: 0.8rem;
+    padding: 0.85rem 1rem;
+    border-radius: 0.9rem;
+    border: 1px dashed rgba(148, 163, 184, 0.3);
+    background: rgba(248, 250, 252, 0.9);
+    font-size: 0.82rem;
+    color: rgb(100 116 139);
+}
+
+.dark .isp-hub-empty,
+[data-theme='dark'] .isp-hub-empty {
+    background: rgba(15, 23, 42, 0.55);
+    border-color: rgba(148, 163, 184, 0.25);
+    color: rgba(226, 232, 240, 0.7);
+}
+

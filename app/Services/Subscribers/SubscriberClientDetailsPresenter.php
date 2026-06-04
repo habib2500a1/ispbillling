@@ -69,7 +69,7 @@ final class SubscriberClientDetailsPresenter
 
         $openBalance = (float) $customer->invoices()
             ->whereIn('status', ['open', 'partial', 'sent', 'overdue'])
-            ->selectRaw('COALESCE(SUM(GREATEST(total - amount_paid, 0)), 0) as open_balance')
+            ->selectRaw(\App\Support\CustomerBalanceDue::sumOpenInvoiceBalanceSelect('open_balance'))
             ->value('open_balance');
 
         $lastPayment = Payment::query()

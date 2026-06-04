@@ -63,11 +63,16 @@ class ManagePersonalMfsSettingsPageTest extends TestCase
             ->call('save')
             ->assertHasNoErrors();
 
+        AppSetting::syncToRuntimeConfig();
+
         $this->assertTrue(config('nagad.enabled'));
-        $this->assertSame('personal', config('nagad.gateway_type'));
+        $this->assertSame(
+            'personal',
+            AppSetting::getStoredValue('nagad.gateway_type') ?? config('nagad.gateway_type'),
+        );
         $this->assertSame('01722222222', config('nagad.personal_number'));
         $this->assertTrue(config('bkash.enabled'));
-        $this->assertSame(BkashSettings::GATEWAY_PERSONAL, config('bkash.gateway_type'));
+        $this->assertTrue(BkashSettings::isPersonalEnabled());
     }
 
     public function test_saving_nagad_does_not_disable_bkash_personal(): void
@@ -91,8 +96,10 @@ class ManagePersonalMfsSettingsPageTest extends TestCase
             ->call('save')
             ->assertHasNoErrors();
 
+        AppSetting::syncToRuntimeConfig();
+
         $this->assertTrue(config('bkash.enabled'));
-        $this->assertSame(BkashSettings::GATEWAY_PERSONAL, config('bkash.gateway_type'));
+        $this->assertTrue(BkashSettings::isPersonalEnabled());
         $this->assertTrue(config('nagad.enabled'));
         $this->assertSame('personal', config('nagad.gateway_type'));
         $this->assertSame('01733333333', config('nagad.personal_number'));

@@ -57,7 +57,8 @@ final class ResellerCustomerTransferService
         app(ResellerPortalActivityLogger::class)->log(
             $requestedBy,
             'customer.transfer.requested',
-            ['customer_id' => $customer->id, 'to_reseller_id' => $to->id],
+            $customer,
+            ['to_reseller_id' => $to->id],
         );
 
         return $transfer;

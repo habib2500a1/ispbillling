@@ -49,6 +49,7 @@ class WebSipFeatureTest extends TestCase
         $this->assertFalse(WebSipFeature::isEnabledForUser($user));
 
         CallCenterSetting::query()
+            ->withoutGlobalScopes()
             ->where('tenant_id', $tenant->id)
             ->update(['websip_enabled' => true]);
 

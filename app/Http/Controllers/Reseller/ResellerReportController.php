@@ -34,7 +34,8 @@ class ResellerReportController extends Controller
         $dueTotal = $customerIds->isEmpty() ? 0.0 : (float) Invoice::query()
             ->whereIn('customer_id', $customerIds)
             ->whereIn('status', ['open', 'partial'])
-            ->sum(\Illuminate\Support\Facades\DB::raw('GREATEST(0, total - amount_paid)'));
+            ->selectRaw(\App\Support\CustomerBalanceDue::sumOpenInvoiceBalanceSelect('due'))
+            ->value('due');
 
         return view('reseller.reports.index', [
             'reseller' => $reseller,

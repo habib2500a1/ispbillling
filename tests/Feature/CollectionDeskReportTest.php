@@ -46,7 +46,7 @@ class CollectionDeskReportTest extends TestCase
             'reference' => 'CASH-001',
         ]);
 
-        $report = app(CollectionDeskReportService::class)->report(now(), now(), $collector->id);
+        $report = app(CollectionDeskReportService::class)->report(now(), now(), $collector->id, null, null, null, 'all');
 
         $this->assertSame(1, $report['count']);
         $this->assertSame('Karim Collector', $report['rows'][0]['collector_name']);
@@ -93,7 +93,7 @@ class CollectionDeskReportTest extends TestCase
             ]);
         }
 
-        $report = app(CollectionDeskReportService::class)->report(now(), now(), null, 'alpha');
+        $report = app(CollectionDeskReportService::class)->report(now(), now(), null, 'alpha', null, null, 'all');
 
         $this->assertSame(1, $report['count']);
         $this->assertSame('Alpha User', $report['rows'][0]['customer_name']);

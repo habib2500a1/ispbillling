@@ -3,19 +3,16 @@
 namespace App\Filament\Resources\CustomerResource\Pages;
 
 use App\Filament\Resources\CustomerResource;
+use App\Filament\Resources\CustomerResource\Pages\Concerns\UsesClientsDirectoryLayout;
 use App\Models\Package;
-use App\Services\Clients\ClientsDashboardService;
 use App\Services\Import\IspDigitalCurrentBillingSyncService;
-use App\Services\Mobile\StaffBillingKpiResolver;
 use App\Services\Import\IspDigitalPriceSyncService;
 use App\Services\Import\IspDigitalSessionClient;
-use App\Support\CustomerBalanceDue;
 use App\Support\CustomerStatus;
 use App\Support\TenantResolver;
 use Filament\Actions;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\ListRecords;
-use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Cache;
 use Livewire\Attributes\Url;
@@ -23,6 +20,8 @@ use Throwable;
 
 class ListCustomers extends ListRecords
 {
+    use UsesClientsDirectoryLayout;
+
     protected static string $resource = CustomerResource::class;
 
     protected static string $view = 'filament.resources.customer-resource.pages.list-customers';
@@ -46,31 +45,6 @@ class ListCustomers extends ListRecords
     }
 
     /**
-     * @return array<string, int|float>
-     */
-    public function getClientStats(): array
-    {
-        return app(ClientsDashboardService::class)->summary();
-    }
-
-    /**
-     * @return array{total: int, active: int, inactive: int, due_clients: int, total_due: float}
-     */
-    public function getDirectoryStats(): array
-    {
-        $stats = $this->getClientStats();
-        $tenantId = TenantResolver::requiredTenantId();
-
-        return [
-            'total' => (int) ($stats['total'] ?? 0),
-            'active' => (int) ($stats['active'] ?? 0),
-            'inactive' => max(0, (int) ($stats['total'] ?? 0) - (int) ($stats['active'] ?? 0)),
-            'due_clients' => app(StaffBillingKpiResolver::class)->dueClientsCount($tenantId),
-            'total_due' => CustomerBalanceDue::tenantOpenInvoiceDueSum($tenantId),
-        ];
-    }
-
-    /**
      * @return list<array{key: string, label: string, count: int}>
      */
     public function getPresetTabs(): array
@@ -86,64 +60,9 @@ class ListCustomers extends ListRecords
         ];
     }
 
-    /**
-     * @return list<array{label: string, value: string, hint: string, tone: string, icon: string}>
-     */
-    public function getStatCards(): array
-    {
-        $stats = $this->getDirectoryStats();
-
-        return [
-            [
-                'label' => 'Total clients',
-                'value' => number_format($stats['total']),
-                'hint' => 'All time clients',
-                'tone' => 'violet',
-                'icon' => 'heroicon-o-user-group',
-            ],
-            [
-                'label' => 'Active clients',
-                'value' => number_format($stats['active']),
-                'hint' => 'Currently active',
-                'tone' => 'emerald',
-                'icon' => 'heroicon-o-check-circle',
-            ],
-            [
-                'label' => 'Inactive clients',
-                'value' => number_format($stats['inactive']),
-                'hint' => 'Not active',
-                'tone' => 'amber',
-                'icon' => 'heroicon-o-user-minus',
-            ],
-            [
-                'label' => 'Due clients',
-                'value' => number_format($stats['due_clients']),
-                'hint' => 'Have pending dues',
-                'tone' => 'rose',
-                'icon' => 'heroicon-o-exclamation-circle',
-            ],
-            [
-                'label' => 'Total due',
-                'value' => 'BDT '.number_format($stats['total_due'], 2),
-                'hint' => 'From due clients',
-                'tone' => 'sky',
-                'icon' => 'heroicon-o-banknotes',
-            ],
-        ];
-    }
-
-    public function table(Table $table): Table
-    {
-        return CustomerResource::clientsDirectoryTable($table);
-    }
-
     protected function getTableQuery(): ?Builder
     {
-        $query = parent::getTableQuery();
-
-        if ($query === null) {
-            return null;
-        }
+        $query = CustomerResource::clientsDirectoryEloquentQuery();
 
         $tenantId = \App\Support\TenantResolver::requiredTenantId();
         $bandwidth = app(\App\Services\Bandwidth\BandwidthCollectionService::class);

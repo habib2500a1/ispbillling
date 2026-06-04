@@ -44,22 +44,11 @@ trait AssignsCollectorOnPayment
 
     protected function resolveCollectorIdForPayment(): int
     {
-        $resolver = app(CollectorStaffResolver::class);
+        $requested = $this->collectorUserId !== null && $this->collectorUserId !== ''
+            ? (int) $this->collectorUserId
+            : null;
 
-        if (! $resolver->canPickCollector()) {
-            return $resolver->defaultCollectorId();
-        }
-
-        $collectorId = (int) ($this->collectorUserId ?? 0);
-        $options = $resolver->collectableStaffOptions();
-
-        if ($collectorId < 1 || ! array_key_exists($collectorId, $options)) {
-            throw \Illuminate\Validation\ValidationException::withMessages([
-                'collectorUserId' => 'Select which staff member receives credit for this collection.',
-            ]);
-        }
-
-        return $collectorId;
+        return app(CollectorStaffResolver::class)->requireSelfCollectorId($requested);
     }
 
     /**

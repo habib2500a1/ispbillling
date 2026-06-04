@@ -943,35 +943,20 @@ class CustomerResource extends Resource
             Tables\Filters\SelectFilter::make('package_id')
                 ->label('Package')
                 ->placeholder('All packages')
-                ->options(fn (): array => Package::query()
-                    ->where('tenant_id', $tenantId)
-                    ->orderBy('name')
-                    ->pluck('name', 'id')
-                    ->all())
+                ->options(fn (): array => static::cachedClientsFilterPackages($tenantId))
                 ->searchable()
-                ->preload()
                 ->native(false),
             Tables\Filters\SelectFilter::make('zone_id')
                 ->label('Zone')
                 ->placeholder('All zones')
-                ->options(fn (): array => Zone::query()
-                    ->where('tenant_id', $tenantId)
-                    ->orderBy('name')
-                    ->pluck('name', 'id')
-                    ->all())
+                ->options(fn (): array => static::cachedClientsFilterZones($tenantId))
                 ->searchable()
-                ->preload()
                 ->native(false),
             Tables\Filters\SelectFilter::make('reseller_id')
                 ->label('Owner')
                 ->placeholder('All owners')
-                ->options(fn (): array => Reseller::query()
-                    ->where('is_active', true)
-                    ->orderBy('name')
-                    ->pluck('name', 'id')
-                    ->all())
+                ->options(fn (): array => static::cachedClientsFilterResellers())
                 ->searchable()
-                ->preload()
                 ->native(false),
             Tables\Filters\SelectFilter::make('status')
                 ->label('Account status')
@@ -1030,25 +1015,81 @@ class CustomerResource extends Resource
         ];
     }
 
+    /**
+     * @return array<int|string, string>
+     */
+    protected static function cachedClientsFilterPackages(int $tenantId): array
+    {
+        return Cache::remember(
+            'clients_filter_packages:'.$tenantId,
+            300,
+            fn (): array => Package::query()
+                ->where('tenant_id', $tenantId)
+                ->orderBy('name')
+                ->pluck('name', 'id')
+                ->all(),
+        );
+    }
+
+    /**
+     * @return array<int|string, string>
+     */
+    protected static function cachedClientsFilterZones(int $tenantId): array
+    {
+        return Cache::remember(
+            'clients_filter_zones:'.$tenantId,
+            300,
+            fn (): array => Zone::query()
+                ->where('tenant_id', $tenantId)
+                ->orderBy('name')
+                ->pluck('name', 'id')
+                ->all(),
+        );
+    }
+
+    /**
+     * @return array<int|string, string>
+     */
+    protected static function cachedClientsFilterResellers(): array
+    {
+        return Cache::remember(
+            'clients_filter_resellers:global',
+            300,
+            fn (): array => Reseller::query()
+                ->where('is_active', true)
+                ->orderBy('name')
+                ->pluck('name', 'id')
+                ->all(),
+        );
+    }
+
+    /**
+     * Lightweight list query for /admin/subscribers directory (no ONU/devices/due subqueries unless due/vip).
+     */
+    public static function clientsDirectoryEloquentQuery(?string $variant = null): Builder
+    {
+        $billingList = in_array($variant, ['due', 'vip'], true);
+
+        $query = parent::getEloquentQuery()
+            ->with([
+                'zone:id,name',
+                'package:id,name,download_mbps,price_monthly',
+                'reseller:id,name',
+            ]);
+
+        if ($billingList) {
+            CustomerBalanceDue::augmentTableQuery($query);
+        }
+
+        return $query;
+    }
+
     public static function clientsDirectoryTable(Table $table, ?string $variant = null): Table
     {
         $billingList = in_array($variant, ['due', 'vip'], true);
         $duePage = $variant === 'due';
 
         return $table
-            ->modifyQueryUsing(function (Builder $query) use ($billingList): Builder {
-                $query->with([
-                    'zone:id,name',
-                    'package:id,name,download_mbps,price_monthly',
-                    'reseller:id,name',
-                ]);
-
-                if ($billingList) {
-                    CustomerBalanceDue::augmentTableQuery($query);
-                }
-
-                return $query;
-            })
             ->columns(static::clientsDirectoryColumns($billingList))
             ->actions($billingList ? static::clientsDirectoryDueActions() : static::clientsDirectoryActions())
             ->bulkActions([
@@ -1088,8 +1129,7 @@ class CustomerResource extends Resource
             ->filters(static::clientsDirectoryFilters())
             ->filtersLayout(FiltersLayout::AboveContent)
             ->filtersFormColumns(['default' => 2, 'sm' => 3, 'lg' => 6])
-            ->deferFilters(false)
-            ->deferLoading();
+            ->deferFilters(true);
     }
 
     protected static function portalLoginTableAction(): Tables\Actions\Action
@@ -1126,10 +1166,11 @@ class CustomerResource extends Resource
                 ->sortable()
                 ->extraHeaderAttributes(['class' => 'cl-dir-col-name'])
                 ->extraCellAttributes(['class' => 'cl-dir-col-name']),
-            Tables\Columns\ViewColumn::make('phone')
+            Tables\Columns\TextColumn::make('phone')
                 ->label('Phone')
-                ->view('filament.tables.columns.client-directory-phone')
                 ->searchable()
+                ->fontFamily('mono')
+                ->placeholder('—')
                 ->extraHeaderAttributes(['class' => 'cl-dir-col-phone'])
                 ->extraCellAttributes(['class' => 'cl-dir-col-phone']),
             Tables\Columns\TextColumn::make('address')
@@ -1189,6 +1230,18 @@ class CustomerResource extends Resource
                     SyncCustomerNetworkAccessJob::dispatch((int) $record->tenant_id, (int) $record->id)->afterResponse();
                 })
                 ->disabled(fn (Customer $record): bool => $record->status === CustomerStatus::TERMINATED),
+            ...($billingList ? static::clientsDirectoryBillingColumns() : []),
+        ];
+    }
+
+    /**
+     * Due/VIP lists only — avoids per-row session/invoice queries on the main directory.
+     *
+     * @return array<int, Tables\Columns\Column>
+     */
+    protected static function clientsDirectoryBillingColumns(): array
+    {
+        return [
             Tables\Columns\TextColumn::make('resolved_balance_due')
                 ->label('Balance due')
                 ->formatStateUsing(fn ($state, Customer $record): float => CustomerBalanceDue::displayAmount($record))
@@ -1197,18 +1250,15 @@ class CustomerResource extends Resource
                 ->alignEnd()
                 ->weight(FontWeight::Bold)
                 ->color(fn ($state, Customer $record): ?string => CustomerBalanceDue::displayAmount($record) > 0.009 ? 'danger' : 'success')
-                ->toggleable(isToggledHiddenByDefault: ! $billingList)
                 ->extraHeaderAttributes(['class' => 'cl-dir-col-due'])
                 ->extraCellAttributes(['class' => 'cl-dir-col-due']),
             Tables\Columns\IconColumn::make('is_ppp_online')
                 ->label('Online')
                 ->boolean()
-                ->state(fn (Customer $record): bool => $record->isPppOnline())
                 ->trueIcon('heroicon-o-signal')
                 ->falseIcon('heroicon-o-signal-slash')
                 ->trueColor('success')
-                ->falseColor('gray')
-                ->toggleable(isToggledHiddenByDefault: true),
+                ->falseColor('gray'),
         ];
     }
 

@@ -2,10 +2,12 @@
 
 namespace Tests\Feature;
 
+use App\Models\CallCenterSetting;
 use App\Models\CallLog;
 use App\Models\Customer;
 use App\Models\Tenant;
 use App\Models\User;
+use App\Support\TenantResolver;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
@@ -19,8 +21,14 @@ class WebSipCallLogTest extends TestCase
         Role::findOrCreate('isp-admin');
 
         $tenant = Tenant::query()->firstOrCreate(
-            ['slug' => 'websip-log-test'],
-            ['name' => 'WebSIP Log ISP', 'is_active' => true],
+            ['slug' => 'default'],
+            ['name' => 'Default ISP', 'is_active' => true],
+        );
+        TenantResolver::fake($tenant->id);
+
+        CallCenterSetting::query()->withoutGlobalScopes()->updateOrCreate(
+            ['tenant_id' => $tenant->id],
+            ['websip_enabled' => true, 'sip_domain' => 'sip.test.local'],
         );
 
         $user = User::factory()->create(['tenant_id' => $tenant->id]);
@@ -35,7 +43,7 @@ class WebSipCallLogTest extends TestCase
             'billing_day' => 1,
         ]);
 
-        config(['call_center.websip_enabled' => true]);
+        config(['call_center.enabled' => true, 'call_center.websip_enabled' => true]);
 
         $this->actingAs($user)
             ->postJson('/admin/websip/call-log', [
@@ -62,14 +70,20 @@ class WebSipCallLogTest extends TestCase
         Role::findOrCreate('isp-admin');
 
         $tenant = Tenant::query()->firstOrCreate(
-            ['slug' => 'websip-dedup'],
-            ['name' => 'Dedup ISP', 'is_active' => true],
+            ['slug' => 'default'],
+            ['name' => 'Default ISP', 'is_active' => true],
+        );
+        TenantResolver::fake($tenant->id);
+
+        CallCenterSetting::query()->withoutGlobalScopes()->updateOrCreate(
+            ['tenant_id' => $tenant->id],
+            ['websip_enabled' => true, 'sip_domain' => 'sip.test.local'],
         );
 
         $user = User::factory()->create(['tenant_id' => $tenant->id]);
         $user->assignRole('isp-admin');
 
-        config(['call_center.websip_enabled' => true]);
+        config(['call_center.enabled' => true, 'call_center.websip_enabled' => true]);
 
         $payload = [
             'phone' => '01710001122',

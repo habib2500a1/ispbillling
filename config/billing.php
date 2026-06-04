@@ -45,6 +45,11 @@ return [
     'default_grace_period_days' => (int) env('BILLING_DEFAULT_GRACE_DAYS', 0),
 
     /**
+     * Prepaid / advance invoices: due date is issue date + min(this cap, subscriber grace).
+     */
+    'prepaid_advance_due_days' => (int) env('BILLING_PREPAID_ADVANCE_DUE_DAYS', 3),
+
+    /**
      * How service_expires_at is extended when a bill is fully paid.
      * smart = within late_grace_days after expire use previous date, else payment date;
      * from_payment_date = always from pay date; from_previous_expiry = always from old expire date.

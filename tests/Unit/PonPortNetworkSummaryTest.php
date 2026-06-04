@@ -35,6 +35,7 @@ class PonPortNetworkSummaryTest extends TestCase
         $customer = Customer::query()->create([
             'tenant_id' => 1,
             'name' => 'Test User',
+            'phone' => '01710000001',
             'status' => 'active',
             'meta' => ['vlan' => '200', 'epon_port' => 'EPON0/4:1'],
         ]);
@@ -94,6 +95,7 @@ class PonPortNetworkSummaryTest extends TestCase
         $customer = Customer::query()->create([
             'tenant_id' => 1,
             'name' => 'PPP User',
+            'phone' => '01710000002',
             'status' => 'active',
             'meta' => [
                 'vlan' => '517',
@@ -160,6 +162,7 @@ class PonPortNetworkSummaryTest extends TestCase
             $customer = Customer::query()->create([
                 'tenant_id' => 1,
                 'name' => 'User '.$i,
+                'phone' => '0171000'.str_pad((string) $i, 4, '0', STR_PAD_LEFT),
                 'status' => 'active',
                 'meta' => ['vlan' => $data['vlan'], 'mikrotik_interface' => $data['iface']],
             ]);

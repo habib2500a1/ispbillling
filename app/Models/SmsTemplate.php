@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Models\Concerns\BelongsToTenant;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Facades\DB;
 
 class SmsTemplate extends Model
 {
@@ -48,7 +49,12 @@ class SmsTemplate extends Model
             ->where(function ($q) use ($key): void {
                 $q->where('key', $key)->orWhere('event_key', $key);
             })
-            ->orderByRaw('CASE WHEN `key` = ? THEN 0 ELSE 1 END', [$key])
+            ->orderByRaw(
+                DB::connection()->getDriverName() === 'pgsql'
+                    ? 'CASE WHEN "key" = ? THEN 0 ELSE 1 END'
+                    : 'CASE WHEN `key` = ? THEN 0 ELSE 1 END',
+                [$key],
+            )
             ->orderByDesc('id')
             ->first();
     }

@@ -54,29 +54,35 @@ final class LegacyPortalDashboardSummaryProvider
         }
 
         $lockKey = "legacy_portal:billing_summary_refresh:{$tenantId}";
+        $cached = $this->readCache($tenantId);
+        $lock = Cache::lock($lockKey, 120);
 
-        return Cache::lock($lockKey, 120)->block(5, function () use ($tenantId, $password): ?array {
-            $cached = $this->readCache($tenantId);
+        // Do not block() — concurrent dashboard loads caused LockTimeoutException → admin 500.
+        if (! $lock->get()) {
+            return $cached;
+        }
+
+        try {
             if ($cached !== null && $this->isFresh($cached)) {
                 return $cached;
             }
 
-            try {
-                $client = new LegacyPortalSessionClient(
-                    (string) config('legacy_portal.base_url'),
-                    (string) config('legacy_portal.username'),
-                    $password,
-                );
-                $client->login();
-                $summary = $client->fetchBillingListOtherData();
-                $this->writeCache($tenantId, $summary);
-                BillingMetricsCache::flush($tenantId);
+            $client = new LegacyPortalSessionClient(
+                (string) config('legacy_portal.base_url'),
+                (string) config('legacy_portal.username'),
+                $password,
+            );
+            $client->login();
+            $summary = $client->fetchBillingListOtherData();
+            $this->writeCache($tenantId, $summary);
+            BillingMetricsCache::flush($tenantId);
 
-                return $this->readCache($tenantId);
-            } catch (Throwable) {
-                return $cached;
-            }
-        });
+            return $this->readCache($tenantId);
+        } catch (Throwable) {
+            return $cached;
+        } finally {
+            $lock->release();
+        }
     }
 
     /**
