@@ -176,6 +176,8 @@ Enable `api_access_enabled` on the reseller. Create keys via portal or `POST /ap
 
 Read-only integration: `GET /api/v1/reseller/*` with `rsk_` keys (same shapes as Sanctum). Legacy alias `/api/v1/reseller/partner/*` remains. POST/PATCH/DELETE require Sanctum.
 
+OpenAPI: `/docs/reseller-openapi.yaml` · Swagger UI: `/docs/reseller-api.html`
+
 ```http
 Authorization: Bearer rsk_xxxxxxxx
 ```

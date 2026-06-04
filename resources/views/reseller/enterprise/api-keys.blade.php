@@ -12,7 +12,7 @@
 
     @include('reseller.partials.page-header', [
         'title' => 'API keys',
-        'subtitle' => 'Integrations use read-only GET /api/v1/reseller/* (or legacy /partner/*) with Bearer rsk_… keys. Writes need a Sanctum token.',
+        'subtitle' => 'Read-only GET /api/v1/reseller/* with Bearer rsk_… keys. Writes need Sanctum. API reference: /docs/reseller-api.html',
     ])
 
     <div class="rsl-panel rsl-panel-pad">

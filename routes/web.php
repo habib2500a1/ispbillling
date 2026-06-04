@@ -535,3 +535,17 @@ Route::get('/', function () {
 
 Route::redirect('/app', \App\Support\MobileAppLinks::downloadUrl());
 Route::get('/mobile-app', fn () => redirect(\App\Support\MobileAppLinks::downloadUrl()))->name('mobile.app');
+
+Route::get('/docs/reseller-openapi.yaml', function () {
+    $path = public_path('docs/reseller-openapi.yaml');
+    abort_unless(is_file($path), 404);
+
+    return response()->file($path, ['Content-Type' => 'application/yaml']);
+})->name('docs.reseller-openapi');
+
+Route::get('/docs/reseller-api.html', function () {
+    $path = public_path('docs/reseller-api.html');
+    abort_unless(is_file($path), 404);
+
+    return response()->file($path, ['Content-Type' => 'text/html; charset=UTF-8']);
+})->name('docs.reseller-api');

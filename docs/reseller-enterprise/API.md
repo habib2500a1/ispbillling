@@ -1,5 +1,7 @@
 # Reseller Enterprise — API
 
+**OpenAPI 3:** [`/docs/reseller-openapi.yaml`](/docs/reseller-openapi.yaml) · interactive UI [`/docs/reseller-api.html`](/docs/reseller-api.html)
+
 ## Sanctum partner API (existing)
 
 Base: `POST /api/v1/reseller/login` → Bearer token.

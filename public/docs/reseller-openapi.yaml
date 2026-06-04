@@ -1,0 +1,761 @@
+openapi: 3.0.3
+info:
+  title: ISP Platform — Reseller Partner API
+  version: 1.0.0
+  description: |
+    Enterprise reseller API for mobile apps (Sanctum) and integrations (read-only `rsk_` API keys).
+
+    - **Base path:** `/api/v1/reseller`
+    - **Legacy read alias:** `/api/v1/reseller/partner` (same GET handlers)
+    - **Account flag:** `api_access_enabled` must be true for API keys
+    - **Permissions:** `portal.*` constants; scoped keys use optional `abilities` array
+
+servers:
+  - url: https://{host}/api/v1
+    variables:
+      host:
+        default: your-domain.example
+        description: Tenant deployment hostname
+
+tags:
+  - name: Auth
+  - name: Read (Sanctum or API key)
+  - name: Write (Sanctum only)
+  - name: API keys (Sanctum only)
+
+security:
+  - sanctumBearer: []
+  - apiKeyBearer: []
+  - apiKeyHeader: []
+
+paths:
+  /reseller/login:
+    post:
+      tags: [Auth]
+      summary: Login (owner or staff)
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Bearer token issued
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+  /reseller/logout:
+    post:
+      tags: [Auth]
+      summary: Revoke current Sanctum token
+      security:
+        - sanctumBearer: []
+      responses:
+        '200':
+          description: Logged out
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+
+  /reseller/me:
+    get:
+      tags: [Read (Sanctum or API key)]
+      summary: Current actor and permissions
+      x-permission: none
+      responses:
+        '200':
+          description: Profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MeResponse'
+
+  /reseller/dashboard:
+    get:
+      tags: [Read (Sanctum or API key)]
+      summary: Dashboard metrics
+      x-permission: none
+      responses:
+        '200':
+          description: Metrics, charts, recent activity
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+
+  /reseller/customers:
+    get:
+      tags: [Read (Sanctum or API key)]
+      summary: List subscribers
+      x-permission: portal.customer.view
+      responses:
+        '200':
+          description: Customer list
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+    post:
+      tags: [Write (Sanctum only)]
+      summary: Create subscriber
+      x-permission: portal.customer.create
+      x-api-key: forbidden
+      responses:
+        '201':
+          description: Created
+        '405':
+          $ref: '#/components/responses/ApiKeyReadOnly'
+
+  /reseller/customers/{customer}:
+    parameters:
+      - $ref: '#/components/parameters/customerId'
+    get:
+      tags: [Read (Sanctum or API key)]
+      summary: Subscriber detail
+      x-permission: portal.customer.view
+      responses:
+        '200':
+          description: Customer
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+    patch:
+      tags: [Write (Sanctum only)]
+      summary: Update subscriber
+      x-permission: portal.customer.edit
+      x-api-key: forbidden
+      responses:
+        '200':
+          description: Updated
+        '405':
+          $ref: '#/components/responses/ApiKeyReadOnly'
+
+  /reseller/wallet:
+    get:
+      tags: [Read (Sanctum or API key)]
+      summary: Wallet statement
+      x-permission: portal.wallet.view
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+
+  /reseller/wallet/overview:
+    get:
+      tags: [Read (Sanctum or API key)]
+      summary: Wallet overview (quota, frozen, recent tx)
+      x-permission: portal.wallet.view
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+
+  /reseller/commissions:
+    get:
+      tags: [Read (Sanctum or API key)]
+      summary: Commission ledger
+      x-permission: portal.commission.view
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+
+  /reseller/settlements:
+    get:
+      tags: [Read (Sanctum or API key)]
+      summary: Settlement requests
+      x-permission: portal.settlement.manage
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+    post:
+      tags: [Write (Sanctum only)]
+      summary: Create settlement request
+      x-permission: portal.settlement.manage
+      x-api-key: forbidden
+      responses:
+        '201':
+          description: Created
+        '405':
+          $ref: '#/components/responses/ApiKeyReadOnly'
+
+  /reseller/invoices:
+    get:
+      tags: [Read (Sanctum or API key)]
+      summary: Invoice list
+      x-permission: portal.billing.view
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+
+  /reseller/tickets:
+    get:
+      tags: [Read (Sanctum or API key)]
+      summary: Support tickets
+      x-permission: portal.ticket.create
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+    post:
+      tags: [Write (Sanctum only)]
+      summary: Open ticket
+      x-permission: portal.ticket.create
+      x-api-key: forbidden
+      responses:
+        '201':
+          description: Created
+        '405':
+          $ref: '#/components/responses/ApiKeyReadOnly'
+
+  /reseller/network:
+    get:
+      tags: [Read (Sanctum or API key)]
+      summary: Network / online subscribers
+      x-permission: portal.network.view
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+
+  /reseller/onu:
+    get:
+      tags: [Read (Sanctum or API key)]
+      summary: ONU / GPON status list
+      x-permission: portal.onu.view
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+
+  /reseller/reports/summary:
+    get:
+      tags: [Read (Sanctum or API key)]
+      summary: Reports summary
+      x-permission: portal.reports.view
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+
+  /reseller/reports/enterprise:
+    get:
+      tags: [Read (Sanctum or API key)]
+      summary: Enterprise report pack
+      x-permission: portal.reports.view
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+
+  /reseller/activity:
+    get:
+      tags: [Read (Sanctum or API key)]
+      summary: Portal activity log
+      x-permission: portal.reports.view
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+
+  /reseller/sub-resellers:
+    get:
+      tags: [Read (Sanctum or API key)]
+      summary: Sub-partners
+      x-permission: portal.sub_reseller.view
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  partners:
+                    type: array
+                    items:
+                      type: object
+                      additionalProperties: true
+    post:
+      tags: [Write (Sanctum only)]
+      summary: Create sub-partner
+      x-permission: portal.sub_reseller.create
+      x-api-key: forbidden
+      responses:
+        '201':
+          description: Created
+        '405':
+          $ref: '#/components/responses/ApiKeyReadOnly'
+
+  /reseller/sub-resellers/{child}:
+    parameters:
+      - $ref: '#/components/parameters/childId'
+    get:
+      tags: [Read (Sanctum or API key)]
+      summary: Sub-partner detail
+      x-permission: portal.sub_reseller.view
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+
+  /reseller/customer-transfers:
+    get:
+      tags: [Read (Sanctum or API key)]
+      summary: Transfer history
+      x-permission: portal.customer.transfer
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+
+  /reseller/announcements:
+    get:
+      tags: [Read (Sanctum or API key)]
+      summary: HQ announcements
+      x-permission: portal.announcements.view
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  announcements:
+                    type: array
+                    items:
+                      type: object
+                      additionalProperties: true
+
+  /reseller/due-account:
+    get:
+      tags: [Read (Sanctum or API key)]
+      summary: Reseller billing / due account
+      x-permission: portal.reseller_billing.view
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  summary:
+                    type: object
+                    additionalProperties: true
+                  customer_breakdown:
+                    type: array
+                    items:
+                      type: object
+                      additionalProperties: true
+                  aging:
+                    type: object
+                    additionalProperties: true
+
+  /reseller/notifications:
+    get:
+      tags: [Read (Sanctum or API key)]
+      summary: Notifications
+      x-permission: none
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+
+  /reseller/internal-tickets:
+    get:
+      tags: [Read (Sanctum or API key)]
+      summary: Internal HQ tickets
+      x-permission: portal.internal_ticket.manage
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  tickets:
+                    type: array
+                    items:
+                      type: object
+                      additionalProperties: true
+    post:
+      tags: [Write (Sanctum only)]
+      summary: Open internal ticket
+      x-permission: portal.internal_ticket.manage
+      x-api-key: forbidden
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [subject, body]
+              properties:
+                subject:
+                  type: string
+                body:
+                  type: string
+      responses:
+        '201':
+          description: Created
+        '405':
+          $ref: '#/components/responses/ApiKeyReadOnly'
+
+  /reseller/staff:
+    get:
+      tags: [Write (Sanctum only)]
+      summary: List staff accounts
+      x-permission: portal.staff.manage
+      x-api-key: forbidden
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+    post:
+      tags: [Write (Sanctum only)]
+      summary: Create staff
+      x-permission: portal.staff.manage
+      x-api-key: forbidden
+      responses:
+        '201':
+          description: Created
+        '405':
+          $ref: '#/components/responses/ApiKeyReadOnly'
+
+  /reseller/api-keys:
+    get:
+      tags: [API keys (Sanctum only)]
+      summary: List API keys (metadata only)
+      x-permission: portal.api_keys.manage
+      x-api-key: forbidden
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  keys:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ApiKeyMeta'
+    post:
+      tags: [API keys (Sanctum only)]
+      summary: Create API key
+      x-permission: portal.api_keys.manage
+      x-api-key: forbidden
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ApiKeyCreateRequest'
+      responses:
+        '201':
+          description: Key created (plain key shown once)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  key:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                      name:
+                        type: string
+                      key_prefix:
+                        type: string
+                      plain_key:
+                        type: string
+                        description: Store immediately; not retrievable later
+
+  /reseller/api-keys/{apiKey}:
+    parameters:
+      - $ref: '#/components/parameters/apiKeyId'
+    delete:
+      tags: [API keys (Sanctum only)]
+      summary: Revoke API key
+      x-permission: portal.api_keys.manage
+      x-api-key: forbidden
+      responses:
+        '200':
+          description: Revoked
+
+  /reseller/partner/{path}:
+    get:
+      tags: [Read (Sanctum or API key)]
+      summary: Legacy alias (same as /reseller/{path})
+      description: |
+        Deprecated prefix. Prefer `/reseller/dashboard`, `/reseller/customers`, etc.
+        Supported paths mirror shared read routes (dashboard, wallet, customers, …).
+      parameters:
+        - name: path
+          in: path
+          required: true
+          schema:
+            type: string
+          examples:
+            dashboard:
+              value: dashboard
+            customers:
+              value: customers
+      responses:
+        '200':
+          description: Same response as canonical `/reseller/*` GET
+
+components:
+  securitySchemes:
+    sanctumBearer:
+      type: http
+      scheme: bearer
+      description: Token from `POST /reseller/login` (mobile / write access)
+    apiKeyBearer:
+      type: http
+      scheme: bearer
+      description: Partner key `rsk_…` (read-only GET)
+    apiKeyHeader:
+      type: apiKey
+      in: header
+      name: X-Reseller-Api-Key
+      description: Alternative to Bearer for `rsk_…` keys
+
+  parameters:
+    customerId:
+      name: customer
+      in: path
+      required: true
+      schema:
+        type: integer
+    childId:
+      name: child
+      in: path
+      required: true
+      schema:
+        type: integer
+    apiKeyId:
+      name: apiKey
+      in: path
+      required: true
+      schema:
+        type: integer
+
+  schemas:
+    LoginRequest:
+      type: object
+      required: [login, password]
+      properties:
+        login:
+          type: string
+          description: Reseller code or staff login id
+        password:
+          type: string
+        device_name:
+          type: string
+        two_factor_code:
+          type: string
+
+    LoginResponse:
+      type: object
+      properties:
+        token:
+          type: string
+        token_type:
+          type: string
+          example: Bearer
+        auth_mode:
+          type: string
+          example: sanctum
+        actor_type:
+          type: string
+          enum: [owner, staff]
+        permissions:
+          type: array
+          items:
+            type: string
+        reseller:
+          type: object
+          additionalProperties: true
+
+    MeResponse:
+      type: object
+      properties:
+        reseller:
+          type: object
+          additionalProperties: true
+        actor:
+          type: object
+          properties:
+            type:
+              type: string
+              enum: [owner, staff]
+            name:
+              type: string
+            staff_id:
+              type: integer
+              nullable: true
+        permissions:
+          type: array
+          items:
+            type: string
+
+    ApiKeyCreateRequest:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          maxLength: 128
+        abilities:
+          type: array
+          description: Empty = full read scope. Subset of assignable portal permissions.
+          items:
+            $ref: '#/components/schemas/ApiKeyAbility'
+
+    ApiKeyAbility:
+      type: string
+      enum:
+        - portal.customer.view
+        - portal.billing.view
+        - portal.commission.view
+        - portal.wallet.view
+        - portal.settlement.manage
+        - portal.ticket.create
+        - portal.onu.view
+        - portal.network.view
+        - portal.reports.view
+        - portal.sub_reseller.view
+        - portal.customer.transfer
+        - portal.reseller_billing.view
+        - portal.announcements.view
+
+    ApiKeyMeta:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        key_prefix:
+          type: string
+        abilities:
+          type: array
+          items:
+            type: string
+          nullable: true
+        is_active:
+          type: boolean
+        last_used_at:
+          type: string
+          format: date-time
+          nullable: true
+
+    Error:
+      type: object
+      properties:
+        message:
+          type: string
+        permission:
+          type: string
+        label:
+          type: string
+
+  responses:
+    Unauthorized:
+      description: Missing or invalid credentials
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    Forbidden:
+      description: Permission denied or API disabled
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    ApiKeyReadOnly:
+      description: API keys cannot mutate resources
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              message:
+                type: string
+                example: API keys are read-only. Use a Sanctum token for write operations.
+    RateLimited:
+      description: Per-key or account rate limit exceeded
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    ValidationError:
+      description: Validation failed
+      content:
+        application/json:
+          schema:
+            type: object
+            additionalProperties: true
