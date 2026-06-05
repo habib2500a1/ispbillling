@@ -81,9 +81,11 @@ App → **Domains** tab → **Add domain**
 | Field | Value |
 |-------|-------|
 | Domain | `billing.yourisp.com` |
-| Service | `nginx` |
-| Port | `80` (container port; direct test: `http://<server-ip>:8023`) |
+| Service | `nginx` (**not** `app`) |
+| Port | `80` = container ভিতরের port (**8023 নয়**) |
 | HTTPS | ✅ Enable |
+
+> **গুরুত্বপূর্ণ:** Domains tab এ `80` দিলে error হলে `docker-compose.yml` এ `80:80` করা আছে কিনা দেখুন — host port **80** Caddy/NextDeploy ইতিমধ্যে ব্যবহার করে, তাই nginx mapping **`8023:80`** থাকতে হবে। Domains tab শুধু **container port 80** বোঝায়।
 
 DNS: domain এর A record → server IP
 
@@ -201,7 +203,8 @@ CSS বদলালে: `docker compose -f deploy/docker-compose.yml --profile s
 
 | সমস্যা | সমাধান |
 |--------|--------|
-| 502 Bad Gateway | Containers tab — `app` + `nginx` **Running**? App **Logs** দেখুন (php-fpm start হয়েছে?)। Terminal → `nginx` container: `wget -qO- http://127.0.0.1/` বা app logs। **Redeploy with rebuild** |
+| 502 Bad Gateway | Domains: `nginx` + port `80` (not `app:8023`). Containers — `app` + `nginx` Running? **Redeploy with rebuild** |
+| Port 80 / deploy bind error | `docker-compose.yml` এ nginx ports **`8023:80`** রাখুন — **`80:80` করবেন না** (Caddy host 80 নেয়) |
 | Database error | `DB_HOST=postgres` (127.0.0.1 নয়) |
 | `password authentication failed for user "isp_app"` | Environment: `POSTGRES_USER=isp`, `DB_USERNAME=isp_app`, passwords same → **Redeploy** (rebuilds app image). অথবা Volumes → `pgdata` delete → fresh deploy |
 | CSS/JS নেই | `--profile setup run --rm assets` |
