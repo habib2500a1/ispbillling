@@ -201,7 +201,7 @@ CSS বদলালে: `docker compose -f deploy/docker-compose.yml --profile s
 
 | সমস্যা | সমাধান |
 |--------|--------|
-| 502 Bad Gateway | Containers tab — `app` + `nginx` running? Redeploy |
+| 502 Bad Gateway | Containers tab — `app` + `nginx` **Running**? App **Logs** দেখুন (php-fpm start হয়েছে?)। Terminal → `nginx` container: `wget -qO- http://127.0.0.1/` বা app logs। **Redeploy with rebuild** |
 | Database error | `DB_HOST=postgres` (127.0.0.1 নয়) |
 | `password authentication failed for user "isp_app"` | Environment: `POSTGRES_USER=isp`, `DB_USERNAME=isp_app`, passwords same → **Redeploy** (rebuilds app image). অথবা Volumes → `pgdata` delete → fresh deploy |
 | CSS/JS নেই | `--profile setup run --rm assets` |

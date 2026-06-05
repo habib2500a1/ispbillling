@@ -1,6 +1,5 @@
 #!/bin/sh
 # Ensure Laravel DB_USERNAME exists in PostgreSQL (fixes isp vs isp_app mismatch on existing volumes).
-set -e
 
 DB_USER="${DB_USERNAME:-isp}"
 DB_PASS="${DB_PASSWORD:-}"
@@ -16,6 +15,11 @@ fi
 
 if [ "$DB_USER" = "$PG_SUPER" ]; then
   echo "[entrypoint] DB_USERNAME matches POSTGRES_USER ($DB_USER)"
+  exit 0
+fi
+
+if ! command -v psql >/dev/null 2>&1; then
+  echo "[entrypoint] psql not installed — rebuild app image (deploy/Dockerfile)"
   exit 0
 fi
 
@@ -44,7 +48,7 @@ fi
 
 ESCAPED_PASS=$(printf '%s' "$DB_PASS" | sed "s/'/''/g")
 
-PGPASSWORD="$PG_PASS" psql -h "$PG_HOST" -U "$PG_SUPER" -d "$DB_NAME" -v ON_ERROR_STOP=1 <<-EOSQL
+if ! PGPASSWORD="$PG_PASS" psql -h "$PG_HOST" -U "$PG_SUPER" -d "$DB_NAME" -v ON_ERROR_STOP=1 <<-EOSQL
 DO \$\$
 BEGIN
   IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = '$DB_USER') THEN
@@ -59,5 +63,9 @@ GRANT ALL ON SCHEMA public TO $DB_USER;
 ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO $DB_USER;
 ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO $DB_USER;
 EOSQL
+then
+  echo "[entrypoint] WARNING: could not bootstrap PostgreSQL role $DB_USER"
+  exit 0
+fi
 
 echo "[entrypoint] PostgreSQL role ready: $DB_USER"
