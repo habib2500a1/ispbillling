@@ -14,7 +14,7 @@ use App\Services\BillPayment\PaymentLinkService;
 use App\Support\OpticalCustomerSync;
 use App\Services\Optical\CustomerOnuAutoProvisionService;
 use App\Services\Optical\CustomerOnuMatcher;
-use App\Services\Optical\IspDigitalOnuPipelineService;
+use App\Services\Optical\LegacyPortalOnuPipelineService;
 use App\Services\Optical\CustomerOnuSmartLinkService;
 use App\Services\Import\IspDigitalCustomerDetailsSyncService;
 use App\Services\Optical\OnuSignalCollectionService;
@@ -163,7 +163,7 @@ class ViewCustomer extends ViewRecord
 
         $force = false;
         if ($onu === null) {
-            $force = ! app(IspDigitalOnuPipelineService::class)
+            $force = ! app(LegacyPortalOnuPipelineService::class)
                 ->tenantInventoryFresh((int) $customer->tenant_id);
         }
 
@@ -543,7 +543,7 @@ class ViewCustomer extends ViewRecord
                     }
 
                     try {
-                        $onu = app(IspDigitalOnuPipelineService::class)
+                        $onu = app(LegacyPortalOnuPipelineService::class)
                             ->syncAndLinkCustomer($record->fresh(), true);
                         if ($onu !== null) {
                             Notification::make()
