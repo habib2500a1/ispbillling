@@ -7,6 +7,7 @@ services:
     build:
       context: .
       dockerfile: deploy/Dockerfile
+    restart: unless-stopped
     volumes:
       - .:/var/www/html
     depends_on:
@@ -52,6 +53,7 @@ services:
     build:
       context: .
       dockerfile: deploy/Dockerfile
+    restart: unless-stopped
     command: php artisan horizon
     volumes:
       - .:/var/www/html
@@ -70,6 +72,7 @@ services:
     build:
       context: .
       dockerfile: deploy/Dockerfile
+    restart: unless-stopped
     command: sh -c "while true; do php artisan schedule:run --no-interaction; sleep 60; done"
     volumes:
       - .:/var/www/html
