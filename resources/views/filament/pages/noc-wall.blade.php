@@ -24,6 +24,35 @@
         ];
     }
 
+    $telemetry = $n['access_telemetry'] ?? ['current' => [], 'trend' => ['labels' => [], 'ping_loss_percent' => [], 'pon_module_temp_c' => [], 'sfp_temp_c' => []], 'sfp_is_fallback' => true];
+    $telemetryCurrent = $telemetry['current'] ?? [];
+    $telemetryTrend = $telemetry['trend'] ?? ['labels' => [], 'ping_loss_percent' => [], 'pon_module_temp_c' => [], 'sfp_temp_c' => []];
+    $ponTrendPeak = max(array_map(static fn ($value) => is_numeric($value) ? (float) $value : 0.0, $telemetryTrend['pon_module_temp_c'] ?? []) ?: [80]);
+    $sfpTrendPeak = max(array_map(static fn ($value) => is_numeric($value) ? (float) $value : 0.0, $telemetryTrend['sfp_temp_c'] ?? []) ?: [80]);
+    $telemetryPoints = [];
+    $telemetryCount = max(
+        count($telemetryTrend['labels'] ?? []),
+        count($telemetryTrend['ping_loss_percent'] ?? []),
+        count($telemetryTrend['pon_module_temp_c'] ?? []),
+        count($telemetryTrend['sfp_temp_c'] ?? []),
+    );
+
+    for ($i = 0; $i < $telemetryCount; $i++) {
+        $pingValue = (float) ($telemetryTrend['ping_loss_percent'][$i] ?? 0);
+        $ponValue = $telemetryTrend['pon_module_temp_c'][$i] ?? null;
+        $sfpValue = $telemetryTrend['sfp_temp_c'][$i] ?? null;
+
+        $telemetryPoints[] = [
+            'label' => $telemetryTrend['labels'][$i] ?? '',
+            'ping' => $pingValue,
+            'pon' => $ponValue,
+            'sfp' => $sfpValue,
+            'ping_height' => max(10, (int) round(min(100, $pingValue))),
+            'pon_height' => $ponValue !== null ? max(10, (int) round((((float) $ponValue) / max(1, $ponTrendPeak)) * 100)) : 8,
+            'sfp_height' => $sfpValue !== null ? max(10, (int) round((((float) $sfpValue) / max(1, $sfpTrendPeak)) * 100)) : 8,
+        ];
+    }
+
     $topCards = [
         ['label' => 'PPPoE online', 'value' => $fmt($n['online_now'] ?? 0), 'hint' => 'Active subscriber sessions', 'tone' => 'cyan'],
         ['label' => 'User down', 'value' => $fmt($n['user_down'] ?? 0), 'hint' => 'Active subscribers currently offline', 'tone' => 'orange'],
@@ -57,22 +86,56 @@
     $activeOutages = $n['active_outages']['items'] ?? [];
     $activeOutageCount = $n['active_outages']['count'] ?? 0;
     $criticalOnuList = $n['critical_onu_list'] ?? [];
+    $topImpact = $n['top_impact'] ?? [];
+    $hotPonPorts = $n['hot_pon_ports'] ?? [];
+    $oltReachability = $n['olt_reachability'] ?? [];
     $customerIndexUrl = \App\Filament\Resources\CustomerResource::getUrl('index');
     $ticketIndexUrl = \App\Filament\Resources\SupportTicketResource::getUrl('index');
+    $ticketCreateUrl = \App\Filament\Resources\SupportTicketResource::getUrl('create');
     $outageIndexUrl = \App\Filament\Resources\OutageResource::getUrl('index');
     $zoneIndexUrl = \App\Filament\Resources\ZoneResource::getUrl('index');
     $oltIndexUrl = \App\Filament\Resources\OltResource::getUrl('index');
+    $opticalHubUrl = \App\Filament\Pages\OpticalMonitoringHub::getUrl();
     $filteredCustomerUrl = static function (array $filters) use ($customerIndexUrl): string {
         return $customerIndexUrl.'?'.http_build_query(['tableFilters' => $filters]);
     };
+    $topImpactUrl = static function (array $item) use ($customerIndexUrl, $filteredCustomerUrl): string {
+        return match ($item['type'] ?? '') {
+            'zone' => ! empty($item['id']) ? $filteredCustomerUrl(['zone_id' => ['value' => $item['id']]]) : $customerIndexUrl,
+            'area' => ! empty($item['id']) ? $filteredCustomerUrl(['area_id' => ['value' => $item['id']]]) : $customerIndexUrl,
+            'olt' => ! empty($item['id']) ? \App\Filament\Resources\OltResource::getUrl('edit', ['record' => $item['id']]) : \App\Filament\Resources\OltResource::getUrl('index'),
+            'pon' => ! empty($item['olt_id']) ? \App\Filament\Resources\OltResource::getUrl('edit', ['record' => $item['olt_id']]) : \App\Filament\Resources\OltResource::getUrl('index'),
+            default => $customerIndexUrl,
+        };
+    };
+    $incidentActions = [
+        ['url' => $customerIndexUrl, 'eyebrow' => 'Subscribers', 'title' => 'Open impacted subscribers', 'meta' => 'Review down users, due status and service health'],
+        ['url' => $ticketCreateUrl, 'eyebrow' => 'Ticket', 'title' => 'Create incident ticket', 'meta' => 'Open a support case for outage, link or auth issue'],
+        ['url' => $outageIndexUrl, 'eyebrow' => 'Outage', 'title' => 'Open outage command desk', 'meta' => 'Track active incident and post field updates'],
+        ['url' => $zoneIndexUrl, 'eyebrow' => 'Zone', 'title' => 'Review hotspot zones', 'meta' => 'See which area and zone are currently hit most'],
+        ['url' => $oltIndexUrl, 'eyebrow' => 'OLT Core', 'title' => 'Start OLT recovery flow', 'meta' => 'Inspect chassis, links, load and degraded ports'],
+        ['url' => $opticalHubUrl, 'eyebrow' => 'Optical', 'title' => 'Open optical monitoring', 'meta' => 'Trace critical ONU, temp and fiber health live'],
+    ];
+
+    $companyName = $this->companyName();
+    $companyLogo = $this->companyLogoUrl();
+    $companyInitial = $this->companyInitial();
 @endphp
 
 <div class="isp-noc-wall" wire:poll.15s id="isp-noc-wall">
-    <header class="isp-noc-wall__header" style="display:flex;justify-content:space-between;align-items:flex-start;gap:1rem;border-bottom:1px solid rgba(255,255,255,.08);padding-bottom:1rem;margin-bottom:1rem;">
-        <div>
-            <p style="color:#22d3ee;font-weight:700;letter-spacing:.14em;text-transform:uppercase;font-size:.72rem;margin:0 0 .35rem;">Global Operations Center</p>
-            <h1 style="font-size:2rem;font-weight:800;color:#fff;line-height:1.1;margin:0;">{{ config('isp.company_name') }} · <span style="color:#a78bfa;">Live NOC Command Center</span></h1>
-            <p style="margin:.45rem 0 0;color:#94a3b8;font-size:.9rem;">Realtime bandwidth, subscriber impact, OLT health, ONU signal, outage heatmap and support pressure.</p>
+    <header class="isp-noc-wall__header isp-noc-wall__header--hero" wire:key="noc-brand-{{ md5($companyName.'|'.($companyLogo ?? '')) }}">
+        <div class="isp-noc-wall__brand">
+            @if ($companyLogo)
+                <img src="{{ $companyLogo }}" alt="" class="isp-noc-wall__brand-logo" loading="eager" />
+            @else
+                <span class="isp-noc-wall__brand-mark" aria-hidden="true">{{ $companyInitial }}</span>
+            @endif
+            <div class="isp-noc-wall__head-copy">
+                <p class="isp-noc-wall__company-name">{{ $companyName }}</p>
+                <p class="isp-noc-wall__eyebrow">Global Operations Center</p>
+                <h1><span class="isp-noc-wall__title-accent">Live NOC Command Center</span></h1>
+                <p class="isp-noc-wall__subtitle">Realtime bandwidth, subscriber impact, OLT health, ONU signal, outage heatmap and support pressure.</p>
+            </div>
         </div>
         <div style="display:flex;gap:1rem;align-items:center;flex-wrap:wrap;justify-content:flex-end;">
             <div style="display:flex;align-items:center;gap:.5rem;background:rgba(34,197,94,.12);border:1px solid rgba(34,197,94,.25);padding:.55rem .85rem;border-radius:.9rem;color:#86efac;">
@@ -88,42 +151,25 @@
         <div>
             <div class="noc-hero-banner__eyebrow">NOC UI BUILD</div>
             <h2 class="noc-hero-banner__title">Nationwide Incident Console</h2>
-            <p class="noc-hero-banner__copy">Live graph, zone impact radar, area heatmap, outage drilldown, clickable down users and ONU details are active on this wall.</p>
+            <p class="noc-hero-banner__copy">Live graph, ping loss, PON module temperature, SFP temperature, zone impact radar, outage drilldown and clickable recovery actions are active on this wall.</p>
         </div>
         <div class="noc-hero-banner__chips">
             <span class="noc-hero-banner__chip">Zone Heatmap</span>
             <span class="noc-hero-banner__chip">Area Drilldown</span>
             <span class="noc-hero-banner__chip">Critical ONU</span>
+            <span class="noc-hero-banner__chip">Ping Loss</span>
             <span class="noc-hero-banner__chip">Ops Shortcuts</span>
         </div>
     </section>
 
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:.85rem;margin-bottom:1rem;">
-        <a href="{{ $customerIndexUrl }}" class="noc-action-card">
-            <span class="noc-action-card__eyebrow">Subscribers</span>
-            <span class="noc-action-card__title">Open live subscriber list</span>
-            <span class="noc-action-card__meta">Drill into down users and service status</span>
-        </a>
-        <a href="{{ $ticketIndexUrl }}" class="noc-action-card">
-            <span class="noc-action-card__eyebrow">Support</span>
-            <span class="noc-action-card__title">Open ticket command desk</span>
-            <span class="noc-action-card__meta">Check SLA, assign and resolve incidents</span>
-        </a>
-        <a href="{{ $outageIndexUrl }}" class="noc-action-card">
-            <span class="noc-action-card__eyebrow">Outages</span>
-            <span class="noc-action-card__title">Manage outage log</span>
-            <span class="noc-action-card__meta">Track area-level incidents and updates</span>
-        </a>
-        <a href="{{ $zoneIndexUrl }}" class="noc-action-card">
-            <span class="noc-action-card__eyebrow">Zones</span>
-            <span class="noc-action-card__title">Open zone management</span>
-            <span class="noc-action-card__meta">Check impact by geography and branch</span>
-        </a>
-        <a href="{{ $oltIndexUrl }}" class="noc-action-card">
-            <span class="noc-action-card__eyebrow">OLT Core</span>
-            <span class="noc-action-card__title">Inspect OLT inventory</span>
-            <span class="noc-action-card__meta">Review ports, load and optical health</span>
-        </a>
+        @foreach ($incidentActions as $action)
+            <a href="{{ $action['url'] }}" class="noc-action-card">
+                <span class="noc-action-card__eyebrow">{{ $action['eyebrow'] }}</span>
+                <span class="noc-action-card__title">{{ $action['title'] }}</span>
+                <span class="noc-action-card__meta">{{ $action['meta'] }}</span>
+            </a>
+        @endforeach
     </div>
 
     @if ($alertCards !== [])
@@ -151,6 +197,149 @@
                 </div>
             </section>
         @endforeach
+    </div>
+
+    <div style="display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr);gap:1rem;margin-bottom:1rem;">
+        <section style="background:rgba(15,23,42,.72);border:1px solid rgba(34,211,238,.22);border-radius:1rem;padding:1.1rem 1.2rem;">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:1rem;flex-wrap:wrap;">
+                <div>
+                    <h2 style="margin:0;color:#fff;font-size:1.05rem;">Access Telemetry</h2>
+                    <p style="margin:.3rem 0 0;color:#94a3b8;font-size:.84rem;">Live ping-loss proxy, PON module temperature and SFP temperature graph.</p>
+                </div>
+                <div style="background:rgba(248,113,113,.1);border:1px solid rgba(248,113,113,.22);padding:.5rem .75rem;border-radius:.8rem;color:#fca5a5;font-size:.78rem;font-weight:700;">
+                    {{ $fmt($telemetryCurrent['ping_loss_devices'] ?? 0) }}/{{ $fmt($telemetryCurrent['olt_reachability_total'] ?? 0) }} OLT unreachable
+                </div>
+            </div>
+
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:.75rem;margin-top:1rem;">
+                <div class="noc-metric-mini noc-metric-mini--red">
+                    <div class="noc-metric-mini__label">Ping Loss</div>
+                    <div class="noc-metric-mini__value">{{ $fmt($telemetryCurrent['ping_loss_percent'] ?? 0, 1) }}%</div>
+                    <div class="noc-metric-mini__meta">Mgmt reachability risk</div>
+                </div>
+                <div class="noc-metric-mini noc-metric-mini--cyan">
+                    <div class="noc-metric-mini__label">PON Avg Temp</div>
+                    <div class="noc-metric-mini__value">{{ ($telemetryCurrent['pon_module_avg_temp_c'] ?? null) !== null ? $fmt($telemetryCurrent['pon_module_avg_temp_c'], 1).'°C' : '—' }}</div>
+                    <div class="noc-metric-mini__meta">Latest ONU optical sample</div>
+                </div>
+                <div class="noc-metric-mini noc-metric-mini--violet">
+                    <div class="noc-metric-mini__label">SFP Avg Temp</div>
+                    <div class="noc-metric-mini__value">{{ ($telemetryCurrent['sfp_avg_temp_c'] ?? null) !== null ? $fmt($telemetryCurrent['sfp_avg_temp_c'], 1).'°C' : '—' }}</div>
+                    <div class="noc-metric-mini__meta">{{ ($telemetry['sfp_is_fallback'] ?? false) ? 'Uses chassis temp fallback' : 'Explicit transceiver telemetry' }}</div>
+                </div>
+                <div class="noc-metric-mini noc-metric-mini--amber">
+                    <div class="noc-metric-mini__label">Peak Temp</div>
+                    <div class="noc-metric-mini__value">
+                        {{ ($telemetryCurrent['pon_module_max_temp_c'] ?? null) !== null ? $fmt($telemetryCurrent['pon_module_max_temp_c'], 1).'°C' : '—' }}
+                        /
+                        {{ ($telemetryCurrent['sfp_max_temp_c'] ?? null) !== null ? $fmt($telemetryCurrent['sfp_max_temp_c'], 1).'°C' : '—' }}
+                    </div>
+                    <div class="noc-metric-mini__meta">PON / SFP max</div>
+                </div>
+            </div>
+
+            <div style="margin-top:1rem;height:215px;padding:.8rem .5rem .3rem;border-radius:1rem;background:rgba(0,0,0,.18);display:flex;align-items:flex-end;gap:8px;overflow:hidden;">
+                @forelse ($telemetryPoints as $point)
+                    <div class="noc-telemetry-point" title="{{ $point['label'] }} | Ping {{ $fmt($point['ping'], 1) }}% | PON {{ $point['pon'] !== null ? $fmt($point['pon'], 1).'°C' : '—' }} | SFP {{ $point['sfp'] !== null ? $fmt($point['sfp'], 1).'°C' : '—' }}">
+                        <div class="noc-telemetry-point__bars">
+                            <span class="noc-telemetry-bar noc-telemetry-bar--red" data-height="{{ $point['ping_height'] }}"></span>
+                            <span class="noc-telemetry-bar noc-telemetry-bar--cyan" data-height="{{ $point['pon_height'] }}"></span>
+                            <span class="noc-telemetry-bar noc-telemetry-bar--violet" data-height="{{ $point['sfp_height'] }}"></span>
+                        </div>
+                        <div class="noc-telemetry-point__label">{{ $point['label'] }}</div>
+                    </div>
+                @empty
+                    <div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:#94a3b8;font-size:.95rem;background:rgba(0,0,0,.2);border-radius:1rem;">No telemetry history yet</div>
+                @endforelse
+            </div>
+
+            <div style="display:flex;gap:1rem;flex-wrap:wrap;margin-top:.8rem;color:#94a3b8;font-size:.76rem;">
+                <span style="display:inline-flex;align-items:center;gap:.35rem;"><span class="noc-legend-dot noc-legend-dot--red"></span> Ping loss %</span>
+                <span style="display:inline-flex;align-items:center;gap:.35rem;"><span class="noc-legend-dot noc-legend-dot--cyan"></span> PON module temp</span>
+                <span style="display:inline-flex;align-items:center;gap:.35rem;"><span class="noc-legend-dot noc-legend-dot--violet"></span> SFP temp</span>
+            </div>
+        </section>
+
+        <section style="background:rgba(15,23,42,.72);border:1px solid rgba(129,140,248,.22);border-radius:1rem;padding:1.1rem 1.2rem;display:flex;flex-direction:column;gap:1rem;">
+            <div>
+                <h2 style="margin:0;color:#fff;font-size:1.05rem;">Top Impact Ranking</h2>
+                <p style="margin:.3rem 0 0;color:#94a3b8;font-size:.84rem;">Fastest path to the biggest subscriber impact right now.</p>
+            </div>
+
+            <div style="display:flex;flex-direction:column;gap:.6rem;">
+                @forelse ($topImpact as $impact)
+                    <a href="{{ $topImpactUrl($impact) }}" class="noc-impact-row">
+                        <div style="min-width:0;">
+                            <div style="display:flex;align-items:center;gap:.45rem;flex-wrap:wrap;">
+                                <span class="noc-impact-row__badge">{{ strtoupper($impact['type']) }}</span>
+                                <span style="color:#fff;font-size:.9rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ $impact['label'] }}</span>
+                            </div>
+                            <div style="margin-top:.18rem;color:#94a3b8;font-size:.76rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ $impact['subtext'] }} · {{ $impact['detail'] }}</div>
+                        </div>
+                        <div style="text-align:right;flex-shrink:0;">
+                            <div style="color:#fff;font-size:1.1rem;font-weight:900;">{{ $fmt($impact['impact']) }}</div>
+                            <div style="color:#64748b;font-size:.68rem;text-transform:uppercase;">Impact</div>
+                        </div>
+                    </a>
+                @empty
+                    <div style="padding:1rem;border-radius:.85rem;background:rgba(15,23,42,.55);color:#94a3b8;text-align:center;">No impact ranking available</div>
+                @endforelse
+            </div>
+
+            <div style="background:rgba(0,0,0,.2);border-radius:1rem;padding:1rem;">
+                <div style="display:flex;justify-content:space-between;align-items:center;gap:1rem;margin-bottom:.75rem;">
+                    <h3 style="margin:0;color:#fff;font-size:.92rem;">Hot PON Ports</h3>
+                    <span style="color:#94a3b8;font-size:.74rem;">Fault density + offline ONU</span>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:.55rem;">
+                    @forelse ($hotPonPorts as $port)
+                        <a href="{{ \App\Filament\Resources\OltResource::getUrl('edit', ['record' => $port['olt_id']]) }}" class="noc-impact-row" style="padding:.72rem .8rem;">
+                            <div style="min-width:0;">
+                                <div style="color:#fff;font-size:.86rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ $port['olt'] }} · {{ $port['port'] }}</div>
+                                <div style="margin-top:.18rem;color:#94a3b8;font-size:.74rem;">Fault {{ $fmt($port['fault_percent'], 1) }}% · Critical {{ $fmt($port['critical']) }} / {{ $fmt($port['total']) }}</div>
+                            </div>
+                            <div style="text-align:right;flex-shrink:0;">
+                                <div style="color:#fca5a5;font-size:1rem;font-weight:900;">{{ $fmt($port['offline']) }}</div>
+                                <div style="color:#64748b;font-size:.68rem;text-transform:uppercase;">Offline</div>
+                            </div>
+                        </a>
+                    @empty
+                        <div style="padding:1rem;border-radius:.85rem;background:rgba(15,23,42,.55);color:#94a3b8;text-align:center;">No hot PON data available</div>
+                    @endforelse
+                </div>
+            </div>
+
+            <div style="background:rgba(0,0,0,.2);border-radius:1rem;padding:1rem;">
+                <div style="display:flex;justify-content:space-between;align-items:center;gap:1rem;margin-bottom:.75rem;">
+                    <h3 style="margin:0;color:#fff;font-size:.92rem;">OLT Ping Board</h3>
+                    <span style="color:#94a3b8;font-size:.74rem;">Live ICMP sample from app server</span>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:.55rem;">
+                    @forelse ($oltReachability as $oltPing)
+                        <a href="{{ \App\Filament\Resources\OltResource::getUrl('edit', ['record' => $oltPing['id']]) }}" class="noc-impact-row" style="padding:.72rem .8rem;">
+                            <div style="min-width:0;">
+                                <div style="display:flex;align-items:center;gap:.45rem;flex-wrap:wrap;">
+                                    <span class="noc-impact-row__badge {{ $oltPing['reachable'] ? 'noc-impact-row__badge--up' : 'noc-impact-row__badge--down' }}">
+                                        {{ $oltPing['reachable'] ? 'UP' : 'DOWN' }}
+                                    </span>
+                                    <span style="color:#fff;font-size:.86rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ $oltPing['name'] }}</span>
+                                </div>
+                                <div style="margin-top:.18rem;color:#94a3b8;font-size:.74rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+                                    {{ $oltPing['host'] }} · Loss {{ $oltPing['packet_loss_percent'] !== null ? $fmt($oltPing['packet_loss_percent'], 1).'%' : '—' }}
+                                    · RTT {{ $oltPing['avg_latency_ms'] !== null ? $fmt($oltPing['avg_latency_ms'], 2).' ms' : '—' }}
+                                </div>
+                            </div>
+                            <div style="text-align:right;flex-shrink:0;">
+                                <div style="color:#fff;font-size:.96rem;font-weight:900;">{{ $oltPing['temperature_c'] !== null ? $fmt($oltPing['temperature_c'], 1).'°C' : '—' }}</div>
+                                <div style="color:#64748b;font-size:.68rem;text-transform:uppercase;">{{ $oltPing['onus_offline'] }} onu off</div>
+                            </div>
+                        </a>
+                    @empty
+                        <div style="padding:1rem;border-radius:.85rem;background:rgba(15,23,42,.55);color:#94a3b8;text-align:center;">No OLT ping sample available</div>
+                    @endforelse
+                </div>
+            </div>
+        </section>
     </div>
 
     <div style="display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,.95fr);gap:1rem;margin-bottom:1rem;">
@@ -697,6 +886,137 @@
         box-shadow: 0 0 12px rgba(99, 102, 241, .25);
     }
 
+    .noc-metric-mini {
+        background: rgba(0, 0, 0, .22);
+        border-radius: .95rem;
+        padding: .85rem .95rem;
+        border: 1px solid rgba(255, 255, 255, .06);
+    }
+
+    .noc-metric-mini__label {
+        font-size: .7rem;
+        font-weight: 800;
+        letter-spacing: .1em;
+        text-transform: uppercase;
+    }
+
+    .noc-metric-mini__value {
+        margin-top: .38rem;
+        color: #fff;
+        font-size: 1.3rem;
+        font-weight: 900;
+        line-height: 1;
+    }
+
+    .noc-metric-mini__meta {
+        margin-top: .35rem;
+        color: #94a3b8;
+        font-size: .74rem;
+    }
+
+    .noc-metric-mini--red .noc-metric-mini__label { color: #f87171; }
+    .noc-metric-mini--cyan .noc-metric-mini__label { color: #22d3ee; }
+    .noc-metric-mini--violet .noc-metric-mini__label { color: #a78bfa; }
+    .noc-metric-mini--amber .noc-metric-mini__label { color: #fbbf24; }
+
+    .noc-telemetry-point {
+        flex: 1;
+        min-width: 0;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-end;
+        gap: .4rem;
+    }
+
+    .noc-telemetry-point__bars {
+        flex: 1;
+        display: flex;
+        align-items: flex-end;
+        justify-content: center;
+        gap: 3px;
+    }
+
+    .noc-telemetry-bar {
+        width: 8px;
+        min-height: 8px;
+        border-radius: 999px 999px 0 0;
+        opacity: .96;
+    }
+
+    .noc-telemetry-bar--red {
+        background: linear-gradient(180deg, rgba(248,113,113,.98), rgba(239,68,68,.4));
+        box-shadow: 0 0 10px rgba(239, 68, 68, .18);
+    }
+
+    .noc-telemetry-bar--cyan {
+        background: linear-gradient(180deg, rgba(34,211,238,.98), rgba(14,165,233,.45));
+        box-shadow: 0 0 10px rgba(34, 211, 238, .18);
+    }
+
+    .noc-telemetry-bar--violet {
+        background: linear-gradient(180deg, rgba(168,85,247,.98), rgba(99,102,241,.45));
+        box-shadow: 0 0 10px rgba(168, 85, 247, .18);
+    }
+
+    .noc-telemetry-point__label {
+        color: #64748b;
+        font-size: .63rem;
+        text-align: center;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .noc-legend-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 999px;
+        display: inline-block;
+    }
+
+    .noc-legend-dot--red { background: #ef4444; }
+    .noc-legend-dot--cyan { background: #22d3ee; }
+    .noc-legend-dot--violet { background: #a855f7; }
+
+    .noc-impact-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: .85rem;
+        padding: .85rem .9rem;
+        border-radius: .9rem;
+        background: rgba(15, 23, 42, .55);
+        border: 1px solid rgba(255, 255, 255, .05);
+        text-decoration: none;
+        transition: transform .16s ease, border-color .16s ease;
+    }
+
+    .noc-impact-row:hover {
+        transform: translateY(-1px);
+        border-color: rgba(129, 140, 248, .35);
+    }
+
+    .noc-impact-row__badge {
+        padding: .18rem .45rem;
+        border-radius: 999px;
+        background: rgba(129, 140, 248, .12);
+        color: #a5b4fc;
+        font-size: .63rem;
+        font-weight: 800;
+        letter-spacing: .08em;
+    }
+
+    .noc-impact-row__badge--up {
+        background: rgba(34, 197, 94, .14);
+        color: #86efac;
+    }
+
+    .noc-impact-row__badge--down {
+        background: rgba(239, 68, 68, .14);
+        color: #fca5a5;
+    }
+
     .noc-system-alert {
         padding: .8rem .9rem;
         border-radius: .8rem;
@@ -743,6 +1063,11 @@
     const syncNocBars = () => {
         document.querySelectorAll('.noc-bandwidth-bar').forEach((bar) => {
             const height = Number(bar.dataset.height || 14);
+            bar.style.height = `${height}%`;
+        });
+
+        document.querySelectorAll('.noc-telemetry-bar').forEach((bar) => {
+            const height = Number(bar.dataset.height || 8);
             bar.style.height = `${height}%`;
         });
     };

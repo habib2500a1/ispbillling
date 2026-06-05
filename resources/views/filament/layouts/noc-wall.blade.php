@@ -4,7 +4,10 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="theme-color" content="#020617">
-    <title>NOC Wall — {{ config('isp.company_name') }}</title>
+    <title>NOC Wall — {{ \App\Support\CompanyBranding::name() }}</title>
+    @if ($favicon = \App\Support\CompanyBranding::faviconUrl())
+        <link rel="icon" href="{{ $favicon }}" />
+    @endif
     {!! \App\Support\AdminSaasStyles::html() !!}
     <link rel="stylesheet" href="{{ asset('css/optical-noc.css') }}">
 </head>

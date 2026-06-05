@@ -129,23 +129,40 @@ final class OltSnmpProbeService
      */
     public function pingOk(Device $olt): bool
     {
+        return $this->pingSummary($olt)['reachable'];
+    }
+
+    /**
+     * @return array{host: string, reachable: bool, packet_loss_percent: ?float, avg_latency_ms: ?float, sample_count: int}
+     */
+    public function pingSummary(Device $olt, int $sampleCount = 2): array
+    {
         $host = filled($olt->snmp_host) ? trim((string) $olt->snmp_host) : trim((string) ($olt->management_ip ?? ''));
 
         if ($host === '' || ! filter_var($host, FILTER_VALIDATE_IP)) {
-            return false;
+            return [
+                'host' => $host,
+                'reachable' => false,
+                'packet_loss_percent' => null,
+                'avg_latency_ms' => null,
+                'sample_count' => max(1, $sampleCount),
+            ];
         }
 
-        if ($this->pingHost($host)) {
-            return true;
+        $stats = $this->pingHostSummary($host, $sampleCount);
+        if ($stats['reachable']) {
+            return $stats;
         }
 
         if ($this->pptpTunnel->vpnEnabled($olt)) {
             $reach = $this->pptpTunnel->ensureConnected($olt->fresh());
 
-            return $reach['success'] && $this->pingHost($host);
+            if ($reach['success']) {
+                return $this->pingHostSummary($host, $sampleCount);
+            }
         }
 
-        return false;
+        return $stats;
     }
 
     private function ensureReachability(Device $olt): void
@@ -203,5 +220,36 @@ final class OltSnmpProbeService
         @exec($cmd, $output, $code);
 
         return $code === 0 ? true : false;
+    }
+
+    /**
+     * @return array{host: string, reachable: bool, packet_loss_percent: ?float, avg_latency_ms: ?float, sample_count: int}
+     */
+    private function pingHostSummary(string $host, int $sampleCount = 2): array
+    {
+        $count = max(1, min(4, $sampleCount));
+        $cmd = sprintf('ping -n -q -c %d -W 2 %s 2>/dev/null', $count, escapeshellarg($host));
+        $code = 1;
+        $output = [];
+        @exec($cmd, $output, $code);
+        $text = implode("\n", $output);
+
+        $packetLoss = null;
+        if (preg_match('/([\d.]+)%\s+packet loss/i', $text, $matches) === 1) {
+            $packetLoss = round((float) $matches[1], 1);
+        }
+
+        $avgLatency = null;
+        if (preg_match('/(?:rtt|round-trip)\s+min\/avg\/max(?:\/[a-z]+)?\s+=\s+[\d.]+\/([\d.]+)\/[\d.]+/i', $text, $matches) === 1) {
+            $avgLatency = round((float) $matches[1], 2);
+        }
+
+        return [
+            'host' => $host,
+            'reachable' => $code === 0,
+            'packet_loss_percent' => $packetLoss,
+            'avg_latency_ms' => $avgLatency,
+            'sample_count' => $count,
+        ];
     }
 }

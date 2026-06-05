@@ -3,6 +3,7 @@
 namespace App\Filament\Pages;
 
 use App\Services\Dashboard\DashboardMetricsService;
+use App\Support\CompanyBranding;
 use Filament\Pages\Page;
 
 class NocWall extends Page
@@ -20,6 +21,21 @@ class NocWall extends Page
     public static function canAccess(): bool
     {
         return auth()->check();
+    }
+
+    public function companyName(): string
+    {
+        return CompanyBranding::name();
+    }
+
+    public function companyLogoUrl(): ?string
+    {
+        return CompanyBranding::logoUrl();
+    }
+
+    public function companyInitial(): string
+    {
+        return CompanyBranding::brandInitial();
     }
 
     /**

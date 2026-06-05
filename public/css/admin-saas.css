@@ -5241,9 +5241,69 @@ a.isp-lifecycle-card:hover {
     margin-bottom: 1.5rem;
 }
 
+.isp-noc-wall__header--hero {
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    padding-bottom: 1rem;
+}
+
+.isp-noc-wall__brand {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    min-width: 0;
+    flex: 1;
+}
+
+.isp-noc-wall__brand-logo {
+    width: 3.5rem;
+    height: 3.5rem;
+    object-fit: contain;
+    border-radius: 0.9rem;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 0.35rem;
+    flex-shrink: 0;
+}
+
+.isp-noc-wall__brand-mark {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 3.5rem;
+    height: 3.5rem;
+    border-radius: 0.9rem;
+    background: linear-gradient(135deg, rgba(34, 211, 238, 0.2), rgba(167, 139, 250, 0.25));
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    color: #fff;
+    font-size: 1.35rem;
+    font-weight: 800;
+    flex-shrink: 0;
+}
+
 .isp-noc-wall__head-copy {
     min-width: 0;
     flex: 1;
+}
+
+.isp-noc-wall__company-name {
+    margin: 0 0 0.2rem;
+    color: #fff;
+    font-size: 1.65rem;
+    font-weight: 800;
+    line-height: 1.15;
+}
+
+.isp-noc-wall__title-accent {
+    color: #a78bfa;
+}
+
+.isp-noc-wall__subtitle {
+    margin: 0.45rem 0 0;
+    color: #94a3b8;
+    font-size: 0.9rem;
 }
 
 .isp-noc-wall__eyebrow {
@@ -5256,10 +5316,10 @@ a.isp-lifecycle-card:hover {
 }
 
 .isp-noc-wall__header h1 {
-    font-size: 1.5rem;
+    font-size: 1.35rem;
     font-weight: 800;
-    flex: 1;
     margin: 0;
+    color: #fff;
 }
 
 .isp-noc-wall__clock {

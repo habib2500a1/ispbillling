@@ -9,9 +9,11 @@ use App\Models\Device;
 use App\Models\Invoice;
 use App\Models\MikrotikServer;
 use App\Models\NotificationLog;
+use App\Models\OnuSignalLog;
 use App\Models\Outage;
 use App\Models\Payment;
 use App\Models\PopBox;
+use App\Models\OltHealthLog;
 use App\Models\SmsDeliveryReport;
 use App\Services\Billing\BillingOpsMetricsService;
 use App\Services\Bandwidth\BandwidthCollectionService;
@@ -295,6 +297,7 @@ class DashboardMetricsService
         $optical = app(OpticalDashboardService::class)->snapshot($tenantId);
         $customerCounts = $this->customerCounts($tenantId);
         $oltHealth = app(\App\Services\Olt\OltNocDashboardService::class)->snapshot($tenantId);
+        $oltRows = collect($oltHealth['olts'] ?? []);
         $downCustomers = $this->downCustomersCollection($tenantId);
         $activeOutages = Outage::withoutGlobalScopes()
             ->where('tenant_id', $tenantId)
@@ -303,20 +306,23 @@ class DashboardMetricsService
             ->orderByDesc('started_at')
             ->limit(5)
             ->get();
+        $hotPonPorts = $this->hotPonPorts($tenantId);
+        $telemetry = $this->accessTelemetry($tenantId, $oltRows);
+        $oltReachability = $this->oltReachabilitySummary($tenantId, $oltRows);
 
         $usersBps = BandwidthCollectionService::currentTenantLiveBps($tenantId);
         $wanBps = BandwidthCollectionService::currentWanLiveBps($tenantId);
         $wanInterfaces = BandwidthCollectionService::latestWanInterfaceSnapshots($tenantId);
         $bandwidthTrend = BandwidthCollectionService::aggregateLiveMbpsPerSecond($tenantId, 10, 18);
 
-        $linkDown = collect($oltHealth['olts'] ?? [])->sum(function (array $olt): int {
+        $linkDown = $oltRows->sum(function (array $olt): int {
             $total = (int) ($olt['interfaces_total'] ?? 0);
             $up = (int) ($olt['interfaces_up'] ?? 0);
 
             return max(0, $total - $up);
         });
 
-        $partialOltCount = collect($oltHealth['olts'] ?? [])->filter(function (array $olt): bool {
+        $partialOltCount = $oltRows->filter(function (array $olt): bool {
             $status = (string) ($olt['status'] ?? '');
             $total = (int) ($olt['interfaces_total'] ?? 0);
             $up = (int) ($olt['interfaces_up'] ?? 0);
@@ -339,12 +345,17 @@ class DashboardMetricsService
             'link_down' => $linkDown,
             'wan_interfaces' => $wanInterfaces,
             'bandwidth_trend' => $bandwidthTrend,
+            'access_telemetry' => $telemetry,
+            'olt_reachability' => $oltReachability,
+            'hot_pon_ports' => $hotPonPorts,
+            'top_impact' => $this->topImpactRanking($downCustomers, $oltRows, $activeOutages, $hotPonPorts),
             'olt_offline' => (int) ($oltHealth['olt_offline'] ?? 0),
             'olt_partial' => $partialOltCount,
             'olt_high_cpu' => (int) ($oltHealth['olt_high_cpu'] ?? 0),
             'olt_high_memory' => (int) ($oltHealth['olt_high_memory'] ?? 0),
             'olt_unhealthy' => (int) ($oltHealth['olt_unhealthy'] ?? 0),
             'olt_avg_health' => $oltHealth['avg_health_score'] ?? null,
+            'olt_rows' => $oltRows->values()->all(),
             'down_users' => $this->downUsersSummary($downCustomers),
             'root_causes' => $this->rootCauseBreakdown($downCustomers),
             'zone_impact' => $this->zoneImpactSummary($downCustomers, $activeOutages),
@@ -642,6 +653,351 @@ class DashboardMetricsService
             })
             ->sortByDesc('down_users')
             ->take(6)
+            ->values()
+            ->all();
+    }
+
+    /**
+     * @return list<array{id: string, label: string, olt_id: int, olt: string, port: string, offline: int, critical: int, total: int, fault_percent: float}>
+     */
+    private function hotPonPorts(int $tenantId, int $limit = 6): array
+    {
+        return Cache::remember(
+            "dashboard:noc-hot-pon:{$tenantId}:{$limit}",
+            now()->addSeconds(60),
+            function () use ($tenantId, $limit): array {
+                return app(\App\Services\Optical\OpticalSignalHistoryService::class)
+                    ->ponPortStats($tenantId)
+                    ->sortByDesc(fn ($stat): float => ((float) ($stat->fault_percent ?? 0) * 10) + (int) ($stat->onu_offline ?? 0))
+                    ->take($limit)
+                    ->map(function ($stat): array {
+                        $label = (string) ($stat->oltPort?->label ?? ('C'.(int) ($stat->card_no ?? 0).'/P'.(int) ($stat->pon_no ?? 0)));
+
+                        return [
+                            'id' => (string) ($stat->olt_id.'-'.(int) ($stat->card_no ?? 0).'-'.(int) ($stat->pon_no ?? 0)),
+                            'olt_id' => (int) ($stat->olt_id ?? 0),
+                            'olt' => (string) ($stat->olt?->display_name ?? 'Unknown OLT'),
+                            'port' => $label,
+                            'offline' => (int) ($stat->onu_offline ?? 0),
+                            'critical' => (int) ($stat->onu_critical ?? 0),
+                            'total' => (int) ($stat->onu_total ?? 0),
+                            'fault_percent' => round((float) ($stat->fault_percent ?? 0), 1),
+                        ];
+                    })
+                    ->values()
+                    ->all();
+            },
+        );
+    }
+
+    /**
+     * @param  Collection<int, array<string, mixed>>  $oltRows
+     * @return list<array{
+     *   id: int,
+     *   name: string,
+     *   host: string,
+     *   reachable: bool,
+     *   packet_loss_percent: ?float,
+     *   avg_latency_ms: ?float,
+     *   sample_count: int,
+     *   status: string,
+     *   snmp_ok: bool,
+     *   temperature_c: ?float,
+     *   health_score: ?int,
+     *   onus_offline: int,
+     *   uptime_human: ?string
+     * }>
+     */
+    private function oltReachabilitySummary(int $tenantId, Collection $oltRows, int $limit = 6): array
+    {
+        return Cache::remember(
+            "dashboard:noc-olt-reachability:{$tenantId}:{$limit}",
+            now()->addSeconds(90),
+            function () use ($tenantId, $oltRows, $limit): array {
+                $targetIds = $oltRows
+                    ->sortByDesc(function (array $row): int {
+                        $statusPenalty = (string) ($row['status'] ?? '') === 'offline' ? 5 : 0;
+                        $linkDown = max(0, (int) ($row['interfaces_total'] ?? 0) - (int) ($row['interfaces_up'] ?? 0));
+
+                        return $statusPenalty
+                            + ((int) ($row['onus_offline'] ?? 0) * 2)
+                            + $linkDown
+                            + ((int) ($row['health_score'] ?? 0) < 60 ? 2 : 0);
+                    })
+                    ->take($limit)
+                    ->pluck('id')
+                    ->filter()
+                    ->map(fn ($id): int => (int) $id)
+                    ->values();
+
+                if ($targetIds->isEmpty()) {
+                    return [];
+                }
+
+                $devices = Device::withoutGlobalScopes()
+                    ->where('tenant_id', $tenantId)
+                    ->whereIn('id', $targetIds->all())
+                    ->get()
+                    ->keyBy('id');
+
+                $probe = app(\App\Services\Olt\OltSnmpProbeService::class);
+
+                return $targetIds->map(function (int $id) use ($devices, $probe, $oltRows): ?array {
+                    /** @var Device|null $device */
+                    $device = $devices->get($id);
+                    $row = (array) ($oltRows->firstWhere('id', $id) ?? []);
+
+                    if ($device === null) {
+                        return null;
+                    }
+
+                    $ping = $probe->pingSummary($device, 2);
+
+                    return [
+                        'id' => $id,
+                        'name' => (string) ($row['name'] ?? $device->adminLabel()),
+                        'host' => (string) ($ping['host'] ?: ($row['management_ip'] ?? '—')),
+                        'reachable' => (bool) $ping['reachable'],
+                        'packet_loss_percent' => $ping['packet_loss_percent'] !== null ? (float) $ping['packet_loss_percent'] : null,
+                        'avg_latency_ms' => $ping['avg_latency_ms'] !== null ? (float) $ping['avg_latency_ms'] : null,
+                        'sample_count' => (int) ($ping['sample_count'] ?? 2),
+                        'status' => (string) ($row['status'] ?? 'unknown'),
+                        'snmp_ok' => (bool) ($row['snmp_ok'] ?? false),
+                        'temperature_c' => isset($row['temperature_c']) && is_numeric($row['temperature_c']) ? round((float) $row['temperature_c'], 1) : null,
+                        'health_score' => isset($row['health_score']) ? (int) $row['health_score'] : null,
+                        'onus_offline' => (int) ($row['onus_offline'] ?? 0),
+                        'uptime_human' => $row['uptime_human'] ?? null,
+                    ];
+                })->filter()->values()->all();
+            },
+        );
+    }
+
+    /**
+     * @param  Collection<int, array<string, mixed>>  $oltRows
+     * @return array{
+     *   current: array<string, int|float|null|bool>,
+     *   trend: array{labels: list<string>, ping_loss_percent: list<float>, pon_module_temp_c: list<float|null>, sfp_temp_c: list<float|null>},
+     *   sfp_is_fallback: bool
+     * }
+     */
+    private function accessTelemetry(int $tenantId, Collection $oltRows): array
+    {
+        return Cache::remember(
+            "dashboard:noc-telemetry:{$tenantId}",
+            now()->addSeconds(60),
+            function () use ($tenantId, $oltRows): array {
+                $since = now()->subHours(3);
+
+                $oltLogs = OltHealthLog::query()
+                    ->where('tenant_id', $tenantId)
+                    ->where('sampled_at', '>=', $since)
+                    ->orderBy('sampled_at')
+                    ->limit(3000)
+                    ->get(['snmp_ok', 'temperature_c', 'sampled_at']);
+
+                $ponLogs = OnuSignalLog::query()
+                    ->where('tenant_id', $tenantId)
+                    ->where('sampled_at', '>=', $since)
+                    ->whereNotNull('temperature_c')
+                    ->orderBy('sampled_at')
+                    ->limit(4000)
+                    ->get(['temperature_c', 'sampled_at']);
+
+                $buckets = [];
+                $bucketKey = static function (Carbon $at): string {
+                    $minute = (int) floor($at->minute / 10) * 10;
+
+                    return $at->copy()->setMinute($minute)->setSecond(0)->format('Y-m-d H:i');
+                };
+
+                foreach ($oltLogs as $log) {
+                    $key = $bucketKey($log->sampled_at);
+                    $buckets[$key] ??= [
+                        'label' => Carbon::parse($key)->format('H:i'),
+                        'olt_total' => 0,
+                        'olt_bad' => 0,
+                        'sfp_sum' => 0.0,
+                        'sfp_count' => 0,
+                        'pon_sum' => 0.0,
+                        'pon_count' => 0,
+                    ];
+
+                    $buckets[$key]['olt_total']++;
+                    if (! (bool) $log->snmp_ok) {
+                        $buckets[$key]['olt_bad']++;
+                    }
+                    if ($log->temperature_c !== null) {
+                        $buckets[$key]['sfp_sum'] += (float) $log->temperature_c;
+                        $buckets[$key]['sfp_count']++;
+                    }
+                }
+
+                foreach ($ponLogs as $log) {
+                    $key = $bucketKey($log->sampled_at);
+                    $buckets[$key] ??= [
+                        'label' => Carbon::parse($key)->format('H:i'),
+                        'olt_total' => 0,
+                        'olt_bad' => 0,
+                        'sfp_sum' => 0.0,
+                        'sfp_count' => 0,
+                        'pon_sum' => 0.0,
+                        'pon_count' => 0,
+                    ];
+
+                    $buckets[$key]['pon_sum'] += (float) $log->temperature_c;
+                    $buckets[$key]['pon_count']++;
+                }
+
+                ksort($buckets);
+                $buckets = array_slice($buckets, -12, 12, true);
+
+                $labels = [];
+                $pingLossTrend = [];
+                $ponTempTrend = [];
+                $sfpTempTrend = [];
+
+                foreach ($buckets as $bucket) {
+                    $labels[] = $bucket['label'];
+                    $pingLossTrend[] = $bucket['olt_total'] > 0
+                        ? round(($bucket['olt_bad'] / $bucket['olt_total']) * 100, 1)
+                        : 0.0;
+                    $ponTempTrend[] = $bucket['pon_count'] > 0
+                        ? round($bucket['pon_sum'] / $bucket['pon_count'], 1)
+                        : null;
+                    $sfpTempTrend[] = $bucket['sfp_count'] > 0
+                        ? round($bucket['sfp_sum'] / $bucket['sfp_count'], 1)
+                        : null;
+                }
+
+                $currentReachabilityBad = $oltRows->filter(function (array $row): bool {
+                    return (string) ($row['status'] ?? '') === 'offline'
+                        || ! (bool) ($row['snmp_ok'] ?? false);
+                })->count();
+                $currentReachabilityTotal = max(1, $oltRows->count());
+
+                $sfpTemps = $oltRows
+                    ->pluck('temperature_c')
+                    ->filter(fn ($value) => is_numeric($value))
+                    ->map(fn ($value): float => round((float) $value, 1))
+                    ->values();
+
+                $ponCurrentTemps = $ponLogs
+                    ->pluck('temperature_c')
+                    ->filter(fn ($value) => is_numeric($value))
+                    ->map(fn ($value): float => round((float) $value, 1))
+                    ->values();
+
+                $currentPonAvg = $ponCurrentTemps->isNotEmpty() ? round((float) $ponCurrentTemps->avg(), 1) : null;
+                $currentPonMax = $ponCurrentTemps->isNotEmpty() ? round((float) $ponCurrentTemps->max(), 1) : null;
+                $currentSfpAvg = $sfpTemps->isNotEmpty() ? round((float) $sfpTemps->avg(), 1) : null;
+                $currentSfpMax = $sfpTemps->isNotEmpty() ? round((float) $sfpTemps->max(), 1) : null;
+                $currentPingLoss = round(($currentReachabilityBad / $currentReachabilityTotal) * 100, 1);
+
+                if ($labels === []) {
+                    $labels = [now()->format('H:i')];
+                    $pingLossTrend = [$currentPingLoss];
+                    $ponTempTrend = [$currentPonAvg];
+                    $sfpTempTrend = [$currentSfpAvg];
+                }
+
+                return [
+                    'current' => [
+                        'ping_loss_percent' => $currentPingLoss,
+                        'ping_loss_devices' => $currentReachabilityBad,
+                        'olt_reachability_total' => $oltRows->count(),
+                        'pon_module_avg_temp_c' => $currentPonAvg,
+                        'pon_module_max_temp_c' => $currentPonMax,
+                        'sfp_avg_temp_c' => $currentSfpAvg,
+                        'sfp_max_temp_c' => $currentSfpMax,
+                    ],
+                    'trend' => [
+                        'labels' => $labels,
+                        'ping_loss_percent' => $pingLossTrend,
+                        'pon_module_temp_c' => $ponTempTrend,
+                        'sfp_temp_c' => $sfpTempTrend,
+                    ],
+                    'sfp_is_fallback' => true,
+                ];
+            },
+        );
+    }
+
+    /**
+     * @param  Collection<int, Customer>  $customers
+     * @param  Collection<int, array<string, mixed>>  $oltRows
+     * @param  Collection<int, Outage>  $activeOutages
+     * @param  list<array{id: string, label: string, olt_id: int, olt: string, port: string, offline: int, critical: int, total: int, fault_percent: float}>  $hotPonPorts
+     * @return list<array<string, int|string|float|null>>
+     */
+    private function topImpactRanking(Collection $customers, Collection $oltRows, Collection $activeOutages, array $hotPonPorts): array
+    {
+        $items = collect();
+
+        foreach (array_slice($this->zoneImpactSummary($customers, $activeOutages), 0, 3) as $zone) {
+            $items->push([
+                'type' => 'zone',
+                'id' => (int) ($zone['zone_id'] ?? 0),
+                'label' => (string) ($zone['zone'] ?? 'Zone'),
+                'subtext' => (string) ($zone['area_name'] ?? 'Area'),
+                'impact' => (int) ($zone['down_users'] ?? 0),
+                'detail' => 'Due '.$zone['due'].' · Susp '.$zone['suspended'],
+                'score' => (int) ($zone['down_users'] ?? 0),
+            ]);
+        }
+
+        foreach (array_slice($this->areaImpactSummary($customers, $activeOutages), 0, 2) as $area) {
+            $items->push([
+                'type' => 'area',
+                'id' => (int) ($area['area_id'] ?? 0),
+                'label' => (string) ($area['area'] ?? 'Area'),
+                'subtext' => (int) ($area['zones'] ?? 0).' impacted zone',
+                'impact' => (int) ($area['down_users'] ?? 0),
+                'detail' => ((bool) ($area['active_outage'] ?? false)) ? 'Active outage' : 'Heatmap cluster',
+                'score' => (int) ($area['down_users'] ?? 0),
+            ]);
+        }
+
+        foreach ($oltRows
+            ->sortByDesc(fn (array $row): int => ((int) ($row['onus_offline'] ?? 0) * 2) + max(0, (int) ($row['interfaces_total'] ?? 0) - (int) ($row['interfaces_up'] ?? 0)))
+            ->take(3) as $olt) {
+            $linkDown = max(0, (int) ($olt['interfaces_total'] ?? 0) - (int) ($olt['interfaces_up'] ?? 0));
+            $items->push([
+                'type' => 'olt',
+                'id' => (int) ($olt['id'] ?? 0),
+                'label' => (string) ($olt['name'] ?? 'OLT'),
+                'subtext' => (string) ($olt['status'] ?? 'unknown'),
+                'impact' => (int) ($olt['onus_offline'] ?? 0),
+                'detail' => 'Offline ONU '.(int) ($olt['onus_offline'] ?? 0).' · Link '.$linkDown,
+                'score' => ((int) ($olt['onus_offline'] ?? 0) * 2) + $linkDown,
+            ]);
+        }
+
+        foreach (array_slice($hotPonPorts, 0, 3) as $port) {
+            $items->push([
+                'type' => 'pon',
+                'id' => (string) ($port['id'] ?? ''),
+                'olt_id' => (int) ($port['olt_id'] ?? 0),
+                'label' => (string) ($port['port'] ?? 'PON'),
+                'subtext' => (string) ($port['olt'] ?? 'OLT'),
+                'impact' => (int) ($port['offline'] ?? 0),
+                'detail' => 'Fault '.(float) ($port['fault_percent'] ?? 0).'% · Critical '.(int) ($port['critical'] ?? 0),
+                'score' => ((int) ($port['offline'] ?? 0) * 2) + (int) round((float) ($port['fault_percent'] ?? 0) / 10),
+            ]);
+        }
+
+        return $items
+            ->sortByDesc('score')
+            ->take(8)
+            ->map(fn (array $item): array => [
+                'type' => $item['type'],
+                'id' => $item['id'],
+                'olt_id' => $item['olt_id'] ?? null,
+                'label' => $item['label'],
+                'subtext' => $item['subtext'],
+                'impact' => $item['impact'],
+                'detail' => $item['detail'],
+            ])
             ->values()
             ->all();
     }
