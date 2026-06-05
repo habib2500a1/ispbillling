@@ -29,6 +29,12 @@ if [ -f /usr/local/bin/ensure-db-user.sh ]; then
   /usr/local/bin/ensure-db-user.sh || true
 fi
 
+if [ "$#" -eq 0 ] || [ "$1" = "php-fpm" ]; then
+  if [ -f /usr/local/bin/bootstrap-app.sh ]; then
+    /usr/local/bin/bootstrap-app.sh || true
+  fi
+fi
+
 if [ "$#" -eq 0 ]; then
   set -- php-fpm
 fi

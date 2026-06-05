@@ -23,7 +23,8 @@ RUN chown -R www-data:www-data storage bootstrap/cache
 
 COPY deploy/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 COPY deploy/ensure-db-user.sh /usr/local/bin/ensure-db-user.sh
-RUN chmod +x /usr/local/bin/docker-entrypoint.sh /usr/local/bin/ensure-db-user.sh
+COPY deploy/bootstrap-app.sh /usr/local/bin/bootstrap-app.sh
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh /usr/local/bin/ensure-db-user.sh /usr/local/bin/bootstrap-app.sh
 
 EXPOSE 9000
 ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]

@@ -123,13 +123,16 @@ output copy করে **Environment** tab এ `APP_KEY=base64:...` যোগ ক
 
 তারপর আবার Terminal:
 
+Environment এ `ISP_ADMIN_EMAIL` + `ISP_ADMIN_PASSWORD` দিন — **app container start এ auto migrate + super-admin** তৈরি হয়।
+
 ```bash
-php artisan migrate --force
-php artisan storage:link
+php artisan isp:bootstrap-admin
 php artisan isp:generate-webhook-secrets --write
 php artisan config:cache
 php artisan route:cache
 ```
+
+Admin login: `ISP_ADMIN_EMAIL` / `ISP_ADMIN_PASSWORD`
 
 ### Frontend CSS/JS build (প্রথমবার)
 
