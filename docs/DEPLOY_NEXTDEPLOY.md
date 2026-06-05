@@ -65,9 +65,11 @@ App → **Environment** tab → **Raw editor**
 **অবশ্যই বদলান:**
 
 - `APP_URL` → আপনার domain (`https://billing.yourisp.com`)
+- `ISP_LANDING_DOMAIN` → same domain (Caddy backup label)
 - `SESSION_DOMAIN` → `.yourisp.com`
 - `DB_PASSWORD` + `POSTGRES_PASSWORD` → একই strong password
-- `DB_USERNAME=isp_app` + `POSTGRES_USER=isp` → OK (app auto-creates `isp_app` on deploy)
+- `POSTGRES_USER=isp` + `DB_USERNAME=isp_app` → standard (auto `isp_app` on deploy)
+- `ISP_ADMIN_EMAIL` + `ISP_ADMIN_PASSWORD` → **একবারই** (duplicate নয়)
 - `APP_KEY` → খালি রাখুন, Step 8 এ generate করবেন
 
 **Save environment** চাপুন।
@@ -208,10 +210,13 @@ CSS বদলালে: `docker compose -f deploy/docker-compose.yml --profile s
 
 | সমস্যা | সমাধান |
 |--------|--------|
-| 502 Bad Gateway | Domains: `nginx` + port `80` (not `app:8023`). Containers — `app` + `nginx` Running? **Redeploy with rebuild** |
-| Port 80 / deploy bind error | `docker-compose.yml` এ nginx ports **`8023:80`** রাখুন — **`80:80` করবেন না** (Caddy host 80 নেয়) |
+| 502 Bad Gateway | Domains: **`nginx` + `80`** (never `app:8023`). Restart `app` then `nginx`. **Redeploy rebuild** |
+| 502 after redeploy only | nginx cached old app IP — Containers: restart app → nginx | 
+| Port 80 / deploy bind error | nginx **`8023:80`** only — not `80:80` (Caddy uses host 80) |
 | Database error | `DB_HOST=postgres` (127.0.0.1 নয়) |
-| `password authentication failed for user "isp_app"` | Environment: `POSTGRES_USER=isp`, `DB_USERNAME=isp_app`, passwords same → **Redeploy** (rebuilds app image). অথবা Volumes → `pgdata` delete → fresh deploy |
+| `password authentication failed for user "isp_app"` | `POSTGRES_USER=isp`, `DB_USERNAME=isp_app`, same password → redeploy rebuild |
+| Admin login fail | duplicate `ISP_ADMIN_EMAIL` in .env → one email; `php artisan isp:bootstrap-admin` |
+| IP:8023 login loop | `SESSION_DOMAIN` set but using HTTP IP — use `https://domain/admin` |
 | CSS/JS নেই | `--profile setup run --rm assets` |
 | Domain কাজ করে না | Domains save → Redeploy; DNS A record চেক |
 | Queue job আটকে | `horizon` container running? |
@@ -227,4 +232,5 @@ NextDeploy panel issue: [NextDeploy troubleshooting](https://github.com/masudran
 |------|-----|
 | `docker-compose.yml` | Panel compose path (repo root) |
 | `deploy/.env.nextdeploy.example` | Environment tab template |
+| `deploy/README.md` | Docker/NextDeploy quick reference (502, domains, env) |
 | `deploy/PRODUCTION_CHECKLIST.md` | Full production checklist |

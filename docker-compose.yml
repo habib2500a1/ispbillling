@@ -1,6 +1,6 @@
 # ISP Platform — Docker stack (NextDeploy / manual).
-# NextDeploy panel compose path: docker-compose.yml
-# Manual: docker compose up -d
+# Panel compose path: docker-compose.yml
+# Domains tab: service nginx, port 80 (NOT app, NOT 8023). See deploy/README.md
 
 services:
   app:
