@@ -33,7 +33,7 @@ esac
 echo "[entrypoint] Ensuring PostgreSQL role: $DB_USER (superuser: $PG_SUPER)"
 
 attempt=0
-while [ "$attempt" -lt 8 ]; do
+while [ "$attempt" -lt 30 ]; do
   if PGPASSWORD="$PG_PASS" psql -h "$PG_HOST" -U "$PG_SUPER" -d "$DB_NAME" -c '\q' 2>/dev/null; then
     break
   fi
@@ -42,7 +42,7 @@ while [ "$attempt" -lt 8 ]; do
 done
 
 if ! PGPASSWORD="$PG_PASS" psql -h "$PG_HOST" -U "$PG_SUPER" -d "$DB_NAME" -c '\q' 2>/dev/null; then
-  echo "[entrypoint] WARNING: PostgreSQL not ready; could not bootstrap DB user"
+  echo "[entrypoint] WARNING: PostgreSQL not ready; could not bootstrap DB user (retry: docker compose restart app)"
   exit 0
 fi
 
