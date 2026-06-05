@@ -38,7 +38,7 @@ Panel → **Apps** → **New App**
 
 App খুলুন → **Git** tab → **Sync repository**
 
-কোড pull হলে **Files** tab এ `deploy/docker-compose.yml` দেখা যাবে।
+কোড pull হলে **Files** tab এ root এ `docker-compose.yml` দেখা যাবে।
 
 ---
 
@@ -47,8 +47,10 @@ App খুলুন → **Git** tab → **Sync repository**
 App → **Overview** (বা compose settings) → **Compose file path**:
 
 ```
-deploy/docker-compose.yml
+docker-compose.yml
 ```
+
+> **গুরুত্বপূর্ণ:** `deploy/docker-compose.yml` ব্যবহার করবেন না — NextDeploy bake build path ভুল resolve করে। Root `docker-compose.yml` ব্যবহার করুন।
 
 **Save path** চাপুন।
 
@@ -205,6 +207,6 @@ NextDeploy panel issue: [NextDeploy troubleshooting](https://github.com/masudran
 
 | File | কাজ |
 |------|-----|
-| `deploy/docker-compose.yml` | Panel compose path |
+| `docker-compose.yml` | Panel compose path (repo root) |
 | `deploy/.env.nextdeploy.example` | Environment tab template |
 | `deploy/PRODUCTION_CHECKLIST.md` | Full production checklist |
