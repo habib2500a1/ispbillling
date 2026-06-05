@@ -13,8 +13,10 @@ services:
     volumes:
       - .:/var/www/html
     depends_on:
-      - postgres
-      - redis
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
     environment:
       APP_ENV: production
       DB_HOST: postgres
