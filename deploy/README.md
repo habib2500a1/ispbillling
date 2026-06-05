@@ -105,6 +105,7 @@ Direct test: http://SERVER_IP:8023 → nginx:80 → app:9000
 | IP login fail | `SESSION_DOMAIN=.domain` + HTTP IP | domain দিয়ে login করুন |
 | Logo দেখায় না | পুরনো deploy / branding seed হয়নি | Git pull + **Redeploy with rebuild** |
 | Site ধীর | cache/OPcache চালু নেই | `APP_DEBUG=false`, redeploy rebuild |
+| Page layout ভাঙা | Livewire menu navigate এ page CSS load হয়নি | Git pull + redeploy; `ISP_BUNDLE_CSS=true`; Ctrl+F5 |
 | Permission 500 | root-owned storage/views | auto-fix on restart; `ensure-permissions.sh` |
 | `80:80` bind error | Caddy already uses host 80 | `8023:80` রাখুন |
 

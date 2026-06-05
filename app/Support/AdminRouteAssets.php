@@ -75,4 +75,214 @@ final class AdminRouteAssets
             .e($file)
             .'">';
     }
+
+    /**
+     * Livewire SPA: page CSS in &lt;head&gt; only renders on first load — reinject after navigate.
+     */
+    public static function spaStyleLoaderScript(): string
+    {
+        $rules = [];
+
+        $directoryAssets = self::stylesheetAssetList(
+            ClientsDirectoryStyles::modules(),
+            ClientsDirectoryStyles::BUNDLE_FILE,
+            'clients-directory',
+        );
+        if ($directoryAssets !== []) {
+            $rules[] = [
+                'match' => 'subscribers-directory',
+                'assets' => $directoryAssets,
+            ];
+        }
+
+        $viewAssets = self::stylesheetAssetList(
+            SubscriberViewStyles::modules(),
+            SubscriberViewStyles::BUNDLE_FILE,
+            'subscriber-view',
+        );
+        if ($viewAssets !== []) {
+            $rules[] = [
+                'match' => 'subscribers-view',
+                'assets' => $viewAssets,
+            ];
+        }
+
+        foreach (self::stylesheetMap() as $pattern => $files) {
+            $pathPrefix = self::pathPrefixForRoutePattern($pattern);
+            if ($pathPrefix === null) {
+                continue;
+            }
+
+            $assets = [];
+            foreach ($files as $file) {
+                $path = public_path('css/'.$file);
+                if (! is_file($path)) {
+                    continue;
+                }
+
+                $mtime = (int) (@filemtime($path) ?: 1);
+                $salt = (int) config('isp.assets.version_salt', 0);
+                $assets[] = [
+                    'id' => 'isp-route-'.str_replace('.', '-', $file),
+                    'href' => asset('css/'.$file).'?v='.($mtime + ($salt * 1_000_000)),
+                ];
+            }
+
+            if ($assets !== []) {
+                $rules[] = [
+                    'match' => 'path-prefix',
+                    'prefix' => $pathPrefix,
+                    'assets' => $assets,
+                ];
+            }
+        }
+
+        if ($rules === []) {
+            return '';
+        }
+
+        $json = json_encode($rules, JSON_UNESCAPED_SLASHES);
+        $presets = json_encode(self::subscriberDirectoryPresets(), JSON_UNESCAPED_SLASHES);
+
+        return <<<JS
+<script data-cfasync="false">
+(function () {
+    var rules = {$json};
+    var directoryPresets = {$presets};
+
+    function injectAssets(assets) {
+        assets.forEach(function (asset) {
+            var existing = document.getElementById(asset.id);
+            if (existing && existing.getAttribute('href') === asset.href) {
+                if (existing.parentNode !== document.head) {
+                    document.head.appendChild(existing);
+                }
+                return;
+            }
+            if (existing) {
+                existing.remove();
+            }
+            var link = document.createElement('link');
+            link.id = asset.id;
+            link.rel = 'stylesheet';
+            link.href = asset.href;
+            link.setAttribute('data-isp-spa-style', '1');
+            document.head.appendChild(link);
+        });
+    }
+
+    function matchesRule(rule) {
+        var path = window.location.pathname;
+
+        if (rule.match === 'subscribers-directory') {
+            if (! path.startsWith('/admin/subscribers')) {
+                return false;
+            }
+            var segment = path.replace(/^\\/admin\\/subscribers\\/?/, '').split('/')[0] || '';
+            return segment === '' || directoryPresets.indexOf(segment) !== -1;
+        }
+
+        if (rule.match === 'subscribers-view') {
+            if (! path.startsWith('/admin/subscribers/')) {
+                return false;
+            }
+            var viewSegment = path.replace(/^\\/admin\\/subscribers\\/?/, '').split('/')[0] || '';
+            return viewSegment !== '' && directoryPresets.indexOf(viewSegment) === -1;
+        }
+
+        if (rule.match === 'path-prefix') {
+            return path === rule.prefix || path.startsWith(rule.prefix + '/');
+        }
+
+        return false;
+    }
+
+    function applySpaRouteStyles() {
+        rules.forEach(function (rule) {
+            if (matchesRule(rule)) {
+                injectAssets(rule.assets);
+            }
+        });
+    }
+
+    applySpaRouteStyles();
+    document.addEventListener('livewire:navigated', applySpaRouteStyles);
+})();
+</script>
+JS;
+    }
+
+    /**
+     * @return list<string>
+     */
+    private static function subscriberDirectoryPresets(): array
+    {
+        return [
+            'active',
+            'create',
+            'due',
+            'expire-3',
+            'expire-7',
+            'expired',
+            'free',
+            'left',
+            'pending',
+            'suspended',
+            'today',
+            'vip',
+        ];
+    }
+
+    /**
+     * @param  list<string>  $modules
+     * @return list<array{id: string, href: string}>
+     */
+    private static function stylesheetAssetList(array $modules, ?string $bundleFile, string $idPrefix): array
+    {
+        if ($bundleFile !== null && StylesheetModules::shouldBundle() && is_file(public_path('css/'.$bundleFile))) {
+            $v = StylesheetModules::version($modules, $bundleFile);
+
+            return [[
+                'id' => $idPrefix.'-bundle',
+                'href' => asset('css/'.$bundleFile).'?v='.$v,
+            ]];
+        }
+
+        $v = StylesheetModules::version($modules);
+        $assets = [];
+
+        foreach ($modules as $file) {
+            if (! is_file(public_path('css/'.$file))) {
+                continue;
+            }
+
+            $slug = basename($file, '.css');
+            $assets[] = [
+                'id' => $idPrefix.'-'.$slug,
+                'href' => asset('css/'.$file).'?v='.$v,
+            ];
+        }
+
+        return $assets;
+    }
+
+    private static function pathPrefixForRoutePattern(string $pattern): ?string
+    {
+        $map = [
+            'filament.admin.pages.clients-hub' => '/admin/clients-hub',
+            'filament.admin.pages.subscriber-lists-hub' => '/admin/subscriber-lists-hub',
+            'filament.admin.pages.resellers-hub' => '/admin/resellers-hub',
+            'filament.admin.pages.inventory-hub' => '/admin/inventory-hub',
+            'filament.admin.pages.olt-hub' => '/admin/olt-hub',
+            'filament.admin.pages.optical-monitoring-hub' => '/admin/optical-noc',
+            'filament.admin.pages.subscriber-traffic' => '/admin/subscriber-traffic',
+            'filament.admin.pages.network-intelligence-hub' => '/admin/network-intelligence-hub',
+            'filament.admin.pages.billing-dashboard' => '/admin/billing-dashboard',
+            'filament.admin.pages.accounting-hub' => '/admin/accounting-hub',
+            'filament.admin.pages.accounts-hub' => '/admin/accounts-hub',
+            'filament.admin.pages.collection-desk-report' => '/admin/collection-desk-report',
+        ];
+
+        return $map[$pattern] ?? null;
+    }
 }

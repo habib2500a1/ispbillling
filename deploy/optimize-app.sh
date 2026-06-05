@@ -27,5 +27,7 @@ composer dump-autoload -o --no-dev --no-scripts 2>/dev/null || true
 
 php artisan config:cache --no-ansi 2>/dev/null || true
 php artisan route:cache --no-ansi 2>/dev/null || true
+php artisan filament:assets --no-ansi 2>/dev/null || true
+php artisan isp:verify-stylesheets --no-ansi 2>/dev/null || true
 
 echo "[optimize] Done."

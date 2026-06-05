@@ -179,7 +179,8 @@ class AdminPanelProvider extends PanelProvider
                     $assetSalt = (int) config('isp.assets.version_salt', 0);
                     $jsV = static fn (string $file): int => (int) ((@filemtime(public_path($file)) ?: 1) + ($assetSalt * 1_000_000));
 
-                    $html = view('filament.hooks.stale-topbar-cleanup')->render()
+                    $html = AdminRouteAssets::spaStyleLoaderScript()
+                        .view('filament.hooks.stale-topbar-cleanup')->render()
                         .view('filament.hooks.command-palette', [
                         'commandItems' => AdminCommandPalette::items(),
                     ])->render()
