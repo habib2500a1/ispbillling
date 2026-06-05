@@ -99,6 +99,7 @@ Direct test: http://SERVER_IP:8023 → nginx:80 → app:9000
 |--------|------|-----|
 | 502 domain | Domains `app:8023` বা `app:80` | `nginx` + `80` → Redeploy |
 | 502 after redeploy | nginx পুরনো app IP | Restart `app` তারপর `nginx` |
+| `app` restarting loop | php-fpm `daemonize=no` missing | Redeploy with rebuild (latest Dockerfile) |
 | DB `isp_app` auth fail | Volume `isp` দিয়ে তৈরি | `POSTGRES_USER=isp`, redeploy rebuild |
 | Login fail | duplicate `ISP_ADMIN_EMAIL` | একটা email, redeploy |
 | IP login fail | `SESSION_DOMAIN=.domain` + HTTP IP | domain দিয়ে login করুন |
