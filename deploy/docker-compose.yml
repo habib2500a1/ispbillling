@@ -34,9 +34,9 @@ services:
   postgres:
     image: postgres:16-alpine
     environment:
-      POSTGRES_DB: isp_platform
-      POSTGRES_USER: isp
-      POSTGRES_PASSWORD: isp_secret_change_me
+      POSTGRES_DB: ${POSTGRES_DB:-isp_platform}
+      POSTGRES_USER: ${POSTGRES_USER:-isp}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-isp_secret_change_me}
     volumes:
       - pgdata:/var/lib/postgresql/data
     networks:
@@ -64,6 +64,32 @@ services:
       QUEUE_CONNECTION: redis
     networks:
       - isp
+
+  scheduler:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+    command: sh -c "while true; do php artisan schedule:run --no-interaction; sleep 60; done"
+    volumes:
+      - ../:/var/www/html
+    depends_on:
+      - app
+      - redis
+    environment:
+      APP_ENV: production
+      DB_HOST: postgres
+      REDIS_HOST: redis
+    networks:
+      - isp
+
+  assets:
+    image: node:20-alpine
+    working_dir: /var/www/html
+    volumes:
+      - ../:/var/www/html
+    command: sh -c "npm ci && npm run build"
+    profiles:
+      - setup
 
 volumes:
   pgdata:

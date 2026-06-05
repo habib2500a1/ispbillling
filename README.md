@@ -105,14 +105,16 @@ For concurrent local development:
 composer run dev
 ```
 
-## Production Deployment Guides
+## Production Deployment
 
-Step-by-step setup (Bangla + English):
+**Recommended:** [NextDeploy panel](https://github.com/masudranaxpert/NextDeploy) — [`docs/DEPLOY_NEXTDEPLOY.md`](docs/DEPLOY_NEXTDEPLOY.md)
 
 | Platform | Guide |
 |----------|-------|
-| **cPanel** (shared hosting / VPS) | [`docs/DEPLOY_CPANEL.md`](docs/DEPLOY_CPANEL.md) |
-| **Coolify** (Docker PaaS) | [`docs/DEPLOY_COOLIFY.md`](docs/DEPLOY_COOLIFY.md) |
+| **NextDeploy** (recommended) | [`docs/DEPLOY_NEXTDEPLOY.md`](docs/DEPLOY_NEXTDEPLOY.md) |
+| **cPanel** (other users / shared hosting) | [`docs/DEPLOY_CPANEL.md`](docs/DEPLOY_CPANEL.md) |
+| **Coolify** (other users / Docker PaaS) | [`docs/DEPLOY_COOLIFY.md`](docs/DEPLOY_COOLIFY.md) |
+| Env template for NextDeploy | [`deploy/.env.nextdeploy.example`](deploy/.env.nextdeploy.example) |
 | Production checklist | [`deploy/PRODUCTION_CHECKLIST.md`](deploy/PRODUCTION_CHECKLIST.md) |
 
 ## Docker Deployment
