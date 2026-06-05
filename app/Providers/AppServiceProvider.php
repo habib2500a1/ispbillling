@@ -55,6 +55,7 @@ use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
 use Livewire\Livewire;
 
@@ -115,6 +116,19 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        if (! $this->app->runningInConsole()) {
+            $request = request();
+            $appUrl = (string) config('app.url', '');
+
+            if (
+                str_starts_with($appUrl, 'https://')
+                || $request->isSecure()
+                || $request->header('X-Forwarded-Proto') === 'https'
+            ) {
+                URL::forceScheme('https');
+            }
+        }
+
         foreach (EnsureStorageWritable::directories() as $dir) {
             if (! is_dir($dir)) {
                 \Illuminate\Support\Facades\File::ensureDirectoryExists($dir, 0775);
