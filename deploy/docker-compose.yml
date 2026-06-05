@@ -22,7 +22,8 @@ services:
 
   nginx:
     image: nginx:1.27-alpine
-    # No host port — NextDeploy panel already uses :8080; Caddy routes domain → nginx:80
+    ports:
+      - "8023:80"
     volumes:
       - .:/var/www/html:ro
       - ./deploy/nginx.conf:/etc/nginx/conf.d/default.conf:ro

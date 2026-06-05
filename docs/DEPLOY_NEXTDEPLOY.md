@@ -81,7 +81,7 @@ App → **Domains** tab → **Add domain**
 |-------|-------|
 | Domain | `billing.yourisp.com` |
 | Service | `nginx` |
-| Port | `80` (container port — **not** host 8080; panel uses that) |
+| Port | `80` (container port; direct test: `http://<server-ip>:8023`) |
 | HTTPS | ✅ Enable |
 
 DNS: domain এর A record → server IP
