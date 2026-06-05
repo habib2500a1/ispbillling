@@ -112,22 +112,7 @@ final class SubscriberFormSchema
                                     }
                                 }
                             }),
-                        Forms\Components\Select::make('package_id')
-                            ->label('Package')
-                            ->relationship('package', 'name', fn ($query) => $query->where('is_active', true))
-                            ->searchable()
-                            ->preload()
-                            ->required()
-                            ->live()
-                            ->native(false)
-                            ->afterStateUpdated(function ($state, Forms\Set $set): void {
-                                if (! $state) {
-                                    return;
-                                }
-                                $day = BillingDefaults::defaultExpireDay();
-                                $set('expire_day', $day);
-                                $set('service_expires_at', BillingDefaults::dateFromExpireDay($day));
-                            }),
+                        ...self::packageSelectField(),
                         Forms\Components\Select::make('status')
                             ->options(CustomerStatus::options())
                             ->required()
@@ -790,6 +775,33 @@ final class SubscriberFormSchema
         ) ?: [];
     }
 
+    /**
+     * Async package search — no preload (avoids full-form Livewire refresh on open).
+     *
+     * @return array<int, Forms\Components\Select>
+     */
+    private static function packageSelectField(): array
+    {
+        return [
+            Forms\Components\Select::make('package_id')
+                ->label('Package')
+                ->relationship('package', 'name', fn ($query) => $query->where('is_active', true))
+                ->searchable()
+                ->optionsLimit(50)
+                ->required()
+                ->live(onBlur: true)
+                ->native(false)
+                ->afterStateUpdated(function ($state, Forms\Set $set): void {
+                    if (! $state) {
+                        return;
+                    }
+                    $day = BillingDefaults::defaultExpireDay();
+                    $set('expire_day', $day);
+                    $set('service_expires_at', BillingDefaults::dateFromExpireDay($day));
+                }),
+        ];
+    }
+
     private static function expireDayFields(): array
     {
         return [
@@ -805,7 +817,7 @@ final class SubscriberFormSchema
                     : BillingDefaults::defaultExpireDay())
                 ->native(false)
                 ->searchable()
-                ->live()
+                ->live(onBlur: true)
                 ->helperText('Day of month (1–31). Line off after this day each cycle.')
                 ->afterStateUpdated(function ($state, Forms\Set $set): void {
                     if ($state === null || $state === '') {
@@ -1152,22 +1164,7 @@ final class SubscriberFormSchema
                                                 }
                                             }
                                         }),
-                                    Forms\Components\Select::make('package_id')
-                                        ->label('Package')
-                                        ->relationship('package', 'name', fn ($query) => $query->where('is_active', true))
-                                        ->searchable()
-                                        ->preload()
-                                        ->required()
-                                        ->live()
-                                        ->native(false)
-                                        ->afterStateUpdated(function ($state, Forms\Set $set): void {
-                                            if (! $state) {
-                                                return;
-                                            }
-                                            $day = BillingDefaults::defaultExpireDay();
-                                            $set('expire_day', $day);
-                                            $set('service_expires_at', BillingDefaults::dateFromExpireDay($day));
-                                        }),
+                                    ...self::packageSelectField(),
                                     Forms\Components\Select::make('status')
                                         ->options(CustomerStatus::options())
                                         ->required()

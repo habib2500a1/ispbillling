@@ -21,12 +21,8 @@ class GuardLivewireUpdateRequests
             return $next($request);
         }
 
-        $origin = (string) $request->headers->get('origin', '');
-        $referer = (string) $request->headers->get('referer', '');
-        $host = $request->getSchemeAndHttpHost();
-
-        $sameOrigin = ($origin !== '' && str_starts_with($origin, $host))
-            || ($referer !== '' && str_starts_with($referer, $host));
+        $sameOrigin = $this->requestMatchesAppHost($request, (string) $request->headers->get('origin', ''))
+            || $this->requestMatchesAppHost($request, (string) $request->headers->get('referer', ''));
 
         // Livewire file uploads use signed URLs and do not send X-Livewire.
         if ($request->is('livewire/upload-file')) {
@@ -154,6 +150,24 @@ class GuardLivewireUpdateRequests
         }
 
         return $response;
+    }
+
+    private function requestMatchesAppHost(Request $request, string $url): bool
+    {
+        if ($url === '') {
+            return false;
+        }
+
+        $parsed = parse_url($url);
+        $urlHost = isset($parsed['host']) ? strtolower((string) $parsed['host']) : '';
+        $appHost = strtolower($request->getHost());
+
+        if ($urlHost === '' || $appHost === '') {
+            return false;
+        }
+
+        // Compare host only — https APP_URL vs http internal scheme must not block Livewire.
+        return $urlHost === $appHost;
     }
 
     /**
