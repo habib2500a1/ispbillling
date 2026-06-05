@@ -8,6 +8,8 @@ services:
       context: .
       dockerfile: deploy/Dockerfile
     restart: unless-stopped
+    env_file:
+      - .env
     volumes:
       - .:/var/www/html
     depends_on:
@@ -39,8 +41,11 @@ services:
       POSTGRES_DB: ${POSTGRES_DB:-isp_platform}
       POSTGRES_USER: ${POSTGRES_USER:-isp}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-isp_secret_change_me}
+      APP_DB_USERNAME: ${DB_USERNAME:-isp}
+      APP_DB_PASSWORD: ${DB_PASSWORD:-${POSTGRES_PASSWORD:-isp_secret_change_me}}
     volumes:
       - pgdata:/var/lib/postgresql/data
+      - ./deploy/postgres/init:/docker-entrypoint-initdb.d:ro
     networks:
       - isp
 
@@ -55,6 +60,8 @@ services:
       dockerfile: deploy/Dockerfile
     restart: unless-stopped
     command: php artisan horizon
+    env_file:
+      - .env
     volumes:
       - .:/var/www/html
     depends_on:
@@ -74,6 +81,8 @@ services:
       dockerfile: deploy/Dockerfile
     restart: unless-stopped
     command: sh -c "while true; do php artisan schedule:run --no-interaction; sleep 60; done"
+    env_file:
+      - .env
     volumes:
       - .:/var/www/html
     depends_on:

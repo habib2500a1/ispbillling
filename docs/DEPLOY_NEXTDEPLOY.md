@@ -67,6 +67,7 @@ App → **Environment** tab → **Raw editor**
 - `APP_URL` → আপনার domain (`https://billing.yourisp.com`)
 - `SESSION_DOMAIN` → `.yourisp.com`
 - `DB_PASSWORD` + `POSTGRES_PASSWORD` → একই strong password
+- `DB_USERNAME=isp_app` + `POSTGRES_USER=isp` → OK (app auto-creates `isp_app` on deploy)
 - `APP_KEY` → খালি রাখুন, Step 8 এ generate করবেন
 
 **Save environment** চাপুন।
@@ -202,6 +203,7 @@ CSS বদলালে: `docker compose -f deploy/docker-compose.yml --profile s
 |--------|--------|
 | 502 Bad Gateway | Containers tab — `app` + `nginx` running? Redeploy |
 | Database error | `DB_HOST=postgres` (127.0.0.1 নয়) |
+| `password authentication failed for user "isp_app"` | Environment: `POSTGRES_USER=isp`, `DB_USERNAME=isp_app`, passwords same → **Redeploy** (rebuilds app image). অথবা Volumes → `pgdata` delete → fresh deploy |
 | CSS/JS নেই | `--profile setup run --rm assets` |
 | Domain কাজ করে না | Domains save → Redeploy; DNS A record চেক |
 | Queue job আটকে | `horizon` container running? |
