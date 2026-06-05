@@ -36,6 +36,7 @@ services:
       - app
     networks:
       - isp
+      - nextdeploy
 
   postgres:
     image: postgres:16-alpine
@@ -111,3 +112,6 @@ volumes:
 
 networks:
   isp:
+  nextdeploy:
+    external: true
+    name: NextDeploy
