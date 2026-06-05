@@ -526,7 +526,12 @@ class DashboardMetricsService
                 'area:id,name',
                 'zone:id,name,area_id',
                 'mikrotikServer:id,name',
-                'lastEndedPppSession',
+                'lastEndedPppSession' => fn ($query) => $query->select([
+                    'ppp_session_logs.id',
+                    'ppp_session_logs.customer_id',
+                    'ppp_session_logs.ended_at',
+                    'ppp_session_logs.tenant_id',
+                ]),
             ])
             ->withExists([
                 'invoices as has_due_invoice' => fn ($q) => $q
