@@ -7,6 +7,16 @@ fi
 
 cd /var/www/html || exit 0
 
+# Docker compose: panel .env often keeps 127.0.0.1 — config:cache then breaks session (500 after login).
+case "${REDIS_HOST:-}" in
+  ""|127.0.0.1|localhost)
+    if [ "${DB_HOST:-}" = "postgres" ]; then
+      export REDIS_HOST=redis
+      echo "[optimize] REDIS_HOST=redis (Docker service; was localhost)"
+    fi
+    ;;
+esac
+
 echo "[optimize] Clearing stale caches..."
 php artisan config:clear --no-ansi 2>/dev/null || true
 php artisan route:clear --no-ansi 2>/dev/null || true
