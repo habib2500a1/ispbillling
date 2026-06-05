@@ -13,7 +13,8 @@ class MobileConfigTest extends TestCase
         $response->assertOk()
             ->assertJsonStructure([
                 'app_name',
-                'links' => ['base', 'pay', 'portal_login', 'admin', 'apk'],
+                'login' => ['hub_url', 'api_url', 'roles'],
+                'links' => ['base', 'pay', 'login_hub', 'portal_login', 'reseller_login', 'admin', 'apk'],
                 'staff_paths' => ['billing', 'collect', 'tickets'],
                 'features' => ['bkash', 'portal'],
                 'ticket' => ['departments', 'priorities', 'defaults'],

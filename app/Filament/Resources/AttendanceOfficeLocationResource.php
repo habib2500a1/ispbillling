@@ -26,7 +26,7 @@ class AttendanceOfficeLocationResource extends Resource
 
     protected static ?string $pluralModelLabel = 'office locations';
 
-    protected static ?string $navigationGroup = 'HRM';
+    protected static ?string $navigationGroup = 'HR Management';
 
     protected static bool $shouldRegisterNavigation = false;
 
@@ -51,13 +51,20 @@ class AttendanceOfficeLocationResource extends Resource
                         ->label('Latitude')
                         ->numeric()
                         ->required()
+                        ->minValue(-90)
+                        ->maxValue(90)
                         ->step(0.0000001)
-                        ->helperText('Google Maps → right-click → copy coordinates'),
+                        ->rule('between:-90,90')
+                        ->helperText('Example: 23.8103 — must include the decimal point'),
                     Forms\Components\TextInput::make('longitude')
                         ->label('Longitude')
                         ->numeric()
                         ->required()
-                        ->step(0.0000001),
+                        ->minValue(-180)
+                        ->maxValue(180)
+                        ->step(0.0000001)
+                        ->rule('between:-180,180')
+                        ->helperText('Example: 90.4125 — not 904125'),
                     Forms\Components\TextInput::make('radius_meters')
                         ->label('Allowed radius (meters)')
                         ->numeric()

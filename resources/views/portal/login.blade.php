@@ -61,6 +61,11 @@
             @endif
 
             <x-mobile-app-promo variant="compact" class="portal-auth-note-spaced" />
+
+            <p class="portal-auth-staff-note">
+                <a href="{{ route('login.hub') }}" class="portal-link">← All sign-in options</a>
+                (customer, staff, reseller)
+            </p>
             </div>
         </section>
 

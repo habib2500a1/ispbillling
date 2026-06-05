@@ -46,12 +46,12 @@
         <div class="rsl-card mt-6 p-5">
             <h2 class="rsl-heading text-sm">Latest from HQ</h2>
             @foreach ($announcements as $item)
-                <div class="mt-3 border-t border-slate-200 pt-3 first:mt-2 first:border-0 first:pt-0">
-                    <p class="font-semibold rsl-text">{{ $item->title }}</p>
-                    <p class="text-sm rsl-text-muted line-clamp-2">{{ $item->body }}</p>
+                <div class="rsl-announce-item">
+                    <p class="rsl-text" style="font-weight:700;margin:0">{{ $item->title }}</p>
+                    <p class="rsl-text-muted line-clamp-2" style="font-size:0.875rem;margin:0.35rem 0 0">{{ $item->body }}</p>
                 </div>
             @endforeach
-            <a href="{{ route('reseller.announcements.index') }}" class="rsl-link mt-3 inline-block text-sm">All announcements →</a>
+            <a href="{{ route('reseller.announcements.index') }}" class="rsl-link" style="display:inline-block;margin-top:0.75rem;font-size:0.875rem">All announcements →</a>
         </div>
     @endif
 
@@ -70,11 +70,11 @@
 
     <div class="rsl-card mt-6 p-5">
         <h2 class="rsl-heading text-sm">Resource quotas</h2>
-        <div class="mt-3 grid grid-cols-2 gap-3 text-sm sm:grid-cols-4">
-            <div><span class="rsl-text-muted">Customers</span><br><strong>{{ $quota['customers'] }}@if (! empty($quota['limits']['max_clients'])) / {{ $quota['limits']['max_clients'] }}@endif</strong></div>
-            <div><span class="rsl-text-muted">Active</span><br><strong>{{ $quota['active_customers'] }}@if (! empty($quota['limits']['max_active_clients'])) / {{ $quota['limits']['max_active_clients'] }}@endif</strong></div>
-            <div><span class="rsl-text-muted">ONU</span><br><strong>{{ $quota['onu'] }}@if (! empty($quota['limits']['max_onu'])) / {{ $quota['limits']['max_onu'] }}@endif</strong></div>
-            <div><span class="rsl-text-muted">Packages</span><br><strong>{{ $quota['packages'] }}@if (! empty($quota['limits']['max_packages'])) / {{ $quota['limits']['max_packages'] }}@endif</strong></div>
+        <div class="rsl-quota-grid" style="margin-top:0.75rem;font-size:0.875rem">
+            <div class="rsl-quota-item"><span class="rsl-text-muted">Customers</span><strong>{{ $quota['customers'] }}@if (! empty($quota['limits']['max_clients'])) / {{ $quota['limits']['max_clients'] }}@endif</strong></div>
+            <div class="rsl-quota-item"><span class="rsl-text-muted">Active</span><strong>{{ $quota['active_customers'] }}@if (! empty($quota['limits']['max_active_clients'])) / {{ $quota['limits']['max_active_clients'] }}@endif</strong></div>
+            <div class="rsl-quota-item"><span class="rsl-text-muted">ONU</span><strong>{{ $quota['onu'] }}@if (! empty($quota['limits']['max_onu'])) / {{ $quota['limits']['max_onu'] }}@endif</strong></div>
+            <div class="rsl-quota-item"><span class="rsl-text-muted">Packages</span><strong>{{ $quota['packages'] }}@if (! empty($quota['limits']['max_packages'])) / {{ $quota['limits']['max_packages'] }}@endif</strong></div>
         </div>
     </div>
 @endsection

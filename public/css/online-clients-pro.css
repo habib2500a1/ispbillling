@@ -116,10 +116,26 @@
 }
 
 .oc-pro-table .fi-ta-table {
+    display: table !important;
     width: 100%;
+    table-layout: auto;
     border-collapse: separate;
     border-spacing: 0;
     font-size: 0.8125rem;
+}
+
+.oc-pro-table .fi-ta-row,
+.oc-pro-table .fi-ta-table thead tr,
+.oc-pro-table .fi-ta-table tbody tr {
+    display: table-row !important;
+}
+
+.oc-pro-table .fi-ta-header-cell,
+.oc-pro-table .fi-ta-cell,
+.oc-pro-table .fi-ta-actions-header-cell,
+.oc-pro-table .fi-ta-actions-cell {
+    display: table-cell !important;
+    vertical-align: middle;
 }
 
 /* Header */

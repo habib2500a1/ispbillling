@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Portal;
 
 use App\Http\Controllers\Controller;
+use App\Services\Portal\CustomerBandwidthService;
+use App\Support\CompanyBranding;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -10,9 +12,24 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class PortalSpeedTestController extends Controller
 {
+    public function __construct(
+        private readonly CustomerBandwidthService $bandwidth,
+    ) {}
+
     public function index(): View
     {
-        return view('portal.speed-test');
+        $customer = auth('customer')->user();
+
+        return view('portal.speed-test', [
+            'stats' => $this->bandwidth->liveStats($customer),
+            'pollSeconds' => max(1, (int) config('portal.poll_seconds', 1)),
+            'companyName' => CompanyBranding::name(),
+            'speedtest' => [
+                'ping_url' => (string) config('portal.speed_test.external.ping_url'),
+                'download_url' => (string) config('portal.speed_test.external.download_url'),
+                'upload_url' => (string) config('portal.speed_test.external.upload_url'),
+            ],
+        ]);
     }
 
     public function ping(): JsonResponse

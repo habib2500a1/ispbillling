@@ -1,0 +1,377 @@
+/**
+ * Global admin light mode — Filament shell, tables, forms, hubs
+ * @module admin/saas/14-light-mode-global.css
+ */
+
+html:not(.dark),
+[data-theme='light'] {
+    color-scheme: light;
+}
+
+/* ── Main canvas ── */
+html:not(.dark) .fi-main,
+html:not(.dark) .fi-main-ctn,
+html:not(.dark) .fi-page,
+html:not(.dark) .fi-layout,
+[data-theme='light'] .fi-main,
+[data-theme='light'] .fi-main-ctn,
+[data-theme='light'] .fi-page,
+[data-theme='light'] .fi-layout {
+    background: var(--isp-surface) !important;
+    color: var(--isp-text);
+}
+
+html:not(.dark) .fi-topbar,
+[data-theme='light'] .fi-topbar {
+    background: var(--isp-glass) !important;
+    color: var(--isp-text) !important;
+    border-bottom-color: var(--isp-card-border) !important;
+}
+
+/* ── Cards, sections, widgets ── */
+html:not(.dark) .fi-section,
+html:not(.dark) .fi-ta-ctn,
+html:not(.dark) .fi-wi-stats-overview-stat,
+html:not(.dark) .fi-wi-widget > div,
+html:not(.dark) .fi-wi-chart > div,
+html:not(.dark) .fi-wi-table > .fi-section,
+html:not(.dark) .isp-hub-section,
+html:not(.dark) .isp-hub-hero,
+[data-theme='light'] .fi-section,
+[data-theme='light'] .fi-ta-ctn,
+[data-theme='light'] .fi-wi-stats-overview-stat,
+[data-theme='light'] .fi-wi-widget > div,
+[data-theme='light'] .fi-wi-chart > div,
+[data-theme='light'] .fi-wi-table > .fi-section,
+[data-theme='light'] .isp-hub-section,
+[data-theme='light'] .isp-hub-hero {
+    background: var(--isp-card) !important;
+    color: var(--isp-text) !important;
+    border-color: var(--isp-card-border) !important;
+}
+
+html:not(.dark) .fi-section-header-heading,
+html:not(.dark) .fi-header-heading,
+html:not(.dark) .fi-wi-stats-overview-stat-label,
+html:not(.dark) .fi-wi-stats-overview-stat-value,
+[data-theme='light'] .fi-section-header-heading,
+[data-theme='light'] .fi-header-heading,
+[data-theme='light'] .fi-wi-stats-overview-stat-label,
+[data-theme='light'] .fi-wi-stats-overview-stat-value {
+    color: var(--isp-text) !important;
+}
+
+html:not(.dark) .fi-section-header-description,
+html:not(.dark) .fi-header-subheading,
+html:not(.dark) .fi-wi-stats-overview-stat-description,
+[data-theme='light'] .fi-section-header-description,
+[data-theme='light'] .fi-header-subheading,
+[data-theme='light'] .fi-wi-stats-overview-stat-description {
+    color: var(--isp-text-muted) !important;
+}
+
+/* ── Tables (all resource list pages) ── */
+html:not(.dark) .fi-ta-table,
+[data-theme='light'] .fi-ta-table {
+    display: table !important;
+    width: 100%;
+    table-layout: auto;
+    border-collapse: separate;
+    border-spacing: 0;
+}
+
+html:not(.dark) .fi-ta-row,
+html:not(.dark) .fi-ta-table thead tr,
+html:not(.dark) .fi-ta-table tbody tr,
+[data-theme='light'] .fi-ta-row,
+[data-theme='light'] .fi-ta-table thead tr,
+[data-theme='light'] .fi-ta-table tbody tr {
+    display: table-row !important;
+}
+
+html:not(.dark) .fi-ta-header-cell,
+html:not(.dark) .fi-ta-cell,
+html:not(.dark) .fi-ta-actions-header-cell,
+html:not(.dark) .fi-ta-actions-cell,
+html:not(.dark) .fi-ta-record-checkbox-cell,
+[data-theme='light'] .fi-ta-header-cell,
+[data-theme='light'] .fi-ta-cell,
+[data-theme='light'] .fi-ta-actions-header-cell,
+[data-theme='light'] .fi-ta-actions-cell,
+[data-theme='light'] .fi-ta-record-checkbox-cell {
+    display: table-cell !important;
+    vertical-align: middle;
+}
+
+html:not(.dark) .fi-ta-header-cell,
+[data-theme='light'] .fi-ta-header-cell {
+    background: var(--isp-card-muted) !important;
+    color: var(--isp-text-muted) !important;
+    border-color: var(--isp-card-border) !important;
+}
+
+/* Beat Tailwind dark:text-white when theme preference is light */
+html:not(.dark) .fi-ta-header-cell-label,
+[data-theme='light'] .fi-ta-header-cell-label {
+    color: #0f172a !important;
+}
+
+html:not(.dark) .fi-ta-header-cell-sort-icon,
+[data-theme='light'] .fi-ta-header-cell-sort-icon {
+    color: #64748b !important;
+}
+
+html:not(.dark) .fi-ta-row > .fi-ta-cell,
+[data-theme='light'] .fi-ta-row > .fi-ta-cell {
+    background: var(--isp-card) !important;
+    color: var(--isp-text) !important;
+    border-color: var(--isp-card-border) !important;
+}
+
+html:not(.dark) .fi-ta-row:hover > .fi-ta-cell,
+[data-theme='light'] .fi-ta-row:hover > .fi-ta-cell {
+    background: color-mix(in srgb, var(--isp-primary) 5%, var(--isp-card)) !important;
+}
+
+html:not(.dark) .fi-ta-text-item-description,
+html:not(.dark) .fi-ta-empty-state,
+html:not(.dark) .fi-ta-empty-state-heading,
+[data-theme='light'] .fi-ta-text-item-description,
+[data-theme='light'] .fi-ta-empty-state,
+[data-theme='light'] .fi-ta-empty-state-heading {
+    color: var(--isp-text-muted) !important;
+}
+
+html:not(.dark) .fi-ta-pagination,
+html:not(.dark) .fi-ta-header-toolbar,
+[data-theme='light'] .fi-ta-pagination,
+[data-theme='light'] .fi-ta-header-toolbar {
+    color: var(--isp-text-muted) !important;
+    border-color: var(--isp-card-border) !important;
+}
+
+/* Clients directory — page-specific tokens override globals */
+html:not(.dark) .isp-clients-page .cl-dir-table .fi-ta-header-cell,
+html:not(.dark) .isp-clients-page .cl-dir-table .fi-ta-row > .fi-ta-cell,
+[data-theme='light'] .isp-clients-page .cl-dir-table .fi-ta-header-cell,
+[data-theme='light'] .isp-clients-page .cl-dir-table .fi-ta-row > .fi-ta-cell {
+    background: var(--cl-dir-card) !important;
+    color: var(--cl-dir-text) !important;
+    border-color: var(--cl-dir-border) !important;
+}
+
+html:not(.dark) .isp-clients-page .cl-dir-table .fi-ta-header-cell,
+[data-theme='light'] .isp-clients-page .cl-dir-table .fi-ta-header-cell {
+    background: var(--cl-dir-card-2) !important;
+    color: var(--cl-dir-muted) !important;
+}
+
+/* Online clients table */
+html:not(.dark) .oc-pro-table .fi-ta-header-cell,
+[data-theme='light'] .oc-pro-table .fi-ta-header-cell {
+    background: var(--oc-header-bg, var(--isp-card-muted)) !important;
+    color: var(--oc-muted, var(--isp-text-muted)) !important;
+}
+
+html:not(.dark) .oc-pro-table .fi-ta-row > .fi-ta-cell,
+[data-theme='light'] .oc-pro-table .fi-ta-row > .fi-ta-cell {
+    background: var(--oc-card, var(--isp-card)) !important;
+    color: var(--oc-text, var(--isp-text)) !important;
+}
+
+/* ── Forms & fields ── */
+html:not(.dark) .fi-input-wrp,
+html:not(.dark) .fi-select-input,
+html:not(.dark) .fi-fo-date-time-picker-display-text-input,
+html:not(.dark) .fi-input,
+html:not(.dark) .fi-textarea,
+html:not(.dark) .fi-fo-wizard-header-step-label,
+html:not(.dark) .fi-fo-rich-editor-toolbar,
+[data-theme='light'] .fi-input-wrp,
+[data-theme='light'] .fi-select-input,
+[data-theme='light'] .fi-fo-date-time-picker-display-text-input,
+[data-theme='light'] .fi-input,
+[data-theme='light'] .fi-textarea,
+[data-theme='light'] .fi-fo-wizard-header-step-label,
+[data-theme='light'] .fi-fo-rich-editor-toolbar {
+    background: #fff !important;
+    color: var(--isp-text) !important;
+    border-color: var(--isp-card-border) !important;
+}
+
+html:not(.dark) .fi-fo-wizard-header-step-description,
+html:not(.dark) .fi-fo-field-wrp-label,
+html:not(.dark) .fi-fo-field-wrp-hint,
+html:not(.dark) .fi-fo-placeholder,
+[data-theme='light'] .fi-fo-wizard-header-step-description,
+[data-theme='light'] .fi-fo-field-wrp-label,
+[data-theme='light'] .fi-fo-field-wrp-hint,
+[data-theme='light'] .fi-fo-placeholder {
+    color: var(--isp-text-muted) !important;
+}
+
+html:not(.dark) .fi-fo-wizard-header-step-icon-ctn,
+[data-theme='light'] .fi-fo-wizard-header-step-icon-ctn {
+    background: var(--isp-card-muted) !important;
+    color: var(--isp-text) !important;
+}
+
+html:not(.dark) .fi-fo-tabs-tab,
+[data-theme='light'] .fi-fo-tabs-tab {
+    color: var(--isp-text-muted) !important;
+}
+
+html:not(.dark) .fi-fo-tabs-tab.fi-active,
+[data-theme='light'] .fi-fo-tabs-tab.fi-active {
+    color: var(--isp-primary) !important;
+    border-color: var(--isp-primary) !important;
+}
+
+/* ── Infolists & view pages ── */
+html:not(.dark) .fi-infolist-entry-wrapper,
+html:not(.dark) .fi-in-entry-wrp,
+[data-theme='light'] .fi-infolist-entry-wrapper,
+[data-theme='light'] .fi-in-entry-wrp {
+    color: var(--isp-text) !important;
+}
+
+html:not(.dark) .fi-infolist-entry-label,
+html:not(.dark) .fi-in-entry-wrp-label,
+[data-theme='light'] .fi-infolist-entry-label,
+[data-theme='light'] .fi-in-entry-wrp-label {
+    color: var(--isp-text-muted) !important;
+}
+
+/* ── Modals, dropdowns, slide-overs ── */
+html:not(.dark) .fi-modal-window,
+html:not(.dark) .fi-dropdown-panel,
+html:not(.dark) .fi-slide-over-panel,
+html:not(.dark) .fi-fo-repeater-item,
+[data-theme='light'] .fi-modal-window,
+[data-theme='light'] .fi-dropdown-panel,
+[data-theme='light'] .fi-slide-over-panel,
+[data-theme='light'] .fi-fo-repeater-item {
+    background: #fff !important;
+    color: var(--isp-text) !important;
+    border-color: var(--isp-card-border) !important;
+}
+
+html:not(.dark) .fi-modal-header,
+html:not(.dark) .fi-modal-footer,
+[data-theme='light'] .fi-modal-header,
+[data-theme='light'] .fi-modal-footer {
+    border-color: var(--isp-card-border) !important;
+}
+
+/* ── Tabs & breadcrumbs ── */
+html:not(.dark) .fi-tabs-item,
+[data-theme='light'] .fi-tabs-item {
+    color: var(--isp-text-muted) !important;
+}
+
+html:not(.dark) .fi-tabs-item.fi-active,
+[data-theme='light'] .fi-tabs-item.fi-active {
+    color: var(--isp-primary) !important;
+}
+
+html:not(.dark) .fi-breadcrumbs-item-label,
+[data-theme='light'] .fi-breadcrumbs-item-label {
+    color: var(--isp-text-muted) !important;
+}
+
+/* ── Hub list cards ── */
+html:not(.dark) .isp-list-card,
+html:not(.dark) .isp-dash-hub-card,
+[data-theme='light'] .isp-list-card,
+[data-theme='light'] .isp-dash-hub-card {
+    background: var(--isp-card) !important;
+    color: var(--isp-text) !important;
+    border-color: var(--isp-card-border) !important;
+}
+
+html:not(.dark) .isp-list-card__title,
+html:not(.dark) .isp-dash-hub-card__title,
+[data-theme='light'] .isp-list-card__title,
+[data-theme='light'] .isp-dash-hub-card__title {
+    color: var(--isp-text) !important;
+}
+
+html:not(.dark) .isp-list-card__desc,
+html:not(.dark) .isp-dash-hub-card__desc,
+[data-theme='light'] .isp-list-card__desc,
+[data-theme='light'] .isp-dash-hub-card__desc {
+    color: var(--isp-text-muted) !important;
+}
+
+/* ── Hub pages — reinforce light tokens when .dark is off ── */
+html:not(.dark) .ch-pro,
+html:not(.dark) .bh-pro,
+html:not(.dark) .ih-pro,
+html:not(.dark) .olt-pro,
+html:not(.dark) .rsh-pro,
+html:not(.dark) .slh-pro,
+html:not(.dark) .sub-pro,
+[data-theme='light'] .ch-pro,
+[data-theme='light'] .bh-pro,
+[data-theme='light'] .ih-pro,
+[data-theme='light'] .olt-pro,
+[data-theme='light'] .rsh-pro,
+[data-theme='light'] .slh-pro,
+[data-theme='light'] .sub-pro {
+    color: var(--isp-text);
+}
+
+html:not(.dark) .isp-clients-hub-page .fi-page,
+html:not(.dark) .isp-billing-hub-page .fi-page,
+html:not(.dark) .isp-inventory-hub-page .fi-page,
+html:not(.dark) .isp-olt-hub-page .fi-page,
+html:not(.dark) .isp-rsh-page .fi-page,
+html:not(.dark) .isp-sub-view-page .fi-page,
+[data-theme='light'] .isp-clients-hub-page .fi-page,
+[data-theme='light'] .isp-billing-hub-page .fi-page,
+[data-theme='light'] .isp-inventory-hub-page .fi-page,
+[data-theme='light'] .isp-olt-hub-page .fi-page,
+[data-theme='light'] .isp-rsh-page .fi-page,
+[data-theme='light'] .isp-sub-view-page .fi-page {
+    background: var(--isp-surface) !important;
+}
+
+/* ── Theme switcher in topbar ── */
+html:not(.dark) .isp-theme-switch,
+[data-theme='light'] .isp-theme-switch {
+    background: rgba(255, 255, 255, 0.85) !important;
+    border-color: var(--isp-card-border) !important;
+}
+
+html:not(.dark) .isp-theme-switch__btn,
+[data-theme='light'] .isp-theme-switch__btn {
+    color: var(--isp-text-muted) !important;
+}
+
+html:not(.dark) .isp-theme-switch__btn--active,
+[data-theme='light'] .isp-theme-switch__btn--active {
+    background: rgba(99, 102, 241, 0.12) !important;
+    color: #4338ca !important;
+}
+
+/* ── Premium glass — light input override ── */
+html:not(.dark) .fi-input,
+html:not(.dark) .isp-auth-field-input,
+[data-theme='light'] .fi-input,
+[data-theme='light'] .isp-auth-field-input {
+    background: #fff !important;
+    border-color: var(--isp-card-border) !important;
+    color: var(--isp-text) !important;
+}
+
+/* ── Relation managers ── */
+html:not(.dark) .fi-resource-relation-manager,
+[data-theme='light'] .fi-resource-relation-manager {
+    background: transparent !important;
+}
+
+html:not(.dark) .fi-resource-relation-manager .fi-ta-ctn,
+[data-theme='light'] .fi-resource-relation-manager .fi-ta-ctn {
+    background: var(--isp-card) !important;
+    border-color: var(--isp-card-border) !important;
+}

@@ -1,0 +1,349 @@
+/* Unified sign-in hub (/login) */
+.isp-login-hub-page {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: max(1.5rem, env(safe-area-inset-top)) 1.25rem max(2.5rem, env(safe-area-inset-bottom));
+    font-family: var(--portal-font);
+}
+
+.isp-login-hub {
+    position: relative;
+    z-index: 1;
+    width: min(28rem, 100%);
+    margin: 0 auto;
+    animation: isp-login-hub-in 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes isp-login-hub-in {
+    from {
+        opacity: 0;
+        transform: translateY(12px) scale(0.98);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+.isp-login-hub__panel {
+    border-radius: 1.5rem;
+}
+
+.isp-login-hub__panel-inner {
+    padding: 1.75rem 1.35rem 1.5rem;
+}
+
+@media (min-width: 480px) {
+    .isp-login-hub__panel-inner {
+        padding: 2rem 1.75rem 1.65rem;
+    }
+}
+
+.isp-login-hub__head {
+    text-align: center;
+    margin-bottom: 1.5rem;
+}
+
+.isp-login-hub__brand {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 0.85rem;
+}
+
+.isp-login-hub__logo {
+    width: 4rem;
+    height: 4rem;
+    border-radius: 1.15rem;
+    object-fit: contain;
+    background: rgba(255, 255, 255, 0.85);
+    padding: 0.35rem;
+    box-shadow: 0 8px 28px -12px rgba(79, 70, 229, 0.45);
+}
+
+.isp-login-hub__mark {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 4rem;
+    height: 4rem;
+    border-radius: 1.15rem;
+    font-size: 1.65rem;
+    font-weight: 800;
+    color: #fff;
+    background: linear-gradient(135deg, var(--portal-indigo) 0%, var(--portal-violet) 55%, var(--portal-cyan) 100%);
+    box-shadow: 0 12px 32px -14px rgba(79, 70, 229, 0.55);
+}
+
+.isp-login-hub__eyebrow {
+    margin: 0 0 0.35rem;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--portal-indigo);
+    opacity: 0.85;
+}
+
+.isp-login-hub__title {
+    margin: 0;
+    font-size: clamp(1.35rem, 4vw, 1.75rem);
+    font-weight: 800;
+    color: var(--portal-text);
+    letter-spacing: -0.03em;
+    line-height: 1.2;
+}
+
+.isp-login-hub__lead {
+    margin: 0.55rem auto 0;
+    max-width: 20rem;
+    color: var(--portal-text-muted);
+    font-size: 0.92rem;
+    line-height: 1.45;
+}
+
+.isp-login-hub__grid {
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+}
+
+.isp-login-hub__card {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    gap: 0.85rem 1rem;
+    padding: 0.95rem 1rem;
+    border-radius: 1rem;
+    border: 1px solid rgba(139, 92, 246, 0.14);
+    background: rgba(255, 255, 255, 0.72);
+    backdrop-filter: blur(16px);
+    text-decoration: none;
+    color: inherit;
+    box-shadow: 0 4px 20px -12px rgba(15, 23, 42, 0.12);
+    transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+}
+
+.isp-login-hub__card:hover {
+    transform: translateX(4px);
+    border-color: rgba(79, 70, 229, 0.28);
+    background: rgba(255, 255, 255, 0.92);
+    box-shadow: 0 12px 36px -16px rgba(79, 70, 229, 0.28);
+}
+
+.isp-login-hub__card:focus-visible {
+    outline: 2px solid var(--portal-indigo);
+    outline-offset: 2px;
+}
+
+.isp-login-hub__card-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.75rem;
+    height: 2.75rem;
+    border-radius: 0.85rem;
+    flex-shrink: 0;
+}
+
+.isp-login-hub__card-icon svg {
+    width: 1.35rem;
+    height: 1.35rem;
+}
+
+.isp-login-hub__card--customer .isp-login-hub__card-icon {
+    color: #047857;
+    background: linear-gradient(145deg, rgba(16, 185, 129, 0.18), rgba(6, 182, 212, 0.1));
+}
+
+.isp-login-hub__card--admin .isp-login-hub__card-icon {
+    color: #4338ca;
+    background: linear-gradient(145deg, rgba(79, 70, 229, 0.2), rgba(124, 58, 237, 0.1));
+}
+
+.isp-login-hub__card--reseller .isp-login-hub__card-icon {
+    color: #b45309;
+    background: linear-gradient(145deg, rgba(245, 158, 11, 0.22), rgba(251, 191, 36, 0.1));
+}
+
+.isp-login-hub__card-body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    min-width: 0;
+}
+
+.isp-login-hub__card-badge {
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--portal-text-muted);
+}
+
+.isp-login-hub__card-title {
+    font-weight: 700;
+    font-size: 0.98rem;
+    color: var(--portal-text);
+    letter-spacing: -0.02em;
+}
+
+.isp-login-hub__card-desc {
+    font-size: 0.78rem;
+    color: var(--portal-text-muted);
+    line-height: 1.4;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.isp-login-hub__card-arrow {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.75rem;
+    height: 1.75rem;
+    border-radius: 999px;
+    background: rgba(79, 70, 229, 0.08);
+    color: var(--portal-indigo);
+    transition: transform 0.2s ease, background 0.2s ease;
+}
+
+.isp-login-hub__card-arrow svg {
+    width: 1rem;
+    height: 1rem;
+}
+
+.isp-login-hub__card:hover .isp-login-hub__card-arrow {
+    transform: translateX(2px);
+    background: rgba(79, 70, 229, 0.16);
+}
+
+.isp-login-hub__foot {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.5rem;
+    margin-top: 1.35rem;
+    padding-top: 1.25rem;
+    border-top: 1px solid rgba(139, 92, 246, 0.12);
+}
+
+.isp-login-hub__chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.45rem 0.85rem;
+    border-radius: 999px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    text-decoration: none;
+    color: var(--portal-indigo);
+    background: rgba(79, 70, 229, 0.08);
+    border: 1px solid rgba(79, 70, 229, 0.14);
+    transition: background 0.15s ease, transform 0.15s ease;
+}
+
+.isp-login-hub__chip svg {
+    width: 0.95rem;
+    height: 0.95rem;
+    flex-shrink: 0;
+}
+
+.isp-login-hub__chip:hover {
+    background: rgba(79, 70, 229, 0.14);
+    transform: translateY(-1px);
+}
+
+.isp-login-hub__chip--muted {
+    color: var(--portal-text-muted);
+    background: rgba(148, 163, 184, 0.12);
+    border-color: rgba(148, 163, 184, 0.2);
+}
+
+.isp-login-hub__chip--muted:hover {
+    background: rgba(148, 163, 184, 0.2);
+    color: var(--portal-text);
+}
+
+html.dark .isp-login-hub__card,
+html.rsl-dark .isp-login-hub__card {
+    background: rgba(30, 41, 59, 0.65);
+    border-color: rgba(148, 163, 184, 0.15);
+}
+
+html.dark .isp-login-hub__card:hover,
+html.rsl-dark .isp-login-hub__card:hover {
+    background: rgba(30, 41, 59, 0.88);
+}
+
+html.dark .isp-login-hub__logo,
+html.rsl-dark .isp-login-hub__logo {
+    background: rgba(15, 23, 42, 0.6);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .isp-login-hub {
+        animation: none;
+    }
+    .isp-login-hub__card:hover {
+        transform: none;
+    }
+}
+
+/* Fixes: premium glass + portal overrides */
+.isp-login-hub-page.portal-body {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.isp-login-hub-page .isp-login-hub {
+    width: min(32rem, 100%);
+}
+
+.isp-login-hub-page .isp-gradient-border__inner {
+    background: rgba(255, 255, 255, 0.94) !important;
+    -webkit-backdrop-filter: blur(24px);
+    backdrop-filter: blur(24px);
+    box-shadow: 0 20px 50px -24px rgba(79, 70, 229, 0.35);
+}
+
+.isp-login-hub-page .isp-login-hub__card {
+    background: #fff !important;
+    border: 1px solid rgba(148, 163, 184, 0.35) !important;
+}
+
+.isp-login-hub-page .isp-login-hub__card:hover {
+    background: #fff !important;
+    border-color: rgba(79, 70, 229, 0.45) !important;
+}
+
+.isp-login-hub-page .isp-login-hub__card-title,
+.isp-login-hub-page .isp-login-hub__title {
+    color: #0f172a !important;
+}
+
+.isp-login-hub-page .isp-login-hub__lead,
+.isp-login-hub-page .isp-login-hub__card-desc,
+.isp-login-hub-page .isp-login-hub__card-badge {
+    color: #64748b !important;
+}
+
+html.dark.isp-premium-theme .isp-login-hub-page .isp-gradient-border__inner,
+html.dark .isp-login-hub-page .isp-gradient-border__inner {
+    background: rgba(17, 17, 35, 0.92) !important;
+}
+
+html.dark.isp-premium-theme .isp-login-hub-page .isp-login-hub__card,
+html.dark .isp-login-hub-page .isp-login-hub__card {
+    background: rgba(30, 41, 59, 0.85) !important;
+}
+
+html.dark.isp-premium-theme .isp-login-hub-page .isp-login-hub__card-title,
+html.dark .isp-login-hub-page .isp-login-hub__title {
+    color: #f1f5f9 !important;
+}

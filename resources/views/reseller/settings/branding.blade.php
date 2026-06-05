@@ -12,6 +12,21 @@
         'subtitle' => 'Pay page, customer portal, invoices — logo and colors from your ISP admin.',
     ])
 
+    @if ($reseller->white_label_enabled)
+        <div class="rsl-callout rsl-callout--info mb-4" style="max-width:48rem">
+            <p class="font-semibold">White-label is active</p>
+            <p class="mt-1 text-sm">Customers see your partner name{{ $reseller->logoUrl() ? ', logo,' : '' }} and custom footer on bills, money receipts, and the public pay page.</p>
+            @if ($rslLogo = ($reseller->logoUrl() ?: null))
+                <img src="{{ $rslLogo }}" alt="" class="mt-3 max-h-12 rounded-lg border border-slate-200 bg-white p-2">
+            @endif
+        </div>
+    @else
+        <div class="rsl-callout mb-4" style="max-width:48rem">
+            <p class="font-semibold">HQ branding</p>
+            <p class="mt-1 text-sm">White-label is off — documents use your ISP company name. Ask HQ to enable white-label on your partner account.</p>
+        </div>
+    @endif
+
     <div class="rsl-panel rsl-panel-pad" style="max-width:32rem">
         <form method="post" action="{{ route('reseller.settings.branding.update') }}" class="rsl-form-grid">
             @csrf

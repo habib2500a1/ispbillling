@@ -6,7 +6,7 @@
     @include('reseller.partials.page-header', [
         'title' => 'Wallet overview',
         'subtitle' => 'Balances, quotas, and ledger.',
-        'backUrl' => route('reseller.wallet'),
+        'backUrl' => route('reseller.wallet.index'),
         'backLabel' => '← Wallet',
     ])
 

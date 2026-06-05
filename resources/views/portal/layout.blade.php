@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <meta name="theme-color" content="#312e81">
+    <meta name="theme-color" content="#1565C0">
     <title>@yield('title', __('portal.customer_portal')) — {{ $companyName ?? config('app.name') }}</title>
     @if (! empty($companyLogo))
         <link rel="icon" href="{{ $companyLogo }}" />
@@ -12,7 +12,7 @@
     @else
         @include('partials.site-favicon')
     @endif
-    <link rel="stylesheet" href="{{ asset('css/portal.css') }}?v=15">
+    <link rel="stylesheet" href="{{ asset('css/portal.css') }}?v={{ @filemtime(public_path('css/portal.css')) ?: 17 }}">
     <link rel="stylesheet" href="{{ asset('css/portal-utilities.css') }}?v={{ @filemtime(public_path('css/portal-utilities.css')) ?: 1 }}">
     @include('partials.isp-premium-theme', ['tailwind' => false])
     <link rel="stylesheet" href="{{ asset('css/bill-payment.css') }}?v=5">
@@ -91,7 +91,7 @@
                 @php
                     $dockIcons = [
                         'Home' => '⌂',
-                        'Bills' => '৳',
+                        'Bills' => '$',
                         'Payments' => '💳',
                         'Usage' => '↕',
                         'Support' => '✦',

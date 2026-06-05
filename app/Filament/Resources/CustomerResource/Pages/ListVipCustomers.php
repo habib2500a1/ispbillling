@@ -57,6 +57,7 @@ class ListVipCustomers extends ListFilteredCustomers
                 'hint' => 'No auto line off',
                 'tone' => 'violet',
                 'icon' => 'heroicon-o-star',
+                'url' => CustomerResource::getUrl('vip'),
             ],
             [
                 'label' => 'VIP with due',
@@ -64,6 +65,7 @@ class ListVipCustomers extends ListFilteredCustomers
                 'hint' => 'Outstanding balance',
                 'tone' => 'rose',
                 'icon' => 'heroicon-o-exclamation-circle',
+                'url' => CustomerResource::getUrl('due'),
             ],
             [
                 'label' => 'VIP total due',
@@ -71,6 +73,7 @@ class ListVipCustomers extends ListFilteredCustomers
                 'hint' => 'Collectible from VIP',
                 'tone' => 'amber',
                 'icon' => 'heroicon-o-banknotes',
+                'url' => CustomerResource::getUrl('due'),
             ],
             [
                 'label' => 'All due (tenant)',
@@ -78,6 +81,7 @@ class ListVipCustomers extends ListFilteredCustomers
                 'hint' => 'Every client segment',
                 'tone' => 'sky',
                 'icon' => 'heroicon-o-calculator',
+                'url' => CustomerResource::getUrl('due'),
             ],
         ];
     }

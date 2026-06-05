@@ -43,7 +43,8 @@ Today one Flutter APK (`isp_radiant`) covers **Customer + Staff** with role swit
 ### Public
 - `GET /health` — API status
 - `GET /mobile/config` — app name, links, features, ticket defaults
-- `POST /mobile/login` — unified login (`role: staff|customer`)
+- `POST /mobile/login` — unified login (`role: staff|customer|reseller`)
+- `GET /mobile/config` → `login.roles` — same hub as website `/login` (customer/staff native, reseller web)
 
 ### Customer (`auth:sanctum` + customer guard)
 - Auth: login, logout, **refresh** (Phase 1)

@@ -7,9 +7,11 @@
     @include('partials.site-favicon')
     @include('partials.reseller-theme-head')
     @php
-        $rslPortalBuild = '2026.06.04-pro-fix';
+        $rslPortalBuild = '2026.06.04-pro-qa5';
         $loginCssVer = (@filemtime(public_path('css/reseller-portal-pro.css')) ?: time()).'-'.$rslPortalBuild;
+        $loginCompatVer = (@filemtime(public_path('css/reseller-portal-compat.css')) ?: time()).'-'.$rslPortalBuild;
         $loginCssHref = '/css/reseller-portal-pro.css?v='.$loginCssVer;
+        $loginCompatHref = '/css/reseller-portal-compat.css?v='.$loginCompatVer;
         $wl = app()->bound('reseller.white_label') ? app('reseller.white_label') : null;
         $companyName = $wl?->brand_name ?: config('app.name');
         $logoUrl = $wl?->logoUrl() ?: \App\Support\CompanyBranding::logoUrl();
@@ -17,7 +19,9 @@
     @endphp
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <link rel="preload" href="{{ $loginCssHref }}" as="style">
-    <link rel="stylesheet" href="{{ $loginCssHref }}">
+    <link rel="stylesheet" href="{{ $loginCssHref }}" data-rsl-build="{{ $rslPortalBuild }}">
+    <link rel="stylesheet" href="{{ $loginCompatHref }}" data-rsl-build="{{ $rslPortalBuild }}">
+    @include('reseller.partials.critical-css')
     <script src="{{ asset('js/portal-theme.js') }}?v={{ $loginCssVer }}"></script>
 </head>
 <body class="rsl-page rsl-login-page">
@@ -83,6 +87,7 @@
                 </div>
             </div>
 
+            <p class="rsl-login-hub-link"><a href="{{ route('login.hub') }}">← All sign-in options</a></p>
             <p class="rsl-login-foot">&copy; {{ date('Y') }} {{ $companyName }} · <span class="rsl-login-build">{{ $rslPortalBuild }}</span></p>
         </main>
     </div>

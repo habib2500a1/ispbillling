@@ -19,7 +19,6 @@
 @unless (request()->routeIs('filament.admin.auth.*'))
 @php($mobileBarCssV = @filemtime(public_path('css/admin-mobile-bar.css')) ?: 1)
 @include('filament.hooks.mobile-bar-critical-css')
-<link rel="preload" href="{{ \App\Support\AdminSaasStyles::preloadHref() }}" as="style">
 <link rel="stylesheet" href="{{ asset('css/admin-mobile-bar.css') }}?v={{ $mobileBarCssV }}" media="(max-width: 1023px)">
 @endunless
 {!! \App\Support\AdminSaasStyles::html() !!}

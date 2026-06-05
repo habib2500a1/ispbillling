@@ -51,7 +51,8 @@
 
         <p class="mt-6 text-center text-sm text-slate-500">
             Already have a portal account?
-            <a href="{{ route('portal.login') }}" class="bp-link">Open customer portal</a>
+            <a href="{{ route('login.hub') }}" class="bp-link">Sign in</a>
+            <a href="{{ route('portal.login') }}" class="bp-link">Customer portal</a>
         </p>
         <p class="mt-2 text-center text-sm text-slate-500">
             Staff?

@@ -2,15 +2,25 @@
  * Aurora ISP admin — Design tokens
  * @module admin/saas/01-tokens.css
  */
+/**
+ * Aurora ISP admin — bundled from public/css/admin/saas/
+ * Edit modules there; run: ./scripts/concat-admin-saas-css.sh
+ */
+
+/* --- 01-tokens.css --- */
+/**
+ * Aurora ISP admin — Design tokens
+ * @module admin/saas/01-tokens.css
+ */
 /* Mobile sidebar behavior is controlled later with scoped rules only. */
 
 :root,
 [data-theme='light'] {
     --isp-navy: #0c1222;
     --isp-navy-soft: #151d2e;
-    --isp-primary: #0d9488;
-    --isp-primary-dark: #0f766e;
-    --isp-primary-light: #2dd4bf;
+    --isp-primary: #1565C0;
+    --isp-primary-dark: #0D47A1;
+    --isp-primary-light: #42A5F5;
     --isp-accent: #f97316;
     --isp-accent-soft: #fb923c;
     --isp-cyan: #38bdf8;
@@ -24,17 +34,17 @@
     --isp-radius-lg: 1.25rem;
     --isp-radius-xl: 1.5rem;
     --isp-shadow: 0 4px 24px -4px rgba(12, 18, 34, 0.08);
-    --isp-shadow-lg: 0 20px 50px -12px rgba(13, 148, 136, 0.22);
+    --isp-shadow-lg: 0 20px 50px -12px rgba(21, 101, 192, 0.22);
     --isp-font: 'Outfit', ui-sans-serif, system-ui, sans-serif;
     --isp-text: rgb(15 23 42);
     --isp-text-muted: rgb(100 116 139);
     --isp-card: rgba(255, 255, 255, 0.92);
     --isp-card-muted: rgb(248 250 252);
     --isp-card-border: rgba(148, 163, 184, 0.22);
-    --isp-sidebar-bg: linear-gradient(175deg, #0c1222 0%, #0f3d38 55%, #1a2744 100%);
+    --isp-sidebar-bg: linear-gradient(175deg, #0c1222 0%, #0d47a1 55%, #1565C0 100%);
     --isp-sidebar-label: rgba(255, 255, 255, 0.45);
     --isp-sidebar-link: rgba(255, 255, 255, 0.82);
-    --isp-hero-bg: linear-gradient(125deg, #0c1222 0%, #0f766e 42%, #c2410c 100%);
+    --isp-hero-bg: linear-gradient(125deg, #0c1222 0%, #1565C0 42%, #1976D2 100%);
     --isp-mobile-bar-height: 10.5rem;
 }
 
@@ -48,9 +58,3 @@
     --isp-card: rgba(17, 24, 39, 0.88);
     --isp-card-muted: rgb(30 41 59);
     --isp-card-border: rgba(71, 85, 105, 0.45);
-    --isp-sidebar-bg: linear-gradient(175deg, #070b14 0%, #0a2e2a 50%, #0f172a 100%);
-    --isp-sidebar-label: rgba(255, 255, 255, 0.4);
-    --isp-sidebar-link: rgba(255, 255, 255, 0.78);
-    --isp-hero-bg: linear-gradient(125deg, #070b14 0%, #115e59 38%, #9a3412 100%);
-}
-

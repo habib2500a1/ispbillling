@@ -8,15 +8,25 @@
  * Aurora ISP admin — Design tokens
  * @module admin/saas/01-tokens.css
  */
+/**
+ * Aurora ISP admin — bundled from public/css/admin/saas/
+ * Edit modules there; run: ./scripts/concat-admin-saas-css.sh
+ */
+
+/* --- 01-tokens.css --- */
+/**
+ * Aurora ISP admin — Design tokens
+ * @module admin/saas/01-tokens.css
+ */
 /* Mobile sidebar behavior is controlled later with scoped rules only. */
 
 :root,
 [data-theme='light'] {
     --isp-navy: #0c1222;
     --isp-navy-soft: #151d2e;
-    --isp-primary: #0d9488;
-    --isp-primary-dark: #0f766e;
-    --isp-primary-light: #2dd4bf;
+    --isp-primary: #1565C0;
+    --isp-primary-dark: #0D47A1;
+    --isp-primary-light: #42A5F5;
     --isp-accent: #f97316;
     --isp-accent-soft: #fb923c;
     --isp-cyan: #38bdf8;
@@ -30,17 +40,17 @@
     --isp-radius-lg: 1.25rem;
     --isp-radius-xl: 1.5rem;
     --isp-shadow: 0 4px 24px -4px rgba(12, 18, 34, 0.08);
-    --isp-shadow-lg: 0 20px 50px -12px rgba(13, 148, 136, 0.22);
+    --isp-shadow-lg: 0 20px 50px -12px rgba(21, 101, 192, 0.22);
     --isp-font: 'Outfit', ui-sans-serif, system-ui, sans-serif;
     --isp-text: rgb(15 23 42);
     --isp-text-muted: rgb(100 116 139);
     --isp-card: rgba(255, 255, 255, 0.92);
     --isp-card-muted: rgb(248 250 252);
     --isp-card-border: rgba(148, 163, 184, 0.22);
-    --isp-sidebar-bg: linear-gradient(175deg, #0c1222 0%, #0f3d38 55%, #1a2744 100%);
+    --isp-sidebar-bg: linear-gradient(175deg, #0c1222 0%, #0d47a1 55%, #1565C0 100%);
     --isp-sidebar-label: rgba(255, 255, 255, 0.45);
     --isp-sidebar-link: rgba(255, 255, 255, 0.82);
-    --isp-hero-bg: linear-gradient(125deg, #0c1222 0%, #0f766e 42%, #c2410c 100%);
+    --isp-hero-bg: linear-gradient(125deg, #0c1222 0%, #1565C0 42%, #1976D2 100%);
     --isp-mobile-bar-height: 10.5rem;
 }
 
@@ -54,6 +64,12 @@
     --isp-card: rgba(17, 24, 39, 0.88);
     --isp-card-muted: rgb(30 41 59);
     --isp-card-border: rgba(71, 85, 105, 0.45);
+
+/* --- 02-sidebar.css --- */
+/**
+ * Aurora ISP admin — Sidebar & shell layout
+ * @module admin/saas/02-sidebar.css
+ */
     --isp-sidebar-bg: linear-gradient(175deg, #070b14 0%, #0a2e2a 50%, #0f172a 100%);
     --isp-sidebar-label: rgba(255, 255, 255, 0.4);
     --isp-sidebar-link: rgba(255, 255, 255, 0.78);
@@ -172,16 +188,73 @@
   .fi-main-sidebar .fi-sidebar-header {
     display: flex !important;
     align-items: center !important;
-    gap: 0.35rem !important;
-    min-height: 4rem !important;
-    padding-inline: 0.75rem 0.5rem !important;
+    gap: 0.75rem !important;
+    min-height: 5rem !important;
+    padding-inline: 1rem 1rem !important;
+    position: relative;
+  }
+
+  .fi-main-sidebar .fi-sidebar-header .isp-sidebar-header__brand {
+    flex: 1 1 auto;
+    width: 100%;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    padding-inline-end: 3.25rem;
+  }
+
+  .fi-main-sidebar .fi-sidebar-header .isp-sidebar-header__logo,
+  .fi-main-sidebar .fi-sidebar-header .isp-sidebar-header__badge {
+    display: flex;
+    align-items: center;
+    min-width: 0;
+  }
+
+  .fi-main-sidebar .fi-sidebar-header .isp-sidebar-header__logo {
+    flex: 1 1 auto;
+    width: 100%;
+    max-width: none;
+  }
+
+  .fi-main-sidebar .fi-sidebar-header .isp-sidebar-header__logo a,
+  .fi-main-sidebar .fi-sidebar-header .isp-sidebar-header__badge a {
+    display: flex;
+    align-items: center;
+    min-width: 0;
+  }
+
+  .fi-main-sidebar .fi-sidebar-header .isp-sidebar-header__logo a {
+    width: 100%;
+  }
+
+  .fi-main-sidebar .fi-sidebar-header .fi-logo {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    max-width: 100%;
+    width: 100%;
+    min-height: 2.8rem;
+    padding: 0.4rem 0.75rem;
+    border-radius: 0.9rem;
+    background: rgba(255, 255, 255, 0.98);
+    box-shadow: 0 10px 24px -18px rgba(15, 23, 42, 0.9);
+  }
+
+  .fi-main-sidebar .fi-sidebar-header .fi-logo img {
+    display: block;
+    max-width: 100%;
+    width: auto;
+    max-height: 2.2rem;
+    object-fit: contain;
+    object-position: center;
   }
 
   .fi-main-sidebar .fi-sidebar-header .fi-icon-btn,
   .fi-main-sidebar .fi-sidebar-header .fi-icon-button {
-    display: inline-flex !important;
-    visibility: visible !important;
-    opacity: 1 !important;
+    position: absolute !important;
+    inset-inline-end: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
     flex-shrink: 0 !important;
     color: rgba(255, 255, 255, 0.92) !important;
     background: rgba(255, 255, 255, 0.1) !important;
@@ -189,6 +262,12 @@
     border-radius: 0.5rem !important;
     min-width: 2.25rem !important;
     min-height: 2.25rem !important;
+    z-index: 2;
+  }
+
+  /* Hide the "close" (X) button on desktop — only desktop collapse (arrows) should show. */
+  .fi-main-sidebar .fi-sidebar-header .fi-sidebar-close-btn {
+    display: none !important;
   }
 
   .fi-main-sidebar .fi-sidebar-header .fi-icon-btn:hover,
@@ -336,12 +415,12 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 2.25rem;
-    height: 2.25rem;
-    border-radius: 0.55rem;
+    width: 2.65rem;
+    height: 2.65rem;
+    border-radius: 0.65rem;
     background: rgba(255, 255, 255, 0.14);
     border: 1px solid rgba(255, 255, 255, 0.22);
-    font-size: 0.95rem;
+    font-size: 1.1rem;
     font-weight: 800;
     color: #fff;
 }
@@ -378,7 +457,7 @@ body.isp-sidebar-desktop-collapsed .fi-main-sidebar .fi-sidebar-header .fi-logo 
 }
 
 body.isp-sidebar-desktop-collapsed .fi-main-sidebar .fi-sidebar-header .fi-logo img {
-    max-height: 2.25rem;
+    max-height: 2.5rem;
     width: auto;
     object-fit: contain;
 }
@@ -578,8 +657,22 @@ body.isp-sidebar-desktop-collapsed .isp-sidebar-footer__toggle--expand {
     order: 110;
 }
 
-.fi-sidebar-group[data-group-label='HRM'] {
+.fi-sidebar-group[data-group-label='HR Management'] {
     order: 120;
+}
+
+/* HR Management — long labels wrap on mobile */
+.fi-sidebar-group[data-group-label='HR Management'] .fi-sidebar-item-label,
+.fi-sidebar-group[data-group-label='HR Management'] .fi-sidebar-group-label {
+    white-space: normal;
+    line-height: 1.25;
+    word-break: break-word;
+}
+
+@media (max-width: 1023px) {
+    .fi-sidebar-group[data-group-label='HR Management'] .fi-sidebar-item {
+        min-height: 2.5rem;
+    }
 }
 
 .fi-sidebar-group[data-group-label='Resellers'] {
@@ -752,12 +845,52 @@ body.isp-sidebar-desktop-collapsed .isp-sidebar-footer__toggle--expand {
     border-bottom: 1px solid rgba(148, 163, 184, 0.12) !important;
 }
 
+/* PC topbar end: profile dropdown must stay on topbar, not clip into page body */
+@media (min-width: 1024px) {
+    .fi-topbar,
+    .fi-topbar nav,
+    .fi-topbar .fi-topbar-end,
+    .isp-topbar-extras {
+        overflow: visible !important;
+    }
+
+    .fi-topbar {
+        z-index: 40;
+    }
+
+    .fi-topbar .fi-topbar-end {
+        position: relative;
+        z-index: 45;
+    }
+
+    .fi-user-menu {
+        position: relative;
+        z-index: 46;
+    }
+
+    .fi-dropdown-panel {
+        z-index: 200 !important;
+    }
+
+    .fi-user-menu .fi-theme-switcher {
+        display: none !important;
+    }
+
+    .isp-topbar-extras .isp-topbar-menu-search {
+        display: none !important;
+    }
+}
+
+body > [x-persist*='topbar.end'] {
+    display: none !important;
+    pointer-events: none !important;
+}
+
 .fi-main {
     background: var(--isp-surface) !important;
     color: var(--isp-text) !important;
     min-height: 50vh;
 }
-
 
 /* --- 03-dashboard-widgets.css --- */
 /**
@@ -1778,6 +1911,12 @@ a.isp-lifecycle-card:hover {
     align-items: center;
     gap: 0.75rem;
 }
+
+/* --- 04-analytics-blocks.css --- */
+/**
+ * Aurora ISP admin — Analytics, metering & settlement UI
+ * @module admin/saas/04-analytics-blocks.css
+ */
 
 .isp-hub-results {
     display: inline-flex;
@@ -2943,6 +3082,12 @@ a.isp-lifecycle-card:hover {
 
 .dark .isp-ops-pill--danger,
 [data-theme='dark'] .isp-ops-pill--danger {
+
+/* --- 05-mobile-dock.css --- */
+/**
+ * Aurora ISP admin — Mobile dock & hub link cards
+ * @module admin/saas/05-mobile-dock.css
+ */
     background: rgba(127, 29, 29, 0.42);
     color: #fda4af;
 }
@@ -3585,6 +3730,12 @@ a.isp-lifecycle-card:hover {
 }
 
 .dark .isp-hub-page .text-gray-900,
+
+/* --- 06-hubs-pages.css --- */
+/**
+ * Aurora ISP admin — Hub pages, billing desk, HR, quick actions
+ * @module admin/saas/06-hubs-pages.css
+ */
 [data-theme='dark'] .isp-hub-page .font-semibold.text-gray-900 {
     color: #f1f5f9 !important;
 }
@@ -3843,15 +3994,15 @@ a.isp-lifecycle-card:hover {
 .isp-collection-search-wrap {
     border-radius: var(--isp-radius-lg);
     padding: 1.25rem 1.5rem;
-    background: linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, #fff 50%, rgba(139, 92, 246, 0.05) 100%);
-    border: 1px solid rgba(16, 185, 129, 0.22);
+    background: linear-gradient(135deg, rgba(21, 101, 192, 0.08) 0%, #fff 50%, rgba(66, 165, 245, 0.06) 100%);
+    border: 1px solid rgba(21, 101, 192, 0.22);
     box-shadow: var(--isp-shadow);
 }
 
 .dark .isp-collection-search-wrap,
 [data-theme='dark'] .isp-collection-search-wrap {
-    background: linear-gradient(135deg, rgba(6, 78, 59, 0.35) 0%, rgb(17 24 39) 60%);
-    border-color: rgba(52, 211, 153, 0.2);
+    background: linear-gradient(135deg, rgba(13, 71, 161, 0.35) 0%, rgb(17 24 39) 60%);
+    border-color: rgba(66, 165, 245, 0.2);
 }
 
 .isp-collection-search-label {
@@ -3897,13 +4048,13 @@ a.isp-lifecycle-card:hover {
     border-radius: 0.75rem;
     padding: 0.875rem 1.25rem;
     font-weight: 600;
-    background: #059669;
+    background: var(--isp-primary);
     color: white;
     transition: background 0.15s;
 }
 
 .isp-collection-search-btn:hover {
-    background: #047857;
+    background: var(--isp-primary-dark);
 }
 
 .isp-collection-result-card {
@@ -3961,15 +4112,40 @@ a.isp-lifecycle-card:hover {
 }
 
 .isp-collection-submit {
-    border-radius: 0.75rem;
-    padding: 0.75rem 1.5rem;
-    font-weight: 700;
-    background: #7c3aed;
+    border-radius: var(--isp-radius-md);
+    padding: 0.875rem 2rem;
+    font-weight: 600;
+    font-size: 0.9375rem;
+    background: var(--isp-primary);
     color: white;
+    border: none;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    box-shadow: 0 2px 4px rgba(21, 101, 192, 0.2);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
 }
 
 .isp-collection-submit:hover {
-    background: #6d28d9;
+    background: var(--isp-primary-dark);
+    box-shadow: 0 4px 8px rgba(21, 101, 192, 0.3);
+    transform: translateY(-1px);
+}
+
+.isp-collection-submit:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 4px rgba(21, 101, 192, 0.2);
+}
+
+.dark .isp-collection-submit {
+    background: var(--isp-primary);
+    box-shadow: 0 2px 4px rgba(21, 101, 192, 0.4);
+}
+
+.dark .isp-collection-submit:hover {
+    background: var(--isp-primary-light);
 }
 
 /* Accounting hub */
@@ -4210,6 +4386,276 @@ a.isp-lifecycle-card:hover {
     padding: 2rem 1rem;
 }
 
+/* HRM custom pages: one action row at top (hide duplicate title; no hero/table copies) */
+.isp-hrm-page.isp-hrm-leave-page .fi-header,
+.isp-hrm-page.isp-hrm-advance-page .fi-header {
+    display: flex !important;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    margin-bottom: 0.35rem;
+}
+
+.isp-hrm-page.isp-hrm-leave-page .fi-header > div:first-child,
+.isp-hrm-page.isp-hrm-advance-page .fi-header > div:first-child {
+    display: none !important;
+}
+
+.isp-hrm-page:not(.isp-hrm-leave-page):not(.isp-hrm-advance-page) .fi-header {
+    display: none;
+}
+
+.isp-hrm-advance-hero__actions,
+.isp-hrm-leave-page .fi-ta-empty-state-actions,
+.isp-hrm-advance-page .fi-ta-empty-state-actions {
+    display: none !important;
+}
+
+.isp-hrm-reports-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+    gap: .75rem;
+}
+
+.isp-hrm-reports-card {
+    display: flex;
+    flex-direction: column;
+    gap: .35rem;
+    padding: 1rem 1.1rem;
+    border-radius: var(--isp-radius-lg);
+    border: 1px solid var(--isp-card-border);
+    background: var(--isp-card-bg);
+    text-decoration: none;
+    color: inherit;
+    transition: border-color .15s ease, transform .15s ease;
+}
+
+.isp-hrm-reports-card:hover {
+    border-color: color-mix(in srgb, #f43f5e 35%, var(--isp-card-border));
+    transform: translateY(-2px);
+}
+
+.isp-hrm-reports-card__label {
+    font-size: .72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    color: var(--isp-text-muted);
+}
+
+.isp-hrm-reports-card__value {
+    font-size: 1rem;
+    font-weight: 800;
+    color: var(--isp-text);
+}
+
+.isp-hrm-reports-panels {
+    display: grid;
+    gap: 1rem;
+}
+
+@media (min-width: 768px) {
+    .isp-hrm-reports-panels {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+.isp-hrm-reports-breakdown {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: .5rem;
+}
+
+.isp-hrm-reports-breakdown li {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: .75rem;
+    padding: .5rem 0;
+    border-bottom: 1px solid var(--isp-card-border);
+    font-size: .875rem;
+}
+
+.isp-hrm-reports-breakdown li:last-child {
+    border-bottom: none;
+}
+
+.isp-hrm-reports-run {
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+    gap: .5rem .75rem;
+    align-items: center;
+    padding: .55rem 0;
+    border-bottom: 1px solid var(--isp-card-border);
+    font-size: .875rem;
+}
+
+.isp-hrm-reports-run:last-child {
+    border-bottom: none;
+}
+
+.isp-hrm-reports-run__status {
+    font-size: .7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    color: var(--isp-text-muted);
+}
+
+.isp-hrm-reports-empty {
+    margin: 0;
+    font-size: .875rem;
+    color: var(--isp-text-muted);
+}
+
+.isp-hrm-payroll-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1rem 1.15rem;
+    border-radius: var(--isp-radius-lg);
+    border: 1px solid var(--isp-card-border);
+    background: var(--isp-card-bg);
+}
+
+.isp-hrm-payroll-toolbar__filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .75rem;
+    align-items: flex-end;
+}
+
+.isp-hrm-payroll-toolbar__filters label {
+    display: block;
+    font-size: .65rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    color: var(--isp-text-muted);
+    margin-bottom: .25rem;
+}
+
+.isp-hrm-payroll-input {
+    min-width: 8rem;
+    border-radius: .5rem;
+    border: 1px solid var(--isp-card-border);
+    background: var(--isp-card-bg);
+    padding: .45rem .65rem;
+    font-size: .875rem;
+    color: var(--isp-text);
+}
+
+.isp-hrm-payroll-toolbar__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .5rem;
+}
+
+.isp-hrm-payroll-sheet-wrap {
+    overflow-x: auto;
+}
+
+.isp-hrm-payroll-sheet {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: .8rem;
+}
+
+.isp-hrm-payroll-sheet th,
+.isp-hrm-payroll-sheet td {
+    padding: .55rem .65rem;
+    border-bottom: 1px solid var(--isp-card-border);
+    text-align: left;
+}
+
+.isp-hrm-payroll-sheet th {
+    font-size: .68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    color: var(--isp-text-muted);
+}
+
+.isp-hrm-payroll-sheet th small {
+    font-weight: 500;
+    text-transform: none;
+}
+
+.isp-hrm-payroll-sheet__net {
+    font-weight: 800;
+    color: #2563eb;
+}
+
+.isp-hrm-payroll-badge {
+    font-size: .7rem;
+    font-weight: 600;
+    padding: .15rem .45rem;
+    border-radius: 999px;
+    background: color-mix(in srgb, #f59e0b 15%, var(--isp-card-bg));
+}
+
+.isp-hrm-policy-grid {
+    display: grid;
+    gap: 1rem;
+}
+
+@media (min-width: 900px) {
+    .isp-hrm-policy-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+.isp-hrm-policy-section-title {
+    font-size: .8rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    color: var(--isp-text-muted);
+    margin-bottom: .75rem;
+}
+
+.isp-hrm-policy-fields {
+    display: grid;
+    gap: .75rem;
+}
+
+.isp-hrm-policy-fields--3 {
+    grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+}
+
+.isp-hrm-policy-fields label {
+    display: block;
+    font-size: .72rem;
+    font-weight: 600;
+    margin-bottom: .25rem;
+    color: var(--isp-text-muted);
+}
+
+.isp-hrm-policy-hint {
+    font-size: .75rem;
+    color: var(--isp-text-muted);
+}
+
+.isp-hrm-policy-code {
+    display: block;
+    font-size: .75rem;
+    padding: .5rem .65rem;
+    border-radius: .5rem;
+    background: color-mix(in srgb, #6366f1 8%, var(--isp-card-bg));
+    word-break: break-all;
+}
+
+.isp-hrm-policy-link {
+    font-size: .8rem;
+    font-weight: 600;
+    color: #e11d48;
+    text-decoration: none;
+}
+
 /* ── BW Client (bandwidth wholesale) ── */
 .isp-bw-clients-page .fi-header,
 .isp-bw-generate-page .fi-header {
@@ -4255,6 +4701,12 @@ a.isp-lifecycle-card:hover {
     grid-template-columns: repeat(2, minmax(6.5rem, 1fr));
     gap: .65rem;
 }
+
+/* --- 07-tables-subscribers.css --- */
+/**
+ * Aurora ISP admin — Subscriber tables & sticky actions
+ * @module admin/saas/07-tables-subscribers.css
+ */
 
 @media (min-width: 640px) {
     .isp-bw-clients-hero__stats {
@@ -4515,6 +4967,12 @@ a.isp-lifecycle-card:hover {
     border-radius: 0.875rem;
 }
 
+/* --- 08-dashboard-ops.css --- */
+/**
+ * Aurora ISP admin — NOC, ops wall, WAN, production UX
+ * @module admin/saas/08-dashboard-ops.css
+ */
+
 .isp-accounting-quick-btn-label {
     font-size: 0.7rem;
     font-weight: 700;
@@ -4574,12 +5032,6 @@ a.isp-lifecycle-card:hover {
 .fi-resource-subscribers .fi-ta-content {
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
-
-/* --- 07-tables-subscribers.css --- */
-/**
- * Aurora ISP admin — Subscriber tables & sticky actions
- * @module admin/saas/07-tables-subscribers.css
- */
     border-radius: var(--isp-radius-lg);
 }
 
@@ -5358,19 +5810,119 @@ a.isp-lifecycle-card:hover {
 .isp-collector-btn {
     display: inline-flex;
     align-items: center;
-    padding: 0.45rem 0.9rem;
+    justify-content: center;
+    padding: 0.625rem 1.25rem;
     border-radius: var(--isp-radius-md);
-    font-size: 0.8125rem;
-    font-weight: 700;
-    border: 1px solid rgba(148, 163, 184, 0.4);
+    font-size: 0.875rem;
+    font-weight: 600;
+    border: 1px solid rgba(148, 163, 184, 0.3);
     background: #fff;
     cursor: pointer;
+    transition: all 0.15s ease;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
-.isp-collector-btn--primary { background: rgb(13 148 136); color: #fff; border-color: transparent; }
-.isp-collector-btn--ok { background: rgb(5 150 105); color: #fff; border-color: transparent; }
-.isp-collector-btn--danger { background: rgb(220 38 38); color: #fff; border-color: transparent; }
-.isp-collector-btn--danger-outline { color: rgb(220 38 38); border-color: rgba(244, 63, 94, 0.45); }
+.isp-collector-btn:hover {
+    background: #f8fafc;
+    border-color: rgba(148, 163, 184, 0.4);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+}
+
+.isp-collector-btn--primary {
+    background: var(--isp-primary);
+    color: #fff;
+    border-color: transparent;
+    box-shadow: 0 2px 4px rgba(21, 101, 192, 0.2);
+}
+
+.isp-collector-btn--primary:hover {
+    background: var(--isp-primary-dark);
+    box-shadow: 0 4px 8px rgba(21, 101, 192, 0.3);
+}
+
+.isp-collector-btn--ok {
+    background: rgb(5 150 105);
+    color: #fff;
+    border-color: transparent;
+    box-shadow: 0 2px 4px rgba(5, 150, 105, 0.2);
+}
+
+.isp-collector-btn--ok:hover {
+    background: rgb(4 120 87);
+    box-shadow: 0 4px 8px rgba(5, 150, 105, 0.3);
+}
+
+.isp-collector-btn--danger {
+    background: rgb(220 38 38);
+    color: #fff;
+    border-color: transparent;
+    box-shadow: 0 2px 4px rgba(220, 38, 38, 0.2);
+}
+
+.isp-collector-btn--danger:hover {
+    background: rgb(185 28 28);
+    box-shadow: 0 4px 8px rgba(220, 38, 38, 0.3);
+}
+
+.isp-collector-btn--danger-outline {
+    color: rgb(220 38 38);
+    border-color: rgba(244, 63, 94, 0.45);
+    background: rgba(254, 242, 242, 0.5);
+}
+
+.isp-collector-btn--danger-outline:hover {
+    background: rgba(254, 242, 242, 1);
+    border-color: rgba(244, 63, 94, 0.6);
+}
+
+.dark .isp-collector-btn {
+    background: rgba(30, 41, 59, 0.8);
+    border-color: rgba(148, 163, 184, 0.2);
+    color: #e2e8f0;
+}
+
+.dark .isp-collector-btn:hover {
+    background: rgba(30, 41, 59, 1);
+    border-color: rgba(148, 163, 184, 0.3);
+}
+
+.dark .isp-collector-btn--primary {
+    background: var(--isp-primary);
+    color: #fff;
+}
+
+.dark .isp-collector-btn--primary:hover {
+    background: var(--isp-primary-light);
+}
+
+/* Professional bottom action bar for forms */
+.isp-form-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.75rem;
+    padding: 1rem 1.5rem;
+    margin-top: 1.5rem;
+    border-top: 1px solid rgba(148, 163, 184, 0.2);
+    background: rgba(248, 250, 252, 0.5);
+    border-radius: 0 0 var(--isp-radius-lg) var(--isp-radius-lg);
+}
+
+.dark .isp-form-actions {
+    background: rgba(15, 23, 42, 0.5);
+    border-color: rgba(148, 163, 184, 0.1);
+}
+
+.isp-form-actions--fixed {
+    position: sticky;
+    bottom: 0;
+    z-index: 10;
+    box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.dark .isp-form-actions--fixed {
+    box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.3);
+}
 
 .isp-collector-split {
     display: grid;
@@ -6034,6 +6586,12 @@ a.isp-lifecycle-card:hover {
     justify-content: space-between;
     align-items: flex-start;
     margin-bottom: 1rem;
+
+/* --- 09-forms-details.css --- */
+/**
+ * Aurora ISP admin — Forms, client details, role matrix
+ * @module admin/saas/09-forms-details.css
+ */
 }
 
 .isp-wan-live-hero__title {
@@ -6160,8 +6718,8 @@ a.isp-lifecycle-card:hover {
 
 /* Production UX — touch, tables, admin pages (mobile + desktop) */
 @media (max-width: 1023px) {
-    .fi-ta-table {
-        display: block;
+    /* Scroll wide tables via wrapper — never display:block on <table> (breaks row layout) */
+    .fi-ta-content {
         overflow-x: auto;
         -webkit-overflow-scrolling: touch;
     }
@@ -6340,6 +6898,34 @@ a.isp-lifecycle-card:hover {
 [data-theme='light'] .isp-unified-alerts__item--warning {
     background: rgb(255 251 235);
     color: rgb(146 64 14);
+}
+
+/* Subscriber create wizard — light mode */
+html:not(.dark) .isp-subscriber-create-wizard .fi-fo-wizard-header-step-label,
+[data-theme='light'] .isp-subscriber-create-wizard .fi-fo-wizard-header-step-label {
+    color: var(--isp-text);
+}
+
+html:not(.dark) .isp-subscriber-create-wizard .fi-fo-wizard-header-step-description,
+[data-theme='light'] .isp-subscriber-create-wizard .fi-fo-wizard-header-step-description {
+    color: var(--isp-text-muted);
+}
+
+html:not(.dark) .isp-subscriber-form .fi-input-wrp,
+html:not(.dark) .isp-subscriber-form .fi-select-input,
+html:not(.dark) .isp-subscriber-form .fi-fo-date-time-picker-display-text-input,
+[data-theme='light'] .isp-subscriber-form .fi-input-wrp,
+[data-theme='light'] .isp-subscriber-form .fi-select-input,
+[data-theme='light'] .isp-subscriber-form .fi-fo-date-time-picker-display-text-input {
+    background: #fff !important;
+    color: var(--isp-text) !important;
+}
+
+html:not(.dark) .isp-subscriber-gps-picker #isp-subscriber-gps-combined,
+[data-theme='light'] .isp-subscriber-gps-picker #isp-subscriber-gps-combined {
+    background: #fff !important;
+    color: var(--isp-text) !important;
+    border-color: rgba(148, 163, 184, 0.45) !important;
 }
 
 /* Online clients monitoring (NOC) */
@@ -7723,6 +8309,12 @@ a.isp-lifecycle-card:hover {
     border-bottom: 1px solid rgba(13, 148, 136, .15);
 }
 .isp-rbac-matrix__category-btn {
+
+/* --- 10-filament-overrides.css --- */
+/**
+ * Aurora ISP admin — Filament field & form overrides
+ * @module admin/saas/10-filament-overrides.css
+ */
     display: flex;
     align-items: center;
     gap: .5rem;
@@ -9781,7 +10373,47 @@ button.isp-rbac-check { padding: 0; }
 }
 
 .dark .isp-billing-dash__chart-card,
-.dark .isp-billing-dash__table-card,
+.dark .isp-billing-dash__table-card {
+    background: rgb(17 24 39);
+}
+
+/* ═══ Filament tables — preserve real <table> layout on every page ═══ */
+.fi-ta-content {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.fi-ta-table {
+    display: table !important;
+    width: 100%;
+    table-layout: auto;
+    border-collapse: separate;
+    border-spacing: 0;
+}
+
+.fi-ta-row,
+.fi-ta-header-row,
+.fi-ta-table thead tr,
+.fi-ta-table tbody tr {
+    display: table-row !important;
+}
+
+.fi-ta-header-cell,
+.fi-ta-cell,
+.fi-ta-actions-header-cell,
+.fi-ta-actions-cell,
+.fi-ta-record-checkbox-cell,
+.fi-ta-table th,
+.fi-ta-table td {
+    display: table-cell !important;
+    vertical-align: middle;
+}
+
+/* --- 11-subscriber-view-legacy.css --- */
+/**
+ * Aurora ISP admin — Subscriber 360 & billing notices
+ * @module admin/saas/11-subscriber-view-legacy.css
+ */
 [data-theme='dark'] .isp-billing-dash__chart-card,
 [data-theme='dark'] .isp-billing-dash__table-card {
     background: color-mix(in srgb, var(--isp-card-bg) 95%, #0f172a);
@@ -10654,6 +11286,166 @@ button.isp-rbac-check { padding: 0; }
     color: var(--isp-text) !important;
 }
 
+/* --- 12-dashboard-home.css --- */
+/**
+ * Dashboard home — final layer (load after premium glass)
+ * @module admin/saas/12-dashboard-home.css
+ */
+
+/* ── Page shell ── */
+[data-isp-dashboard='1'] .fi-main,
+.fi-dashboard-page .fi-main {
+    padding-bottom: max(1.25rem, env(safe-area-inset-bottom));
+}
+
+@media (max-width: 1023px) {
+    [data-isp-dashboard='1'] .fi-main,
+    .fi-dashboard-page .fi-main {
+        padding-bottom: calc(4.75rem + env(safe-area-inset-bottom));
+    }
+}
+
+.fi-dashboard-page .fi-page-header-widgets,
+.fi-dashboard-page .fi-page-footer-widgets {
+    margin-bottom: 0;
+}
+
+/* Widget grid — readable gaps on PC & mobile */
+.fi-dashboard-page .fi-wi,
+[data-isp-dashboard='1'] .fi-wi {
+    gap: 0.85rem !important;
+}
+
+@media (min-width: 640px) {
+    .fi-dashboard-page .fi-wi,
+    [data-isp-dashboard='1'] .fi-wi {
+        gap: 1rem !important;
+    }
+}
+
+@media (min-width: 1280px) {
+    .fi-dashboard-page .fi-wi,
+    [data-isp-dashboard='1'] .fi-wi {
+        gap: 1.15rem !important;
+    }
+}
+
+/* Flex children must shrink (prevents giant SVG stretch) */
+.fi-dashboard-page .fi-wi-widget,
+.fi-dashboard-page .fi-wi-widget > div,
+.fi-dashboard-page .fi-wi-widget > div > * {
+    min-width: 0;
+}
+
+.fi-dashboard-page .fi-wi-widget > div {
+    overflow: hidden;
+}
+
+/* Hide legacy Filament chart widgets on home (revenue/online → insights row only) */
+.fi-dashboard-page .fi-wi-widget.fi-wi-chart {
+    display: none !important;
+}
+
+/* Dashboard cards — ISP tokens beat washed premium on home only */
+.fi-dashboard-page .fi-wi-widget > div,
+.fi-dashboard-page .fi-wi-chart > div,
+.fi-dashboard-page .fi-wi-stats-overview > div {
+    background: var(--isp-card) !important;
+    border: 1px solid var(--isp-card-border) !important;
+    border-radius: var(--isp-radius-lg) !important;
+    box-shadow: var(--isp-shadow) !important;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+}
+
+.dark .fi-dashboard-page .fi-wi-widget > div,
+.dark .fi-dashboard-page .fi-wi-chart > div,
+[data-theme='dark'] .fi-dashboard-page .fi-wi-widget > div,
+[data-theme='dark'] .fi-dashboard-page .fi-wi-chart > div {
+    background: var(--isp-card) !important;
+    border-color: var(--isp-card-border) !important;
+    box-shadow: var(--isp-shadow) !important;
+}
+
+.fi-dashboard-page .fi-wi-widget:hover > div {
+    transform: translateY(-1px);
+    box-shadow: var(--isp-shadow-lg) !important;
+}
+
+/* Ops command center inside widget — no double glass */
+.fi-dashboard-page .isp-cmd-center--pro,
+.fi-dashboard-page .isp-cmd-hero--pro,
+.fi-dashboard-page .isp-cmd-section {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+}
+
+.fi-dashboard-page .isp-cmd-feed--pro {
+    background: var(--isp-card) !important;
+    border: 1px solid var(--isp-card-border) !important;
+    border-radius: var(--isp-radius-lg) !important;
+    box-shadow: var(--isp-shadow) !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+}
+
+.fi-dashboard-page .fi-wi-widget:has(.isp-cmd-center--pro) > div {
+    padding: 0 !important;
+    overflow: visible !important;
+    max-width: 100% !important;
+    width: 100% !important;
+}
+
+.fi-dashboard-page .fi-wi-widget:has(#isp-dash-insights-root) > div {
+    padding: 0.5rem 0.65rem !important;
+    overflow: visible !important;
+    width: 100% !important;
+    max-width: 100% !important;
+}
+
+.fi-dashboard-page .isp-cmd-center--pro {
+    padding: 0.15rem 0 0.35rem;
+    gap: 1rem;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Hero — light/dark readable */
+.fi-dashboard-page .isp-cmd-hero--pro {
+    padding: 1.1rem 1.15rem !important;
+    border-radius: var(--isp-radius-xl) !important;
+    border: 1px solid var(--isp-card-border) !important;
+    background: linear-gradient(
+        135deg,
+        rgba(13, 148, 136, 0.1),
+        rgba(99, 102, 241, 0.08)
+    ) !important;
+    box-shadow: var(--isp-shadow) !important;
+}
+
+.dark .fi-dashboard-page .isp-cmd-hero--pro,
+[data-theme='dark'] .fi-dashboard-page .isp-cmd-hero--pro {
+    background: linear-gradient(
+        135deg,
+        rgba(45, 212, 191, 0.12),
+        rgba(129, 140, 248, 0.1)
+    ) !important;
+    border-color: rgba(148, 163, 184, 0.2) !important;
+}
+
+.fi-dashboard-page .isp-cmd-hero__title,
+.fi-dashboard-page .isp-cmd-hero__lead {
+    color: var(--isp-text) !important;
+}
+
+.fi-dashboard-page .isp-cmd-chip {
+    background: var(--isp-surface-elevated, rgba(255, 255, 255, 0.7)) !important;
+    border: 1px solid var(--isp-card-border) !important;
+    color: var(--isp-text) !important;
+}
+
 .dark .fi-dashboard-page .isp-cmd-chip,
 [data-theme='dark'] .fi-dashboard-page .isp-cmd-chip {
     background: rgba(30, 41, 59, 0.65) !important;
@@ -11141,6 +11933,385 @@ button.isp-rbac-check { padding: 0; }
     .isp-dash-insights__kpis {
         width: 100%;
     }
+}
+
+/* --- 14-light-mode-global.css --- */
+/**
+ * Global admin light mode — Filament shell, tables, forms, hubs
+ * @module admin/saas/14-light-mode-global.css
+ */
+
+html:not(.dark),
+[data-theme='light'] {
+    color-scheme: light;
+}
+
+/* ── Main canvas ── */
+html:not(.dark) .fi-main,
+html:not(.dark) .fi-main-ctn,
+html:not(.dark) .fi-page,
+html:not(.dark) .fi-layout,
+[data-theme='light'] .fi-main,
+[data-theme='light'] .fi-main-ctn,
+[data-theme='light'] .fi-page,
+[data-theme='light'] .fi-layout {
+    background: var(--isp-surface) !important;
+    color: var(--isp-text);
+}
+
+html:not(.dark) .fi-topbar,
+[data-theme='light'] .fi-topbar {
+    background: var(--isp-glass) !important;
+    color: var(--isp-text) !important;
+    border-bottom-color: var(--isp-card-border) !important;
+}
+
+/* ── Cards, sections, widgets ── */
+html:not(.dark) .fi-section,
+html:not(.dark) .fi-ta-ctn,
+html:not(.dark) .fi-wi-stats-overview-stat,
+html:not(.dark) .fi-wi-widget > div,
+html:not(.dark) .fi-wi-chart > div,
+html:not(.dark) .fi-wi-table > .fi-section,
+html:not(.dark) .isp-hub-section,
+html:not(.dark) .isp-hub-hero,
+[data-theme='light'] .fi-section,
+[data-theme='light'] .fi-ta-ctn,
+[data-theme='light'] .fi-wi-stats-overview-stat,
+[data-theme='light'] .fi-wi-widget > div,
+[data-theme='light'] .fi-wi-chart > div,
+[data-theme='light'] .fi-wi-table > .fi-section,
+[data-theme='light'] .isp-hub-section,
+[data-theme='light'] .isp-hub-hero {
+    background: var(--isp-card) !important;
+    color: var(--isp-text) !important;
+    border-color: var(--isp-card-border) !important;
+}
+
+html:not(.dark) .fi-section-header-heading,
+html:not(.dark) .fi-header-heading,
+html:not(.dark) .fi-wi-stats-overview-stat-label,
+html:not(.dark) .fi-wi-stats-overview-stat-value,
+[data-theme='light'] .fi-section-header-heading,
+[data-theme='light'] .fi-header-heading,
+[data-theme='light'] .fi-wi-stats-overview-stat-label,
+[data-theme='light'] .fi-wi-stats-overview-stat-value {
+    color: var(--isp-text) !important;
+}
+
+html:not(.dark) .fi-section-header-description,
+html:not(.dark) .fi-header-subheading,
+html:not(.dark) .fi-wi-stats-overview-stat-description,
+[data-theme='light'] .fi-section-header-description,
+[data-theme='light'] .fi-header-subheading,
+[data-theme='light'] .fi-wi-stats-overview-stat-description {
+    color: var(--isp-text-muted) !important;
+}
+
+/* ── Tables (all resource list pages) ── */
+html:not(.dark) .fi-ta-table,
+[data-theme='light'] .fi-ta-table {
+    display: table !important;
+    width: 100%;
+    table-layout: auto;
+    border-collapse: separate;
+    border-spacing: 0;
+}
+
+html:not(.dark) .fi-ta-row,
+html:not(.dark) .fi-ta-table thead tr,
+html:not(.dark) .fi-ta-table tbody tr,
+[data-theme='light'] .fi-ta-row,
+[data-theme='light'] .fi-ta-table thead tr,
+[data-theme='light'] .fi-ta-table tbody tr {
+    display: table-row !important;
+}
+
+html:not(.dark) .fi-ta-header-cell,
+html:not(.dark) .fi-ta-cell,
+html:not(.dark) .fi-ta-actions-header-cell,
+html:not(.dark) .fi-ta-actions-cell,
+html:not(.dark) .fi-ta-record-checkbox-cell,
+[data-theme='light'] .fi-ta-header-cell,
+[data-theme='light'] .fi-ta-cell,
+[data-theme='light'] .fi-ta-actions-header-cell,
+[data-theme='light'] .fi-ta-actions-cell,
+[data-theme='light'] .fi-ta-record-checkbox-cell {
+    display: table-cell !important;
+    vertical-align: middle;
+}
+
+html:not(.dark) .fi-ta-header-cell,
+[data-theme='light'] .fi-ta-header-cell {
+    background: var(--isp-card-muted) !important;
+    color: var(--isp-text-muted) !important;
+    border-color: var(--isp-card-border) !important;
+}
+
+/* Beat Tailwind dark:text-white when theme preference is light */
+html:not(.dark) .fi-ta-header-cell-label,
+[data-theme='light'] .fi-ta-header-cell-label {
+    color: #0f172a !important;
+}
+
+html:not(.dark) .fi-ta-header-cell-sort-icon,
+[data-theme='light'] .fi-ta-header-cell-sort-icon {
+    color: #64748b !important;
+}
+
+html:not(.dark) .fi-ta-row > .fi-ta-cell,
+[data-theme='light'] .fi-ta-row > .fi-ta-cell {
+    background: var(--isp-card) !important;
+    color: var(--isp-text) !important;
+    border-color: var(--isp-card-border) !important;
+}
+
+html:not(.dark) .fi-ta-row:hover > .fi-ta-cell,
+[data-theme='light'] .fi-ta-row:hover > .fi-ta-cell {
+    background: color-mix(in srgb, var(--isp-primary) 5%, var(--isp-card)) !important;
+}
+
+html:not(.dark) .fi-ta-text-item-description,
+html:not(.dark) .fi-ta-empty-state,
+html:not(.dark) .fi-ta-empty-state-heading,
+[data-theme='light'] .fi-ta-text-item-description,
+[data-theme='light'] .fi-ta-empty-state,
+[data-theme='light'] .fi-ta-empty-state-heading {
+    color: var(--isp-text-muted) !important;
+}
+
+html:not(.dark) .fi-ta-pagination,
+html:not(.dark) .fi-ta-header-toolbar,
+[data-theme='light'] .fi-ta-pagination,
+[data-theme='light'] .fi-ta-header-toolbar {
+    color: var(--isp-text-muted) !important;
+    border-color: var(--isp-card-border) !important;
+}
+
+/* Clients directory — page-specific tokens override globals */
+html:not(.dark) .isp-clients-page .cl-dir-table .fi-ta-header-cell,
+html:not(.dark) .isp-clients-page .cl-dir-table .fi-ta-row > .fi-ta-cell,
+[data-theme='light'] .isp-clients-page .cl-dir-table .fi-ta-header-cell,
+[data-theme='light'] .isp-clients-page .cl-dir-table .fi-ta-row > .fi-ta-cell {
+    background: var(--cl-dir-card) !important;
+    color: var(--cl-dir-text) !important;
+    border-color: var(--cl-dir-border) !important;
+}
+
+html:not(.dark) .isp-clients-page .cl-dir-table .fi-ta-header-cell,
+[data-theme='light'] .isp-clients-page .cl-dir-table .fi-ta-header-cell {
+    background: var(--cl-dir-card-2) !important;
+    color: var(--cl-dir-muted) !important;
+}
+
+/* Online clients table */
+html:not(.dark) .oc-pro-table .fi-ta-header-cell,
+[data-theme='light'] .oc-pro-table .fi-ta-header-cell {
+    background: var(--oc-header-bg, var(--isp-card-muted)) !important;
+    color: var(--oc-muted, var(--isp-text-muted)) !important;
+}
+
+html:not(.dark) .oc-pro-table .fi-ta-row > .fi-ta-cell,
+[data-theme='light'] .oc-pro-table .fi-ta-row > .fi-ta-cell {
+    background: var(--oc-card, var(--isp-card)) !important;
+    color: var(--oc-text, var(--isp-text)) !important;
+}
+
+/* ── Forms & fields ── */
+html:not(.dark) .fi-input-wrp,
+html:not(.dark) .fi-select-input,
+html:not(.dark) .fi-fo-date-time-picker-display-text-input,
+html:not(.dark) .fi-input,
+html:not(.dark) .fi-textarea,
+html:not(.dark) .fi-fo-wizard-header-step-label,
+html:not(.dark) .fi-fo-rich-editor-toolbar,
+[data-theme='light'] .fi-input-wrp,
+[data-theme='light'] .fi-select-input,
+[data-theme='light'] .fi-fo-date-time-picker-display-text-input,
+[data-theme='light'] .fi-input,
+[data-theme='light'] .fi-textarea,
+[data-theme='light'] .fi-fo-wizard-header-step-label,
+[data-theme='light'] .fi-fo-rich-editor-toolbar {
+    background: #fff !important;
+    color: var(--isp-text) !important;
+    border-color: var(--isp-card-border) !important;
+}
+
+html:not(.dark) .fi-fo-wizard-header-step-description,
+html:not(.dark) .fi-fo-field-wrp-label,
+html:not(.dark) .fi-fo-field-wrp-hint,
+html:not(.dark) .fi-fo-placeholder,
+[data-theme='light'] .fi-fo-wizard-header-step-description,
+[data-theme='light'] .fi-fo-field-wrp-label,
+[data-theme='light'] .fi-fo-field-wrp-hint,
+[data-theme='light'] .fi-fo-placeholder {
+    color: var(--isp-text-muted) !important;
+}
+
+html:not(.dark) .fi-fo-wizard-header-step-icon-ctn,
+[data-theme='light'] .fi-fo-wizard-header-step-icon-ctn {
+    background: var(--isp-card-muted) !important;
+    color: var(--isp-text) !important;
+}
+
+html:not(.dark) .fi-fo-tabs-tab,
+[data-theme='light'] .fi-fo-tabs-tab {
+    color: var(--isp-text-muted) !important;
+}
+
+html:not(.dark) .fi-fo-tabs-tab.fi-active,
+[data-theme='light'] .fi-fo-tabs-tab.fi-active {
+    color: var(--isp-primary) !important;
+    border-color: var(--isp-primary) !important;
+}
+
+/* ── Infolists & view pages ── */
+html:not(.dark) .fi-infolist-entry-wrapper,
+html:not(.dark) .fi-in-entry-wrp,
+[data-theme='light'] .fi-infolist-entry-wrapper,
+[data-theme='light'] .fi-in-entry-wrp {
+    color: var(--isp-text) !important;
+}
+
+html:not(.dark) .fi-infolist-entry-label,
+html:not(.dark) .fi-in-entry-wrp-label,
+[data-theme='light'] .fi-infolist-entry-label,
+[data-theme='light'] .fi-in-entry-wrp-label {
+    color: var(--isp-text-muted) !important;
+}
+
+/* ── Modals, dropdowns, slide-overs ── */
+html:not(.dark) .fi-modal-window,
+html:not(.dark) .fi-dropdown-panel,
+html:not(.dark) .fi-slide-over-panel,
+html:not(.dark) .fi-fo-repeater-item,
+[data-theme='light'] .fi-modal-window,
+[data-theme='light'] .fi-dropdown-panel,
+[data-theme='light'] .fi-slide-over-panel,
+[data-theme='light'] .fi-fo-repeater-item {
+    background: #fff !important;
+    color: var(--isp-text) !important;
+    border-color: var(--isp-card-border) !important;
+}
+
+html:not(.dark) .fi-modal-header,
+html:not(.dark) .fi-modal-footer,
+[data-theme='light'] .fi-modal-header,
+[data-theme='light'] .fi-modal-footer {
+    border-color: var(--isp-card-border) !important;
+}
+
+/* ── Tabs & breadcrumbs ── */
+html:not(.dark) .fi-tabs-item,
+[data-theme='light'] .fi-tabs-item {
+    color: var(--isp-text-muted) !important;
+}
+
+html:not(.dark) .fi-tabs-item.fi-active,
+[data-theme='light'] .fi-tabs-item.fi-active {
+    color: var(--isp-primary) !important;
+}
+
+html:not(.dark) .fi-breadcrumbs-item-label,
+[data-theme='light'] .fi-breadcrumbs-item-label {
+    color: var(--isp-text-muted) !important;
+}
+
+/* ── Hub list cards ── */
+html:not(.dark) .isp-list-card,
+html:not(.dark) .isp-dash-hub-card,
+[data-theme='light'] .isp-list-card,
+[data-theme='light'] .isp-dash-hub-card {
+    background: var(--isp-card) !important;
+    color: var(--isp-text) !important;
+    border-color: var(--isp-card-border) !important;
+}
+
+html:not(.dark) .isp-list-card__title,
+html:not(.dark) .isp-dash-hub-card__title,
+[data-theme='light'] .isp-list-card__title,
+[data-theme='light'] .isp-dash-hub-card__title {
+    color: var(--isp-text) !important;
+}
+
+html:not(.dark) .isp-list-card__desc,
+html:not(.dark) .isp-dash-hub-card__desc,
+[data-theme='light'] .isp-list-card__desc,
+[data-theme='light'] .isp-dash-hub-card__desc {
+    color: var(--isp-text-muted) !important;
+}
+
+/* ── Hub pages — reinforce light tokens when .dark is off ── */
+html:not(.dark) .ch-pro,
+html:not(.dark) .bh-pro,
+html:not(.dark) .ih-pro,
+html:not(.dark) .olt-pro,
+html:not(.dark) .rsh-pro,
+html:not(.dark) .slh-pro,
+html:not(.dark) .sub-pro,
+[data-theme='light'] .ch-pro,
+[data-theme='light'] .bh-pro,
+[data-theme='light'] .ih-pro,
+[data-theme='light'] .olt-pro,
+[data-theme='light'] .rsh-pro,
+[data-theme='light'] .slh-pro,
+[data-theme='light'] .sub-pro {
+    color: var(--isp-text);
+}
+
+html:not(.dark) .isp-clients-hub-page .fi-page,
+html:not(.dark) .isp-billing-hub-page .fi-page,
+html:not(.dark) .isp-inventory-hub-page .fi-page,
+html:not(.dark) .isp-olt-hub-page .fi-page,
+html:not(.dark) .isp-rsh-page .fi-page,
+html:not(.dark) .isp-sub-view-page .fi-page,
+[data-theme='light'] .isp-clients-hub-page .fi-page,
+[data-theme='light'] .isp-billing-hub-page .fi-page,
+[data-theme='light'] .isp-inventory-hub-page .fi-page,
+[data-theme='light'] .isp-olt-hub-page .fi-page,
+[data-theme='light'] .isp-rsh-page .fi-page,
+[data-theme='light'] .isp-sub-view-page .fi-page {
+    background: var(--isp-surface) !important;
+}
+
+/* ── Theme switcher in topbar ── */
+html:not(.dark) .isp-theme-switch,
+[data-theme='light'] .isp-theme-switch {
+    background: rgba(255, 255, 255, 0.85) !important;
+    border-color: var(--isp-card-border) !important;
+}
+
+html:not(.dark) .isp-theme-switch__btn,
+[data-theme='light'] .isp-theme-switch__btn {
+    color: var(--isp-text-muted) !important;
+}
+
+html:not(.dark) .isp-theme-switch__btn--active,
+[data-theme='light'] .isp-theme-switch__btn--active {
+    background: rgba(99, 102, 241, 0.12) !important;
+    color: #4338ca !important;
+}
+
+/* ── Premium glass — light input override ── */
+html:not(.dark) .fi-input,
+html:not(.dark) .isp-auth-field-input,
+[data-theme='light'] .fi-input,
+[data-theme='light'] .isp-auth-field-input {
+    background: #fff !important;
+    border-color: var(--isp-card-border) !important;
+    color: var(--isp-text) !important;
+}
+
+/* ── Relation managers ── */
+html:not(.dark) .fi-resource-relation-manager,
+[data-theme='light'] .fi-resource-relation-manager {
+    background: transparent !important;
+}
+
+html:not(.dark) .fi-resource-relation-manager .fi-ta-ctn,
+[data-theme='light'] .fi-resource-relation-manager .fi-ta-ctn {
+    background: var(--isp-card) !important;
+    border-color: var(--isp-card-border) !important;
 }
 
 /* --- admin-utilities.css --- */

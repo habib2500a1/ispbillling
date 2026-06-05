@@ -113,8 +113,8 @@ final class OltOnuSyncCoordinator
 
         $s = strtolower($sysDescr);
 
-        if (str_contains($s, 'av-olt') || str_contains($s, 'aveis')) {
-            return 'aveis_gpon';
+        if (str_contains($s, 'av-olt') || str_contains($s, 'aveis') || str_contains($s, 'xe08')) {
+            return str_contains($s, 'epon') ? 'aveis_epon' : 'aveis_gpon';
         }
 
         if (str_contains($s, 'huawei') || str_contains($s, 'ma58') || str_contains($s, 'ma56') || str_contains($s, 'ma5600') || str_contains($s, 'ma5800')) {
@@ -123,10 +123,6 @@ final class OltOnuSyncCoordinator
 
         if (str_contains($s, 'bdcom') || str_contains($s, 'p33') || str_contains($s, 'p3608')) {
             return str_contains($s, 'epon') ? 'bdcom_epon' : 'bdcom_gpon';
-        }
-
-        if (str_contains($s, 'av-olt') || str_contains($s, 'aveis') || str_contains($s, 'xe08')) {
-            return 'aveis_gpon';
         }
 
         if (str_contains($s, 'zte') || str_contains($s, 'c300') || str_contains($s, 'c320') || str_contains($s, 'zxa10') || str_contains($s, 'zxan')) {

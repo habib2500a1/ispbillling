@@ -43,10 +43,13 @@ class MobileConfigService
                 'phase_3' => 'live',
                 'phase_4' => 'live',
             ],
+            'login' => MobileLoginHubConfig::payload(),
             'links' => [
                 'base' => $base,
                 'pay' => $base.'/pay',
+                'login_hub' => route('login.hub'),
                 'portal_login' => MobileAppLinks::portalLoginUrl() ?? $base.'/login',
+                'reseller_login' => $base.'/reseller/login',
                 'landing' => MobileAppLinks::landingUrl(),
                 'apk' => MobileAppLinks::downloadUrl(),
                 'apk_mfs_verify' => MobileAppLinks::mfsVerifyDownloadUrl(),
@@ -62,6 +65,7 @@ class MobileConfigService
                 'portal' => (bool) config('portal.enabled', true),
                 'customer_tickets' => true,
                 'staff_collection' => true,
+                'speed_test' => (bool) config('portal.speed_test.external.enabled', true),
                 'push_fcm' => (bool) config('mobile.fcm_enabled'),
                 'realtime_ws' => $broadcast !== 'log',
                 'offline_sync' => true,
@@ -76,7 +80,7 @@ class MobileConfigService
             'apps' => [
                 'customer' => [
                     'status' => 'live',
-                    'modules' => ['dashboard', 'billing', 'usage', 'onu', 'tickets', 'packages', 'pay', 'ai'],
+                    'modules' => ['dashboard', 'billing', 'usage', 'speed_test', 'onu', 'tickets', 'packages', 'pay', 'ai'],
                 ],
                 'collector' => [
                     'status' => 'live',
@@ -102,6 +106,12 @@ class MobileConfigService
                     'department' => 'technical_support',
                     'priority' => 'medium',
                 ],
+            ],
+            'speed_test' => [
+                'enabled' => (bool) config('portal.speed_test.external.enabled', true),
+                'ping_url' => (string) config('portal.speed_test.external.ping_url'),
+                'download_url' => (string) config('portal.speed_test.external.download_url'),
+                'upload_url' => (string) config('portal.speed_test.external.upload_url'),
             ],
         ];
     }

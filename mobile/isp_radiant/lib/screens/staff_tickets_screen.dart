@@ -99,8 +99,8 @@ class _StaffTicketsScreenState extends State<StaffTicketsScreen> {
     final visible = _visible;
 
     return IspTabScreen(
-      title: 'Support tickets',
-      subtitle: '${_items.length} in view',
+      title: 'Support',
+      subtitle: '${_items.length} tickets',
       loading: _loading,
       error: _error,
       onRetry: _load,

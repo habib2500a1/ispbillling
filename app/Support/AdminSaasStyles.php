@@ -36,28 +36,13 @@ final class AdminSaasStyles
             'admin/saas/11-subscriber-view-legacy.css',
             'admin/saas/12-dashboard-home.css',
             'admin/saas/13-dashboard-insights.css',
+            'admin/saas/14-light-mode-global.css',
         ];
-    }
-
-    public static function version(): int
-    {
-        return StylesheetModules::version(self::modules(), self::BUNDLE_FILE);
     }
 
     public static function html(): string
     {
         return StylesheetModules::html(self::modules(), 'isp-admin-saas', 'admin-saas', self::BUNDLE_FILE);
-    }
-
-    public static function preloadHref(): string
-    {
-        if (StylesheetModules::shouldBundle() && is_file(public_path('css/'.self::BUNDLE_FILE))) {
-            return asset('css/'.self::BUNDLE_FILE).'?v='.self::version();
-        }
-
-        $first = self::modules()[0] ?? 'admin/saas/01-tokens.css';
-
-        return asset('css/'.$first).'?v='.self::version();
     }
 
 }

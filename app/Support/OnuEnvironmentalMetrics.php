@@ -111,9 +111,18 @@ final class OnuEnvironmentalMetrics
 
             $value = (float) $bag[$key];
 
-            if ($key === 'temperature' || $key === 'temp') {
+            if ($key === 'temperature' || $key === 'temp' || str_contains($key, 'temperature')) {
                 if ($value > 200) {
                     $value = $value / 10;
+                }
+                if ($value < 5 || $value > 120) {
+                    continue;
+                }
+            }
+
+            if (str_contains($key, 'voltage')) {
+                if ($value < 2.0 || $value > 6.5) {
+                    continue;
                 }
             }
 

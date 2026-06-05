@@ -5,6 +5,7 @@ namespace App\Filament\Hrm;
 use App\Filament\Pages\HrPayrollHub;
 use App\Filament\Resources\EmployeeResource;
 use App\Support\HrmSidebarRegistry;
+use App\Support\Rbac\StaffCapability;
 use Filament\Events\ServingFilament;
 use Filament\Facades\Filament;
 use Illuminate\Support\Facades\Event;
@@ -33,7 +34,18 @@ final class HrmSidebarNavigation
 
     public static function userCanSee(): bool
     {
-        return HrPayrollHub::canAccess() || EmployeeResource::canViewAny();
+        $user = auth()->user();
+        if ($user === null) {
+            return false;
+        }
+
+        if (StaffCapability::for($user)->isTenantAdmin()) {
+            return true;
+        }
+
+        return StaffCapability::for($user)->canHrm()
+            || HrPayrollHub::canAccess()
+            || EmployeeResource::canViewAny();
     }
 
     /**

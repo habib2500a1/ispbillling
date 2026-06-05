@@ -36,8 +36,12 @@ class InventorySidebarNavigationTest extends TestCase
         $groups = array_map(fn ($item) => (string) ($item->getGroup() ?? ''), $items);
 
         $this->assertContains('Inventory center', $labels);
+        $this->assertContains('Report · current stock', $labels);
+        $this->assertContains('Warranty management', $labels);
+        $this->assertContains('Report · overdue', $labels);
         $this->assertContains(InventorySidebarRegistry::GROUP_LABEL, $groups);
         $this->assertContains('OLT', $labels);
+        $this->assertContains('OLT VPN / PPTP', $labels);
         $this->assertContains(OltSidebarRegistry::GROUP_LABEL, $groups);
 
         $oltListUrl = OltResource::getUrl();

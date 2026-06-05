@@ -14,6 +14,8 @@ class CreateAttendanceOfficeLocation extends CreateRecord
     protected function mutateFormDataBeforeCreate(array $data): array
     {
         $data['tenant_id'] = TenantResolver::requiredTenantId();
+        $data['latitude'] = round((float) ($data['latitude'] ?? 0), 7);
+        $data['longitude'] = round((float) ($data['longitude'] ?? 0), 7);
 
         if (! empty($data['is_default'])) {
             AttendanceOfficeLocation::query()

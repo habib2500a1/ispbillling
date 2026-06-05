@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources;
 
+use App\Filament\Concerns\ChecksIspPermission;
 use App\Filament\Resources\PaymentResource\Pages;
 use App\Models\Customer;
 use App\Models\Invoice;
@@ -21,6 +22,8 @@ use Illuminate\Database\Eloquent\Builder;
 
 class PaymentResource extends Resource
 {
+    use ChecksIspPermission;
+
     protected static ?string $model = Payment::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-banknotes';
@@ -285,5 +288,10 @@ class PaymentResource extends Resource
             'create' => Pages\CreatePayment::route('/create'),
             'edit' => Pages\EditPayment::route('/{record}/edit'),
         ];
+    }
+
+    protected static function permissionPrefix(): string
+    {
+        return 'payments';
     }
 }

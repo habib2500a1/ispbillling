@@ -90,7 +90,12 @@ final class MobileAppLinks
             return null;
         }
 
-        return route('portal.login');
+        return route('login.hub');
+    }
+
+    public static function loginHubUrl(): string
+    {
+        return route('login.hub');
     }
 
     public static function staffLoginUrl(): string

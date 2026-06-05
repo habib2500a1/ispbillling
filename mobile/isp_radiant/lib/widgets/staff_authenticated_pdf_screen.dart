@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
+import '../core/theme/design_tokens.dart';
 import '../services/api_service.dart';
+import 'staff_blue_app_bar.dart';
 
 /// Opens staff invoice/receipt PDF with Bearer token (Sanctum).
 class StaffAuthenticatedPdfScreen extends StatefulWidget {
@@ -64,14 +66,20 @@ class _StaffAuthenticatedPdfScreenState extends State<StaffAuthenticatedPdfScree
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(widget.title)),
+      backgroundColor: DesignTokens.lightBg,
+      appBar: StaffBlueAppBar(title: widget.title),
       body: Stack(
         children: [
           if (_error != null)
             Center(child: Padding(padding: const EdgeInsets.all(24), child: Text(_error!)))
           else
             WebViewWidget(controller: _controller),
-          if (_loading) const LinearProgressIndicator(minHeight: 3),
+          if (_loading)
+            const LinearProgressIndicator(
+              minHeight: 3,
+              color: DesignTokens.primary,
+              backgroundColor: DesignTokens.lightBorder,
+            ),
         ],
       ),
     );

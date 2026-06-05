@@ -441,3 +441,192 @@
 }
 
 .iv-dock__link svg { width: 1.25rem; height: 1.25rem; }
+
+/* ── Sub-pages: products · sales · POS forms (list + create + edit) ── */
+.iv-list-shell,
+.iv-form-shell {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+
+.iv-form-hero {
+    position: relative;
+    overflow: hidden;
+    border-radius: var(--iv-radius);
+    padding: 1.2rem 1.35rem 1.1rem;
+    background: linear-gradient(135deg, #431407 0%, #c2410c 48%, #ea580c 100%);
+    color: #fff;
+    box-shadow: var(--iv-shadow-lg);
+}
+
+.iv-form-hero::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+        radial-gradient(ellipse 70% 55% at 100% 0%, rgba(255, 255, 255, 0.12) 0%, transparent 55%),
+        radial-gradient(ellipse 45% 40% at 0% 100%, rgba(251, 191, 36, 0.25) 0%, transparent 50%);
+    pointer-events: none;
+}
+
+.iv-form-hero > * {
+    position: relative;
+    z-index: 1;
+}
+
+.iv-form-hero__back {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    margin-bottom: 0.65rem;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.82);
+    text-decoration: none;
+}
+
+.iv-form-hero__back:hover {
+    color: #fff;
+    text-decoration: none;
+}
+
+.iv-list-hero__row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem 1.25rem;
+}
+
+.iv-list-hero__cta {
+    flex-shrink: 0;
+}
+
+.iv-form-hero__title {
+    margin: 0;
+    font-size: clamp(1.35rem, 3vw, 1.85rem);
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    line-height: 1.2;
+    color: #fff;
+}
+
+.iv-form-hero__sub {
+    margin: 0.45rem 0 0;
+    max-width: 40rem;
+    font-size: 0.875rem;
+    line-height: 1.5;
+    color: rgba(255, 255, 255, 0.88);
+}
+
+.iv-form-hero__thumb {
+    float: left;
+    margin: 0 1rem 0.5rem 0;
+    border-radius: var(--iv-radius-sm);
+    border: 2px solid rgba(255, 255, 255, 0.35);
+    object-fit: cover;
+}
+
+.iv-form-hero__links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 0.85rem;
+    margin-top: 0.85rem;
+}
+
+.iv-form-hero__link {
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.9);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+
+.iv-form-hero__link:hover {
+    color: #fff;
+}
+
+.iv-list-stats {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.65rem;
+}
+
+@media (min-width: 1024px) {
+    .iv-list-stats {
+        grid-template-columns: repeat(4, 1fr);
+    }
+}
+
+.iv-list-stat {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    padding: 1rem;
+    border-radius: var(--iv-radius-sm);
+    background: var(--iv-card);
+    border: 1px solid var(--iv-border);
+    box-shadow: var(--iv-shadow);
+    position: relative;
+    overflow: hidden;
+}
+
+.iv-list-stat::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    background: var(--iv-accent, var(--iv-orange));
+}
+
+.iv-list-stat__label {
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--iv-muted);
+}
+
+.iv-list-stat__value {
+    font-size: 1.35rem;
+    font-weight: 800;
+    color: var(--iv-text);
+    letter-spacing: -0.02em;
+}
+
+.iv-list-stat--teal { --iv-accent: #0d9488; }
+.iv-list-stat--amber { --iv-accent: #d97706; }
+.iv-list-stat--sky { --iv-accent: #0284c7; }
+.iv-list-stat--orange { --iv-accent: #ea580c; }
+
+.iv-list-table-card,
+.iv-form-card {
+    border-radius: var(--iv-radius);
+    background: var(--iv-card);
+    border: 1px solid var(--iv-border);
+    box-shadow: var(--iv-shadow);
+    padding: 1rem 1.1rem 1.15rem;
+}
+
+.iv-list-table-card .fi-ta-ctn,
+.iv-form-card .fi-section {
+    border: none !important;
+    box-shadow: none !important;
+    background: transparent !important;
+}
+
+.iv-list-table-card .fi-ta-header,
+.iv-form-card .fi-fo-field-wrp-label {
+    color: var(--iv-text);
+}
+
+/* Hide duplicate Filament page header (custom hero + CTA) */
+.isp-inventory-hub-page.fi-resource-list-records-page .fi-header-actions,
+.isp-inventory-hub-page.fi-resource-create-record-page .fi-header-actions,
+.isp-inventory-hub-page.fi-resource-edit-record-page .fi-header-actions,
+.isp-inventory-hub-page.fi-resource-view-record-page .fi-header-actions {
+    display: none !important;
+}

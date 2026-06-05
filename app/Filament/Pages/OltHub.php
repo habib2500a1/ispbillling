@@ -127,6 +127,13 @@ class OltHub extends Page
                 'featured' => true,
             ],
             [
+                'title' => 'OLT VPN / PPTP',
+                'desc' => 'Private IP reach — PPTP, OpenVPN (.ovpn), test Direct → OpenVPN → PPTP.',
+                'url' => OltVpnManagementPage::getUrl(),
+                'icon' => 'heroicon-o-shield-check',
+                'tone' => 'sky',
+            ],
+            [
                 'title' => 'Optical NOC',
                 'desc' => 'RX/TX dBm, temp/voltage, PON stats, topology, optical power heatmap, alerts.',
                 'url' => OpticalMonitoringHub::getUrl(),

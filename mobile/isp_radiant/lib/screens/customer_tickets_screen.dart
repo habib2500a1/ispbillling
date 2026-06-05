@@ -15,10 +15,12 @@ class CustomerTicketsScreen extends StatefulWidget {
     super.key,
     required this.api,
     this.active = false,
+    this.embedded = false,
   });
 
   final ApiService api;
   final bool active;
+  final bool embedded;
 
   @override
   State<CustomerTicketsScreen> createState() => _CustomerTicketsScreenState();

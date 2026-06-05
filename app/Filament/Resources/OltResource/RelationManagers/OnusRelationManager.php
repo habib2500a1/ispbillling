@@ -7,6 +7,8 @@ use App\Models\Device;
 use App\Models\OltPort;
 use App\Services\Network\AveisGponOnuSyncService;
 use App\Services\Network\BdcomEponOnuSyncService;
+use App\Services\Olt\OltSnmpProbeService;
+use App\Support\OltManagementHelper;
 use App\Services\Network\GponIntelligenceService;
 use App\Services\Optical\OnuBulkTicketService;
 use App\Services\Optical\OnuSignalCollectionService;
@@ -282,22 +284,40 @@ class OnusRelationManager extends RelationManager
                     ->query(fn (Builder $query): Builder => $query->whereIn('onu_oper_status', ['offline', 'los', 'power_fail'])),
             ])
             ->headerActions([
+                Tables\Actions\Action::make('diagnose_aveis')
+                    ->label('Test connection')
+                    ->icon('heroicon-o-signal')
+                    ->color('gray')
+                    ->visible(fn (): bool => OltManagementHelper::isAveisDriver($this->getOwnerRecord()->olt_driver))
+                    ->action(function (): void {
+                        $diag = app(\App\Services\Olt\AveisOltDiagnosticsService::class)->diagnose($this->getOwnerRecord()->fresh());
+                        $body = $diag['summary'];
+                        if ($diag['hints'] !== []) {
+                            $body .= "\n\n".implode("\n", $diag['hints']);
+                        }
+                        Notification::make()
+                            ->title(($diag['snmp_walk_rows'] ?? 0) > 0 ? 'SNMP ready' : 'Check connection')
+                            ->body($body)
+                            ->warning()
+                            ->send();
+                    }),
                 Tables\Actions\Action::make('sync_aveis_gpon')
-                    ->label('Sync Aveis ONUs')
+                    ->label('Sync Aveis ONUs (GPON/EPON)')
                     ->icon('heroicon-o-cloud-arrow-down')
                     ->color('primary')
                     ->visible(fn (): bool => app(AveisGponOnuSyncService::class)->supportsDriver($this->getOwnerRecord()))
                     ->requiresConfirmation()
-                    ->modalDescription('SNMP sync from Aveis OLT — receive power (RX), MAC, status. May take 1–2 minutes.')
+                    ->modalDescription('Auto-detect SNMP columns, sync ONUs (RX/MAC/status), then link subscribers like BDCOM (FDB + PPP + OLT description). May take 1–2 minutes.')
                     ->action(function (): void {
                         $olt = $this->getOwnerRecord();
                         try {
-                            $result = app(AveisGponOnuSyncService::class)->syncOlt($olt->fresh(), false);
+                            $result = app(AveisGponOnuSyncService::class)->syncOlt($olt->fresh(), true);
+                            $body = $result['success']
+                                ? "Found {$result['discovered']} ONUs · +{$result['created']} new · updated {$result['updated']} · linked ".($result['linked'] ?? 0)
+                                : trim(($result['error'] ?? 'Unknown error')."\n\n".app(OltSnmpProbeService::class)->networkReachabilityHint($olt));
                             $notification = Notification::make()
                                 ->title($result['success'] ? 'Aveis sync complete' : 'Aveis sync failed')
-                                ->body($result['success']
-                                    ? "Found {$result['discovered']} ONUs · updated {$result['updated']}"
-                                    : ($result['error'] ?? 'Unknown error'));
+                                ->body($body);
                             $result['success'] ? $notification->success() : $notification->danger();
                             $notification->send();
                         } catch (\Throwable $e) {
@@ -415,7 +435,17 @@ class OnusRelationManager extends RelationManager
                 ]),
             ])
             ->emptyStateHeading('No ONUs on this OLT')
-            ->emptyStateDescription('Import from EMS webhook (olt_id + readings) or add ONU manually.')
+            ->emptyStateDescription(function (): string {
+                $olt = $this->getOwnerRecord();
+                $ip = $olt->snmp_host ?: $olt->management_ip ?: '—';
+                $reach = app(OltSnmpProbeService::class)->networkReachabilityHint($olt);
+
+                if (OltManagementHelper::isAveisDriver($olt->olt_driver)) {
+                    return "Aveis EPON/GPON: উপরে «Sync Aveis ONUs (GPON/EPON)» চাপুন (SNMP column auto + subscriber link)। OLT IP: {$ip}. {$reach}";
+                }
+
+                return "SNMP sync বা webhook দিয়ে ONU আনুন। OLT IP: {$ip}. {$reach}";
+            })
             ->paginated([25, 50, 100, 200]);
     }
 }

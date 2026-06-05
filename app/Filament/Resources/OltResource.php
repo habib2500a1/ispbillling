@@ -9,12 +9,14 @@ use App\Models\Device;
 use App\Services\Network\GponIntelligenceService;
 use App\Services\Network\OltSnmpMonitorService;
 use App\Services\Olt\OltSnmpProbeService;
+use App\Filament\Pages\OltVpnManagementPage;
 use App\Support\OltManagementHelper;
 use Filament\Forms;
 use Filament\Forms\Get;
 use Filament\Forms\Form;
 use Filament\Forms\Set;
 use Filament\Notifications\Notification;
+use Filament\Resources\Pages\CreateRecord;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -73,7 +75,10 @@ class OltResource extends Resource
                             ->required()
                             ->maxLength(45)
                             ->placeholder('103.29.127.94')
-                            ->live(onBlur: true)
+                            ->live(
+                                onBlur: true,
+                                condition: fn ($livewire): bool => $livewire instanceof CreateRecord,
+                            )
                             ->afterStateUpdated(function (?string $state, Set $set, Get $get): void {
                                 $ip = OltManagementHelper::normalizeManagementIp($state);
                                 if ($ip === null) {
@@ -98,7 +103,7 @@ class OltResource extends Resource
                             ->searchable()
                             ->required()
                             ->default('aveis_epon')
-                            ->live()
+                            ->live(condition: fn ($livewire): bool => $livewire instanceof CreateRecord)
                             ->afterStateUpdated(function (?string $state, Set $set, Get $get): void {
                                 if ($state === null || $state === '') {
                                     return;
@@ -135,7 +140,7 @@ class OltResource extends Resource
                             ->label('Web IP')
                             ->maxLength(255)
                             ->placeholder('103.29.127.94:8506')
-                            ->helperText('IP:port (http যোগ করবেন না)। Aveis ডিফল্ট পোর্ট '.(int) config('olt_drivers.aveis_web_port', 8506).'.'),
+                            ->helperText('IP:port বা পুরো URL (যেমন http://103.29.127.94:8506/) — Aveis লগইন সাধারণত পোর্ট '.(int) config('olt_drivers.aveis_web_port', 8506).'. SNMP আলাদা।'),
                         Forms\Components\TextInput::make('olt_web_username')
                             ->label('Web username')
                             ->maxLength(64)
@@ -152,6 +157,91 @@ class OltResource extends Resource
                     ->columns(2)
                     ->visible(fn (Get $get): bool => OltManagementHelper::isAveisDriver($get('olt_driver'))
                         || OltManagementHelper::isConfigDrivenDriver($get('olt_driver'))),
+                Forms\Components\Section::make('VPN — OLT private IP reach')
+                    ->description('Save উপরে ডানে। **Test VPN** = ব্যাকগ্রাউন্ড (৫০৪ এড়াতে) → ৩০–৯০ সেক পর **VPN result (last)**।')
+                    ->schema([
+                        Forms\Components\View::make('vpn_guide')
+                            ->view('filament.components.olt-vpn-guide')
+                            ->viewData(function ($livewire): array {
+                                $record = method_exists($livewire, 'getRecord') ? $livewire->getRecord() : null;
+                                $olt = $record instanceof Device ? $record : new Device(['meta' => []]);
+                                $egress = trim((string) config('app.server_egress_ip', env('APP_SERVER_EGRESS_IP', '')));
+
+                                return [
+                                    'oltId' => $olt->id ?? '?',
+                                    'vpnType' => OltManagementHelper::vpnType($olt),
+                                    'hasOvpn' => OltManagementHelper::openVpnConfigPath($olt) !== null,
+                                    'hasPptp' => OltManagementHelper::pptpConfigFromMeta($olt) !== null,
+                                    'egressIp' => $egress !== '' ? $egress : '—',
+                                    'vpnPageUrl' => OltVpnManagementPage::getUrl(),
+                                ];
+                            })
+                            ->columnSpanFull()
+                            ->visible(fn ($livewire): bool => method_exists($livewire, 'getRecord') && $livewire->getRecord() !== null),
+                        Forms\Components\Select::make('olt_vpn_type')
+                            ->label('VPN type')
+                            ->options([
+                                OltManagementHelper::VPN_NONE => 'None (direct only)',
+                                OltManagementHelper::VPN_PPTP => 'PPTP (MikroTik)',
+                                OltManagementHelper::VPN_OPENVPN => 'OpenVPN (.ovpn file)',
+                            ])
+                            ->default(OltManagementHelper::VPN_NONE)
+                            ->live()
+                            ->columnSpanFull(),
+                        Forms\Components\TextInput::make('olt_pptp_server')
+                            ->label('PPTP server IP')
+                            ->maxLength(45)
+                            ->placeholder('103.29.127.228')
+                            ->visible(fn (Get $get): bool => in_array($get('olt_vpn_type'), [OltManagementHelper::VPN_PPTP, OltManagementHelper::VPN_OPENVPN], true)),
+                        Forms\Components\TextInput::make('olt_pptp_username')
+                            ->label('PPTP username')
+                            ->maxLength(64)
+                            ->placeholder('ispbill')
+                            ->visible(fn (Get $get): bool => in_array($get('olt_vpn_type'), [OltManagementHelper::VPN_PPTP, OltManagementHelper::VPN_OPENVPN], true)),
+                        Forms\Components\TextInput::make('olt_pptp_password')
+                            ->label('PPTP password')
+                            ->password()
+                            ->revealable()
+                            ->maxLength(255)
+                            ->dehydrated(fn (?string $state): bool => filled($state))
+                            ->helperText('এডিটে খালি = আগের পাসওয়ার্ড। OpenVPN থাকলেও PPTP তুলনার জন্য রাখা যায়।')
+                            ->visible(fn (Get $get): bool => in_array($get('olt_vpn_type'), [OltManagementHelper::VPN_PPTP, OltManagementHelper::VPN_OPENVPN], true)),
+                        Forms\Components\Placeholder::make('olt_openvpn_saved_hint')
+                            ->label('')
+                            ->content(function ($livewire): \Illuminate\Support\HtmlString {
+                                $record = method_exists($livewire, 'getRecord') ? $livewire->getRecord() : null;
+                                if (! $record instanceof Device) {
+                                    return new \Illuminate\Support\HtmlString('');
+                                }
+                                $path = OltManagementHelper::openVpnConfigPath($record);
+                                if ($path === null) {
+                                    return new \Illuminate\Support\HtmlString('<span class="text-gray-500">.ovpn এখনো সেভ হয়নি — নিচে পেস্ট করে Save করুন।</span>');
+                                }
+                                $kb = round(filesize($path) / 1024, 1);
+
+                                return new \Illuminate\Support\HtmlString(
+                                    '<span class="font-medium text-success-600">✓ .ovpn সেভ আছে ('.$kb.' KB)</span> — বদলাতে নিচে নতুন কনফিগ পেস্ট করে Save।'
+                                );
+                            })
+                            ->columnSpanFull()
+                            ->visible(fn (Get $get, $livewire): bool => in_array($get('olt_vpn_type'), [OltManagementHelper::VPN_PPTP, OltManagementHelper::VPN_OPENVPN], true)
+                                && method_exists($livewire, 'getRecord') && $livewire->getRecord() !== null),
+                        Forms\Components\Textarea::make('olt_openvpn_config')
+                            ->label('OpenVPN config (.ovpn) — পুরো ফাইল পেস্ট')
+                            ->rows(12)
+                            ->placeholder("client\ndev tun\nproto udp\nremote 103.29.127.12 1194\n...")
+                            ->helperText('Notepad থেকে habib.ovpn খুলে Ctrl+A → Ctrl+C → এখানে Ctrl+V → VPN type OpenVPN → Save।')
+                            ->columnSpanFull()
+                            ->visible(fn (Get $get): bool => in_array($get('olt_vpn_type'), [OltManagementHelper::VPN_PPTP, OltManagementHelper::VPN_OPENVPN], true)),
+                        Forms\Components\TextInput::make('olt_pptp_subnet')
+                            ->label('Route subnet (CIDR)')
+                            ->maxLength(64)
+                            ->placeholder('103.29.127.0/24')
+                            ->helperText('PPTP/OpenVPN দুটোতেই — খালি = OLT IP থেকে /24।')
+                            ->visible(fn (Get $get): bool => in_array($get('olt_vpn_type'), [OltManagementHelper::VPN_PPTP, OltManagementHelper::VPN_OPENVPN], true)),
+                    ])
+                    ->columns(2)
+                    ->collapsed(false),
                 Forms\Components\Section::make('SNMP ONU OIDs (this OLT / model)')
                     ->description('যেকোনো মডেল — .env ছাড়াও শুধু এই OLT-এর জন্য OID দিন। খালি = global VSOL_SNMP_ONU_* বা vendor .env।')
                     ->schema([
@@ -276,10 +366,17 @@ class OltResource extends Resource
                     ->collapsed(),
                 Forms\Components\Textarea::make('notes')
                     ->columnSpanFull(),
-                Forms\Components\KeyValue::make('meta_extra')
-                    ->label('Extra metadata')
-                    ->keyLabel('Key')
-                    ->valueLabel('Value')
+                Forms\Components\Section::make('Extra metadata')
+                    ->schema([
+                        Forms\Components\KeyValue::make('meta_extra')
+                            ->label('Extra metadata')
+                            ->keyLabel('Key')
+                            ->valueLabel('Value')
+                            ->helperText('শুধু টেক্সট মান। Aveis OLT-এ এই ফিল্ড বন্ধ — SNMP column map sync থেকে থাকে।'),
+                    ])
+                    ->visible(fn (Get $get): bool => ! OltManagementHelper::isAveisDriver($get('olt_driver')))
+                    ->collapsible()
+                    ->collapsed()
                     ->columnSpanFull(),
             ]);
     }
@@ -309,6 +406,19 @@ class OltResource extends Resource
                     ->toggleable(),
                 Tables\Columns\TextColumn::make('serial_number')
                     ->searchable(),
+                Tables\Columns\TextColumn::make('vpn_type')
+                    ->label('VPN')
+                    ->badge()
+                    ->state(fn (Device $record): string => OltManagementHelper::vpnType($record))
+                    ->formatStateUsing(fn (string $state): string => match ($state) {
+                        OltManagementHelper::VPN_PPTP => 'PPTP',
+                        OltManagementHelper::VPN_OPENVPN => 'OpenVPN',
+                        default => '—',
+                    })
+                    ->color(fn (string $state): string => match ($state) {
+                        OltManagementHelper::VPN_PPTP, OltManagementHelper::VPN_OPENVPN => 'info',
+                        default => 'gray',
+                    }),
                 Tables\Columns\TextColumn::make('management_ip')
                     ->label('Mgmt IP')
                     ->searchable(),

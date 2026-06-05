@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Portal;
 
 use App\Http\Controllers\Controller;
 use App\Services\Portal\CustomerBandwidthService;
+use App\Support\CompanyBranding;
 use Illuminate\Http\JsonResponse;
 use Illuminate\View\View;
 
@@ -22,6 +23,12 @@ class PortalUsageController extends Controller
             'customer' => $customer,
             'stats' => $stats,
             'pollSeconds' => max(1, (int) config('portal.poll_seconds', 1)),
+            'companyName' => CompanyBranding::name(),
+            'speedtest' => [
+                'ping_url' => (string) config('portal.speed_test.external.ping_url'),
+                'download_url' => (string) config('portal.speed_test.external.download_url'),
+                'upload_url' => (string) config('portal.speed_test.external.upload_url'),
+            ],
         ]);
     }
 

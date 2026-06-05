@@ -2,262 +2,262 @@
  * Aurora ISP admin — Subscriber tables & sticky actions
  * @module admin/saas/07-tables-subscribers.css
  */
-    border-radius: var(--isp-radius-lg);
-}
 
-.fi-resource-subscribers .fi-ta-actions-header-cell,
-.fi-resource-subscribers .fi-ta-actions-cell {
-    position: sticky;
-    right: 0;
-    z-index: 3;
-    background: #fff;
-    box-shadow: -4px 0 8px -4px rgba(15, 23, 42, 0.12);
-    min-width: 9.5rem;
-}
-
-.fi-resource-subscribers .fi-ta-actions {
-    flex-wrap: wrap;
-    justify-content: flex-end;
-    gap: 0.35rem;
-}
-
-.fi-resource-subscribers .isp-portal-login-col .fi-ta-text-item,
-.fi-resource-subscribers .isp-portal-login-col a {
-    color: rgb(22 163 74) !important;
-    font-weight: 600;
-}
-
-.dark .fi-resource-subscribers .isp-portal-login-col .fi-ta-text-item,
-.dark .fi-resource-subscribers .isp-portal-login-col a,
-[data-theme='dark'] .fi-resource-subscribers .isp-portal-login-col .fi-ta-text-item,
-[data-theme='dark'] .fi-resource-subscribers .isp-portal-login-col a {
-    color: rgb(74 222 128) !important;
-}
-
-.dark .fi-resource-subscribers .fi-ta-actions-header-cell,
-.dark .fi-resource-subscribers .fi-ta-actions-cell,
-[data-theme='dark'] .fi-resource-subscribers .fi-ta-actions-header-cell,
-[data-theme='dark'] .fi-resource-subscribers .fi-ta-actions-cell {
-    background: rgb(17 24 39);
-}
-
-@media (max-width: 767px) {
-    .fi-resource-subscribers .fi-ta-table {
-        min-width: 36rem;
-    }
-
-    .fi-resource-subscribers .fi-ta-header-cell:first-child,
-    .fi-resource-subscribers .fi-ta-cell:first-child {
-        position: sticky;
-        left: 0;
-        z-index: 2;
-        background: #fff;
-        box-shadow: 4px 0 8px -4px rgba(15, 23, 42, 0.12);
-    }
-
-    .dark .fi-resource-subscribers .fi-ta-header-cell:first-child,
-    .dark .fi-resource-subscribers .fi-ta-cell:first-child,
-    [data-theme='dark'] .fi-resource-subscribers .fi-ta-header-cell:first-child,
-    [data-theme='dark'] .fi-resource-subscribers .fi-ta-cell:first-child {
-        background: rgb(17 24 39);
-    }
-
-    .fi-resource-subscribers .fi-ta-actions {
-        position: sticky;
-        right: 0;
-        background: inherit;
+@media (min-width: 640px) {
+    .isp-bw-clients-hero__stats {
+        grid-template-columns: repeat(4, minmax(5.5rem, 1fr));
     }
 }
 
-.fi-resource-subscribers .fi-ta-row {
-    transition: background-color 0.12s ease;
-}
-
-.fi-resource-subscribers .fi-header-widgets {
-    margin-bottom: 0.5rem;
-}
-
-/* Compact dashboard */
-.isp-dashboard-compact .fi-wi-widget {
-    margin-bottom: 0.5rem;
-}
-
-.isp-dashboard-compact .isp-kpi-wall,
-.isp-dashboard-compact .isp-unified-section {
-    padding: 0.75rem 0.9rem;
-}
-
-.isp-dash-strip {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-}
-
-.isp-dash-strip__btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.35rem;
-    padding: 0.45rem 0.75rem;
+.isp-bw-clients-stat {
+    padding: .65rem .75rem;
     border-radius: var(--isp-radius-md);
-    font-size: 0.75rem;
-    font-weight: 600;
-    border: 1px solid rgba(148, 163, 184, 0.3);
-    background: white;
-    color: rgb(51 65 85);
-    text-decoration: none;
+    border: 1px solid var(--isp-card-border);
+    background: var(--isp-card-bg);
 }
 
-.dark .isp-dash-strip__btn {
-    background: rgb(30 41 59);
-    color: rgb(226 232 240);
+.isp-bw-clients-stat--due strong {
+    color: #e11d48;
 }
 
-.isp-dash-strip__btn--noc {
-    background: linear-gradient(135deg, #0e7490, #06b6d4);
-    color: #fff;
-    border-color: transparent;
-}
-
-.isp-dash-strip__btn--muted {
-    opacity: 0.85;
-}
-
-.isp-cmd-panel--wide {
-    max-width: 36rem;
-}
-
-.isp-layout-customizer {
-    border: 1px dashed rgba(148, 163, 184, 0.4);
-    border-radius: var(--isp-radius-lg);
-    padding: 0.75rem 1rem;
-}
-
-.isp-layout-customizer__summary {
-    cursor: pointer;
-    font-size: 0.875rem;
-    font-weight: 600;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-}
-
-.isp-layout-check {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    font-size: 0.8125rem;
-    padding: 0.35rem;
-}
-
-.isp-topology-widget {
-    border-radius: var(--isp-radius-lg);
-    border: 1px solid rgba(148, 163, 184, 0.25);
-    padding: 1rem;
-    background: rgba(255, 255, 255, 0.9);
-}
-
-.dark .isp-topology-widget {
-    background: rgba(17, 24, 39, 0.85);
-}
-
-.isp-topology-widget__head {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    margin-bottom: 0.75rem;
-}
-
-.isp-topology-widget__chain {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 0.5rem;
-}
-
-.isp-topo-node {
-    padding: 0.4rem 0.65rem;
-    border-radius: var(--isp-radius-md);
-    font-size: 0.75rem;
-    background: rgb(241 245 249);
-}
-
-.isp-topo-node--olt { background: #dbeafe; color: #1e40af; }
-.isp-topo-node--onu { background: #ede9fe; color: #5b21b6; }
-.isp-topo-node--online { background: #d1fae5; color: #047857; }
-
-.isp-topo-arrow { color: rgb(148 163 184); font-weight: 700; }
-
-.isp-ai-rec--high { border-color: rgb(239 68 68); background: rgb(254 242 242); }
-.isp-ai-rec--medium { border-color: rgb(245 158 11); }
-.isp-ai-rec--low { border-color: rgb(148 163 184); }
-
-/* NOC wall (fullscreen) */
-.isp-noc-wall-body {
-    margin: 0;
-    background: #020617;
-    color: #e2e8f0;
-    min-height: 100vh;
-}
-
-.isp-noc-wall {
-    padding: 1.5rem;
-    min-height: 100vh;
-}
-
-.isp-noc-wall__header {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    margin-bottom: 1.5rem;
-}
-
-.isp-noc-wall__head-copy {
-    min-width: 0;
-    flex: 1;
-}
-
-.isp-noc-wall__eyebrow {
-    margin: 0 0 0.25rem;
-    font-size: 0.72rem;
-    font-weight: 800;
+.isp-bw-clients-stat__label {
+    display: block;
+    font-size: .65rem;
+    font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 0.08em;
-    color: #67e8f9;
+    letter-spacing: .05em;
+    color: var(--isp-text-muted);
 }
 
-.isp-noc-wall__header h1 {
-    font-size: 1.5rem;
+.isp-bw-clients-stat strong {
+    display: block;
+    margin-top: .2rem;
+    font-size: 1.05rem;
     font-weight: 800;
-    flex: 1;
-    margin: 0;
 }
 
-.isp-noc-wall__clock {
-    font-family: ui-monospace, monospace;
-    font-size: 1.25rem;
-    color: #22d3ee;
+.isp-bw-clients-table-card,
+.isp-bw-generate-card {
+    padding: 1rem 1.15rem;
+    border-radius: var(--isp-radius-lg);
+    border: 1px solid var(--isp-card-border);
+    background: var(--isp-card-bg);
 }
 
-.isp-noc-wall__exit {
-    font-size: 0.875rem;
-    color: #94a3b8;
+.isp-bw-clients-table-card__hint {
+    margin-bottom: .75rem;
+    font-size: .8rem;
+    color: var(--isp-text-muted);
 }
 
-.isp-noc-wall__grid {
-    display: grid;
-    gap: 1rem;
-    grid-template-columns: repeat(2, 1fr);
+.isp-bw-clients-table-card .fi-ta-ctn {
+    border: none;
+    box-shadow: none;
+    background: transparent;
 }
 
-@media (min-width: 1024px) {
-    .isp-noc-wall__grid {
-        grid-template-columns: repeat(4, 1fr);
-    }
+.isp-bw-clients-table-card .fi-ta-header-cell {
+    font-size: .72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    color: #0369a1;
 }
 
-.isp-noc-tile {
-    background: rgba(30, 41, 59, 0.8);
-    border: 1px solid rgba(71, 85, 105, 0.5);
-    border-radius: 1rem;
-    padding: 1.25rem;
-    animation: isp-noc-pulse 3s ease-in-out infinite;
+.dark .isp-bw-clients-table-card .fi-ta-header-cell {
+    color: #7dd3fc;
+}
+
+.isp-bw-clients-table-card .fi-ta-empty-state {
+    padding: 2.5rem 1rem;
+}
+
+.isp-accounting-section-icon--rose { background: rgba(244, 63, 94, 0.12); color: #e11d48; }
+.isp-accounting-section-icon--slate { background: rgba(100, 116, 139, 0.12); color: #475569; }
+.isp-accounting-card--rose:hover { border-color: rgba(244, 63, 94, 0.45); }
+.isp-accounting-card--slate:hover { border-color: rgba(100, 116, 139, 0.45); }
+.isp-accounting-card-icon--rose { background: rgba(244, 63, 94, 0.15); color: #e11d48; }
+.isp-accounting-card-icon--slate { background: rgba(100, 116, 139, 0.15); color: #475569; }
+.dark .isp-accounting-section-icon--rose { color: #fda4af; }
+.dark .isp-accounting-section-icon--slate { color: #cbd5e1; }
+.dark .isp-accounting-card-icon--rose { color: #fda4af; }
+.dark .isp-accounting-card-icon--slate { color: #cbd5e1; }
+
+.isp-accounting-modules {
+    padding-top: 0.5rem;
+}
+
+.isp-accounting-section {
+    border-radius: var(--isp-radius-lg);
+    padding: 1.25rem 1.5rem;
+    background: white;
+    border: 1px solid rgba(148, 163, 184, 0.15);
+    box-shadow: var(--isp-shadow);
+}
+
+.dark .isp-accounting-section,
+[data-theme='dark'] .isp-accounting-section {
+    background: rgb(17 24 39);
+    border-color: rgba(148, 163, 184, 0.1);
+}
+
+.isp-accounting-section-head {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.875rem;
+}
+
+.isp-accounting-section-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: 0.75rem;
+    flex-shrink: 0;
+}
+
+.isp-accounting-section-icon--emerald { background: rgba(16, 185, 129, 0.12); color: #059669; }
+.isp-accounting-section-icon--violet { background: rgba(124, 58, 237, 0.12); color: #7c3aed; }
+.isp-accounting-section-icon--cyan { background: rgba(6, 182, 212, 0.12); color: #0891b2; }
+.isp-accounting-section-icon--amber { background: rgba(245, 158, 11, 0.12); color: #d97706; }
+.isp-accounting-section-icon--fuchsia { background: rgba(192, 38, 211, 0.12); color: #c026d3; }
+.isp-accounting-section-icon--indigo { background: rgba(99, 102, 241, 0.12); color: #4f46e5; }
+
+.dark .isp-accounting-section-icon--emerald { color: #6ee7b7; }
+.dark .isp-accounting-section-icon--violet { color: #c4b5fd; }
+.dark .isp-accounting-section-icon--cyan { color: #67e8f9; }
+.dark .isp-accounting-section-icon--amber { color: #fcd34d; }
+.dark .isp-accounting-section-icon--fuchsia { color: #f0abfc; }
+.dark .isp-accounting-section-icon--indigo { color: #a5b4fc; }
+
+.isp-accounting-section-title {
+    font-size: 1.05rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: var(--isp-navy);
+}
+
+.dark .isp-accounting-section-title,
+[data-theme='dark'] .isp-accounting-section-title {
+    color: #f1f5f9;
+}
+
+.isp-accounting-card {
+    display: block;
+    border-radius: var(--isp-radius);
+    padding: 1rem 1.125rem;
+    background: #f8fafc;
+    border: 1px solid rgba(148, 163, 184, 0.14);
+    transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.isp-accounting-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--isp-shadow-lg);
+}
+
+.isp-accounting-card--emerald:hover { border-color: rgba(16, 185, 129, 0.45); }
+.isp-accounting-card--violet:hover { border-color: rgba(124, 58, 237, 0.45); }
+.isp-accounting-card--cyan:hover { border-color: rgba(6, 182, 212, 0.45); }
+.isp-accounting-card--amber:hover { border-color: rgba(245, 158, 11, 0.45); }
+.isp-accounting-card--fuchsia:hover { border-color: rgba(192, 38, 211, 0.45); }
+.isp-accounting-card--indigo:hover { border-color: rgba(99, 102, 241, 0.45); }
+
+.dark .isp-accounting-card,
+[data-theme='dark'] .isp-accounting-card {
+    background: rgb(30 41 59);
+    border-color: rgba(148, 163, 184, 0.1);
+}
+
+.isp-accounting-card-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.25rem;
+    height: 2.25rem;
+    border-radius: 0.625rem;
+    flex-shrink: 0;
+}
+
+.isp-accounting-card-icon--emerald { background: rgba(16, 185, 129, 0.15); color: #059669; }
+.isp-accounting-card-icon--violet { background: rgba(124, 58, 237, 0.15); color: #7c3aed; }
+.isp-accounting-card-icon--cyan { background: rgba(6, 182, 212, 0.15); color: #0891b2; }
+.isp-accounting-card-icon--amber { background: rgba(245, 158, 11, 0.15); color: #d97706; }
+.isp-accounting-card-icon--fuchsia { background: rgba(192, 38, 211, 0.15); color: #c026d3; }
+.isp-accounting-card-icon--indigo { background: rgba(99, 102, 241, 0.15); color: #4f46e5; }
+
+.dark .isp-accounting-card-icon--emerald { color: #6ee7b7; }
+.dark .isp-accounting-card-icon--violet { color: #c4b5fd; }
+.dark .isp-accounting-card-icon--cyan { color: #67e8f9; }
+.dark .isp-accounting-card-icon--amber { color: #fcd34d; }
+.dark .isp-accounting-card-icon--fuchsia { color: #f0abfc; }
+.dark .isp-accounting-card-icon--indigo { color: #a5b4fc; }
+
+.isp-accounting-badge {
+    flex-shrink: 0;
+    border-radius: 9999px;
+    padding: 0.15rem 0.5rem;
+    font-size: 0.6rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    background: rgba(99, 102, 241, 0.12);
+    color: #4f46e5;
+}
+
+.dark .isp-accounting-badge {
+    background: rgba(129, 140, 248, 0.2);
+    color: #c7d2fe;
+}
+
+/* Bottom quick actions panel */
+.isp-accounting-quick {
+    border-radius: var(--isp-radius-lg);
+    padding: 1.25rem 1.5rem;
+    background: linear-gradient(180deg, #f8fafc 0%, #fff 100%);
+    border: 1px solid rgba(148, 163, 184, 0.18);
+    box-shadow: var(--isp-shadow);
+}
+
+.dark .isp-accounting-quick,
+[data-theme='dark'] .isp-accounting-quick {
+    background: linear-gradient(180deg, rgb(30 41 59) 0%, rgb(17 24 39) 100%);
+    border-color: rgba(148, 163, 184, 0.12);
+}
+
+.isp-accounting-quick-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    min-height: 5.5rem;
+    padding: 0.875rem 0.5rem;
+    border-radius: var(--isp-radius);
+    text-align: center;
+    text-decoration: none;
+    border: 1px solid rgba(148, 163, 184, 0.15);
+    background: white;
+    transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+}
+
+.isp-accounting-quick-btn:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--isp-shadow-lg);
+}
+
+.dark .isp-accounting-quick-btn,
+[data-theme='dark'] .isp-accounting-quick-btn {
+    background: rgb(30 41 59);
+    border-color: rgba(148, 163, 184, 0.12);
+}
+
+.isp-accounting-quick-btn-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.75rem;
+    height: 2.75rem;
+    border-radius: 0.875rem;
+}

@@ -20,7 +20,7 @@ class ResellerApiNetworkController extends Controller
         $query = $reseller->customers()->with([
             'package:id,name',
             'activePppSession.mikrotikServer:id,name',
-            'lastEndedPppSession:id,customer_id,ended_at',
+            'lastEndedPppSession',
         ]);
 
         if ($filter === 'online') {

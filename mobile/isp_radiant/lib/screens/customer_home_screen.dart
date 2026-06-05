@@ -16,7 +16,7 @@ import '../features/dashboard_customer/data/customer_dashboard_repository.dart';
 import '../features/dashboard_customer/domain/customer_dashboard.dart';
 import '../services/api_service.dart';
 import '../widgets/usage_area_chart.dart';
-import 'client_ping_screen.dart';
+import 'customer_speed_test_screen.dart';
 import 'customer_ai_screen.dart';
 import 'customer_bills_screen.dart';
 import 'customer_onu_screen.dart';
@@ -25,7 +25,7 @@ import 'customer_password_screen.dart';
 import 'customer_pay_screen.dart';
 import 'customer_tickets_screen.dart';
 import 'customer_usage_screen.dart';
-import 'login_screen.dart';
+import 'login_hub_screen.dart';
 
 class CustomerHomeScreen extends ConsumerStatefulWidget {
   const CustomerHomeScreen({super.key, required this.api, required this.loginPayload});
@@ -66,7 +66,7 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
     await widget.api.logout();
     if (!mounted) return;
     Navigator.of(context).pushAndRemoveUntil(
-      MaterialPageRoute(builder: (_) => LoginScreen(api: widget.api)),
+      MaterialPageRoute(builder: (_) => LoginHubScreen(api: widget.api)),
       (_) => false,
     );
   }
@@ -76,17 +76,20 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
   void _push(Widget screen) =>
       Navigator.push(context, MaterialPageRoute(builder: (_) => screen));
 
-  void _openPay() => _push(CustomerPayScreen(api: widget.api));
+  void _openPay() => _go(1);
   void _openPackages() => _push(CustomerPackagesScreen(api: widget.api));
   void _openPassword() => _push(CustomerPasswordScreen(api: widget.api));
-  void _openTickets() => _push(CustomerTicketsScreen(api: widget.api));
+  void _openTickets() => _go(2);
+  void _openPaymentHistory() => _push(CustomerBillsScreen(api: widget.api, onPay: _openPay));
 
   @override
   Widget build(BuildContext context) {
-    const titles = ['', 'Ping', 'Payment History'];
-
     return Scaffold(
-      appBar: _tab == 0 ? null : AppBar(title: Text(titles[_tab])),
+      appBar: switch (_tab) {
+        1 => AppBar(title: const Text('Pay bill')),
+        3 => AppBar(title: const Text('Speed test')),
+        _ => null,
+      },
       body: IndexedStack(
         index: _tab,
         children: [
@@ -98,27 +101,41 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
             onPackages: _openPackages,
             onPassword: _openPassword,
             onTickets: _openTickets,
-            onPaymentHistory: () => _go(2),
+            onPaymentHistory: _openPaymentHistory,
             onUsage: () => _push(CustomerUsageScreen(api: widget.api)),
             onOnu: () => _push(CustomerOnuScreen(api: widget.api)),
             onAi: () => _push(CustomerAiScreen(api: widget.api)),
           ),
-          ClientPingScreen(active: _tab == 1),
-          CustomerBillsScreen(api: widget.api, active: _tab == 2, onPay: _openPay, embedded: true),
+          CustomerPayScreen(api: widget.api, active: _tab == 1, embedded: true),
+          CustomerTicketsScreen(api: widget.api, active: _tab == 2, embedded: true),
+          CustomerSpeedTestScreen(active: _tab == 3),
         ],
       ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _tab,
         onDestinationSelected: _go,
+        labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
         destinations: const [
           NavigationDestination(
-              icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home_rounded), label: 'Home'),
+            icon: Icon(Icons.home_outlined),
+            selectedIcon: Icon(Icons.home_rounded),
+            label: 'Home',
+          ),
           NavigationDestination(
-              icon: Icon(Icons.speed_outlined), selectedIcon: Icon(Icons.speed_rounded), label: 'Ping'),
+            icon: Icon(Icons.account_balance_wallet_outlined),
+            selectedIcon: Icon(Icons.account_balance_wallet_rounded),
+            label: 'Pay bill',
+          ),
           NavigationDestination(
-              icon: Icon(Icons.credit_card_outlined),
-              selectedIcon: Icon(Icons.credit_card_rounded),
-              label: 'Payments'),
+            icon: Icon(Icons.support_agent_outlined),
+            selectedIcon: Icon(Icons.support_agent_rounded),
+            label: 'Support',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.speed_outlined),
+            selectedIcon: Icon(Icons.speed_rounded),
+            label: 'Speed test',
+          ),
         ],
       ),
     );

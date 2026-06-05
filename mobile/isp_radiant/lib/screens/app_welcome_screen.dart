@@ -4,7 +4,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../config/remote_config.dart';
 import '../services/api_service.dart';
 import '../theme/app_theme.dart';
-import 'login_screen.dart';
+import 'login_hub_screen.dart';
 
 /// Pre-login landing — branding, packages & notices (synced from /mobile/config).
 class AppWelcomeScreen extends StatefulWidget {
@@ -32,7 +32,7 @@ class _AppWelcomeScreenState extends State<AppWelcomeScreen> {
 
   void _openSignIn() {
     Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => LoginScreen(api: widget.api)),
+      MaterialPageRoute(builder: (_) => LoginHubScreen(api: widget.api)),
     );
   }
 
@@ -151,7 +151,7 @@ class _AppWelcomeScreenState extends State<AppWelcomeScreen> {
                                 borderRadius: BorderRadius.circular(24),
                               ),
                               child: const Text(
-                                'ক্লায়েন্ট ও অ্যাডমিন — একই অ্যাপ',
+                                'Client & Admin — one app',
                                 style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600),
                               ),
                             ),

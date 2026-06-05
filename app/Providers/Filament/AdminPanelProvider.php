@@ -4,6 +4,7 @@ namespace App\Providers\Filament;
 
 use App\Filament\Auth\AdminLogin;
 use App\Filament\Auth\EditAdminProfile;
+use App\Filament\Pages\Dashboard;
 use App\Filament\GlobalSearch\IspGlobalSearchProvider;
 use App\Support\CompanyBranding;
 use App\Http\Middleware\EnsureStaffTwoFactorVerified;
@@ -11,6 +12,7 @@ use App\Http\Middleware\RedirectSubscribersOnlinePreset;
 use App\Http\Middleware\SetAppLocale;
 use App\Support\AdminCommandPalette;
 use App\Support\AdminRouteAssets;
+use App\Support\Rbac\StaffCapability;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
@@ -37,11 +39,24 @@ class AdminPanelProvider extends PanelProvider
             ->default()
             ->id('admin')
             ->path('admin')
+            ->homeUrl(function (): string {
+                $user = auth()->user();
+
+                if ($user !== null) {
+                    $preferred = StaffCapability::for($user)->preferredHomeUrl();
+
+                    if ($preferred !== null) {
+                        return $preferred;
+                    }
+                }
+
+                return Dashboard::getUrl();
+            })
             ->login(AdminLogin::class)
             ->profile(EditAdminProfile::class, isSimple: false)
             ->brandName(fn (): string => CompanyBranding::name())
             ->brandLogo(fn (): ?string => CompanyBranding::logoUrl())
-            ->brandLogoHeight('2.25rem')
+            ->brandLogoHeight('1.95rem')
             ->favicon(fn (): ?string => CompanyBranding::faviconUrl())
             ->databaseNotificationsPolling('120s')
             ->colors([
@@ -75,7 +90,7 @@ class AdminPanelProvider extends PanelProvider
                 NavigationGroup::make('Support')->collapsed(true),
                 NavigationGroup::make('Reports')->collapsed(true),
                 NavigationGroup::make('BW Client')->collapsed(true),
-                NavigationGroup::make('HRM')->collapsed(true),
+                NavigationGroup::make('HR Management')->collapsed(true),
                 NavigationGroup::make('Resellers')->collapsed(true),
                 NavigationGroup::make('Accounts')->collapsed(true),
                 NavigationGroup::make('Settings')->collapsed(true),
@@ -120,7 +135,15 @@ class AdminPanelProvider extends PanelProvider
             )
             ->renderHook(
                 PanelsRenderHook::BODY_START,
-                fn (): string => view('filament.flash-banners')->render(),
+                function (): string {
+                    $html = view('filament.flash-banners')->render();
+
+                    if (! request()->routeIs('filament.admin.auth.*')) {
+                        $html .= view('filament.hooks.livewire-419-recovery')->render();
+                    }
+
+                    return $html;
+                },
             )
             ->renderHook(
                 PanelsRenderHook::TOPBAR_START,
@@ -135,7 +158,7 @@ class AdminPanelProvider extends PanelProvider
                 fn (): string => view('filament.hooks.sidebar-footer-collapse')->render(),
             )
             ->renderHook(
-                PanelsRenderHook::USER_MENU_BEFORE,
+                PanelsRenderHook::GLOBAL_SEARCH_AFTER,
                 fn (): string => view('filament.hooks.topbar-extras')->render(),
             )
             ->renderHook(
@@ -153,12 +176,18 @@ class AdminPanelProvider extends PanelProvider
                         return '';
                     }
 
-                    $html = view('filament.hooks.command-palette', [
+                    $assetSalt = (int) config('isp.assets.version_salt', 0);
+                    $jsV = static fn (string $file): int => (int) ((@filemtime(public_path($file)) ?: 1) + ($assetSalt * 1_000_000));
+
+                    $html = view('filament.hooks.stale-topbar-cleanup')->render()
+                        .view('filament.hooks.command-palette', [
                         'commandItems' => AdminCommandPalette::items(),
                     ])->render()
-                        .'<script src="'.asset('js/admin-sidebar-layout.js').'?v='.(filemtime(public_path('js/admin-sidebar-layout.js')) ?: 1).'" data-cfasync="false"></script>'
-                        .'<script src="'.asset('js/mobile-sidebar-fix.js').'?v='.(filemtime(public_path('js/mobile-sidebar-fix.js')) ?: 1).'" data-cfasync="false"></script>'
-                        .'<script src="'.asset('js/mobile-dock-pin.js').'?v='.(filemtime(public_path('js/mobile-dock-pin.js')) ?: 1).'" data-cfasync="false" data-navigate-once></script>'
+                        .'<script src="'.asset('js/isp-admin-resilience.js').'?v='.$jsV('js/isp-admin-resilience.js').'" data-cfasync="false"></script>'
+                        .'<script src="'.asset('js/admin-topbar-fix.js').'?v='.$jsV('js/admin-topbar-fix.js').'" data-cfasync="false"></script>'
+                        .'<script src="'.asset('js/admin-sidebar-layout.js').'?v='.$jsV('js/admin-sidebar-layout.js').'" data-cfasync="false"></script>'
+                        .'<script src="'.asset('js/mobile-sidebar-fix.js').'?v='.$jsV('js/mobile-sidebar-fix.js').'" data-cfasync="false"></script>'
+                        .'<script src="'.asset('js/mobile-dock-pin.js').'?v='.$jsV('js/mobile-dock-pin.js').'" data-cfasync="false" data-navigate-once></script>'
                         .view('filament.hooks.mobile-dock')->render();
 
                     $user = auth()->user();

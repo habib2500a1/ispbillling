@@ -24,6 +24,8 @@ class Product extends Model
         'sell_price',
         'last_purchase_cost',
         'stock_qty',
+        'damaged_qty',
+        'missing_qty',
         'reorder_level',
         'is_active',
         'show_on_shop',
@@ -93,6 +95,11 @@ class Product extends Model
     public function isLowStock(): bool
     {
         return (int) $this->reorder_level > 0 && (int) $this->stock_qty <= (int) $this->reorder_level;
+    }
+
+    public function hasConditionIssues(): bool
+    {
+        return (int) $this->damaged_qty > 0 || (int) $this->missing_qty > 0;
     }
 
     public function imageUrl(): ?string

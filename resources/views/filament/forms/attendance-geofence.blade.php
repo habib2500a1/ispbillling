@@ -13,6 +13,23 @@
     data-offices='@json($offices)'
     data-client-ip="{{ request()->ip() }}"
     data-default-radius="{{ $defaultRadius }}"
+    x-data="{
+        officeId: null,
+        status: 'present',
+        syncFromWire() {
+            this.officeId = $wire.get('data.attendance_office_location_id') ?? null;
+            this.status = $wire.get('data.status') ?? 'present';
+            this.$root.dataset.officeId = this.officeId ?? '';
+            this.$root.dataset.formStatus = this.status ?? 'present';
+            window.dispatchEvent(new CustomEvent('isp-attendance-form-changed'));
+        },
+        init() {
+            this.syncFromWire();
+            this.$watch('$wire.data.attendance_office_location_id', () => this.syncFromWire());
+            this.$watch('$wire.data.status', () => this.syncFromWire());
+        },
+    }"
+    x-on:isp-attendance-refresh-form.window="syncFromWire()"
 >
     <div class="flex flex-wrap items-start justify-between gap-3">
         <div>

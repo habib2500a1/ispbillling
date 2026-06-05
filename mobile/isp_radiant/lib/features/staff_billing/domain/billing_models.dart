@@ -116,6 +116,8 @@ class InvoiceRow {
 
 class CollectionRecord {
   const CollectionRecord({
+    required this.paymentId,
+    required this.receiptNumber,
     required this.name,
     required this.customerCode,
     required this.address,
@@ -126,8 +128,11 @@ class CollectionRecord {
     required this.receivedBy,
     required this.createdAt,
     required this.phone,
+    required this.receiptPdfUrl,
   });
 
+  final int paymentId;
+  final String receiptNumber;
   final String name;
   final String customerCode;
   final String address;
@@ -138,8 +143,11 @@ class CollectionRecord {
   final String receivedBy;
   final String createdAt;
   final String phone;
+  final String receiptPdfUrl;
 
   factory CollectionRecord.fromJson(Map<String, dynamic> j) => CollectionRecord(
+        paymentId: _i(j['payment_id'] ?? j['id']),
+        receiptNumber: _s(j['receipt_number']),
         name: _s(j['customer_name'], 'Client'),
         customerCode: _s(j['customer_code']),
         address: _s(j['address']),
@@ -150,6 +158,7 @@ class CollectionRecord {
         receivedBy: _s(j['recorded_by'], '—'),
         createdAt: _s(j['paid_at'] ?? j['bill_date'], '—'),
         phone: _s(j['phone']),
+        receiptPdfUrl: _s(j['receipt_pdf_url']),
       );
 }
 

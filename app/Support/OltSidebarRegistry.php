@@ -5,6 +5,7 @@ namespace App\Support;
 use App\Filament\Pages\FiberPlantMap;
 use App\Filament\Pages\ManageOpticalLaserSettings;
 use App\Filament\Pages\OltHub;
+use App\Filament\Pages\OltVpnManagementPage;
 use App\Filament\Pages\OltMacTable;
 use App\Filament\Pages\OpticalMonitoringHub;
 use App\Filament\Pages\NetworkTopology;
@@ -44,10 +45,18 @@ final class OltSidebarRegistry
                 ],
             ],
             [
+                'key' => 'olt_vpn',
+                'label' => 'OLT VPN / PPTP',
+                'icon' => 'heroicon-o-shield-check',
+                'sort' => 2,
+                'url' => OltVpnManagementPage::getUrl(),
+                'active_routes' => ['filament.admin.pages.olt-vpn'],
+            ],
+            [
                 'key' => 'optical_noc',
                 'label' => 'Optical Database',
                 'icon' => 'heroicon-o-light-bulb',
-                'sort' => 2,
+                'sort' => 3,
                 'url' => OpticalMonitoringHub::getUrl(),
                 'active_routes' => ['filament.admin.pages.optical-noc'],
             ],
@@ -55,7 +64,7 @@ final class OltSidebarRegistry
                 'key' => 'topology',
                 'label' => 'Topology',
                 'icon' => 'heroicon-o-share',
-                'sort' => 3,
+                'sort' => 4,
                 'url' => NetworkTopology::getUrl(),
                 'active_routes' => ['filament.admin.pages.network-topology'],
             ],
@@ -63,7 +72,7 @@ final class OltSidebarRegistry
                 'key' => 'fiber_map',
                 'label' => 'Fiber map',
                 'icon' => 'heroicon-o-map',
-                'sort' => 4,
+                'sort' => 5,
                 'url' => FiberPlantMap::getUrl(),
                 'active_routes' => ['filament.admin.pages.fiber-plant-map'],
             ],
@@ -71,7 +80,7 @@ final class OltSidebarRegistry
                 'key' => 'mac_table',
                 'label' => 'PON MAC table',
                 'icon' => 'heroicon-o-table-cells',
-                'sort' => 5,
+                'sort' => 6,
                 'url' => OltMacTable::getUrl(),
                 'active_routes' => ['filament.admin.pages.olt-mac-table'],
             ],
@@ -79,7 +88,7 @@ final class OltSidebarRegistry
                 'key' => 'laser_thresholds',
                 'label' => 'Laser thresholds',
                 'icon' => 'heroicon-o-adjustments-vertical',
-                'sort' => 6,
+                'sort' => 7,
                 'url' => ManageOpticalLaserSettings::getUrl(),
                 'active_routes' => ['filament.admin.pages.optical-laser-settings'],
             ],
@@ -138,6 +147,7 @@ final class OltSidebarRegistry
             'hub' => OltHub::canAccess(),
             'mac_table' => OltMacTable::canAccess(),
             'olt_manage' => OltResource::canViewAny(),
+            'olt_vpn' => OltVpnManagementPage::canAccess(),
             'optical_noc' => OpticalMonitoringHub::canAccess(),
             'topology' => NetworkTopology::canAccess(),
             'fiber_map' => FiberPlantMap::canAccess(),

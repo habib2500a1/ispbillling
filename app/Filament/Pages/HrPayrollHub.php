@@ -79,6 +79,12 @@ class HrPayrollHub extends Page
 
         if ($access['payroll_manage']) {
             $actions[] = [
+                'label' => 'Advance salary',
+                'url' => HrAdvanceSalaryPage::getUrl(),
+                'icon' => 'banknotes',
+                'tone' => 'emerald',
+            ];
+            $actions[] = [
                 'label' => 'Payroll',
                 'url' => PayrollRunResource::getUrl('index'),
                 'icon' => 'currency-dollar',
@@ -184,11 +190,18 @@ class HrPayrollHub extends Page
             ];
 
             $groups[] = [
-                'title' => 'Payroll',
-                'subtitle' => 'Monthly salary runs & ledger posting',
+                'title' => 'Payroll & advance',
+                'subtitle' => 'Advance requests · monthly salary runs',
                 'tone' => 'fuchsia',
                 'icon' => 'currency-dollar',
                 'items' => [
+                    ...($access['payroll_manage'] ? [[
+                        'title' => 'Advance salary',
+                        'description' => 'Request advance · return policy · deduction month',
+                        'url' => HrAdvanceSalaryPage::getUrl(),
+                        'badge' => null,
+                        'icon' => 'banknotes',
+                    ]] : []),
                     [
                         'title' => 'Payroll runs',
                         'description' => $stats['period_label'].' — '.number_format($stats['current_run_net'], 0).' BDT net',

@@ -15,7 +15,8 @@ class PortalSmokeTest extends TestCase
     public static function guestPortalPagesProvider(): array
     {
         return [
-            'login' => ['/login', 'Customer portal'],
+            'login hub' => ['/login', 'Choose how you want to sign in'],
+            'customer login' => ['/login/customer', 'Customer code, phone, or email'],
             'signup' => ['/portal/signup', 'Request a new connection'],
         ];
     }
@@ -32,7 +33,7 @@ class PortalSmokeTest extends TestCase
             'packages' => ['/portal/packages', 'Internet packages'],
             'profile' => ['/portal/profile', 'Profile'],
             'payments' => ['/portal/payments', 'Payment'],
-            'usage' => ['/portal/usage', 'usage'],
+            'usage' => ['/portal/usage', 'START'],
             'onu' => ['/portal/onu', 'ONU'],
             'equipment' => ['/portal/equipment', 'Equipment'],
             'tickets' => ['/portal/tickets', 'ticket'],

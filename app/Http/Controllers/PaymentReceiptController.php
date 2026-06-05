@@ -19,7 +19,7 @@ class PaymentReceiptController extends Controller
 
         abort_unless($payment->status === 'completed', 404);
 
-        $payment->load(['customer', 'invoice', 'parentPayment']);
+        $payment->load(['customer', 'invoice', 'parentPayment', 'recorder:id,name']);
 
         $html = view('payments.receipt', array_merge(
             ['payment' => $payment],

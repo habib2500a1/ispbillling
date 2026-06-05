@@ -2,6 +2,55 @@
  * Aurora ISP admin — Hub pages, billing desk, HR, quick actions
  * @module admin/saas/06-hubs-pages.css
  */
+[data-theme='dark'] .isp-hub-page .font-semibold.text-gray-900 {
+    color: #f1f5f9 !important;
+}
+
+/* Responsive tables in custom pages */
+.isp-hub-page .overflow-x-auto {
+    -webkit-overflow-scrolling: touch;
+}
+
+.isp-hub-page table {
+    min-width: 100%;
+}
+
+@media (max-width: 640px) {
+    .fi-sidebar-open .fi-main {
+        margin-left: 0 !important;
+    }
+
+    .isp-hub-link,
+    .isp-module-card {
+        padding: 1rem;
+    }
+}
+
+/* Hub sections & quick nav */
+.isp-ops-section {
+    margin-bottom: 1.25rem;
+}
+
+.isp-ops-section-title {
+    margin-bottom: 0.65rem;
+    font-size: 0.6875rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #64748b;
+}
+
+.dark .isp-ops-section-title {
+    color: #94a3b8;
+}
+
+.isp-section-nav {
+
+/* --- 06-hubs-pages.css --- */
+/**
+ * Aurora ISP admin — Hub pages, billing desk, HR, quick actions
+ * @module admin/saas/06-hubs-pages.css
+ */
     display: flex;
     flex-direction: column;
     gap: 0.75rem;
@@ -211,15 +260,15 @@
 .isp-collection-search-wrap {
     border-radius: var(--isp-radius-lg);
     padding: 1.25rem 1.5rem;
-    background: linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, #fff 50%, rgba(139, 92, 246, 0.05) 100%);
-    border: 1px solid rgba(16, 185, 129, 0.22);
+    background: linear-gradient(135deg, rgba(21, 101, 192, 0.08) 0%, #fff 50%, rgba(66, 165, 245, 0.06) 100%);
+    border: 1px solid rgba(21, 101, 192, 0.22);
     box-shadow: var(--isp-shadow);
 }
 
 .dark .isp-collection-search-wrap,
 [data-theme='dark'] .isp-collection-search-wrap {
-    background: linear-gradient(135deg, rgba(6, 78, 59, 0.35) 0%, rgb(17 24 39) 60%);
-    border-color: rgba(52, 211, 153, 0.2);
+    background: linear-gradient(135deg, rgba(13, 71, 161, 0.35) 0%, rgb(17 24 39) 60%);
+    border-color: rgba(66, 165, 245, 0.2);
 }
 
 .isp-collection-search-label {
@@ -265,13 +314,13 @@
     border-radius: 0.75rem;
     padding: 0.875rem 1.25rem;
     font-weight: 600;
-    background: #059669;
+    background: var(--isp-primary);
     color: white;
     transition: background 0.15s;
 }
 
 .isp-collection-search-btn:hover {
-    background: #047857;
+    background: var(--isp-primary-dark);
 }
 
 .isp-collection-result-card {
@@ -329,15 +378,40 @@
 }
 
 .isp-collection-submit {
-    border-radius: 0.75rem;
-    padding: 0.75rem 1.5rem;
-    font-weight: 700;
-    background: #7c3aed;
+    border-radius: var(--isp-radius-md);
+    padding: 0.875rem 2rem;
+    font-weight: 600;
+    font-size: 0.9375rem;
+    background: var(--isp-primary);
     color: white;
+    border: none;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    box-shadow: 0 2px 4px rgba(21, 101, 192, 0.2);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
 }
 
 .isp-collection-submit:hover {
-    background: #6d28d9;
+    background: var(--isp-primary-dark);
+    box-shadow: 0 4px 8px rgba(21, 101, 192, 0.3);
+    transform: translateY(-1px);
+}
+
+.isp-collection-submit:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 4px rgba(21, 101, 192, 0.2);
+}
+
+.dark .isp-collection-submit {
+    background: var(--isp-primary);
+    box-shadow: 0 2px 4px rgba(21, 101, 192, 0.4);
+}
+
+.dark .isp-collection-submit:hover {
+    background: var(--isp-primary-light);
 }
 
 /* Accounting hub */
@@ -578,6 +652,276 @@
     padding: 2rem 1rem;
 }
 
+/* HRM custom pages: one action row at top (hide duplicate title; no hero/table copies) */
+.isp-hrm-page.isp-hrm-leave-page .fi-header,
+.isp-hrm-page.isp-hrm-advance-page .fi-header {
+    display: flex !important;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    margin-bottom: 0.35rem;
+}
+
+.isp-hrm-page.isp-hrm-leave-page .fi-header > div:first-child,
+.isp-hrm-page.isp-hrm-advance-page .fi-header > div:first-child {
+    display: none !important;
+}
+
+.isp-hrm-page:not(.isp-hrm-leave-page):not(.isp-hrm-advance-page) .fi-header {
+    display: none;
+}
+
+.isp-hrm-advance-hero__actions,
+.isp-hrm-leave-page .fi-ta-empty-state-actions,
+.isp-hrm-advance-page .fi-ta-empty-state-actions {
+    display: none !important;
+}
+
+.isp-hrm-reports-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+    gap: .75rem;
+}
+
+.isp-hrm-reports-card {
+    display: flex;
+    flex-direction: column;
+    gap: .35rem;
+    padding: 1rem 1.1rem;
+    border-radius: var(--isp-radius-lg);
+    border: 1px solid var(--isp-card-border);
+    background: var(--isp-card-bg);
+    text-decoration: none;
+    color: inherit;
+    transition: border-color .15s ease, transform .15s ease;
+}
+
+.isp-hrm-reports-card:hover {
+    border-color: color-mix(in srgb, #f43f5e 35%, var(--isp-card-border));
+    transform: translateY(-2px);
+}
+
+.isp-hrm-reports-card__label {
+    font-size: .72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    color: var(--isp-text-muted);
+}
+
+.isp-hrm-reports-card__value {
+    font-size: 1rem;
+    font-weight: 800;
+    color: var(--isp-text);
+}
+
+.isp-hrm-reports-panels {
+    display: grid;
+    gap: 1rem;
+}
+
+@media (min-width: 768px) {
+    .isp-hrm-reports-panels {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+.isp-hrm-reports-breakdown {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: .5rem;
+}
+
+.isp-hrm-reports-breakdown li {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: .75rem;
+    padding: .5rem 0;
+    border-bottom: 1px solid var(--isp-card-border);
+    font-size: .875rem;
+}
+
+.isp-hrm-reports-breakdown li:last-child {
+    border-bottom: none;
+}
+
+.isp-hrm-reports-run {
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+    gap: .5rem .75rem;
+    align-items: center;
+    padding: .55rem 0;
+    border-bottom: 1px solid var(--isp-card-border);
+    font-size: .875rem;
+}
+
+.isp-hrm-reports-run:last-child {
+    border-bottom: none;
+}
+
+.isp-hrm-reports-run__status {
+    font-size: .7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    color: var(--isp-text-muted);
+}
+
+.isp-hrm-reports-empty {
+    margin: 0;
+    font-size: .875rem;
+    color: var(--isp-text-muted);
+}
+
+.isp-hrm-payroll-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1rem 1.15rem;
+    border-radius: var(--isp-radius-lg);
+    border: 1px solid var(--isp-card-border);
+    background: var(--isp-card-bg);
+}
+
+.isp-hrm-payroll-toolbar__filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .75rem;
+    align-items: flex-end;
+}
+
+.isp-hrm-payroll-toolbar__filters label {
+    display: block;
+    font-size: .65rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    color: var(--isp-text-muted);
+    margin-bottom: .25rem;
+}
+
+.isp-hrm-payroll-input {
+    min-width: 8rem;
+    border-radius: .5rem;
+    border: 1px solid var(--isp-card-border);
+    background: var(--isp-card-bg);
+    padding: .45rem .65rem;
+    font-size: .875rem;
+    color: var(--isp-text);
+}
+
+.isp-hrm-payroll-toolbar__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .5rem;
+}
+
+.isp-hrm-payroll-sheet-wrap {
+    overflow-x: auto;
+}
+
+.isp-hrm-payroll-sheet {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: .8rem;
+}
+
+.isp-hrm-payroll-sheet th,
+.isp-hrm-payroll-sheet td {
+    padding: .55rem .65rem;
+    border-bottom: 1px solid var(--isp-card-border);
+    text-align: left;
+}
+
+.isp-hrm-payroll-sheet th {
+    font-size: .68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    color: var(--isp-text-muted);
+}
+
+.isp-hrm-payroll-sheet th small {
+    font-weight: 500;
+    text-transform: none;
+}
+
+.isp-hrm-payroll-sheet__net {
+    font-weight: 800;
+    color: #2563eb;
+}
+
+.isp-hrm-payroll-badge {
+    font-size: .7rem;
+    font-weight: 600;
+    padding: .15rem .45rem;
+    border-radius: 999px;
+    background: color-mix(in srgb, #f59e0b 15%, var(--isp-card-bg));
+}
+
+.isp-hrm-policy-grid {
+    display: grid;
+    gap: 1rem;
+}
+
+@media (min-width: 900px) {
+    .isp-hrm-policy-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+.isp-hrm-policy-section-title {
+    font-size: .8rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    color: var(--isp-text-muted);
+    margin-bottom: .75rem;
+}
+
+.isp-hrm-policy-fields {
+    display: grid;
+    gap: .75rem;
+}
+
+.isp-hrm-policy-fields--3 {
+    grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+}
+
+.isp-hrm-policy-fields label {
+    display: block;
+    font-size: .72rem;
+    font-weight: 600;
+    margin-bottom: .25rem;
+    color: var(--isp-text-muted);
+}
+
+.isp-hrm-policy-hint {
+    font-size: .75rem;
+    color: var(--isp-text-muted);
+}
+
+.isp-hrm-policy-code {
+    display: block;
+    font-size: .75rem;
+    padding: .5rem .65rem;
+    border-radius: .5rem;
+    background: color-mix(in srgb, #6366f1 8%, var(--isp-card-bg));
+    word-break: break-all;
+}
+
+.isp-hrm-policy-link {
+    font-size: .8rem;
+    font-weight: 600;
+    color: #e11d48;
+    text-decoration: none;
+}
+
 /* ── BW Client (bandwidth wholesale) ── */
 .isp-bw-clients-page .fi-header,
 .isp-bw-generate-page .fi-header {
@@ -623,322 +967,3 @@
     grid-template-columns: repeat(2, minmax(6.5rem, 1fr));
     gap: .65rem;
 }
-
-@media (min-width: 640px) {
-    .isp-bw-clients-hero__stats {
-        grid-template-columns: repeat(4, minmax(5.5rem, 1fr));
-    }
-}
-
-.isp-bw-clients-stat {
-    padding: .65rem .75rem;
-    border-radius: var(--isp-radius-md);
-    border: 1px solid var(--isp-card-border);
-    background: var(--isp-card-bg);
-}
-
-.isp-bw-clients-stat--due strong {
-    color: #e11d48;
-}
-
-.isp-bw-clients-stat__label {
-    display: block;
-    font-size: .65rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: .05em;
-    color: var(--isp-text-muted);
-}
-
-.isp-bw-clients-stat strong {
-    display: block;
-    margin-top: .2rem;
-    font-size: 1.05rem;
-    font-weight: 800;
-}
-
-.isp-bw-clients-table-card,
-.isp-bw-generate-card {
-    padding: 1rem 1.15rem;
-    border-radius: var(--isp-radius-lg);
-    border: 1px solid var(--isp-card-border);
-    background: var(--isp-card-bg);
-}
-
-.isp-bw-clients-table-card__hint {
-    margin-bottom: .75rem;
-    font-size: .8rem;
-    color: var(--isp-text-muted);
-}
-
-.isp-bw-clients-table-card .fi-ta-ctn {
-    border: none;
-    box-shadow: none;
-    background: transparent;
-}
-
-.isp-bw-clients-table-card .fi-ta-header-cell {
-    font-size: .72rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: .04em;
-    color: #0369a1;
-}
-
-.dark .isp-bw-clients-table-card .fi-ta-header-cell {
-    color: #7dd3fc;
-}
-
-.isp-bw-clients-table-card .fi-ta-empty-state {
-    padding: 2.5rem 1rem;
-}
-
-.isp-accounting-section-icon--rose { background: rgba(244, 63, 94, 0.12); color: #e11d48; }
-.isp-accounting-section-icon--slate { background: rgba(100, 116, 139, 0.12); color: #475569; }
-.isp-accounting-card--rose:hover { border-color: rgba(244, 63, 94, 0.45); }
-.isp-accounting-card--slate:hover { border-color: rgba(100, 116, 139, 0.45); }
-.isp-accounting-card-icon--rose { background: rgba(244, 63, 94, 0.15); color: #e11d48; }
-.isp-accounting-card-icon--slate { background: rgba(100, 116, 139, 0.15); color: #475569; }
-.dark .isp-accounting-section-icon--rose { color: #fda4af; }
-.dark .isp-accounting-section-icon--slate { color: #cbd5e1; }
-.dark .isp-accounting-card-icon--rose { color: #fda4af; }
-.dark .isp-accounting-card-icon--slate { color: #cbd5e1; }
-
-.isp-accounting-modules {
-    padding-top: 0.5rem;
-}
-
-.isp-accounting-section {
-    border-radius: var(--isp-radius-lg);
-    padding: 1.25rem 1.5rem;
-    background: white;
-    border: 1px solid rgba(148, 163, 184, 0.15);
-    box-shadow: var(--isp-shadow);
-}
-
-.dark .isp-accounting-section,
-[data-theme='dark'] .isp-accounting-section {
-    background: rgb(17 24 39);
-    border-color: rgba(148, 163, 184, 0.1);
-}
-
-.isp-accounting-section-head {
-    display: flex;
-    align-items: flex-start;
-    gap: 0.875rem;
-}
-
-.isp-accounting-section-icon {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 2.5rem;
-    height: 2.5rem;
-    border-radius: 0.75rem;
-    flex-shrink: 0;
-}
-
-.isp-accounting-section-icon--emerald { background: rgba(16, 185, 129, 0.12); color: #059669; }
-.isp-accounting-section-icon--violet { background: rgba(124, 58, 237, 0.12); color: #7c3aed; }
-.isp-accounting-section-icon--cyan { background: rgba(6, 182, 212, 0.12); color: #0891b2; }
-.isp-accounting-section-icon--amber { background: rgba(245, 158, 11, 0.12); color: #d97706; }
-.isp-accounting-section-icon--fuchsia { background: rgba(192, 38, 211, 0.12); color: #c026d3; }
-.isp-accounting-section-icon--indigo { background: rgba(99, 102, 241, 0.12); color: #4f46e5; }
-
-.dark .isp-accounting-section-icon--emerald { color: #6ee7b7; }
-.dark .isp-accounting-section-icon--violet { color: #c4b5fd; }
-.dark .isp-accounting-section-icon--cyan { color: #67e8f9; }
-.dark .isp-accounting-section-icon--amber { color: #fcd34d; }
-.dark .isp-accounting-section-icon--fuchsia { color: #f0abfc; }
-.dark .isp-accounting-section-icon--indigo { color: #a5b4fc; }
-
-.isp-accounting-section-title {
-    font-size: 1.05rem;
-    font-weight: 700;
-    letter-spacing: -0.02em;
-    color: var(--isp-navy);
-}
-
-.dark .isp-accounting-section-title,
-[data-theme='dark'] .isp-accounting-section-title {
-    color: #f1f5f9;
-}
-
-.isp-accounting-card {
-    display: block;
-    border-radius: var(--isp-radius);
-    padding: 1rem 1.125rem;
-    background: #f8fafc;
-    border: 1px solid rgba(148, 163, 184, 0.14);
-    transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
-}
-
-.isp-accounting-card:hover {
-    transform: translateY(-2px);
-    box-shadow: var(--isp-shadow-lg);
-}
-
-.isp-accounting-card--emerald:hover { border-color: rgba(16, 185, 129, 0.45); }
-.isp-accounting-card--violet:hover { border-color: rgba(124, 58, 237, 0.45); }
-.isp-accounting-card--cyan:hover { border-color: rgba(6, 182, 212, 0.45); }
-.isp-accounting-card--amber:hover { border-color: rgba(245, 158, 11, 0.45); }
-.isp-accounting-card--fuchsia:hover { border-color: rgba(192, 38, 211, 0.45); }
-.isp-accounting-card--indigo:hover { border-color: rgba(99, 102, 241, 0.45); }
-
-.dark .isp-accounting-card,
-[data-theme='dark'] .isp-accounting-card {
-    background: rgb(30 41 59);
-    border-color: rgba(148, 163, 184, 0.1);
-}
-
-.isp-accounting-card-icon {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 2.25rem;
-    height: 2.25rem;
-    border-radius: 0.625rem;
-    flex-shrink: 0;
-}
-
-.isp-accounting-card-icon--emerald { background: rgba(16, 185, 129, 0.15); color: #059669; }
-.isp-accounting-card-icon--violet { background: rgba(124, 58, 237, 0.15); color: #7c3aed; }
-.isp-accounting-card-icon--cyan { background: rgba(6, 182, 212, 0.15); color: #0891b2; }
-.isp-accounting-card-icon--amber { background: rgba(245, 158, 11, 0.15); color: #d97706; }
-.isp-accounting-card-icon--fuchsia { background: rgba(192, 38, 211, 0.15); color: #c026d3; }
-.isp-accounting-card-icon--indigo { background: rgba(99, 102, 241, 0.15); color: #4f46e5; }
-
-.dark .isp-accounting-card-icon--emerald { color: #6ee7b7; }
-.dark .isp-accounting-card-icon--violet { color: #c4b5fd; }
-.dark .isp-accounting-card-icon--cyan { color: #67e8f9; }
-.dark .isp-accounting-card-icon--amber { color: #fcd34d; }
-.dark .isp-accounting-card-icon--fuchsia { color: #f0abfc; }
-.dark .isp-accounting-card-icon--indigo { color: #a5b4fc; }
-
-.isp-accounting-badge {
-    flex-shrink: 0;
-    border-radius: 9999px;
-    padding: 0.15rem 0.5rem;
-    font-size: 0.6rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    background: rgba(99, 102, 241, 0.12);
-    color: #4f46e5;
-}
-
-.dark .isp-accounting-badge {
-    background: rgba(129, 140, 248, 0.2);
-    color: #c7d2fe;
-}
-
-/* Bottom quick actions panel */
-.isp-accounting-quick {
-    border-radius: var(--isp-radius-lg);
-    padding: 1.25rem 1.5rem;
-    background: linear-gradient(180deg, #f8fafc 0%, #fff 100%);
-    border: 1px solid rgba(148, 163, 184, 0.18);
-    box-shadow: var(--isp-shadow);
-}
-
-.dark .isp-accounting-quick,
-[data-theme='dark'] .isp-accounting-quick {
-    background: linear-gradient(180deg, rgb(30 41 59) 0%, rgb(17 24 39) 100%);
-    border-color: rgba(148, 163, 184, 0.12);
-}
-
-.isp-accounting-quick-btn {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 0.5rem;
-    min-height: 5.5rem;
-    padding: 0.875rem 0.5rem;
-    border-radius: var(--isp-radius);
-    text-align: center;
-    text-decoration: none;
-    border: 1px solid rgba(148, 163, 184, 0.15);
-    background: white;
-    transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
-}
-
-.isp-accounting-quick-btn:hover {
-    transform: translateY(-3px);
-    box-shadow: var(--isp-shadow-lg);
-}
-
-.dark .isp-accounting-quick-btn,
-[data-theme='dark'] .isp-accounting-quick-btn {
-    background: rgb(30 41 59);
-    border-color: rgba(148, 163, 184, 0.12);
-}
-
-.isp-accounting-quick-btn-icon {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 2.75rem;
-    height: 2.75rem;
-    border-radius: 0.875rem;
-}
-
-.isp-accounting-quick-btn-label {
-    font-size: 0.7rem;
-    font-weight: 700;
-    line-height: 1.2;
-    color: #334155;
-}
-
-.dark .isp-accounting-quick-btn-label,
-[data-theme='dark'] .isp-accounting-quick-btn-label {
-    color: #e2e8f0;
-}
-
-.isp-accounting-quick-btn--emerald .isp-accounting-quick-btn-icon { background: rgba(16, 185, 129, 0.15); color: #059669; }
-.isp-accounting-quick-btn--rose .isp-accounting-quick-btn-icon { background: rgba(244, 63, 94, 0.12); color: #e11d48; }
-.isp-accounting-quick-btn--violet .isp-accounting-quick-btn-icon { background: rgba(124, 58, 237, 0.12); color: #7c3aed; }
-.isp-accounting-quick-btn--amber .isp-accounting-quick-btn-icon { background: rgba(245, 158, 11, 0.15); color: #d97706; }
-.isp-accounting-quick-btn--cyan .isp-accounting-quick-btn-icon { background: rgba(6, 182, 212, 0.15); color: #0891b2; }
-.isp-accounting-quick-btn--indigo .isp-accounting-quick-btn-icon { background: rgba(99, 102, 241, 0.12); color: #4f46e5; }
-
-.isp-accounting-quick-btn--emerald:hover { border-color: rgba(16, 185, 129, 0.4); }
-.isp-accounting-quick-btn--rose:hover { border-color: rgba(244, 63, 94, 0.4); }
-.isp-accounting-quick-btn--violet:hover { border-color: rgba(124, 58, 237, 0.4); }
-.isp-accounting-quick-btn--amber:hover { border-color: rgba(245, 158, 11, 0.4); }
-.isp-accounting-quick-btn--cyan:hover { border-color: rgba(6, 182, 212, 0.4); }
-.isp-accounting-quick-btn--indigo:hover { border-color: rgba(99, 102, 241, 0.4); }
-
-@media (max-width: 640px) {
-    .isp-accounting-hero {
-        padding: 1.25rem;
-    }
-
-    .isp-accounting-section {
-        padding: 1rem;
-    }
-
-    .isp-accounting-quick {
-        padding: 1rem;
-    }
-}
-
-/* RBAC audit timeline */
-.isp-rbac-audit {
-    background: white;
-}
-
-.dark .isp-rbac-audit,
-[data-theme='dark'] .isp-rbac-audit {
-    background: rgb(17 24 39);
-}
-
-/* Subscribers list — responsive table */
-.fi-resource-subscribers .fi-ta-header-toolbar {
-    flex-wrap: wrap;
-    gap: 0.5rem;
-}
-
-.fi-resource-subscribers .fi-ta-content {
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;

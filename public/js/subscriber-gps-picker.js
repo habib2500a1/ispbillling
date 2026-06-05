@@ -296,7 +296,15 @@
             setStatus('Coordinates loaded');
             initMap();
         } else {
-            captureGps(true);
+            const def = defaults();
+            setCombinedDisplay(def.lat, def.lng);
+            setMetaInput('gps_lat', def.lat.toFixed(7));
+            setMetaInput('gps_lng', def.lng.toFixed(7));
+            if (combinedInput()) {
+                combinedInput().placeholder = 'lat, long';
+            }
+            setStatus('Click the pin to allow GPS, or tap the map to set location.');
+            initMap();
         }
     }
 

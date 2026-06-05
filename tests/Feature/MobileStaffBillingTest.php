@@ -114,7 +114,9 @@ class MobileStaffBillingTest extends TestCase
             'recorded_by' => null,
         ]);
 
-        return compact('dueCustomer', 'paidCustomer', 'package');
+        $payment = Payment::query()->withoutGlobalScopes()->where('customer_id', $paidCustomer->id)->first();
+
+        return compact('dueCustomer', 'paidCustomer', 'package', 'payment');
     }
 
     public function test_billing_summary_matches_dashboard(): void
@@ -177,7 +179,39 @@ class MobileStaffBillingTest extends TestCase
         $this->assertArrayHasKey('summary', $body);
         $this->assertGreaterThanOrEqual(500.0, (float) ($body['summary']['month_collected'] ?? 0));
         $this->assertNotEmpty($body['data']);
-        $this->assertSame('PAID001', $body['data'][0]['customer_code'] ?? collect($body['data'])->firstWhere('customer_code', 'PAID001')['customer_code'] ?? null);
+        $row = collect($body['data'])->firstWhere('customer_code', 'PAID001');
+        $this->assertNotNull($row);
+        $this->assertArrayHasKey('receipt_pdf_url', $row);
+        $this->assertArrayHasKey('payment_id', $row);
+    }
+
+    public function test_staff_payment_receipt_detail_and_pdf(): void
+    {
+        $tenant = $this->createTenant('Receipt ISP', 'receipt-isp');
+        $user = $this->staffUser($tenant);
+        $seed = $this->seedBillingScenario($tenant);
+        $payment = $seed['payment'];
+        $this->assertNotNull($payment);
+
+        Sanctum::actingAs($user, ['staff']);
+
+        $this->getJson("/api/v1/staff/payments/{$payment->id}/receipt")
+            ->assertOk()
+            ->assertJsonStructure([
+                'data' => [
+                    'payment_id',
+                    'receipt_number',
+                    'receipt_pdf_url',
+                    'customer' => ['customer_code', 'name'],
+                    'amounts' => ['total_bill', 'paid_amount'],
+                ],
+            ])
+            ->assertJsonPath('data.customer.customer_code', 'PAID001');
+
+        $pdf = $this->getJson("/api/v1/staff/payments/{$payment->id}/receipt-pdf");
+        $pdf->assertOk();
+        $this->assertStringContainsString('application/pdf', (string) $pdf->headers->get('content-type'));
+        $this->assertStringStartsWith('%PDF', $pdf->getContent());
     }
 
     public function test_staff_can_record_payment_via_api(): void

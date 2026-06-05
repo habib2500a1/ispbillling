@@ -78,7 +78,7 @@ class ApiService {
     await loadRemoteConfig();
     final res = await _client
         .post(
-          Uri.parse('${AppConfig.apiBaseUrl}/mobile/login'),
+          Uri.parse(RemoteConfig.mobileLoginApiUrl),
           headers: {'Accept': 'application/json', 'Content-Type': 'application/json'},
           body: jsonEncode({
             'role': role,
@@ -602,6 +602,9 @@ class ApiService {
   Future<Map<String, dynamic>> staffBillingCollections({int page = 1}) async {
     return _get('/staff/billing/collections?page=$page');
   }
+
+  Future<Map<String, dynamic>> staffPaymentReceiptDetail(int paymentId) =>
+      _get('/staff/payments/$paymentId/receipt');
 
   Future<Map<String, dynamic>> staffUpdateCustomer(int id, Map<String, dynamic> fields) =>
       _patch('/staff/customers/$id', fields);

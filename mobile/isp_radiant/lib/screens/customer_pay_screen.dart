@@ -15,10 +15,18 @@ import 'payment_checkout_screen.dart';
 
 /// Client pay: all due invoices, full amount only. Typed [Payables] + repository.
 class CustomerPayScreen extends StatefulWidget {
-  const CustomerPayScreen({super.key, required this.api, this.invoiceId});
+  const CustomerPayScreen({
+    super.key,
+    required this.api,
+    this.invoiceId,
+    this.active = false,
+    this.embedded = false,
+  });
 
   final ApiService api;
   final int? invoiceId;
+  final bool active;
+  final bool embedded;
 
   @override
   State<CustomerPayScreen> createState() => _CustomerPayScreenState();
@@ -35,6 +43,12 @@ class _CustomerPayScreenState extends State<CustomerPayScreen> {
   void initState() {
     super.initState();
     _load();
+  }
+
+  @override
+  void didUpdateWidget(CustomerPayScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.active && !oldWidget.active) _load();
   }
 
   Future<void> _load() async {
@@ -237,8 +251,11 @@ class _CustomerPayScreenState extends State<CustomerPayScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (widget.embedded) {
+      return _buildBody();
+    }
     return Scaffold(
-      appBar: AppBar(title: const Text('Pay dues')),
+      appBar: AppBar(title: const Text('Pay bill')),
       body: _buildBody(),
     );
   }

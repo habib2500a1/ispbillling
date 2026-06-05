@@ -61,4 +61,42 @@ class VendorGponDriverTest extends TestCase
             $this->assertTrue($sync->supportsDriver($olt), "Failed for {$driver}");
         }
     }
+
+    public function test_aveis_epon_resolves_dedicated_profile_with_identity_columns(): void
+    {
+        $olt = new Device(['type' => 'olt', 'olt_driver' => 'aveis_epon']);
+
+        $this->assertSame('aveis_epon', GponSnmpProfile::profileKeyForOlt($olt));
+
+        $oids = GponSnmpProfile::merged('aveis_epon');
+
+        // Inherits the enterprise ONU table from aveis_gpon and exposes tunable identity columns.
+        $this->assertSame('1.3.6.1.4.1.50224.3.3.2.1', $oids['aveis_onu_table']);
+        $this->assertSame(7, (int) $oids['aveis_onu_mac_column']);
+        $this->assertSame(3, (int) $oids['aveis_onu_status_column']);
+        $this->assertSame(2, (int) $oids['aveis_onu_label_column']);
+    }
+
+    public function test_aveis_epon_index_and_rx_decode(): void
+    {
+        // 0x01000102 = PON1, ONU2 on card 1.
+        $parsed = AveisGponOnuSyncService::parseAveisIndex(16777474);
+        $this->assertSame(['card_no' => 1, 'pon_no' => 1, 'onu_index' => 2], $parsed);
+
+        // col15 divisor decode: 841 → ≈ -14.68 dBm.
+        $this->assertEqualsWithDelta(-14.68, AveisGponOnuSyncService::decodeAveisRx(841), 0.05);
+    }
+
+    public function test_guess_driver_distinguishes_aveis_epon(): void
+    {
+        $this->assertSame(
+            'aveis_epon',
+            \App\Services\Network\OltOnuSyncCoordinator::guessDriverFromSysDescr('Aveis AV-OLT EPON 4-port'),
+        );
+
+        $this->assertSame(
+            'aveis_gpon',
+            \App\Services\Network\OltOnuSyncCoordinator::guessDriverFromSysDescr('Aveis AV-OLT-XE08-L3 GPON'),
+        );
+    }
 }

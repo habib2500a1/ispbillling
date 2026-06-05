@@ -64,7 +64,7 @@
                                     href="{{ route('portal.payments.receipt', $payment) }}"
                                     class="portal-card-button portal-card-button--primary"
                                 >
-                                    Receipt
+                                    Download PDF
                                 </a>
                             @else
                                 <span class="text-slate-400">—</span>

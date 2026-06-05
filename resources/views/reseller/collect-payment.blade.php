@@ -11,6 +11,18 @@
     ])
 
     <div class="rsl-panel rsl-panel-pad" style="max-width:32rem">
+        @if (($profile['payment_plan']['enabled'] ?? false))
+            <div class="rsl-callout rsl-callout--info mb-4">
+                <p class="font-semibold">Installment plan active</p>
+                <p class="text-sm mt-1">Suggested installment: <strong>{{ number_format($profile['payment_plan']['installment_bdt'] ?? 0, 0) }} BDT</strong>
+                    @if (! empty($profile['payment_plan']['next_due_date']))
+                        · next due {{ $profile['payment_plan']['next_due_date'] }}
+                    @endif
+                </p>
+                <p class="text-xs mt-2 rsl-text-muted">You can pay less than full due — remaining balance stays on the bill.</p>
+            </div>
+        @endif
+
         <div class="rsl-callout rsl-callout--due mb-4">
             <strong>Due: {{ number_format($openDue, 2) }} BDT</strong>
             @if (($walletBalance ?? 0) > 0)

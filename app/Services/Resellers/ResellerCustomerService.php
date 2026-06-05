@@ -108,7 +108,16 @@ final class ResellerCustomerService
             'payment_method' => ['nullable', 'string', Rule::in(ResellerCollectionPaymentMethod::values())],
             'payment_reference' => ['nullable', 'string', 'max:128'],
             'payment_notes' => ['nullable', 'string', 'max:500'],
+            'reseller_retail_monthly_bdt' => ['nullable', 'numeric', 'min:0', 'max:999999'],
+            'monthly_discount_bdt' => ['nullable', 'numeric', 'min:0', 'max:999999'],
+            'discount_note' => ['nullable', 'string', 'max:255'],
+            'onu_rent' => ['nullable', 'numeric', 'min:0', 'max:99999'],
+            'router_rent' => ['nullable', 'numeric', 'min:0', 'max:99999'],
+            'installation_charge' => ['nullable', 'numeric', 'min:0', 'max:999999'],
+            ...self::profileFieldRules(),
         ]);
+
+        $data = self::normalizeProfileBooleans($request, $data);
 
         $packageId = (int) $data['package_id'];
         if (! app(ResellerPackageCatalogService::class)->resellerMaySellPackage($reseller, $packageId)) {
@@ -150,6 +159,29 @@ final class ResellerCustomerService
             && ($reseller->reseller_can_override_charge_mode || config('reseller_billing.reseller_can_override_charge_mode', false))) {
             $meta['new_customer_charge_mode'] = $data['new_customer_charge_mode'];
         }
+
+        $pricingStub = new Customer(['meta' => $meta]);
+        app(ResellerCustomerPricingService::class)->applyPricingMeta(
+            $pricingStub,
+            collect($data)->only([
+                'reseller_retail_monthly_bdt',
+                'monthly_discount_bdt',
+                'discount_note',
+                'onu_rent',
+                'router_rent',
+                'installation_charge',
+                'new_customer_charge_mode',
+            ])->all(),
+            merge: false,
+        );
+        $meta = is_array($pricingStub->meta) ? $pricingStub->meta : $meta;
+        $profileStub = new Customer(['meta' => $meta]);
+        app(ResellerCustomerProfileService::class)->applyProfileMeta(
+            $profileStub,
+            collect($data)->only(self::profileFieldKeys())->all(),
+            merge: false,
+        );
+        $meta = is_array($profileStub->meta) ? $profileStub->meta : $meta;
 
         $customer = Customer::createTrusted([
             'tenant_id' => $tenantId,
@@ -231,7 +263,20 @@ final class ResellerCustomerService
             'mikrotik_ppp_password' => ['nullable', 'string', 'min:4', 'max:64'],
             'provision_mikrotik' => ['nullable', 'boolean'],
             'notes' => ['nullable', 'string', 'max:2000'],
+            'reseller_retail_monthly_bdt' => ['nullable', 'numeric', 'min:0', 'max:999999'],
+            'monthly_discount_bdt' => ['nullable', 'numeric', 'min:0', 'max:999999'],
+            'discount_note' => ['nullable', 'string', 'max:255'],
+            'onu_rent' => ['nullable', 'numeric', 'min:0', 'max:99999'],
+            'router_rent' => ['nullable', 'numeric', 'min:0', 'max:99999'],
+            'installation_charge' => ['nullable', 'numeric', 'min:0', 'max:999999'],
+            'billing_day' => ['sometimes', 'integer', 'min:1', 'max:28'],
+            'joined_at' => ['sometimes', 'date'],
+            'service_expires_at' => ['nullable', 'date'],
+            'new_customer_charge_mode' => ['nullable', 'string', Rule::in(array_keys(ResellerNewCustomerChargeMode::labels()))],
+            ...self::profileFieldRules(),
         ]);
+
+        $data = self::normalizeProfileBooleans($request, $data);
 
         if (isset($data['package_id']) && ! app(ResellerPackageCatalogService::class)->resellerMaySellPackage($reseller, (int) $data['package_id'])) {
             throw ValidationException::withMessages(['package_id' => 'This package is not assigned to your account.']);
@@ -251,8 +296,32 @@ final class ResellerCustomerService
         }
 
         $customer->fill(collect($data)->only([
-            'name', 'phone', 'email', 'telegram_chat_id', 'address', 'package_id', 'area_id', 'zone_id', 'status', 'notes', 'billing_mode', 'grace_period_days',
+            'name', 'phone', 'email', 'telegram_chat_id', 'address', 'package_id', 'area_id', 'zone_id', 'status', 'notes', 'billing_mode', 'grace_period_days', 'billing_day', 'joined_at', 'service_expires_at',
         ])->all());
+
+        $canOverrideCharge = $reseller->reseller_can_override_charge_mode
+            || config('reseller_billing.reseller_can_override_charge_mode', false);
+        if (array_key_exists('new_customer_charge_mode', $data) && ! $canOverrideCharge) {
+            unset($data['new_customer_charge_mode']);
+        }
+
+        app(ResellerCustomerPricingService::class)->applyPricingMeta(
+            $customer,
+            collect($data)->only([
+                'reseller_retail_monthly_bdt',
+                'monthly_discount_bdt',
+                'discount_note',
+                'onu_rent',
+                'router_rent',
+                'installation_charge',
+                'new_customer_charge_mode',
+            ])->all(),
+        );
+
+        app(ResellerCustomerProfileService::class)->applyProfileMeta(
+            $customer,
+            collect($data)->only(self::profileFieldKeys())->all(),
+        );
 
         if (array_key_exists('allow_active_when_due', $data)) {
             $meta = is_array($customer->meta) ? $customer->meta : [];
@@ -468,5 +537,57 @@ final class ResellerCustomerService
                 'limit' => 'Active client limit reached ('.$reseller->max_active_clients.').',
             ]);
         }
+    }
+
+    /**
+     * @return array<string, array<int, mixed>>
+     */
+    private static function profileFieldRules(): array
+    {
+        return [
+            'tag_vip' => ['nullable', 'boolean'],
+            'tag_late_payer' => ['nullable', 'boolean'],
+            'tag_gaming' => ['nullable', 'boolean'],
+            'tag_corporate' => ['nullable', 'boolean'],
+            'notify_sms' => ['nullable', 'boolean'],
+            'notify_whatsapp' => ['nullable', 'boolean'],
+            'notify_email' => ['nullable', 'boolean'],
+            'payment_plan_enabled' => ['nullable', 'boolean'],
+            'payment_plan_installment_bdt' => ['nullable', 'numeric', 'min:0', 'max:999999'],
+            'payment_plan_next_due_date' => ['nullable', 'date'],
+            'payment_plan_note' => ['nullable', 'string', 'max:255'],
+            'mac_binding' => ['nullable', 'string', 'max:64'],
+            'onu_mac' => ['nullable', 'string', 'max:64'],
+            'epon_port' => ['nullable', 'string', 'max:64'],
+            'vlan' => ['nullable', 'string', 'max:32'],
+            'static_ip' => ['nullable', 'string', 'max:45'],
+            'gps_lat' => ['nullable', 'numeric', 'between:-90,90'],
+            'gps_lng' => ['nullable', 'numeric', 'between:-180,180'],
+            'installation_date' => ['nullable', 'date'],
+        ];
+    }
+
+    /**
+     * @return list<string>
+     */
+    private static function profileFieldKeys(): array
+    {
+        return array_keys(self::profileFieldRules());
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    private static function normalizeProfileBooleans(Request $request, array $data): array
+    {
+        foreach ([
+            'tag_vip', 'tag_late_payer', 'tag_gaming', 'tag_corporate',
+            'notify_sms', 'notify_whatsapp', 'notify_email', 'payment_plan_enabled',
+        ] as $key) {
+            $data[$key] = $request->boolean($key);
+        }
+
+        return $data;
     }
 }

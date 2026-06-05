@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Reseller;
 
 use App\Http\Controllers\Controller;
 use App\Models\Customer;
+use App\Services\Resellers\ResellerCustomerProfileService;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
@@ -15,10 +16,12 @@ class ResellerCustomerController extends Controller
         $reseller = auth('reseller')->user();
         $search = trim((string) $request->query('q', ''));
         $dueOnly = $request->boolean('due');
+        $tag = trim((string) $request->query('tag', ''));
 
         $customers = Customer::query()
             ->where('reseller_id', $reseller->id)
             ->with(['package:id,name', 'zone:id,name'])
+            ->when($tag !== '', fn ($q) => ResellerCustomerProfileService::applyTagFilter($q, $tag))
             ->when($dueOnly, function ($q): void {
                 $q->whereHas('invoices', function ($iq): void {
                     $iq->whereIn('status', ['open', 'partial', 'sent', 'overdue'])
@@ -60,6 +63,8 @@ class ResellerCustomerController extends Controller
             'customers' => $customers,
             'search' => $search,
             'dueOnly' => $dueOnly,
+            'tag' => $tag,
+            'tagOptions' => ResellerCustomerProfileService::tagFilterOptions(),
             'dueCustomerCount' => $dueCustomerCount,
             'totalDue' => round($totalDue, 2),
         ]);

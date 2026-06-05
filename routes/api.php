@@ -141,6 +141,7 @@ Route::prefix('v1')->group(function (): void {
         Route::post('/staff/expenses', [StaffExpenseController::class, 'store']);
         Route::get('/staff/payment-methods', [StaffPaymentsController::class, 'methods']);
         Route::post('/staff/payments', [StaffPaymentsController::class, 'store']);
+        Route::get('/staff/payments/{payment}/receipt', [\App\Http\Controllers\Api\V1\Staff\StaffDocumentController::class, 'paymentReceiptDetail'])->whereNumber('payment');
         Route::get('/staff/payments/{payment}/receipt-pdf', [\App\Http\Controllers\Api\V1\Staff\StaffDocumentController::class, 'paymentReceiptPdf'])->whereNumber('payment');
         Route::delete('/staff/payments/{payment}', [StaffPaymentsController::class, 'destroy'])->whereNumber('payment');
         Route::get('/staff/invoices/{invoice}/pdf', [\App\Http\Controllers\Api\V1\Staff\StaffDocumentController::class, 'invoicePdf'])->whereNumber('invoice');

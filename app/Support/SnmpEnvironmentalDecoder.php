@@ -9,7 +9,7 @@ final class SnmpEnvironmentalDecoder
 {
     public static function temperatureC(?int $raw, string $vendor = 'generic'): ?float
     {
-        if ($raw === null) {
+        if ($raw === null || $raw === 0) {
             return null;
         }
 
@@ -29,7 +29,7 @@ final class SnmpEnvironmentalDecoder
 
     public static function voltageV(?int $raw, string $vendor = 'generic'): ?float
     {
-        if ($raw === null) {
+        if ($raw === null || $raw === 0) {
             return null;
         }
 

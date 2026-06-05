@@ -26,8 +26,12 @@
                     @endif
                 </a>
                 @if ($dueOnly)
-                    <a href="{{ route('reseller.customers.index', array_filter(['q' => $search ?: null])) }}" class="rsl-btn-sm rsl-btn-sm--outline">All</a>
+                    <a href="{{ route('reseller.customers.index', array_filter(['q' => $search ?: null, 'tag' => $tag ?: null])) }}" class="rsl-btn-sm rsl-btn-sm--outline">All</a>
                 @endif
+                @foreach ($tagOptions ?? [] as $tagKey => $tagLabel)
+                    <a href="{{ route('reseller.customers.index', array_filter(['tag' => $tagKey, 'due' => $dueOnly ? 1 : null, 'q' => $search ?: null])) }}"
+                       class="rsl-btn-sm {{ ($tag ?? '') === $tagKey ? '' : 'rsl-btn-sm--outline' }}">{{ $tagLabel }}</a>
+                @endforeach
                 @if ($portal->canPortal(\App\Support\ResellerPortalPermission::BILLING_VIEW) && $dueCustomerCount > 0 && config('reseller_billing.due_reminders.reseller_portal_enabled', true))
                     <form method="post" action="{{ route('reseller.due-reminders.bulk') }}" class="inline"
                           onsubmit="return confirm('Send due reminders to all subscribers with open bills? Each bill is limited to once per {{ config('reseller_billing.due_reminders.cooldown_hours', 24) }} hours.');">
@@ -38,6 +42,9 @@
                 <form method="get" class="rsl-toolbar-search">
                     @if ($dueOnly)
                         <input type="hidden" name="due" value="1">
+                    @endif
+                    @if (! empty($tag))
+                        <input type="hidden" name="tag" value="{{ $tag }}">
                     @endif
                     <input type="search" name="q" value="{{ $search }}" placeholder="Search…" class="rsl-input">
                     <button type="submit" class="rsl-btn-sm rsl-btn-sm--outline">Search</button>
@@ -64,15 +71,34 @@
                         @php $due = app(\App\Services\Resellers\ResellerSuspendedBillingService::class)->displayableOpenDue($customer); @endphp
                         <tr class="border-b border-slate-100 {{ $due > 0 ? 'bg-rose-50/60' : '' }}">
                             <td class="px-4 py-3 font-mono text-xs">{{ $customer->customer_code }}</td>
-                            <td class="px-4 py-3 font-medium">{{ $customer->name }}</td>
+                            <td class="px-4 py-3 font-medium">
+                                {{ $customer->name }}
+                                @php $m = is_array($customer->meta) ? $customer->meta : []; @endphp
+                                @if (! empty($m['tag_vip']))<span class="rsl-tag-pill rsl-tag-pill--vip">VIP</span>@endif
+                                @if (! empty($m['tag_late_payer']))<span class="rsl-tag-pill rsl-tag-pill--late_payer">Late</span>@endif
+                            </td>
                             <td class="px-4 py-3">{{ $customer->phone ?? '—' }}</td>
                             <td class="px-4 py-3">{{ $customer->package?->name ?? '—' }}</td>
                             <td class="px-4 py-3 font-semibold {{ $due > 0 ? 'text-rose-700' : 'text-slate-400' }}">
                                 {{ $due > 0 ? number_format($due, 2) : '—' }}
                             </td>
-                            <td class="px-4 py-3 capitalize">{{ $customer->status }}</td>
+                            <td class="px-4 py-3">
+                                @php
+                                    $statusBadge = match ($customer->status) {
+                                        'active' => 'rsl-badge--success',
+                                        'suspended' => 'rsl-badge--danger',
+                                        default => 'rsl-badge--info',
+                                    };
+                                @endphp
+                                <span class="rsl-badge {{ $statusBadge }}">{{ ucfirst($customer->status) }}</span>
+                            </td>
                             <td class="px-4 py-3 text-right">
-                                <a href="{{ route('reseller.customers.show', $customer) }}" class="text-indigo-600 font-semibold">Open</a>
+                                <div class="flex flex-wrap items-center justify-end gap-2">
+                                    @if ($portal->canPortal(\App\Support\ResellerPortalPermission::PAYMENT_COLLECT) && $due > 0)
+                                        <a href="{{ route('reseller.customers.collect', $customer) }}" class="rsl-btn-sm">Collect</a>
+                                    @endif
+                                    <a href="{{ route('reseller.customers.show', $customer) }}" class="rsl-link font-semibold">Open</a>
+                                </div>
                             </td>
                         </tr>
                     @empty

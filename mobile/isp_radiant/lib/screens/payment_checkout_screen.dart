@@ -58,7 +58,7 @@ class _PaymentCheckoutScreenState extends State<PaymentCheckoutScreen> {
           preferredSize: Size.fromHeight(28),
           child: Padding(
             padding: EdgeInsets.only(bottom: 8),
-            child: Text('Payment gateway — অ্যাপের ভিতরেই', style: TextStyle(fontSize: 11)),
+            child: Text('In-app payment gateway', style: TextStyle(fontSize: 11)),
           ),
         ),
       ),

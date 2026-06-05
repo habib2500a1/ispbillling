@@ -65,7 +65,9 @@ final class AdminRouteAssets
             return '';
         }
 
-        $v = (int) (@filemtime($path) ?: 1);
+        $mtime = (int) (@filemtime($path) ?: 1);
+        $salt = (int) config('isp.assets.version_salt', 0);
+        $v = $mtime + ($salt * 1_000_000);
 
         return '<link rel="stylesheet" href="'
             .e(asset('css/'.$file).'?v='.$v)

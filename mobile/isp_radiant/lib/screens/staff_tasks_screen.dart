@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../config/remote_config.dart';
+import '../core/theme/design_tokens.dart';
 import '../services/api_service.dart';
-import '../theme/app_theme.dart';
 import '../utils/app_nav.dart';
 import '../utils/layout.dart';
 import '../widgets/isp_tab_screen.dart';
@@ -78,10 +78,40 @@ class _StaffTasksScreenState extends State<StaffTasksScreen> {
       error: _error,
       onRetry: _load,
       onRefresh: _load,
-      headerChild: Row(
+      headerChild: Column(
         children: [
-          _stat('Pending', '$_pendingCount', AppTheme.warning),
-          _stat('Total', '${_items.length}', AppTheme.primary),
+          Row(
+            children: [
+              _stat('Pending', '$_pendingCount', DesignTokens.warning),
+              _stat('Total', '${_items.length}', DesignTokens.primary),
+            ],
+          ),
+          const SizedBox(height: 8),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                for (final f in const [('all', 'All'), ('pending', 'Pending'), ('done', 'Done')])
+                  Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: FilterChip(
+                      label: Text(f.$2),
+                      selected: _filter == f.$1,
+                      onSelected: (_) => setState(() => _filter = f.$1),
+                      selectedColor: Colors.white,
+                      checkmarkColor: DesignTokens.primary,
+                      labelStyle: TextStyle(
+                        color: _filter == f.$1 ? DesignTokens.primary : Colors.white,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 12,
+                      ),
+                      backgroundColor: Colors.white.withValues(alpha: 0.15),
+                      side: BorderSide(color: Colors.white.withValues(alpha: _filter == f.$1 ? 0.9 : 0.35)),
+                    ),
+                  ),
+              ],
+            ),
+          ),
         ],
       ),
       empty: visible.isEmpty && !_loading && _error == null
@@ -132,7 +162,7 @@ class _StaffTasksScreenState extends State<StaffTasksScreen> {
         ),
         child: Column(
           children: [
-            Text(value, style: TextStyle(color: color == AppTheme.warning ? Colors.amber : Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+            Text(value, style: TextStyle(color: color == DesignTokens.warning ? Colors.amber : Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
             Text(label, style: const TextStyle(color: Colors.white70, fontSize: 10)),
           ],
         ),

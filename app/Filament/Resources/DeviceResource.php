@@ -198,6 +198,25 @@ class DeviceResource extends Resource
                     ])
                     ->required()
                     ->default('in_stock'),
+                Forms\Components\Section::make('Warranty')
+                    ->schema([
+                        Forms\Components\TextInput::make('warranty_vendor')->maxLength(128),
+                        Forms\Components\DatePicker::make('warranty_started_at'),
+                        Forms\Components\DatePicker::make('warranty_expires_at'),
+                        Forms\Components\Select::make('warranty_status')
+                            ->options([
+                                Device::WARRANTY_ACTIVE => 'Active',
+                                Device::WARRANTY_EXPIRED => 'Expired',
+                                Device::WARRANTY_VOID => 'Void',
+                                Device::WARRANTY_CLAIMED => 'Claimed',
+                            ])
+                            ->nullable(),
+                        Forms\Components\DatePicker::make('warranty_claimed_at'),
+                        Forms\Components\Textarea::make('warranty_notes')->rows(2)->columnSpanFull(),
+                    ])
+                    ->columns(2)
+                    ->collapsible()
+                    ->collapsed(),
                 Forms\Components\Textarea::make('notes')
                     ->columnSpanFull(),
                 Forms\Components\KeyValue::make('meta')

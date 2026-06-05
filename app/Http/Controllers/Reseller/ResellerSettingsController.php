@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Services\Reseller\ResellerBrandingSettings;
 use App\Services\Reseller\ResellerIntegrationSettings;
 use App\Support\ResellerBranding;
+use App\Support\ResellerPortalPermission;
+use App\Support\ResellerPortalSession;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -16,8 +18,6 @@ class ResellerSettingsController extends Controller
     {
         /** @var \App\Models\Reseller $reseller */
         $reseller = auth('reseller')->user();
-        abort_unless($this->canAccessSettings($reseller), 403);
-
         return view('reseller.settings.index', [
             'reseller' => $reseller,
             'summary' => ResellerIntegrationSettings::summary($reseller),
@@ -33,7 +33,11 @@ class ResellerSettingsController extends Controller
     {
         /** @var \App\Models\Reseller $reseller */
         $reseller = auth('reseller')->user();
-        abort_unless(ResellerBrandingSettings::canManage($reseller), 403);
+        abort_unless(
+            ResellerBrandingSettings::canManage($reseller)
+                || app(\App\Support\ResellerPortalSession::class)->canPortal(\App\Support\ResellerPortalPermission::BRANDING_MANAGE),
+            403,
+        );
 
         return view('reseller.settings.branding', [
             'reseller' => $reseller,
@@ -62,19 +66,14 @@ class ResellerSettingsController extends Controller
             ->with('status', 'Branding settings saved.');
     }
 
-    private function canAccessSettings(\App\Models\Reseller $reseller): bool
-    {
-        return ResellerIntegrationSettings::canManage($reseller)
-            || ResellerBrandingSettings::canManage($reseller);
-    }
-
     public function sms(): View
     {
         /** @var \App\Models\Reseller $reseller */
         $reseller = auth('reseller')->user();
-        abort_unless(ResellerIntegrationSettings::canManage($reseller), 403);
+        abort_unless(app(ResellerPortalSession::class)->canPortal(ResellerPortalPermission::INTEGRATIONS_MANAGE), 403);
 
         return view('reseller.settings.sms', [
+            'canSave' => ResellerIntegrationSettings::canManage($reseller),
             'reseller' => $reseller,
             'state' => ResellerIntegrationSettings::smsFormState($reseller),
         ]);
@@ -106,9 +105,10 @@ class ResellerSettingsController extends Controller
     {
         /** @var \App\Models\Reseller $reseller */
         $reseller = auth('reseller')->user();
-        abort_unless(ResellerIntegrationSettings::canManage($reseller), 403);
+        abort_unless(app(ResellerPortalSession::class)->canPortal(ResellerPortalPermission::INTEGRATIONS_MANAGE), 403);
 
         return view('reseller.settings.payment', [
+            'canSave' => ResellerIntegrationSettings::canManage($reseller),
             'reseller' => $reseller,
             'state' => ResellerIntegrationSettings::paymentFormState($reseller),
             'ingestUrl' => url('/api/v1/mfs/sms/ingest'),

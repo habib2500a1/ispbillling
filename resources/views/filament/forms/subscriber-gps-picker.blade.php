@@ -1,7 +1,13 @@
 @php
     $defaultLat = (float) config('isp.default_map_lat', 23.8103);
     $defaultLng = (float) config('isp.default_map_lng', 90.4125);
+    $gpsJsV = (int) (@filemtime(public_path('js/subscriber-gps-picker.js')) ?: 1);
 @endphp
+
+@once
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin="" data-cfasync="false"></script>
+@endonce
 
 <div
     id="isp-subscriber-gps-picker"
@@ -17,7 +23,7 @@
             type="text"
             id="isp-subscriber-gps-combined"
             class="fi-input block w-full min-w-0 flex-1 rounded-lg border-gray-300 bg-white px-3 py-2 font-mono text-sm text-gray-950 shadow-sm ring-1 ring-gray-950/10 transition focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 dark:border-gray-600 dark:bg-white/5 dark:text-white dark:ring-white/20"
-            placeholder="Fetching…"
+            placeholder="lat, long"
             autocomplete="off"
             spellcheck="false"
         />
@@ -31,7 +37,7 @@
             <x-filament::icon icon="heroicon-m-map-pin" class="h-5 w-5" />
         </button>
     </div>
-    <p id="isp-subscriber-gps-status" class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">Fetching location…</p>
+    <p id="isp-subscriber-gps-status" class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">Click the pin to allow GPS, or tap the map to set location.</p>
 
     <div
         id="isp-subscriber-gps-map"
@@ -41,3 +47,5 @@
         aria-label="Location map"
     ></div>
 </div>
+
+<script src="{{ asset('js/subscriber-gps-picker.js') }}?v={{ $gpsJsV }}" data-cfasync="false"></script>

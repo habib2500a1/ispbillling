@@ -34,13 +34,13 @@ class AppTheme {
         gradient: const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [DesignTokens.primaryDeep, Color(0xFF6366F1), Color(0xFF0EA5E9)],
+          colors: [Color(0xFF1565C0), Color(0xFF1976D2), Color(0xFF0288D1)],
         ),
         borderRadius: BorderRadius.circular(DesignTokens.radius),
       );
 
   static List<Color> get navBarColors =>
-      [DesignTokens.primary, DesignTokens.success, DesignTokens.teal, DesignTokens.info, DesignTokens.pink];
+      [DesignTokens.primary, DesignTokens.success, DesignTokens.teal, DesignTokens.info, DesignTokens.warning];
 
   static BoxDecoration tinted(Color c) => BoxDecoration(
         color: c.withValues(alpha: 0.14),

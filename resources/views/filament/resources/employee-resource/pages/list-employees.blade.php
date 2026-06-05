@@ -6,7 +6,7 @@
     <div class="space-y-5">
         <section class="isp-hrm-employees-hero">
             <div class="isp-hrm-employees-hero__main">
-                <p class="isp-hrm-employees-hero__eyebrow">HRM</p>
+                <p class="isp-hrm-employees-hero__eyebrow">HR Management</p>
                 <h2 class="isp-hrm-employees-hero__title">Employees</h2>
                 <p class="isp-hrm-employees-hero__sub">
                     Track employee status, salary due, wallet balance, and quick actions.

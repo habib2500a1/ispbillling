@@ -2,9 +2,13 @@
 
 namespace Tests\Feature;
 
+use App\Models\Customer;
 use App\Services\Dashboard\DashboardMetricsService;
+use App\Services\Dashboard\SubscriberSegmentMetrics;
+use App\Support\CustomerStatus;
 use App\Support\TenantResolver;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Cache;
 use Tests\TestCase;
 
 class DashboardMetricsTest extends TestCase
@@ -25,6 +29,23 @@ class DashboardMetricsTest extends TestCase
         $this->assertArrayHasKey('online_now', $snapshot);
         $this->assertArrayHasKey('open_tickets', $snapshot);
         $this->assertArrayHasKey('mikrotik_total', $snapshot);
+    }
+
+    public function test_online_now_is_zero_without_mikrotik_when_stale_flags_exist(): void
+    {
+        Customer::factory()->create([
+            'tenant_id' => 1,
+            'status' => CustomerStatus::ACTIVE,
+            'is_ppp_online' => true,
+            'ppp_last_seen_at' => now(),
+        ]);
+
+        Cache::forget('dashboard:subscriber_segments:1');
+        Cache::forget('dashboard:snapshot:1');
+
+        $segments = app(SubscriberSegmentMetrics::class)->forTenant(1);
+
+        $this->assertSame(0, $segments['online_now']);
     }
 
     public function test_revenue_trend_returns_series(): void

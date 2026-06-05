@@ -130,7 +130,7 @@ class _StaffMfsSmsScreenState extends State<StaffMfsSmsScreen> {
             child: SwitchListTile(
               title: const Text('Auto-read payment SMS', style: TextStyle(fontWeight: FontWeight.bold)),
               subtitle: const Text(
-                'Admin login থাকলে bKash/Nagad SMS স্বয়ং verify হবে। ২৪/৭ ফোনে শুধু MFS Verify APK ব্যবহার করুন।',
+                'When logged in as admin, bKash/Nagad payment SMS can auto-verify. For 24/7 on a payment SIM phone, use the MFS Verify APK.',
                 style: TextStyle(fontSize: 12),
               ),
               value: _autoSms,
@@ -142,7 +142,7 @@ class _StaffMfsSmsScreenState extends State<StaffMfsSmsScreen> {
             ListTile(
               leading: const Icon(Icons.download, color: AppTheme.primary),
               title: const Text('Download MFS Verify APK'),
-              subtitle: const Text('Payment SIM ফোনে — device key দিয়ে'),
+              subtitle: const Text('On payment SIM phone — with device key'),
               trailing: const Icon(Icons.open_in_new),
               onTap: () async {
                 final uri = Uri.tryParse(RemoteConfig.mfsVerifyApkUrl);

@@ -20,6 +20,8 @@ final class ClientsDirectoryStyles
             'admin/clients-directory/03-table.css',
             'admin/clients-directory/04-due-page.css',
             'admin/clients-directory/05-vip-page.css',
+            'admin/clients-directory/06-light-mode.css',
+            'admin/clients-directory/07-page-extras.css',
         ];
     }
 

@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import '../theme/app_theme.dart';
-/// Pushed screens — blue app bar + light body (reference admin UI).
+import '../core/theme/design_tokens.dart';
+
+/// Pushed staff screens — ISP blue app bar + light body.
 class PageScaffold extends StatelessWidget {
   const PageScaffold({
     super.key,
@@ -26,16 +27,16 @@ class PageScaffold extends StatelessWidget {
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle.light.copyWith(statusBarColor: Colors.transparent),
       child: Scaffold(
-        backgroundColor: AppTheme.background,
+        backgroundColor: DesignTokens.lightBg,
         appBar: AppBar(
           systemOverlayStyle: SystemUiOverlayStyle.light,
-          backgroundColor: const Color(0xFF1565C0),
+          backgroundColor: DesignTokens.primary,
           foregroundColor: Colors.white,
           elevation: 0,
           centerTitle: true,
           title: Text(
             title,
-            style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 17),
+            style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 17),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
@@ -48,11 +49,9 @@ class PageScaffold extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   Container(
-                    height: 4,
-                    decoration: const BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [AppTheme.primary, AppTheme.purple, AppTheme.pink],
-                      ),
+                    height: 3,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(colors: context.brand.heroGradient),
                     ),
                   ),
                   Expanded(child: body),

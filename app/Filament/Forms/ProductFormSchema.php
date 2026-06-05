@@ -121,6 +121,18 @@ final class ProductFormSchema
                         ->integer()
                         ->minValue(0)
                         ->helperText('Alert when stock is at or below this level.'),
+                    Forms\Components\TextInput::make('damaged_qty')
+                        ->label('Damaged units')
+                        ->numeric()
+                        ->integer()
+                        ->minValue(0)
+                        ->default(0),
+                    Forms\Components\TextInput::make('missing_qty')
+                        ->label('Missing units')
+                        ->numeric()
+                        ->integer()
+                        ->minValue(0)
+                        ->default(0),
                     Forms\Components\TextInput::make('last_purchase_cost')
                         ->label('Last purchase cost')
                         ->numeric()

@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+import '../core/theme/design_tokens.dart';
 import '../services/api_service.dart';
 import '../theme/app_theme.dart';
-import 'staff_authenticated_pdf_screen.dart';
+import '../widgets/staff_receipt_launcher.dart';
+import '../widgets/staff_authenticated_pdf_screen.dart';
 
 /// Shown after successful bill collection — invoice + receipt PDF links.
 class PaymentSuccessSheet extends StatelessWidget {
@@ -125,6 +127,24 @@ class PaymentSuccessSheet extends StatelessWidget {
               ),
             if (receiptPdf != null && receiptPdf.isNotEmpty) ...[
               const SizedBox(height: 8),
+              FilledButton.icon(
+                onPressed: () {
+                  final paymentId = (payment['id'] as num?)?.toInt();
+                  Navigator.pop(context);
+                  if (paymentId != null) {
+                    StaffReceiptLauncher.open(
+                      context,
+                      api: api,
+                      paymentId: paymentId,
+                      initialPdfUrl: receiptPdf,
+                      seedData: Map<String, dynamic>.from(payment),
+                    );
+                  }
+                },
+                icon: const Icon(Icons.receipt_long),
+                label: const Text('View money receipt'),
+              ),
+              const SizedBox(height: 8),
               OutlinedButton.icon(
                 onPressed: () {
                   Navigator.pop(context);
@@ -134,13 +154,13 @@ class PaymentSuccessSheet extends StatelessWidget {
                       builder: (_) => StaffAuthenticatedPdfScreen(
                         api: api,
                         url: receiptPdf,
-                        title: 'Payment receipt',
+                        title: 'Payment receipt PDF',
                       ),
                     ),
                   );
                 },
-                icon: const Icon(Icons.receipt_long),
-                label: const Text('View receipt PDF'),
+                icon: const Icon(Icons.picture_as_pdf),
+                label: const Text('Open PDF'),
               ),
             ],
             const SizedBox(height: 8),

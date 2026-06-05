@@ -7,201 +7,10 @@
     <meta name="description" content="{{ $tagline }}">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    @include('partials.isp-premium-theme', ['tailwind' => true])
-    <style>
-        :root {
-            --bg: #030712;
-            --card: rgba(17, 17, 35, 0.72);
-            --accent: #8b5cf6;
-            --accent2: #6366f1;
-            --cyan: #06b6d4;
-            --text: #f1f5f9;
-            --muted: #94a3b8;
-        }
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body {
-            font-family: Outfit, system-ui, sans-serif;
-            background: linear-gradient(160deg, #030712 0%, #0f0a1e 30%, #0c1222 55%, #0a1628 100%);
-            color: var(--text);
-            line-height: 1.5;
-            min-height: 100vh;
-        }
-        body::before {
-            content: '';
-            position: fixed;
-            inset: 0;
-            pointer-events: none;
-            background:
-                radial-gradient(ellipse 80% 60% at 15% -5%, rgba(124, 58, 237, 0.28), transparent 55%),
-                radial-gradient(ellipse 70% 50% at 85% 10%, rgba(6, 182, 212, 0.15), transparent 50%);
-            z-index: 0;
-        }
-        body > * { position: relative; z-index: 1; }
-        .wrap { max-width: 1100px; margin: 0 auto; padding: 1.25rem; }
-        header {
-            display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
-            gap: 1rem; padding: 1rem 0 2rem;
-        }
-        .brand { display: flex; align-items: center; gap: .75rem; }
-        .brand img { height: 48px; width: auto; }
-        .brand h1 { font-size: 1.25rem; font-weight: 700; }
-        .brand p { font-size: .8rem; color: var(--muted); }
-        nav { display: flex; flex-wrap: wrap; gap: .5rem; }
-        nav a {
-            padding: .5rem 1rem; border-radius: .5rem; text-decoration: none; font-size: .875rem; font-weight: 600;
-        }
-        .btn-ghost {
-            color: var(--text);
-            border: 1px solid rgba(139, 92, 246, 0.35);
-            backdrop-filter: blur(12px);
-            background: rgba(255, 255, 255, 0.05);
-            transition: all 0.28s ease;
-        }
-        .btn-ghost:hover { background: rgba(139, 92, 246, 0.15); border-color: rgba(139, 92, 246, 0.5); }
-        .btn-primary {
-            background: linear-gradient(135deg, var(--accent2), var(--accent), var(--cyan));
-            color: #fff;
-            box-shadow: 0 0 20px rgba(124, 58, 237, 0.45);
-            transition: transform 0.28s ease, box-shadow 0.28s ease;
-        }
-        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 0 28px rgba(139, 92, 246, 0.55); }
-        .btn-app {
-            background: linear-gradient(135deg, #6366f1, #7c3aed);
-            color: #fff;
-            border: none;
-            box-shadow: 0 0 16px rgba(99, 102, 241, 0.4);
-        }
-        .btn-app:hover { filter: brightness(1.1); }
-        .app-banner {
-            margin: 2rem 0;
-            padding: 1.25rem 1.5rem;
-            border-radius: 1rem;
-            border: 1px solid #1e3a5f;
-            background: linear-gradient(135deg, #111b2e 0%, #172554 100%);
-            display: flex;
-            flex-wrap: wrap;
-            align-items: center;
-            justify-content: space-between;
-            gap: 1rem;
-        }
-        .app-banner strong { display: block; font-size: 1.05rem; margin-bottom: .25rem; }
-        .app-banner p { font-size: .85rem; color: var(--muted); margin: 0; max-width: 28rem; }
-        .app-banner-actions { display: flex; flex-wrap: wrap; gap: .5rem; }
-        .hero {
-            text-align: center; padding: 2.5rem 1rem 3rem;
-            border: 1px solid rgba(139, 92, 246, 0.22);
-            border-radius: 1.35rem;
-            background: rgba(17, 17, 35, 0.55);
-            backdrop-filter: blur(20px);
-            box-shadow: 0 8px 32px -8px rgba(79, 70, 229, 0.25);
-        }
-        .hero h2 { font-size: clamp(1.75rem, 4vw, 2.5rem); margin-bottom: .75rem; }
-        .hero .lead { color: var(--muted); max-width: 36rem; margin: 0 auto 1.5rem; }
-        .hero-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: .75rem; }
-        .features {
-            display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 1rem; margin: 2.5rem 0;
-        }
-        .feature {
-            padding: 1.25rem;
-            border-radius: 1rem;
-            background: rgba(17, 17, 35, 0.55);
-            backdrop-filter: blur(16px);
-            border: 1px solid rgba(139, 92, 246, 0.18);
-            transition: transform 0.28s ease, box-shadow 0.28s ease;
-        }
-        .feature:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 16px 48px -12px rgba(124, 58, 237, 0.25);
-        }
-        .feature h3 { font-size: 1rem; margin-bottom: .35rem; color: var(--accent); }
-        .feature p { font-size: .85rem; color: var(--muted); }
-        h2.section-title { text-align: center; font-size: 1.5rem; margin-bottom: 1.25rem; }
-        .packages {
-            display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-            gap: 1rem; margin-bottom: 2.5rem;
-        }
-        .pkg {
-            background: rgba(17, 17, 35, 0.55);
-            backdrop-filter: blur(16px);
-            border: 1px solid rgba(139, 92, 246, 0.18);
-            border-radius: 1.15rem;
-            padding: 1.25rem;
-            display: flex;
-            flex-direction: column;
-            transition: transform 0.28s ease, box-shadow 0.28s ease;
-        }
-        .pkg:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 20px 56px -16px rgba(124, 58, 237, 0.3);
-        }
-        .pkg.popular { border-color: var(--accent); box-shadow: 0 0 24px rgba(124, 58, 237, 0.35); }
-        .pkg h3 { font-size: 1.1rem; }
-        .pkg .speed { font-size: 1.75rem; font-weight: 700; margin: .5rem 0; }
-        .pkg .price { font-size: 1.25rem; color: var(--accent); font-weight: 600; }
-        .pkg ul { list-style: none; margin: 1rem 0; flex: 1; font-size: .85rem; color: var(--muted); }
-        .pkg li { padding: .25rem 0; }
-        .pkg li::before { content: "✓ "; color: var(--accent); }
-        .pkg a {
-            display: block; text-align: center; padding: .65rem; border-radius: .75rem;
-            background: linear-gradient(135deg, var(--accent2), var(--accent));
-            color: #fff; text-decoration: none; font-weight: 600; font-size: .875rem;
-            box-shadow: 0 0 16px rgba(99, 102, 241, 0.35);
-            transition: transform 0.28s ease;
-        }
-        .pkg a:hover { transform: translateY(-2px); filter: brightness(1.08); }
-        footer {
-            text-align: center; padding: 2rem 1rem; color: var(--muted); font-size: .8rem;
-            border-top: 1px solid #1e293b;
-        }
-        footer a { color: var(--accent); }
-        .isp-movie-servers { margin: 2.5rem 0; }
-        .isp-movie-servers__head {
-            display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between;
-            gap: 1rem; margin-bottom: 1.25rem;
-        }
-        .isp-movie-servers__eyebrow {
-            font-size: .7rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
-            color: var(--accent); margin-bottom: .35rem;
-        }
-        .isp-movie-servers__title { font-size: 1.5rem; font-weight: 700; }
-        .isp-movie-servers__lead { margin-top: .35rem; font-size: .9rem; color: var(--muted); max-width: 32rem; }
-        .isp-movie-servers__count {
-            font-size: .75rem; font-weight: 600; padding: .35rem .75rem; border-radius: 999px;
-            background: rgba(20,184,166,.15); color: var(--accent);
-        }
-        .isp-movie-servers__grid {
-            display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1rem;
-        }
-        .isp-movie-server-card {
-            display: flex; align-items: flex-start; gap: .85rem; padding: 1.1rem 1.15rem;
-            border-radius: .85rem; border: 1px solid #1e293b; background: linear-gradient(145deg, #111b2e 0%, #0f172a 100%);
-            text-decoration: none; color: inherit; transition: border-color .15s, transform .15s, box-shadow .15s;
-        }
-        .isp-movie-server-card:hover {
-            border-color: var(--accent); transform: translateY(-2px);
-            box-shadow: 0 12px 32px -8px rgba(20,184,166,.35);
-        }
-        .isp-movie-server-card__icon {
-            flex-shrink: 0; width: 2.5rem; height: 2.5rem; display: flex; align-items: center; justify-content: center;
-            border-radius: .65rem; background: rgba(20,184,166,.12); color: var(--accent);
-        }
-        .isp-movie-server-card__icon svg { width: 1.35rem; height: 1.35rem; }
-        .isp-movie-server-card__body { flex: 1; min-width: 0; }
-        .isp-movie-server-card__name { display: block; font-weight: 700; font-size: 1rem; }
-        .isp-movie-server-card__url {
-            display: block; margin-top: .2rem; font-size: .75rem; font-family: ui-monospace, monospace;
-            color: #fb7185; word-break: break-all;
-        }
-        .isp-movie-server-card__note {
-            display: block; margin-top: .45rem; font-size: .78rem; color: var(--muted); line-height: 1.4;
-        }
-        .isp-movie-server-card__cta {
-            flex-shrink: 0; align-self: center; font-size: .75rem; font-weight: 700; color: var(--accent);
-        }
-    </style>
+    @include('partials.isp-premium-theme', ['tailwind' => false, 'glass' => false, 'motion' => false])
+    <link rel="stylesheet" href="{{ asset('css/landing.css') }}?v={{ @filemtime(public_path('css/landing.css')) ?: 1 }}">
 </head>
-<body class="isp-premium-bg">
+<body class="isp-landing-page">
     <div class="isp-premium-orbs" aria-hidden="true"><span></span><span></span><span></span></div>
     <div class="wrap">
         <header>
@@ -218,15 +27,14 @@
                 @if (! empty($shopUrl))
                     <a class="btn-ghost" href="{{ $shopUrl }}">Shop</a>
                 @endif
-                @if ($portalUrl)
-                    <a class="btn-primary" href="{{ $portalUrl }}">Portal login</a>
+                @if ($loginHubUrl ?? $portalUrl)
+                    <a class="btn-primary" href="{{ $loginHubUrl ?? $portalUrl }}">Sign in</a>
                 @endif
                 <a class="btn-app" href="{{ $appDownloadUrl }}">Mobile app</a>
                 @if ($signupUrl ?? null)
                     <a class="btn-ghost" href="{{ $signupUrl }}">New connection</a>
                 @endif
                 <a class="btn-ghost" href="{{ $payUrl }}">Pay bill</a>
-                <a class="btn-ghost" href="{{ $staffLoginUrl ?? $adminUrl }}">Staff login</a>
             </nav>
         </header>
 
@@ -237,8 +45,8 @@
             <h2>Fast, reliable internet for home & business</h2>
             <p class="lead">{{ $tagline }}. Choose a package, pay online, and manage your connection from our customer portal.</p>
             <div class="hero-actions">
-                @if ($portalUrl)
-                    <a class="btn-primary" href="{{ $portalUrl }}" style="padding:.65rem 1.25rem;border-radius:.5rem;text-decoration:none;font-weight:600;">Customer portal login</a>
+                @if ($loginHubUrl ?? $portalUrl)
+                    <a class="btn-primary" href="{{ $loginHubUrl ?? $portalUrl }}" style="padding:.65rem 1.25rem;border-radius:.5rem;text-decoration:none;font-weight:600;">Sign in</a>
                 @endif
                 <a class="btn-app" href="{{ $appDownloadUrl }}" style="padding:.65rem 1.25rem;border-radius:.5rem;text-decoration:none;font-weight:600;">Download mobile app</a>
                 <a class="btn-ghost" href="#packages" style="padding:.65rem 1.25rem;border-radius:.5rem;text-decoration:none;font-weight:600;">View packages</a>
@@ -249,6 +57,40 @@
             </div>
         </section>
 
+        @if ($loginHubUrl ?? $portalUrl)
+            <section class="sign-in-hub" id="sign-in" aria-label="Sign in options">
+                <header class="sign-in-hub__head">
+                    <p class="sign-in-hub__eyebrow">One place to sign in</p>
+                    <h2 class="sign-in-hub__title">Customer, staff, or partner</h2>
+                    <p class="sign-in-hub__lead">Choose the portal that matches your account — same links as our mobile app.</p>
+                </header>
+                <div class="sign-in-hub__grid">
+                    @if ($customerLoginUrl ?? null)
+                        <a href="{{ $customerLoginUrl }}" class="sign-in-hub__card sign-in-hub__card--customer">
+                            <span class="sign-in-hub__badge">Customer</span>
+                            <span class="sign-in-hub__card-title">Customer portal</span>
+                            <span class="sign-in-hub__card-desc">Bills, usage, speed test, tickets</span>
+                            <span class="sign-in-hub__cta">Customer login →</span>
+                        </a>
+                    @endif
+                    <a href="{{ $staffLoginUrl ?? $adminUrl }}" class="sign-in-hub__card sign-in-hub__card--staff">
+                        <span class="sign-in-hub__badge">Staff</span>
+                        <span class="sign-in-hub__card-title">Admin / operations</span>
+                        <span class="sign-in-hub__card-desc">Billing desk, subscribers, network</span>
+                        <span class="sign-in-hub__cta">Staff login →</span>
+                    </a>
+                    @if ($resellerLoginUrl ?? null)
+                        <a href="{{ $resellerLoginUrl }}" class="sign-in-hub__card sign-in-hub__card--reseller">
+                            <span class="sign-in-hub__badge">Partner</span>
+                            <span class="sign-in-hub__card-title">Reseller portal</span>
+                            <span class="sign-in-hub__card-desc">Collections, due reports</span>
+                            <span class="sign-in-hub__cta">Reseller login →</span>
+                        </a>
+                    @endif
+                </div>
+            </section>
+        @endif
+
         <section class="app-banner" aria-label="Mobile app">
             <div>
                 <strong>RADIANT ISP Mobile App</strong>
@@ -256,8 +98,8 @@
             </div>
             <div class="app-banner-actions">
                 <a class="btn-app" href="{{ $appDownloadUrl }}" style="padding:.65rem 1.1rem;border-radius:.5rem;text-decoration:none;font-weight:600;">Download APK</a>
-                @if ($portalUrl)
-                    <a class="btn-ghost" href="{{ $portalUrl }}" style="padding:.65rem 1.1rem;border-radius:.5rem;text-decoration:none;font-weight:600;">Portal login</a>
+                @if ($loginHubUrl ?? $portalUrl)
+                    <a class="btn-ghost" href="{{ $loginHubUrl ?? $portalUrl }}" style="padding:.65rem 1.1rem;border-radius:.5rem;text-decoration:none;font-weight:600;">Sign in</a>
                 @endif
             </div>
         </section>
@@ -269,7 +111,7 @@
             </div>
             <div class="feature">
                 <h3>Customer portal</h3>
-                <p>Invoices, usage, package change — @if ($portalUrl)<a href="{{ $portalUrl }}" style="color:var(--accent);">login here</a>@else online @endif.</p>
+                <p>Invoices, usage, speed test — @if ($customerLoginUrl ?? $portalUrl)<a href="{{ $customerLoginUrl ?? $portalUrl }}" style="color:var(--accent);">customer login</a>@else online @endif.</p>
             </div>
             <div class="feature">
                 <h3>Mobile app</h3>
@@ -305,8 +147,8 @@
                     </ul>
                     @if ($signupUrl ?? null)
                         <a href="{{ $signupUrl }}">Request connection</a>
-                    @elseif ($portalUrl)
-                        <a href="{{ $portalUrl }}">Customer portal</a>
+                    @elseif ($customerLoginUrl ?? $portalUrl)
+                        <a href="{{ $customerLoginUrl ?? $portalUrl }}">Customer portal</a>
                     @else
                         <a href="{{ $payUrl }}">Pay bill / contact</a>
                     @endif
@@ -321,9 +163,9 @@
             @if ($phone)<p>Phone: <a href="tel:{{ $phone }}">{{ $phone }}</a></p>@endif
             @if ($email)<p>Email: <a href="mailto:{{ $email }}">{{ $email }}</a></p>@endif
             <p style="margin-top:1rem;">
-                @if ($portalUrl)<a href="{{ $portalUrl }}">Customer portal login</a> · @endif
+                @if ($loginHubUrl ?? $portalUrl)<a href="{{ $loginHubUrl ?? $portalUrl }}">Sign in</a> · @endif
                 <a href="{{ $appDownloadUrl }}">Mobile app (APK)</a> ·
-                <a href="{{ $staffLoginUrl ?? $adminUrl }}">Staff login</a>
+                <a href="{{ $payUrl }}">Pay bill</a>
             </p>
         </footer>
     </div>

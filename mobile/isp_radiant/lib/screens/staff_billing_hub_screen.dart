@@ -14,14 +14,20 @@ import '../features/staff_billing/domain/billing_models.dart';
 import '../services/api_service.dart';
 import '../utils/app_nav.dart';
 import '../utils/layout.dart';
+import '../widgets/isp_tab_screen.dart';
+import '../widgets/isp_ui_kit.dart';
 import '../widgets/page_scaffold.dart';
 import 'staff_customer_detail_screen.dart';
+import '../widgets/staff_receipt_launcher.dart';
+import 'staff_money_receipt_screen.dart';
 import 'staff_receive_bill_screen.dart';
 
 class StaffBillingHubScreen extends StatefulWidget {
-  const StaffBillingHubScreen({super.key, required this.api});
+  const StaffBillingHubScreen({super.key, required this.api, this.embedded = false});
 
   final ApiService api;
+  /// When true, renders inside bottom-nav shell (no pushed PageScaffold app bar).
+  final bool embedded;
 
   @override
   State<StaffBillingHubScreen> createState() => _StaffBillingHubScreenState();
@@ -136,29 +142,49 @@ class _StaffBillingHubScreenState extends State<StaffBillingHubScreen>
 
   @override
   Widget build(BuildContext context) {
+    final tabs = TabBar(
+      controller: _tabs,
+      isScrollable: true,
+      tabAlignment: TabAlignment.start,
+      indicatorColor: Colors.white,
+      labelColor: Colors.white,
+      unselectedLabelColor: Colors.white70,
+      tabs: const [
+        Tab(text: 'Monthly'),
+        Tab(text: 'Due'),
+        Tab(text: 'Invoices'),
+        Tab(text: 'Collections'),
+      ],
+    );
+
+    final body = _loading
+        ? const SkeletonList(count: 5, rowHeight: 110)
+        : _error != null
+            ? ErrorStateView(failure: _error!, onRetry: _loadAll)
+            : TabBarView(
+                controller: _tabs,
+                children: [_monthlyTab(), _dueTab(), _invoicesTab(), _collectionsTab()],
+              );
+
+    if (widget.embedded) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          IspUiKit.gradientHeader(
+            title: 'Billing',
+            subtitle: 'Due · invoices · collections',
+            child: tabs,
+          ),
+          Expanded(child: body),
+        ],
+      );
+    }
+
     return PageScaffold(
       title: 'Billing list',
       useGradientBody: true,
-      bottom: TabBar(
-        controller: _tabs,
-        isScrollable: true,
-        tabAlignment: TabAlignment.start,
-        indicatorColor: DesignTokens.primary,
-        tabs: const [
-          Tab(text: 'Monthly'),
-          Tab(text: 'Due'),
-          Tab(text: 'Invoices'),
-          Tab(text: 'Collections'),
-        ],
-      ),
-      body: _loading
-          ? const SkeletonList(count: 5, rowHeight: 110)
-          : _error != null
-              ? ErrorStateView(failure: _error!, onRetry: _loadAll)
-              : TabBarView(
-                  controller: _tabs,
-                  children: [_monthlyTab(), _dueTab(), _invoicesTab(), _collectionsTab()],
-                ),
+      bottom: tabs,
+      body: body,
     );
   }
 
@@ -374,7 +400,27 @@ class _StaffBillingHubScreenState extends State<StaffBillingHubScreen>
             ...cols.map((r) => CollectionCard(
                   record: r,
                   onCall: r.phone.isEmpty ? null : () => _call(r.phone),
-                  onPrint: () => showSnack(context, 'Receipt printing is on the web portal'),
+                  onPrint: r.paymentId > 0
+                      ? () => StaffReceiptLauncher.open(
+                            context,
+                            api: widget.api,
+                            paymentId: r.paymentId,
+                            initialPdfUrl: r.receiptPdfUrl.isNotEmpty ? r.receiptPdfUrl : null,
+                            seedData: {
+                              'receipt_number': r.receiptNumber,
+                              'customer_name': r.name,
+                              'customer_code': r.customerCode,
+                              'phone': r.phone,
+                              'amount': r.amount,
+                              'discount': r.discount,
+                              'due': r.due,
+                              'method': r.method,
+                              'recorded_by': r.receivedBy,
+                              'paid_at': r.createdAt,
+                              'receipt_pdf_url': r.receiptPdfUrl,
+                            },
+                          )
+                      : null,
                 )),
         ],
       ),

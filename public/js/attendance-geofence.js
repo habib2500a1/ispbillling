@@ -1,39 +1,128 @@
 (function () {
-    const root = document.getElementById('isp-attendance-geofence');
-    if (!root) {
-        return;
+    'use strict';
+
+    let boundRoot = null;
+
+    function root() {
+        return document.getElementById('isp-attendance-geofence');
     }
 
-    const offices = JSON.parse(root.dataset.offices || '[]');
-    const clientIp = root.dataset.clientIp || '';
-    const defaultRadius = parseInt(root.dataset.defaultRadius || '10', 10);
-
-    const distanceEl = document.getElementById('isp-attendance-distance');
-    const radiusEl = document.getElementById('isp-attendance-radius');
-    const statusEl = document.getElementById('isp-attendance-gps-status');
-    const hintEl = document.getElementById('isp-attendance-gps-hint');
-    const gpsBtn = document.getElementById('isp-attendance-gps-btn');
-
-    function findInput(name) {
-        return document.querySelector(`[name="data[${name}]"], [wire\\:model="data.${name}"], [wire\\:model\\.live="data.${name}"]`);
-    }
-
-    function readOfficeId() {
-        const select = findInput('attendance_office_location_id');
-        if (!select) {
+    function livewireComponent() {
+        if (typeof window.Livewire === 'undefined') {
             return null;
         }
 
-        return select.value ? parseInt(select.value, 10) : null;
+        const r = root();
+        if (r) {
+            const wireEl = r.closest('[wire\\:id]');
+            const id = wireEl?.getAttribute('wire:id');
+            if (id) {
+                const wire = window.Livewire.find(id);
+                if (wire) {
+                    return wire;
+                }
+            }
+        }
+
+        const components = window.Livewire.all?.() ?? [];
+        for (let i = 0; i < components.length; i++) {
+            const wire = components[i].$wire;
+            if (!wire || typeof wire.get !== 'function') {
+                continue;
+            }
+
+            try {
+                const value = wire.get('data.attendance_office_location_id');
+                if (value !== undefined && value !== null && value !== '') {
+                    return wire;
+                }
+            } catch (e) {
+                /* ignore */
+            }
+        }
+
+        const wireEl = document.querySelector('[wire\\:id]');
+        const id = wireEl?.getAttribute('wire:id');
+        if (!id) {
+            return null;
+        }
+
+        return window.Livewire.find(id);
+    }
+
+    function findInput(name) {
+        return document.querySelector(
+            `[name="data[${name}]"], [wire\\:model="data.${name}"], [wire\\:model\\.live="data.${name}"], [wire\\:model\\.defer="data.${name}"]`,
+        );
+    }
+
+    function readOfficeIdFromFilamentSelect() {
+        const wrappers = document.querySelectorAll('[wire\\:key*="attendance_office_location_id"]');
+        for (let i = 0; i < wrappers.length; i++) {
+            const select = wrappers[i].querySelector('select[x-ref="input"], select');
+            if (select && select.value !== '') {
+                const id = parseInt(String(select.value), 10);
+                if (Number.isFinite(id)) {
+                    return id;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    function getFormValue(name) {
+        const r = root();
+        if (r && name === 'attendance_office_location_id' && r.dataset.officeId) {
+            return r.dataset.officeId;
+        }
+
+        if (r && name === 'status' && r.dataset.formStatus) {
+            return r.dataset.formStatus;
+        }
+
+        const wire = livewireComponent();
+        if (wire && typeof wire.get === 'function') {
+            try {
+                const value = wire.get(`data.${name}`);
+                if (value !== undefined && value !== null && value !== '') {
+                    return value;
+                }
+            } catch (e) {
+                /* ignore */
+            }
+        }
+
+        const input = findInput(name);
+        if (input && input.value !== '') {
+            return input.value;
+        }
+
+        return null;
+    }
+
+    function readOfficeId() {
+        const raw = getFormValue('attendance_office_location_id');
+        if (raw !== null && raw !== '') {
+            const id = parseInt(String(raw), 10);
+            if (Number.isFinite(id)) {
+                return id;
+            }
+        }
+
+        return readOfficeIdFromFilamentSelect();
     }
 
     function readStatus() {
-        const select = findInput('status');
-        return select ? select.value : 'present';
+        return getFormValue('status') || 'present';
     }
 
-    function officeById(id) {
-        return offices.find((o) => o.id === id);
+    function officeById(offices, id) {
+        if (id == null) {
+            return null;
+        }
+
+        return offices.find((o) => Number(o.id) === Number(id)) || null;
     }
 
     function distanceMeters(lat1, lng1, lat2, lng2) {
@@ -49,7 +138,7 @@
         return Math.round(R * c);
     }
 
-    function ipAllowed(office) {
+    function ipAllowed(office, clientIp) {
         const rules = office.allowed_ips || [];
         if (!rules.length) {
             return true;
@@ -67,16 +156,25 @@
 
     function setHidden(name, value) {
         const input = findInput(name);
-        if (!input) {
-            return;
+        if (input) {
+            input.value = value ?? '';
+            input.dispatchEvent(new Event('input', { bubbles: true }));
+            input.dispatchEvent(new Event('change', { bubbles: true }));
         }
 
-        input.value = value ?? '';
-        input.dispatchEvent(new Event('input', { bubbles: true }));
-        input.dispatchEvent(new Event('change', { bubbles: true }));
+        const wire = livewireComponent();
+        if (wire && typeof wire.set === 'function') {
+            try {
+                wire.set(`data.${name}`, value ?? '');
+            } catch (e) {
+                /* ignore */
+            }
+        }
     }
 
-    function updateUi(office, lat, lng, accuracy) {
+    function updateUi(ctx, office, lat, lng, accuracy) {
+        const { distanceEl, radiusEl, statusEl, hintEl, defaultRadius } = ctx;
+
         if (!office) {
             radiusEl.textContent = '—';
             distanceEl.textContent = '—';
@@ -93,7 +191,8 @@
             distanceEl.textContent = '—';
             statusEl.textContent = 'GPS not captured';
             statusEl.className = 'font-semibold text-amber-600';
-            hintEl.textContent = office.name + ` · max ${radius} m · IP: ${ipAllowed(office) ? 'OK' : 'not allowed'}`;
+            hintEl.textContent =
+                office.name + ` · max ${radius} m · IP: ${ipAllowed(office, ctx.clientIp) ? 'OK' : 'not allowed'}`;
             return;
         }
 
@@ -106,7 +205,7 @@
         distanceEl.textContent = `${dist} m`;
 
         const gpsOk = dist <= radius;
-        const ipOk = ipAllowed(office);
+        const ipOk = ipAllowed(office, ctx.clientIp);
 
         if (gpsOk && ipOk) {
             statusEl.textContent = 'Within office zone';
@@ -124,27 +223,59 @@
     }
 
     function refreshFromForm() {
-        if (readStatus() !== 'present') {
-            root.style.display = 'none';
+        const r = root();
+        if (!r) {
             return;
         }
 
-        root.style.display = '';
+        const ctx = {
+            offices: JSON.parse(r.dataset.offices || '[]'),
+            clientIp: r.dataset.clientIp || '',
+            defaultRadius: parseInt(r.dataset.defaultRadius || '10', 10),
+            distanceEl: document.getElementById('isp-attendance-distance'),
+            radiusEl: document.getElementById('isp-attendance-radius'),
+            statusEl: document.getElementById('isp-attendance-gps-status'),
+            hintEl: document.getElementById('isp-attendance-gps-hint'),
+        };
 
-        const office = officeById(readOfficeId());
-        const latInput = findInput('latitude');
-        const lngInput = findInput('longitude');
-        const accInput = findInput('accuracy_meters');
+        if (readStatus() !== 'present') {
+            r.style.display = 'none';
+            return;
+        }
 
-        const lat = latInput?.value ? parseFloat(latInput.value) : null;
-        const lng = lngInput?.value ? parseFloat(lngInput.value) : null;
-        const acc = accInput?.value ? parseInt(accInput.value, 10) : null;
+        r.style.display = '';
 
-        updateUi(office, lat, lng, acc);
+        const office = officeById(ctx.offices, readOfficeId());
+        const latRaw = getFormValue('latitude');
+        const lngRaw = getFormValue('longitude');
+        const accRaw = getFormValue('accuracy_meters');
+
+        const lat = latRaw != null && latRaw !== '' ? parseFloat(latRaw) : null;
+        const lng = lngRaw != null && lngRaw !== '' ? parseFloat(lngRaw) : null;
+        const acc = accRaw != null && accRaw !== '' ? parseInt(accRaw, 10) : null;
+
+        updateUi(ctx, office, lat, lng, acc);
     }
 
     function captureGps() {
-        const office = officeById(readOfficeId());
+        const r = root();
+        if (!r) {
+            return;
+        }
+
+        window.dispatchEvent(new CustomEvent('isp-attendance-refresh-form'));
+
+        const ctx = {
+            offices: JSON.parse(r.dataset.offices || '[]'),
+            clientIp: r.dataset.clientIp || '',
+            defaultRadius: parseInt(r.dataset.defaultRadius || '10', 10),
+            distanceEl: document.getElementById('isp-attendance-distance'),
+            radiusEl: document.getElementById('isp-attendance-radius'),
+            statusEl: document.getElementById('isp-attendance-gps-status'),
+            hintEl: document.getElementById('isp-attendance-gps-hint'),
+        };
+
+        const office = officeById(ctx.offices, readOfficeId());
         if (!office) {
             alert('Select an office location first.');
             return;
@@ -152,6 +283,11 @@
 
         if (!navigator.geolocation) {
             alert('Geolocation is not supported in this browser.');
+            return;
+        }
+
+        const gpsBtn = document.getElementById('isp-attendance-gps-btn');
+        if (!gpsBtn) {
             return;
         }
 
@@ -167,9 +303,9 @@
                 setHidden('latitude', lat);
                 setHidden('longitude', lng);
                 setHidden('accuracy_meters', acc);
-                setHidden('client_ip', clientIp);
+                setHidden('client_ip', ctx.clientIp);
 
-                updateUi(office, lat, lng, acc);
+                updateUi(ctx, office, lat, lng, acc);
                 gpsBtn.disabled = false;
                 gpsBtn.innerHTML =
                     '<svg class="h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" /><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z" /></svg> Use my GPS';
@@ -183,13 +319,56 @@
         );
     }
 
-    gpsBtn?.addEventListener('click', captureGps);
+    function bindUi() {
+        const r = root();
+        if (!r || boundRoot === r) {
+            return;
+        }
 
-    ['attendance_office_location_id', 'status'].forEach((name) => {
-        const el = findInput(name);
-        el?.addEventListener('change', refreshFromForm);
+        boundRoot = r;
+
+        const gpsBtn = document.getElementById('isp-attendance-gps-btn');
+        if (gpsBtn) {
+            const clone = gpsBtn.cloneNode(true);
+            gpsBtn.replaceWith(clone);
+            clone.addEventListener('click', captureGps);
+        }
+
+        refreshFromForm();
+    }
+
+    function boot() {
+        if (!root()) {
+            boundRoot = null;
+            return false;
+        }
+
+        bindUi();
+
+        return true;
+    }
+
+    function scheduleBoot() {
+        if (boot()) {
+            return;
+        }
+
+        let tries = 0;
+        const timer = setInterval(function () {
+            if (boot() || ++tries > 48) {
+                clearInterval(timer);
+            }
+        }, 250);
+    }
+
+    document.addEventListener('DOMContentLoaded', scheduleBoot);
+    document.addEventListener('livewire:initialized', scheduleBoot);
+    document.addEventListener('livewire:navigated', function () {
+        boundRoot = null;
+        scheduleBoot();
     });
+    document.addEventListener('livewire:commit', refreshFromForm);
+    document.addEventListener('isp-attendance-form-changed', refreshFromForm);
 
-    document.addEventListener('livewire:navigated', refreshFromForm);
-    refreshFromForm();
+    scheduleBoot();
 })();

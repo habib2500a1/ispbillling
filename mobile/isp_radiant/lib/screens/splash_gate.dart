@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import '../config/remote_config.dart';
 import '../core/theme/design_tokens.dart';
 import '../services/api_service.dart';
-import 'login_screen.dart';
+import 'login_hub_screen.dart';
 import 'customer_home_screen.dart';
 import 'staff_home_screen.dart';
 
@@ -31,7 +31,7 @@ class _SplashGateState extends State<SplashGate> {
   void _goLogin() {
     if (!mounted) return;
     Navigator.of(context).pushReplacement(
-      MaterialPageRoute(builder: (_) => LoginScreen(api: _api)),
+      MaterialPageRoute(builder: (_) => LoginHubScreen(api: _api)),
     );
   }
 

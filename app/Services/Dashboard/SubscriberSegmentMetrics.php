@@ -4,6 +4,7 @@ namespace App\Services\Dashboard;
 
 use App\Models\Customer;
 use App\Models\Reseller;
+use App\Services\Bandwidth\BandwidthCollectionService;
 use App\Support\CustomerStatus;
 use Illuminate\Support\Facades\Cache;
 
@@ -53,16 +54,25 @@ final class SubscriberSegmentMetrics
                 <<<'SQL'
                 COUNT(*) FILTER (WHERE status = ?) as active_subscribers,
                 COUNT(*) FILTER (WHERE status = ? AND reseller_id IS NULL) as direct_active,
-                COUNT(*) FILTER (WHERE status = ? AND reseller_id IS NOT NULL) as reseller_clients_active,
-                COUNT(*) FILTER (WHERE status = ? AND reseller_id IS NULL AND is_ppp_online = true) as direct_online,
-                COUNT(*) FILTER (WHERE status = ? AND reseller_id IS NOT NULL AND is_ppp_online = true) as reseller_clients_online
+                COUNT(*) FILTER (WHERE status = ? AND reseller_id IS NOT NULL) as reseller_clients_active
                 SQL,
-                [$active, $active, $active, $active, $active],
+                [$active, $active, $active],
             )
             ->first();
 
-        $directOnline = (int) ($row->direct_online ?? 0);
-        $resellerOnline = (int) ($row->reseller_clients_online ?? 0);
+        $bandwidth = app(BandwidthCollectionService::class);
+        $activeBase = Customer::withoutGlobalScopes()
+            ->where('tenant_id', $tenantId)
+            ->where('status', $active);
+
+        $directOnline = $bandwidth->displayedOnlineCount(
+            $tenantId,
+            (clone $activeBase)->whereNull('reseller_id'),
+        );
+        $resellerOnline = $bandwidth->displayedOnlineCount(
+            $tenantId,
+            (clone $activeBase)->whereNotNull('reseller_id'),
+        );
 
         return [
             'active_subscribers' => (int) ($row->active_subscribers ?? 0),

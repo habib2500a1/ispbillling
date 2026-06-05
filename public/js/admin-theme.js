@@ -82,6 +82,25 @@
 
     applyDom(getPreference());
 
+    function enforceThemeFromPreference() {
+        const resolved = resolveTheme(getPreference());
+        const shouldBeDark = resolved === 'dark';
+
+        if (document.documentElement.getAttribute('data-theme') !== resolved) {
+            document.documentElement.setAttribute('data-theme', resolved);
+        }
+
+        if (document.documentElement.classList.contains('dark') !== shouldBeDark) {
+            document.documentElement.classList.toggle('dark', shouldBeDark);
+        }
+    }
+
+    // Filament/Alpine may re-toggle .dark — always reconcile with stored preference.
+    new MutationObserver(enforceThemeFromPreference).observe(document.documentElement, {
+        attributes: true,
+        attributeFilter: ['class', 'data-theme'],
+    });
+
     window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
         if (getPreference() === 'system') {
             applyDom('system');

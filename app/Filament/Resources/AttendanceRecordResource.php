@@ -64,7 +64,7 @@ class AttendanceRecordResource extends Resource
                         ->native(false)
                         ->required(fn (Get $get): bool => $get('status') === 'present')
                         ->visible(fn (Get $get): bool => $get('status') === 'present')
-                        ->helperText(fn (): string => 'No office? Add one under HRM → Office locations.'),
+                        ->helperText(fn (): string => 'No office? Configure locations from HR Dashboard → Attendance.'),
                     Forms\Components\TimePicker::make('check_in'),
                     Forms\Components\TimePicker::make('check_out'),
                     Forms\Components\Toggle::make('geofence_override')

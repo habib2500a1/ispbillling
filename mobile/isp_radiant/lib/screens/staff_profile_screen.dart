@@ -4,7 +4,7 @@ import '../core/widgets/theme_toggle_tile.dart';
 import '../services/api_service.dart';
 import '../utils/app_nav.dart';
 import '../widgets/page_scaffold.dart';
-import 'login_screen.dart';
+import 'login_hub_screen.dart';
 
 class StaffProfileScreen extends StatefulWidget {
   const StaffProfileScreen({super.key, required this.api, this.user});
@@ -50,7 +50,7 @@ class _StaffProfileScreenState extends State<StaffProfileScreen> {
     await widget.api.logout();
     if (!mounted) return;
     Navigator.of(context).pushAndRemoveUntil(
-      MaterialPageRoute(builder: (_) => LoginScreen(api: widget.api)),
+      MaterialPageRoute(builder: (_) => LoginHubScreen(api: widget.api)),
       (_) => false,
     );
   }

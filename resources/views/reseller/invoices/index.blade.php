@@ -41,8 +41,25 @@
                         <td class="px-4 py-3 rsl-text">{{ $inv->customer?->name }}<br><span class="text-xs rsl-text-muted">{{ $inv->customer?->customer_code }}</span></td>
                         <td class="px-4 py-3">{{ number_format((float) $inv->total, 2) }}</td>
                         <td class="px-4 py-3">{{ number_format((float) $inv->amount_paid, 2) }}</td>
-                        <td class="px-4 py-3 capitalize">{{ $inv->status }}</td>
-                        <td class="px-4 py-3"><a href="{{ route('reseller.invoices.pdf', $inv) }}" class="rsl-link" target="_blank">PDF</a></td>
+                        <td class="px-4 py-3">
+                            @php
+                                $statusBadge = match ($inv->status) {
+                                    'paid' => 'rsl-badge--success',
+                                    'open', 'partial' => 'rsl-badge--warning',
+                                    'void' => 'rsl-badge--danger',
+                                    default => 'rsl-badge--info',
+                                };
+                            @endphp
+                            <span class="rsl-badge {{ $statusBadge }}">{{ ucfirst($inv->status) }}</span>
+                        </td>
+                        <td class="px-4 py-3 text-right">
+                            <div class="flex flex-wrap items-center justify-end gap-2">
+                                @if ($portal->canPortal(\App\Support\ResellerPortalPermission::PAYMENT_COLLECT) && in_array($inv->status, ['open', 'partial'], true) && $inv->customer)
+                                    <a href="{{ route('reseller.customers.collect', $inv->customer) }}" class="rsl-link">Collect</a>
+                                @endif
+                                <a href="{{ route('reseller.invoices.pdf', $inv) }}" class="rsl-link" target="_blank">PDF</a>
+                            </div>
+                        </td>
                     </tr>
                 @empty
                     <tr><td colspan="6" class="px-4 py-8 text-center rsl-text-muted">No invoices found.</td></tr>

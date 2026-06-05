@@ -28,6 +28,19 @@ return [
     'support_phone' => env('PORTAL_SUPPORT_PHONE'),
 
     'speed_test' => [
+        /** Full-page embed for /portal/speed-test (Singapore broadband test). */
+        'embed_url' => (string) env('PORTAL_SPEED_TEST_EMBED_URL', 'https://www.speedtest.sg/'),
+        /*
+        | Native UI (our START button) measures against an external CORS-enabled
+        | backend so results reflect the internet path, not our own server.
+        | speedtest.sg endpoints send Access-Control-Allow-Origin: *.
+        */
+        'external' => [
+            'enabled' => (bool) env('PORTAL_SPEED_TEST_EXTERNAL', true),
+            'ping_url' => (string) env('PORTAL_SPEED_TEST_PING_URL', 'https://www.speedtest.sg/speedtest/ping.php'),
+            'download_url' => (string) env('PORTAL_SPEED_TEST_DOWNLOAD_URL', 'https://www.speedtest.sg/speedtest/download.php'),
+            'upload_url' => (string) env('PORTAL_SPEED_TEST_UPLOAD_URL', 'https://www.speedtest.sg/speedtest/upload.php'),
+        ],
         'download_bytes' => (int) env('PORTAL_SPEED_TEST_BYTES', 1_048_576),
         /** ~1 second quick check on usage page (512 KB default). */
         'quick_download_bytes' => (int) env('PORTAL_SPEED_TEST_QUICK_BYTES', 524_288),

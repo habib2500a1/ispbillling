@@ -26,7 +26,7 @@ class EmployeeResource extends Resource
 
     protected static ?string $pluralModelLabel = 'employees';
 
-    protected static ?string $navigationGroup = 'HRM';
+    protected static ?string $navigationGroup = 'HR Management';
 
     protected static bool $shouldRegisterNavigation = false;
 

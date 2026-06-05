@@ -1,22 +1,22 @@
 :root {
-    --portal-violet: #7c3aed;
-    --portal-fuchsia: #d946ef;
-    --portal-cyan: #06b6d4;
+    --portal-violet: #1565C0;
+    --portal-fuchsia: #1976D2;
+    --portal-cyan: #0288D1;
     --portal-emerald: #10b981;
     --portal-amber: #f59e0b;
     --portal-rose: #f43f5e;
-    --portal-indigo: #4f46e5;
-    --portal-bg: linear-gradient(135deg, #eef2ff 0%, #f5f3ff 25%, #ecfeff 60%, #eff6ff 100%);
-    --portal-surface: rgba(255, 255, 255, 0.72);
-    --portal-surface-muted: rgba(248, 250, 252, 0.85);
-    --portal-border: rgba(139, 92, 246, 0.18);
+    --portal-indigo: #1565C0;
+    --portal-bg: linear-gradient(160deg, #e3f2fd 0%, #f1f5f9 40%, #e8eef5 100%);
+    --portal-surface: rgba(255, 255, 255, 0.88);
+    --portal-surface-muted: rgba(248, 250, 252, 0.92);
+    --portal-border: rgba(21, 101, 192, 0.16);
     --portal-text: #0f172a;
     --portal-text-muted: #64748b;
     --portal-header-h: 3.75rem;
     --portal-dock-h: 4.25rem;
     --portal-radius: 1rem;
     --portal-radius-lg: 1.35rem;
-    --portal-shadow: 0 12px 40px -16px rgba(79, 70, 229, 0.22);
+    --portal-shadow: 0 12px 40px -16px rgba(21, 101, 192, 0.18);
     --portal-max: 72rem;
     --portal-font: 'Outfit', ui-sans-serif, system-ui, sans-serif;
 }
@@ -64,7 +64,7 @@
     font-size: 0.875rem;
     font-weight: 600;
     color: white;
-    box-shadow: 0 4px 14px rgba(124, 58, 237, 0.4);
+    box-shadow: 0 4px 14px rgba(21, 101, 192, 0.35);
 }
 
 .portal-btn-primary:hover {
@@ -1017,6 +1017,22 @@ html.portal-dark {
     text-align: center;
     font-size: 0.875rem;
     color: var(--portal-text-muted);
+}
+
+.portal-auth-staff-note {
+    margin-top: 1rem;
+    padding: 0.65rem 0.85rem;
+    border-radius: 0.75rem;
+    border: 1px solid var(--portal-border);
+    background: rgba(79, 70, 229, 0.05);
+    text-align: center;
+    font-size: 0.78rem;
+    color: var(--portal-text-muted);
+}
+
+.portal-auth-staff-note .portal-link {
+    font-weight: 700;
+    color: var(--portal-indigo);
 }
 
 .portal-auth-note-spaced {
@@ -2573,6 +2589,237 @@ html.portal-dark .portal-chart-shell {
     margin-top: 0.5rem;
 }
 
+.portal-speedtest-page {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+
+.portal-usage-page .portal-usage-speedtest-wrap {
+    margin-bottom: 0.25rem;
+}
+
+.portal-usage-section-head {
+    margin: 0.5rem 0 0;
+}
+
+.portal-usage-section-head__title {
+    margin: 0;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--portal-text);
+    letter-spacing: -0.02em;
+}
+
+.portal-usage-section-head__lead {
+    margin: 0.25rem 0 0;
+    font-size: 0.85rem;
+    color: var(--portal-text-muted);
+}
+
+/* ── Native speed test (our UI, external measurement) ── */
+.portal-st {
+    border: 1px solid var(--portal-border);
+    border-radius: var(--portal-radius-lg);
+    background: linear-gradient(165deg, rgba(49, 46, 129, 0.14), var(--portal-surface));
+    box-shadow: var(--portal-shadow);
+    padding: clamp(1rem, 4vw, 1.75rem);
+    display: flex;
+    flex-direction: column;
+    gap: 1.1rem;
+}
+
+.portal-st__stage {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.1rem;
+}
+
+.portal-st__gauge {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: clamp(180px, 52vw, 240px);
+    height: clamp(180px, 52vw, 240px);
+    border-radius: 50%;
+    background:
+        radial-gradient(circle at 50% 50%, var(--portal-surface) 58%, transparent 59%),
+        conic-gradient(var(--portal-violet), var(--portal-cyan), var(--portal-violet));
+    box-shadow: inset 0 0 0 10px var(--portal-surface), 0 10px 30px rgba(49, 46, 129, 0.25);
+    transition: filter 0.25s ease;
+}
+
+.portal-st__gauge.is-ping { filter: hue-rotate(-15deg); }
+.portal-st__gauge.is-down { filter: saturate(1.2); }
+.portal-st__gauge.is-up { filter: hue-rotate(35deg); }
+.portal-st__gauge.is-done { filter: saturate(1.35) brightness(1.05); }
+
+.portal-st__gauge-phase {
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    color: var(--portal-text-muted);
+}
+
+.portal-st__gauge-value {
+    font-size: clamp(2.4rem, 11vw, 3.4rem);
+    font-weight: 800;
+    line-height: 1;
+    color: var(--portal-text);
+    font-variant-numeric: tabular-nums;
+}
+
+.portal-st__gauge-unit {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--portal-text-muted);
+}
+
+.portal-st__start {
+    min-width: 9rem;
+    padding: 0.8rem 2.4rem;
+    border: 0;
+    border-radius: 9999px;
+    font-size: 1rem;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    color: #fff;
+    background: linear-gradient(135deg, var(--portal-violet), var(--portal-cyan));
+    box-shadow: 0 8px 22px rgba(124, 58, 237, 0.4);
+    cursor: pointer;
+    transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
+}
+
+.portal-st__start:hover { transform: translateY(-1px); box-shadow: 0 12px 26px rgba(124, 58, 237, 0.5); }
+.portal-st__start:disabled,
+.portal-st__start.is-running { opacity: 0.65; cursor: progress; transform: none; }
+
+.portal-st__tiles {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.6rem;
+}
+
+.portal-st__tile {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    padding: 0.7rem 0.85rem;
+    border-radius: var(--portal-radius);
+    background: var(--portal-surface);
+    border: 1px solid var(--portal-border);
+    text-align: center;
+}
+
+.portal-st__tile--down { border-bottom: 3px solid #2563eb; }
+.portal-st__tile--up { border-bottom: 3px solid #dc2626; }
+.portal-st__tile--ping { border-bottom: 3px solid #0d9488; }
+
+.portal-st__tile-label {
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--portal-text-muted);
+}
+
+.portal-st__tile-value {
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: var(--portal-text);
+    font-variant-numeric: tabular-nums;
+}
+
+.portal-st__tile-value small {
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--portal-text-muted);
+}
+
+.portal-st__status {
+    margin: 0;
+    text-align: center;
+    font-size: 0.8rem;
+    color: var(--portal-text-muted);
+}
+
+@media (max-width: 420px) {
+    .portal-st__tiles { grid-template-columns: 1fr; }
+}
+
+/* Bottom: backend usage block */
+.portal-speedtest-backend {
+    padding-top: 0.35rem;
+    border-top: 2px solid var(--portal-border);
+}
+
+.portal-speedtest-backend__head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.65rem 1rem;
+    margin-bottom: 0.65rem;
+}
+
+.portal-speedtest-backend__title {
+    margin: 0;
+    font-size: 1.05rem;
+    font-weight: 800;
+    color: var(--portal-text);
+}
+
+.portal-speedtest-backend__lead {
+    margin: 0.25rem 0 0;
+    font-size: 0.8rem;
+    color: var(--portal-text-muted);
+    max-width: 36rem;
+    line-height: 1.45;
+}
+
+.portal-speedtest-usage {
+    margin-top: 0;
+}
+
+.portal-speedtest-usage__updated {
+    margin: 0.25rem 0 0;
+    text-align: right;
+}
+
+.portal-live-graph--compact {
+    margin-top: 0.5rem;
+}
+
+.portal-live-graph--compact .portal-live-graph__canvas-wrap {
+    min-height: 150px;
+}
+
+.portal-live-graph--compact #usage-chart {
+    max-height: 170px;
+}
+
+@media (max-width: 640px) {
+    .portal-speedtest-viewport {
+        height: clamp(360px, 78vw, 420px);
+    }
+
+    .portal-speedtest-viewport__frame {
+        margin-top: -56px;
+        height: 800px;
+    }
+
+    .portal-speedtest-native__foot {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .portal-speedtest-native__fallback {
+        margin-left: 0;
+        text-align: center;
+    }
+}
+
 .portal-speed-hero__ring .portal-usage-quick__ring-unit {
     font-size: 0.72rem;
 }
@@ -3016,3 +3263,325 @@ html.portal-dark .bp-prepay-card {
     font-size: 0.82rem;
     color: #b45309;
 }
+
+/* ——— Bills & pay (customer portal) ——— */
+.portal-bills-page {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+
+.portal-bills-hero {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: stretch;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1.35rem 1.5rem;
+    border-radius: var(--portal-radius-lg, 1rem);
+    background: linear-gradient(135deg, #0d47a1 0%, #1565c0 45%, #42a5f5 100%);
+    color: #fff;
+    box-shadow: var(--portal-shadow, 0 12px 32px rgba(21, 101, 192, 0.22));
+}
+
+.portal-bills-hero__eyebrow {
+    margin: 0;
+    font-size: 0.65rem;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    opacity: 0.85;
+}
+
+.portal-bills-hero__title {
+    margin: 0.25rem 0 0;
+    font-size: 1.65rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+}
+
+.portal-bills-hero__lead {
+    margin: 0.4rem 0 0;
+    font-size: 0.88rem;
+    opacity: 0.9;
+    max-width: 28rem;
+}
+
+.portal-bills-hero__due {
+    min-width: 10rem;
+    padding: 0.85rem 1.1rem;
+    border-radius: var(--portal-radius-md, 0.75rem);
+    background: rgba(255, 255, 255, 0.14);
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    text-align: right;
+}
+
+.portal-bills-hero__due--pending {
+    background: rgba(244, 63, 94, 0.22);
+    border-color: rgba(255, 255, 255, 0.35);
+}
+
+.portal-bills-hero__due-label {
+    margin: 0;
+    font-size: 0.65rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    opacity: 0.9;
+}
+
+.portal-bills-hero__due-value {
+    margin: 0.2rem 0 0;
+    font-size: 1.75rem;
+    font-weight: 800;
+    line-height: 1.1;
+}
+
+.portal-bills-hero__due-value span {
+    font-size: 0.85rem;
+    font-weight: 600;
+    opacity: 0.85;
+}
+
+.portal-bills-hero__due-meta {
+    margin: 0.35rem 0 0;
+    font-size: 0.75rem;
+    opacity: 0.88;
+}
+
+.portal-bills-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+}
+
+.portal-bill-card {
+    padding: 1rem 1.15rem;
+    border-radius: var(--portal-radius-md, 0.75rem);
+    border: 1px solid var(--portal-border);
+    background: var(--portal-surface, #fff);
+    box-shadow: var(--portal-shadow-sm, 0 4px 14px rgba(15, 23, 42, 0.06));
+}
+
+.portal-bill-card--due {
+    border-color: rgba(244, 63, 94, 0.28);
+    box-shadow: 0 4px 18px rgba(244, 63, 94, 0.08);
+}
+
+.portal-bill-card__head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.75rem;
+}
+
+.portal-bill-card__number {
+    font-family: ui-monospace, monospace;
+    font-size: 1rem;
+    font-weight: 800;
+    color: var(--portal-violet);
+    text-decoration: none;
+}
+
+.portal-bill-card__number:hover {
+    text-decoration: underline;
+}
+
+.portal-bill-card__period {
+    margin: 0.25rem 0 0;
+    font-size: 0.78rem;
+    color: var(--portal-text-muted);
+}
+
+.portal-bill-card__amounts {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+    margin-top: 0.85rem;
+    padding-top: 0.85rem;
+    border-top: 1px solid var(--portal-border);
+}
+
+.portal-bill-card__amt-label {
+    display: block;
+    font-size: 0.65rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--portal-text-muted);
+}
+
+.portal-bill-card__amt-value {
+    display: block;
+    margin-top: 0.15rem;
+    font-size: 1.05rem;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+}
+
+.portal-bill-card__amt-value--due {
+    color: #e11d48;
+}
+
+.portal-bill-card__amt-value--ok {
+    color: #059669;
+}
+
+.portal-bill-card__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 0.85rem;
+}
+
+.portal-bills-table-desktop {
+    display: none;
+}
+
+@media (min-width: 900px) {
+    .portal-bills-list .portal-bill-card {
+        display: none;
+    }
+
+    .portal-bills-table-desktop {
+        display: block;
+    }
+}
+
+@media (max-width: 899px) {
+    .portal-bills-table-desktop {
+        display: none !important;
+    }
+}
+
+/* Invoice detail pay dock */
+.portal-invoice-page {
+    display: flex;
+    flex-direction: column;
+    gap: 1.15rem;
+}
+
+.portal-invoice-hero {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1.25rem 1.35rem;
+    border-radius: var(--portal-radius-lg, 1rem);
+    border: 1px solid var(--portal-border);
+    background: var(--portal-surface, #fff);
+}
+
+.portal-invoice-hero--due {
+    border-color: rgba(21, 101, 192, 0.35);
+    background: linear-gradient(135deg, rgba(21, 101, 192, 0.06) 0%, #fff 55%);
+}
+
+.portal-invoice-hero--paid {
+    border-color: rgba(16, 185, 129, 0.35);
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.06) 0%, #fff 55%);
+}
+
+.portal-invoice-hero__eyebrow {
+    margin: 0;
+    font-size: 0.65rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--portal-text-muted);
+}
+
+.portal-invoice-hero__number {
+    margin: 0.2rem 0 0.5rem;
+    font-family: ui-monospace, monospace;
+    font-size: 1.35rem;
+    font-weight: 800;
+    color: var(--portal-text);
+}
+
+.portal-invoice-hero__amount {
+    text-align: right;
+}
+
+.portal-invoice-hero__amount-label {
+    margin: 0;
+    font-size: 0.65rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: var(--portal-text-muted);
+}
+
+.portal-invoice-hero__amount-value {
+    margin: 0.15rem 0 0;
+    font-size: 1.85rem;
+    font-weight: 800;
+    color: #0d47a1;
+    font-variant-numeric: tabular-nums;
+}
+
+.portal-invoice-hero--paid .portal-invoice-hero__amount-value {
+    color: #059669;
+}
+
+.portal-invoice-hero__amount-value span {
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+.portal-invoice-hero__amount-meta {
+    margin: 0.25rem 0 0;
+    font-size: 0.78rem;
+    color: var(--portal-text-muted);
+}
+
+.portal-invoice-pay-dock {
+    position: sticky;
+    bottom: calc(4.5rem + env(safe-area-inset-bottom, 0px));
+    z-index: 20;
+    margin: 0 -0.25rem;
+}
+
+.portal-invoice-pay-dock__inner {
+    padding: 1rem 1.15rem;
+    border-radius: var(--portal-radius-lg, 1rem);
+    border: 1px solid rgba(21, 101, 192, 0.25);
+    background: var(--portal-surface, #fff);
+    box-shadow: 0 -8px 28px rgba(15, 23, 42, 0.12);
+}
+
+.portal-invoice-pay-dock__title {
+    margin: 0;
+    font-size: 0.95rem;
+    font-weight: 800;
+    color: var(--portal-text);
+}
+
+.portal-invoice-pay-dock__meta {
+    margin: 0.2rem 0 0.75rem;
+    font-size: 0.78rem;
+    color: var(--portal-text-muted);
+}
+
+.portal-invoice-pay-dock__methods .bp-pay-methods {
+    margin: 0;
+}
+
+.portal-invoice-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+html.portal-dark .portal-bills-hero {
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
+}
+
+html.portal-dark .portal-bill-card,
+html.portal-dark .portal-invoice-hero,
+html.portal-dark .portal-invoice-pay-dock__inner {
+    background: var(--portal-surface-elevated, #1e293b);
+}
+
+/* Login hub styles: public/css/login-hub.css */
+

@@ -3,6 +3,7 @@
 namespace App\Services\Olt;
 
 use App\Models\Device;
+use App\Support\OltManagementHelper;
 use App\Support\SnmpClient;
 
 /**
@@ -11,6 +12,10 @@ use App\Support\SnmpClient;
  */
 final class OltSnmpProbeService
 {
+    public function __construct(
+        private readonly OltPptpTunnelService $pptpTunnel,
+    ) {}
+
     public static function isSnmpExtensionAvailable(): bool
     {
         return extension_loaded('snmp') && function_exists('snmp2_get');
@@ -59,6 +64,8 @@ final class OltSnmpProbeService
 
     public function fetchSysDescr(Device $olt): string
     {
+        $this->ensureReachability($olt);
+
         if (($olt->snmp_version ?? 'v2c') !== 'v2c') {
             throw new \RuntimeException('SNMP test from the panel currently supports v2c only. Set version to v2c or use an external NMS for v3.');
         }
@@ -100,9 +107,101 @@ final class OltSnmpProbeService
                 '5) কিছু OLT-তে SNMP বন্ধ থাকে — Web/CLI দিয়ে SNMP v2c enable করুন।',
             ];
 
+            $reach = $this->networkReachabilityHint($olt);
+            if ($reach !== '') {
+                $lines[] = '';
+                $lines[] = $reach;
+            }
+
+            $egress = $this->appServerEgressIp();
+            if ($egress !== null) {
+                $lines[] = "6) OLT/Router ACL-তে প্যানেল সার্ভার IP allow করুন: {$egress} → UDP 161 (outbound from server, inbound on OLT).";
+            }
+
             throw new \RuntimeException(implode("\n", $lines));
         }
 
         return $result;
+    }
+
+    /**
+     * Quick ICMP hint for panel messages (SNMP needs same L3 reachability as ping on many ISPs).
+     */
+    public function pingOk(Device $olt): bool
+    {
+        $host = filled($olt->snmp_host) ? trim((string) $olt->snmp_host) : trim((string) ($olt->management_ip ?? ''));
+
+        if ($host === '' || ! filter_var($host, FILTER_VALIDATE_IP)) {
+            return false;
+        }
+
+        if ($this->pingHost($host)) {
+            return true;
+        }
+
+        if ($this->pptpTunnel->vpnEnabled($olt)) {
+            $reach = $this->pptpTunnel->ensureConnected($olt->fresh());
+
+            return $reach['success'] && $this->pingHost($host);
+        }
+
+        return false;
+    }
+
+    private function ensureReachability(Device $olt): void
+    {
+        $host = filled($olt->snmp_host) ? trim((string) $olt->snmp_host) : trim((string) ($olt->management_ip ?? ''));
+        if ($host !== '' && $this->pingHost($host)) {
+            return;
+        }
+
+        if (! $this->pptpTunnel->vpnEnabled($olt)) {
+            return;
+        }
+
+        $reach = $this->pptpTunnel->ensureConnected($olt->fresh());
+        if (! $reach['success']) {
+            throw new \RuntimeException('PPTP VPN: '.($reach['message'] ?? 'connect failed'));
+        }
+    }
+
+    public function networkReachabilityHint(Device $olt): string
+    {
+        $host = filled($olt->snmp_host) ? trim((string) $olt->snmp_host) : trim((string) ($olt->management_ip ?? ''));
+        if ($host === '' || ! filter_var($host, FILTER_VALIDATE_IP)) {
+            return 'Management IP / SNMP host সেট করুন।';
+        }
+
+        if (! $this->pingOk($olt)) {
+            $egress = $this->appServerEgressIp();
+            $acl = $egress !== null ? " প্যানেল সার্ভার IP ({$egress}) OLT SNMP ACL-তে allow করুন।" : '';
+
+            if (OltManagementHelper::vpnEnabled($olt)) {
+                return "সার্ভার থেকে OLT IP ({$host}) ping হচ্ছে না — VPN চালু কিন্তু টানেল up হয়নি (PPTP: GRE+1723 | OpenVPN: .ovpn)।{$acl}";
+            }
+
+            return "সার্ভার থেকে OLT IP ({$host}) ping হচ্ছে না — Edit OLT → VPN (PPTP/OpenVPN) সেট করুন।{$acl}";
+        }
+
+        return "Ping OK ({$host}) — SNMP community ও OLT-তে SNMP v2c enable যাচাই করুন।";
+    }
+
+    public function appServerEgressIp(): ?string
+    {
+        $configured = config('snmp.app_server_egress_ip');
+        if (is_string($configured) && filter_var(trim($configured), FILTER_VALIDATE_IP)) {
+            return trim($configured);
+        }
+
+        return null;
+    }
+
+    private function pingHost(string $host): ?bool
+    {
+        $cmd = sprintf('ping -c 1 -W 2 %s 2>/dev/null', escapeshellarg($host));
+        $code = 1;
+        @exec($cmd, $output, $code);
+
+        return $code === 0 ? true : false;
     }
 }

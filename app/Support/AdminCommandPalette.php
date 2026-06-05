@@ -119,7 +119,10 @@ class AdminCommandPalette
             ['group' => 'System', 'label' => 'Company setup', 'url' => ManageCompanySetup::getUrl()],
             ['group' => 'System', 'label' => 'Movie server list', 'url' => ManageMovieServerList::getUrl()],
             ['group' => 'System', 'label' => 'App settings', 'url' => ManageAppSettings::getUrl()],
-            ['group' => 'HR', 'label' => 'HR & payroll', 'url' => HrPayrollHub::getUrl()],
+            ['group' => 'HR Management', 'label' => 'HR Dashboard', 'url' => HrPayrollHub::getUrl()],
+            ['group' => 'HR Management', 'label' => 'Employees', 'url' => \App\Filament\Resources\EmployeeResource::getUrl()],
+            ['group' => 'HR Management', 'label' => 'Leave Management', 'url' => \App\Filament\Pages\HrLeaveManagementPage::getUrl()],
+            ['group' => 'HR Management', 'label' => 'Payroll Generation', 'url' => \App\Filament\Resources\PayrollRunResource::getUrl()],
         ];
     }
 }

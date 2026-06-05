@@ -6,7 +6,7 @@ import '../theme/app_theme.dart';
 
 /// Shared Radiant ISP mobile UI — admin + client screens.
 class IspUiKit {
-  static const Color screenBg = AppTheme.background;
+  static const Color screenBg = Color(0xFFF1F5F9);
   static const Color panelBg = Color(0xFFE8EEF5);
   static const Color sectionTint = Color(0xFFE3F2FD);
 
@@ -22,7 +22,7 @@ class IspUiKit {
         ],
       );
 
-  /// Admin home / collection gradient header.
+  /// Admin / staff tab gradient header — ISP blue professional bar.
   static Widget gradientHeader({
     required String title,
     String? subtitle,
@@ -33,14 +33,17 @@ class IspUiKit {
       width: double.infinity,
       decoration: const BoxDecoration(
         gradient: LinearGradient(
-          colors: [AppTheme.primary, AppTheme.purple, AppTheme.pink],
+          colors: [Color(0xFF1565C0), Color(0xFF1976D2)],
           begin: Alignment.centerLeft,
           end: Alignment.centerRight,
         ),
         borderRadius: BorderRadius.only(
-          bottomLeft: Radius.circular(22),
-          bottomRight: Radius.circular(22),
+          bottomLeft: Radius.circular(20),
+          bottomRight: Radius.circular(20),
         ),
+        boxShadow: [
+          BoxShadow(color: Color(0x331565C0), blurRadius: 12, offset: Offset(0, 4)),
+        ],
       ),
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
       child: Column(

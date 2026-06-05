@@ -22,14 +22,16 @@ import '../utils/layout.dart';
 import '../widgets/app_shell.dart';
 import '../widgets/profile_banner.dart';
 import '../widgets/quick_action_grid.dart';
-import 'login_screen.dart';
+import 'login_hub_screen.dart';
 import 'staff_clients_screen.dart';
 import 'staff_collection_screen.dart';
 import 'staff_monitoring_screen.dart';
 import 'staff_noc_screen.dart';
 import 'staff_add_customer_screen.dart';
 import 'staff_approvals_screen.dart';
+import '../widgets/staff_receipt_launcher.dart';
 import 'staff_billing_hub_screen.dart';
+import 'staff_money_receipt_screen.dart';
 import 'staff_expense_screen.dart';
 import 'staff_create_ticket_screen.dart';
 import 'staff_tasks_screen.dart';
@@ -58,6 +60,7 @@ class StaffHomeScreen extends ConsumerStatefulWidget {
 
 class _StaffHomeScreenState extends ConsumerState<StaffHomeScreen> {
   int _tab = 0;
+  StaffReceiptRequest? _receiptOverlay;
   StaffDashboard? _dash;
   bool _loading = true;
   Failure? _error;
@@ -139,7 +142,7 @@ class _StaffHomeScreenState extends ConsumerState<StaffHomeScreen> {
     await widget.api.logout();
     if (!mounted) return;
     Navigator.of(context).pushAndRemoveUntil(
-      MaterialPageRoute(builder: (_) => LoginScreen(api: widget.api)),
+      MaterialPageRoute(builder: (_) => LoginHubScreen(api: widget.api)),
       (_) => false,
     );
   }
@@ -212,34 +215,52 @@ class _StaffHomeScreenState extends ConsumerState<StaffHomeScreen> {
   @override
   Widget build(BuildContext context) {
     final online = ref.watch(isOnlineProvider);
-    final d = _dash;
 
-    return AppShell(
-      tabIndex: _tab,
-      onTab: _go,
-      title: '${RemoteConfig.appName} · ${_mode.toUpperCase()}',
-      actions: [
-        IconButton(
-          icon: const Icon(Icons.search),
-          onPressed: () => _push(StaffClientsScreen(api: widget.api)),
-        ),
-        IconButton(icon: const Icon(Icons.refresh), onPressed: _load),
-        IconButton(icon: const Icon(Icons.logout), onPressed: _logout),
-      ],
-      destinations: const [
-        NavigationDestination(icon: Icon(Icons.grid_view, color: DesignTokens.primary), label: 'Home'),
-        NavigationDestination(icon: Icon(Icons.receipt_long, color: DesignTokens.success), label: 'Billing'),
-        NavigationDestination(icon: Icon(Icons.account_balance_wallet, color: DesignTokens.teal), label: 'Collection'),
-        NavigationDestination(icon: Icon(Icons.confirmation_number, color: DesignTokens.info), label: 'Support'),
-        NavigationDestination(icon: Icon(Icons.task_alt, color: DesignTokens.pink), label: 'Task'),
-      ],
-      pages: [
-        _buildHomeTab(online),
-        _buildBillingTab(d?.billing ?? const StaffBilling(monthlyBill: 0, collected: 0, due: 0, discount: 0)),
-        StaffCollectionScreen(api: widget.api, active: _tab == 2),
-        StaffTicketsScreen(api: widget.api, active: _tab == 3, staffUserId: _user?['id'] as int?),
-        StaffTasksScreen(api: widget.api, active: _tab == 4),
-      ],
+    return StaffReceiptLauncher(
+      api: widget.api,
+      openReceipt: (req) => setState(() => _receiptOverlay = req),
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          AppShell(
+            tabIndex: _tab,
+            onTab: _go,
+            destinations: const [
+              NavigationDestination(icon: Icon(Icons.grid_view_rounded), label: 'Home'),
+              NavigationDestination(icon: Icon(Icons.receipt_long_rounded), label: 'Billing'),
+              NavigationDestination(icon: Icon(Icons.account_balance_wallet_rounded), label: 'Collection'),
+              NavigationDestination(icon: Icon(Icons.confirmation_number_outlined), label: 'Support'),
+              NavigationDestination(icon: Icon(Icons.task_alt_rounded), label: 'Task'),
+            ],
+            pages: [
+              _buildHomeTab(online),
+              StaffBillingHubScreen(api: widget.api, embedded: true),
+              StaffCollectionScreen(api: widget.api, active: _tab == 2),
+              StaffTicketsScreen(api: widget.api, active: _tab == 3, staffUserId: _user?['id'] as int?),
+              StaffTasksScreen(api: widget.api, active: _tab == 4),
+            ],
+          ),
+          if (_receiptOverlay != null)
+            Positioned(
+              left: 0,
+              right: 0,
+              top: 0,
+              bottom: 68,
+              child: Material(
+                elevation: 12,
+                color: DesignTokens.lightBg,
+                child: StaffMoneyReceiptScreen(
+                  embedded: true,
+                  api: widget.api,
+                  paymentId: _receiptOverlay!.paymentId,
+                  initialPdfUrl: _receiptOverlay!.initialPdfUrl,
+                  seedData: _receiptOverlay!.seedData,
+                  onClose: () => setState(() => _receiptOverlay = null),
+                ),
+              ),
+            ),
+        ],
+      ),
     );
   }
 
@@ -258,17 +279,24 @@ class _StaffHomeScreenState extends ConsumerState<StaffHomeScreen> {
         padding: EdgeInsets.zero,
         children: [
           if (!online) const OfflineBanner(),
-          if (_mode == 'admin')
-            IspUiKit.gradientHeader(
-              title: 'Admin dashboard',
-              subtitle: '${_user?['name'] ?? 'Staff'} · ${RemoteConfig.appName}',
-              trailing: [
-                IconButton(
-                  icon: const Icon(Icons.search, color: Colors.white),
-                  onPressed: () => _push(StaffClientsScreen(api: widget.api)),
-                ),
-              ],
-            ),
+          IspUiKit.gradientHeader(
+            title: 'Home',
+            subtitle: '${_user?['name'] ?? 'Staff'} · ${RemoteConfig.appName}',
+            trailing: [
+              IconButton(
+                icon: const Icon(Icons.search, color: Colors.white),
+                onPressed: () => _push(StaffClientsScreen(api: widget.api)),
+              ),
+              IconButton(
+                icon: const Icon(Icons.refresh, color: Colors.white),
+                onPressed: _load,
+              ),
+              IconButton(
+                icon: const Icon(Icons.logout, color: Colors.white),
+                onPressed: _logout,
+              ),
+            ],
+          ),
           Padding(
             padding: pagePadding(context),
             child: Column(
@@ -382,81 +410,6 @@ class _StaffHomeScreenState extends ConsumerState<StaffHomeScreen> {
           ),
         ],
       ),
-    );
-  }
-
-  Widget _buildBillingTab(StaffBilling b) {
-    return ListView(
-      padding: pagePadding(context),
-      children: [
-        GridView.count(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          crossAxisCount: 2,
-          mainAxisSpacing: 12,
-          crossAxisSpacing: 12,
-          childAspectRatio: 1.35,
-          children: [
-            StatCard(label: 'Monthly Bill', value: _fmt.format(b.monthlyBill), icon: Icons.receipt_long, color: DesignTokens.primary),
-            StatCard(label: 'Collected', value: _fmt.format(b.collected), icon: Icons.savings, color: DesignTokens.success),
-            StatCard(label: 'Due', value: _fmt.format(b.due), icon: Icons.warning_amber, color: DesignTokens.warning),
-            StatCard(label: 'Discount', value: _fmt.format(b.discount), icon: Icons.percent, color: DesignTokens.pink),
-          ],
-        ),
-        const SizedBox(height: 12),
-        AppCard(
-          onTap: () => _push(StaffBillingHubScreen(api: widget.api)),
-          child: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(9),
-                decoration: BoxDecoration(
-                    color: DesignTokens.primary.withValues(alpha: 0.14),
-                    borderRadius: BorderRadius.circular(DesignTokens.radiusSm)),
-                child: const Icon(Icons.list_alt_rounded, color: DesignTokens.primary),
-              ),
-              const SizedBox(width: 12),
-              const Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('Billing list', style: TextStyle(fontWeight: FontWeight.w700)),
-                    Text('Due clients, invoices, daily collections', style: TextStyle(fontSize: 12)),
-                  ],
-                ),
-              ),
-              Icon(Icons.chevron_right_rounded, color: context.brand.textMuted),
-            ],
-          ),
-        ),
-        const SizedBox(height: 12),
-        AppCard(
-          onTap: () => _go(2),
-          borderColor: DesignTokens.success.withValues(alpha: 0.4),
-          child: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(9),
-                decoration: BoxDecoration(
-                    color: DesignTokens.success.withValues(alpha: 0.14),
-                    borderRadius: BorderRadius.circular(DesignTokens.radiusSm)),
-                child: const Icon(Icons.payments_rounded, color: DesignTokens.success),
-              ),
-              const SizedBox(width: 12),
-              const Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('Receive bill', style: TextStyle(fontWeight: FontWeight.w700)),
-                    Text('Search & collect payment', style: TextStyle(fontSize: 12)),
-                  ],
-                ),
-              ),
-              Icon(Icons.chevron_right_rounded, color: context.brand.textMuted),
-            ],
-          ),
-        ),
-      ],
     );
   }
 

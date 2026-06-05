@@ -17,6 +17,7 @@ MODULES=(
   11-subscriber-view-legacy
   12-dashboard-home
   13-dashboard-insights
+  14-light-mode-global
 )
 
 {

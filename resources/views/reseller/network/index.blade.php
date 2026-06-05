@@ -34,7 +34,13 @@
                 <tbody>
                     @forelse ($clients as $client)
                         @php $s = $sessionMap[$client->id] ?? []; @endphp
-                        <tr data-customer-id="{{ $client->id }}" data-online="{{ ($s['online'] ?? false) ? '1' : '0' }}" @if($filter === 'online' && ($s['online'] ?? false)) data-session-url="{{ route('reseller.network.session', $client) }}" @endif>
+                        <tr
+                            data-customer-id="{{ $client->id }}"
+                            data-online="{{ ($s['online'] ?? false) ? '1' : '0' }}"
+                            @if ($filter === 'online' && ($s['online'] ?? false))
+                                data-session-url="{{ route('reseller.network.session', $client) }}"
+                            @endif
+                        >
                             <td class="px-4 py-3">
                                 <a href="{{ route('reseller.customers.show', $client) }}" class="rsl-link">{{ $client->name }}</a>
                                 <br><span class="text-xs rsl-text-muted">{{ $client->customer_code }}</span>
@@ -48,7 +54,12 @@
                                     <span class="rsl-text-muted"> / </span>
                                     <span class="text-sky-700">{{ $s['upload_human'] ?? '—' }}</span>
                                 @else
-                                    <span class="rsl-text-muted">Offline@if(!empty($s['last_disconnect'])) · last {{ $s['last_disconnect'] }}@endif</span>
+                                    <span class="rsl-text-muted">
+                                        Offline
+                                        @if (! empty($s['last_disconnect']))
+                                            · last {{ $s['last_disconnect'] }}
+                                        @endif
+                                    </span>
                                 @endif
                             </td>
                             <td class="px-4 py-3 text-xs rsl-text-muted" data-field="session-bytes">

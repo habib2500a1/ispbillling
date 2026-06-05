@@ -38,4 +38,9 @@ class Employee extends Model
     {
         return $this->hasMany(PayrollItem::class);
     }
+
+    public function advanceSalaryRequests(): HasMany
+    {
+        return $this->hasMany(EmployeeAdvanceSalaryRequest::class);
+    }
 }

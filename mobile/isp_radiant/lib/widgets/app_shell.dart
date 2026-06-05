@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../core/theme/design_tokens.dart';
 import '../utils/app_nav.dart';
 
-/// Bottom nav shell — standard AppBar height, safe body, no overlap with system UI.
+/// Bottom-nav shell for staff — one gradient header per tab, no duplicate app bar.
 class AppShell extends StatelessWidget {
   const AppShell({
     super.key,
@@ -11,8 +12,6 @@ class AppShell extends StatelessWidget {
     required this.onTab,
     required this.pages,
     required this.destinations,
-    required this.title,
-    this.actions,
     this.floatingActionButton,
   });
 
@@ -20,8 +19,6 @@ class AppShell extends StatelessWidget {
   final ValueChanged<int> onTab;
   final List<Widget> pages;
   final List<NavigationDestination> destinations;
-  final String title;
-  final List<Widget>? actions;
   final Widget? floatingActionButton;
 
   @override
@@ -34,14 +31,7 @@ class AppShell extends StatelessWidget {
         statusBarIconBrightness: Brightness.light,
       ),
       child: Scaffold(
-        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-        appBar: AppBar(
-          backgroundColor: const Color(0xFF1565C0),
-          foregroundColor: Colors.white,
-          title: Text(title, maxLines: 1, overflow: TextOverflow.ellipsis),
-          actions: actions,
-          centerTitle: true,
-        ),
+        backgroundColor: DesignTokens.lightBg,
         floatingActionButton: floatingActionButton,
         floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
         body: IndexedStack(
@@ -55,6 +45,11 @@ class AppShell extends StatelessWidget {
           destinations: destinations,
           labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
           height: 68,
+          backgroundColor: Colors.white,
+          indicatorColor: DesignTokens.primary.withValues(alpha: 0.12),
+          surfaceTintColor: Colors.transparent,
+          shadowColor: Colors.black26,
+          elevation: 8,
         ),
       ),
     );

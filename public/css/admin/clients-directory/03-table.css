@@ -1,42 +1,188 @@
-/**
- * Clients directory — Table layout, columns, name cell
- * Fixes vertical letter-stacking when columns are squeezed.
- */
+/** Clients directory — Table layout & actions */
 
-.cl-dir-table .fi-ta-content {
-    overflow-x: auto !important;
-    overflow-y: visible !important;
-    -webkit-overflow-scrolling: touch;
-}
-
+/* Keep real <table> layout — admin responsive sets display:block on .fi-ta-table */
 .cl-dir-table .fi-ta-table {
-    width: 100% !important;
-    min-width: 72rem !important;
+    display: table !important;
     table-layout: auto !important;
+    border-collapse: separate !important;
+    border-spacing: 0 !important;
 }
 
-.cl-dir-table .cl-dir-col-name,
-.cl-dir-table .fi-ta-cell.cl-dir-col-name {
-    min-width: 15rem !important;
-    width: 20% !important;
-    white-space: normal !important;
+.cl-dir-table .fi-ta-row,
+.cl-dir-table .fi-ta-header-row {
+    display: table-row !important;
 }
 
+.cl-dir-table .fi-ta-header-cell,
+.cl-dir-table .fi-ta-cell,
+.cl-dir-table .fi-ta-actions-header-cell,
+.cl-dir-table .fi-ta-actions-cell,
+.cl-dir-table .fi-ta-record-checkbox-cell {
+    display: table-cell !important;
+    vertical-align: middle !important;
+}
+
+/* Compact rows + visible structure (light/dark) */
+.cl-dir-table .fi-ta-table thead {
+    display: table-header-group !important;
+}
+
+.cl-dir-table .fi-ta-table tbody {
+    display: table-row-group !important;
+}
+
+.cl-dir-table .fi-ta-header-cell {
+    padding: 0.6rem 0.65rem !important;
+    height: auto !important;
+    min-height: 0 !important;
+    line-height: 1.3 !important;
+}
+
+.cl-dir-table .fi-ta-header-cell-label,
+.cl-dir-table .fi-ta-header-cell .fi-ta-header-cell-label {
+    color: var(--cl-dir-muted) !important;
+}
+
+.cl-dir-table .fi-ta-header-cell-sort-icon {
+    color: var(--cl-dir-muted) !important;
+}
+
+.cl-dir-table .fi-ta-row > .fi-ta-cell {
+    padding: 0.55rem 0.65rem !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    line-height: 1.35 !important;
+    border-bottom: 1px solid var(--cl-dir-border) !important;
+}
+
+.cl-dir-table .fi-ta-row {
+    height: auto !important;
+}
+
+.cl-dir-table .fi-ta-cell > div,
+.cl-dir-table .fi-ta-cell .fi-ta-col-wrp {
+    padding: 0 !important;
+    min-height: 0 !important;
+}
+
+.cl-dir-table .fi-ta-text,
+.cl-dir-table .fi-ta-text-item,
+.cl-dir-table .fi-ta-text-item-label {
+    color: var(--cl-dir-text) !important;
+}
+
+.cl-dir-table .cl-dir-col-phone {
+    min-width: 6.75rem;
+    white-space: nowrap;
+}
+
+.cl-dir-table .cl-dir-col-package {
+    min-width: 5.5rem;
+    white-space: nowrap;
+}
+
+.cl-dir-table .cl-dir-col-line {
+    min-width: 3.25rem;
+    text-align: center;
+}
+
+.cl-dir-table .fi-ta-actions-header-cell,
+.cl-dir-table .fi-ta-actions-cell {
+    min-width: 9.5rem !important;
+    white-space: nowrap;
+}
+
+/* Customer + PPP — row layout (fixes vertical letter stacking) */
 .cl-dir-client {
     display: flex !important;
     flex-direction: row !important;
+    flex-wrap: nowrap !important;
     align-items: center !important;
+    gap: 0.65rem !important;
     min-width: 13rem !important;
     width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+}
+
+.cl-dir-client__avatar {
+    width: 2.25rem !important;
+    height: 2.25rem !important;
+    min-width: 2.25rem !important;
+    flex: 0 0 2.25rem !important;
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    background: linear-gradient(135deg, #6366f1, #7c3aed);
+    color: #fff;
+    font-size: 0.68rem;
+    font-weight: 700;
+    line-height: 1;
+}
+
+.cl-dir-client__body {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    justify-content: center !important;
+    gap: 0.1rem !important;
+    min-width: 0 !important;
+    flex: 1 1 auto !important;
+    max-width: calc(100% - 3rem) !important;
+    overflow: hidden !important;
 }
 
 .cl-dir-client__name {
+    display: block !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    font-weight: 600 !important;
+    font-size: 0.8125rem !important;
+    line-height: 1.35 !important;
+    color: var(--cl-dir-text) !important;
+    text-decoration: none !important;
     word-break: normal !important;
     overflow-wrap: break-word !important;
     white-space: normal !important;
 }
 
+.cl-dir-client__name:hover {
+    color: #c4b5fd !important;
+    text-decoration: underline !important;
+}
+
 .cl-dir-client__ppp {
+    display: block !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    font-size: 0.68rem !important;
+    line-height: 1.3 !important;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace !important;
+    color: var(--cl-dir-muted) !important;
     word-break: break-all !important;
     overflow-wrap: anywhere !important;
+    white-space: normal !important;
+}
+
+.cl-dir-client__phone {
+    font-size: 0.7rem;
+    color: var(--cl-dir-muted);
+}
+
+/* Override global table rules that squeeze Filament cells */
+.isp-clients-page .cl-dir-table .fi-ta-text,
+.isp-clients-page .cl-dir-table .fi-ta-cell.cl-dir-col-name .fi-ta-text {
+    display: block !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    word-break: normal !important;
+    white-space: normal !important;
+}
+
+.isp-clients-page .isp-clients-hero,
+.isp-clients-page .isp-clients-tabs,
+.isp-clients-page .isp-clients-table-card__head {
+    display: none !important;
 }

@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Concerns\BelongsToTenant;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -56,5 +57,31 @@ class StoreDeviceLoan extends Model
     public function issuedByUser(): BelongsTo
     {
         return $this->belongsTo(User::class, 'issued_by');
+    }
+
+    public function scopeIssued(Builder $query): Builder
+    {
+        return $query->where('status', self::STATUS_ISSUED);
+    }
+
+    public function scopeDueToday(Builder $query): Builder
+    {
+        return $query->issued()
+            ->whereNotNull('due_return_at')
+            ->whereDate('due_return_at', now()->toDateString());
+    }
+
+    public function scopeOverdue(Builder $query): Builder
+    {
+        return $query->issued()
+            ->whereNotNull('due_return_at')
+            ->where('due_return_at', '<', now());
+    }
+
+    public function isOverdue(): bool
+    {
+        return $this->status === self::STATUS_ISSUED
+            && $this->due_return_at !== null
+            && $this->due_return_at->isPast();
     }
 }

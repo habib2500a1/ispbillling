@@ -1,3 +1,4 @@
+import '../models/login_role_config.dart';
 import 'app_config.dart';
 
 /// Cached server config from /mobile/config — synced with website branding.
@@ -65,6 +66,24 @@ class RemoteConfig {
   static bool get realtimeWs => (_raw?['features'] as Map?)?['realtime_ws'] == true;
   static bool get aiAssistant => (_raw?['features'] as Map?)?['ai_assistant'] == true;
   static bool get networkControl => (_raw?['features'] as Map?)?['network_control'] == true;
+  static bool get speedTestEnabled => (_raw?['features'] as Map?)?['speed_test'] != false;
+
+  static Map<String, dynamic> get speedTest {
+    final fromServer = _raw?['speed_test'] as Map?;
+    if (fromServer != null && fromServer.isNotEmpty) {
+      return Map<String, dynamic>.from(fromServer);
+    }
+    return const {
+      'enabled': true,
+      'ping_url': 'https://www.speedtest.sg/speedtest/ping.php',
+      'download_url': 'https://www.speedtest.sg/speedtest/download.php',
+      'upload_url': 'https://www.speedtest.sg/speedtest/upload.php',
+    };
+  }
+
+  static String get speedTestPingUrl => speedTest['ping_url']?.toString() ?? '';
+  static String get speedTestDownloadUrl => speedTest['download_url']?.toString() ?? '';
+  static String get speedTestUploadUrl => speedTest['upload_url']?.toString() ?? '';
 
   static bool get mfsSmsStaff => (_raw?['features'] as Map?)?['mfs_sms_staff'] == true;
 
@@ -75,4 +94,49 @@ class RemoteConfig {
 
   static Map<String, dynamic> get phases => Map<String, dynamic>.from((_raw?['phases'] as Map?) ?? {});
   static Map<String, dynamic> get branding => Map<String, dynamic>.from((_raw?['branding'] as Map?) ?? {});
+
+  static Map<String, dynamic> get login => Map<String, dynamic>.from((_raw?['login'] as Map?) ?? {});
+
+  static String get loginHubUrl {
+    final login = _raw?['login'] as Map?;
+    final fromLogin = login?['hub_url']?.toString();
+    if (fromLogin != null && fromLogin.isNotEmpty) return fromLogin;
+    final links = _raw?['links'] as Map?;
+    final fromLinks = links?['login_hub']?.toString();
+    if (fromLinks != null && fromLinks.isNotEmpty) return fromLinks;
+    return '${AppConfig.apiBaseUrl.replaceAll('/api/v1', '')}/login';
+  }
+
+  static String get mobileLoginApiUrl {
+    final login = _raw?['login'] as Map?;
+    final url = login?['api_url']?.toString();
+    if (url != null && url.isNotEmpty) return url;
+    return '${AppConfig.apiBaseUrl}/mobile/login';
+  }
+
+  static String? get payUrl {
+    final links = _raw?['links'] as Map?;
+    return links?['pay']?.toString();
+  }
+
+  static String? get resellerLoginUrl {
+    final links = _raw?['links'] as Map?;
+    final fromLinks = links?['reseller_login']?.toString();
+    if (fromLinks != null && fromLinks.isNotEmpty) return fromLinks;
+    for (final role in loginRoles) {
+      if (role.id == 'reseller' && role.webUrl != null && role.webUrl!.isNotEmpty) {
+        return role.webUrl;
+      }
+    }
+    return null;
+  }
+
+  static List<LoginRoleConfig> get loginRoles {
+    final roles = login['roles'] as List<dynamic>?;
+    if (roles == null || roles.isEmpty) return LoginRoleConfig.defaults();
+    return roles
+        .map((e) => LoginRoleConfig.fromJson(Map<String, dynamic>.from(e as Map)))
+        .where((r) => r.enabled && r.id.isNotEmpty)
+        .toList();
+  }
 }

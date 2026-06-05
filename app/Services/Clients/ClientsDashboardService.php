@@ -83,14 +83,8 @@ final class ClientsDashboardService
                 $base = $scopedQuery ?? Customer::query()->where('tenant_id', $tenantId);
                 $notTerminated = fn () => (clone $base)->where('status', '!=', CustomerStatus::TERMINATED);
                 $homePackageIds = $this->homePackageIds($tenantId);
-                $sessionCustomerIds = app(\App\Services\Bandwidth\BandwidthCollectionService::class)
-                    ->activeSessionCustomerIds($tenantId);
-                $onlineFromSessions = $sessionCustomerIds === []
-                    ? 0
-                    : (clone $notTerminated())->whereIn('id', $sessionCustomerIds)->count();
-
-                $onlineFromFlags = (clone $notTerminated())->where('is_ppp_online', true)->count();
-                $online = max($onlineFromSessions, $onlineFromFlags);
+                $online = app(\App\Services\Bandwidth\BandwidthCollectionService::class)
+                    ->displayedOnlineCount($tenantId, clone $notTerminated());
                 $active = CustomerAccountScopes::applyActive(clone $base)->count();
                 $total = (clone $notTerminated())->count();
 

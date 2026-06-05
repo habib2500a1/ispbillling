@@ -1,0 +1,148 @@
+#!/usr/bin/env bash
+# Per-OLT VPN: PPTP or OpenVPN (.ovpn). Usage: isp-olt-vpn-ctl <connect|disconnect|status|sync-peer> <olt_id>
+set -euo pipefail
+
+ACTION="${1:?action}"
+OLT_ID="${2:?olt_id}"
+APP_ROOT="${ISP_PLATFORM_ROOT:-/var/www/isp-platform}"
+CFG="${APP_ROOT}/storage/app/private/olt-pptp/${OLT_ID}.json"
+
+json() { printf '%s\n' "$1"; }
+
+if [[ ! -f "$CFG" ]]; then
+  json '{"ok":false,"message":"No VPN config — Edit OLT → VPN section → Save."}'
+  exit 1
+fi
+
+TYPE=$(php -r 'echo json_decode(file_get_contents($argv[1]), true)["type"] ?? "pptp";' "$CFG")
+SUBNET=$(php -r 'echo json_decode(file_get_contents($argv[1]), true)["subnet"] ?? "";' "$CFG")
+OLT_IP=$(php -r 'echo json_decode(file_get_contents($argv[1]), true)["olt_ip"] ?? "";' "$CFG")
+
+route_up() {
+  local iface="$1"
+  [[ -n "$SUBNET" ]] && ip route replace "${SUBNET}" dev "${iface}" scope link 2>/dev/null || true
+}
+
+ppp_up() {
+  ip -o link show type ppp 2>/dev/null | grep -q 'UP'
+}
+
+tun_up() {
+  ip -o link show type tun 2>/dev/null | grep -q 'UP'
+}
+
+last_vpn_log() {
+  grep -hE 'pppd|pptp|openvpn|LCP|CHAP|TLS|AUTH' /var/log/syslog 2>/dev/null | tail -6 | tr '\n' ' | ' | cut -c1-400
+}
+
+connect_pptp() {
+  local PEER SERVER USER PASS
+  PEER=$(php -r 'echo json_decode(file_get_contents($argv[1]), true)["peer"] ?? "";' "$CFG")
+  SERVER=$(php -r 'echo json_decode(file_get_contents($argv[1]), true)["server"] ?? "";' "$CFG")
+  USER=$(php -r 'echo json_decode(file_get_contents($argv[1]), true)["username"] ?? "";' "$CFG")
+  PASS=$(php -r 'echo json_decode(file_get_contents($argv[1]), true)["password"] ?? "";' "$CFG")
+  cat > "/etc/ppp/peers/${PEER}" <<EOF
+pty "pptp ${SERVER} --nolaunchpppd"
+name ${USER}
+remotename ${PEER}
+require-mschap-v2
+refuse-pap
+refuse-chap
+refuse-eap
+noauth
+maxfail 1
+holdoff 5
+lock
+mtu 1400
+mru 1400
+EOF
+  chmod 600 "/etc/ppp/peers/${PEER}"
+  grep -q "\"${USER}\" ${PEER}" /etc/ppp/chap-secrets 2>/dev/null || echo "\"${USER}\" ${PEER} \"${PASS}\" *" >> /etc/ppp/chap-secrets
+  poff "$PEER" 2>/dev/null || true
+  sleep 1
+  pon "$PEER" updetach &
+  sleep 6
+  if ppp_up; then
+    local IFACE
+    IFACE=$(ip -o link show type ppp | awk '/UP/ {print $2; exit}' | tr -d ':')
+    route_up "$IFACE"
+    json '{"ok":true,"message":"PPTP connected","ppp_up":true,"vpn_type":"pptp"}'
+  else
+    LOG=$(last_vpn_log)
+    json "{\"ok\":false,\"message\":\"PPTP GRE/LCP fail — MikroTik GRE+1723 allow\",\"ppp_up\":false,\"vpn_type\":\"pptp\",\"log_tail\":\"${LOG}\"}"
+    exit 1
+  fi
+}
+
+connect_openvpn() {
+  local OVPN PIDF
+  OVPN=$(php -r 'echo json_decode(file_get_contents($argv[1]), true)["config_path"] ?? "";' "$CFG")
+  if [[ ! -f "$OVPN" ]]; then
+    json '{"ok":false,"message":".ovpn file missing — paste config in Edit OLT and Save"}'
+    exit 1
+  fi
+  if ! command -v openvpn >/dev/null 2>&1; then
+    json '{"ok":false,"message":"openvpn not installed — apt install openvpn"}'
+    exit 1
+  fi
+  PIDF="/var/run/openvpn-olt-${OLT_ID}.pid"
+  pkill -f "openvpn.*olt-${OLT_ID}" 2>/dev/null || true
+  sleep 1
+  openvpn --config "$OVPN" --daemon --writepid "$PIDF" --log "/var/log/openvpn-olt-${OLT_ID}.log" --verb 3
+  sleep 5
+  if tun_up; then
+    local IFACE
+    IFACE=$(ip -o link show type tun | awk '/UP/ {print $2; exit}' | tr -d ':')
+    route_up "$IFACE"
+    json '{"ok":true,"message":"OpenVPN connected","ppp_up":true,"vpn_type":"openvpn"}'
+  else
+    LOG=$(tail -5 "/var/log/openvpn-olt-${OLT_ID}.log" 2>/dev/null | tr '\n' ' ')
+    json "{\"ok\":false,\"message\":\"OpenVPN failed — check .ovpn & server\",\"vpn_type\":\"openvpn\",\"log_tail\":\"${LOG}\"}"
+    exit 1
+  fi
+}
+
+disconnect_all() {
+  local PEER
+  PEER=$(php -r 'echo @json_decode(file_get_contents($argv[1]), true)["peer"] ?? "olt-pptp-'.$OLT_ID'";' "$CFG" 2>/dev/null || echo "olt-pptp-${OLT_ID}")
+  poff "$PEER" 2>/dev/null || true
+  pkill -f "pptp.*${PEER}" 2>/dev/null || true
+  pkill -f "openvpn.*olt-${OLT_ID}" 2>/dev/null || true
+  pkill -f "pppd call ${PEER}" 2>/dev/null || true
+  pkill -f "pppd call isp-olt" 2>/dev/null || true
+  json '{"ok":true,"message":"VPN disconnected"}'
+}
+
+case "$ACTION" in
+  sync-peer)
+    json '{"ok":true,"message":"VPN config ready","vpn_type":"'"${TYPE}"'"}'
+    ;;
+  connect)
+    disconnect_all >/dev/null 2>&1 || true
+    if [[ "$TYPE" == "openvpn" ]]; then
+      connect_openvpn
+    else
+      connect_pptp
+    fi
+    ;;
+  disconnect)
+    disconnect_all
+    ;;
+  status)
+    if [[ "$TYPE" == "openvpn" ]]; then
+      if tun_up; then
+        json '{"ok":true,"message":"OpenVPN up","ppp_up":true,"vpn_type":"openvpn"}'
+      else
+        json '{"ok":false,"message":"OpenVPN down","ppp_up":false,"vpn_type":"openvpn"}'
+      fi
+    elif ppp_up; then
+      json '{"ok":true,"message":"PPTP up","ppp_up":true,"vpn_type":"pptp"}'
+    else
+      json '{"ok":false,"message":"PPTP down","ppp_up":false,"vpn_type":"pptp"}'
+    fi
+    ;;
+  *)
+    json '{"ok":false,"message":"Unknown action"}'
+    exit 1
+    ;;
+esac

@@ -714,6 +714,30 @@ final class BandwidthCollectionService
     }
 
     /**
+     * Clear leftover PPP online flags when the tenant has no MikroTik (or RADIUS) source of truth.
+     */
+    public function clearStaleOnlineFlagsWhenNoRouters(int $tenantId): void
+    {
+        if ($this->tenantHasEnabledMikrotik($tenantId)) {
+            return;
+        }
+
+        if ($this->tenantHasActivePppSessions($tenantId)) {
+            return;
+        }
+
+        $radiusSessions = config('radius.merge_with_api', true)
+            ? $this->collectRadiusSessions($tenantId)
+            : [];
+
+        if ($radiusSessions !== []) {
+            return;
+        }
+
+        $this->syncCustomerOnlineFlags($tenantId, []);
+    }
+
+    /**
      * Mark subscribers offline when every enabled router for the tenant is API-offline.
      */
     public function clearStaleOnlineFlagsWhenRoutersUnreachable(int $tenantId): void

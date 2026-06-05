@@ -12,6 +12,9 @@ class EditAttendanceOfficeLocation extends EditRecord
 
     protected function mutateFormDataBeforeSave(array $data): array
     {
+        $data['latitude'] = round((float) ($data['latitude'] ?? 0), 7);
+        $data['longitude'] = round((float) ($data['longitude'] ?? 0), 7);
+
         if (! empty($data['is_default'])) {
             AttendanceOfficeLocation::query()
                 ->where('tenant_id', $this->record->tenant_id)

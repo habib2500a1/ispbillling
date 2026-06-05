@@ -3,8 +3,13 @@
 namespace App\Filament\Pages;
 
 use App\Filament\Pages\Concerns\HidesHubNavigation;
+use App\Filament\Pages\InventoryDamagedMissingReport;
+use App\Filament\Pages\InventoryLoansOverdueReport;
+use App\Filament\Pages\InventorySupportDevicesOutReport;
+use App\Filament\Pages\InventoryWarrantyManagement;
 use App\Filament\Resources\DeviceResource;
 use App\Filament\Resources\InventorySaleResource;
+use App\Filament\Resources\StoreDeviceLoanResource;
 use App\Filament\Resources\InvoiceResource;
 use App\Filament\Resources\ProductResource;
 use App\Filament\Resources\PurchaseOrderResource;
@@ -105,6 +110,32 @@ class InventoryHub extends Page
                 'icon' => 'heroicon-o-globe-alt',
                 'external' => true,
             ],
+            [
+                'label' => 'Support out',
+                'value' => (string) ($s['support_out_count'] ?? 0),
+                'hint' => 'Overdue '.($s['loans_overdue'] ?? 0).' · due today '.($s['loans_due_today'] ?? 0),
+                'url' => InventorySupportDevicesOutReport::getUrl(),
+                'tone' => 'violet',
+                'icon' => 'heroicon-o-arrow-up-tray',
+            ],
+            [
+                'label' => 'Damaged / missing',
+                'value' => (string) ($s['damaged_missing_count'] ?? 0),
+                'hint' => 'Products with write-offs',
+                'url' => InventoryDamagedMissingReport::getUrl(),
+                'tone' => 'rose',
+                'icon' => 'heroicon-o-exclamation-triangle',
+                'alert' => ($s['damaged_missing_count'] ?? 0) > 0,
+            ],
+            [
+                'label' => 'Overdue loans',
+                'value' => (string) ($s['loans_overdue'] ?? 0),
+                'hint' => 'Past due return date',
+                'url' => InventoryLoansOverdueReport::getUrl(),
+                'tone' => 'red',
+                'icon' => 'heroicon-o-clock',
+                'alert' => ($s['loans_overdue'] ?? 0) > 0,
+            ],
         ];
     }
 
@@ -177,6 +208,34 @@ class InventoryHub extends Page
                 'url' => DeviceResource::getUrl(),
                 'icon' => 'heroicon-o-wifi',
                 'tone' => 'slate',
+            ],
+            [
+                'title' => 'Support device loans',
+                'desc' => 'Issue / return CPE for support visits.',
+                'url' => StoreDeviceLoanResource::getUrl(),
+                'icon' => 'heroicon-o-arrow-path-rounded-square',
+                'tone' => 'violet',
+            ],
+            [
+                'title' => 'Warranty management',
+                'desc' => 'Expiry dates · vendor · claims.',
+                'url' => InventoryWarrantyManagement::getUrl(),
+                'icon' => 'heroicon-o-shield-check',
+                'tone' => 'sky',
+            ],
+            [
+                'title' => 'Overdue returns',
+                'desc' => 'Support devices past due date.',
+                'url' => InventoryLoansOverdueReport::getUrl(),
+                'icon' => 'heroicon-o-clock',
+                'tone' => 'red',
+            ],
+            [
+                'title' => 'Damaged / missing',
+                'desc' => 'Stock write-offs and loss tracking.',
+                'url' => InventoryDamagedMissingReport::getUrl(),
+                'icon' => 'heroicon-o-exclamation-triangle',
+                'tone' => 'rose',
             ],
             [
                 'title' => 'Vendors',

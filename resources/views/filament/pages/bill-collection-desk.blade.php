@@ -19,11 +19,13 @@
             <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">
                 Search by customer code, mobile, name, MikroTik/RADIUS username, NID, invoice number, or address.
                 Cash collections are tracked in
-                <a href="{{ \App\Filament\Pages\CollectorCashHub::getUrl() }}" class="font-semibold text-teal-600 hover:underline">Collector settlement</a>
+                <a href="{{ \App\Filament\Pages\CollectorCashHub::getUrl() }}" class="font-semibold text-primary-600 hover:underline dark:text-primary-400">Collector settlement</a>
                 until deposited to admin ·
-                <a href="{{ \App\Filament\Pages\CollectionDeskReport::getUrl() }}" class="font-semibold text-teal-600 hover:underline">Collection report (date · user · customer)</a>
+                <a href="{{ \App\Filament\Pages\CollectionBalanceStatement::getUrl() }}" class="font-semibold text-primary-600 hover:underline dark:text-primary-400">Balance statement (who collected how much)</a>
                 ·
-                <a href="{{ \App\Filament\Pages\BillingFundFlowReport::getUrl() }}" class="font-semibold text-violet-600 hover:underline">Bill money trail (কোথায় গেল টাকা)</a>
+                <a href="{{ \App\Filament\Pages\CollectionDeskReport::getUrl() }}" class="font-semibold text-primary-600 hover:underline dark:text-primary-400">Collection report (date · user · customer)</a>
+                ·
+                <a href="{{ \App\Filament\Pages\BillingFundFlowReport::getUrl() }}" class="font-semibold text-primary-600 hover:underline dark:text-primary-400">Bill money trail</a>
                 ·
                 <a href="{{ \App\Filament\Pages\ManagePaymentRenewalSettings::getUrl() }}" class="font-semibold text-sky-600 hover:underline">Payment renew rules</a>
             </p>
@@ -47,7 +49,7 @@
                             <button
                                 type="button"
                                 wire:click="selectCustomer({{ $row['id'] }})"
-                                class="isp-collection-result-card w-full text-left {{ (int) $selectedCustomerId === (int) $row['id'] ? 'ring-2 ring-teal-500 dark:ring-teal-400' : '' }}"
+                                class="isp-collection-result-card w-full text-left {{ (int) $selectedCustomerId === (int) $row['id'] ? 'ring-2 ring-primary-500 dark:ring-primary-400' : '' }}"
                             >
                                 <div class="flex flex-wrap items-start justify-between gap-2">
                                     <div class="min-w-0 flex-1">
@@ -124,17 +126,17 @@
                 <nav class="flex flex-wrap gap-2 border-b border-gray-200 pb-2 dark:border-gray-700">
                     <button type="button" wire:click="setTab('collect')" @class([
                         'rounded-lg px-4 py-2 text-sm font-semibold transition',
-                        'bg-teal-600 text-white' => $activeTab === 'collect',
+                        'bg-primary-600 text-white' => $activeTab === 'collect',
                         'text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800' => $activeTab !== 'collect',
                     ])>Collect payment</button>
                     <button type="button" wire:click="setTab('bills')" @class([
                         'rounded-lg px-4 py-2 text-sm font-semibold transition',
-                        'bg-teal-600 text-white' => $activeTab === 'bills',
+                        'bg-primary-600 text-white' => $activeTab === 'bills',
                         'text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800' => $activeTab !== 'bills',
                     ])>Bills ({{ count($selectedCustomer['bill_history'] ?? []) }})</button>
                     <button type="button" wire:click="setTab('history')" @class([
                         'rounded-lg px-4 py-2 text-sm font-semibold transition',
-                        'bg-teal-600 text-white' => $activeTab === 'history',
+                        'bg-primary-600 text-white' => $activeTab === 'history',
                         'text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800' => $activeTab !== 'history',
                     ])>{{ $this->collectionHistoryTabLabel() }}</button>
                 </nav>
@@ -280,7 +282,7 @@
                                         <span class="text-rose-600">*</span>
                                     @endif
                                 </label>
-                                <input type="text" wire:model="notes" @class(['isp-collection-input w-full', 'ring-2 ring-amber-400' => $this->notesRequiredForCollection()]) placeholder="যেমন: ৫০০ এর মধ্যে ২০০ নিলাম, বাকি ১৫ তারিখে" @if($this->notesRequiredForCollection()) required @endif />
+                                <input type="text" wire:model="notes" @class(['isp-collection-input w-full', 'ring-2 ring-amber-400' => $this->notesRequiredForCollection()]) placeholder="e.g. Partial 200 of 500; rest due on the 15th" @if($this->notesRequiredForCollection()) required @endif />
                             </div>
                         </div>
 
@@ -292,7 +294,7 @@
                             @else
                                 not captured
                             @endif
-                            <button type="button" onclick="captureDeskGps()" class="ml-1 font-semibold text-teal-600 hover:underline">Capture location</button>
+                            <button type="button" onclick="captureDeskGps()" class="ml-1 font-semibold text-primary-600 hover:underline dark:text-primary-400">Capture location</button>
                         </p>
 
                         <button type="submit" class="isp-collection-submit w-full sm:w-auto">
@@ -337,7 +339,7 @@
                                             <span class="text-gray-300">·</span>
                                             <a href="{{ $bill['pdf_url'] }}" target="_blank" class="text-xs font-semibold text-gray-600 hover:underline">PDF</a>
                                             <span class="text-gray-300">·</span>
-                                            <button type="button" wire:click="recalculateInvoice({{ $bill['id'] }})" class="text-xs font-semibold text-teal-600 hover:underline">Recalc</button>
+                                            <button type="button" wire:click="recalculateInvoice({{ $bill['id'] }})" class="text-xs font-semibold text-primary-600 hover:underline dark:text-primary-400">Recalc</button>
                                         </td>
                                     </tr>
                                 @empty
@@ -360,12 +362,12 @@
                         <span class="text-xs font-semibold uppercase text-gray-500">Show</span>
                         <button type="button" wire:click="$set('collectionHistoryFilter', 'legacy_portal')" @class([
                             'rounded-lg px-3 py-1.5 text-xs font-semibold',
-                            'bg-teal-600 text-white' => $collectionHistoryFilter === 'legacy_portal',
+                            'bg-primary-600 text-white' => $collectionHistoryFilter === 'legacy_portal',
                             'bg-gray-100 text-gray-700 dark:bg-gray-800' => $collectionHistoryFilter !== 'legacy_portal',
                         ])>{{ \App\Support\BillingPortalLabel::collectionFilter() }}</button>
                         <button type="button" wire:click="$set('collectionHistoryFilter', 'all')" @class([
                             'rounded-lg px-3 py-1.5 text-xs font-semibold',
-                            'bg-teal-600 text-white' => $collectionHistoryFilter === 'all',
+                            'bg-primary-600 text-white' => $collectionHistoryFilter === 'all',
                             'bg-gray-100 text-gray-700 dark:bg-gray-800' => $collectionHistoryFilter !== 'all',
                         ])>All in this system</button>
                     </div>

@@ -101,6 +101,15 @@ final class PipraPayCheckoutStore
             ]);
     }
 
+    public static function forget(string $orderId): void
+    {
+        PendingGatewayPayment::query()
+            ->where('gateway', PaymentGateway::PIPRAPAY)
+            ->where('checkout_order_id', $orderId)
+            ->where('status', PendingGatewayPayment::STATUS_PENDING)
+            ->delete();
+    }
+
     /**
      * @return array{invoice_id?: int|null, customer_id: int, amount: string, return_to: string, payment_type: string, gateway: string}|null
      */

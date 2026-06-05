@@ -11,7 +11,9 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 @endif
+@if ($glass ?? true)
 <link rel="stylesheet" href="{{ asset('css/isp-premium-glass.css') }}?v={{ $premiumCssV }}">
+@endif
 @if ($tailwind ?? false)
 <script src="https://cdn.tailwindcss.com"></script>
 <script data-cfasync="false">
@@ -41,9 +43,11 @@
     };
 </script>
 @endif
+@if ($glass ?? true)
 <script data-cfasync="false">
     document.documentElement.classList.add('isp-premium-theme');
 </script>
+@endif
 @if ($motion ?? true)
 <script src="{{ asset('js/isp-premium-motion.js') }}?v={{ $motionJsV }}" data-cfasync="false"></script>
 @endif

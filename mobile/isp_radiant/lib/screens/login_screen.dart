@@ -8,11 +8,13 @@ import '../theme/app_theme.dart';
 import 'customer_home_screen.dart';
 import 'staff_home_screen.dart';
 
-/// Reference ISP app login — Admin / Client only, English, no extra hints.
+/// Native sign-in for customer or staff — role chosen on [LoginHubScreen].
 class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key, required this.api});
+  const LoginScreen({super.key, required this.api, required this.roleId});
 
   final ApiService api;
+  /// `customer` or `staff` (from server login.roles)
+  final String roleId;
 
   @override
   State<LoginScreen> createState() => _LoginScreenState();
@@ -23,23 +25,18 @@ class _LoginScreenState extends State<LoginScreen> {
   final _loginCtrl = TextEditingController();
   final _passCtrl = TextEditingController();
 
-  /// UI role: admin → staff API, client → customer API
-  String _uiRole = 'admin';
   bool _loading = false;
-  bool _configLoading = true;
   String? _error;
   bool _obscure = true;
 
   static const _headerBlue = Color(0xFF1565C0);
   static const _pageBg = Color(0xFFE8EEF5);
 
-  @override
-  void initState() {
-    super.initState();
-    widget.api.loadRemoteConfig().whenComplete(() {
-      if (mounted) setState(() => _configLoading = false);
-    });
-  }
+  bool get _isStaff => widget.roleId == 'staff';
+
+  String get _apiRole => _isStaff ? 'staff' : 'customer';
+
+  String get _title => _isStaff ? 'Admin / staff' : 'Customer portal';
 
   @override
   void dispose() {
@@ -47,8 +44,6 @@ class _LoginScreenState extends State<LoginScreen> {
     _passCtrl.dispose();
     super.dispose();
   }
-
-  String get _apiRole => _uiRole == 'client' ? 'customer' : 'staff';
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
@@ -104,55 +99,18 @@ class _LoginScreenState extends State<LoginScreen> {
         borderRadius: BorderRadius.circular(16),
         child: Image.network(
           url,
-          width: 80,
-          height: 80,
+          width: 64,
+          height: 64,
           fit: BoxFit.contain,
-          errorBuilder: (_, __, ___) => const Icon(Icons.wifi_tethering, size: 56, color: Colors.white),
+          errorBuilder: (_, __, ___) => const Icon(Icons.wifi_tethering, size: 44, color: Colors.white),
         ),
       );
     }
-    return const Icon(Icons.wifi_tethering, size: 56, color: Colors.white);
-  }
-
-  Widget _roleChip(String value, String label, IconData icon) {
-    final selected = _uiRole == value;
-    return Expanded(
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: _loading ? null : () => setState(() => _uiRole = value),
-          borderRadius: BorderRadius.circular(12),
-          child: Container(
-            padding: const EdgeInsets.symmetric(vertical: 14),
-            decoration: BoxDecoration(
-              color: selected ? _headerBlue : Colors.white,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: selected ? _headerBlue : Colors.grey.shade300, width: 1.5),
-            ),
-            child: Column(
-              children: [
-                Icon(icon, color: selected ? Colors.white : _headerBlue, size: 26),
-                const SizedBox(height: 6),
-                Text(
-                  label,
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
-                    color: selected ? Colors.white : _headerBlue,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
+    return const Icon(Icons.wifi_tethering, size: 44, color: Colors.white);
   }
 
   @override
   Widget build(BuildContext context) {
-    final isAdmin = _uiRole == 'admin';
-
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle.light,
       child: Scaffold(
@@ -161,7 +119,7 @@ class _LoginScreenState extends State<LoginScreen> {
           children: [
             Container(
               width: double.infinity,
-              padding: EdgeInsets.fromLTRB(20, MediaQuery.paddingOf(context).top + 24, 20, 28),
+              padding: EdgeInsets.fromLTRB(12, MediaQuery.paddingOf(context).top + 8, 20, 22),
               decoration: const BoxDecoration(
                 color: _headerBlue,
                 borderRadius: BorderRadius.only(
@@ -171,30 +129,33 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
               child: Column(
                 children: [
-                  if (_configLoading)
-                    const Padding(
-                      padding: EdgeInsets.only(bottom: 12),
-                      child: SizedBox(
-                        width: 28,
-                        height: 28,
-                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                  Row(
+                    children: [
+                      IconButton(
+                        onPressed: _loading ? null : () => Navigator.of(context).pop(),
+                        icon: const Icon(Icons.arrow_back, color: Colors.white),
                       ),
-                    ),
+                      const Expanded(
+                        child: Text(
+                          'Sign in',
+                          style: TextStyle(color: Colors.white70, fontSize: 14),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                      const SizedBox(width: 48),
+                    ],
+                  ),
                   _brandLogo(),
-                  const SizedBox(height: 14),
+                  const SizedBox(height: 10),
                   Text(
-                    RemoteConfig.appName,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    _title,
+                    style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
                     textAlign: TextAlign.center,
                   ),
-                  const SizedBox(height: 6),
-                  const Text(
-                    'Sign in',
-                    style: TextStyle(color: Colors.white70, fontSize: 15),
+                  const SizedBox(height: 4),
+                  Text(
+                    RemoteConfig.appName,
+                    style: const TextStyle(color: Colors.white60, fontSize: 13),
                   ),
                 ],
               ),
@@ -213,37 +174,20 @@ class _LoginScreenState extends State<LoginScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          const Text(
-                            'Login as',
-                            style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: Color(0xFF64748B)),
-                          ),
-                          const SizedBox(height: 12),
-                          Row(
-                            children: [
-                              _roleChip('admin', 'Admin', Icons.admin_panel_settings_outlined),
-                              const SizedBox(width: 12),
-                              _roleChip('client', 'Client', Icons.person_outline),
-                            ],
-                          ),
-                          const SizedBox(height: 24),
                           TextFormField(
                             controller: _loginCtrl,
-                            keyboardType: isAdmin ? TextInputType.emailAddress : TextInputType.text,
+                            keyboardType: _isStaff ? TextInputType.emailAddress : TextInputType.text,
                             textInputAction: TextInputAction.next,
+                            autofocus: true,
                             decoration: InputDecoration(
-                              labelText: isAdmin ? 'Email' : 'Phone / ID / Username',
-                              prefixIcon: Icon(isAdmin ? Icons.email_outlined : Icons.badge_outlined, color: _headerBlue),
+                              labelText: _isStaff ? 'Staff email' : 'Phone / ID / Username',
+                              prefixIcon: Icon(
+                                _isStaff ? Icons.email_outlined : Icons.badge_outlined,
+                                color: _headerBlue,
+                              ),
                               filled: true,
                               fillColor: const Color(0xFFF8FAFC),
                               border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                              enabledBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                                borderSide: BorderSide(color: Colors.grey.shade300),
-                              ),
-                              focusedBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                                borderSide: const BorderSide(color: _headerBlue, width: 2),
-                              ),
                             ),
                             validator: (v) => (v == null || v.trim().isEmpty) ? 'Required' : null,
                           ),
@@ -263,14 +207,6 @@ class _LoginScreenState extends State<LoginScreen> {
                               filled: true,
                               fillColor: const Color(0xFFF8FAFC),
                               border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                              enabledBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                                borderSide: BorderSide(color: Colors.grey.shade300),
-                              ),
-                              focusedBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                                borderSide: const BorderSide(color: _headerBlue, width: 2),
-                              ),
                             ),
                             validator: (v) => (v == null || v.isEmpty) ? 'Required' : null,
                           ),
@@ -302,7 +238,10 @@ class _LoginScreenState extends State<LoginScreen> {
                                       height: 24,
                                       child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                                     )
-                                  : Text(isAdmin ? 'Admin sign in' : 'Client sign in', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                                  : Text(
+                                      _isStaff ? 'Staff sign in' : 'Customer sign in',
+                                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                                    ),
                             ),
                           ),
                         ],

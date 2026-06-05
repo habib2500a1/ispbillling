@@ -21,6 +21,11 @@ class DemoSetupCommand extends Command
         $tenantId = max(1, (int) $this->option('tenant'));
 
         if ($this->option('fresh')) {
+            if (is_file(storage_path('.production-live')) || app()->environment('production')) {
+                $this->error('migrate:fresh is blocked on production. Use staging or remove --fresh.');
+
+                return self::FAILURE;
+            }
             if (! $this->confirm('migrate:fresh will DELETE all data. Continue?')) {
                 return self::SUCCESS;
             }

@@ -12,16 +12,14 @@
         'subtitle' => 'Send SMS to your subscribers using your own gateway credentials.',
     ])
 
-    <div class="rsl-panel rsl-panel-pad" style="max-width:32rem">
+    <div class="rsl-panel rsl-panel-pad rsl-panel-narrow">
         <form method="post" action="{{ route('reseller.settings.sms.update') }}" class="rsl-stack">
             @csrf
             @method('PUT')
 
-            <label class="rsl-field" style="cursor:pointer">
-                <span class="flex items-center gap-2 text-sm font-semibold" style="display:flex;gap:0.5rem;align-items:center">
-                    <input type="checkbox" name="sms_enabled" value="1" @checked($state['sms_enabled'])>
-                    Enable SMS for my customers
-                </span>
+            <label class="rsl-field rsl-field-check">
+                <input type="checkbox" name="sms_enabled" value="1" @checked($state['sms_enabled'])>
+                <span>Enable SMS for my customers</span>
             </label>
 
             <div class="rsl-field">

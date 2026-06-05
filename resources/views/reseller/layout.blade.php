@@ -10,26 +10,19 @@
     @include('partials.site-favicon')
     @include('partials.reseller-theme-head')
     @php
-        $rslPortalBuild = '2026.06.04-pro-fix';
+        $rslPortalBuild = '2026.06.04-pro-qa7';
         $rslCssFile = 'css/reseller-portal-pro.css';
+        $rslCompatFile = 'css/reseller-portal-compat.css';
         $rslCssVer = (@filemtime(public_path($rslCssFile)) ?: time()).'-'.$rslPortalBuild;
+        $rslCompatVer = (@filemtime(public_path($rslCompatFile)) ?: time()).'-'.$rslPortalBuild;
         $rslJsVer = (@filemtime(public_path('js/portal-theme.js')) ?: time()).'-'.$rslPortalBuild;
         $rslCssHref = '/'.$rslCssFile.'?v='.$rslCssVer;
+        $rslCompatHref = '/'.$rslCompatFile.'?v='.$rslCompatVer;
     @endphp
     <link rel="preload" href="{{ $rslCssHref }}" as="style">
-    <link rel="stylesheet" href="{{ $rslCssHref }}">
-    <style id="rsl-critical">
-        body.rsl-page{margin:0;min-height:100vh;font-family:'Plus Jakarta Sans',system-ui,sans-serif;color:#0f172a;background:#f1f5f9}
-        .rsl-app{min-height:100vh;display:flex;flex-direction:column}
-        @media(min-width:1024px){.rsl-app{flex-direction:row}}
-        .rsl-app-content{flex:1;min-width:0;display:flex;flex-direction:column}
-        .rsl-main{flex:1;padding:1rem;max-width:80rem;margin:0 auto;width:100%}
-        svg.rsl-pro-nav-icon,.rsl-dock-link svg{width:1.25rem;height:1.25rem;max-width:1.25rem;flex-shrink:0}
-        .rsl-pro-ring,.rsl-dash-ring{position:relative;width:4.5rem;height:4.5rem;max-width:4.5rem;flex-shrink:0}
-        .rsl-pro-ring-svg,.rsl-dash-ring-svg{width:100%;height:100%;max-width:100%}
-        .rsl-only-desktop{display:none}
-        @media(min-width:1024px){.rsl-only-desktop{display:block}.rsl-only-mobile{display:none!important}}
-    </style>
+    <link rel="stylesheet" href="{{ $rslCssHref }}" data-rsl-build="{{ $rslPortalBuild }}">
+    <link rel="stylesheet" href="{{ $rslCompatHref }}" data-rsl-build="{{ $rslPortalBuild }}">
+    @include('reseller.partials.critical-css')
     @stack('styles')
     <script src="{{ asset('js/portal-theme.js') }}?v={{ $rslJsVer }}"></script>
 </head>
@@ -155,16 +148,12 @@
         <div class="rsl-app-content">
             <header class="rsl-appbar">
                 <div class="rsl-appbar-inner">
-                <a href="{{ route('reseller.dashboard') }}" class="rsl-brand-link rsl-only-mobile">
-                    @if ($rslLogo)
-                        <img src="{{ $rslLogo }}" alt="" class="rsl-brand-logo">
-                    @else
-                        <span class="rsl-brand-mark">{{ $rslInitial }}</span>
-                    @endif
-                    <div class="rsl-brand-text">
-                        <p class="rsl-brand-title">{{ $reseller->brand_name ?: $reseller->name }}</p>
-                    </div>
-                </a>
+                <div class="rsl-appbar-start">
+                    <button type="button" class="rsl-mobile-menu-btn rsl-only-mobile" id="rsl-menu-btn" aria-expanded="false" aria-controls="rsl-mobile-nav" aria-label="Open menu">
+                        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" d="M4 7h16M4 12h16M4 17h16"/></svg>
+                    </button>
+                    <p class="rsl-appbar-page-title rsl-only-mobile">@yield('title', 'Dashboard')</p>
+                </div>
                 <p class="rsl-appbar-title rsl-only-desktop">@yield('title', 'Dashboard')</p>
                 <div class="rsl-appbar-actions">
                     <button type="button" class="rsl-theme-btn" onclick="portalCycleTheme()" id="rsl-theme-btn" aria-label="Theme">◐</button>
@@ -211,16 +200,22 @@
                 @yield('content')
             </main>
         </div>
-
-        <nav class="rsl-dock rsl-only-mobile" aria-label="Mobile navigation">
-            @foreach (array_slice($navPrimary, 0, 5) as [$route, $label, $patterns])
-                <a href="{{ route($route) }}" class="rsl-dock-link {{ $navActive($patterns) ? 'rsl-dock-link--active' : '' }}">
-                    @include('reseller.partials.nav-icons', ['name' => $navIcons[$route] ?? 'home'])
-                    <span>{{ $label }}</span>
-                </a>
-            @endforeach
-        </nav>
     </div>
+
+    @include('reseller.partials.mobile-nav')
+
+    <nav class="rsl-dock rsl-only-mobile" aria-label="Mobile navigation">
+        @foreach (array_slice($navPrimary, 0, 4) as [$route, $label, $patterns])
+            <a href="{{ route($route) }}" class="rsl-dock-link {{ $navActive($patterns) ? 'rsl-dock-link--active' : '' }}">
+                @include('reseller.partials.nav-icons', ['name' => $navIcons[$route] ?? 'home'])
+                <span class="rsl-dock-label">{{ $label }}</span>
+            </a>
+        @endforeach
+        <button type="button" class="rsl-dock-link rsl-dock-link--menu" id="rsl-dock-menu-btn" aria-expanded="false" aria-controls="rsl-mobile-nav">
+            @include('reseller.partials.nav-icons', ['name' => 'hub'])
+            <span class="rsl-dock-label">More</span>
+        </button>
+    </nav>
 
     <p class="rsl-portal-build" aria-hidden="true">{{ $rslPortalBuild }}</p>
     <script>
@@ -263,6 +258,56 @@
     }
     portalApplyTheme(window.portalGetTheme?.() || 'system');
     window.addEventListener('portal-theme-changed', (e) => portalApplyTheme(e.detail.mode));
+
+    (function () {
+        const nav = document.getElementById('rsl-mobile-nav');
+        const openers = [document.getElementById('rsl-menu-btn'), document.getElementById('rsl-dock-menu-btn')].filter(Boolean);
+        if (!nav || openers.length === 0) return;
+
+        const setOpen = (open) => {
+            nav.hidden = !open;
+            nav.classList.toggle('rsl-mobile-nav--open', open);
+            nav.setAttribute('aria-hidden', open ? 'false' : 'true');
+            document.body.classList.toggle('rsl-nav-open', open);
+            openers.forEach((btn) => btn.setAttribute('aria-expanded', open ? 'true' : 'false'));
+        };
+
+        const open = () => setOpen(true);
+        const close = () => setOpen(false);
+
+        openers.forEach((btn) => btn.addEventListener('click', () => {
+            nav.classList.contains('rsl-mobile-nav--open') ? close() : open();
+        }));
+        nav.querySelectorAll('[data-rsl-nav-close]').forEach((el) => el.addEventListener('click', close));
+        nav.querySelectorAll('.rsl-mobile-nav-link').forEach((a) => a.addEventListener('click', close));
+        document.addEventListener('keydown', (e) => { if (e.key === 'Escape') close(); });
+    })();
+
+    (function () {
+        const mq = window.matchMedia('(min-width: 1024px)');
+        const syncDesktopChrome = () => {
+            const desktop = mq.matches;
+            document.documentElement.classList.toggle('rsl-viewport-desktop', desktop);
+            document.documentElement.classList.toggle('rsl-viewport-mobile', !desktop);
+            const dock = document.querySelector('nav.rsl-dock');
+            if (dock) {
+                dock.hidden = desktop;
+                dock.setAttribute('aria-hidden', desktop ? 'true' : 'false');
+                if (desktop) {
+                    dock.style.setProperty('display', 'none', 'important');
+                } else {
+                    dock.style.removeProperty('display');
+                }
+            }
+            const menuBtn = document.getElementById('rsl-menu-btn');
+            if (menuBtn) {
+                menuBtn.hidden = desktop;
+            }
+        };
+        syncDesktopChrome();
+        mq.addEventListener('change', syncDesktopChrome);
+        window.addEventListener('resize', syncDesktopChrome);
+    })();
 </script>
 @stack('scripts')
 </body>

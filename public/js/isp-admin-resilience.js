@@ -10,8 +10,8 @@
         return Date.now() - last > RELOAD_COOLDOWN_MS;
     }
 
-    function safeReload(reason) {
-        if (!shouldReload()) {
+    function safeReload(reason, force) {
+        if (!force && !shouldReload()) {
             return;
         }
 
@@ -101,18 +101,61 @@
         });
     });
 
-    document.addEventListener('livewire:init', () => {
-        if (!window.Livewire?.hook) {
-            return;
+    let livewire419HookBound = false;
+
+    function bindLivewire419Recovery() {
+        if (livewire419HookBound || !window.Livewire?.hook) {
+            return livewire419HookBound;
         }
 
         window.Livewire.hook('request', ({ fail }) => {
             fail(({ status, preventDefault }) => {
                 if (status === 419 || status === 401 || status === 403) {
                     preventDefault();
-                    safeReload('session expired (HTTP ' + status + ')');
+                    safeReload('livewire HTTP ' + status, status === 419);
                 }
             });
         });
+
+        livewire419HookBound = true;
+
+        return true;
+    }
+
+    document.addEventListener('livewire:init', bindLivewire419Recovery);
+
+    if (!bindLivewire419Recovery()) {
+        const poll = window.setInterval(() => {
+            if (bindLivewire419Recovery()) {
+                window.clearInterval(poll);
+            }
+        }, 50);
+
+        window.setTimeout(() => window.clearInterval(poll), 10000);
+    }
+
+    /** Keep admin session warm on long forms (OLT edit, collection desk, etc.). */
+    const KEEPALIVE_MS = 8 * 60 * 1000;
+    const KEEPALIVE_URL = '/admin/session-keepalive';
+
+    function pingSession() {
+        if (!document.querySelector('.fi-body')) {
+            return;
+        }
+
+        nativeFetch(KEEPALIVE_URL, {
+            method: 'GET',
+            credentials: 'same-origin',
+            headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+        }).catch(() => {});
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        pingSession();
+        window.setInterval(pingSession, KEEPALIVE_MS);
+    });
+
+    document.addEventListener('livewire:navigated', () => {
+        pingSession();
     });
 })();

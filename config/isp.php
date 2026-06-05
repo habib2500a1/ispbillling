@@ -55,6 +55,8 @@ return [
         'bundle_css' => env('ISP_BUNDLE_CSS', env('APP_ENV') === 'production'),
         /** admin-saas.css bundle also contains utilities + responsive when built via isp:build-styles */
         'bundle_includes_extras' => true,
+        /** Bump when admin CSS/JS changes so browsers skip stale cached bundles. */
+        'version_salt' => (int) env('ISP_ASSET_VERSION_SALT', 7),
     ],
 
     /*

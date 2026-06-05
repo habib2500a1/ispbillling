@@ -1,0 +1,109 @@
+#!/usr/bin/env bash
+# Per-OLT PPTP control (called via sudo from PHP). Usage: isp-olt-pptp-ctl <connect|disconnect|status|sync-peer> <olt_id>
+set -euo pipefail
+
+ACTION="${1:?action}"
+OLT_ID="${2:?olt_id}"
+APP_ROOT="${ISP_PLATFORM_ROOT:-/var/www/isp-platform}"
+CFG="${APP_ROOT}/storage/app/private/olt-pptp/${OLT_ID}.json"
+
+json() { printf '%s\n' "$1"; }
+
+if [[ ! -f "$CFG" ]]; then
+  json '{"ok":false,"message":"No PPTP config for OLT '"$OLT_ID"' — save OLT with PPTP enabled in panel."}'
+  exit 1
+fi
+
+SERVER=$(php -r 'echo json_decode(file_get_contents($argv[1]), true)["server"] ?? "";' "$CFG")
+USER=$(php -r 'echo json_decode(file_get_contents($argv[1]), true)["username"] ?? "";' "$CFG")
+PASS=$(php -r 'echo json_decode(file_get_contents($argv[1]), true)["password"] ?? "";' "$CFG")
+SUBNET=$(php -r 'echo json_decode(file_get_contents($argv[1]), true)["subnet"] ?? "";' "$CFG")
+PEER=$(php -r 'echo json_decode(file_get_contents($argv[1]), true)["peer"] ?? "olt-pptp-'.$OLT_ID'";' "$CFG")
+
+if [[ -z "$SERVER" || -z "$USER" || -z "$PASS" || -z "$SUBNET" ]]; then
+  json '{"ok":false,"message":"Incomplete PPTP config JSON"}'
+  exit 1
+fi
+
+write_peer() {
+  cat > "/etc/ppp/peers/${PEER}" <<EOF
+pty "pptp ${SERVER} --nolaunchpppd"
+name ${USER}
+remotename ${PEER}
+require-mschap-v2
+refuse-pap
+refuse-chap
+refuse-eap
+noauth
+persist
+maxfail 0
+holdoff 15
+lock
+nodeflate
+nobsdcomp
+novj
+novjccomp
+mtu 1400
+mru 1400
+EOF
+  chmod 600 "/etc/ppp/peers/${PEER}"
+  grep -q "\"${USER}\" ${PEER}" /etc/ppp/chap-secrets 2>/dev/null || \
+    echo "\"${USER}\" ${PEER} \"${PASS}\" *" >> /etc/ppp/chap-secrets
+  chmod 600 /etc/ppp/chap-secrets
+  install -m 755 /dev/stdin "/etc/ppp/ip-up.d/99-${PEER}-route" <<SCRIPT
+#!/bin/sh
+[ "\${PPP_IFACE}" = "ppp0" ] || [ "\${PPP_IFACE}" = "ppp1" ] || true
+ip route replace ${SUBNET} dev "\${PPP_IFACE}" scope link 2>/dev/null || true
+logger -t ${PEER} "route ${SUBNET} on \${PPP_IFACE}"
+SCRIPT
+  install -m 755 /dev/stdin "/etc/ppp/ip-down.d/99-${PEER}-route" <<SCRIPT
+#!/bin/sh
+ip route del ${SUBNET} dev "\${PPP_IFACE}" 2>/dev/null || true
+SCRIPT
+}
+
+ppp_up() {
+  ip -o link show type ppp 2>/dev/null | grep -q 'UP' && return 0
+  return 1
+}
+
+last_ppp_log() {
+  grep -hE 'pppd|pptp|LCP|CHAP|MPPE|auth' /var/log/syslog 2>/dev/null | tail -6 | tr '\n' ' | ' | cut -c1-400
+}
+
+case "$ACTION" in
+  sync-peer)
+    write_peer
+    json '{"ok":true,"message":"Peer file updated"}'
+    ;;
+  connect)
+    write_peer
+    poff "$PEER" 2>/dev/null || true
+    sleep 1
+    poff isp-olt 2>/dev/null || true
+    pon "$PEER" updetach persist &
+    sleep 6
+    if ppp_up; then
+      json '{"ok":true,"message":"PPTP connected","ppp_up":true}'
+    else
+      LOG=$(last_ppp_log)
+      json "{\"ok\":false,\"message\":\"PPTP LCP/GRE failed — MikroTik-এ GRE (proto 47) + TCP 1723 খুলুন\",\"ppp_up\":false,\"log_tail\":\"${LOG}\"}"
+      exit 1
+    fi
+    ;;
+  disconnect)
+    poff "$PEER" 2>/dev/null || true
+    json '{"ok":true,"message":"Disconnected"}'
+    ;;
+  status)
+    if ppp_up; then
+      json '{"ok":true,"message":"PPP up","ppp_up":true}'
+    else
+      json '{"ok":false,"message":"PPP down","ppp_up":false}'
+    fi
+    ;;
+  *)
+    json '{"ok":false,"message":"Unknown action"}'
+    exit 1
+    ;;
+esac

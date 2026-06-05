@@ -74,11 +74,28 @@ class PortalDashboardTest extends TestCase
         $this->actingAs($customer, 'customer')
             ->get(route('portal.speed-test.index'))
             ->assertOk()
-            ->assertSee('Speed test');
+            ->assertSee('Internet speed test', false)
+            ->assertSee('Your connection usage', false)
+            ->assertSee('Live download', false)
+            ->assertSee('START', false);
 
         $this->actingAs($customer, 'customer')
             ->getJson(route('portal.speed-test.ping'))
             ->assertOk();
+    }
+
+    public function test_usage_page_includes_full_speed_test(): void
+    {
+        $customer = $this->portalCustomer();
+
+        $this->actingAs($customer, 'customer')
+            ->get(route('portal.usage.index'))
+            ->assertOk()
+            ->assertSee('Usage &amp; speed test', false)
+            ->assertSee('START', false)
+            ->assertSee('Live usage graph', false)
+            ->assertSee('portal-speedtest-live.js', false)
+            ->assertDontSee('Check speed now', false);
     }
 
     public function test_dashboard_service_payload_structure(): void

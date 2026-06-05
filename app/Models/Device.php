@@ -63,8 +63,22 @@ class Device extends Model
         'last_health_polled_at',
         'last_snmp_poll_at',
         'notes',
+        'warranty_vendor',
+        'warranty_started_at',
+        'warranty_expires_at',
+        'warranty_status',
+        'warranty_claimed_at',
+        'warranty_notes',
         'meta',
     ];
+
+    public const WARRANTY_ACTIVE = 'active';
+
+    public const WARRANTY_EXPIRED = 'expired';
+
+    public const WARRANTY_VOID = 'void';
+
+    public const WARRANTY_CLAIMED = 'claimed';
 
     protected $hidden = [
         'snmp_community',
@@ -159,11 +173,58 @@ class Device extends Model
         return OltManagementHelper::webUiUrl($this);
     }
 
+    public function hasWarranty(): bool
+    {
+        return $this->warranty_expires_at !== null || filled($this->warranty_vendor);
+    }
+
+    public function warrantyIsExpired(): bool
+    {
+        if ($this->warranty_status === self::WARRANTY_EXPIRED) {
+            return true;
+        }
+
+        return $this->warranty_expires_at !== null && $this->warranty_expires_at->isPast();
+    }
+
+    public function warrantyExpiresWithinDays(int $days = 30): bool
+    {
+        if ($this->warranty_expires_at === null || $this->warrantyIsExpired()) {
+            return false;
+        }
+
+        return $this->warranty_expires_at->lte(now()->addDays($days));
+    }
+
+    public function effectiveWarrantyStatus(): string
+    {
+        if ($this->warranty_status === self::WARRANTY_CLAIMED) {
+            return self::WARRANTY_CLAIMED;
+        }
+
+        if ($this->warranty_status === self::WARRANTY_VOID) {
+            return self::WARRANTY_VOID;
+        }
+
+        if ($this->warrantyIsExpired()) {
+            return self::WARRANTY_EXPIRED;
+        }
+
+        if ($this->hasWarranty()) {
+            return self::WARRANTY_ACTIVE;
+        }
+
+        return '';
+    }
+
     protected function casts(): array
     {
         return [
             'meta' => 'array',
             'olt_health' => 'array',
+            'warranty_started_at' => 'date',
+            'warranty_expires_at' => 'date',
+            'warranty_claimed_at' => 'date',
             'provisioned_at' => 'datetime',
             'last_polled_at' => 'datetime',
             'last_health_polled_at' => 'datetime',

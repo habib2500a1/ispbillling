@@ -65,13 +65,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        if (PHP_SAPI === 'cli' && is_file(storage_path('.production-live'))) {
-            $argv = $_SERVER['argv'] ?? [];
-            if (($argv[1] ?? null) === 'test') {
-                fwrite(STDERR, "php artisan test is disabled on this production server.\n");
-                fwrite(STDERR, "Remove storage/.production-live or run tests on a staging machine.\n");
-                exit(1);
-            }
+        if (PHP_SAPI === 'cli') {
+            $this->guardProductionArtisanCommands();
         }
 
         $this->app->bind(NavigationManager::class, IspNavigationManager::class);
@@ -120,6 +115,12 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        foreach (EnsureStorageWritable::directories() as $dir) {
+            if (! is_dir($dir)) {
+                \Illuminate\Support\Facades\File::ensureDirectoryExists($dir, 0775);
+            }
+        }
+
         if ($storageIssues = EnsureStorageWritable::findIssues()) {
             Log::channel('single')->critical('storage_not_writable', [
                 'issues' => $storageIssues,
@@ -200,6 +201,43 @@ class AppServiceProvider extends ServiceProvider
 
         if (! is_dir(storage_path('app/livewire-tmp'))) {
             \Illuminate\Support\Facades\File::ensureDirectoryExists(storage_path('app/livewire-tmp'), 0775);
+        }
+    }
+
+    /**
+     * Block destructive DB commands on production (migrate:fresh wiped live data once via --env=testing).
+     */
+    private function guardProductionArtisanCommands(): void
+    {
+        if (! is_file(storage_path('.production-live')) && config('app.env') !== 'production') {
+            return;
+        }
+
+        $argv = $_SERVER['argv'] ?? [];
+        $command = $argv[1] ?? null;
+
+        $blocked = [
+            'migrate:fresh',
+            'migrate:reset',
+            'db:wipe',
+            'schema:drop',
+        ];
+
+        if (in_array($command, $blocked, true)) {
+            fwrite(STDERR, "Blocked on production: php artisan {$command}\n");
+            fwrite(STDERR, "Use migrate only. Data import: isp:import-legacy-portal-full (see docs).\n");
+            exit(1);
+        }
+
+        if ($command === 'isp:demo-setup' && in_array('--fresh', $argv, true)) {
+            fwrite(STDERR, "Blocked on production: isp:demo-setup --fresh (runs migrate:fresh).\n");
+            exit(1);
+        }
+
+        if ($command === 'test') {
+            fwrite(STDERR, "php artisan test is disabled on this production server.\n");
+            fwrite(STDERR, "Remove storage/.production-live or run tests on a staging machine.\n");
+            exit(1);
         }
     }
 }

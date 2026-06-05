@@ -58,7 +58,12 @@
                     <label class="rsl-field-label">Package</label>
                     <select name="package_id" id="package-select" required class="rsl-input">
                         @foreach ($options['packages'] as $pkg)
-                            <option value="{{ $pkg['id'] }}" data-price="{{ (float) ($pkg['customer_price'] ?? $pkg['price_monthly']) }}" @selected(old('package_id') == $pkg['id'])>{{ $pkg['name'] }} — {{ number_format((float) ($pkg['customer_price'] ?? $pkg['price_monthly']), 0) }} BDT@if(! empty($pkg['wholesale_price'])) (your rate {{ number_format((float) $pkg['wholesale_price'], 0) }})@endif</option>
+                            <option value="{{ $pkg['id'] }}" data-price="{{ (float) ($pkg['customer_price'] ?? $pkg['price_monthly']) }}" @selected(old('package_id') == $pkg['id'])>
+                                {{ $pkg['name'] }} — {{ number_format((float) ($pkg['customer_price'] ?? $pkg['price_monthly']), 0) }} BDT
+                                @if (! empty($pkg['wholesale_price']))
+                                    (your rate {{ number_format((float) $pkg['wholesale_price'], 0) }})
+                                @endif
+                            </option>
                         @endforeach
                     </select>
                 </div>
@@ -91,10 +96,16 @@
                         </select>
                     </div>
                 @endif
-                <label class="flex items-center gap-2 text-sm">
-                    <input type="checkbox" name="allow_active_when_due" value="1" class="rounded border-slate-300" @checked(old('allow_active_when_due'))>
-                    Keep online when bill is due (postpaid override)
+                <label class="rsl-field-check">
+                    <input type="checkbox" name="allow_active_when_due" value="1" @checked(old('allow_active_when_due'))>
+                    <span>Keep online when bill is due (postpaid override)</span>
                 </label>
+            </section>
+
+            @include('reseller.partials.customer-pricing-fields', ['customer' => null, 'pricing' => null])
+            @include('reseller.partials.customer-extended-fields', ['customer' => null])
+
+            <section class="grid gap-4 border-t border-slate-200 pt-6 rsl-form-section--cont">
                 <label class="flex items-center gap-2 text-sm">
                     <input type="checkbox" name="generate_bill" value="1" class="rounded border-slate-300" @checked(old('generate_bill', '1') !== '0')>
                     Generate first bill now

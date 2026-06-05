@@ -25,13 +25,21 @@ final class SecurityHeaders
             $response->headers->set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
         }
 
-        if ($request->is('reseller') || $request->is('reseller/*')) {
+        if ($request->is('reseller') || $request->is('reseller/*')
+            || $request->is('admin') || $request->is('admin/*')) {
             $response->headers->set('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
             $response->headers->set('Pragma', 'no-cache');
             $response->headers->set('Expires', '0');
             $response->headers->set('CDN-Cache-Control', 'no-store');
             $response->headers->set('Cloudflare-CDN-Cache-Control', 'no-store');
-            $response->headers->set('X-Portal-Build', '2026.06.04-pro-fix');
+        }
+
+        if ($request->is('reseller') || $request->is('reseller/*')) {
+            $response->headers->set('X-Portal-Build', '2026.06.04-pro-qa2');
+        }
+
+        if ($request->is('admin') || $request->is('admin/*')) {
+            $response->headers->set('X-Admin-Build', '2026.06.05-subscribers-livewire-v2');
         }
 
         return $response;

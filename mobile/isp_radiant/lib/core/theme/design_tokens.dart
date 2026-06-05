@@ -8,10 +8,10 @@ import 'package:flutter/material.dart';
 class DesignTokens {
   DesignTokens._();
 
-  // ---- Brand (shared across modes) -------------------------------------
-  static const Color primary = Color(0xFF8B5CF6); // purple
-  static const Color primaryDeep = Color(0xFF7C3AED);
-  static const Color primarySoft = Color(0xFFA78BFA);
+  // ---- Brand (ISP professional blue — matches admin mobile reference) ----
+  static const Color primary = Color(0xFF1565C0);
+  static const Color primaryDeep = Color(0xFF0D47A1);
+  static const Color primarySoft = Color(0xFF42A5F5);
 
   // Status (shared)
   static const Color success = Color(0xFF10B981);
@@ -89,7 +89,7 @@ class BrandColors extends ThemeExtension<BrandColors> {
     textMuted: DesignTokens.darkTextMuted,
     surfaceAlt: DesignTokens.darkSurfaceAlt,
     border: DesignTokens.darkBorder,
-    heroGradient: [Color(0xFF7C3AED), Color(0xFF6366F1), Color(0xFF0EA5E9)],
+    heroGradient: [Color(0xFF1565C0), Color(0xFF1976D2), Color(0xFF0288D1)],
   );
 
   static const BrandColors light = BrandColors(
@@ -100,7 +100,7 @@ class BrandColors extends ThemeExtension<BrandColors> {
     textMuted: DesignTokens.lightTextMuted,
     surfaceAlt: DesignTokens.lightSurfaceAlt,
     border: DesignTokens.lightBorder,
-    heroGradient: [Color(0xFF8B5CF6), Color(0xFF6366F1), Color(0xFF22D3EE)],
+    heroGradient: [Color(0xFF1565C0), Color(0xFF1976D2), Color(0xFF29B6F6)],
   );
 
   /// Convenience accessor: `context.brand`.

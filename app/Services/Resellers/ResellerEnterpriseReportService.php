@@ -68,9 +68,9 @@ final class ResellerEnterpriseReportService
         }
 
         $rows = Payment::query()
-            ->whereIn('customer_id', $customerIds)
-            ->where('status', 'completed')
-            ->whereBetween('paid_at', [$from, $to])
+            ->whereIn('payments.customer_id', $customerIds)
+            ->where('payments.status', 'completed')
+            ->whereBetween('payments.paid_at', [$from, $to])
             ->join('customers', 'payments.customer_id', '=', 'customers.id')
             ->join('packages', 'customers.package_id', '=', 'packages.id')
             ->select('packages.name', DB::raw('COUNT(*) as payment_count'), DB::raw('SUM(payments.amount) as total'))
@@ -102,10 +102,10 @@ final class ResellerEnterpriseReportService
         $collections = 0.0;
         if ($customerIds->isNotEmpty()) {
             $collections = (float) Payment::query()
-                ->whereIn('customer_id', $customerIds)
-                ->where('status', 'completed')
-                ->whereBetween('paid_at', [$from, $to])
-                ->sum('amount');
+                ->whereIn('payments.customer_id', $customerIds)
+                ->where('payments.status', 'completed')
+                ->whereBetween('payments.paid_at', [$from, $to])
+                ->sum('payments.amount');
         }
 
         $wholesaleDebits = (float) \App\Models\ResellerBalanceTransfer::query()

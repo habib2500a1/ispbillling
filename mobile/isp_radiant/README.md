@@ -15,8 +15,10 @@ Unified Android app for **Admin / Staff** and **Clients** — native API client 
 
 | Role | Login | Dashboard |
 |------|-------|-----------|
+| Hub UI | App `LoginHubScreen` — roles from `GET /api/v1/mobile/config` → `login.roles` (synced with web `/login`) |
 | Staff | `POST /api/v1/mobile/login` (`role: staff`, email + password) | `GET /api/v1/staff/dashboard` |
 | Client | `POST /api/v1/mobile/login` (`role: customer`, phone/ID + password) | `GET /api/v1/customer/dashboard` |
+| Reseller | In-app WebView → `/reseller/login` (or `POST /mobile/login` `role: reseller` for API clients) | Web partner portal |
 
 - Token refresh: `POST /api/v1/auth/refresh` (staff), `POST /api/v1/customer/auth/refresh` (customer)
 

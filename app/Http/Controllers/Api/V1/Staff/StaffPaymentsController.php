@@ -10,6 +10,7 @@ use App\Services\Billing\PaymentVoidService;
 use App\Services\Billing\StaffCollectionPaymentService;
 use App\Services\Collector\CollectorWalletService;
 use App\Support\PaymentGateway;
+use App\Support\StaffMobileApiAccess;
 use App\Support\StaffPaymentApiPresenter;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -17,9 +18,7 @@ use Illuminate\Validation\Rule;
 
 class StaffPaymentsController extends Controller
 {
-    private const ACCESS_ROLES = [
-        'super-admin', 'isp-admin', 'admin', 'cashier', 'collector', 'branch-manager', 'isp-manager',
-    ];
+    use StaffMobileApiAccess;
 
     public function methods(): JsonResponse
     {
@@ -33,7 +32,7 @@ class StaffPaymentsController extends Controller
 
     public function store(Request $request, StaffCollectionPaymentService $collections): JsonResponse
     {
-        $user = $this->staff($request);
+        $user = $this->staffMobileUser($request);
 
         $data = $request->validate([
             'customer_id' => ['required', 'integer', 'exists:customers,id'],
@@ -72,7 +71,7 @@ class StaffPaymentsController extends Controller
 
     public function destroy(Request $request, int $paymentId, PaymentVoidService $voids): JsonResponse
     {
-        $user = $this->staff($request);
+        $user = $this->staffMobileUser($request);
 
         $data = $request->validate([
             'reason' => ['nullable', 'string', 'max:500'],
@@ -102,11 +101,4 @@ class StaffPaymentsController extends Controller
         ]);
     }
 
-    private function staff(Request $request): User
-    {
-        $user = $request->user();
-        abort_unless($user instanceof User && $user->hasAnyRole(self::ACCESS_ROLES), 403);
-
-        return $user;
-    }
 }

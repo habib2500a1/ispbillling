@@ -29,9 +29,22 @@ class ListCustomers extends ListRecords
     #[Url(as: 'preset')]
     public string $preset = 'all';
 
+    /**
+     * @return array<string, mixed>
+     */
+    protected function queryString(): array
+    {
+        return [
+            'tableSearch' => ['except' => ''],
+            'tableFilters' => ['except' => null],
+        ];
+    }
+
     public function mount(): void
     {
         parent::mount();
+        $this->loadDirectoryChrome();
+        $this->migrateLegacySearchQuery();
     }
 
     public function getHeading(): string
@@ -41,7 +54,12 @@ class ListCustomers extends ListRecords
 
     public function getSubheading(): ?string
     {
-        return null;
+        return 'Search, filter, and manage all subscribers — PPPoE, packages, billing, and bulk actions.';
+    }
+
+    public function getPageTitle(): string
+    {
+        return 'All clients';
     }
 
     /**

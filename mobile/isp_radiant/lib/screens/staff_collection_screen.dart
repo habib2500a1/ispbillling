@@ -135,7 +135,7 @@ class _StaffCollectionScreenState extends State<StaffCollectionScreen> {
       children: [
         IspUiKit.gradientHeader(
           title: 'Collection',
-          subtitle: 'Bill receive · daily cash',
+          subtitle: 'Search client · receive payment',
           trailing: [
             IconButton(
               icon: const Icon(Icons.history, color: Colors.white),

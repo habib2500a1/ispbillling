@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Reseller;
 
 use App\Http\Controllers\Controller;
+use App\Models\Customer;
 use App\Models\Invoice;
 use App\Models\ResellerLedgerEntry;
 use App\Services\Resellers\ResellerBillingPolicyService;
@@ -37,6 +38,28 @@ class ResellerDueAccountController extends Controller
             'with_bill' => count(array_filter($subscriberLines, fn (array $l): bool => $l['invoice_number'] !== null)),
         ];
 
+        $monthStart = now()->startOfMonth();
+        $customerIds = Customer::query()->where('reseller_id', $reseller->id)->pluck('id');
+        $monthContext = [
+            'label' => $monthStart->format('F Y'),
+            'hq_wholesale' => round((float) ResellerLedgerEntry::query()
+                ->where('reseller_id', $reseller->id)
+                ->where('entry_type', ResellerLedgerEntry::TYPE_ADMIN_RECEIVABLE_ACCRUAL)
+                ->where('created_at', '>=', $monthStart)
+                ->sum('amount'), 2),
+            'hq_collections' => round((float) ResellerLedgerEntry::query()
+                ->where('reseller_id', $reseller->id)
+                ->where('entry_type', ResellerLedgerEntry::TYPE_ADMIN_RECEIVABLE_COLLECTION)
+                ->where('created_at', '>=', $monthStart)
+                ->sum('amount'), 2),
+            'customer_invoiced' => round((float) Invoice::query()
+                ->whereIn('customer_id', $customerIds)
+                ->whereNotIn('status', ['void', 'cancelled'])
+                ->where('issue_date', '>=', $monthStart->toDateString())
+                ->sum('total'), 2),
+            'subscriber_bills' => $lineTotals['with_bill'],
+        ];
+
         return view('reseller.due-account', [
             'reseller' => $reseller,
             'summary' => $summary,
@@ -48,6 +71,7 @@ class ResellerDueAccountController extends Controller
             'customerDue' => $customerBreakdown['due'],
             'settlementMode' => ResellerBillingSettlementMode::labels()[$reseller->billing_settlement_mode ?? 'postpaid_due'] ?? 'Postpaid due',
             'customerPolicy' => ResellerCustomerBillingPolicy::labels()[$reseller->customer_billing_policy ?? 'reseller_controlled'] ?? '',
+            'monthContext' => $monthContext,
         ]);
     }
 }

@@ -30,9 +30,12 @@ class ResellerPaymentController extends Controller
             'due_date' => $inv->due_date?->format('d M Y'),
         ]);
 
+        $profile = app(\App\Services\Resellers\ResellerCustomerProfileService::class)->profileSnapshot($customer);
+
         return view('reseller.collect-payment', [
             'reseller' => $reseller,
             'customer' => $customer,
+            'profile' => $profile,
             'openDue' => OpenInvoiceResolver::totalOpenDue($customer),
             'openInvoices' => $openInvoices,
             'walletBalance' => (float) $customer->account_balance,

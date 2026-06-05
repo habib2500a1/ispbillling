@@ -183,7 +183,7 @@
         <article class="portal-pro-card portal-pro-card--billing">
             <header class="portal-pro-card__head">
                 <div style="display: flex; gap: 0.65rem; align-items: flex-start;">
-                    <span class="portal-pro-card__icon" aria-hidden="true">৳</span>
+                    <span class="portal-pro-card__icon" aria-hidden="true">💵</span>
                     <div>
                         <p class="portal-pro-card__label">Current due</p>
                         <p class="portal-pro-card__hint">Outstanding balance</p>

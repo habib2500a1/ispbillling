@@ -4,7 +4,10 @@ namespace App\Http\Controllers\Reseller;
 
 use App\Http\Controllers\Controller;
 use App\Models\Customer;
+use App\Services\Resellers\ResellerCustomerPricingService;
+use App\Services\Resellers\ResellerCustomerProfileService;
 use App\Services\Resellers\ResellerCustomerService;
+use App\Services\Resellers\ResellerPackageCatalogService;
 use App\Services\Resellers\ResellerNetworkSessionService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -61,9 +64,15 @@ class ResellerCustomerManageController extends Controller
 
         $networkSession = $networkSessions->liveDetail($customer);
 
+        $profileService = app(ResellerCustomerProfileService::class);
+
         return view('reseller.customers-show', [
             'reseller' => $reseller,
             'customer' => $customer,
+            'pricing' => app(ResellerCustomerPricingService::class)->snapshot($reseller, $customer),
+            'profile' => $profileService->profileSnapshot($customer),
+            'marginHistory' => $profileService->marginHistory($reseller, $customer),
+            'packageOptions' => app(ResellerPackageCatalogService::class)->portalPackageOptions($reseller),
             'billingPaused' => $billingPaused,
             'suspensionMonthCurrent' => $suspensionMonthCurrent,
             'displayDue' => $pauseBilling->displayableOpenDue($customer),
@@ -81,6 +90,8 @@ class ResellerCustomerManageController extends Controller
         return view('reseller.customers-edit', [
             'reseller' => $reseller,
             'customer' => $customer,
+            'pricing' => app(ResellerCustomerPricingService::class)->snapshot($reseller, $customer),
+            'profile' => app(ResellerCustomerProfileService::class)->profileSnapshot($customer),
             'options' => $customers->formOptions($reseller),
         ]);
     }

@@ -30,7 +30,9 @@ trait AppliesClientsDirectoryTableQuery
                     ->orWhere("{$table}.email", 'ilike', $like)
                     ->orWhere("{$table}.mikrotik_secret_name", 'ilike', $like)
                     ->orWhere("{$table}.radius_username", 'ilike', $like)
-                    ->orWhere("{$table}.address", 'ilike', $like);
+                    ->orWhere("{$table}.address", 'ilike', $like)
+                    ->orWhereHas('zone', fn (Builder $zoneQuery): Builder => $zoneQuery->where('name', 'ilike', $like))
+                    ->orWhereHas('area', fn (Builder $areaQuery): Builder => $areaQuery->where('name', 'ilike', $like));
 
                 return;
             }
@@ -42,7 +44,9 @@ trait AppliesClientsDirectoryTableQuery
                 ->orWhereRaw("LOWER({$table}.email) LIKE LOWER(?)", [$like])
                 ->orWhereRaw("LOWER({$table}.mikrotik_secret_name) LIKE LOWER(?)", [$like])
                 ->orWhereRaw("LOWER({$table}.radius_username) LIKE LOWER(?)", [$like])
-                ->orWhereRaw("LOWER({$table}.address) LIKE LOWER(?)", [$like]);
+                ->orWhereRaw("LOWER({$table}.address) LIKE LOWER(?)", [$like])
+                ->orWhereHas('zone', fn (Builder $zoneQuery): Builder => $zoneQuery->whereRaw('LOWER(name) LIKE LOWER(?)', [$like]))
+                ->orWhereHas('area', fn (Builder $areaQuery): Builder => $areaQuery->whereRaw('LOWER(name) LIKE LOWER(?)', [$like]));
         });
     }
 }

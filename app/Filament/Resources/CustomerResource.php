@@ -932,6 +932,27 @@ class CustomerResource extends Resource
     }
 
     /**
+     * @param  callable(): array<int|string, string>  $options
+     */
+    protected static function clientsDirectorySelectFilter(
+        string $name,
+        string $label,
+        string $placeholder,
+        callable $options,
+    ): Tables\Filters\SelectFilter {
+        return Tables\Filters\SelectFilter::make($name)
+            ->label($label)
+            ->placeholder($placeholder)
+            ->options($options)
+            ->searchable()
+            ->preload()
+            ->native(false)
+            ->modifyFormFieldUsing(
+                fn (Forms\Components\Select $field): Forms\Components\Select => $field->live(),
+            );
+    }
+
+    /**
      * @return array<int, Tables\Filters\BaseFilter>
      */
     protected static function clientsDirectoryFilters(): array
@@ -940,37 +961,45 @@ class CustomerResource extends Resource
         $today = now()->toDateString();
 
         return [
-            Tables\Filters\SelectFilter::make('package_id')
-                ->label('Package')
-                ->placeholder('All packages')
-                ->options(fn (): array => static::cachedClientsFilterPackages($tenantId))
-                ->searchable()
-                ->native(false),
-            Tables\Filters\SelectFilter::make('zone_id')
-                ->label('Zone')
-                ->placeholder('All zones')
-                ->options(fn (): array => static::cachedClientsFilterZones($tenantId))
-                ->searchable()
-                ->native(false),
-            Tables\Filters\SelectFilter::make('reseller_id')
-                ->label('Owner')
-                ->placeholder('All owners')
-                ->options(fn (): array => static::cachedClientsFilterResellers())
-                ->searchable()
-                ->native(false),
-            Tables\Filters\SelectFilter::make('status')
-                ->label('Account status')
-                ->placeholder('Any status')
-                ->options(CustomerStatus::options())
-                ->native(false),
-            Tables\Filters\SelectFilter::make('network_access_state')
-                ->label('Line')
-                ->placeholder('Any line')
-                ->options([
+            static::clientsDirectorySelectFilter(
+                'package_id',
+                'Package',
+                'All packages',
+                fn (): array => static::cachedClientsFilterPackages($tenantId),
+            ),
+            static::clientsDirectorySelectFilter(
+                'zone_id',
+                'Zone',
+                'All zones',
+                fn (): array => static::cachedClientsFilterZones($tenantId),
+            ),
+            static::clientsDirectorySelectFilter(
+                'area_id',
+                'Area',
+                'All areas',
+                fn (): array => static::cachedClientsFilterAreas($tenantId),
+            ),
+            static::clientsDirectorySelectFilter(
+                'reseller_id',
+                'Owner',
+                'All owners',
+                fn (): array => static::cachedClientsFilterResellers(),
+            ),
+            static::clientsDirectorySelectFilter(
+                'status',
+                'Account status',
+                'Any status',
+                fn (): array => CustomerStatus::options(),
+            ),
+            static::clientsDirectorySelectFilter(
+                'network_access_state',
+                'Line',
+                'Any line',
+                fn (): array => [
                     'active' => 'Line on',
                     'suspended' => 'Line off',
-                ])
-                ->native(false),
+                ],
+            ),
             Tables\Filters\SelectFilter::make('remaining_days')
                 ->label('Rem. days')
                 ->placeholder('Any')
@@ -982,6 +1011,9 @@ class CustomerResource extends Resource
                     '30_plus' => '30+ days',
                 ])
                 ->native(false)
+                ->modifyFormFieldUsing(
+                    fn (Forms\Components\Select $field): Forms\Components\Select => $field->live(),
+                )
                 ->query(function (Builder $query, array $data) use ($today): Builder {
                     $value = $data['value'] ?? null;
                     if (blank($value)) {
@@ -1040,6 +1072,22 @@ class CustomerResource extends Resource
             'clients_filter_zones:'.$tenantId,
             300,
             fn (): array => Zone::query()
+                ->where('tenant_id', $tenantId)
+                ->orderBy('name')
+                ->pluck('name', 'id')
+                ->all(),
+        );
+    }
+
+    /**
+     * @return array<int|string, string>
+     */
+    protected static function cachedClientsFilterAreas(int $tenantId): array
+    {
+        return Cache::remember(
+            'clients_filter_areas:'.$tenantId,
+            300,
+            fn (): array => Area::query()
                 ->where('tenant_id', $tenantId)
                 ->orderBy('name')
                 ->pluck('name', 'id')
@@ -1111,9 +1159,7 @@ class CustomerResource extends Resource
             ->actionsColumnLabel($billingList ? 'Pay / Actions' : 'Actions')
             ->persistFiltersInSession(false)
             ->persistSearchInSession(false)
-            ->searchable()
-            ->searchPlaceholder($billingList ? 'Search ID, name, phone, PPPoE, zone…' : 'Search name, phone, ID, PPPoE, address…')
-            ->searchDebounce('400ms')
+            ->searchable(false)
             ->defaultPaginationPageOption(25)
             ->paginationPageOptions([25, 50, 100])
             ->emptyStateHeading(match ($variant) {
@@ -1127,9 +1173,9 @@ class CustomerResource extends Resource
                 default => 'Add a client, change the tab preset, or clear filters.',
             })
             ->filters(static::clientsDirectoryFilters())
-            ->filtersLayout(FiltersLayout::AboveContent)
+            ->filtersLayout(FiltersLayout::Hidden)
             ->filtersFormColumns(['default' => 2, 'sm' => 3, 'lg' => 6])
-            ->deferFilters(true);
+            ->deferFilters(false);
     }
 
     protected static function portalLoginTableAction(): Tables\Actions\Action

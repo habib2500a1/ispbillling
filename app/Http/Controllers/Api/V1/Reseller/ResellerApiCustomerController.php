@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1\Reseller;
 
 use App\Http\Controllers\Controller;
 use App\Models\Customer;
+use App\Services\Resellers\ResellerCustomerPricingService;
 use App\Services\Resellers\ResellerCustomerService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -40,7 +41,12 @@ class ResellerApiCustomerController extends Controller
     {
         $service->assertOwned($request->user(), $customer);
 
-        return response()->json($customer->load('package:id,name'));
+        $customer->load('package:id,name,price_monthly');
+
+        return response()->json([
+            'customer' => $customer,
+            'pricing' => app(ResellerCustomerPricingService::class)->snapshot($request->user(), $customer),
+        ]);
     }
 
     public function update(Request $request, Customer $customer, ResellerCustomerService $service): JsonResponse

@@ -119,7 +119,7 @@ class OltSnmpMonitorService
         if ($result['success']
             && ! config('sync.skip_aveis_in_olt_poll', false)
             && $this->aveisGpon->supportsDriver($olt)) {
-            $av = $this->aveisGpon->syncOlt($olt->fresh());
+            $av = $this->aveisGpon->syncOlt($olt->fresh(), true);
             $result['aveis_onu_discovered'] = $av['discovered'];
             $result['aveis_onu_created'] = $av['created'];
             $result['aveis_onu_updated'] = $av['updated'];

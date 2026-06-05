@@ -2,6 +2,49 @@
  * Aurora ISP admin — Mobile dock & hub link cards
  * @module admin/saas/05-mobile-dock.css
  */
+    background: rgba(127, 29, 29, 0.42);
+    color: #fda4af;
+}
+
+.dark .isp-ops-pill--warn,
+[data-theme='dark'] .isp-ops-pill--warn {
+    background: rgba(120, 53, 15, 0.4);
+    color: #fcd34d;
+}
+
+.dark .isp-ops-pill--ok,
+[data-theme='dark'] .isp-ops-pill--ok {
+    background: rgba(6, 78, 59, 0.42);
+    color: #6ee7b7;
+}
+
+.dark .isp-ops-table thead th,
+[data-theme='dark'] .isp-ops-table thead th {
+    color: #94a3b8;
+    background: rgba(30, 41, 59, 0.9);
+    border-bottom-color: rgba(148, 163, 184, 0.1);
+}
+
+.dark .isp-ops-table tbody td,
+[data-theme='dark'] .isp-ops-table tbody td {
+    border-top-color: rgba(148, 163, 184, 0.08);
+}
+
+/* Mobile bottom dock (admin) */
+.isp-mobile-dock {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 40;
+    display: flex;
+    align-items: stretch;
+
+/* --- 05-mobile-dock.css --- */
+/**
+ * Aurora ISP admin — Mobile dock & hub link cards
+ * @module admin/saas/05-mobile-dock.css
+ */
     justify-content: space-around;
     gap: 0.25rem;
     padding: 0.35rem 0.5rem calc(0.35rem + env(safe-area-inset-bottom, 0px));
@@ -601,46 +644,3 @@
 }
 
 .dark .isp-hub-page .text-gray-900,
-[data-theme='dark'] .isp-hub-page .font-semibold.text-gray-900 {
-    color: #f1f5f9 !important;
-}
-
-/* Responsive tables in custom pages */
-.isp-hub-page .overflow-x-auto {
-    -webkit-overflow-scrolling: touch;
-}
-
-.isp-hub-page table {
-    min-width: 100%;
-}
-
-@media (max-width: 640px) {
-    .fi-sidebar-open .fi-main {
-        margin-left: 0 !important;
-    }
-
-    .isp-hub-link,
-    .isp-module-card {
-        padding: 1rem;
-    }
-}
-
-/* Hub sections & quick nav */
-.isp-ops-section {
-    margin-bottom: 1.25rem;
-}
-
-.isp-ops-section-title {
-    margin-bottom: 0.65rem;
-    font-size: 0.6875rem;
-    font-weight: 700;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: #64748b;
-}
-
-.dark .isp-ops-section-title {
-    color: #94a3b8;
-}
-
-.isp-section-nav {

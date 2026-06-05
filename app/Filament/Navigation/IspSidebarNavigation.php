@@ -76,6 +76,7 @@ final class IspSidebarNavigation
             static::stripOltLinksFromInventoryProGroup($panel);
             static::normalizeOltGroupOnPanel($panel);
             static::ensureOltNavigationOnPanel($panel);
+            static::ensureHrManagementNavigationOnPanel($panel);
         });
     }
 
@@ -239,6 +240,29 @@ final class IspSidebarNavigation
         static::setPanelNavigationItems($panel, $items);
     }
 
+    public static function ensureHrManagementNavigationOnPanel(Panel $panel): void
+    {
+        if (! HrmSidebarRegistry::hasVisibleEntries()) {
+            return;
+        }
+
+        $hrGroups = [
+            HrmSidebarRegistry::GROUP_LABEL,
+            'HRM',
+            'HR & Payroll',
+        ];
+
+        $filtered = array_values(array_filter(
+            static::panelNavigationItems($panel),
+            static function (NavigationItem $item) use ($hrGroups): bool {
+                return ! in_array((string) ($item->getGroup() ?? ''), $hrGroups, true);
+            },
+        ));
+
+        static::setPanelNavigationItems($panel, $filtered);
+        $panel->navigationItems(HrmSidebarRegistry::navigationItems());
+    }
+
     public static function ensureOltNavigationOnPanel(Panel $panel): void
     {
         if (! OltSidebarNavigation::userCanSee()) {
@@ -311,7 +335,7 @@ final class IspSidebarNavigation
         static::appendIf($merged, ReportsSidebarNavigation::userCanSee(), ReportsSidebarRegistry::navigationItems());
         static::appendIf($merged, AccountsSidebarNavigation::userCanSee(), AccountsSidebarRegistry::navigationItems());
         static::appendIf($merged, ResellerSidebarNavigation::userCanSee(), ResellerSidebarRegistry::navigationItems());
-        static::appendIf($merged, HrmSidebarNavigation::userCanSee(), HrmSidebarRegistry::navigationItems());
+        static::appendIf($merged, HrmSidebarRegistry::hasVisibleEntries(), HrmSidebarRegistry::navigationItems());
         static::appendIf($merged, BwSidebarNavigation::userCanSee(), BwSidebarRegistry::navigationItems());
         static::appendIf($merged, SettingsSidebarNavigation::userCanSee(), SettingsSidebarRegistry::navigationItems());
         static::appendIf($merged, SystemSidebarRegistry::hasVisibleEntries(), SystemSidebarRegistry::navigationItems());

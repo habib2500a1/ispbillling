@@ -26,6 +26,13 @@ final class PackagePriceResolver
     {
         $onDate ??= now();
 
+        if ($customer?->reseller_id) {
+            $override = data_get($customer->meta, 'reseller_retail_monthly_bdt');
+            if ($override !== null && $override !== '' && is_numeric($override)) {
+                return self::applyCustomerMonthlyDiscount(max(0, round((float) $override, 2)), $customer);
+            }
+        }
+
         if ($customer?->zone_id) {
             $zp = $package->zonePrices()
                 ->where('zone_id', $customer->zone_id)

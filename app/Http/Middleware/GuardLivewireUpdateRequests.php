@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Support\LivewireSnapshotHealer;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -27,7 +28,12 @@ class GuardLivewireUpdateRequests
         $sameOrigin = ($origin !== '' && str_starts_with($origin, $host))
             || ($referer !== '' && str_starts_with($referer, $host));
 
-        if (! $sameOrigin || ! $request->headers->has('X-Livewire')) {
+        // Livewire file uploads use signed URLs and do not send X-Livewire.
+        if ($request->is('livewire/upload-file')) {
+            if (! $sameOrigin) {
+                abort(403);
+            }
+        } elseif (! $sameOrigin || ! $request->headers->has('X-Livewire')) {
             abort(403);
         }
 
@@ -62,6 +68,19 @@ class GuardLivewireUpdateRequests
                 ]);
 
                 return response()->json(['components' => [], 'assets' => []], 200);
+            }
+
+            $healResult = LivewireSnapshotHealer::healComponents($components);
+
+            if ($healResult['healed_release'] !== [] || $healResult['healed_snapshot'] !== []) {
+                $request->merge(['components' => $healResult['components']]);
+
+                Log::info('livewire.snapshot_healed', [
+                    'release' => $healResult['healed_release'],
+                    'snapshot' => $healResult['healed_snapshot'],
+                    'referer' => $request->headers->get('referer'),
+                    'user_id' => optional(auth()->user())->getAuthIdentifier(),
+                ]);
             }
         }
 
@@ -122,6 +141,7 @@ class GuardLivewireUpdateRequests
 
             Log::warning('livewire.update_419', [
                 'component' => $snapshot['memo']['name'] ?? null,
+                'snapshot_release' => $snapshot['memo']['release'] ?? null,
                 'updates_keys' => array_keys((array) ($first['updates'] ?? [])),
                 'calls' => array_map(
                     static fn (array $call): string => (string) ($call['method'] ?? ''),

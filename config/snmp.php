@@ -8,6 +8,9 @@ return [
     /** net-snmp default retries = 5; keep lower for panel responsiveness unless OLT is slow. */
     'retries' => (int) env('SNMP_RETRIES', 1),
 
+    /** Public IP of this app server — show in SNMP errors so OLT ACL can allow it (optional). */
+    'app_server_egress_ip' => env('APP_SERVER_EGRESS_IP'),
+
     /**
      * Apply net-snmp client settings via PHP ext-snmp (SNMP_VALUE_PLAIN + numeric OIDs).
      * Required for BDCOM ONU MAC (6-byte octet string). See github.com/net-snmp/net-snmp FAQ.

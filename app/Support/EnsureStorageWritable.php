@@ -12,6 +12,10 @@ final class EnsureStorageWritable
         return [
             storage_path('app'),
             storage_path('app/livewire-tmp'),
+            storage_path('app/private/livewire-tmp'),
+            storage_path('app/private/olt-vpn-uploads'),
+            storage_path('app/private/olt-vpn'),
+            storage_path('app/private/olt-pptp'),
             storage_path('app/public'),
             storage_path('framework/cache'),
             storage_path('framework/sessions'),

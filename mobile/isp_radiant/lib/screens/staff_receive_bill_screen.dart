@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+import '../core/theme/design_tokens.dart';
 import '../services/api_service.dart';
 import '../theme/app_theme.dart';
 import '../utils/app_nav.dart';
@@ -143,6 +144,7 @@ class _StaffReceiveBillScreenState extends State<StaffReceiveBillScreen> {
     final gross = _payable;
 
     return Scaffold(
+      backgroundColor: DesignTokens.lightBg,
       appBar: const StaffBlueAppBar(title: 'Receive Bill'),
       body: _loading
           ? const Center(child: CircularProgressIndicator())

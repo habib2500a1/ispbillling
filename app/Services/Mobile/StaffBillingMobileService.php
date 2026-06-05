@@ -144,26 +144,40 @@ final class StaffBillingMobileService
             ->where('tenant_id', $tenantId)
             ->where('status', 'completed')
             ->whereBetween('paid_at', [$from, $to])
-            ->with(['customer:id,customer_code,name,phone', 'invoice:id,invoice_number,due_date', 'recorder:id,name'])
+            ->with(['customer:id,customer_code,name,phone', 'invoice:id,invoice_number,due_date,total,amount_paid,discount_amount,coupon_discount_amount', 'recorder:id,name'])
             ->orderByDesc('paid_at')
             ->paginate(40, ['*'], 'page', $page);
 
-        $data = collect($payments->items())->map(fn (Payment $p) => [
-            'id' => $p->id,
-            'receipt_number' => $p->receipt_number,
-            'amount' => round((float) $p->amount, 2),
-            'method' => $p->methodLabel(),
-            'paid_at' => $p->paid_at?->format('Y-m-d H:i'),
-            'customer_id' => $p->customer_id,
-            'customer_name' => $p->customer?->name,
-            'customer_code' => $p->customer?->customer_code,
-            'invoice_number' => $p->invoice?->invoice_number,
-            'bill_date' => $p->invoice?->due_date?->toDateString(),
-            'recorded_by' => $p->recorder?->name ?? '—',
-            'recorded_by_id' => $p->recorded_by,
-            'reference' => $p->reference,
-            'notes' => $p->notes,
-        ])->values()->all();
+        $data = collect($payments->items())->map(function (Payment $p): array {
+            $discount = $p->invoice
+                ? round((float) ($p->invoice->discount_amount ?? 0) + (float) ($p->invoice->coupon_discount_amount ?? 0), 2)
+                : 0.0;
+            $due = $p->invoice ? max(0, $p->invoice->balanceDue()) : 0.0;
+
+            return [
+                'payment_id' => $p->id,
+                'id' => $p->id,
+                'receipt_number' => $p->receipt_number,
+                'amount' => round((float) $p->amount, 2),
+                'method' => $p->methodLabel(),
+                'paid_at' => $p->paid_at?->format('Y-m-d H:i'),
+                'customer_id' => $p->customer_id,
+                'customer_name' => $p->customer?->name,
+                'customer_code' => $p->customer?->customer_code,
+                'username' => $p->customer?->pppLoginName(),
+                'phone' => $p->customer?->phone,
+                'invoice_number' => $p->invoice?->invoice_number,
+                'bill_date' => $p->invoice?->due_date?->toDateString(),
+                'discount' => $discount,
+                'due' => round($due, 2),
+                'balance_due' => round($due, 2),
+                'recorded_by' => $p->recorder?->name ?? '—',
+                'recorded_by_id' => $p->recorded_by,
+                'reference' => $p->reference,
+                'notes' => $p->notes,
+                'receipt_pdf_url' => url('/api/v1/staff/payments/'.$p->id.'/receipt-pdf'),
+            ];
+        })->values()->all();
 
         $monthCollected = (float) Payment::withoutGlobalScopes()
             ->where('tenant_id', $tenantId)

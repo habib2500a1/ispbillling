@@ -21,6 +21,7 @@
         'Support',
         'Reports',
         'BW Client',
+        'HR Management',
         'HRM',
         'Resellers',
         'Accounts',
@@ -40,7 +41,67 @@
         if (!root) return;
 
         mergeLegacyOltSidebarGroup(root);
+        mergeLegacyHrmSidebarGroup(root);
         moveOltLinksOutOfInventoryPro(root);
+    }
+
+    /** Collapse duplicate «HRM» group into «HR Management» (label rename / cached HTML). */
+    const LEGACY_HRM_ITEM_LABELS = new Set([
+        'hr overview',
+        'employees (all)',
+        'add employee',
+        'employee salary',
+        'office locations',
+    ]);
+
+    const CANONICAL_HRM_ITEM_LABELS = new Set([
+        'hr dashboard',
+        'employees',
+        'attendance',
+        'leave management',
+        'advance salary',
+        'payroll generation',
+        'salary policies',
+        'hr reports',
+    ]);
+
+    function mergeLegacyHrmSidebarGroup(root) {
+        const legacy = root.querySelector(':scope > .fi-sidebar-group[data-group-label="HRM"]');
+        const target = root.querySelector(':scope > .fi-sidebar-group[data-group-label="HR Management"]');
+
+        if (!legacy) {
+            pruneLegacyHrmSidebarItems(root);
+
+            return;
+        }
+
+        if (target) {
+            legacy.remove();
+        } else {
+            legacy.dataset.groupLabel = 'HR Management';
+            const labelEl = legacy.querySelector('.fi-sidebar-group-label');
+            if (labelEl) {
+                labelEl.textContent = 'HR Management';
+            }
+        }
+
+        pruneLegacyHrmSidebarItems(root);
+    }
+
+    /** Remove cached/old HR links (HR overview, Employee Salary, etc.) from the sidebar DOM. */
+    function pruneLegacyHrmSidebarItems(root) {
+        const groups = root.querySelectorAll(
+            ':scope > .fi-sidebar-group[data-group-label="HR Management"], :scope > .fi-sidebar-group[data-group-label="HRM"], :scope > .fi-sidebar-group[data-group-label="HR & Payroll"]',
+        );
+
+        groups.forEach((group) => {
+            group.querySelectorAll('.fi-sidebar-item').forEach((item) => {
+                const label = (item.querySelector('.fi-sidebar-item-label')?.textContent || '').trim().toLowerCase();
+                if (LEGACY_HRM_ITEM_LABELS.has(label)) {
+                    item.remove();
+                }
+            });
+        });
     }
 
     /** Move OLT pages out of Inventory Pro (legacy cache / old registry). */
@@ -143,12 +204,29 @@
         return item?.closest('.fi-sidebar-group[data-group-label]')?.dataset?.groupLabel ?? null;
     }
 
+    function normalizeSidebarGroupLabel(label) {
+        if (label === 'HRM') {
+            return 'HR Management';
+        }
+
+        return label;
+    }
+
     function readRememberedOpenGroup() {
         try {
-            const label = sessionStorage.getItem(OPEN_GROUP_KEY);
+            const raw = sessionStorage.getItem(OPEN_GROUP_KEY);
+            const label = normalizeSidebarGroupLabel(raw);
             const labels = groupLabels();
 
-            return label && labels.includes(label) ? label : null;
+            if (label && labels.includes(label)) {
+                return label;
+            }
+
+            if (raw === 'HRM' && labels.includes('HR Management')) {
+                return 'HR Management';
+            }
+
+            return null;
         } catch (e) {
             return null;
         }
@@ -279,6 +357,24 @@
         );
     }
 
+    function pathSuggestsHrGroup() {
+        const path = window.location.pathname || '';
+
+        return (
+            path.includes('hr-payroll-hub')
+            || path.includes('hr-leave-management')
+            || path.includes('hr-advance-salary')
+            || path.includes('hr-salary-policies')
+            || path.includes('hr-reports')
+            || path.includes('/employees')
+            || path.includes('attendance-records')
+            || path.includes('attendance-office-locations')
+            || path.includes('hr-payroll-generation')
+            || path.includes('payroll-runs')
+            || path.includes('hr-salary-policies')
+        );
+    }
+
     function preferredOpenLabel() {
         const labels = groupLabels();
         if (!labels.length) {
@@ -326,6 +422,22 @@
 
         if (pathSuggestsSupportGroup() && labels.includes('Support')) {
             return 'Support';
+        }
+
+        if (pathSuggestsHrGroup()) {
+            try {
+                sessionStorage.setItem(OPEN_GROUP_KEY, 'HR Management');
+            } catch (e) {
+                /* ignore */
+            }
+
+            if (labels.includes('HR Management')) {
+                return 'HR Management';
+            }
+
+            if (labels.includes('HRM')) {
+                return 'HRM';
+            }
         }
 
         const remembered = readRememberedOpenGroup();

@@ -127,7 +127,7 @@ class CustomerMobileService
                 'generation_date' => $invoice->issue_date?->format('d M Y'),
                 'expire_date' => $invoice->due_date?->format('d M Y'),
                 'period_label' => $invoice->issue_date?->format('M-y'),
-                'note' => 'নিরবিচ্ছিন্ন সংযোগের জন্য সময় মতো বিল পরিশোধ করুন',
+                'note' => trim((string) config('isp.invoice_footer', '')) ?: 'Pay bills on time for uninterrupted service.',
                 'items' => $invoice->items->map(fn ($line) => [
                     'description' => $line->description,
                     'subtitle' => $customer->package?->download_mbps

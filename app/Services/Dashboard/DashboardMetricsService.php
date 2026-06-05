@@ -9,6 +9,7 @@ use App\Models\Device;
 use App\Models\Invoice;
 use App\Models\MikrotikServer;
 use App\Models\NotificationLog;
+use App\Models\Outage;
 use App\Models\Payment;
 use App\Models\PopBox;
 use App\Models\SmsDeliveryReport;
@@ -24,6 +25,7 @@ use App\Support\PaymentType;
 use App\Support\SubscriberType;
 use App\Support\TenantResolver;
 use Carbon\Carbon;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 
@@ -291,15 +293,82 @@ class DashboardMetricsService
         $tenantId = $tenantId ?? TenantResolver::requiredTenantId();
         $snap = $this->snapshot($tenantId);
         $optical = app(OpticalDashboardService::class)->snapshot($tenantId);
+        $customerCounts = $this->customerCounts($tenantId);
+        $oltHealth = app(\App\Services\Olt\OltNocDashboardService::class)->snapshot($tenantId);
+        $downCustomers = $this->downCustomersCollection($tenantId);
+        $activeOutages = Outage::withoutGlobalScopes()
+            ->where('tenant_id', $tenantId)
+            ->currentlyActive()
+            ->with('area:id,name')
+            ->orderByDesc('started_at')
+            ->limit(5)
+            ->get();
 
         $usersBps = BandwidthCollectionService::currentTenantLiveBps($tenantId);
         $wanBps = BandwidthCollectionService::currentWanLiveBps($tenantId);
+        $wanInterfaces = BandwidthCollectionService::latestWanInterfaceSnapshots($tenantId);
+        $bandwidthTrend = BandwidthCollectionService::aggregateLiveMbpsPerSecond($tenantId, 10, 18);
+
+        $linkDown = collect($oltHealth['olts'] ?? [])->sum(function (array $olt): int {
+            $total = (int) ($olt['interfaces_total'] ?? 0);
+            $up = (int) ($olt['interfaces_up'] ?? 0);
+
+            return max(0, $total - $up);
+        });
+
+        $partialOltCount = collect($oltHealth['olts'] ?? [])->filter(function (array $olt): bool {
+            $status = (string) ($olt['status'] ?? '');
+            $total = (int) ($olt['interfaces_total'] ?? 0);
+            $up = (int) ($olt['interfaces_up'] ?? 0);
+            $onusOffline = (int) ($olt['onus_offline'] ?? 0);
+
+            return $status !== 'offline'
+                && (($total > 0 && $up < $total) || $onusOffline > 0);
+        })->count();
 
         return array_merge($snap, $optical, [
             'active_sessions' => $snap['online_now'],
             'bandwidth_mbps' => round($usersBps['down_bps'] / 1_000_000, 2),
             'wan_bandwidth_mbps' => round($wanBps['down_bps'] / 1_000_000, 2),
             'users_bandwidth_mbps' => round($usersBps['down_bps'] / 1_000_000, 2),
+            'users_download_mbps' => round($usersBps['down_bps'] / 1_000_000, 2),
+            'users_upload_mbps' => round($usersBps['up_bps'] / 1_000_000, 2),
+            'wan_download_mbps' => round($wanBps['down_bps'] / 1_000_000, 2),
+            'wan_upload_mbps' => round($wanBps['up_bps'] / 1_000_000, 2),
+            'user_down' => max(0, (int) ($customerCounts['active'] ?? 0) - (int) ($snap['online_now'] ?? 0)),
+            'link_down' => $linkDown,
+            'wan_interfaces' => $wanInterfaces,
+            'bandwidth_trend' => $bandwidthTrend,
+            'olt_offline' => (int) ($oltHealth['olt_offline'] ?? 0),
+            'olt_partial' => $partialOltCount,
+            'olt_high_cpu' => (int) ($oltHealth['olt_high_cpu'] ?? 0),
+            'olt_high_memory' => (int) ($oltHealth['olt_high_memory'] ?? 0),
+            'olt_unhealthy' => (int) ($oltHealth['olt_unhealthy'] ?? 0),
+            'olt_avg_health' => $oltHealth['avg_health_score'] ?? null,
+            'down_users' => $this->downUsersSummary($downCustomers),
+            'root_causes' => $this->rootCauseBreakdown($downCustomers),
+            'zone_impact' => $this->zoneImpactSummary($downCustomers, $activeOutages),
+            'area_impact' => $this->areaImpactSummary($downCustomers, $activeOutages),
+            'active_outages' => [
+                'count' => $activeOutages->count(),
+                'items' => $activeOutages->map(fn (Outage $outage): array => [
+                    'id' => (int) $outage->id,
+                    'title' => $outage->title,
+                    'area_id' => (int) ($outage->area_id ?? 0),
+                    'area' => $outage->area?->name ?? 'All areas',
+                    'started' => $outage->started_at?->diffForHumans() ?? 'Unknown',
+                ])->all(),
+            ],
+            'critical_onu_list' => app(OpticalDashboardService::class)
+                ->criticalOnus($tenantId, 6)
+                ->map(fn (Device $device): array => [
+                    'customer_id' => (int) ($device->customer_id ?? 0),
+                    'serial' => (string) ($device->serial_number ?? '—'),
+                    'customer' => (string) ($device->customer?->name ?? 'Unassigned'),
+                    'olt' => (string) ($device->olt?->display_name ?? 'Unknown OLT'),
+                    'rx_dbm' => $device->rx_power_dbm !== null ? round((float) $device->rx_power_dbm, 2) : null,
+                    'status' => (string) ($device->onu_oper_status ?? 'unknown'),
+                ])->all(),
             'fiber_alerts' => $optical['open_alerts'] + $optical['fiber_faults'],
         ]);
     }
@@ -419,6 +488,157 @@ class DashboardMetricsService
         }
 
         return array_slice($alerts, 0, $limit);
+    }
+
+    /**
+     * @return list<array{id: int, name: string, code: string, login: string, zone: string, server: string, last_seen: string, reason: string}>
+     */
+    private function downUsersSummary(Collection $customers, int $limit = 8): array
+    {
+        return $customers->take($limit)->map(function (Customer $customer): array {
+            $lastSeen = $customer->ppp_last_seen_at ?? $customer->lastEndedPppSession?->ended_at;
+
+            return [
+                'id' => (int) $customer->id,
+                'name' => $customer->name,
+                'code' => (string) ($customer->customer_code ?? '—'),
+                'login' => $customer->pppLoginName(),
+                'zone' => (string) ($customer->zone?->name ?? '—'),
+                'server' => (string) ($customer->mikrotikServer?->name ?? 'Unassigned'),
+                'last_seen' => $lastSeen?->diffForHumans() ?? 'Never',
+                'reason' => $this->downCustomerReason($customer),
+            ];
+        })->all();
+    }
+
+    /**
+     * @return Collection<int, Customer>
+     */
+    private function downCustomersCollection(int $tenantId): Collection
+    {
+        return Customer::withoutGlobalScopes()
+            ->where('tenant_id', $tenantId)
+            ->where('status', '!=', CustomerStatus::TERMINATED)
+            ->where(function ($q): void {
+                $q->where('is_ppp_online', false)->orWhereNull('is_ppp_online');
+            })
+            ->with([
+                'area:id,name',
+                'zone:id,name,area_id',
+                'mikrotikServer:id,name',
+                'lastEndedPppSession',
+            ])
+            ->withExists([
+                'invoices as has_due_invoice' => fn ($q) => $q
+                    ->whereIn('status', CustomerBalanceDue::OPEN_INVOICE_STATUSES)
+                    ->whereRaw('(total - amount_paid) > 0.009'),
+            ])
+            ->orderByRaw('CASE WHEN service_expires_at IS NOT NULL AND service_expires_at < ? THEN 0 ELSE 1 END', [now()->toDateString()])
+            ->orderBy('ppp_last_seen_at')
+            ->get([
+                'id',
+                'tenant_id',
+                'name',
+                'customer_code',
+                'status',
+                'area_id',
+                'zone_id',
+                'mikrotik_server_id',
+                'radius_username',
+                'mikrotik_secret_name',
+                'service_expires_at',
+                'ppp_last_seen_at',
+            ]);
+    }
+
+    private function downCustomerReason(Customer $customer): string
+    {
+        $lastSeen = $customer->ppp_last_seen_at ?? $customer->lastEndedPppSession?->ended_at;
+
+        return match (true) {
+            $customer->status === CustomerStatus::SUSPENDED => 'Suspended',
+            $customer->isServiceExpired() => 'Expired / billing due',
+            (bool) ($customer->has_due_invoice ?? false) => 'Due balance',
+            $lastSeen !== null && $lastSeen->greaterThan(now()->subMinutes(30)) => 'Recently disconnected',
+            $lastSeen === null => 'Never came online',
+            default => 'Offline / auth issue',
+        };
+    }
+
+    /**
+     * @return list<array{reason: string, count: int}>
+     */
+    private function rootCauseBreakdown(Collection $customers): array
+    {
+        return $customers
+            ->map(fn (Customer $customer): string => $this->downCustomerReason($customer))
+            ->countBy()
+            ->sortDesc()
+            ->take(6)
+            ->map(fn (int $count, string $reason): array => ['reason' => $reason, 'count' => $count])
+            ->values()
+            ->all();
+    }
+
+    /**
+     * @param  Collection<int, Outage>  $activeOutages
+     * @return list<array{zone_id: int, area_id: int, area_name: string, zone: string, down_users: int, expired: int, suspended: int, due: int, active_outage: bool}>
+     */
+    private function zoneImpactSummary(Collection $customers, Collection $activeOutages): array
+    {
+        $outageAreaIds = $activeOutages->pluck('area_id')->filter()->map(fn ($id) => (int) $id)->all();
+
+        return $customers
+            ->groupBy(fn (Customer $customer): string => (string) ($customer->zone?->name ?? 'Unassigned zone'))
+            ->map(function (Collection $group, string $zone) use ($outageAreaIds): array {
+                $expired = $group->filter(fn (Customer $customer): bool => $customer->isServiceExpired())->count();
+                $suspended = $group->where('status', CustomerStatus::SUSPENDED)->count();
+                $due = $group->filter(fn (Customer $customer): bool => (bool) ($customer->has_due_invoice ?? false))->count();
+                $areaId = (int) ($group->first()?->area_id ?? $group->first()?->zone?->area_id ?? 0);
+
+                return [
+                    'zone_id' => (int) ($group->first()?->zone_id ?? 0),
+                    'area_id' => $areaId,
+                    'area_name' => (string) ($group->first()?->area?->name ?? 'Unassigned area'),
+                    'zone' => $zone,
+                    'down_users' => $group->count(),
+                    'expired' => $expired,
+                    'suspended' => $suspended,
+                    'due' => $due,
+                    'active_outage' => $areaId > 0 && in_array($areaId, $outageAreaIds, true),
+                ];
+            })
+            ->sortByDesc('down_users')
+            ->take(6)
+            ->values()
+            ->all();
+    }
+
+    /**
+     * @param  Collection<int, Outage>  $activeOutages
+     * @return list<array{area_id: int, area: string, down_users: int, zones: int, active_outage: bool}>
+     */
+    private function areaImpactSummary(Collection $customers, Collection $activeOutages): array
+    {
+        $outageAreaIds = $activeOutages->pluck('area_id')->filter()->map(fn ($id) => (int) $id)->all();
+
+        return $customers
+            ->groupBy(fn (Customer $customer): string => (string) ($customer->area?->name ?? 'Unassigned area'))
+            ->map(function (Collection $group, string $area) use ($outageAreaIds): array {
+                $areaId = (int) ($group->first()?->area_id ?? 0);
+
+                return [
+                    'area_id' => $areaId,
+                    'area' => $area,
+                    'down_users' => $group->count(),
+                    'zones' => $group->pluck('zone_id')->filter()->unique()->count(),
+                    'active_outage' => $areaId > 0 && in_array($areaId, $outageAreaIds, true),
+                ];
+            })
+            ->sortByDesc('down_users')
+            ->take(6)
+            ->values()
+            ->all();
     }
 
     /**

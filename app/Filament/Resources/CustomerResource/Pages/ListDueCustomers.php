@@ -50,6 +50,7 @@ class ListDueCustomers extends ListFilteredCustomers
                 'hint' => 'Outstanding balance',
                 'tone' => 'rose',
                 'icon' => 'heroicon-o-exclamation-circle',
+                'url' => CustomerResource::getUrl('due'),
             ],
             [
                 'label' => 'Total due',
@@ -57,6 +58,7 @@ class ListDueCustomers extends ListFilteredCustomers
                 'hint' => 'Collectible now',
                 'tone' => 'rose',
                 'icon' => 'heroicon-o-banknotes',
+                'url' => \App\Filament\Pages\BillCollectionDesk::getUrl(),
             ],
             [
                 'label' => 'Average due',
@@ -71,6 +73,7 @@ class ListDueCustomers extends ListFilteredCustomers
                 'hint' => 'In good standing',
                 'tone' => 'emerald',
                 'icon' => 'heroicon-o-check-circle',
+                'url' => CustomerResource::getUrl('active'),
             ],
         ];
     }

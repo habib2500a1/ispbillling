@@ -5,6 +5,7 @@ namespace App\Services\Inventory;
 use App\Models\InventorySale;
 use App\Models\Product;
 use App\Models\PurchaseOrder;
+use App\Models\StoreDeviceLoan;
 use App\Models\Warehouse;
 use App\Support\TenantResolver;
 use Illuminate\Support\Facades\Cache;
@@ -57,6 +58,24 @@ final class InventoryDashboardService
             'warehouse_count' => Warehouse::withoutGlobalScopes()
                 ->where('tenant_id', $tenantId)
                 ->where('is_active', true)
+                ->count(),
+            'support_out_count' => StoreDeviceLoan::withoutGlobalScopes()
+                ->where('tenant_id', $tenantId)
+                ->issued()
+                ->count(),
+            'loans_due_today' => StoreDeviceLoan::withoutGlobalScopes()
+                ->where('tenant_id', $tenantId)
+                ->dueToday()
+                ->count(),
+            'loans_overdue' => StoreDeviceLoan::withoutGlobalScopes()
+                ->where('tenant_id', $tenantId)
+                ->overdue()
+                ->count(),
+            'damaged_missing_count' => Product::withoutGlobalScopes()
+                ->where('tenant_id', $tenantId)
+                ->where(function ($q): void {
+                    $q->where('damaged_qty', '>', 0)->orWhere('missing_qty', '>', 0);
+                })
                 ->count(),
         ];
     }

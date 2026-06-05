@@ -1,6 +1,6 @@
 <script data-cfasync="false">
 (function () {
-    var version = '3';
+    var version = '6';
     var flagKey = 'isp-topbar-persist-version';
 
     try {

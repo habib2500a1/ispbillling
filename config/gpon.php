@@ -126,6 +126,11 @@ return [
             'enterprise' => '50224',
             'aveis_onu_table' => '1.3.6.1.4.1.50224.3.3.2.1',
             'aveis_pon_table' => '1.3.6.1.4.1.50224.3.2.1.1',
+            /** ONU table 1.3.6.1.4.1.50224.3.3.2.1.{col} identity columns. */
+            'aveis_onu_label_column' => (int) env('AVEIS_ONU_LABEL_COLUMN', 2),
+            'aveis_onu_status_column' => (int) env('AVEIS_ONU_STATUS_COLUMN', 3),
+            'aveis_onu_mac_column' => (int) env('AVEIS_ONU_MAC_COLUMN', 7),
+            'aveis_onu_name_column' => (int) env('AVEIS_ONU_NAME_COLUMN', 12),
             /** ONU table 1.3.6.1.4.1.50224.3.3.2.1.{col} — set 0 to disable column walk. */
             'aveis_onu_tx_column' => (int) env('AVEIS_ONU_TX_COLUMN', 0),
             'aveis_onu_temp_column' => (int) env('AVEIS_ONU_TEMP_COLUMN', 18),
@@ -135,6 +140,21 @@ return [
         'aveis_epon' => [
             'label' => 'Aveis EPON',
             'extends' => 'aveis_gpon',
+            /**
+             * EPON ONUs are MAC-registered. Same enterprise 50224 ONU table as GPON by default,
+             * but every column is overridable via AVEIS_EPON_* env (falls back to AVEIS_* / GPON
+             * defaults) for EPON firmware that lays the table out differently.
+             */
+            'aveis_onu_table' => env('AVEIS_EPON_ONU_TABLE', '1.3.6.1.4.1.50224.3.3.2.1'),
+            'aveis_onu_label_column' => (int) env('AVEIS_EPON_ONU_LABEL_COLUMN', env('AVEIS_ONU_LABEL_COLUMN', 2)),
+            'aveis_onu_status_column' => (int) env('AVEIS_EPON_ONU_STATUS_COLUMN', env('AVEIS_ONU_STATUS_COLUMN', 3)),
+            'aveis_onu_mac_column' => (int) env('AVEIS_EPON_ONU_MAC_COLUMN', env('AVEIS_ONU_MAC_COLUMN', 7)),
+            'aveis_onu_name_column' => (int) env('AVEIS_EPON_ONU_NAME_COLUMN', env('AVEIS_ONU_NAME_COLUMN', 12)),
+            'aveis_onu_rx_column' => (int) env('AVEIS_EPON_ONU_RX_COLUMN', env('AVEIS_ONU_RX_COLUMN', 15)),
+            'aveis_onu_tx_column' => (int) env('AVEIS_EPON_ONU_TX_COLUMN', env('AVEIS_ONU_TX_COLUMN', 0)),
+            'aveis_onu_temp_column' => (int) env('AVEIS_EPON_ONU_TEMP_COLUMN', env('AVEIS_ONU_TEMP_COLUMN', 18)),
+            'aveis_onu_voltage_column' => (int) env('AVEIS_EPON_ONU_VOLTAGE_COLUMN', env('AVEIS_ONU_VOLTAGE_COLUMN', 19)),
+            'aveis_onu_distance_column' => (int) env('AVEIS_EPON_ONU_DISTANCE_COLUMN', env('AVEIS_ONU_DISTANCE_COLUMN', 0)),
         ],
         'vsol_gpon' => [
             'label' => 'VSOL GPON',
@@ -210,6 +230,25 @@ return [
 
     'aveis_gpon_walk_timeout_us' => (int) env('AVEIS_GPON_SNMP_TIMEOUT_US', 20000000),
 
+    /** Auto-probe Aveis ONU table columns (1..N) on first sync; cached on OLT meta. */
+    'aveis_column_probe_max' => (int) env('AVEIS_COLUMN_PROBE_MAX', 22),
+
+    'aveis_column_probe_min_score' => (float) env('AVEIS_COLUMN_PROBE_MIN_SCORE', 0.35),
+
+    'aveis_column_map_ttl_days' => (int) env('AVEIS_COLUMN_MAP_TTL_DAYS', 30),
+
+    /** Aveis tables may return OIDs out of order — use snmpbulkwalk -Cc style walk. */
+    'aveis_snmp_use_unchecked_walk' => (bool) env('AVEIS_SNMP_UNCHECKED_WALK', true),
+
+    /** When SNMP walk returns 0 rows but GET works, probe PON×ONU indices via GET. */
+    'aveis_index_scan_enabled' => (bool) env('AVEIS_INDEX_SCAN_ENABLED', true),
+
+    'aveis_index_scan_max_pon' => (int) env('AVEIS_INDEX_SCAN_MAX_PON', 8),
+
+    'aveis_index_scan_max_onu' => (int) env('AVEIS_INDEX_SCAN_MAX_ONU', 64),
+
+    'aveis_index_get_timeout_us' => (int) env('AVEIS_INDEX_GET_TIMEOUT_US', 600000),
+
     'vsol_gpon_walk_timeout_us' => (int) env('VSOL_GPON_SNMP_TIMEOUT_US', 15000000),
 
     /** Aveis ONU table column for receive power (MIB …3.3.2.1.{col}). XE08 uses col 15. */
@@ -243,7 +282,7 @@ return [
         'bdcom_epon' => 'bdcom_epon',
         'fiberhome_gpon' => 'fiberhome_gpon',
         'aveis_gpon' => 'aveis_gpon',
-        'aveis_epon' => 'aveis_gpon',
+        'aveis_epon' => 'aveis_epon',
         'vsol_gpon' => 'vsol_gpon',
         'ecom_gpon' => 'ecom_gpon',
         'ecom_epon' => 'ecom_epon',

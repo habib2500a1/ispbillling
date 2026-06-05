@@ -3,7 +3,14 @@
 namespace App\Support;
 
 use App\Filament\Pages\AccountingHub;
+use App\Filament\Pages\InventoryCurrentStockReport;
+use App\Filament\Pages\InventoryDamagedMissingReport;
 use App\Filament\Pages\InventoryHub;
+use App\Filament\Pages\InventoryLoansDueTodayReport;
+use App\Filament\Pages\InventoryLoansOverdueReport;
+use App\Filament\Pages\InventoryProductSalesReport;
+use App\Filament\Pages\InventorySupportDevicesOutReport;
+use App\Filament\Pages\InventoryWarrantyManagement;
 use App\Filament\Resources\DeviceResource;
 use App\Filament\Resources\FixedAssetResource;
 use App\Filament\Resources\InventorySaleResource;
@@ -158,6 +165,62 @@ final class InventorySidebarRegistry
                 ],
             ],
             [
+                'key' => 'report_current_stock',
+                'label' => 'Report · current stock',
+                'icon' => 'heroicon-o-archive-box',
+                'sort' => 9.6,
+                'url' => InventoryCurrentStockReport::getUrl(),
+                'active_routes' => ['filament.admin.pages.inventory-report-current-stock'],
+            ],
+            [
+                'key' => 'report_product_sales',
+                'label' => 'Report · product sales',
+                'icon' => 'heroicon-o-chart-bar',
+                'sort' => 9.65,
+                'url' => InventoryProductSalesReport::getUrl(),
+                'active_routes' => ['filament.admin.pages.inventory-report-product-sales'],
+            ],
+            [
+                'key' => 'report_support_out',
+                'label' => 'Report · support out',
+                'icon' => 'heroicon-o-arrow-up-tray',
+                'sort' => 9.7,
+                'url' => InventorySupportDevicesOutReport::getUrl(),
+                'active_routes' => ['filament.admin.pages.inventory-report-support-out'],
+            ],
+            [
+                'key' => 'report_loans_due_today',
+                'label' => 'Report · due today',
+                'icon' => 'heroicon-o-calendar',
+                'sort' => 9.75,
+                'url' => InventoryLoansDueTodayReport::getUrl(),
+                'active_routes' => ['filament.admin.pages.inventory-report-loans-due-today'],
+            ],
+            [
+                'key' => 'report_loans_overdue',
+                'label' => 'Report · overdue',
+                'icon' => 'heroicon-o-clock',
+                'sort' => 9.8,
+                'url' => InventoryLoansOverdueReport::getUrl(),
+                'active_routes' => ['filament.admin.pages.inventory-report-loans-overdue'],
+            ],
+            [
+                'key' => 'report_damaged_missing',
+                'label' => 'Report · damaged / missing',
+                'icon' => 'heroicon-o-exclamation-triangle',
+                'sort' => 9.85,
+                'url' => InventoryDamagedMissingReport::getUrl(),
+                'active_routes' => ['filament.admin.pages.inventory-report-damaged-missing'],
+            ],
+            [
+                'key' => 'warranty',
+                'label' => 'Warranty management',
+                'icon' => 'heroicon-o-shield-check',
+                'sort' => 9.9,
+                'url' => InventoryWarrantyManagement::getUrl(),
+                'active_routes' => ['filament.admin.pages.inventory-warranty'],
+            ],
+            [
                 'key' => 'vendors',
                 'label' => 'Vendors',
                 'icon' => 'heroicon-o-building-storefront',
@@ -280,7 +343,9 @@ final class InventorySidebarRegistry
             'warehouses', 'products', 'pos_new', 'retail_sales', 'purchase_orders', 'stock_ledger' => $cap->canInventory(),
             'invoices_hardware' => $cap->canInventory() && $cap->canBilling(),
             'public_shop' => $cap->canInventory() && config('inventory.shop_enabled', true),
-            'devices', 'store_device_loans', 'pop_boxes' => $cap->canInventory() || $cap->canAccessModuleGroup('Network'),
+            'devices', 'store_device_loans', 'report_current_stock', 'report_product_sales',
+            'report_support_out', 'report_loans_due_today', 'report_loans_overdue',
+            'report_damaged_missing', 'warranty', 'pop_boxes' => $cap->canInventory() || $cap->canAccessModuleGroup('Network'),
             'vendors', 'fixed_assets' => $cap->canInventory(),
             'accounting' => $cap->canInventory() && $cap->canAccounting(),
             default => false,

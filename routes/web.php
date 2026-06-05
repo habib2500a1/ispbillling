@@ -60,8 +60,10 @@ use App\Support\ResellerPortalPermission;
 use App\Http\Controllers\PipraPayPaymentController;
 use App\Http\Controllers\RocketPaymentController;
 use App\Http\Controllers\InventoryShopController;
+use App\Http\Controllers\Auth\LoginHubController;
 use App\Http\Controllers\LandingPageController;
 use App\Http\Controllers\Webhooks\KhudeBartaDlrController;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
 $landingDomain = config('domains.landing');
@@ -104,7 +106,6 @@ Route::redirect('/AutomaticProcess/Index', '/admin/automatic-processes', 302);
 Route::redirect('/AutomaticProcess/{path}', '/admin/automatic-processes', 302)->where('path', '.*');
 
 Route::get('/locale/{locale}', [LocaleController::class, 'switch'])->name('locale.switch');
-
 Route::middleware('throttle:60,1')->prefix('shop')->name('shop.')->group(function (): void {
     Route::get('/', [InventoryShopController::class, 'index'])->name('index');
     Route::post('/checkout', [InventoryShopController::class, 'checkout'])->name('checkout');
@@ -124,6 +125,8 @@ Route::middleware('throttle:30,1')->prefix('mfs')->name('mfs.personal.')->group(
 });
 
 Route::middleware(['web', 'auth'])->prefix('admin')->group(function (): void {
+    Route::get('/session-keepalive', static fn () => response()->noContent())
+        ->name('admin.session-keepalive');
     Route::get('/smart-search', \App\Http\Controllers\Admin\SmartSearchController::class)->name('admin.smart-search');
     Route::get('/command-palette-items', \App\Http\Controllers\Admin\CommandPaletteItemsController::class)->name('admin.command-palette.items');
     Route::get('/dashboard-stream', \App\Http\Controllers\Admin\DashboardStreamController::class)->name('admin.dashboard-stream');
@@ -186,6 +189,15 @@ Route::middleware(['auth:reseller', 'reseller.2fa', 'reseller.ip'])->prefix('res
     Route::put('/customers/{customer}', [ResellerCustomerManageController::class, 'update'])
         ->middleware('reseller.permission:'.ResellerPortalPermission::CUSTOMER_EDIT)
         ->name('customers.update');
+    Route::get('/customers/{customer}/package-quote', [\App\Http\Controllers\Reseller\ResellerCustomerPackageController::class, 'quote'])
+        ->middleware('reseller.permission:'.ResellerPortalPermission::CUSTOMER_VIEW)
+        ->name('customers.package-quote');
+    Route::post('/customers/{customer}/package-change', [\App\Http\Controllers\Reseller\ResellerCustomerPackageController::class, 'apply'])
+        ->middleware('reseller.permission:'.ResellerPortalPermission::CUSTOMER_EDIT)
+        ->name('customers.package-change');
+    Route::post('/customers/{customer}/installation-photo', [\App\Http\Controllers\Reseller\ResellerCustomerMediaController::class, 'storeInstallationPhoto'])
+        ->middleware('reseller.permission:'.ResellerPortalPermission::CUSTOMER_EDIT)
+        ->name('customers.installation-photo');
     Route::post('/customers/{customer}/renew', [ResellerCustomerActionController::class, 'renew'])
         ->middleware('reseller.permission:'.ResellerPortalPermission::CUSTOMER_EDIT)
         ->name('customers.renew');
@@ -402,17 +414,20 @@ Route::middleware(['guest:customer', 'throttle:15,1'])->group(function () {
     Route::redirect('/signup', '/portal/signup', 301);
 });
 
-Route::middleware(['portal.enabled', 'guest:customer', 'throttle:15,1'])->group(function () {
-    Route::get('/login', [PortalLoginController::class, 'create'])->name('portal.login');
-    Route::post('/login', [PortalLoginController::class, 'store'])->name('portal.login.store');
-    Route::get('/login/otp', [PortalLoginController::class, 'otpForm'])->name('portal.login.otp');
-    Route::post('/login/otp', [PortalLoginController::class, 'otpVerify'])->name('portal.login.otp.verify');
+Route::get('/login', LoginHubController::class)->name('login.hub');
+
+Route::middleware(['portal.enabled', 'guest:customer', 'throttle:15,1'])->prefix('login')->group(function () {
+    Route::get('/customer', [PortalLoginController::class, 'create'])->name('portal.login');
+    Route::post('/customer', [PortalLoginController::class, 'store'])->name('portal.login.store');
+    Route::get('/customer/otp', [PortalLoginController::class, 'otpForm'])->name('portal.login.otp');
+    Route::post('/customer/otp', [PortalLoginController::class, 'otpVerify'])->name('portal.login.otp.verify');
     Route::get('/portal/access/{token}', [PortalLoginController::class, 'accessToken'])
         ->where('token', '[0-9]+-[a-zA-Z0-9]+')
         ->name('portal.access.token');
-    Route::redirect('/portal/login', '/login', 301);
-    Route::redirect('/portal/login/otp', '/login/otp', 301);
 });
+Route::redirect('/portal/login', '/login/customer', 301);
+Route::redirect('/portal/login/otp', '/login/customer/otp', 301);
+Route::redirect('/login/otp', '/login/customer/otp', 301);
 
 Route::middleware('throttle:30,1')->prefix('hotspot')->name('hotspot.')->group(function (): void {
     Route::get('/', [HotspotPortalController::class, 'index'])->name('index');
@@ -516,6 +531,10 @@ if (filled($adminDomain)) {
 }
 
 Route::get('/', function () {
+    if (Auth::guard('customer')->check() && config('portal.enabled', true)) {
+        return redirect()->route('portal.dashboard');
+    }
+
     if (auth()->check()) {
         return redirect('/admin');
     }

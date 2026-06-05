@@ -39,8 +39,13 @@ class PollMikrotikFleetJob implements ShouldQueue
             'offline' => $stats['offline'],
         ]);
 
+        $bandwidth = app(BandwidthCollectionService::class);
+
+        if (($stats['polled'] ?? 0) === 0 && $this->tenantId !== null) {
+            $bandwidth->clearStaleOnlineFlagsWhenNoRouters((int) $this->tenantId);
+        }
+
         if (($stats['polled'] ?? 0) > 0 && ($stats['online'] ?? 0) === 0) {
-            $bandwidth = app(BandwidthCollectionService::class);
             $tenantIds = $this->tenantId !== null
                 ? [(int) $this->tenantId]
                 : MikrotikServer::query()

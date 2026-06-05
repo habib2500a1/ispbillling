@@ -16,6 +16,8 @@ use Illuminate\Http\Request;
 use Illuminate\Session\TokenMismatchException;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
+use Livewire\Features\SupportReleaseTokens\ReleaseToken;
+use Livewire\Mechanisms\ComponentRegistry;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 use Symfony\Component\HttpKernel\Exception\MethodNotAllowedHttpException;
 
@@ -118,7 +120,8 @@ return Application::configure(basePath: dirname(__DIR__))
             }
 
             if (config('portal.enabled', true)
-                && ($request->is('portal') || $request->is('portal/*') || $request->is('login') || $request->is('login/*'))) {
+                && ($request->is('portal') || $request->is('portal/*')
+                    || $request->is('login/customer') || $request->is('login/customer/*'))) {
                 return route('portal.login');
             }
 
@@ -157,11 +160,28 @@ return Application::configure(basePath: dirname(__DIR__))
                 $firstComponent = is_array($components) ? ($components[0] ?? null) : null;
                 $snapshot = is_array($firstComponent) ? json_decode((string) ($firstComponent['snapshot'] ?? ''), true) : null;
 
+                $componentName = $snapshot['memo']['name'] ?? null;
+                $snapshotRelease = $snapshot['memo']['release'] ?? null;
+                $expectedRelease = null;
+
+                if (is_string($componentName) && $componentName !== '') {
+                    try {
+                        $componentClass = app(ComponentRegistry::class)->getClass($componentName);
+                        $expectedRelease = ReleaseToken::generate($componentClass);
+                    } catch (Throwable) {
+                        // Component may have been removed between page load and save.
+                    }
+                }
+
                 Log::warning('livewire.419', [
                     'url' => $request->fullUrl(),
                     'referer' => $request->headers->get('referer'),
                     'has_x_livewire' => $request->headers->has('X-Livewire'),
-                    'component_name' => $snapshot['memo']['name'] ?? null,
+                    'component_name' => $componentName,
+                    'snapshot_release' => $snapshotRelease,
+                    'expected_release' => $expectedRelease,
+                    'release_token_mismatch' => $expectedRelease !== null
+                        && $snapshotRelease !== $expectedRelease,
                     'updates_keys' => array_keys((array) ($firstComponent['updates'] ?? [])),
                     'calls_count' => count((array) ($firstComponent['calls'] ?? [])),
                     'exception' => $e::class,
