@@ -7,12 +7,12 @@ if [ -z "$APP_KEY" ]; then
 fi
 
 attempt=0
-while [ $attempt -lt 45 ]; do
+while [ $attempt -lt 12 ]; do
   if php artisan migrate:status --no-ansi >/dev/null 2>&1; then
     break
   fi
   attempt=$((attempt + 1))
-  sleep 2
+  sleep 1
 done
 
 if ! php artisan migrate:status --no-ansi >/dev/null 2>&1; then

@@ -33,12 +33,12 @@ esac
 echo "[entrypoint] Ensuring PostgreSQL role: $DB_USER (superuser: $PG_SUPER)"
 
 attempt=0
-while [ "$attempt" -lt 30 ]; do
+while [ "$attempt" -lt 8 ]; do
   if PGPASSWORD="$PG_PASS" psql -h "$PG_HOST" -U "$PG_SUPER" -d "$DB_NAME" -c '\q' 2>/dev/null; then
     break
   fi
   attempt=$((attempt + 1))
-  sleep 2
+  sleep 1
 done
 
 if ! PGPASSWORD="$PG_PASS" psql -h "$PG_HOST" -U "$PG_SUPER" -d "$DB_NAME" -c '\q' 2>/dev/null; then

@@ -24,14 +24,14 @@ else
 fi
 chown -R www-data:www-data vendor storage bootstrap/cache 2>/dev/null || true
 
-# Create/sync Laravel DB user when it differs from POSTGRES_USER (e.g. isp_app on isp volume).
+# DB bootstrap must not block php-fpm (nginx returns 502 while entrypoint waits).
 if [ -f /usr/local/bin/ensure-db-user.sh ]; then
-  /usr/local/bin/ensure-db-user.sh || true
+  /usr/local/bin/ensure-db-user.sh || true &
 fi
 
 if [ "$#" -eq 0 ] || [ "$1" = "php-fpm" ]; then
   if [ -f /usr/local/bin/bootstrap-app.sh ]; then
-    /usr/local/bin/bootstrap-app.sh || true
+    /usr/local/bin/bootstrap-app.sh || true &
   fi
 fi
 
