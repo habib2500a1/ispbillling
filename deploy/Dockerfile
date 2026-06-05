@@ -3,8 +3,9 @@ FROM php:8.3-fpm-bookworm
 RUN apt-get update && apt-get install -y --no-install-recommends \
     git unzip libpq-dev postgresql-client libzip-dev libicu-dev \
     libpng-dev libjpeg62-turbo-dev libfreetype6-dev \
+    libsnmp-dev snmp \
     && docker-php-ext-configure gd --with-freetype --with-jpeg \
-    && docker-php-ext-install pdo_pgsql pgsql zip intl opcache pcntl sockets gd bcmath \
+    && docker-php-ext-install pdo_pgsql pgsql zip intl opcache pcntl sockets gd bcmath snmp \
     && pecl install redis \
     && docker-php-ext-enable redis \
     && rm -rf /var/lib/apt/lists/*
