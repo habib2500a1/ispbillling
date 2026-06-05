@@ -25,12 +25,15 @@ services:
 
   nginx:
     image: nginx:1.27-alpine
-    # Host 8023 only for direct test. NextDeploy Domains tab uses service nginx + container port 80.
+    # Host 8023 only for direct test. Caddy proxies ISP_LANDING_DOMAIN → nginx:80 (container port).
     # Do NOT map 80:80 — host port 80 is used by NextDeploy Caddy.
     ports:
       - "8023:80"
     expose:
       - "80"
+    labels:
+      caddy: ${ISP_LANDING_DOMAIN:-}
+      caddy.reverse_proxy: "{{upstreams 80}}"
     volumes:
       - .:/var/www/html:ro
       - ./deploy/nginx.conf:/etc/nginx/conf.d/default.conf:ro

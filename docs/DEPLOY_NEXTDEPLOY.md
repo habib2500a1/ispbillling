@@ -85,7 +85,9 @@ App → **Domains** tab → **Add domain**
 | Port | `80` = container ভিতরের port (**8023 নয়**) |
 | HTTPS | ✅ Enable |
 
-> **গুরুত্বপূর্ণ:** Domains tab এ `80` দিলে error হলে `docker-compose.yml` এ `80:80` করা আছে কিনা দেখুন — host port **80** Caddy/NextDeploy ইতিমধ্যে ব্যবহার করে, তাই nginx mapping **`8023:80`** থাকতে হবে। Domains tab শুধু **container port 80** বোঝায়।
+> **অথবা:** Environment এ `ISP_LANDING_DOMAIN=anetbd.com` থাকলে `docker-compose.yml` nginx এ Caddy label auto যোগ হয় — Domains tab এ ভুল `app:8023` থাকলে **Delete** করে Redeploy করুন (duplicate route এড়াতে)।
+
+> **গুরুত্বপূর্ণ:** `docker-compose.yml` এ nginx **`8023:80`** রাখুন — **`80:80` নয়** (host 80 = Caddy)।
 
 DNS: domain এর A record → server IP
 
