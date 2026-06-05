@@ -105,6 +105,16 @@ For concurrent local development:
 composer run dev
 ```
 
+## Production Deployment Guides
+
+Step-by-step setup (Bangla + English):
+
+| Platform | Guide |
+|----------|-------|
+| **cPanel** (shared hosting / VPS) | [`docs/DEPLOY_CPANEL.md`](docs/DEPLOY_CPANEL.md) |
+| **Coolify** (Docker PaaS) | [`docs/DEPLOY_COOLIFY.md`](docs/DEPLOY_COOLIFY.md) |
+| Production checklist | [`deploy/PRODUCTION_CHECKLIST.md`](deploy/PRODUCTION_CHECKLIST.md) |
+
 ## Docker Deployment
 
 Production reference files live in `deploy/`.
