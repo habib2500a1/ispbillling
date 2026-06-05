@@ -132,6 +132,11 @@ Environment এ `ISP_ADMIN_EMAIL` + `ISP_ADMIN_PASSWORD` দিন — **app con
 ```bash
 php artisan isp:bootstrap-admin
 php artisan isp:generate-webhook-secrets --write
+```
+
+Container start এ `bootstrap-app.sh` + `optimize-app.sh` auto চালায় (`config:cache`, `route:cache`, Filament optimize, OPcache)। ম্যানুয়াল দরকার হলে:
+
+```bash
 php artisan config:cache
 php artisan route:cache
 ```

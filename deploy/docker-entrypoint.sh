@@ -3,6 +3,10 @@ set -e
 
 cd /var/www/html
 
+if [ -f /usr/local/bin/ensure-permissions.sh ]; then
+  /usr/local/bin/ensure-permissions.sh || true
+fi
+
 export COMPOSER_ALLOW_SUPERUSER=1
 git config --global --add safe.directory /var/www/html 2>/dev/null || true
 
@@ -22,7 +26,9 @@ if [ "$NEED_COMPOSER" = "1" ]; then
 else
   echo "[entrypoint] Vendor OK, skipping composer install"
 fi
-chown -R www-data:www-data vendor storage bootstrap/cache 2>/dev/null || true
+if [ -f /usr/local/bin/ensure-permissions.sh ]; then
+  /usr/local/bin/ensure-permissions.sh || true
+fi
 
 # DB bootstrap must not block php-fpm (nginx returns 502 while entrypoint waits).
 if [ -f /usr/local/bin/ensure-db-user.sh ]; then
