@@ -170,7 +170,7 @@ final class SubscriberClientDetailsPresenter
                 'fees' => $this->sectionFees($customer, $meta),
                 'installation' => $this->sectionInstallation($customer, $meta),
                 'staff' => $this->sectionStaff($customer, $meta),
-                'onu_billing' => $this->sectionOnuBilling($meta),
+                'onu_billing' => $this->sectionOnuBilling($customer, $meta),
                 'notifications' => $this->sectionNotifications($meta),
                 'automation' => $this->sectionAutomation($meta),
                 'tags' => $this->sectionTags($meta),
@@ -468,14 +468,17 @@ final class SubscriberClientDetailsPresenter
      * @param  array<string, mixed>  $meta
      * @return array<string, string>
      */
-    private function sectionOnuBilling(array $meta): array
+    private function sectionOnuBilling(Customer $customer, array $meta): array
     {
         $network = is_array($meta['legacy_portal_network'] ?? null) ? $meta['legacy_portal_network'] : [];
         $fmt = static fn ($v): string => isset($v) && $v !== '' && (float) $v > 0
             ? number_format((float) $v, 2).' BDT'
             : '—';
 
+        $username = $customer->pppLoginName();
+
         $rows = [
+            'PPP username' => $username !== '' ? $username : '—',
             'ONU Rent / month' => $fmt($meta['onu_rent'] ?? null),
             'ONU Installment' => $fmt($meta['onu_installment'] ?? null),
             'ONU Deposit' => $fmt($meta['onu_deposit'] ?? null),

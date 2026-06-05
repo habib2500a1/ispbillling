@@ -32,7 +32,7 @@ final class SubscriberOpticalPowerPresenter
     {
         $customer->loadMissing(['activePppSession', 'devices']);
         $meta = is_array($customer->meta) ? $customer->meta : [];
-        $onuBilling = $this->onuBillingSummary($meta);
+        $onuBilling = $this->onuBillingSummary($customer, $meta);
 
         $onus = $customer->devices
             ->where('type', 'onu')
@@ -96,13 +96,16 @@ final class SubscriberOpticalPowerPresenter
      * @param  array<string, mixed>  $meta
      * @return array<string, string>
      */
-    private function onuBillingSummary(array $meta): array
+    private function onuBillingSummary(Customer $customer, array $meta): array
     {
         $fmt = static fn ($v): string => isset($v) && (float) $v > 0
             ? number_format((float) $v, 2).' BDT/mo'
             : '—';
 
+        $username = $customer->pppLoginName();
+
         return [
+            'PPP username' => $username !== '' ? $username : '—',
             'ONU rent' => $fmt($meta['onu_rent'] ?? null),
             'ONU deposit' => $fmt($meta['onu_deposit'] ?? null),
             'Router rent' => $fmt($meta['router_rent'] ?? null),

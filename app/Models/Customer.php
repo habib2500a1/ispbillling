@@ -399,9 +399,11 @@ class Customer extends Model implements AuthenticatableContract, AuthorizableCon
     public function lastEndedPppSession(): HasOne
     {
         return $this->hasOne(PppSessionLog::class)
-            ->select('ppp_session_logs.*')
-            ->whereNotNull('ppp_session_logs.ended_at')
-            ->latestOfMany('ended_at');
+            ->ofMany(
+                ['ended_at' => 'max', 'id' => 'max'],
+                fn (\Illuminate\Database\Eloquent\Builder $query): \Illuminate\Database\Eloquent\Builder => $query
+                    ->whereNotNull('ppp_session_logs.ended_at')
+            );
     }
 
     /**

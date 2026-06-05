@@ -13,7 +13,7 @@
         $optical = $details['optical'];
         $sections = $details['sections'];
         $overview = $details['sections_overview'];
-        $moreKeys = ['fees', 'installation', 'notifications', 'automation', 'tags', 'kyc', 'system'];
+        $moreKeys = ['onu_billing', 'fees', 'installation', 'notifications', 'automation', 'tags', 'kyc', 'system'];
         if (($sections['legacy_meta'] ?? []) !== []) {
             $moreKeys[] = 'legacy_meta';
         }
