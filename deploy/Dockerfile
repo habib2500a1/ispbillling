@@ -21,7 +21,9 @@ RUN composer dump-autoload -o --no-dev --no-scripts
 
 RUN chown -R www-data:www-data storage bootstrap/cache
 
-USER www-data
+COPY deploy/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
 EXPOSE 9000
+ENTRYPOINT ["docker-entrypoint.sh"]
 CMD ["php-fpm"]

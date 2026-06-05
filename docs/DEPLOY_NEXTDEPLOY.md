@@ -102,7 +102,15 @@ Live logs দেখুন — `app`, `nginx`, `postgres`, `redis`, `horizon`, `s
 
 ## Step 8 — প্রথমবার Setup Commands
 
-Deploy success হলে App → **Terminal** tab (বা Containers → `app` exec):
+Deploy success হলে App → **Terminal** tab (`app` container)।
+
+`vendor/` না থাকলে (bind mount) আগে:
+
+```bash
+composer install --no-dev --optimize-autoloader --no-scripts
+```
+
+তারপর:
 
 ```bash
 php artisan key:generate --show
