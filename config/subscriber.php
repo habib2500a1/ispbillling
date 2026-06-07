@@ -5,7 +5,7 @@
  *
  * code_format:
  * - prefixed_monthly  → CUST-2605-0001 (default)
- * - numeric           → 10001, 10002 …
+ * - numeric           → 10001, 10002 … (or set start to 101; manual 101 → next auto 102)
  * - prefix_sequential → {code_prefix}-0001
  * - secret_as_code    → PPP secret name becomes customer_code (import / manual)
  */

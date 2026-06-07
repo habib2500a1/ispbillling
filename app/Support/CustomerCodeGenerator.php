@@ -101,16 +101,29 @@ final class CustomerCodeGenerator
             }
         }
 
+        $max = self::maxNumericCode($tenantId);
+        $start = (int) config('subscriber.numeric_start', 10001);
+
+        if ($max > 0) {
+            return (string) ($max + 1);
+        }
+
+        return (string) max(1, $start);
+    }
+
+    /**
+     * Highest purely numeric customer_code for this tenant (manual or auto).
+     */
+    public static function maxNumericCode(int $tenantId): int
+    {
         $max = 0;
+
         foreach (Customer::withoutGlobalScopes()->where('tenant_id', $tenantId)->pluck('customer_code') as $code) {
             if (preg_match('/^\d+$/', (string) $code)) {
                 $max = max($max, (int) $code);
             }
         }
 
-        $start = (int) config('subscriber.numeric_start', 10001);
-        $next = max($start, $max + 1);
-
-        return (string) $next;
+        return $max;
     }
 }

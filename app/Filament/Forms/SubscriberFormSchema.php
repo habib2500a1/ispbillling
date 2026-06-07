@@ -1313,7 +1313,7 @@ final class SubscriberFormSchema
             ->maxLength(64)
             ->required(fn (): bool => $isCreateForm && ! SubscriberIdSettings::autoGenerateEnabled())
             ->helperText(fn (): string => SubscriberIdSettings::autoGenerateEnabled()
-                ? 'Automatic: leave empty for next ID (format in Company setup). You can type a custom ID instead.'
+                ? 'Automatic: leave empty for next ID. Type a custom ID (e.g. 101) — the next auto ID continues from there (102, 103…).'
                 : 'Manual: enter a unique Customer ID (automatic is off in Company setup).')
             ->rules([
                 fn (?Customer $record): \Closure => function (string $attribute, $value, \Closure $fail) use ($record): void {

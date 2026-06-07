@@ -35,4 +35,25 @@ class CustomerCodeGeneratorTest extends TestCase
         $this->assertTrue(CustomerCodeGenerator::isValidManualCode('10099'));
         $this->assertFalse(CustomerCodeGenerator::isValidManualCode('CUST-01'));
     }
+
+    public function test_numeric_continues_after_manual_id_even_when_start_is_higher(): void
+    {
+        config(['subscriber.code_format' => 'numeric', 'subscriber.numeric_start' => 10001]);
+
+        Customer::query()->create([
+            'tenant_id' => 1,
+            'name' => 'Manual Anchor',
+            'customer_code' => '101',
+            'status' => 'active',
+        ]);
+
+        $this->assertSame('102', CustomerCodeGenerator::generate(1));
+    }
+
+    public function test_numeric_uses_start_when_no_codes_exist(): void
+    {
+        config(['subscriber.code_format' => 'numeric', 'subscriber.numeric_start' => 101]);
+
+        $this->assertSame('101', CustomerCodeGenerator::generate(1));
+    }
 }

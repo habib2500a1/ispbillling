@@ -264,6 +264,7 @@ class ManageCompanySetup extends Page
                                     ->numeric()
                                     ->minValue(1)
                                     ->required()
+                                    ->helperText('Used when no numeric IDs exist yet (e.g. 101). After you create 101 manually, the next auto ID is 102.')
                                     ->visible(fn (Get $get): bool => $this->formStateTruthy($get('subscriber_auto_generate_customer_code') ?? true)
                                         && (string) ($get('subscriber_code_format') ?? '') === 'numeric'),
                                 Placeholder::make('subscriber_id_preview')
