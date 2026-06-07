@@ -8,7 +8,8 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('fiber_plant_nodes', function (Blueprint $table) {
+        if (! Schema::hasTable('fiber_plant_nodes')) {
+            Schema::create('fiber_plant_nodes', function (Blueprint $table) {
             $table->id();
             $table->foreignId('tenant_id')->constrained()->cascadeOnDelete();
             $table->string('code', 64)->nullable();
@@ -32,9 +33,11 @@ return new class extends Migration
             $table->unique(['tenant_id', 'code']);
             $table->index(['tenant_id', 'type']);
             $table->index(['tenant_id', 'customer_id']);
-        });
+            });
+        }
 
-        Schema::create('fiber_plant_edges', function (Blueprint $table) {
+        if (! Schema::hasTable('fiber_plant_edges')) {
+            Schema::create('fiber_plant_edges', function (Blueprint $table) {
             $table->id();
             $table->foreignId('tenant_id')->constrained()->cascadeOnDelete();
             $table->foreignId('from_node_id')->constrained('fiber_plant_nodes')->cascadeOnDelete();
@@ -53,7 +56,8 @@ return new class extends Migration
 
             $table->index(['tenant_id', 'from_node_id']);
             $table->index(['tenant_id', 'to_node_id']);
-        });
+            });
+        }
     }
 
     public function down(): void

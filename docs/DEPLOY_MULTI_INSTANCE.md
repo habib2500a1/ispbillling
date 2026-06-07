@@ -1,9 +1,11 @@
-# Multi-instance deploy (10 domains = 10 separate apps)
+# Multi-instance deploy (optional — many clones on one server)
+
+> **Default (easy):** one server, one `.env`, one domain — use `bash scripts/deploy-from-env.sh` or `install-git-deploy-hook.sh`. No `deploy/instances.json` required.
 
 Each client domain gets **its own app directory + `.env` + database**.  
 One `git push` on the server can deploy **all instances** without mixing user data.
 
-## Quick setup
+## Quick setup (advanced only)
 
 ```bash
 # 1) Copy config and add your 10 domains

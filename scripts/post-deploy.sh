@@ -4,6 +4,14 @@ set -euo pipefail
 
 cd /var/www/isp-platform
 
+# Domain + mobile APK paths follow .env APP_URL (no deploy/instances.json needed).
+if [[ -f .env ]]; then
+  if APP_URL="$(bash ./scripts/read-production-url.sh 2>/dev/null)"; then
+    echo "==> Domain from .env: $APP_URL"
+    php artisan isp:sync-instance-url --remember-old --no-interaction
+  fi
+fi
+
 sudo -u www-data php artisan isp:generate-webhook-secrets --write --only-missing --no-interaction 2>/dev/null || true
 bash ./scripts/ensure-redis-horizon.sh 2>/dev/null || true
 

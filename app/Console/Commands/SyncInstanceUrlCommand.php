@@ -2,7 +2,6 @@
 
 namespace App\Console\Commands;
 
-use App\Support\DeployInstanceRegistry;
 use App\Support\EnvFile;
 use App\Support\TrustedAppUrl;
 use Illuminate\Console\Command;
@@ -46,7 +45,11 @@ final class SyncInstanceUrlCommand extends Command
             return self::FAILURE;
         }
 
-        $landing = (string) ($this->option('landing') ?: $host);
+        $landing = (string) (
+            $this->option('landing')
+            ?: $env->get('ISP_LANDING_DOMAIN')
+            ?: $host
+        );
         $currentUrl = rtrim((string) $env->get('APP_URL', ''), '/');
         $previous = (string) ($this->option('previous') ?: $env->get('APP_PREVIOUS_URLS', ''));
 

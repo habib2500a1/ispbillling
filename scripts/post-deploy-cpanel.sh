@@ -26,6 +26,13 @@ export APP_ENV="${APP_ENV:-production}"
 
 echo "==> cPanel/Webuzo post-deploy ($APP_ROOT)"
 
+if [[ -f .env ]]; then
+  if APP_URL="$(bash "$APP_ROOT/scripts/read-production-url.sh" 2>/dev/null)"; then
+    echo "==> Domain from .env: $APP_URL"
+    run_artisan isp:sync-instance-url --remember-old --no-interaction
+  fi
+fi
+
 if [[ -f composer.json ]] && command -v composer >/dev/null 2>&1; then
   echo "==> Composer install..."
   COMPOSER_ALLOW_SUPERUSER=1 composer install --no-dev --optimize-autoloader --no-interaction 2>/dev/null \

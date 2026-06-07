@@ -45,7 +45,7 @@
 /* ── Hero command header ── */
 .isp-dash-header--hero {
     position: relative;
-    overflow: hidden;
+    overflow: visible;
     margin-bottom: 1rem;
     padding: 1.25rem 1.35rem 1.1rem;
     border: 1px solid rgba(21, 101, 192, 0.22);
@@ -54,6 +54,7 @@
     box-shadow:
         0 1px 0 rgba(255, 255, 255, 0.6) inset,
         0 12px 40px -16px rgba(21, 101, 192, 0.35);
+    isolation: isolate;
 }
 
 .dark .isp-dash-header--hero,
@@ -72,6 +73,7 @@
     border-radius: 50%;
     background: radial-gradient(circle, rgba(66, 165, 245, 0.35), transparent 70%);
     pointer-events: none;
+    z-index: 0;
 }
 
 .isp-dash-header__badge {
@@ -250,6 +252,10 @@
     position: relative;
 }
 
+.isp-dash-header__more[open] {
+    z-index: 40;
+}
+
 .isp-dash-header__more-toggle {
     list-style: none;
     cursor: pointer;
@@ -263,8 +269,8 @@
     position: absolute;
     top: calc(100% + 0.35rem);
     right: 0;
-    z-index: 30;
-    min-width: 10rem;
+    z-index: 50;
+    min-width: 11rem;
     padding: 0.35rem;
     background: var(--isp-card);
     border: 1px solid var(--isp-card-border);
@@ -1166,6 +1172,31 @@
         display: grid;
         grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 0.45rem;
+        overflow: visible;
+    }
+
+    .isp-dash-header__more {
+        grid-column: 1 / -1;
+    }
+
+    .isp-dash-header__more[open] .isp-dash-header__more-menu {
+        position: fixed;
+        left: 0.75rem;
+        right: 0.75rem;
+        top: auto;
+        bottom: calc(4.75rem + env(safe-area-inset-bottom, 0px));
+        min-width: 0;
+        padding: 0.5rem;
+        border-radius: 1rem;
+        z-index: 70;
+        box-shadow: 0 12px 40px -8px rgba(0, 0, 0, 0.45);
+    }
+
+    .isp-dash-header__more-link {
+        min-height: 44px;
+        display: flex;
+        align-items: center;
+        font-size: 0.88rem;
     }
 
     .isp-dash-header__action,

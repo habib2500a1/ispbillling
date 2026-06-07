@@ -12,6 +12,27 @@
 
     $cap = StaffCapability::for(auth()->user());
     $company = config('isp.company_name', config('app.name'));
+
+    $moreLinks = array_values(array_filter([
+        ($cap->canBilling() && InvoiceResource::canCreate())
+            ? ['label' => 'Create invoice', 'url' => InvoiceResource::getUrl('create')]
+            : null,
+        $cap->canPayments()
+            ? ['label' => 'Payments', 'url' => PaymentResource::getUrl('index')]
+            : null,
+        ($cap->canMikrotik() && MikrotikDashboard::canAccess())
+            ? ['label' => 'Routers', 'url' => MikrotikDashboard::getUrl()]
+            : null,
+        ($cap->canReports() && ReportsHub::canAccess())
+            ? ['label' => 'Reports', 'url' => ReportsHub::getUrl()]
+            : null,
+        ($cap->canSms() && SmsGatewaySetup::canAccess())
+            ? ['label' => 'SMS', 'url' => SmsGatewaySetup::getUrl()]
+            : null,
+        $cap->canCustomers()
+            ? ['label' => 'Suspended', 'url' => ListSuspendedCustomers::getUrl()]
+            : null,
+    ]));
 @endphp
 
 <header class="isp-dash-header isp-dash-header--hero" aria-label="Dashboard command header">
@@ -107,28 +128,15 @@
             <a href="{{ ListSuspendedCustomers::getUrl() }}" class="isp-quick-pill isp-dash-header__action--desktop">Suspended</a>
         @endif
 
-        <details class="isp-dash-header__more">
-            <summary class="isp-quick-pill isp-dash-header__more-toggle">More</summary>
-            <div class="isp-dash-header__more-menu">
-                @if ($cap->canBilling() && InvoiceResource::canCreate())
-                    <a href="{{ InvoiceResource::getUrl('create') }}" class="isp-dash-header__more-link isp-dash-header__action--mobile-only">Create invoice</a>
-                @endif
-                @if ($cap->canPayments())
-                    <a href="{{ PaymentResource::getUrl('index') }}" class="isp-dash-header__more-link isp-dash-header__action--mobile-only">Payments</a>
-                @endif
-                @if ($cap->canMikrotik() && MikrotikDashboard::canAccess())
-                    <a href="{{ MikrotikDashboard::getUrl() }}" class="isp-dash-header__more-link isp-dash-header__action--mobile-only">Routers</a>
-                @endif
-                @if ($cap->canReports() && ReportsHub::canAccess())
-                    <a href="{{ ReportsHub::getUrl() }}" class="isp-dash-header__more-link isp-dash-header__action--mobile-only">Reports</a>
-                @endif
-                @if ($cap->canSms() && SmsGatewaySetup::canAccess())
-                    <a href="{{ SmsGatewaySetup::getUrl() }}" class="isp-dash-header__more-link isp-dash-header__action--mobile-only">SMS</a>
-                @endif
-                @if ($cap->canCustomers())
-                    <a href="{{ ListSuspendedCustomers::getUrl() }}" class="isp-dash-header__more-link isp-dash-header__action--mobile-only">Suspended</a>
-                @endif
-            </div>
-        </details>
+        @if ($moreLinks !== [])
+            <details class="isp-dash-header__more">
+                <summary class="isp-quick-pill isp-dash-header__more-toggle">More</summary>
+                <div class="isp-dash-header__more-menu">
+                    @foreach ($moreLinks as $link)
+                        <a href="{{ $link['url'] }}" class="isp-dash-header__more-link">{{ $link['label'] }}</a>
+                    @endforeach
+                </div>
+            </details>
+        @endif
     </nav>
 </header>
