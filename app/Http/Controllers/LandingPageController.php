@@ -7,8 +7,8 @@ use App\Services\Portal\PortalContentCatalog;
 use App\Services\Portal\PortalMovieServerCatalog;
 use App\Support\CompanyBranding;
 use App\Support\MobileAppLinks;
+use App\Support\SafeCache;
 use App\Support\TenantResolver;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\View\View;
 use Throwable;
@@ -20,7 +20,7 @@ class LandingPageController extends Controller
         try {
             $tenantId = TenantResolver::currentTenantId() ?? (int) config('inventory.default_tenant_id', 1);
 
-            $payload = Cache::remember(
+            $payload = SafeCache::remember(
                 'landing:page:'.$tenantId,
                 now()->addMinutes((int) config('isp.landing_cache_minutes', 2)),
                 fn (): array => $this->buildLandingPayload($tenantId),

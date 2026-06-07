@@ -19,13 +19,18 @@ esac
 
 echo "[fix] APP_URL=${APP_URL:-unset} DB_HOST=${DB_HOST:-unset} REDIS_HOST=${REDIS_HOST:-unset}"
 
-echo "[fix] Clearing caches..."
+echo "[fix] Removing stuck deploy flags..."
+rm -f storage/framework/deploy-bootstrapping 2>/dev/null || true
+
+echo "[fix] Clearing caches (required when CACHE_STORE=failover was set)..."
 php artisan optimize:clear --no-ansi 2>/dev/null || true
 
-echo "[fix] Rebuilding config/route cache..."
-php artisan config:cache --no-ansi
-php artisan route:cache --no-ansi 2>/dev/null || true
-php artisan view:clear --no-ansi 2>/dev/null || true
+echo "[fix] Auto-recover site..."
+php artisan isp:recover-site --no-ansi 2>/dev/null || {
+  php artisan config:clear --no-ansi 2>/dev/null || true
+  php artisan config:cache --no-ansi 2>/dev/null || true
+  php artisan isp:mark-deploy-ready --no-ansi 2>/dev/null || touch storage/framework/deploy-ready
+}
 
 echo "[fix] Redis ping..."
 if php artisan tinker --execute="echo Illuminate\Support\Facades\Redis::ping();" 2>/dev/null | grep -q PONG; then
@@ -48,11 +53,13 @@ else
   echo "[fix] APP_KEY: MISSING — php artisan key:generate --show → paste in Environment"
 fi
 
+echo "[fix] CACHE_STORE (must be redis, NOT failover on Laravel 11)..."
+grep -E '^CACHE_STORE=' .env 2>/dev/null || echo "[fix] CACHE_STORE not in .env file"
+
 echo "[fix] Permissions..."
 if [ -f /usr/local/bin/ensure-permissions.sh ]; then
   /usr/local/bin/ensure-permissions.sh || true
 fi
 
-echo "[fix] Done. Hard-refresh browser or try incognito: ${APP_URL:-}/admin/login"
-php artisan isp:mark-deploy-ready --no-interaction 2>/dev/null || touch storage/framework/deploy-ready
-echo "[fix] If still 500: tail -30 storage/logs/laravel.log"
+echo "[fix] Done. Hard-refresh browser: ${APP_URL:-}/admin/login"
+echo "[fix] If still broken: set CACHE_STORE=redis in panel Environment, redeploy, then run this script again."

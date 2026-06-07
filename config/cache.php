@@ -15,7 +15,10 @@ return [
     |
     */
 
-    'default' => env('CACHE_STORE', 'database'),
+    'default' => match (env('CACHE_STORE', 'database')) {
+        'failover' => 'redis', // Laravel 11 has no failover cache driver — map to redis + SafeCache fallback in app code.
+        default => env('CACHE_STORE', 'database'),
+    },
 
     /*
     |--------------------------------------------------------------------------
@@ -75,11 +78,6 @@ return [
             'driver' => 'redis',
             'connection' => env('REDIS_CACHE_CONNECTION', 'cache'),
             'lock_connection' => env('REDIS_CACHE_LOCK_CONNECTION', 'default'),
-        ],
-
-        'failover' => [
-            'driver' => 'failover',
-            'stores' => ['redis', 'file'],
         ],
 
         'dynamodb' => [

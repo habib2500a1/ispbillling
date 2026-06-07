@@ -36,6 +36,7 @@ use App\Support\DemoMode;
 use App\Support\EnsureStorageWritable;
 use App\Support\MobileAppLinks;
 use App\Support\ResellerApiContext;
+use App\Support\SafeCache;
 use App\Listeners\RecordStaffLogout;
 use App\Models\User;
 use App\Livewire\Filament\SafeGlobalSearch;
@@ -66,6 +67,11 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
+        // Laravel 11 has no cache "failover" driver — cached config with CACHE_STORE=failover bricks the site.
+        if ((string) config('cache.default') === 'failover') {
+            config(['cache.default' => 'redis']);
+        }
+
         if (PHP_SAPI === 'cli') {
             $this->guardProductionArtisanCommands();
         }
@@ -176,7 +182,7 @@ class AppServiceProvider extends ServiceProvider
 
             if (
                 ! $isAuthRoute
-                && Cache::remember('bootstrap.app_settings_table', 300, fn (): bool => Schema::hasTable('app_settings'))
+                && SafeCache::remember('bootstrap.app_settings_table', 300, fn (): bool => Schema::hasTable('app_settings'))
             ) {
                 // Must run every request: caching sync caused OTP/toggles to revert to config defaults.
                 AppSetting::syncToRuntimeConfig();

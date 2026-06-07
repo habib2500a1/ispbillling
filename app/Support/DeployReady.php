@@ -2,10 +2,11 @@
 
 namespace App\Support;
 
-use Illuminate\Support\Facades\Schema;
-
 final class DeployReady
 {
+    /** Stuck bootstrap flag older than this is auto-cleared (seconds). */
+    private const BOOTSTRAP_STALE_SECONDS = 600;
+
     public static function flagPath(): string
     {
         return storage_path('framework/deploy-ready');
@@ -27,6 +28,12 @@ final class DeployReady
         }
 
         if (is_file(self::bootstrappingPath())) {
+            if (self::bootstrappingIsStale()) {
+                self::recoverFromStaleBootstrap();
+
+                return true;
+            }
+
             return false;
         }
 
@@ -40,7 +47,7 @@ final class DeployReady
     public static function markBootstrapping(): void
     {
         self::clearReady();
-        self::writeFlag(self::bootstrappingPath(), 'bootstrapping');
+        self::writeFlag(self::bootstrappingPath(), (string) now()->toIso8601String());
     }
 
     public static function markReady(): void
@@ -59,10 +66,32 @@ final class DeployReady
         }
     }
 
+    public static function recoverFromStaleBootstrap(): void
+    {
+        if (is_file(self::bootstrappingPath())) {
+            @unlink(self::bootstrappingPath());
+        }
+
+        self::markReady();
+    }
+
+    private static function bootstrappingIsStale(): bool
+    {
+        $path = self::bootstrappingPath();
+        $mtime = @filemtime($path);
+
+        if ($mtime === false) {
+            return true;
+        }
+
+        return (time() - $mtime) > self::BOOTSTRAP_STALE_SECONDS;
+    }
+
     private static function legacyProductionReady(): bool
     {
         try {
-            return Schema::hasTable('migrations') && Schema::hasTable('users');
+            return \Illuminate\Support\Facades\Schema::hasTable('migrations')
+                && \Illuminate\Support\Facades\Schema::hasTable('users');
         } catch (\Throwable) {
             return false;
         }

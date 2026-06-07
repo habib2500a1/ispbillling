@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use App\Support\SafeCache;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
@@ -35,7 +36,7 @@ class AppSetting extends Model
 
         try {
             /** @var array<string, mixed> $pairs */
-            $pairs = Cache::remember('bootstrap.app_settings_sync', $ttl, function (): array {
+            $pairs = SafeCache::remember('bootstrap.app_settings_sync', $ttl, function (): array {
                 return self::loadRuntimeConfigPairsFromDatabase();
             });
         } catch (\Throwable $e) {
@@ -176,7 +177,7 @@ class AppSetting extends Model
             }
         }
 
-        Cache::forget('bootstrap.app_settings_sync');
+        SafeCache::forget('bootstrap.app_settings_sync');
         static::syncToRuntimeConfig();
     }
 
@@ -317,7 +318,7 @@ class AppSetting extends Model
             static::query()->updateOrCreate(['key' => $key], ['value' => $plain]);
         }
 
-        Cache::forget('bootstrap.app_settings_sync');
+        SafeCache::forget('bootstrap.app_settings_sync');
 
         return count($toAdd);
     }

@@ -6,6 +6,7 @@ use Illuminate\Contracts\Container\BindingResolutionException;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use InvalidArgumentException;
 use RedisException;
 use Throwable;
 
@@ -19,7 +20,18 @@ final class ResilientHttpErrors
 
         return self::isDeployMismatch($e)
             || self::isDatabaseConnectionFailure($e)
-            || self::isRedisConnectionFailure($e);
+            || self::isRedisConnectionFailure($e)
+            || self::isUnsupportedCacheDriver($e);
+    }
+
+    public static function isUnsupportedCacheDriver(Throwable $e): bool
+    {
+        if (! $e instanceof InvalidArgumentException) {
+            return false;
+        }
+
+        return str_contains($e->getMessage(), 'Driver [failover] is not supported')
+            || (str_contains($e->getMessage(), 'Driver [') && str_contains($e->getMessage(), '] is not supported.'));
     }
 
     public static function isDeployMismatch(Throwable $e): bool
@@ -89,6 +101,10 @@ final class ResilientHttpErrors
 
     public static function userMessage(Throwable $e): string
     {
+        if (self::isUnsupportedCacheDriver($e)) {
+            return 'Cache configuration needs a quick fix. Run isp:recover-site on the server, or set CACHE_STORE=redis in .env.';
+        }
+
         if (self::isDeployMismatch($e)) {
             return 'A deploy update is still applying. Refresh this page in a few seconds.';
         }
