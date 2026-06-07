@@ -72,6 +72,11 @@ if [ -f /usr/local/bin/optimize-app.sh ]; then
   /usr/local/bin/optimize-app.sh || true
 fi
 
+if [ -x /var/www/html/scripts/auto-mobile-after-deploy.sh ]; then
+  echo "[bootstrap] Mobile APK sync (background)..."
+  nohup /var/www/html/scripts/auto-mobile-after-deploy.sh >>/var/www/html/storage/logs/auto-mobile-deploy.log 2>&1 &
+fi
+
 php artisan isp:mark-deploy-ready --no-interaction 2>/dev/null || touch storage/framework/deploy-ready
 php artisan isp:warm-dashboard-caches --no-interaction 2>/dev/null || true
 rm -f storage/framework/deploy-bootstrapping 2>/dev/null || true

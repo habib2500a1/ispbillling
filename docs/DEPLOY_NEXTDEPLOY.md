@@ -179,6 +179,45 @@ App → **Deployment** tab → **Git webhook** section:
 
 ---
 
+## Step 11 — Mobile APK (website download link)
+
+GitHub deploy এর পর app build + download link **website URL** এ রাখতে:
+
+### GitHub Actions (recommended — server এ Flutter লাগে না)
+
+Repo → **Settings → Secrets and variables → Actions**:
+
+| Name | Value |
+|------|-------|
+| `APP_URL` (variable) | `https://billing.yourisp.com` |
+| `DEPLOY_PATH` (variable) | workspace path (e.g. `/var/www/isp-platform`) |
+| `DEPLOY_SSH_HOST` (secret) | server IP |
+| `DEPLOY_SSH_USER` (secret) | `root` |
+| `DEPLOY_SSH_KEY` (secret) | SSH private key |
+
+`mobile/**` change হলে **Mobile APKs** workflow auto build + SCP করে `public/downloads/`.
+
+Environment tab:
+
+```env
+MOBILE_USE_GITHUB_RELEASES=false
+```
+
+(`MOBILE_APK_URL` unset রাখুন — local APK থাকলে website link = `APP_URL/downloads/...`)
+
+### Manual (server এ Flutter থাকলে)
+
+```bash
+./scripts/deploy-mobile-apks.sh
+```
+
+Download links:
+
+- `https://billing.yourisp.com/downloads/isp-radiant.apk`
+- `https://billing.yourisp.com/downloads/isp-mfs-verify.apk`
+
+---
+
 ## প্রতিবার Code Update
 
 1. GitHub এ push (`git push origin main`)

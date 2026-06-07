@@ -13,6 +13,9 @@ sudo -u www-data php artisan route:cache
 sudo -u www-data php artisan event:cache
 sudo -u www-data php artisan filament:optimize
 
+# Zero-touch: mobile APK sync/build + website download links (reads .env on server)
+nohup bash ./scripts/auto-mobile-after-deploy.sh >> storage/logs/auto-mobile-deploy.log 2>&1 &
+
 if command -v systemctl >/dev/null 2>&1; then
     sudo systemctl reload php8.3-fpm 2>/dev/null || sudo systemctl reload php-fpm 2>/dev/null || true
 fi

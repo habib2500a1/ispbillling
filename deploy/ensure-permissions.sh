@@ -10,13 +10,16 @@ mkdir -p \
   storage/framework/views \
   storage/logs \
   bootstrap/cache \
-  public/css
+  public/css \
+  public/downloads
 
 if id www-data >/dev/null 2>&1; then
-  chown -R www-data:www-data storage bootstrap/cache vendor public/css 2>/dev/null || true
+  chown -R www-data:www-data storage bootstrap/cache vendor public/css public/downloads 2>/dev/null || true
 fi
 chmod -R ug+rwX storage bootstrap/cache 2>/dev/null || true
 chmod -R a+rX public/css 2>/dev/null || true
+chmod 755 public/downloads 2>/dev/null || true
+chmod 644 public/downloads/*.apk public/downloads/*.json 2>/dev/null || true
 
 # Root-owned compiled views break Blade with "Permission denied".
 find storage/framework/views -type f ! -user www-data -delete 2>/dev/null || true

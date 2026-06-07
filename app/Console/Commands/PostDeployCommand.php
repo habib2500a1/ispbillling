@@ -54,6 +54,8 @@ final class PostDeployCommand extends Command
 
         $this->info('Post-deploy sync complete.');
 
+        $this->dispatchMobileSyncInBackground();
+
         DeployReady::markReady();
 
         if ($this->option('fast') || ! $this->option('processes-only')) {
@@ -99,6 +101,26 @@ final class PostDeployCommand extends Command
             : $smsTemplates->syncMissingDefaults();
 
         $this->info("SMS templates: {$smsCount} added from catalog.");
+    }
+
+    private function dispatchMobileSyncInBackground(): void
+    {
+        $script = base_path('scripts/auto-mobile-after-deploy.sh');
+        if (! is_file($script)) {
+            return;
+        }
+
+        $log = storage_path('logs/auto-mobile-deploy.log');
+        $cmd = sprintf(
+            'nohup bash %s >> %s 2>&1 &',
+            escapeshellarg($script),
+            escapeshellarg($log),
+        );
+
+        if (function_exists('exec')) {
+            exec($cmd);
+            $this->line('Mobile APK sync scheduled (background).');
+        }
     }
 
     private function syncAutomaticProcesses(AutomaticProcessSeeder $processSeeder): int
