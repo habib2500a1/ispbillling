@@ -8,6 +8,8 @@ services:
       context: .
       dockerfile: deploy/Dockerfile
     restart: unless-stopped
+    mem_limit: 4g
+    memswap_limit: 4g
     env_file:
       - .env
     volumes:
@@ -22,6 +24,12 @@ services:
       DB_HOST: postgres
       REDIS_HOST: redis
       QUEUE_CONNECTION: redis
+    healthcheck:
+      test: ["CMD-SHELL", "php artisan --version >/dev/null 2>&1 || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 120s
     networks:
       - isp
       - nextdeploy
@@ -48,6 +56,9 @@ services:
 
   postgres:
     image: postgres:16-alpine
+    restart: unless-stopped
+    mem_limit: 3g
+    memswap_limit: 3g
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-isp_platform}
       POSTGRES_USER: ${POSTGRES_USER:-isp}
@@ -68,6 +79,15 @@ services:
 
   redis:
     image: redis:7-alpine
+    restart: unless-stopped
+    mem_limit: 512m
+    memswap_limit: 512m
+    command: redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru --save ""
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
     networks:
       - isp
 
@@ -76,6 +96,8 @@ services:
       context: .
       dockerfile: deploy/Dockerfile
     restart: unless-stopped
+    mem_limit: 768m
+    memswap_limit: 768m
     command: php artisan horizon
     env_file:
       - .env
@@ -97,6 +119,8 @@ services:
       context: .
       dockerfile: deploy/Dockerfile
     restart: unless-stopped
+    mem_limit: 1536m
+    memswap_limit: 1536m
     command: sh -c "while true; do php artisan schedule:run --no-interaction; sleep 60; done"
     env_file:
       - .env

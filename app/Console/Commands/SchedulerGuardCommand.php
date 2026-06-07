@@ -10,36 +10,49 @@ final class SchedulerGuardCommand extends Command
     protected $signature = 'isp:scheduler-guard
                             {--dry-run : Report only, do not kill stale processes}';
 
-    protected $description = 'Prevent stacked scheduler workers from starving PHP-FPM (web 502)';
+    protected $description = 'Prevent stacked scheduler workers from starving PHP-FPM (web 502 / server hang)';
 
     public function handle(): int
     {
         $maxProcesses = max(1, (int) config('automation.max_runner_processes', 1));
-        $staleAfter = max(120, (int) config('automation.stale_runner_seconds', 360));
+        $minKillAge = max(30, (int) config('automation.min_runner_kill_seconds', 90));
+        $staleAfter = max(120, (int) config('automation.stale_runner_seconds', 600));
 
         $rows = $this->runnerProcesses();
         $count = count($rows);
 
         $this->line("isp:run-automatic-processes workers: {$count} (max {$maxProcesses})");
 
-        if ($count <= $maxProcesses) {
+        $toKill = [];
+
+        if ($count > $maxProcesses) {
+            $excess = array_slice($rows, 0, $count - $maxProcesses);
+            foreach ($excess as $row) {
+                if ($row['elapsed'] >= $minKillAge) {
+                    $toKill[$row['pid']] = $row;
+                }
+            }
+        }
+
+        foreach ($rows as $row) {
+            if ($row['elapsed'] >= $staleAfter) {
+                $toKill[$row['pid']] = $row;
+            }
+        }
+
+        if ($toKill === []) {
+            if ($count > $maxProcesses) {
+                $this->warn('Too many workers but all younger than '.$minKillAge.'s — will retry next guard run.');
+
+                return self::FAILURE;
+            }
+
             return self::SUCCESS;
         }
 
-        $stale = array_values(array_filter(
-            $rows,
-            fn (array $row): bool => $row['elapsed'] >= $staleAfter,
-        ));
-
-        if ($stale === []) {
-            $this->warn('Too many workers but none older than '.$staleAfter.'s — manual check advised.');
-
-            return self::FAILURE;
-        }
-
-        foreach ($stale as $row) {
+        foreach ($toKill as $row) {
             $msg = sprintf(
-                'Stale scheduler worker PID %d (elapsed %ds) %s',
+                'Scheduler worker PID %d (elapsed %ds) %s',
                 $row['pid'],
                 $row['elapsed'],
                 $this->option('dry-run') ? '(dry-run)' : '→ terminating',
@@ -48,7 +61,7 @@ final class SchedulerGuardCommand extends Command
 
             if (! $this->option('dry-run')) {
                 posix_kill($row['pid'], SIGTERM);
-                Log::warning('scheduler.guard_killed_stale_worker', $row);
+                Log::warning('scheduler.guard_killed_worker', $row);
             }
         }
 

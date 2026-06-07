@@ -43,6 +43,12 @@ class RunAutomaticProcessesCommand extends Command
                 : $scheduler->dueProcesses();
 
             foreach ($processes as $process) {
+                try {
+                    $lock->extend($maxRuntime);
+                } catch (\Throwable) {
+                    // ignore — lock may have been released
+                }
+
                 if ($scheduler->run($process, $force, $force ? 'manual' : 'scheduler')) {
                     $ran++;
                     $this->line("<info>Ran</info> {$process->name}");

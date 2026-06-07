@@ -11,14 +11,17 @@
 | Schedule | `runInBackground()` **নেই** — mutex আগে ছেড়ে দিত |
 | `withoutOverlapping(300)` | Laravel schedule mutex |
 | `SchedulerRunnerLock` | একই সময়ে শুধু **১টি** runner |
-| `isp:scheduler-guard` | প্রতি ৫ মিনিটে **পুরনো stuck** worker বন্ধ |
+| `isp:scheduler-guard` | প্রতি ১ মিনিটে **stacked/stuck** worker বন্ধ |
+| `isp:prune-logs` | দৈনিক — বড় log file ছাঁটাই |
 
 ## `.env` (production)
 
 ```env
-AUTOMATION_RUNNER_LOCK_SECONDS=300
+AUTOMATION_RUNNER_LOCK_SECONDS=1800
 AUTOMATION_MAX_RUNNER_PROCESSES=1
-AUTOMATION_STALE_RUNNER_SECONDS=360
+AUTOMATION_MIN_RUNNER_KILL_SECONDS=90
+AUTOMATION_STALE_RUNNER_SECONDS=600
+HORIZON_MAX_PROCESSES=2
 ```
 
 ## চেক

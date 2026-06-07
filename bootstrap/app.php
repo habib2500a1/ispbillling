@@ -37,12 +37,17 @@ return Application::configure(basePath: dirname(__DIR__))
         // overlapping isp:run-automatic-processes workers pile up and exhaust PHP-FPM (502).
         $schedule->command('isp:run-automatic-processes')
             ->everyMinute()
-            ->withoutOverlapping(300)
+            ->withoutOverlapping(3600)
             ->onOneServer();
 
         $schedule->command('isp:scheduler-guard')
-            ->everyFiveMinutes()
-            ->withoutOverlapping(4)
+            ->everyMinute()
+            ->withoutOverlapping(2)
+            ->onOneServer();
+
+        $schedule->command('isp:prune-logs')
+            ->daily()
+            ->withoutOverlapping(30)
             ->onOneServer();
 
         $schedule->command('mfs:match-pending-payments')
