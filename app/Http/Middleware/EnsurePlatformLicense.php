@@ -45,7 +45,7 @@ final class EnsurePlatformLicense
 
     private function shouldBypass(Request $request): bool
     {
-        if ($request->is('up', 'health', 'health/*')) {
+        if ($request->is('up', 'health', 'health/*', 'install', 'install/*')) {
             return true;
         }
 

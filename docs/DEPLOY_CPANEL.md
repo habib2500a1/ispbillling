@@ -10,7 +10,14 @@
 
 **One-click guide:** [`docs/INSTALL_CPANEL_WEBUZO.md`](INSTALL_CPANEL_WEBUZO.md)
 
-Server Terminal এ এক লাইন:
+### ZIP + Web Wizard (public_html — panel user এর জন্য সবচেয়ে সহজ)
+
+1. `bash scripts/build-cpanel-release-zip.sh` → `releases/isp-platform-cpanel-public_html.zip`
+2. cPanel File Manager → `/home/user/` এ upload + extract
+3. Domain document root = `public_html`
+4. Browser: `https://your-domain.com/install` → Permissions → Database → Admin
+
+Server Terminal এ এক লাইন (git clone):
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/habib2500a1/ispbillling/main/install.sh | bash

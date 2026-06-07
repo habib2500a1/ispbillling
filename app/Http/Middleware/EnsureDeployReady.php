@@ -30,6 +30,6 @@ final class EnsureDeployReady
 
     private function shouldBypass(Request $request): bool
     {
-        return $request->is('up', 'health', 'health/*');
+        return $request->is('up', 'health', 'health/*', 'install', 'install/*');
     }
 }

@@ -2,6 +2,7 @@
 
 use Illuminate\Console\Scheduling\Schedule;
 use App\Http\Middleware\DisconnectIdleDatabase;
+use App\Http\Middleware\EnsureAppIsInstalled;
 use App\Http\Middleware\EnsureCustomerPortalEnabled;
 use App\Http\Middleware\EnsureDeployReady;
 use App\Http\Middleware\ExpireLegacySessionCookie;
@@ -15,6 +16,7 @@ use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Route;
 use Illuminate\Session\TokenMismatchException;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
@@ -23,13 +25,25 @@ use Livewire\Mechanisms\ComponentRegistry;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 use Symfony\Component\HttpKernel\Exception\MethodNotAllowedHttpException;
 
-return Application::configure(basePath: dirname(__DIR__))
+$basePath = dirname(__DIR__);
+$publicPath = $basePath.'/public';
+$siblingPublicHtml = dirname($basePath).'/public_html';
+$siblingApp = dirname($basePath).'/isp-app';
+
+if (is_dir($siblingPublicHtml) && is_file($siblingApp.'/artisan') && realpath($basePath) === realpath($siblingApp)) {
+    $publicPath = $siblingPublicHtml;
+}
+
+$app = Application::configure(basePath: $basePath)
     ->withRouting(
         web: __DIR__.'/../routes/web.php',
         api: __DIR__.'/../routes/api.php',
         commands: __DIR__.'/../routes/console.php',
         channels: __DIR__.'/../routes/channels.php',
         health: '/up',
+        then: function (): void {
+            Route::middleware('web')->group(base_path('routes/install.php'));
+        },
     )
     ->withSchedule(function (Schedule $schedule): void {
         $schedule->useCache('file');
@@ -97,6 +111,7 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->appendToGroup('web', \App\Http\Middleware\ResolveResellerWhiteLabel::class);
         $middleware->appendToGroup('web', ExpireLegacySessionCookie::class);
+        $middleware->prependToGroup('web', EnsureAppIsInstalled::class);
         $middleware->prependToGroup('web', EnsureDeployReady::class);
         $middleware->prependToGroup('web', GuardLivewireUpdateRequests::class);
 
@@ -270,3 +285,7 @@ return Application::configure(basePath: dirname(__DIR__))
             return ResilientHttpErrors::render($e, $request);
         });
     })->create();
+
+$app->usePublicPath($publicPath);
+
+return $app;

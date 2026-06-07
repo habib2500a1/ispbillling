@@ -1,8 +1,49 @@
 # cPanel / Webuzo — One-Click Install (সহজ ইনস্টল)
 
-GitHub থেকে **এক কমান্ডে** ISP Platform install করুন। Node.js লাগবে না — pre-built CSS already repo তে আছে।
+GitHub থেকে **ZIP unzip** অথবা **এক কমান্ডে** ISP Platform install করুন। Node.js লাগবে না — pre-built CSS already repo তে আছে।
 
 **Repository:** https://github.com/habib2500a1/ispbillling
+
+---
+
+## Method 0 — ZIP Upload (সবচেয়ে সহজ — public_html)
+
+### ZIP ডাউনলোড / বানানো
+
+GitHub Releases থেকে `isp-platform-cpanel-public_html.zip` নিন, অথবা server এ build করুন:
+
+```bash
+bash scripts/build-cpanel-release-zip.sh
+# Output: releases/isp-platform-cpanel-public_html.zip
+```
+
+### Unzip (cPanel File Manager)
+
+1. `/home/YOUR_USER/` এ zip upload করুন (home directory — **public_html এর ভিতরে নয়**)
+2. Extract করলে পাবেন:
+   ```
+   isp-app/        ← Laravel app
+   public_html/    ← web root
+   README-UNZIP.txt
+   ```
+3. Domain document root = `/home/YOUR_USER/public_html`
+4. Browser এ যান → **automatic setup wizard** খুলবে:
+
+```
+https://your-domain.com/install
+```
+
+### Wizard Steps (browser এ)
+
+| Step | কাজ |
+|------|-----|
+| 1 | Requirements check (PHP, extensions) |
+| 2 | **Permissions** — Fix button চাপুন |
+| 3 | **Database** — cPanel MySQL credentials |
+| 4 | **Admin** — email, password, company name |
+| 5 | Done → `/admin` login |
+
+Cron ২টা line wizard শেষে দেখাবে — cPanel Cron Jobs এ add করুন।
 
 ---
 
@@ -144,8 +185,11 @@ Webuzo তেও same steps:
 
 | File | কাজ |
 |------|-----|
+| `releases/isp-platform-cpanel-public_html.zip` | ZIP unzip install (public_html) |
+| `scripts/build-cpanel-release-zip.sh` | ZIP package build |
+| `/install` | Web setup wizard (permissions → DB → admin) |
 | `install.sh` | GitHub one-liner (clone + install) |
-| `scripts/install-cpanel-webuzo.sh` | Main installer |
+| `scripts/install-cpanel-webuzo.sh` | Terminal installer |
 | `scripts/post-deploy-cpanel.sh` | Git pull / deploy পর |
 | `.cpanel.yml` | cPanel auto-deploy |
 | `deploy/.env.cpanel.example` | cPanel `.env` template |

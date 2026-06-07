@@ -33,3 +33,6 @@ yarn-error.log
 /public/downloads/mfs-verify-version.json
 /mobile/**/build/
 /mobile/**/outputs/
+
+/releases/*.zip
+/releases/.build-*
