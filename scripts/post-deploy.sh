@@ -6,7 +6,12 @@ cd /var/www/isp-platform
 
 sudo -u www-data php artisan isp:post-deploy --fast --no-interaction
 sudo -u www-data php artisan isp:post-deploy --processes-only --no-interaction &
-sudo -u www-data php artisan optimize:clear
+sudo -u www-data php artisan config:clear
+sudo -u www-data php artisan route:clear
+sudo -u www-data php artisan config:cache
+sudo -u www-data php artisan route:cache
+sudo -u www-data php artisan event:cache
+sudo -u www-data php artisan filament:optimize
 
 if command -v systemctl >/dev/null 2>&1; then
     sudo systemctl reload php8.3-fpm 2>/dev/null || sudo systemctl reload php-fpm 2>/dev/null || true

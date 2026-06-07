@@ -54,4 +54,5 @@ if [ -f /usr/local/bin/ensure-permissions.sh ]; then
 fi
 
 echo "[fix] Done. Hard-refresh browser or try incognito: ${APP_URL:-}/admin/login"
+php artisan isp:mark-deploy-ready --no-interaction 2>/dev/null || touch storage/framework/deploy-ready
 echo "[fix] If still 500: tail -30 storage/logs/laravel.log"

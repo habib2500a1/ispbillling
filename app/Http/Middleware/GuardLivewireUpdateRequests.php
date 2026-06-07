@@ -107,7 +107,7 @@ class GuardLivewireUpdateRequests
 
             throw $e;
         } catch (Throwable $e) {
-            if ($request->is('livewire/update')) {
+            if ($request->is('livewire/update') || $request->is('livewire/upload-file')) {
                 $components = (array) $request->input('components', []);
                 $first = (array) ($components[0] ?? []);
                 $snapshot = json_decode((string) ($first['snapshot'] ?? ''), true);
@@ -125,6 +125,8 @@ class GuardLivewireUpdateRequests
                     'referer' => $request->headers->get('referer'),
                     'user_id' => optional(auth()->user())->getAuthIdentifier(),
                 ]);
+
+                return response()->json(['components' => [], 'assets' => []], 200);
             }
 
             throw $e;

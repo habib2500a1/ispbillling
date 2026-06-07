@@ -7,6 +7,8 @@ use App\Services\Portal\PortalContentCatalog;
 use App\Services\Portal\PortalMovieServerCatalog;
 use App\Support\CompanyBranding;
 use App\Support\MobileAppLinks;
+use App\Support\TenantResolver;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\View\View;
 use Throwable;
@@ -14,6 +16,28 @@ use Throwable;
 class LandingPageController extends Controller
 {
     public function __invoke(): View
+    {
+        try {
+            $tenantId = TenantResolver::currentTenantId() ?? (int) config('inventory.default_tenant_id', 1);
+
+            $payload = Cache::remember(
+                'landing:page:'.$tenantId,
+                now()->addMinutes((int) config('isp.landing_cache_minutes', 2)),
+                fn (): array => $this->buildLandingPayload($tenantId),
+            );
+        } catch (\Throwable) {
+            $payload = $this->buildLandingPayload(
+                TenantResolver::currentTenantId() ?? (int) config('inventory.default_tenant_id', 1),
+            );
+        }
+
+        return view('landing.index', $payload);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function buildLandingPayload(int $tenantId): array
     {
         $packages = Package::query()
             ->publicCatalog()
@@ -23,9 +47,9 @@ class LandingPageController extends Controller
 
         $movieServers = PortalMovieServerCatalog::forLanding();
 
-        $shopEnabled = $this->shopHasActiveProducts();
+        $shopEnabled = $this->shopHasActiveProducts($tenantId);
 
-        return view('landing.index', [
+        return [
             'shopUrl' => $shopEnabled ? route('shop.index') : null,
             'portalNotices' => PortalContentCatalog::noticesForLanding(),
             'portalMarquee' => PortalContentCatalog::marqueeForLanding(),
@@ -47,10 +71,10 @@ class LandingPageController extends Controller
             'portalDashboardUrl' => config('portal.enabled', true) ? route('portal.dashboard') : null,
             'signupUrl' => config('portal.signup.enabled', true) ? route('portal.signup') : null,
             'appDownloadUrl' => MobileAppLinks::downloadUrl(),
-        ]);
+        ];
     }
 
-    private function shopHasActiveProducts(): bool
+    private function shopHasActiveProducts(int $tenantId): bool
     {
         if (! config('inventory.shop_enabled', true)) {
             return false;
@@ -62,7 +86,7 @@ class LandingPageController extends Controller
 
         try {
             return \App\Models\Product::withoutGlobalScopes()
-                ->where('tenant_id', (int) config('inventory.default_tenant_id', 1))
+                ->where('tenant_id', $tenantId)
                 ->where('is_active', true)
                 ->where('show_on_shop', true)
                 ->where('stock_qty', '>', 0)

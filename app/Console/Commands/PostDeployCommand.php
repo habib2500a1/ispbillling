@@ -5,6 +5,7 @@ namespace App\Console\Commands;
 use App\Models\AppSetting;
 use App\Models\SmsTemplate;
 use App\Models\Tenant;
+use App\Support\DeployReady;
 use App\Services\Sms\SmsTemplateService;
 use Database\Seeders\AutomaticProcessSeeder;
 use Database\Seeders\IspPermissionsSeeder;
@@ -52,6 +53,8 @@ final class PostDeployCommand extends Command
         }
 
         $this->info('Post-deploy sync complete.');
+
+        DeployReady::markReady();
 
         return self::SUCCESS;
     }

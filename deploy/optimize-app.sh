@@ -17,12 +17,10 @@ case "${REDIS_HOST:-}" in
     ;;
 esac
 
-echo "[optimize] Clearing stale caches..."
+echo "[optimize] Clearing stale framework caches (keeping Redis app data)..."
 php artisan config:clear --no-ansi 2>/dev/null || true
 php artisan route:clear --no-ansi 2>/dev/null || true
 php artisan view:clear --no-ansi 2>/dev/null || true
-php artisan cache:clear --no-ansi 2>/dev/null || true
-php artisan optimize:clear --no-ansi 2>/dev/null || true
 php artisan filament:optimize-clear --no-ansi 2>/dev/null || true
 
 echo "[optimize] Building production caches..."

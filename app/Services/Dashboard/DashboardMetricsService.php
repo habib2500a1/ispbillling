@@ -136,6 +136,19 @@ class DashboardMetricsService
     public function revenueTrend(int $days = 14, ?int $tenantId = null): array
     {
         $tenantId = $tenantId ?? TenantResolver::requiredTenantId();
+
+        return Cache::remember(
+            "dashboard:revenue_trend:{$tenantId}:{$days}",
+            now()->addMinutes((int) config('dashboard.revenue_trend_cache_minutes', 5)),
+            fn (): array => $this->buildRevenueTrend($days, $tenantId),
+        );
+    }
+
+    /**
+     * @return array{labels: list<string>, collected: list<float>, invoiced: list<float>}
+     */
+    private function buildRevenueTrend(int $days, int $tenantId): array
+    {
         $start = now()->subDays($days - 1)->startOfDay();
 
         $collected = Payment::withoutGlobalScopes()
@@ -192,6 +205,10 @@ class DashboardMetricsService
      */
     private function buildOnlineUsersTrend(int $hours, int $tenantId): array
     {
+        if (DB::connection()->getDriverName() === 'pgsql') {
+            return $this->buildOnlineUsersTrendPgsql($hours, $tenantId);
+        }
+
         $labels = [];
         $values = [];
 
@@ -206,6 +223,45 @@ class DashboardMetricsService
                     $q->whereNull('ended_at')->orWhere('ended_at', '>=', $at);
                 })
                 ->count();
+        }
+
+        return ['labels' => $labels, 'online' => $values];
+    }
+
+    /**
+     * @return array{labels: list<string>, online: list<int>}
+     */
+    private function buildOnlineUsersTrendPgsql(int $hours, int $tenantId): array
+    {
+        $start = now()->subHours($hours - 1)->startOfHour();
+        $end = now()->startOfHour();
+
+        $rows = DB::select(
+            <<<'SQL'
+            WITH buckets AS (
+                SELECT generate_series(?::timestamp, ?::timestamp, '1 hour'::interval) AS bucket_at
+            )
+            SELECT
+                b.bucket_at,
+                COUNT(p.id)::int AS online_count
+            FROM buckets b
+            LEFT JOIN ppp_session_logs p
+                ON p.tenant_id = ?
+                AND p.status = 'active'
+                AND p.started_at <= b.bucket_at
+                AND (p.ended_at IS NULL OR p.ended_at >= b.bucket_at)
+            GROUP BY b.bucket_at
+            ORDER BY b.bucket_at
+            SQL,
+            [$start, $end, $tenantId],
+        );
+
+        $labels = [];
+        $values = [];
+
+        foreach ($rows as $row) {
+            $labels[] = Carbon::parse($row->bucket_at)->format('H:i');
+            $values[] = (int) $row->online_count;
         }
 
         return ['labels' => $labels, 'online' => $values];
@@ -293,6 +349,19 @@ class DashboardMetricsService
     public function nocSnapshot(?int $tenantId = null): array
     {
         $tenantId = $tenantId ?? TenantResolver::requiredTenantId();
+
+        return Cache::remember(
+            'dashboard:noc_snapshot:'.$tenantId,
+            now()->addSeconds((int) config('dashboard.noc_snapshot_cache_seconds', 45)),
+            fn (): array => $this->buildNocSnapshot($tenantId),
+        );
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function buildNocSnapshot(int $tenantId): array
+    {
         $snap = $this->snapshot($tenantId);
         $optical = app(OpticalDashboardService::class)->snapshot($tenantId);
         $customerCounts = $this->customerCounts($tenantId);

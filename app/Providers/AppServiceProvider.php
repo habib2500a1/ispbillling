@@ -59,6 +59,8 @@ use Livewire\Livewire;
 
 class AppServiceProvider extends ServiceProvider
 {
+    private static bool $storageBootstrapped = false;
+
     /**
      * Register any application services.
      */
@@ -127,17 +129,21 @@ class AppServiceProvider extends ServiceProvider
             }
         }
 
-        foreach (EnsureStorageWritable::directories() as $dir) {
-            if (! is_dir($dir)) {
-                \Illuminate\Support\Facades\File::ensureDirectoryExists($dir, 0775);
-            }
-        }
+        if (! self::$storageBootstrapped) {
+            self::$storageBootstrapped = true;
 
-        if ($storageIssues = EnsureStorageWritable::findIssues()) {
-            Log::channel('single')->critical('storage_not_writable', [
-                'issues' => $storageIssues,
-                'hint' => 'Run: sudo scripts/fix-storage-permissions.sh',
-            ]);
+            foreach (EnsureStorageWritable::directories() as $dir) {
+                if (! is_dir($dir)) {
+                    \Illuminate\Support\Facades\File::ensureDirectoryExists($dir, 0775);
+                }
+            }
+
+            if ($storageIssues = EnsureStorageWritable::findIssues()) {
+                Log::channel('single')->critical('storage_not_writable', [
+                    'issues' => $storageIssues,
+                    'hint' => 'Run: sudo scripts/fix-storage-permissions.sh',
+                ]);
+            }
         }
 
         InvoiceItem::observe(InvoiceItemObserver::class);

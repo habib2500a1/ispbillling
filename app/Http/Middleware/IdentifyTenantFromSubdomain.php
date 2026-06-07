@@ -18,48 +18,52 @@ class IdentifyTenantFromSubdomain
     {
         TenantResolver::setSubdomainTenantId(null);
 
-        if (! Cache::remember('bootstrap.tenants_table', 300, fn (): bool => Schema::hasTable('tenants'))) {
-            return $next($request);
-        }
-
-        $base = strtolower(trim((string) config('isp.tenant_base_domain', '')));
-        if ($base === '') {
-            return $next($request);
-        }
-
-        $host = strtolower($request->getHost());
-        if ($host === $base || ! str_ends_with($host, '.'.$base)) {
-            return $next($request);
-        }
-
-        $sub = substr($host, 0, strlen($host) - strlen($base) - 1);
-        if ($sub === '' || ! preg_match('/^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/', $sub)) {
-            return $next($request);
-        }
-
-        $tenant = Tenant::query()->where('slug', $sub)->where('is_active', true)->first();
-        if ($tenant) {
-            TenantResolver::setSubdomainTenantId((int) $tenant->id);
-            TenantScopedConfig::apply((int) $tenant->id);
-
-            return $next($request);
-        }
-
-        $reseller = Reseller::query()
-            ->withoutGlobalScopes()
-            ->where('portal_subdomain', $sub)
-            ->where('white_label_enabled', true)
-            ->where('is_active', true)
-            ->first();
-
-        if ($reseller !== null) {
-            TenantResolver::setSubdomainTenantId((int) $reseller->tenant_id);
-            TenantScopedConfig::apply((int) $reseller->tenant_id);
-            app()->instance('reseller.white_label', $reseller);
-
-            if ($request->is('/') && ! $request->is('reseller*')) {
-                return redirect('/login');
+        try {
+            if (! Cache::remember('bootstrap.tenants_table', 300, fn (): bool => Schema::hasTable('tenants'))) {
+                return $next($request);
             }
+
+            $base = strtolower(trim((string) config('isp.tenant_base_domain', '')));
+            if ($base === '') {
+                return $next($request);
+            }
+
+            $host = strtolower($request->getHost());
+            if ($host === $base || ! str_ends_with($host, '.'.$base)) {
+                return $next($request);
+            }
+
+            $sub = substr($host, 0, strlen($host) - strlen($base) - 1);
+            if ($sub === '' || ! preg_match('/^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/', $sub)) {
+                return $next($request);
+            }
+
+            $tenant = Tenant::query()->where('slug', $sub)->where('is_active', true)->first();
+            if ($tenant) {
+                TenantResolver::setSubdomainTenantId((int) $tenant->id);
+                TenantScopedConfig::apply((int) $tenant->id);
+
+                return $next($request);
+            }
+
+            $reseller = Reseller::query()
+                ->withoutGlobalScopes()
+                ->where('portal_subdomain', $sub)
+                ->where('white_label_enabled', true)
+                ->where('is_active', true)
+                ->first();
+
+            if ($reseller !== null) {
+                TenantResolver::setSubdomainTenantId((int) $reseller->tenant_id);
+                TenantScopedConfig::apply((int) $reseller->tenant_id);
+                app()->instance('reseller.white_label', $reseller);
+
+                if ($request->is('/') && ! $request->is('reseller*')) {
+                    return redirect('/login');
+                }
+            }
+        } catch (\Throwable) {
+            // Never take down the whole site when tenant lookup fails.
         }
 
         return $next($request);

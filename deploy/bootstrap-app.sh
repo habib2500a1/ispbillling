@@ -6,6 +6,10 @@ if [ -z "$APP_KEY" ]; then
   exit 0
 fi
 
+rm -f storage/framework/deploy-ready 2>/dev/null || true
+touch storage/framework/deploy-bootstrapping 2>/dev/null || true
+chown www-data:www-data storage/framework/deploy-bootstrapping 2>/dev/null || true
+
 attempt=0
 while [ $attempt -lt 12 ]; do
   if php artisan migrate:status --no-ansi >/dev/null 2>&1; then
@@ -67,3 +71,8 @@ fi
 if [ -f /usr/local/bin/optimize-app.sh ]; then
   /usr/local/bin/optimize-app.sh || true
 fi
+
+php artisan isp:mark-deploy-ready --no-interaction 2>/dev/null || touch storage/framework/deploy-ready
+rm -f storage/framework/deploy-bootstrapping 2>/dev/null || true
+chown www-data:www-data storage/framework/deploy-ready 2>/dev/null || true
+echo "[bootstrap] Deploy ready."

@@ -14,6 +14,12 @@ return [
     'admin_email' => env('ISP_ADMIN_EMAIL', 'admin@isp.local'),
     'admin_password' => env('ISP_ADMIN_PASSWORD', 'changeme123!'),
 
+    /** Decrypted app_settings cache TTL (seconds). Invalidated when settings are saved. */
+    'app_settings_sync_cache_seconds' => (int) env('ISP_APP_SETTINGS_SYNC_CACHE_SECONDS', 120),
+
+    /** Public landing page payload cache (minutes). */
+    'landing_cache_minutes' => (int) env('ISP_LANDING_CACHE_MINUTES', 2),
+
     'company_name' => env('ISP_COMPANY_NAME', 'Radiant Communications Ltd'),
     'company_tagline' => env('ISP_COMPANY_TAGLINE', 'ISP billing & network operations'),
     'company_phone' => env('ISP_COMPANY_PHONE', ''),

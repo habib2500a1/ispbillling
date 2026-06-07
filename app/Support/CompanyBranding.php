@@ -2,19 +2,15 @@
 
 namespace App\Support;
 
-use App\Models\AppSetting;
 use Illuminate\Support\Facades\Storage;
 
 final class CompanyBranding
 {
     public static function name(): string
     {
-        $stored = AppSetting::getStoredValue('isp.company_name');
-        if (is_string($stored) && trim($stored) !== '') {
-            return trim($stored);
-        }
+        $fromConfig = trim((string) config('isp.company_name', ''));
 
-        return (string) config('isp.company_name', config('app.name', 'ISP'));
+        return $fromConfig !== '' ? $fromConfig : (string) config('app.name', 'ISP');
     }
 
     public static function tagline(): string

@@ -31,13 +31,43 @@ class AppSetting extends Model
             return;
         }
 
+        $ttl = max(30, (int) config('isp.app_settings_sync_cache_seconds', 120));
+
+        try {
+            /** @var array<string, mixed> $pairs */
+            $pairs = Cache::remember('bootstrap.app_settings_sync', $ttl, function (): array {
+                return self::loadRuntimeConfigPairsFromDatabase();
+            });
+        } catch (\Throwable $e) {
+            Log::channel('single')->warning('app_settings.sync_cache_failed', [
+                'message' => $e->getMessage(),
+            ]);
+            $pairs = self::loadRuntimeConfigPairsFromDatabase();
+        }
+
+        foreach ($pairs as $key => $value) {
+            config([$key => $value]);
+        }
+
+        self::syncPublicPaymentGatewayFlags();
+        self::applyRadiusDatabaseConnection();
+        self::applyApplicationTimezone();
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private static function loadRuntimeConfigPairsFromDatabase(): array
+    {
+        $loaded = [];
+
         foreach (static::query()->cursor() as $row) {
             try {
                 $raw = $row->value;
                 if ($raw === null || $raw === '') {
                     continue;
                 }
-                config([$row->key => self::castValueForConfigKey($row->key, $raw)]);
+                $loaded[$row->key] = self::castValueForConfigKey($row->key, $raw);
             } catch (\Throwable $e) {
                 Log::channel('single')->warning('app_settings.sync_row_failed', [
                     'key' => $row->key,
@@ -47,9 +77,7 @@ class AppSetting extends Model
             }
         }
 
-        self::syncPublicPaymentGatewayFlags();
-        self::applyRadiusDatabaseConnection();
-        self::applyApplicationTimezone();
+        return $loaded;
     }
 
     /**

@@ -3,11 +3,13 @@
 use Illuminate\Console\Scheduling\Schedule;
 use App\Http\Middleware\DisconnectIdleDatabase;
 use App\Http\Middleware\EnsureCustomerPortalEnabled;
+use App\Http\Middleware\EnsureDeployReady;
 use App\Http\Middleware\ExpireLegacySessionCookie;
 use App\Http\Middleware\GuardLivewireUpdateRequests;
 use App\Http\Middleware\IdentifyTenantFromSubdomain;
 use App\Http\Middleware\SecurityHeaders;
 use App\Http\Middleware\SetAppLocale;
+use App\Support\ResilientHttpErrors;
 use Illuminate\Auth\Middleware\RedirectIfAuthenticated;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -95,6 +97,7 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->appendToGroup('web', \App\Http\Middleware\ResolveResellerWhiteLabel::class);
         $middleware->appendToGroup('web', ExpireLegacySessionCookie::class);
+        $middleware->prependToGroup('web', EnsureDeployReady::class);
         $middleware->prependToGroup('web', GuardLivewireUpdateRequests::class);
 
         $middleware->appendToGroup('web', SecurityHeaders::class);
@@ -104,6 +107,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->appendToGroup('web', \App\Http\Middleware\EnsurePlatformLicense::class);
         $middleware->appendToGroup('web', SetAppLocale::class);
         $middleware->appendToGroup('web', DisconnectIdleDatabase::class);
+        $middleware->prependToGroup('api', EnsureDeployReady::class);
         $middleware->prependToGroup('api', IdentifyTenantFromSubdomain::class);
         $middleware->appendToGroup('api', \App\Http\Middleware\EnsurePlatformLicense::class);
 
@@ -256,5 +260,13 @@ return Application::configure(basePath: dirname(__DIR__))
                 ->route('portal.login')
                 ->with('portal_session_expired', true)
                 ->withInput($request->except('password', '_token', 'code'));
+        });
+
+        $exceptions->render(function (Throwable $e, Request $request) {
+            if (! ResilientHttpErrors::shouldRenderFriendlyPage($e, $request)) {
+                return null;
+            }
+
+            return ResilientHttpErrors::render($e, $request);
         });
     })->create();

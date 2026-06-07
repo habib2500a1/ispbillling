@@ -14,4 +14,10 @@ return [
     /** Cache online-users chart series (minutes). */
     'online_trend_cache_minutes' => (int) env('DASHBOARD_ONLINE_TREND_CACHE_MINUTES', 5),
 
+    /** Cache revenue trend chart (minutes). */
+    'revenue_trend_cache_minutes' => (int) env('DASHBOARD_REVENUE_TREND_CACHE_MINUTES', 5),
+
+    /** Cache NOC dashboard snapshot (seconds). */
+    'noc_snapshot_cache_seconds' => (int) env('DASHBOARD_NOC_SNAPSHOT_CACHE_SECONDS', 45),
+
 ];
