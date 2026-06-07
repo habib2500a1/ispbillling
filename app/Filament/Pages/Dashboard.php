@@ -99,8 +99,8 @@ class Dashboard extends BaseDashboard
         $compact = app(DashboardPreferencesService::class)->isCompact(auth()->user());
 
         return $compact
-            ? ['default' => 1, 'sm' => 2, 'xl' => 3]
-            : ['default' => 1, 'sm' => 2, 'lg' => 4];
+            ? ['default' => 1, 'md' => 2, 'xl' => 3]
+            : ['default' => 1, 'lg' => 2, 'xl' => 4];
     }
 
     public function getExtraBodyAttributes(): array

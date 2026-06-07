@@ -1,10 +1,18 @@
 @php
     $kpis = $kpis ?? [];
     $source_notice = $source_notice ?? null;
-    $growth = $growth ?? ['labels' => [], 'values' => [], 'max' => 1];
+    $growth = $growth ?? ['labels' => [], 'values' => [], 'max' => 1, 'months' => 6, 'range_label' => ''];
     $clients = $clients ?? [];
     $max = max(1, (float) ($growth['max'] ?? 1));
-    $barColors = ['#8b5cf6', '#ec4899', '#14b8a6', '#64748b', '#3b82f6', '#f97316', '#06b6d4', '#a855f7', '#10b981'];
+    $monthCount = (int) ($growth['months'] ?? count($growth['labels'] ?? []));
+    $barColors = ['#64748b', '#6366f1', '#7c3aed', '#8b5cf6', '#06b6d4', '#10b981'];
+    $formatBarValue = static function (float $value): string {
+        if ($value >= 1000) {
+            return number_format($value / 1000, $value >= 10000 ? 0 : 1).'k';
+        }
+
+        return number_format($value, 0);
+    };
 @endphp
 
 <x-filament-widgets::widget>
@@ -49,22 +57,37 @@
 
             <div class="isp-billing-dash__top">
                 <article class="isp-billing-dash__chart-card">
-                    <h3 class="isp-billing-dash__card-title">Monthly bill growth</h3>
-                    <div class="isp-billing-dash__chart" role="img" aria-label="Monthly bill bar chart">
+                    <div class="isp-billing-dash__chart-head">
+                        <div>
+                            <h3 class="isp-billing-dash__card-title">Monthly bill growth</h3>
+                            @if (filled($growth['range_label'] ?? null))
+                                <p class="isp-billing-dash__chart-range">{{ $growth['range_label'] }}</p>
+                            @endif
+                        </div>
+                        <span class="isp-billing-dash__chart-badge">{{ $monthCount }} months</span>
+                    </div>
+                    <div
+                        class="isp-billing-dash__chart isp-billing-dash__chart--six"
+                        data-months="{{ $monthCount }}"
+                        role="img"
+                        aria-label="Monthly bill bar chart for the last {{ $monthCount }} months"
+                    >
                         @foreach ($growth['labels'] as $i => $label)
                             @php
                                 $value = (float) ($growth['values'][$i] ?? 0);
                                 $height = $max > 0 ? max(8, ($value / $max) * 100) : 8;
                                 $color = $barColors[$i % count($barColors)];
+                                $isLatest = $i === count($growth['labels']) - 1;
                             @endphp
-                            <div class="isp-billing-dash__bar-col">
+                            <div @class(['isp-billing-dash__bar-col', 'isp-billing-dash__bar-col--latest' => $isLatest])>
+                                <span class="isp-billing-dash__bar-val" title="{{ number_format($value, 0) }} BDT">
+                                    {{ $formatBarValue($value) }}
+                                </span>
                                 <div class="isp-billing-dash__bar-wrap">
                                     <div
                                         class="isp-billing-dash__bar"
                                         style="height: {{ $height }}%; background: {{ $color }};"
-                                    >
-                                        <span class="isp-billing-dash__bar-val">{{ number_format($value, 0) }}</span>
-                                    </div>
+                                    ></div>
                                 </div>
                                 <span class="isp-billing-dash__bar-label">{{ $label }}</span>
                             </div>

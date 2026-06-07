@@ -1,0 +1,36 @@
+{
+  "repo_root": "/var/www/isp-platform",
+  "instances": [
+    {
+      "id": "radiant",
+      "enabled": true,
+      "name": "Radiant Communications",
+      "path": "/var/www/instances/bill.flixbd.xyz",
+      "app_url": "https://bill.flixbd.xyz",
+      "landing_domain": "bill.flixbd.xyz",
+      "previous_urls": [],
+      "db_database": "isp_radiant",
+      "notes": "Copy this file to deploy/instances.json and add one block per client domain."
+    },
+    {
+      "id": "client2",
+      "enabled": false,
+      "name": "Client 2 ISP",
+      "path": "/var/www/instances/client2.example.com",
+      "app_url": "https://client2.example.com",
+      "landing_domain": "client2.example.com",
+      "previous_urls": ["https://old-client2.example.com"],
+      "db_database": "isp_client2"
+    },
+    {
+      "id": "client3",
+      "enabled": false,
+      "name": "Client 3 ISP",
+      "path": "/var/www/instances/client3.example.com",
+      "app_url": "https://client3.example.com",
+      "landing_domain": "client3.example.com",
+      "previous_urls": [],
+      "db_database": "isp_client3"
+    }
+  ]
+}

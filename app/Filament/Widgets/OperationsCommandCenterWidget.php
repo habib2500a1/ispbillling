@@ -3,18 +3,20 @@
 namespace App\Filament\Widgets;
 
 use App\Filament\Concerns\ChecksDashboardWidgetAccess;
+use App\Filament\Concerns\HasDashboardLazySkeleton;
 use App\Services\Dashboard\OperationsDashboardService;
 use Filament\Widgets\Widget;
 
 class OperationsCommandCenterWidget extends Widget
 {
     use ChecksDashboardWidgetAccess;
+    use HasDashboardLazySkeleton;
 
     protected static string $view = 'filament.widgets.operations-command-center';
 
     protected static bool $isDiscovered = false;
 
-    protected static bool $isLazy = false;
+    protected static bool $isLazy = true;
 
     protected static ?int $sort = -20;
 

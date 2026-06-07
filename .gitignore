@@ -26,6 +26,9 @@ yarn-error.log
 /.vscode
 /.zed
 
+# Per-server multi-domain deploy config (paths, DB names — not committed)
+/deploy/instances.json
+
 # Mobile APK binaries — GitHub Releases only (see public/downloads/README.md)
 *.apk
 /public/*.apk

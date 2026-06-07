@@ -19,6 +19,8 @@ use Illuminate\Support\Facades\DB;
 
 final class BillingDashboardMetricsService
 {
+    public const GROWTH_CHART_MONTHS = 6;
+
     /**
      * @return array<string, mixed>
      */
@@ -27,7 +29,7 @@ final class BillingDashboardMetricsService
         $tenantId = $tenantId ?? TenantResolver::requiredTenantId();
 
         return Cache::remember(
-            "billing_dashboard:v3:{$tenantId}:".now()->format('Y-m-d-H'),
+            "billing_dashboard:v4:{$tenantId}:".now()->format('Y-m-d-H'),
             now()->addMinutes(3),
             fn (): array => $this->build($tenantId),
         );
@@ -49,7 +51,7 @@ final class BillingDashboardMetricsService
             'updated_at' => now()->toIso8601String(),
             'source_notice' => $this->sourceNotice($fromLegacyPortal),
             'kpis' => $this->kpis($tenantId, $from, $to, $pl, $billing),
-            'growth' => $this->monthlyGrowthChart($tenantId, 9),
+            'growth' => $this->monthlyGrowthChart($tenantId, self::GROWTH_CHART_MONTHS),
             'clients' => $this->topDueClients($tenantId, 12),
         ];
     }
@@ -200,7 +202,7 @@ final class BillingDashboardMetricsService
     }
 
     /**
-     * @return array{labels: list<string>, values: list<float>, max: float}
+     * @return array{labels: list<string>, values: list<float>, max: float, months: int, range_label: string}
      */
     private function monthlyGrowthChart(int $tenantId, int $months): array
     {
@@ -228,6 +230,8 @@ final class BillingDashboardMetricsService
             'labels' => $labels,
             'values' => $values,
             'max' => $max,
+            'months' => $months,
+            'range_label' => $start->format('M Y').' – '.now()->format('M Y'),
         ];
     }
 

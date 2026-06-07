@@ -7,7 +7,7 @@
     <h2 class="isp-auth-card__title">Login to your account</h2>
     <p class="isp-auth-card__sub">Admin panel · {{ config('isp.company_name') }}</p>
 
-    {{ \Filament\Support\Facades\FilamentView::renderHook(\Filament\View\PanelsRenderHook::AUTH_LOGIN_FORM_BEFORE, scopes: $this->getRenderHookScopes()) }}
+    @include('filament.hooks.auth-login-flash')
 
     <form
         method="post"
@@ -81,5 +81,5 @@
         </button>
     </form>
 
-    {{ \Filament\Support\Facades\FilamentView::renderHook(\Filament\View\PanelsRenderHook::AUTH_LOGIN_FORM_AFTER, scopes: $this->getRenderHookScopes()) }}
+    @include('components.mobile-app-promo', ['variant' => 'compact'])
 </div>

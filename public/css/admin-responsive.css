@@ -56,6 +56,16 @@
         grid-template-columns: 1fr !important;
     }
 
+    /* Dashboard billing KPI cards — single column on small phones */
+    .isp-billing-dash__kpis {
+        grid-template-columns: 1fr !important;
+    }
+
+    /* Dashboard widget grid — never 2-up on phones */
+    .fi-dashboard-page.isp-dashboard-v2 .fi-wi {
+        grid-template-columns: minmax(0, 1fr) !important;
+    }
+
     /* Filament resource tables: allow horizontal scroll instead of squish */
     .fi-ta-table {
         font-size: 0.82rem;

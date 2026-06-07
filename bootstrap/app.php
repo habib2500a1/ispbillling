@@ -20,6 +20,7 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Session\TokenMismatchException;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
+use Livewire\Exceptions\PublicPropertyNotFoundException;
 use Livewire\Features\SupportReleaseTokens\ReleaseToken;
 use Livewire\Mechanisms\ComponentRegistry;
 use Symfony\Component\HttpKernel\Exception\HttpException;
@@ -163,6 +164,20 @@ $app = Application::configure(basePath: $basePath)
             }
 
             return redirect()->route('filament.admin.auth.login');
+        });
+
+        $exceptions->render(function (PublicPropertyNotFoundException $e, Request $request) {
+            if ($request->is('livewire/update') && str_contains($e->getMessage(), 'global-search')) {
+                Log::warning('livewire.global_search_property_rejected', [
+                    'message' => $e->getMessage(),
+                    'referer' => $request->headers->get('referer'),
+                    'user_id' => optional(auth()->user())->getAuthIdentifier(),
+                ]);
+
+                return response()->json(['components' => [], 'assets' => []], 200);
+            }
+
+            return null;
         });
 
         $exceptions->render(function (Throwable $e, Request $request) {

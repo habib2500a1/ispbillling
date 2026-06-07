@@ -85,10 +85,7 @@ class IdentifyTenantFromSubdomain
         }
 
         $host = strtolower($request->getHost());
-        $candidates = array_values(array_unique(array_filter([
-            strtolower((string) config('domains.landing', '')),
-            strtolower((string) parse_url((string) config('app.url'), PHP_URL_HOST)),
-        ])));
+        $candidates = \App\Support\TrustedAppUrl::allowedHosts();
 
         if (! in_array($host, $candidates, true)) {
             return null;

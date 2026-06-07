@@ -15,7 +15,7 @@ class DashboardCommandStripWidget extends Widget
 
     protected static bool $isDiscovered = false;
 
-    protected static bool $isLazy = false;
+    protected static bool $isLazy = true;
 
     protected static ?int $sort = -7;
 

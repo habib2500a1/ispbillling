@@ -37,6 +37,7 @@ trait UsesClientsDirectoryLayout
             $this->deselectAllTableRecords();
         }
 
+        $this->memoizedDirectoryTableCount = null;
         $this->resetPage();
         $this->flushCachedTableRecords();
     }
@@ -47,6 +48,7 @@ trait UsesClientsDirectoryLayout
             $this->tableDeferredFilters = $this->tableFilters;
         }
 
+        $this->memoizedDirectoryTableCount = null;
         $this->handleTableFilterUpdates();
         $this->flushCachedTableRecords();
     }
@@ -150,6 +152,8 @@ trait UsesClientsDirectoryLayout
 
     /** @var array{total: int, active: int, inactive: int, due_clients: int, total_due: float}|null */
     private ?array $memoizedDirectoryStats = null;
+
+    private ?int $memoizedDirectoryTableCount = null;
 
     /** @var list<array{label: string, value: string, hint: string, tone: string, icon: string}> */
     public array $directoryStatCards = [];
@@ -353,19 +357,31 @@ trait UsesClientsDirectoryLayout
 
     public function getDirectoryResultSummary(): string
     {
-        $count = $this->getAllTableRecordsCount();
+        $count = $this->getCachedDirectoryTableRecordsCount();
         $label = $count === 1 ? 'client' : 'clients';
 
-        // #region agent log
-        $this->debugDirectoryLog('H1', 'UsesClientsDirectoryLayout.php:getDirectoryResultSummary', 'GET toolbar render', [
-            'search' => $this->tableSearch,
-            'zone' => data_get($this->tableFilters, 'zone_id.value'),
-            'status' => data_get($this->tableFilters, 'status.value'),
-            'count' => $count,
-        ]);
-        // #endregion
-
         return 'Showing '.number_format($count).' '.$label;
+    }
+
+    protected function getCachedDirectoryTableRecordsCount(): int
+    {
+        if ($this->memoizedDirectoryTableCount !== null) {
+            return $this->memoizedDirectoryTableCount;
+        }
+
+        $tenantId = \App\Support\TenantResolver::requiredTenantId();
+        $cacheKey = 'clients_dir_count:'.$tenantId.':'.md5(json_encode([
+            'class' => static::class,
+            'preset' => property_exists($this, 'preset') ? ($this->preset ?? 'all') : 'all',
+            'search' => trim((string) ($this->tableSearch ?? '')),
+            'filters' => $this->tableFilters ?? [],
+        ]));
+
+        return $this->memoizedDirectoryTableCount = (int) \Illuminate\Support\Facades\Cache::remember(
+            $cacheKey,
+            45,
+            fn (): int => (int) $this->getAllTableRecordsCount(),
+        );
     }
 
     /**
@@ -520,23 +536,6 @@ trait UsesClientsDirectoryLayout
 
         $this->getTableFiltersForm()->fill();
         $this->tableFilters = $this->getTableFiltersForm()->getState();
-    }
-
-    /**
-     * @param  array<string, mixed>  $data
-     */
-    protected function debugDirectoryLog(string $hypothesisId, string $location, string $message, array $data = []): void
-    {
-        // #region agent log
-        @file_put_contents(base_path('.cursor/debug-4550d5.log'), json_encode([
-            'sessionId' => '4550d5',
-            'hypothesisId' => $hypothesisId,
-            'location' => $location,
-            'message' => $message,
-            'data' => $data,
-            'timestamp' => (int) round(microtime(true) * 1000),
-        ])."\n", FILE_APPEND);
-        // #endregion
     }
 
     public function getHeading(): string

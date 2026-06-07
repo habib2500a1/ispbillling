@@ -1111,3 +1111,167 @@
         scroll-snap-align: start;
     }
 }
+
+/* ── Mobile dashboard fit (single column, no horizontal clip) ── */
+@media (max-width: 767px) {
+    .fi-dashboard-page.isp-dashboard-v2 {
+        overflow-x: hidden;
+        max-width: 100%;
+    }
+
+    .fi-dashboard-page.isp-dashboard-v2 .fi-main,
+    .fi-dashboard-page.isp-dashboard-v2 .fi-page,
+    .fi-dashboard-page.isp-dashboard-v2 .fi-page > section {
+        max-width: 100%;
+        min-width: 0;
+        overflow-x: hidden;
+    }
+
+    .fi-dashboard-page.isp-dashboard-v2 .fi-wi {
+        grid-template-columns: minmax(0, 1fr) !important;
+        width: 100% !important;
+        max-width: 100% !important;
+    }
+
+    .fi-dashboard-page.isp-dashboard-v2 .fi-wi-widget {
+        grid-column: 1 / -1 !important;
+        min-width: 0 !important;
+        max-width: 100% !important;
+    }
+
+    .fi-dashboard-page.isp-dashboard-v2 .fi-wi-widget > div {
+        max-width: 100% !important;
+        overflow-x: hidden;
+    }
+
+    .isp-dash-header--hero,
+    .isp-dash-header {
+        padding: 0.85rem 0.9rem;
+        margin-inline: 0;
+    }
+
+    .isp-dash-header__main {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .isp-dash-header__meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.15rem 0.35rem;
+        line-height: 1.45;
+    }
+
+    .isp-dash-header__actions {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.45rem;
+    }
+
+    .isp-dash-header__action,
+    .isp-dash-header__action--mobile-only {
+        width: 100%;
+        justify-content: center;
+        min-height: 44px;
+    }
+
+    .isp-billing-dash--pro {
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+    }
+
+    .fi-dashboard-page.isp-dashboard-v2 .fi-wi-widget:has(.isp-billing-dash) > div {
+        overflow-x: visible !important;
+    }
+
+    .isp-billing-dash__top {
+        min-width: 0;
+        width: 100%;
+    }
+
+    .isp-billing-dash__chart-card,
+    .isp-billing-dash__table-card {
+        min-width: 0;
+        padding: 0.75rem 0.65rem;
+    }
+
+    .isp-billing-dash__chart-card {
+        overflow: visible;
+    }
+
+    .isp-billing-dash__chart {
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        min-height: 148px;
+        gap: 0.35rem;
+        padding: 0.25rem 0 0;
+        overflow-x: visible;
+    }
+
+    .isp-billing-dash__chart--six {
+        gap: 0.4rem;
+    }
+
+    .isp-billing-dash__chart-head {
+        margin-bottom: 0.55rem;
+    }
+
+    .isp-billing-dash__chart-range {
+        font-size: 0.62rem;
+    }
+
+    .isp-billing-dash__bar-col {
+        flex: 1 1 0;
+        min-width: 0;
+        gap: 0.25rem;
+    }
+
+    .isp-billing-dash__bar-wrap {
+        height: 96px;
+        width: 100%;
+    }
+
+    .isp-billing-dash__bar {
+        width: min(100%, 1.65rem);
+        min-height: 0.75rem;
+        border-radius: 0.4rem 0.4rem 0.15rem 0.15rem;
+    }
+
+    .isp-billing-dash__bar-val {
+        font-size: 0.58rem;
+    }
+
+    .isp-billing-dash__bar-label {
+        font-size: 0.58rem;
+    }
+
+    .isp-billing-dash__kpis {
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+        gap: 0.55rem !important;
+    }
+
+    .isp-billing-dash__kpi {
+        min-height: 4.75rem;
+        padding: 0.7rem 0.75rem;
+        gap: 0.55rem;
+    }
+
+    .isp-billing-dash__kpi-icon {
+        display: none;
+    }
+
+    .isp-billing-dash__kpi-value {
+        font-size: 1.05rem;
+    }
+
+    .isp-billing-dash__kpi-label {
+        font-size: 0.66rem;
+        line-height: 1.25;
+    }
+
+    .isp-billing-dash__kpi-hint {
+        display: none;
+    }
+}

@@ -1794,6 +1794,9 @@ button.isp-rbac-check { padding: 0; }
     display: flex;
     flex-direction: column;
     gap: 1.25rem;
+    max-width: 100%;
+    min-width: 0;
+    overflow-x: hidden;
 }
 
 .isp-billing-dash__head {
@@ -1852,54 +1855,137 @@ button.isp-rbac-check { padding: 0; }
     color: var(--isp-text);
 }
 
+.isp-billing-dash__chart-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: .65rem;
+    margin-bottom: .75rem;
+}
+
+.isp-billing-dash__chart-head .isp-billing-dash__card-title {
+    margin: 0;
+}
+
+.isp-billing-dash__chart-range {
+    margin: .2rem 0 0;
+    font-size: .68rem;
+    font-weight: 600;
+    color: var(--isp-muted);
+}
+
+.isp-billing-dash__chart-badge {
+    flex-shrink: 0;
+    padding: .2rem .5rem;
+    border-radius: 999px;
+    font-size: .62rem;
+    font-weight: 800;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    color: var(--isp-primary);
+    background: color-mix(in srgb, var(--isp-primary) 12%, var(--isp-card-bg));
+    border: 1px solid color-mix(in srgb, var(--isp-primary) 24%, var(--isp-card-border));
+}
+
+.isp-billing-dash__notice {
+    display: flex;
+    align-items: flex-start;
+    gap: .55rem;
+    margin-bottom: .85rem;
+    padding: .65rem .75rem;
+    border-radius: var(--isp-radius-md);
+    border: 1px solid color-mix(in srgb, var(--isp-primary) 28%, var(--isp-card-border));
+    background: color-mix(in srgb, var(--isp-primary) 8%, var(--isp-card-bg));
+    font-size: .75rem;
+    line-height: 1.45;
+    color: var(--isp-text);
+    max-width: 100%;
+    min-width: 0;
+}
+
+.isp-billing-dash__notice p {
+    margin: 0;
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.isp-billing-dash__notice-icon {
+    flex-shrink: 0;
+    width: 1.1rem;
+    height: 1.1rem;
+    margin-top: .1rem;
+    color: var(--isp-primary);
+}
+
 .isp-billing-dash__chart {
     display: flex;
     align-items: flex-end;
     justify-content: space-between;
-    gap: .35rem;
-    min-height: 220px;
-    padding: .5rem .25rem 0;
+    gap: .5rem;
+    min-height: 200px;
+    padding: .35rem .15rem 0;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+}
+
+.isp-billing-dash__chart--six {
+    gap: .65rem;
 }
 
 .isp-billing-dash__bar-col {
-    flex: 1;
+    flex: 1 1 0;
     display: flex;
     flex-direction: column;
     align-items: center;
     min-width: 0;
+    gap: .35rem;
+}
+
+.isp-billing-dash__bar-col--latest .isp-billing-dash__bar {
+    box-shadow: 0 0 0 2px color-mix(in srgb, #10b981 45%, transparent);
 }
 
 .isp-billing-dash__bar-wrap {
     width: 100%;
-    height: 180px;
+    height: 150px;
     display: flex;
     align-items: flex-end;
     justify-content: center;
 }
 
 .isp-billing-dash__bar {
-    width: min(100%, 2.4rem);
-    border-radius: .45rem .45rem .2rem .2rem;
-    display: flex;
-    align-items: flex-start;
-    justify-content: center;
-    min-height: 1.5rem;
+    width: min(100%, 2.75rem);
+    border-radius: .5rem .5rem .2rem .2rem;
+    display: block;
+    min-height: 1.25rem;
     transition: height .35s ease;
 }
 
 .isp-billing-dash__bar-val {
-    margin-top: .35rem;
-    font-size: .62rem;
-    font-weight: 700;
-    color: #fff;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, .25);
+    font-size: .68rem;
+    font-weight: 800;
+    line-height: 1.1;
+    color: var(--isp-text);
+    font-variant-numeric: tabular-nums;
+    text-align: center;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.isp-billing-dash__bar-col--latest .isp-billing-dash__bar-val {
+    color: #10b981;
 }
 
 .isp-billing-dash__bar-label {
-    margin-top: .4rem;
-    font-size: .68rem;
-    font-weight: 600;
+    font-size: .7rem;
+    font-weight: 700;
     color: var(--isp-muted);
+    text-transform: uppercase;
+    letter-spacing: .03em;
 }
 
 .isp-billing-dash__table-head {
@@ -1980,12 +2066,21 @@ button.isp-rbac-check { padding: 0; }
 .isp-billing-dash__kpis {
     display: grid;
     gap: .85rem;
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(1, minmax(0, 1fr));
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+}
+
+@media (min-width: 640px) {
+    .isp-billing-dash__kpis {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
 }
 
 @media (min-width: 768px) {
     .isp-billing-dash__kpis {
-        grid-template-columns: repeat(4, 1fr);
+        grid-template-columns: repeat(4, minmax(0, 1fr));
     }
 }
 
@@ -1999,6 +2094,9 @@ button.isp-rbac-check { padding: 0; }
     color: #fff;
     min-height: 7.5rem;
     box-shadow: var(--isp-shadow);
+    min-width: 0;
+    max-width: 100%;
+    overflow: hidden;
 }
 
 .isp-billing-dash__kpi-icon {

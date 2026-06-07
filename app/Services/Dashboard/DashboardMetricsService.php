@@ -16,6 +16,7 @@ use App\Models\PopBox;
 use App\Models\OltHealthLog;
 use App\Models\SmsDeliveryReport;
 use App\Services\Billing\BillingOpsMetricsService;
+use App\Services\Dashboard\BillingDashboardMetricsService;
 use App\Services\Bandwidth\BandwidthCollectionService;
 use App\Models\PppSessionLog;
 use App\Models\SupportTicket;
@@ -546,6 +547,8 @@ class DashboardMetricsService
         $tenantId = $tenantId ?? TenantResolver::requiredTenantId();
         $this->nocWallPayload($tenantId);
         $this->snapshot($tenantId);
+        app(\App\Services\Clients\ClientsDashboardService::class)->listPresetSummary();
+        app(BillingDashboardMetricsService::class)->payload($tenantId);
     }
 
     /**

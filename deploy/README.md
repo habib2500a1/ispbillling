@@ -16,6 +16,18 @@ Panel compose path: **`docker-compose.yml`** (repo root)।
 
 Domain file: **`deploy/production.url`** (এখন `https://anetbd.com`) — নতুন domain এ শুধু এটা + `.env` `APP_URL` বদলান।
 
+### Multi-instance (10 domain = 10 আলাদা app)
+
+| File | Purpose |
+|------|---------|
+| `deploy/instances.example.json` | Template — copy → `deploy/instances.json` (server only, gitignored) |
+| `docs/DEPLOY_MULTI_INSTANCE.md` | Full guide |
+| `scripts/provision-instance.sh` | New client clone + `.env` |
+| `scripts/deploy-all-instances.sh` | `git pull` পর সব enabled instance deploy |
+| `scripts/install-multi-instance-deploy-hook.sh` | Auto hook |
+
+প্রতি domain = **আলাদা folder + আলাদা database**। Push করলে ১০ জন client = ১০টা আলাদা app build হবে, data mix হবে না।
+
 ### Demo site (`demo.anetbd.com`)
 
 | File | Purpose |

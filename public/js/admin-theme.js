@@ -122,13 +122,6 @@
         window.dispatchEvent(new CustomEvent('isp-theme-changed', { detail: { mode } }));
     });
 
-    document.addEventListener('keydown', (e) => {
-        if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
-            e.preventDefault();
-            window.dispatchEvent(new CustomEvent('isp-open-command-palette'));
-        }
-    });
-
     function ispPurgeLocaleSwitcher() {
         document.querySelectorAll('.isp-mobile-bar__locales').forEach((el) => el.remove());
 

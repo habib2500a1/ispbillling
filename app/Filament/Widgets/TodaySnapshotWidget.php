@@ -2,6 +2,7 @@
 
 namespace App\Filament\Widgets;
 
+use App\Filament\Concerns\HasDashboardLazySkeleton;
 use App\Models\Customer;
 use App\Models\Invoice;
 use App\Models\Payment;
@@ -18,6 +19,8 @@ use Illuminate\Support\Facades\Cache;
  */
 class TodaySnapshotWidget extends Widget
 {
+    use HasDashboardLazySkeleton;
+
     protected static bool $isDiscovered = false;
 
     protected static ?int $sort = -11;
@@ -26,7 +29,7 @@ class TodaySnapshotWidget extends Widget
 
     protected static string $view = 'filament.widgets.today-snapshot';
 
-    protected static bool $isLazy = false;
+    protected static bool $isLazy = true;
 
     /** @return array<string, mixed> */
     protected function getViewData(): array

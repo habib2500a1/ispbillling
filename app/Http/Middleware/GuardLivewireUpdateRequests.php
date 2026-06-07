@@ -53,17 +53,31 @@ class GuardLivewireUpdateRequests
             $componentName = (string) $snapshot['memo']['name'];
             $updates = (array) ($first['updates'] ?? []);
 
-            if (
-                $componentName === 'filament.livewire.global-search'
-                && (array_key_exists('data', $updates) || $this->updatesTouchData($updates))
-            ) {
-                Log::warning('livewire.global_search_stray_form_update', [
-                    'updates_keys' => array_keys($updates),
-                    'referer' => $request->headers->get('referer'),
-                    'user_id' => optional(auth()->user())->getAuthIdentifier(),
-                ]);
+            if ($componentName === 'filament.livewire.global-search') {
+                $sanitized = $this->sanitizeGlobalSearchUpdates($updates);
 
-                return response()->json(['components' => [], 'assets' => []], 200);
+                if ($sanitized === null) {
+                    Log::warning('livewire.global_search_ignored_updates', [
+                        'updates_keys' => array_keys($updates),
+                        'referer' => $request->headers->get('referer'),
+                        'user_id' => optional(auth()->user())->getAuthIdentifier(),
+                    ]);
+
+                    return response()->json(['components' => [], 'assets' => []], 200);
+                }
+
+                if ($sanitized !== $updates) {
+                    Log::info('livewire.global_search_sanitized_updates', [
+                        'updates_keys' => array_keys($updates),
+                        'invalid_keys' => array_values(array_diff(array_keys($updates), ['search'])),
+                        'referer' => $request->headers->get('referer'),
+                        'user_id' => optional(auth()->user())->getAuthIdentifier(),
+                    ]);
+
+                    $first['updates'] = $sanitized;
+                    $components[0] = $first;
+                    $request->merge(['components' => $components]);
+                }
             }
 
             $healResult = LivewireSnapshotHealer::healComponents($components);
@@ -173,17 +187,39 @@ class GuardLivewireUpdateRequests
     }
 
     /**
+     * Stale x-persist snapshots sometimes send stray keys ($, data, "") alongside search.
+     * Keep valid search updates; ignore junk-only payloads.
+     *
      * @param  array<string, mixed>  $updates
+     * @return array<string, mixed>|null
      */
-    private function updatesTouchData(array $updates): bool
+    private function sanitizeGlobalSearchUpdates(array $updates): ?array
     {
+        if (array_key_exists('search', $updates)) {
+            return [
+                'search' => $updates['search'],
+            ];
+        }
+
         foreach (array_keys($updates) as $key) {
             if ($key === 'data' || str_starts_with((string) $key, 'data.')) {
-                return true;
+                return null;
             }
         }
 
-        return false;
+        // Stale x-persist sometimes sends the query under a blank or "$" key instead of "search".
+        if (count($updates) === 1) {
+            $key = array_key_first($updates);
+            $value = $updates[$key];
+
+            if (in_array($key, ['', '$'], true) && is_scalar($value)) {
+                return [
+                    'search' => $value,
+                ];
+            }
+        }
+
+        return null;
     }
 }
 

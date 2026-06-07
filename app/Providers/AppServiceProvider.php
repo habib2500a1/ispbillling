@@ -37,6 +37,7 @@ use App\Support\EnsureStorageWritable;
 use App\Support\MobileAppLinks;
 use App\Support\ResellerApiContext;
 use App\Support\SafeCache;
+use App\Support\TrustedAppUrl;
 use App\Listeners\RecordStaffLogout;
 use App\Models\User;
 use App\Livewire\Filament\SafeGlobalSearch;
@@ -124,6 +125,7 @@ class AppServiceProvider extends ServiceProvider
     {
         if (! $this->app->runningInConsole()) {
             $request = request();
+            TrustedAppUrl::applyFromRequest($request);
             $appUrl = (string) config('app.url', '');
 
             if (

@@ -2,7 +2,6 @@
 
 namespace App\Providers\Filament;
 
-use App\Filament\Auth\AdminLogin;
 use App\Filament\Auth\EditAdminProfile;
 use App\Filament\Pages\Dashboard;
 use App\Filament\GlobalSearch\IspGlobalSearchProvider;
@@ -53,7 +52,7 @@ class AdminPanelProvider extends PanelProvider
 
                 return Dashboard::getUrl();
             })
-            ->login(AdminLogin::class)
+            ->login(false)
             ->profile(EditAdminProfile::class, isSimple: false)
             ->brandName(fn (): string => CompanyBranding::name())
             ->brandLogo(fn (): ?string => CompanyBranding::logoUrl())
@@ -183,6 +182,7 @@ class AdminPanelProvider extends PanelProvider
 
                     $html = AdminRouteAssets::spaStyleLoaderScript()
                         .view('filament.hooks.stale-topbar-cleanup')->render()
+                        .view('filament.hooks.global-search-livewire-sync')->render()
                         .view('filament.hooks.command-palette', [
                         'commandItems' => AdminCommandPalette::items(),
                     ])->render()

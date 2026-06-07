@@ -5,17 +5,17 @@ namespace App\Livewire\Filament;
 use Filament\Livewire\GlobalSearch as FilamentGlobalSearch;
 
 /**
- * Absorbs stray $data updates when Alpine x-persist restores an old topbar
- * Global Search snapshot after globalSearch(false) — prevents edit-form 500s.
+ * Header global search — keeps Filament Livewire dropdown; ignores stray snapshot keys.
  */
 class SafeGlobalSearch extends FilamentGlobalSearch
 {
-    /** @var array<string, mixed> */
-    public array $data = [];
-
-    /** @param  array<string, mixed>  $value */
-    public function updatedData(array $value): void
+    public function updatedSearch(): void
     {
-        // Intentionally ignored — real form data belongs on EditRecord, not global search.
+        $this->search = trim((string) ($this->search ?? ''));
+    }
+
+    public function hydrate(): void
+    {
+        $this->search = trim((string) ($this->search ?? ''));
     }
 }

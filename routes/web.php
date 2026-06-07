@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\AdminLoginPageController;
 use App\Http\Controllers\Admin\AdminSessionLoginController;
 use App\Http\Controllers\Admin\GoogleDriveOAuthController;
 use App\Http\Controllers\Admin\WebSipCallLogController;
@@ -95,7 +96,12 @@ Route::middleware(['web', 'auth'])->prefix('admin')->group(function (): void {
 Route::redirect('/admin/customers', '/admin/subscribers', 308);
 Route::redirect('/admin/customers/{path}', '/admin/subscribers/{path}', 308)->where('path', '.+');
 
-// Primary admin login (HTML form — does not depend on Livewire / Rocket Loader).
+// Fast admin login GET — same CSS as Filament auth, no Livewire.
+Route::get('/admin/login', AdminLoginPageController::class)
+    ->middleware(['web', 'throttle:60,1'])
+    ->name('filament.admin.auth.login');
+
+// Primary admin login POST (HTML form — does not depend on Livewire / Rocket Loader).
 Route::post('/admin/login', AdminSessionLoginController::class)
     ->middleware(['web', 'throttle:20,1'])
     ->name('admin.login.session');
