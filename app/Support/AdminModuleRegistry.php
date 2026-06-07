@@ -16,6 +16,7 @@ use App\Filament\Pages\BulkSmsCampaign;
 use App\Filament\Pages\BtrcReport;
 use App\Filament\Pages\ChurnZoneReports;
 use App\Filament\Pages\FinancialReports;
+use App\Filament\Pages\HorizonQueueMonitor;
 use App\Filament\Pages\HrPayrollHub;
 use App\Filament\Pages\InventoryHub;
 use App\Filament\Pages\ManageAppSettings;
@@ -166,6 +167,7 @@ class AdminModuleRegistry
             ['group' => 'System', 'section' => 'Integrations', 'label' => 'Deployment & license', 'description' => 'Rent SaaS vs sell on-premise', 'url' => \App\Filament\Pages\ManagePlatformDeployment::getUrl(), 'accent' => 'text-violet-600', 'icon' => 'heroicon-o-shield-check'],
             ['group' => 'System', 'section' => 'Integrations', 'label' => 'Integrations', 'description' => 'Gateways & API keys', 'url' => ManageAppSettings::getUrl(), 'accent' => 'text-slate-600', 'icon' => 'heroicon-o-puzzle-piece'],
             ['group' => 'System', 'section' => 'Automation', 'label' => 'Automatic process', 'description' => 'Scheduled billing · sync · suspend', 'url' => AutomaticProcessResource::getUrl('index'), 'accent' => 'text-amber-600', 'icon' => 'heroicon-o-clock'],
+            ['group' => 'System', 'section' => 'Automation', 'label' => 'Queue monitor', 'description' => 'Horizon workers · failed jobs', 'url' => HorizonQueueMonitor::getUrl(), 'accent' => 'text-violet-600', 'icon' => 'heroicon-o-server-stack'],
             ['group' => 'System', 'section' => 'Comms', 'label' => 'Notifications', 'description' => 'SMS · email · WhatsApp', 'url' => NotificationsHub::getUrl(), 'accent' => 'text-slate-600', 'icon' => 'heroicon-o-bell-alert'],
             ['group' => 'System', 'section' => 'Comms', 'label' => 'WhatsApp bot', 'description' => 'Two-way MENU / BILL / SUPPORT', 'url' => WhatsAppBotHub::getUrl(), 'accent' => 'text-slate-600', 'icon' => 'heroicon-o-chat-bubble-left-right'],
             ['group' => 'System', 'section' => 'Comms', 'label' => 'Bulk SMS', 'description' => 'Campaigns', 'url' => BulkSmsCampaign::getUrl(), 'accent' => 'text-slate-600', 'icon' => 'heroicon-o-paper-airplane'],

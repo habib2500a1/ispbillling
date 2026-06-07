@@ -2,6 +2,7 @@
 
 namespace App\Support;
 
+use App\Filament\Pages\HorizonQueueMonitor;
 use App\Filament\Pages\ManageAppSettings;
 use App\Filament\Pages\ManagePlatformBackups;
 use App\Filament\Pages\ManageStaffSecurity;
@@ -118,6 +119,14 @@ final class SystemSidebarRegistry
                 ],
             ],
             [
+                'key' => 'queue_monitor',
+                'label' => 'Queue monitor',
+                'icon' => 'heroicon-o-queue-list',
+                'sort' => 73,
+                'url' => HorizonQueueMonitor::getUrl(),
+                'active_routes' => ['filament.admin.pages.queue-monitor'],
+            ],
+            [
                 'key' => 'staff_security',
                 'label' => 'Staff security',
                 'icon' => 'heroicon-o-lock-closed',
@@ -211,6 +220,7 @@ final class SystemSidebarRegistry
             'backups-google' => ManagePlatformBackups::canAccess(),
             'integrations' => ManageAppSettings::canAccess(),
             'automatic' => AutomaticProcessResource::canViewAny(),
+            'queue_monitor' => HorizonQueueMonitor::canAccess(),
             'staff_security' => ManageStaffSecurity::canAccess(),
             'two_factor' => TwoFactorSetup::canAccess(),
             'mobile_apps' => MobileAppsHub::canAccess(),

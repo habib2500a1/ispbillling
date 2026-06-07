@@ -4,6 +4,7 @@ namespace App\Support;
 
 use App\Models\User;
 use App\Filament\Pages\DashboardHub;
+use App\Filament\Pages\HorizonQueueMonitor;
 use App\Filament\Pages\NocWall;
 use App\Filament\Pages\OperationsHub;
 use App\Filament\Pages\PaymentsOverview;
@@ -61,6 +62,14 @@ final class SuperadminQuickSidebarRegistry
                 'sort' => 5,
                 'url' => NocWall::getUrl(),
                 'active_routes' => ['filament.admin.pages.noc-wall'],
+            ],
+            [
+                'key' => 'queue_monitor',
+                'label' => 'Queue monitor',
+                'icon' => 'heroicon-o-server-stack',
+                'sort' => 6,
+                'url' => HorizonQueueMonitor::getUrl(),
+                'active_routes' => ['filament.admin.pages.queue-monitor'],
             ],
         ];
     }
@@ -131,6 +140,7 @@ final class SuperadminQuickSidebarRegistry
             'subscriber_lists' => SubscriberListsHub::canAccess(),
             'payments_hub' => PaymentsOverview::canAccess(),
             'noc_wall' => NocWall::canAccess(),
+            'queue_monitor' => HorizonQueueMonitor::canAccess(),
             default => false,
         };
     }

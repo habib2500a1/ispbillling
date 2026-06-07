@@ -20,6 +20,7 @@ use App\Filament\Pages\DashboardHub;
 use App\Filament\Pages\DunningReport;
 use App\Filament\Pages\GatewayReconciliationReport;
 use App\Filament\Pages\BtrcReport;
+use App\Filament\Pages\HorizonQueueMonitor;
 use App\Filament\Pages\HrPayrollHub;
 use App\Filament\Pages\ManagePlatformBackups;
 use App\Filament\Pages\InventoryHub;
@@ -119,6 +120,7 @@ class AdminCommandPalette
             ['group' => 'System', 'label' => 'Company setup', 'url' => ManageCompanySetup::getUrl()],
             ['group' => 'System', 'label' => 'Movie server list', 'url' => ManageMovieServerList::getUrl()],
             ['group' => 'System', 'label' => 'App settings', 'url' => ManageAppSettings::getUrl()],
+            ['group' => 'System', 'label' => 'Queue monitor', 'url' => HorizonQueueMonitor::getUrl()],
             ['group' => 'HR Management', 'label' => 'HR Dashboard', 'url' => HrPayrollHub::getUrl()],
             ['group' => 'HR Management', 'label' => 'Employees', 'url' => \App\Filament\Resources\EmployeeResource::getUrl()],
             ['group' => 'HR Management', 'label' => 'Leave Management', 'url' => \App\Filament\Pages\HrLeaveManagementPage::getUrl()],
