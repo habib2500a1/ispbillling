@@ -402,6 +402,12 @@ final class SubscriberFormSchema
                     ->columns(self::gridTwo()),
                 Forms\Components\Section::make('ONU billing')
                     ->schema([
+                        Forms\Components\Select::make('meta.onu_ownership')
+                            ->label('ONU ownership')
+                            ->options(\App\Support\OnuOwnership::options())
+                            ->default(\App\Support\OnuOwnership::COMPANY)
+                            ->native(false)
+                            ->helperText('Company ONU = ISP-provided device on rent/deposit. Customer ONU = client-owned hardware.'),
                         Forms\Components\TextInput::make('meta.onu_rent')->label('ONU rent (BDT/mo)')->numeric()->default(0),
                         Forms\Components\TextInput::make('meta.onu_installment')->label('ONU installment (BDT)')->numeric()->default(0),
                         Forms\Components\TextInput::make('meta.onu_deposit')->label('ONU deposit (BDT)')->numeric()->default(0),
@@ -1008,6 +1014,26 @@ final class SubscriberFormSchema
                 ->options(self::connectionTypeOptions())
                 ->default('fiber')
                 ->native(false),
+            Forms\Components\Select::make('meta.onu_ownership')
+                ->label('ONU ownership')
+                ->options(\App\Support\OnuOwnership::options())
+                ->default(\App\Support\OnuOwnership::COMPANY)
+                ->native(false)
+                ->live()
+                ->helperText('Company ONU = ISP-provided device · Customer ONU = client-owned hardware'),
+            Forms\Components\Placeholder::make('onu_ownership_badge_preview')
+                ->label('ONU badge preview')
+                ->content(function (Get $get): HtmlString {
+                    $ownership = (string) ($get('meta.onu_ownership') ?? \App\Support\OnuOwnership::COMPANY);
+
+                    return new HtmlString(
+                        '<span class="isp-onu-badge isp-onu-badge--'
+                        .e(\App\Support\OnuOwnership::badgeTone($ownership)).'">'
+                        .e(\App\Support\OnuOwnership::label($ownership))
+                        .'</span>'
+                    );
+                })
+                ->columnSpanFull(),
             Forms\Components\TextInput::make('meta.box_name')
                 ->label('TJ box / port')
                 ->maxLength(120),
@@ -1019,6 +1045,11 @@ final class SubscriberFormSchema
                 ->label('ONU MAC')
                 ->placeholder('00AD24F0FB3C')
                 ->maxLength(32),
+            Forms\Components\TextInput::make('meta.cable_length_m')
+                ->label('Cable length (m)')
+                ->numeric()
+                ->minValue(0)
+                ->default(0),
         ];
     }
 
@@ -1048,8 +1079,9 @@ final class SubscriberFormSchema
     private static function gpsLocationFields(): array
     {
         return [
-            Forms\Components\Hidden::make('meta.gps_lat'),
-            Forms\Components\Hidden::make('meta.gps_lng'),
+            Forms\Components\Hidden::make('meta.gps_lat')->live(),
+            Forms\Components\Hidden::make('meta.gps_lng')->live(),
+            Forms\Components\Hidden::make('meta.gps_combined')->live(),
             Forms\Components\Placeholder::make('gps_map_embed')
                 ->hiddenLabel()
                 ->content(fn (): HtmlString => new HtmlString(view('filament.forms.subscriber-gps-picker')->render()))

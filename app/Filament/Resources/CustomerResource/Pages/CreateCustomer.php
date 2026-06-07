@@ -13,6 +13,7 @@ use App\Services\Optical\CustomerOnuAutoProvisionService;
 use App\Services\Billing\CustomerActivationBillingService;
 use App\Services\Subscribers\CustomerLineActivationService;
 use App\Support\BillingDefaults;
+use App\Support\SubscriberGpsMeta;
 use App\Models\CustomerContact;
 use App\Support\CustomerStatus;
 use Illuminate\Support\Facades\Hash;
@@ -80,7 +81,9 @@ class CreateCustomer extends CreateRecord
             'auto_activate' => true,
             'auto_suspend' => true,
             'installation_status' => 'pending',
+            'onu_ownership' => \App\Support\OnuOwnership::COMPANY,
         ], $meta);
+        $data['meta'] = SubscriberGpsMeta::normalize($data['meta']);
 
         return $data;
     }

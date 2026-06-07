@@ -1,0 +1,125 @@
+/** Subscriber 360 — Connection Link Info + ONU ownership badge */
+
+.isp-cv-card--connection-link {
+    border: 1px solid rgba(99, 102, 241, 0.14);
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(248, 250, 252, 0.96) 100%);
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+}
+
+.dark .isp-cv-card--connection-link,
+[data-theme='dark'] .isp-cv-card--connection-link {
+    border-color: rgba(129, 140, 248, 0.22);
+    background: linear-gradient(180deg, rgba(30, 41, 59, 0.92) 0%, rgba(15, 23, 42, 0.88) 100%);
+}
+
+.isp-cv-card__title--decor {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    text-align: center;
+    justify-content: center;
+    font-size: 0.82rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--olt-muted, #64748b);
+}
+
+.isp-cv-card__title--sub {
+    margin-top: 1rem;
+    padding-top: 0.85rem;
+    border-top: 1px dashed rgba(148, 163, 184, 0.35);
+}
+
+.isp-cv-card__title-line {
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(148, 163, 184, 0.45), transparent);
+}
+
+.isp-cv-fields--connection-link {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.65rem 1rem;
+}
+
+@media (min-width: 768px) {
+    .isp-cv-fields--connection-link {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+}
+
+.isp-cv-field--serial .isp-cv-field__serial-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.45rem;
+}
+
+.isp-cv-pill--fiber {
+    display: inline-flex;
+    align-items: center;
+    min-height: 1.55rem;
+    padding: 0.1rem 0.65rem;
+    border-radius: 999px;
+    font-size: 0.68rem;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #1d4ed8;
+    background: rgba(59, 130, 246, 0.14);
+    border: 1px solid rgba(59, 130, 246, 0.28);
+}
+
+.dark .isp-cv-pill--fiber,
+[data-theme='dark'] .isp-cv-pill--fiber {
+    color: #93c5fd;
+    background: rgba(59, 130, 246, 0.18);
+}
+
+.isp-cv-onu-badge {
+    display: inline-flex;
+    align-items: center;
+    min-height: 1.45rem;
+    padding: 0.08rem 0.55rem;
+    border-radius: 999px;
+    font-size: 0.62rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+.isp-cv-onu-badge--company {
+    color: #0f766e;
+    background: rgba(20, 184, 166, 0.16);
+    border: 1px solid rgba(20, 184, 166, 0.35);
+}
+
+.isp-cv-onu-badge--customer {
+    color: #7c3aed;
+    background: rgba(139, 92, 246, 0.14);
+    border: 1px solid rgba(139, 92, 246, 0.32);
+}
+
+.cl-dir-onu-badge {
+    display: inline-flex;
+    align-items: center;
+    margin-top: 0.15rem;
+    min-height: 1.2rem;
+    padding: 0.05rem 0.45rem;
+    border-radius: 999px;
+    font-size: 0.58rem;
+    font-weight: 800;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+}
+
+.cl-dir-onu-badge--company {
+    color: #0f766e;
+    background: rgba(20, 184, 166, 0.14);
+}
+
+.cl-dir-onu-badge--customer {
+    color: #7c3aed;
+    background: rgba(139, 92, 246, 0.12);
+}

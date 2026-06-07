@@ -28,32 +28,83 @@
 
     function findMetaInput(key) {
         const dotted = `data.meta.${key}`;
-        const selectors = [
-            `[wire\\:model="${dotted}"]`,
-            `[wire\\:model\\.live="${dotted}"]`,
-            `[wire\\:model\\.defer="${dotted}"]`,
-            `[wire\\:model\\.blur="${dotted}"]`,
-            `[name="data[meta][${key}]"]`,
-            `input[id$="meta.gps_${key === 'gps_lat' ? 'lat' : 'lng'}"]`,
-        ];
-        for (let i = 0; i < selectors.length; i++) {
-            const el = document.querySelector(selectors[i]);
-            if (el) {
-                return el;
+        const r = root();
+        const scopes = r ? [r, document] : [document];
+
+        for (let s = 0; s < scopes.length; s++) {
+            const scope = scopes[s];
+            const selectors = [
+                `[wire\\:model="${dotted}"]`,
+                `[wire\\:model\\.live="${dotted}"]`,
+                `[wire\\:model\\.defer="${dotted}"]`,
+                `[wire\\:model\\.blur="${dotted}"]`,
+                `[wire\\:model\\.lazy="${dotted}"]`,
+                `[name="data[meta][${key}]"]`,
+                `input[id$="meta.${key}"]`,
+                `input[id$="meta.gps_${key === 'gps_lat' ? 'lat' : key === 'gps_lng' ? 'lng' : key}"]`,
+            ];
+            for (let i = 0; i < selectors.length; i++) {
+                const el = scope.querySelector(selectors[i]);
+                if (el) {
+                    return el;
+                }
             }
         }
 
         return null;
     }
 
-    function livewireComponent() {
-        const wireEl = document.querySelector('[wire\\:id]');
-        const id = wireEl?.getAttribute('wire:id');
-        if (!id || typeof window.Livewire === 'undefined') {
+    function wireProxy(component) {
+        if (!component) {
             return null;
         }
 
-        return window.Livewire.find(id);
+        return component.$wire ?? component;
+    }
+
+    function livewireComponent() {
+        if (typeof window.Livewire === 'undefined') {
+            return null;
+        }
+
+        const r = root();
+        if (r) {
+            const wireEl = r.closest('[wire\\:id]');
+            const id = wireEl?.getAttribute('wire:id');
+            if (id) {
+                const wire = wireProxy(window.Livewire.find(id));
+                if (wire) {
+                    return wire;
+                }
+            }
+        }
+
+        const components = window.Livewire.all?.() ?? [];
+        for (let i = 0; i < components.length; i++) {
+            const wire = wireProxy(components[i].$wire ?? components[i]);
+            if (!wire || typeof wire.get !== 'function') {
+                continue;
+            }
+
+            try {
+                const lat = wire.get('data.meta.gps_lat');
+                const lng = wire.get('data.meta.gps_lng');
+                const combined = wire.get('data.meta.gps_combined');
+                if (lat !== undefined || lng !== undefined || combined !== undefined) {
+                    return wire;
+                }
+            } catch (e) {
+                /* ignore */
+            }
+        }
+
+        const wireEl = document.querySelector('form.fi-form [wire\\:id], .fi-page [wire\\:id]');
+        const id = wireEl?.getAttribute('wire:id');
+        if (!id) {
+            return null;
+        }
+
+        return wireProxy(window.Livewire.find(id));
     }
 
     function parseCombined(text) {
@@ -90,6 +141,21 @@
             }
         }
 
+        const wire = livewireComponent();
+        if (wire && typeof wire.get === 'function') {
+            try {
+                const latW = parseFloat(wire.get('data.meta.gps_lat') ?? '');
+                const lngW = parseFloat(wire.get('data.meta.gps_lng') ?? '');
+                if (Number.isFinite(latW) && Number.isFinite(lngW)) {
+                    setCombinedDisplay(latW, lngW);
+
+                    return { lat: latW, lng: lngW };
+                }
+            } catch (e) {
+                /* ignore */
+            }
+        }
+
         return null;
     }
 
@@ -122,7 +188,7 @@
         const wire = livewireComponent();
         if (wire && typeof wire.set === 'function') {
             try {
-                wire.set(`data.meta.${key}`, value ?? '');
+                wire.set(`data.meta.${key}`, value ?? '', false);
             } catch (e) {
                 /* ignore */
             }
@@ -151,8 +217,10 @@
         }
         const latStr = latN.toFixed(7);
         const lngStr = lngN.toFixed(7);
+        const combined = formatCombined(latN, lngN);
         setMetaInput('gps_lat', latStr);
         setMetaInput('gps_lng', lngStr);
+        setMetaInput('gps_combined', combined);
         setCombinedDisplay(latN, lngN);
         if (marker) {
             marker.setLatLng([latN, lngN]);
@@ -160,6 +228,53 @@
         if (map) {
             map.panTo([latN, lngN]);
         }
+    }
+
+    function flushCoordsToForm() {
+        const combined = combinedInput();
+        if (combined?.value) {
+            const parsed = parseCombined(combined.value);
+            if (parsed) {
+                setCoords(parsed.lat, parsed.lng);
+
+                return parsed;
+            }
+        }
+
+        const existing = readCoords();
+        if (existing) {
+            setCoords(existing.lat, existing.lng);
+        }
+
+        return existing;
+    }
+
+    function bindSaveFlush() {
+        if (document.documentElement.dataset.ispGpsSaveBound === '1') {
+            return;
+        }
+        document.documentElement.dataset.ispGpsSaveBound = '1';
+
+        document.addEventListener(
+            'submit',
+            function (event) {
+                const form = event.target;
+                if (!(form instanceof HTMLFormElement)) {
+                    return;
+                }
+
+                if (!form.matches('form.fi-form, form[wire\\:submit], form[wire\\:submit\\.prevent]')) {
+                    return;
+                }
+
+                if (!root()) {
+                    return;
+                }
+
+                flushCoordsToForm();
+            },
+            true,
+        );
     }
 
     function destroyMap() {
@@ -193,13 +308,13 @@
         marker.on('dragend', function () {
             const p = marker.getLatLng();
             setCoords(p.lat, p.lng);
-            setStatus('Pin moved');
+            setStatus('Pin moved — save the form to keep this location');
         });
 
         map.on('click', function (e) {
             setCoords(e.latlng.lat, e.latlng.lng);
             marker.setLatLng(e.latlng);
-            setStatus('Location set on map');
+            setStatus('Location set — save the form to keep this pin');
         });
 
         [100, 400, 900].forEach(function (ms) {
@@ -233,7 +348,7 @@
         navigator.geolocation.getCurrentPosition(
             function (pos) {
                 setCoords(pos.coords.latitude, pos.coords.longitude);
-                setStatus('Location captured');
+                setStatus('Location captured — save the form to keep this pin');
                 if (combined) {
                     combined.placeholder = '';
                 }
@@ -254,20 +369,34 @@
         );
     }
 
+    function applyCombinedValue() {
+        const combined = combinedInput();
+        if (!combined) {
+            return;
+        }
+
+        const parsed = parseCombined(combined.value);
+        if (parsed) {
+            setCoords(parsed.lat, parsed.lng);
+            setStatus('Coordinates updated — save the form to keep this pin');
+            if (!map) {
+                initMap();
+            }
+        }
+    }
+
     function bindCombinedManualEdit() {
         const combined = combinedInput();
         if (!combined || combined.dataset.ispGpsWatched) {
             return;
         }
         combined.dataset.ispGpsWatched = '1';
-        combined.addEventListener('change', function () {
-            const parsed = parseCombined(combined.value);
-            if (parsed) {
-                setCoords(parsed.lat, parsed.lng);
-                setStatus('Coordinates updated');
-                if (!map) {
-                    initMap();
-                }
+        combined.addEventListener('change', applyCombinedValue);
+        combined.addEventListener('blur', applyCombinedValue);
+        combined.addEventListener('keydown', function (event) {
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                applyCombinedValue();
             }
         });
     }
@@ -297,15 +426,18 @@
             initMap();
         } else {
             const def = defaults();
-            setCombinedDisplay(def.lat, def.lng);
-            setMetaInput('gps_lat', def.lat.toFixed(7));
-            setMetaInput('gps_lng', def.lng.toFixed(7));
             if (combinedInput()) {
                 combinedInput().placeholder = 'lat, long';
             }
             setStatus('Click the pin to allow GPS, or tap the map to set location.');
             initMap();
+            if (map && marker) {
+                map.setView([def.lat, def.lng], def.zoom);
+                marker.setLatLng([def.lat, def.lng]);
+            }
         }
+
+        bindSaveFlush();
     }
 
     function boot() {

@@ -13,9 +13,22 @@
     $exportUrl = $canExport ? \App\Filament\Pages\ExportClientsReport::getUrl() : null;
     $zoneOptions = $this->getDirectoryZoneFilterOptions();
     $statusOptions = $this->getDirectoryStatusFilterOptions();
+    $packageOptions = $this->getDirectoryPackageFilterOptions();
+    $areaOptions = $this->getDirectoryAreaFilterOptions();
+    $ownerOptions = $this->getDirectoryResellerFilterOptions();
+    $lineOptions = $this->getDirectoryLineFilterOptions();
+    $remainingOptions = $this->getDirectoryRemainingDaysFilterOptions();
+    $onuOptions = $this->getDirectoryOnuOwnershipFilterOptions();
+    $activeFilterCount = $this->getDirectoryActiveFilterCount();
     $hasSearch = filled($this->tableSearch);
     $activeZone = data_get($this->tableFilters, 'zone_id.value');
     $activeStatus = data_get($this->tableFilters, 'status.value');
+    $activePackage = data_get($this->tableFilters, 'package_id.value');
+    $activeArea = data_get($this->tableFilters, 'area_id.value');
+    $activeOwner = data_get($this->tableFilters, 'reseller_id.value');
+    $activeLine = data_get($this->tableFilters, 'network_access_state.value');
+    $activeRemaining = data_get($this->tableFilters, 'remaining_days.value');
+    $activeOnu = data_get($this->tableFilters, 'onu_ownership.value');
     $filterChips = $this->getDirectoryFilterChips();
     $quickLinks = $this->getDirectoryQuickLinks();
     $heroTitle = $this->getDirectoryHeroTitle();
@@ -42,9 +55,10 @@
 @endphp
 
 {!! \App\Support\ClientsDirectoryStyles::navigatedScript() !!}
+<script src="{{ asset('js/clients-directory-v2.js') }}?v={{ @filemtime(public_path('js/clients-directory-v2.js')) ?: 1 }}" defer></script>
 
 <x-filament-panels::page class="isp-clients-page">
-    <div class="cl-dir">
+    <div class="cl-dir cl-dir-v2" data-view="table" wire:loading.class="cl-dir-loading">
         <header class="cl-dir-hero">
             <div class="cl-dir-hero__body">
                 <span class="cl-dir-hero__badge">
@@ -111,42 +125,56 @@
             </div>
         </div>
 
-        <section class="cl-dir-toolbar">
-            <div class="cl-dir-toolbar__head">
-                <p class="cl-dir-toolbar__title">Search &amp; filter clients</p>
-            </div>
-
-            <form method="GET" action="{{ $indexUrl }}" id="cl-dir-toolbar-form">
-                @if ($activePreset)
-                    <input type="hidden" name="preset" value="{{ $activePreset }}">
-                @endif
-
-                <div class="cl-dir-toolbar__search">
+        <section class="cl-dir-command cl-dir-toolbar" aria-label="Search and filters">
+            <div class="cl-dir-command__row">
+                <label class="cl-dir-command__search">
                     <x-filament::icon icon="heroicon-m-magnifying-glass" class="cl-dir-toolbar__icon h-4 w-4" />
                     <input
                         type="search"
-                        id="cl-dir-search-input"
-                        name="tableSearch"
-                        value="{{ $this->tableSearch }}"
+                        wire:model.live.debounce.500ms="tableSearch"
                         autocomplete="off"
                         maxlength="1000"
-                        placeholder="Search name, phone, ID, PPPoE, zone…"
-                        class="cl-dir-toolbar__input"
-                        oninput="window.clearTimeout(window._clDirSearchTimer); window._clDirSearchTimer = window.setTimeout(function () { document.getElementById('cl-dir-toolbar-form').submit(); }, 500);"
+                        placeholder="Search name, phone, ID, PPPoE, zone, package, router…"
                     />
                     @if ($hasSearch)
-                        <a href="{{ $clearSearchUrl }}" class="cl-dir-toolbar__clear" aria-label="Clear search">&times;</a>
+                        <button type="button" wire:click="setDirectorySearch('')" class="cl-dir-toolbar__clear" aria-label="Clear search">&times;</button>
                     @endif
-                </div>
+                </label>
 
-                <div class="cl-dir-toolbar__filters">
+                <div class="cl-dir-command__actions">
+                    <div class="cl-dir-view-toggle" aria-label="View mode">
+                        <button type="button" class="cl-dir-view-toggle__btn cl-dir-view-toggle__btn--active" data-cl-view="table" title="Table view">
+                            <x-filament::icon icon="heroicon-m-table-cells" class="h-4 w-4" />
+                        </button>
+                        <button type="button" class="cl-dir-view-toggle__btn" data-cl-view="cards" title="Card view">
+                            <x-filament::icon icon="heroicon-m-squares-2x2" class="h-4 w-4" />
+                        </button>
+                    </div>
+
+                    <button
+                        type="button"
+                        class="cl-dir-btn cl-dir-btn--ghost cl-dir-btn--sm"
+                        data-cl-filter-toggle
+                        aria-expanded="false"
+                    >
+                        <x-filament::icon icon="heroicon-m-funnel" class="h-4 w-4" />
+                        Filters
+                        @if ($activeFilterCount > 0)
+                            <span class="cl-dir-filter-badge">{{ $activeFilterCount }}</span>
+                        @endif
+                    </button>
+
+                    <button type="button" wire:click="resetDirectoryToolbar" class="cl-dir-btn cl-dir-btn--ghost cl-dir-btn--sm">
+                        Reset
+                    </button>
+                </div>
+            </div>
+
+            <div class="cl-dir-filter-drawer" data-cl-filter-drawer hidden>
+                <div class="cl-dir-filter-grid">
                     <label class="cl-dir-toolbar__field">
                         <span class="cl-dir-toolbar__label">Zone</span>
-                        <select
-                            name="tableFilters[zone_id][value]"
-                            class="cl-dir-toolbar__select"
-                            onchange="this.form.submit()"
-                        >
+                        <select wire:change="setDirectoryZoneFilter($event.target.value)" class="cl-dir-toolbar__select">
                             <option value="" @selected(blank($activeZone))>All zones</option>
                             @foreach ($zoneOptions as $id => $name)
                                 <option value="{{ $id }}" @selected((string) $activeZone === (string) $id)>{{ $name }}</option>
@@ -156,11 +184,7 @@
 
                     <label class="cl-dir-toolbar__field">
                         <span class="cl-dir-toolbar__label">Status</span>
-                        <select
-                            name="tableFilters[status][value]"
-                            class="cl-dir-toolbar__select"
-                            onchange="this.form.submit()"
-                        >
+                        <select wire:change="setDirectoryStatusFilter($event.target.value)" class="cl-dir-toolbar__select">
                             <option value="" @selected(blank($activeStatus))>Any status</option>
                             @foreach ($statusOptions as $value => $label)
                                 <option value="{{ $value }}" @selected((string) $activeStatus === (string) $value)>{{ $label }}</option>
@@ -168,11 +192,67 @@
                         </select>
                     </label>
 
-                    <a href="{{ $resetUrl }}" class="cl-dir-btn cl-dir-btn--ghost cl-dir-btn--sm cl-dir-toolbar__reset">
-                        Reset
-                    </a>
+                    <label class="cl-dir-toolbar__field">
+                        <span class="cl-dir-toolbar__label">Package</span>
+                        <select wire:change="setDirectoryPackageFilter($event.target.value)" class="cl-dir-toolbar__select">
+                            <option value="" @selected(blank($activePackage))>All packages</option>
+                            @foreach ($packageOptions as $id => $name)
+                                <option value="{{ $id }}" @selected((string) $activePackage === (string) $id)>{{ $name }}</option>
+                            @endforeach
+                        </select>
+                    </label>
+
+                    <label class="cl-dir-toolbar__field">
+                        <span class="cl-dir-toolbar__label">Area</span>
+                        <select wire:change="setDirectoryAreaFilter($event.target.value)" class="cl-dir-toolbar__select">
+                            <option value="" @selected(blank($activeArea))>All areas</option>
+                            @foreach ($areaOptions as $id => $name)
+                                <option value="{{ $id }}" @selected((string) $activeArea === (string) $id)>{{ $name }}</option>
+                            @endforeach
+                        </select>
+                    </label>
+
+                    <label class="cl-dir-toolbar__field">
+                        <span class="cl-dir-toolbar__label">Owner</span>
+                        <select wire:change="setDirectoryResellerFilter($event.target.value)" class="cl-dir-toolbar__select">
+                            <option value="" @selected(blank($activeOwner))>All owners</option>
+                            @foreach ($ownerOptions as $id => $name)
+                                <option value="{{ $id }}" @selected((string) $activeOwner === (string) $id)>{{ $name }}</option>
+                            @endforeach
+                        </select>
+                    </label>
+
+                    <label class="cl-dir-toolbar__field">
+                        <span class="cl-dir-toolbar__label">Line</span>
+                        <select wire:change="setDirectoryLineFilter($event.target.value)" class="cl-dir-toolbar__select">
+                            <option value="" @selected(blank($activeLine))>Any line</option>
+                            @foreach ($lineOptions as $value => $label)
+                                <option value="{{ $value }}" @selected((string) $activeLine === (string) $value)>{{ $label }}</option>
+                            @endforeach
+                        </select>
+                    </label>
+
+                    <label class="cl-dir-toolbar__field">
+                        <span class="cl-dir-toolbar__label">Expiry window</span>
+                        <select wire:change="setDirectoryRemainingDaysFilter($event.target.value)" class="cl-dir-toolbar__select">
+                            <option value="" @selected(blank($activeRemaining))>Any</option>
+                            @foreach ($remainingOptions as $value => $label)
+                                <option value="{{ $value }}" @selected((string) $activeRemaining === (string) $value)>{{ $label }}</option>
+                            @endforeach
+                        </select>
+                    </label>
+
+                    <label class="cl-dir-toolbar__field">
+                        <span class="cl-dir-toolbar__label">ONU ownership</span>
+                        <select wire:change="setDirectoryOnuOwnershipFilter($event.target.value)" class="cl-dir-toolbar__select">
+                            <option value="" @selected(blank($activeOnu))>Any</option>
+                            @foreach ($onuOptions as $value => $label)
+                                <option value="{{ $value }}" @selected((string) $activeOnu === (string) $value)>{{ $label }}</option>
+                            @endforeach
+                        </select>
+                    </label>
                 </div>
-            </form>
+            </div>
 
             <div class="cl-dir-toolbar__meta">
                 <p class="cl-dir-toolbar__result">
@@ -191,7 +271,7 @@
             </div>
         </section>
 
-        <div class="cl-dir-stats">
+        <div class="cl-dir-kpi-strip cl-dir-stats">
             @foreach ($statCards as $card)
                 @php
                     $tag = ! empty($card['url']) ? 'a' : 'article';

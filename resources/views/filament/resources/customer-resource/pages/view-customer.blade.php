@@ -58,9 +58,14 @@
             ['label' => 'Edit profile', 'url' => $details['urls']['edit'], 'icon' => 'heroicon-o-pencil-square', 'btn' => 'glass'],
             ['label' => 'Invoices', 'url' => $details['urls']['invoices'], 'icon' => 'heroicon-o-document-text', 'btn' => 'glass'],
         ];
+        $onuOwnership = $details['connection_link']['onu_ownership'] ?? 'company';
+        $onuOwnershipLabel = $details['connection_link']['onu_ownership_label'] ?? 'Company ONU';
     @endphp
 
     {!! \App\Support\SubscriberViewStyles::navigatedScriptWithOlt() !!}
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin="" data-cfasync="false"></script>
+    <script src="{{ asset('js/subscriber-view-location-map.js') }}?v={{ @filemtime(public_path('js/subscriber-view-location-map.js')) ?: 1 }}" data-cfasync="false" defer></script>
 
     <div class="sub-pro olt-pro" wire:key="client-view-{{ $record->getKey() }}" x-data="{ tab: 'overview' }">
         <header class="olt-hero sub-hero">
@@ -85,6 +90,7 @@
                     <span class="sub-pill sub-pill--{{ $h['subscriber_type_color'] }}">{{ $h['subscriber_type'] }}</span>
                     <span @class(['sub-pill', $h['online'] ? 'sub-pill--online' : 'sub-pill--offline'])">{{ $h['online'] ? 'Online' : 'Offline' }}</span>
                     <span @class(['sub-pill', $h['network'] === 'suspended' ? 'sub-pill--danger' : 'sub-pill--gray'])">Net {{ $h['network'] }}</span>
+                    <span @class(['sub-pill', $onuOwnership === 'customer' ? 'sub-pill--info' : 'sub-pill--success'])">{{ $onuOwnershipLabel }}</span>
                 </div>
                 <div class="olt-hero__actions no-print">
                     @foreach ($quickLinks as $link)
@@ -201,6 +207,11 @@
         <div x-show="tab === 'overview'" x-cloak class="sub-pane">
             @include('filament.resources.customer-resource.partials.client-details-overview', [
                 'sections' => $overview,
+                'connectionLink' => $details['connection_link'] ?? [],
+                'contact' => $details['contact'] ?? [],
+                'address' => $record->address,
+                'clientName' => $h['client_name'],
+                'editUrl' => $details['urls']['edit'] ?? null,
                 'optical' => $optical,
                 'urls' => $details['urls'],
                 'notes' => filled($record->notes) ? $record->notes : null,

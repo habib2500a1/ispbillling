@@ -1,4 +1,4 @@
-@props(['sections' => [], 'optical' => [], 'urls' => [], 'notes' => null])
+@props(['sections' => [], 'optical' => [], 'urls' => [], 'notes' => null, 'connectionLink' => [], 'contact' => [], 'address' => null, 'clientName' => null, 'editUrl' => null])
 
 @php
     $accountSection = $sections['account'] ?? [];
@@ -16,9 +16,13 @@
 
 <div class="isp-cv-overview">
     <div class="isp-cv-overview__main">
+        @include('filament.resources.customer-resource.partials.client-details-connection-link', [
+            'link' => $connectionLink ?? [],
+        ])
+
         @include('filament.resources.customer-resource.partials.client-details-sections', [
             'sections' => $overviewSections,
-            'keys' => ['connection', 'billing'],
+            'keys' => ['billing'],
             'compact' => true,
         ])
     </div>
@@ -70,3 +74,10 @@
         @endif
     </aside>
 </div>
+
+@include('filament.resources.customer-resource.partials.client-details-location', [
+    'contact' => $contact,
+    'address' => $address,
+    'editUrl' => $editUrl,
+    'clientName' => $clientName,
+])

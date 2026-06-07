@@ -19,6 +19,7 @@ use App\Services\Network\CustomerConnectionStatusService;
 use App\Services\Optical\OnuNetworkDiagnosticsPresenter;
 use App\Services\Optical\SubscriberOpticalPowerPresenter;
 use App\Support\MacAddress;
+use App\Support\OnuOwnership;
 use App\Support\SubscriberContactLinks;
 use App\Support\SubscriberType;
 
@@ -39,6 +40,7 @@ final class SubscriberClientDetailsPresenter
         'tag_vip', 'tag_gaming', 'tag_corporate', 'tag_late_payer',
         'discount_note', 'monthly_discount_bdt', 'mikrotik_comment', 'legacy_id', 'legacy_client_id',
         'district', 'thana', 'house_no', 'road_no', 'box_name', 'connection_type', 'customer_type',
+        'onu_ownership', 'device',
     ];
 
     public function __construct(
@@ -62,6 +64,7 @@ final class SubscriberClientDetailsPresenter
             'pendingPackage:id,name',
             'activePppSession',
             'contacts',
+            'onuDevice:id,customer_id,type,serial_number,display_name,model,lease_status',
         ]);
 
         $meta = is_array($customer->meta) ? $customer->meta : [];
@@ -162,6 +165,7 @@ final class SubscriberClientDetailsPresenter
                 'expired' => $customer->isServiceExpired(),
             ],
             'sections_overview' => $this->sectionsOverview($customer, $meta, $ppp, $clientMac, $username, $conn, $openBalance, $lastPayment),
+            'connection_link' => $this->connectionLinkCard($customer, $meta, $username),
             'sections' => [
                 'identity' => $this->sectionIdentity($customer, $meta),
                 'location' => $this->sectionLocation($customer, $meta),
@@ -482,6 +486,7 @@ final class SubscriberClientDetailsPresenter
             'ONU Rent / month' => $fmt($meta['onu_rent'] ?? null),
             'ONU Installment' => $fmt($meta['onu_installment'] ?? null),
             'ONU Deposit' => $fmt($meta['onu_deposit'] ?? null),
+            'ONU Ownership' => OnuOwnership::label(OnuOwnership::forCustomer($customer)),
             'Router Rent / month' => $fmt($meta['router_rent'] ?? null),
             'Network server' => (string) ($network['server'] ?? '—'),
             'Connection type' => (string) ($network['connection_type'] ?? '—'),
@@ -597,6 +602,48 @@ final class SubscriberClientDetailsPresenter
         }
 
         return $out;
+    }
+
+    /**
+     * Legacy portal "Connection Link Info" + router credentials card.
+     *
+     * @param  array<string, mixed>  $meta
+     * @return array<string, mixed>
+     */
+    private function connectionLinkCard(Customer $customer, array $meta, string $username): array
+    {
+        $network = is_array($meta['legacy_portal_network'] ?? null) ? $meta['legacy_portal_network'] : [];
+        $onu = $customer->onuDevice;
+        $ownership = OnuOwnership::forCustomer($customer);
+
+        $connType = strtoupper((string) ($meta['connection_type'] ?? $network['connection_type'] ?? 'fiber'));
+        $device = (string) ($meta['device'] ?? $network['device'] ?? $onu?->display_name ?? $onu?->model ?? '—');
+        $serial = (string) ($onu?->serial_number
+            ?? $meta['onu_mac']
+            ?? $network['device_mac_serial_no']
+            ?? '—');
+
+        $lengthM = isset($meta['cable_length_m']) && (float) $meta['cable_length_m'] > 0
+            ? number_format((float) $meta['cable_length_m'], 2).'m'
+            : '—';
+
+        $technician = $this->staffName($meta['technician_id'] ?? null);
+        $routerUser = $username !== '' ? $username : '—';
+        $hasPassword = filled($customer->getAttributes()['mikrotik_ppp_password'] ?? null);
+
+        return [
+            'conn_type' => $connType !== '' ? $connType : '—',
+            'device' => $device !== '' ? $device : '—',
+            'serial_no' => $serial !== '' ? $serial : '—',
+            'onu_ownership' => $ownership,
+            'onu_ownership_label' => OnuOwnership::label($ownership),
+            'onu_ownership_tone' => OnuOwnership::badgeTone($ownership),
+            'length_distance' => $lengthM,
+            'connected_by' => $technician,
+            'router_username' => $routerUser,
+            'router_password_set' => $hasPassword,
+            'router_password_display' => $hasPassword ? '••••••' : 'Not set',
+        ];
     }
 
     private function staffName(mixed $id): string

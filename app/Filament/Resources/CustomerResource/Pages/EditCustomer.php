@@ -7,7 +7,9 @@ use App\Filament\Resources\CustomerResource;
 use App\Filament\Resources\CustomerResource\Pages\Concerns\HasMobileSubscriberFormLayout;
 use App\Models\Customer;
 use App\Support\BillingDefaults;
+use App\Support\SubscriberGpsMeta;
 use Illuminate\Support\Arr;
+use App\Services\Network\FiberPlantMapService;
 use App\Services\Optical\CustomerOnuAutoProvisionService;
 use App\Services\Subscribers\CustomerDeletionService;
 use Filament\Actions;
@@ -55,6 +57,7 @@ class EditCustomer extends EditRecord
         if (isset($data['meta']) && is_array($data['meta'])) {
             $existing = is_array($this->record->meta) ? $this->record->meta : [];
             $data['meta'] = array_replace($existing, $data['meta']);
+            $data['meta'] = SubscriberGpsMeta::normalize($data['meta'], $existing);
         }
 
         $expireDay = (int) (Arr::get($this->form->getState(), 'expire_day') ?? 0);
@@ -67,6 +70,15 @@ class EditCustomer extends EditRecord
 
     protected function afterSave(): void
     {
+        $mapNode = app(FiberPlantMapService::class)->syncCustomerNodeFromGps($this->record->fresh());
+        if ($mapNode !== null) {
+            Notification::make()
+                ->title('Fiber map updated')
+                ->body($mapNode->name.' · pin at '.number_format((float) $mapNode->latitude, 5).', '.number_format((float) $mapNode->longitude, 5))
+                ->success()
+                ->send();
+        }
+
         $onuId = $this->form->getState()['onu_device_pick'] ?? null;
         if (! $onuId) {
             return;

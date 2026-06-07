@@ -14,6 +14,30 @@
     class="isp-subscriber-gps-picker"
     data-default-lat="{{ $defaultLat }}"
     data-default-lng="{{ $defaultLng }}"
+    x-data="{
+        syncCombined(value) {
+            if (typeof $wire === 'undefined' || ! $wire) {
+                return;
+            }
+
+            const parts = String(value || '').split(/[,\\s]+/).map((part) => part.trim()).filter(Boolean);
+            if (parts.length < 2) {
+                return;
+            }
+
+            const lat = parseFloat(parts[0]);
+            const lng = parseFloat(parts[1]);
+            if (! Number.isFinite(lat) || ! Number.isFinite(lng)) {
+                return;
+            }
+
+            const latStr = lat.toFixed(7);
+            const lngStr = lng.toFixed(7);
+            $wire.set('data.meta.gps_lat', latStr, false);
+            $wire.set('data.meta.gps_lng', lngStr, false);
+            $wire.set('data.meta.gps_combined', `${lat}, ${lng}`, false);
+        },
+    }"
 >
     <label for="isp-subscriber-gps-combined" class="mb-1 block text-sm font-semibold text-gray-950 dark:text-white">
         GPS Coordinates (Lat, Long)
@@ -26,6 +50,8 @@
             placeholder="lat, long"
             autocomplete="off"
             spellcheck="false"
+            x-on:change="syncCombined($event.target.value)"
+            x-on:blur="syncCombined($event.target.value)"
         />
         <button
             type="button"

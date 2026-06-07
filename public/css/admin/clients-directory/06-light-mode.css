@@ -197,27 +197,29 @@ html:not(.dark) .cl-dir-btn--active,
     border-bottom: 1px solid rgba(148, 163, 184, 0.4) !important;
 }
 
-[data-theme='light'] .isp-clients-page .cl-dir-table .fi-ta-table {
-    display: table !important;
-}
+@media (min-width: 768px) {
+    [data-theme='light'] .isp-clients-page .cl-dir-table .fi-ta-table {
+        display: table !important;
+    }
 
-[data-theme='light'] .isp-clients-page .cl-dir-table .fi-ta-row,
-[data-theme='light'] .isp-clients-page .cl-dir-table .fi-ta-table thead tr,
-[data-theme='light'] .isp-clients-page .cl-dir-table .fi-ta-table tbody tr {
-    display: table-row !important;
-    height: auto !important;
-}
+    [data-theme='light'] .isp-clients-page .cl-dir-table .fi-ta-row,
+    [data-theme='light'] .isp-clients-page .cl-dir-table .fi-ta-table thead tr,
+    [data-theme='light'] .isp-clients-page .cl-dir-table .fi-ta-table tbody tr {
+        display: table-row !important;
+        height: auto !important;
+    }
 
-[data-theme='light'] .isp-clients-page .cl-dir-table .fi-ta-header-cell,
-[data-theme='light'] .isp-clients-page .cl-dir-table .fi-ta-cell,
-[data-theme='light'] .isp-clients-page .cl-dir-table .fi-ta-actions-header-cell,
-[data-theme='light'] .isp-clients-page .cl-dir-table .fi-ta-actions-cell {
-    display: table-cell !important;
-    vertical-align: middle !important;
-    padding-top: 0.55rem !important;
-    padding-bottom: 0.55rem !important;
-    height: auto !important;
-    min-height: 0 !important;
+    [data-theme='light'] .isp-clients-page .cl-dir-table .fi-ta-header-cell,
+    [data-theme='light'] .isp-clients-page .cl-dir-table .fi-ta-cell,
+    [data-theme='light'] .isp-clients-page .cl-dir-table .fi-ta-actions-header-cell,
+    [data-theme='light'] .isp-clients-page .cl-dir-table .fi-ta-actions-cell {
+        display: table-cell !important;
+        vertical-align: middle !important;
+        padding-top: 0.55rem !important;
+        padding-bottom: 0.55rem !important;
+        height: auto !important;
+        min-height: 0 !important;
+    }
 }
 
 [data-theme='light'] .isp-clients-page .cl-dir-client__name {

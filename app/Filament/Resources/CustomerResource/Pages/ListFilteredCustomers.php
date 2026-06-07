@@ -16,6 +16,24 @@ abstract class ListFilteredCustomers extends ListRecords
 
     protected static string $view = 'filament.resources.customer-resource.pages.list-customers';
 
+    /**
+     * @return array<string, mixed>
+     */
+    protected function queryString(): array
+    {
+        return [
+            'tableSearch' => ['except' => ''],
+            'tableFilters' => ['except' => null],
+        ];
+    }
+
+    public function mount(): void
+    {
+        parent::mount();
+        $this->loadDirectoryChrome();
+        $this->migrateLegacySearchQuery();
+    }
+
     abstract protected function applyFilter(Builder $query): Builder;
 
     protected function getTableQuery(): ?Builder

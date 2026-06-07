@@ -2,17 +2,11 @@
 
 namespace App\Filament\Resources\CustomerResource\Pages;
 
-use App\Filament\Resources\CustomerResource;
 use App\Support\CustomerAccountScopes;
-use Filament\Resources\Pages\ListRecords;
 use Illuminate\Database\Eloquent\Builder;
 
-class ListLeftCustomers extends ListRecords
+class ListLeftCustomers extends ListFilteredCustomers
 {
-    use Concerns\HasBillingAccountListPage;
-
-    protected static string $resource = CustomerResource::class;
-
     protected static ?string $navigationLabel = 'Left accounts';
 
     protected static ?string $title = 'Left accounts';
@@ -22,10 +16,18 @@ class ListLeftCustomers extends ListRecords
         return 'Left accounts';
     }
 
-    protected function getTableQuery(): ?Builder
+    public function getSubheading(): ?string
     {
-        $query = parent::getTableQuery();
+        return 'Archived / left subscribers — history preserved, line inactive.';
+    }
 
-        return $query === null ? null : CustomerAccountScopes::applyLeft($query);
+    public function getPageTitle(): string
+    {
+        return 'Left clients';
+    }
+
+    protected function applyFilter(Builder $query): Builder
+    {
+        return CustomerAccountScopes::applyLeft($query);
     }
 }

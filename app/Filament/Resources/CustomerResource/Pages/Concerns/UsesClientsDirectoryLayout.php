@@ -114,6 +114,17 @@ trait UsesClientsDirectoryLayout
             }
         }
 
+        foreach (['package_id', 'area_id', 'reseller_id', 'network_access_state', 'remaining_days', 'onu_ownership'] as $filterKey) {
+            if (in_array($filterKey, $exclude, true)) {
+                continue;
+            }
+
+            $value = data_get($this->tableFilters, "{$filterKey}.value");
+            if (filled($value)) {
+                $parameters['tableFilters'][$filterKey]['value'] = $value;
+            }
+        }
+
         return $parameters;
     }
 
@@ -123,6 +134,12 @@ trait UsesClientsDirectoryLayout
             'preset' => $this->buildDirectoryToolbarUrl(['preset']),
             'zone' => $this->buildDirectoryToolbarUrl(['zone']),
             'status' => $this->buildDirectoryToolbarUrl(['status']),
+            'package' => $this->buildDirectoryToolbarUrl(['package_id']),
+            'area' => $this->buildDirectoryToolbarUrl(['area_id']),
+            'owner' => $this->buildDirectoryToolbarUrl(['reseller_id']),
+            'line' => $this->buildDirectoryToolbarUrl(['network_access_state']),
+            'remaining' => $this->buildDirectoryToolbarUrl(['remaining_days']),
+            'onu' => $this->buildDirectoryToolbarUrl(['onu_ownership']),
             'search' => $this->buildDirectoryToolbarUrl(['search']),
             default => CustomerResource::getUrl('index'),
         };
@@ -210,15 +227,118 @@ trait UsesClientsDirectoryLayout
         $this->updatedTableFilters();
     }
 
+    public function setDirectoryPackageFilter(mixed $packageId = null): void
+    {
+        $this->setDirectorySelectFilter('package_id', $packageId);
+    }
+
+    public function setDirectoryAreaFilter(mixed $areaId = null): void
+    {
+        $this->setDirectorySelectFilter('area_id', $areaId);
+    }
+
+    public function setDirectoryResellerFilter(mixed $resellerId = null): void
+    {
+        $this->setDirectorySelectFilter('reseller_id', $resellerId);
+    }
+
+    public function setDirectoryLineFilter(mixed $line = null): void
+    {
+        $this->setDirectorySelectFilter('network_access_state', $line);
+    }
+
+    public function setDirectoryRemainingDaysFilter(mixed $value = null): void
+    {
+        $this->setDirectorySelectFilter('remaining_days', $value);
+    }
+
+    public function setDirectoryOnuOwnershipFilter(mixed $value = null): void
+    {
+        $this->setDirectorySelectFilter('onu_ownership', $value);
+    }
+
+    protected function setDirectorySelectFilter(string $key, mixed $value): void
+    {
+        $this->ensureDirectoryTableFiltersInitialized();
+        data_set($this->tableFilters, "{$key}.value", filled($value) ? (string) $value : null);
+        $this->getTableFiltersForm()->fill($this->tableFilters);
+        $this->updatedTableFilters();
+    }
+
+    /**
+     * @return array<int|string, string>
+     */
+    public function getDirectoryPackageFilterOptions(): array
+    {
+        return CustomerResource::directoryFilterPackages();
+    }
+
+    /**
+     * @return array<int|string, string>
+     */
+    public function getDirectoryAreaFilterOptions(): array
+    {
+        return CustomerResource::directoryFilterAreas();
+    }
+
+    /**
+     * @return array<int|string, string>
+     */
+    public function getDirectoryResellerFilterOptions(): array
+    {
+        return CustomerResource::directoryFilterResellers();
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function getDirectoryLineFilterOptions(): array
+    {
+        return [
+            'active' => 'Line on',
+            'suspended' => 'Line off',
+        ];
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function getDirectoryRemainingDaysFilterOptions(): array
+    {
+        return [
+            'expired' => 'Expired',
+            '0_3' => '0–3 days',
+            '4_7' => '4–7 days',
+            '8_30' => '8–30 days',
+            '30_plus' => '30+ days',
+        ];
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function getDirectoryOnuOwnershipFilterOptions(): array
+    {
+        return \App\Support\OnuOwnership::options();
+    }
+
+    public function getDirectoryActiveFilterCount(): int
+    {
+        return count($this->getDirectoryFilterChips());
+    }
+
     public function resetDirectoryToolbar(): void
     {
-        $parameters = [];
+        $this->tableSearch = '';
+        $this->ensureDirectoryTableFiltersInitialized();
 
-        if (property_exists($this, 'preset') && filled($this->preset ?? null) && ($this->preset ?? 'all') !== 'all') {
-            $parameters['preset'] = $this->preset;
+        foreach (['zone_id', 'status', 'package_id', 'area_id', 'reseller_id', 'network_access_state', 'remaining_days', 'onu_ownership'] as $key) {
+            data_set($this->tableFilters, "{$key}.value", null);
         }
 
-        $this->redirect(CustomerResource::getUrl('index', $parameters));
+        $this->getTableFiltersForm()->fill($this->tableFilters);
+        $this->updatedTableFilters();
+        $this->updatedTableSearch();
     }
 
     public function getDirectoryHeroTitle(): string
@@ -277,6 +397,54 @@ trait UsesClientsDirectoryLayout
             $chips[] = [
                 'key' => 'status',
                 'label' => 'Status: '.$statusLabel,
+            ];
+        }
+
+        $packageId = data_get($this->tableFilters, 'package_id.value');
+        if (filled($packageId)) {
+            $chips[] = [
+                'key' => 'package',
+                'label' => 'Package: '.($this->getDirectoryPackageFilterOptions()[$packageId] ?? $packageId),
+            ];
+        }
+
+        $areaId = data_get($this->tableFilters, 'area_id.value');
+        if (filled($areaId)) {
+            $chips[] = [
+                'key' => 'area',
+                'label' => 'Area: '.($this->getDirectoryAreaFilterOptions()[$areaId] ?? $areaId),
+            ];
+        }
+
+        $resellerId = data_get($this->tableFilters, 'reseller_id.value');
+        if (filled($resellerId)) {
+            $chips[] = [
+                'key' => 'owner',
+                'label' => 'Owner: '.($this->getDirectoryResellerFilterOptions()[$resellerId] ?? $resellerId),
+            ];
+        }
+
+        $line = data_get($this->tableFilters, 'network_access_state.value');
+        if (filled($line)) {
+            $chips[] = [
+                'key' => 'line',
+                'label' => 'Line: '.($this->getDirectoryLineFilterOptions()[$line] ?? $line),
+            ];
+        }
+
+        $remaining = data_get($this->tableFilters, 'remaining_days.value');
+        if (filled($remaining)) {
+            $chips[] = [
+                'key' => 'remaining',
+                'label' => 'Expiry: '.($this->getDirectoryRemainingDaysFilterOptions()[$remaining] ?? $remaining),
+            ];
+        }
+
+        $onuOwnership = data_get($this->tableFilters, 'onu_ownership.value');
+        if (filled($onuOwnership)) {
+            $chips[] = [
+                'key' => 'onu',
+                'label' => 'ONU: '.($this->getDirectoryOnuOwnershipFilterOptions()[$onuOwnership] ?? $onuOwnership),
             ];
         }
 

@@ -24,6 +24,7 @@ use App\Support\CustomerStatus;
 use App\Support\SubscriberType;
 use App\Services\Optical\CustomerOnuAutoProvisionService;
 use App\Support\MacAddress;
+use App\Support\OnuOwnership;
 use App\Support\OnuSignalLevel;
 use App\Support\OpticalThresholds;
 use App\Services\Billing\BillingAccountListCounts;
@@ -1000,6 +1001,22 @@ class CustomerResource extends Resource
                     'suspended' => 'Line off',
                 ],
             ),
+            Tables\Filters\SelectFilter::make('onu_ownership')
+                ->label('ONU ownership')
+                ->placeholder('Any')
+                ->options(OnuOwnership::options())
+                ->native(false)
+                ->modifyFormFieldUsing(
+                    fn (Forms\Components\Select $field): Forms\Components\Select => $field->live(),
+                )
+                ->query(function (Builder $query, array $data): Builder {
+                    $value = $data['value'] ?? null;
+                    if (blank($value)) {
+                        return $query;
+                    }
+
+                    return $query->where('meta->onu_ownership', (string) $value);
+                }),
             Tables\Filters\SelectFilter::make('remaining_days')
                 ->label('Rem. days')
                 ->placeholder('Any')
@@ -1109,6 +1126,30 @@ class CustomerResource extends Resource
                 ->pluck('name', 'id')
                 ->all(),
         );
+    }
+
+    /**
+     * @return array<int|string, string>
+     */
+    public static function directoryFilterPackages(): array
+    {
+        return static::cachedClientsFilterPackages(TenantResolver::requiredTenantId());
+    }
+
+    /**
+     * @return array<int|string, string>
+     */
+    public static function directoryFilterAreas(): array
+    {
+        return static::cachedClientsFilterAreas(TenantResolver::requiredTenantId());
+    }
+
+    /**
+     * @return array<int|string, string>
+     */
+    public static function directoryFilterResellers(): array
+    {
+        return static::cachedClientsFilterResellers();
     }
 
     /**

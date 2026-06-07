@@ -6991,6 +6991,24 @@ html:not(.dark) .isp-subscriber-gps-picker #isp-subscriber-gps-combined,
     border-color: rgba(148, 163, 184, 0.45) !important;
 }
 
+@media (max-width: 1023px) {
+    .isp-subscriber-gps-picker #isp-subscriber-gps-map {
+        min-height: 220px;
+        height: clamp(220px, 42vw, 320px);
+    }
+
+    .isp-subscriber-record-page .isp-cv-location__map {
+        min-height: 200px;
+        height: clamp(200px, 48vw, 280px);
+    }
+
+    .isp-subscriber-record-page .isp-cv-card--location .isp-cv-card__head {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.65rem;
+    }
+}
+
 /* Online clients monitoring (NOC) */
 .isp-online-clients-page .fi-page {
     max-width: none;

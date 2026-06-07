@@ -358,7 +358,7 @@
     color: #fff !important;
 }
 
-/* Horizontal scroll — never crush name column to 1 character width */
+/* Horizontal scroll on desktop — mobile uses stacked cards (08-crm-v2.css) */
 .cl-dir-table .fi-ta-content {
     overflow-x: auto !important;
     overflow-y: visible !important;
@@ -366,12 +366,25 @@
     scroll-padding-right: 1rem;
 }
 
-.cl-dir-table .fi-ta-table {
-    width: 100% !important;
-    min-width: 72rem !important;
-    table-layout: auto !important;
-    border-collapse: separate !important;
-    border-spacing: 0 !important;
+@media (min-width: 768px) {
+    .cl-dir-table .fi-ta-table {
+        width: 100% !important;
+        min-width: 72rem !important;
+        table-layout: auto !important;
+        border-collapse: separate !important;
+        border-spacing: 0 !important;
+    }
+}
+
+@media (max-width: 767px) {
+    .cl-dir-v2 .cl-dir-table .fi-ta-content {
+        overflow-x: visible !important;
+    }
+
+    .cl-dir-v2 .cl-dir-table .fi-ta-table {
+        min-width: 0 !important;
+        width: 100% !important;
+    }
 }
 
 .cl-dir-table .cl-dir-col-id {
