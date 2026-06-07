@@ -471,6 +471,16 @@ class AutomaticProcessSeeder extends Seeder
                 'sort_order' => 195,
             ],
             [
+                'slug' => 'check-queue-health',
+                'name' => 'Queue / Horizon health',
+                'description' => 'Alerts ops when failed queue jobs exceed threshold (Telegram, email, SMS).',
+                'artisan_command' => 'isp:check-queue-health',
+                'command_options' => [],
+                'execute_at' => '00:00',
+                'interval' => 'every_five_minutes',
+                'sort_order' => 196,
+            ],
+            [
                 'slug' => 'broadcast-dashboard-metrics',
                 'name' => 'Broadcast live dashboard metrics',
                 'artisan_command' => 'isp:broadcast-dashboard-metrics',

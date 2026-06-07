@@ -2,166 +2,227 @@
 
 namespace App\Console\Commands;
 
-use App\Services\Dashboard\DashboardPreferencesService;
-use App\Services\Platform\PlatformLicenseService;
+use App\Models\Product;
 use App\Support\EnsureStorageWritable;
+use App\Support\MobileAppLinks;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Redis;
+use Illuminate\Support\Facades\Schema;
 
 class ProductionAuditCommand extends Command
 {
-    protected $signature = 'isp:production-audit {--skip-tests : Do not run PHPUnit}';
+    protected $signature = 'isp:production-audit {--json : Output JSON only} {--skip-tests : Do not run PHPUnit}';
 
-    protected $description = 'Pre-production checklist: config, env hints, orphan widgets, optional tests.';
+    protected $description = 'Audit production security, webhooks, Redis, Horizon, queue, mobile APKs, and shop.';
+
+    /**
+     * @var list<array{check: string, status: string, detail: string}>
+     */
+    private array $results = [];
 
     public function handle(): int
     {
-        $this->info('=== ISP Platform production audit ===');
-        $issues = 0;
-
-        $storageIssues = EnsureStorageWritable::findIssues();
-
-        if ($storageIssues === []) {
-            $this->line('[ok] storage paths writable');
-        } else {
-            foreach ($storageIssues as $storageIssue) {
-                $this->error('[X] '.$storageIssue);
-            }
-
-            $this->warn('    Fix: sudo scripts/fix-storage-permissions.sh');
-            $issues++;
-        }
-
-        if (config('app.debug')) {
-            $this->warn('[!] APP_DEBUG=true — set false in production');
-            $issues++;
-        } else {
-            $this->line('[ok] APP_DEBUG is off');
-        }
-
-        if (! config('app.key')) {
-            $this->error('[X] APP_KEY missing');
-            $issues++;
-        }
-
-        foreach (['APP_URL', 'DB_DATABASE'] as $key) {
-            if (blank(env($key))) {
-                $this->warn("[!] {$key} not set in .env");
-                $issues++;
-            }
-        }
-
-        if (app()->environment('production') && ! str_starts_with((string) config('app.url'), 'https://')) {
-            $this->warn('[!] APP_URL is not HTTPS — cookies, gateways, and webhooks may fail');
-            $issues++;
-        }
-
-        if (app()->environment('production') && config('queue.default') === 'database') {
-            $this->warn('[!] QUEUE_CONNECTION=database — Horizon/Redis is recommended for production jobs');
-            $issues++;
-        }
-
-        if (! config('notifications.sms.enabled') && ! config('notifications.telegram.enabled')) {
-            $this->warn('[!] SMS and Telegram both disabled — ops alerts may be silent');
-        }
-
-        $license = app(PlatformLicenseService::class);
-        if ($license->isSaasDeployment()) {
-            $this->line('[ok] Deployment mode: SaaS (rent) — license lock off');
-        } elseif ($license->isEnforced()) {
-            $check = $license->validate();
-            if ($check['valid']) {
-                $this->line('[ok] On-premise license valid');
-            } else {
-                $this->error('[X] On-premise license: '.$check['message']);
-                $issues++;
-            }
-        } else {
-            $this->warn('[!] On-premise mode but ISP_LICENSE_ENFORCE=false — enable for sold copies');
-        }
-
-        if (app()->environment('production')) {
-            foreach ([
-                'support.webhook_secret' => 'ISP_SUPPORT_WEBHOOK_SECRET',
-                'netflow.webhook_secret' => 'NETFLOW_WEBHOOK_SECRET',
-                'optical.webhook_secret' => 'OPTICAL_WEBHOOK_SECRET',
-                'call_center.webhook_secret' => 'CALL_CENTER_WEBHOOK_SECRET',
-            ] as $key => $env) {
-                if (blank(config($key))) {
-                    $this->warn("[!] {$env} not set — related webhook rejects requests in production");
-                    $issues++;
-                }
-            }
-        }
-
-        $widgetDir = app_path('Filament/Widgets');
-        $orphans = [];
-        foreach (File::glob($widgetDir.'/*.php') ?: [] as $file) {
-            $class = 'App\\Filament\\Widgets\\'.basename($file, '.php');
-            if (! class_exists($class)) {
-                continue;
-            }
-            $allowed = in_array($class, DashboardPreferencesService::DEFAULT_WIDGETS, true);
-            $referenced = $this->isClassReferenced($class);
-            if (! $allowed && ! $referenced) {
-                $orphans[] = $class;
-            }
-        }
-
-        if ($orphans !== []) {
-            $this->warn('[!] Widget classes not on dashboard & rarely referenced:');
-            foreach ($orphans as $o) {
-                $this->line('    - '.$o);
-            }
-        } else {
-            $this->line('[ok] No obvious orphan widgets');
-        }
+        $this->checkStorage();
+        $this->checkAppSecurity();
+        $this->checkRedis();
+        $this->checkHorizon();
+        $this->checkQueue();
+        $this->checkWebhookSecrets();
+        $this->checkFailedJobs();
+        $this->checkMobileApks();
+        $this->checkShop();
 
         if (! $this->option('skip-tests')) {
-            $this->info('Running test suite…');
-            $exit = Artisan::call('test', [], $this->output);
-            if ($exit !== 0) {
-                $issues++;
-                $this->error('[X] Tests failed');
-            } else {
-                $this->line('[ok] Tests passed');
-            }
+            $this->runTests();
         }
 
+        if ($this->option('json')) {
+            $this->line(json_encode($this->results, JSON_PRETTY_PRINT));
+
+            return $this->exitCode();
+        }
+
+        $this->table(['Check', 'Status', 'Detail'], $this->results);
+        $critical = collect($this->results)->where('status', 'FAIL')->count();
+        $warn = collect($this->results)->where('status', 'WARN')->count();
         $this->newLine();
-        if ($issues === 0) {
-            $this->info('Audit complete — no critical issues reported.');
+        $this->info("Audit complete: {$critical} critical, {$warn} warnings.");
 
-            return self::SUCCESS;
-        }
-
-        $this->warn("Audit complete — {$issues} issue group(s) need attention.");
-
-        return self::FAILURE;
+        return $this->exitCode();
     }
 
-    private function isClassReferenced(string $class): bool
+    private function exitCode(): int
     {
-        $short = class_basename($class);
-        $paths = [
-            app_path('Filament'),
-            app_path('Providers'),
-            resource_path('views'),
+        return collect($this->results)->contains(fn (array $r): bool => $r['status'] === 'FAIL')
+            ? self::FAILURE
+            : self::SUCCESS;
+    }
+
+    private function record(string $check, string $status, string $detail): void
+    {
+        $this->results[] = compact('check', 'status', 'detail');
+    }
+
+    private function checkStorage(): void
+    {
+        $issues = EnsureStorageWritable::findIssues();
+        $this->record(
+            'Storage writable',
+            $issues === [] ? 'OK' : 'FAIL',
+            $issues === [] ? 'All paths OK' : implode('; ', $issues),
+        );
+    }
+
+    private function runTests(): void
+    {
+        $exit = Artisan::call('test', [], $this->output);
+        $this->record('PHPUnit', $exit === 0 ? 'OK' : 'FAIL', $exit === 0 ? 'Passed' : 'Failed');
+    }
+
+    private function checkAppSecurity(): void
+    {
+        $key = (string) config('app.key', '');
+        $this->record(
+            'APP_KEY',
+            $key !== '' && str_starts_with($key, 'base64:') ? 'OK' : 'FAIL',
+            $key !== '' ? 'Set' : 'Missing — run php artisan key:generate',
+        );
+
+        $debug = (bool) config('app.debug', true);
+        $env = (string) config('app.env', 'local');
+        $this->record(
+            'APP_DEBUG',
+            ($env === 'production' && $debug) ? 'WARN' : 'OK',
+            $env.' / debug='.($debug ? 'true' : 'false'),
+        );
+    }
+
+    private function checkRedis(): void
+    {
+        try {
+            $pong = Redis::connection()->ping();
+            $this->record('Redis', ($pong === true || $pong === 'PONG') ? 'OK' : 'WARN', 'Ping successful');
+        } catch (\Throwable $e) {
+            $this->record('Redis', 'FAIL', $e->getMessage());
+        }
+    }
+
+    private function checkHorizon(): void
+    {
+        try {
+            $running = Artisan::call('horizon:status') === 0;
+            $detail = $running ? 'Running' : (trim(Artisan::output()) ?: 'Not running');
+            $this->record('Horizon', $running ? 'OK' : 'FAIL', $detail);
+        } catch (\Throwable $e) {
+            $this->record('Horizon', 'FAIL', $e->getMessage());
+        }
+    }
+
+    private function checkQueue(): void
+    {
+        $connection = (string) config('queue.default', 'sync');
+        $heavy = (bool) config('queue_ops.heavy_jobs_enabled', false);
+        $this->record(
+            'Queue driver',
+            $connection === 'redis' ? 'OK' : 'WARN',
+            "connection={$connection}, heavy_jobs=".($heavy ? 'on' : 'off'),
+        );
+    }
+
+    private function checkWebhookSecrets(): void
+    {
+        $keys = [
+            'PAYMENT_WEBHOOK_SECRET',
+            'ISP_SUPPORT_WEBHOOK_SECRET',
+            'NETFLOW_WEBHOOK_SECRET',
+            'OPTICAL_WEBHOOK_SECRET',
+            'CALL_CENTER_WEBHOOK_SECRET',
+            'ROCKET_WEBHOOK_SECRET',
+            'MFS_SMS_DEVICE_API_KEY',
+            'WHATSAPP_WEBHOOK_VERIFY_TOKEN',
         ];
 
-        foreach ($paths as $dir) {
-            if (! is_dir($dir)) {
-                continue;
-            }
-            $iterator = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($dir));
-            foreach ($iterator as $file) {
-                if ($file->isFile() && str_contains((string) file_get_contents($file->getPathname()), $short)) {
-                    return true;
-                }
+        $envPath = base_path('.env');
+        $contents = File::exists($envPath) ? File::get($envPath) : '';
+        $missing = [];
+
+        foreach ($keys as $key) {
+            if (! preg_match('/^'.preg_quote($key, '/').'=(.+)$/m', $contents, $m) || trim($m[1]) === '') {
+                $missing[] = $key;
             }
         }
 
-        return false;
+        $this->record(
+            'Webhook secrets',
+            $missing === [] ? 'OK' : 'FAIL',
+            $missing === [] ? 'All 8 secrets set' : 'Missing: '.implode(', ', $missing),
+        );
+    }
+
+    private function checkFailedJobs(): void
+    {
+        if (! Schema::hasTable('failed_jobs')) {
+            $this->record('Failed jobs', 'OK', 'Table not used');
+
+            return;
+        }
+
+        $count = (int) DB::table('failed_jobs')->count();
+        $this->record(
+            'Failed jobs',
+            $count === 0 ? 'OK' : ($count <= 5 ? 'WARN' : 'FAIL'),
+            (string) $count,
+        );
+    }
+
+    private function checkMobileApks(): void
+    {
+        $files = [
+            'isp-radiant.apk' => public_path('downloads/isp-radiant.apk'),
+            'isp-mfs-verify.apk' => public_path('downloads/isp-mfs-verify.apk'),
+        ];
+
+        $details = [];
+        $ok = true;
+
+        foreach ($files as $label => $path) {
+            if (! is_file($path) || filesize($path) < 1000) {
+                $ok = false;
+                $details[] = "{$label}: missing";
+            } else {
+                $details[] = "{$label}: ".round(filesize($path) / 1024 / 1024, 1).' MB';
+            }
+        }
+
+        $source = MobileAppLinks::mfsVerifySource();
+        $details[] = 'source='.$source;
+
+        $this->record('Mobile APKs', $ok ? 'OK' : 'WARN', implode('; ', $details));
+    }
+
+    private function checkShop(): void
+    {
+        if (! config('inventory.shop_enabled', true)) {
+            $this->record('Public shop', 'WARN', 'INVENTORY_SHOP_ENABLED=false');
+
+            return;
+        }
+
+        $tenantId = (int) config('inventory.default_tenant_id', 1);
+        $count = Product::withoutGlobalScopes()
+            ->where('tenant_id', $tenantId)
+            ->where('is_active', true)
+            ->where('show_on_shop', true)
+            ->where('stock_qty', '>', 0)
+            ->count();
+
+        $this->record(
+            'Shop products',
+            $count > 0 ? 'OK' : 'WARN',
+            "{$count} active storefront products",
+        );
     }
 }
