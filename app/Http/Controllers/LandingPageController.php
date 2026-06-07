@@ -7,8 +7,8 @@ use App\Services\Portal\PortalContentCatalog;
 use App\Services\Portal\PortalMovieServerCatalog;
 use App\Support\CompanyBranding;
 use App\Support\MobileAppLinks;
+use App\Support\PublicTenantContext;
 use App\Support\SafeCache;
-use App\Support\TenantResolver;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\View\View;
 use Throwable;
@@ -18,7 +18,7 @@ class LandingPageController extends Controller
     public function __invoke(): View
     {
         try {
-            $tenantId = TenantResolver::currentTenantId() ?? (int) config('inventory.default_tenant_id', 1);
+            $tenantId = PublicTenantContext::tenantId();
 
             $payload = SafeCache::remember(
                 'landing:page:'.$tenantId,
@@ -26,9 +26,7 @@ class LandingPageController extends Controller
                 fn (): array => $this->buildLandingPayload($tenantId),
             );
         } catch (\Throwable) {
-            $payload = $this->buildLandingPayload(
-                TenantResolver::currentTenantId() ?? (int) config('inventory.default_tenant_id', 1),
-            );
+            $payload = $this->buildLandingPayload(PublicTenantContext::tenantId());
         }
 
         return view('landing.index', $payload);
@@ -40,6 +38,8 @@ class LandingPageController extends Controller
     private function buildLandingPayload(int $tenantId): array
     {
         $packages = Package::query()
+            ->withoutGlobalScopes()
+            ->where('tenant_id', $tenantId)
             ->publicCatalog()
             ->orderBy('price_monthly')
             ->orderBy('download_mbps')

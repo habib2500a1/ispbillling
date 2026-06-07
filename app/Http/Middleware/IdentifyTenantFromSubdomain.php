@@ -23,6 +23,14 @@ class IdentifyTenantFromSubdomain
                 return $next($request);
             }
 
+            $landingTenantId = $this->resolveLandingHostTenantId($request);
+            if ($landingTenantId !== null) {
+                TenantResolver::setSubdomainTenantId($landingTenantId);
+                TenantScopedConfig::apply($landingTenantId);
+
+                return $next($request);
+            }
+
             $base = strtolower(trim((string) config('isp.tenant_base_domain', '')));
             if ($base === '') {
                 return $next($request);
@@ -67,5 +75,25 @@ class IdentifyTenantFromSubdomain
         }
 
         return $next($request);
+    }
+
+    private function resolveLandingHostTenantId(Request $request): ?int
+    {
+        $defaultTenantId = (int) config('isp.default_tenant_id', 0);
+        if ($defaultTenantId <= 0) {
+            return null;
+        }
+
+        $host = strtolower($request->getHost());
+        $candidates = array_values(array_unique(array_filter([
+            strtolower((string) config('domains.landing', '')),
+            strtolower((string) parse_url((string) config('app.url'), PHP_URL_HOST)),
+        ])));
+
+        if (! in_array($host, $candidates, true)) {
+            return null;
+        }
+
+        return $defaultTenantId;
     }
 }

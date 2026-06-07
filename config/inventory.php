@@ -1,7 +1,7 @@
 <?php
 
 return [
-    'default_tenant_id' => (int) env('INVENTORY_SHOP_TENANT_ID', 1),
+    'default_tenant_id' => (int) env('INVENTORY_SHOP_TENANT_ID', env('ISP_DEFAULT_TENANT_ID', 1)),
 
     'default_warehouse_code' => env('INVENTORY_DEFAULT_WAREHOUSE_CODE', 'MAIN'),
 

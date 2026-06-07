@@ -5,15 +5,17 @@ namespace App\Http\Controllers;
 use App\Models\Product;
 use App\Services\Inventory\InventorySaleService;
 use App\Support\CompanyBranding;
+use App\Support\PublicTenantContext;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 class InventoryShopController extends Controller
 {
     private function tenantId(): int
     {
-        return (int) config('inventory.default_tenant_id', 1);
+        return PublicTenantContext::tenantId();
     }
 
     public function index(): View
@@ -43,8 +45,18 @@ class InventoryShopController extends Controller
             abort(404);
         }
 
+        $tenantId = $this->tenantId();
+
         $validated = $request->validate([
-            'product_id' => 'required|integer|exists:products,id',
+            'product_id' => [
+                'required',
+                'integer',
+                Rule::exists('products', 'id')->where(function ($query) use ($tenantId): void {
+                    $query->where('tenant_id', $tenantId)
+                        ->where('is_active', true)
+                        ->where('show_on_shop', true);
+                }),
+            ],
             'quantity' => 'required|integer|min:1|max:99',
             'customer_name' => 'required|string|max:120',
             'customer_phone' => 'required|string|max:32',
@@ -53,7 +65,7 @@ class InventoryShopController extends Controller
         ]);
 
         $product = Product::withoutGlobalScopes()
-            ->where('tenant_id', $this->tenantId())
+            ->where('tenant_id', $tenantId)
             ->where('is_active', true)
             ->where('show_on_shop', true)
             ->findOrFail((int) $validated['product_id']);

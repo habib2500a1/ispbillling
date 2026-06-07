@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Services\Hotspot\HotspotVoucherRedeemer;
+use App\Support\PublicTenantContext;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -29,6 +30,7 @@ class HotspotPortalController extends Controller
         $result = $redeemer->redeem(
             $request->string('code')->toString(),
             $request->header('X-Client-Mac'),
+            PublicTenantContext::tenantId(),
         );
 
         if (! $result['ok']) {

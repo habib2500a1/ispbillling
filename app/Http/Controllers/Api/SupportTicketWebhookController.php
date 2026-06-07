@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Customer;
 use App\Models\SupportTicket;
 use App\Services\Integrations\WebhookAuthenticator;
+use App\Support\PublicTenantContext;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -14,13 +15,13 @@ class SupportTicketWebhookController extends Controller
 {
     public function store(Request $request, WebhookAuthenticator $webhooks): JsonResponse
     {
-        $tenantId = (int) ($request->input('tenant_id') ?? 0);
+        $tenantId = (int) ($request->input('tenant_id') ?? PublicTenantContext::tenantId());
 
-        if ($webhooks->missingSecretInProduction('support.webhook_secret', $tenantId > 0 ? $tenantId : null)) {
+        if ($webhooks->missingSecretInProduction('support.webhook_secret', $tenantId)) {
             abort(503, 'Webhook secret not configured');
         }
 
-        if (! $webhooks->authorize($request, 'support.webhook_secret', $tenantId > 0 ? $tenantId : null)) {
+        if (! $webhooks->authorize($request, 'support.webhook_secret', $tenantId)) {
             abort(403);
         }
 
@@ -35,6 +36,7 @@ class SupportTicketWebhookController extends Controller
         ]);
 
         $customer = Customer::withoutGlobalScopes()
+            ->where('tenant_id', $tenantId)
             ->where('customer_code', $data['customer_code'])
             ->firstOrFail();
 

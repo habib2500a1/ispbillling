@@ -65,10 +65,10 @@ class MfsSmsIngestController extends Controller
             'raw_message' => ['nullable', 'string', 'max:2000'],
             'customer_reference' => ['nullable', 'string', 'max:64'],
             'received_at' => ['nullable', 'date'],
-            'tenant_id' => ['nullable', 'integer', 'min:1'],
         ]);
 
-        $tenantId = (int) ($validated['tenant_id'] ?? $defaultTenantId);
+        // Global device key must not accept spoofed tenant_id from the client payload.
+        $tenantId = $defaultTenantId;
 
         try {
             [$record, $duplicate, $matchedPending] = $ingest->ingest($tenantId, $validated);

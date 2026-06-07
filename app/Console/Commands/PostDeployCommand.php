@@ -47,6 +47,7 @@ final class PostDeployCommand extends Command
         Artisan::call('isp:bootstrap-admin', [], $this->output);
 
         $this->ensureWebhookSecrets();
+        Artisan::call('isp:check-ops-notifications', [], $this->output);
 
         if (! $this->option('fast')) {
             $this->syncAutomaticProcesses($processSeeder);

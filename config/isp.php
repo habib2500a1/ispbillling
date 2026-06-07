@@ -41,6 +41,9 @@ return [
     */
     'tenant_base_domain' => env('ISP_TENANT_BASE_DOMAIN', ''),
 
+    /** Apex host (e.g. anetbd.com) maps to this tenant when subdomain routing is unused. */
+    'default_tenant_id' => (int) env('ISP_DEFAULT_TENANT_ID', 1),
+
     /*
     | saas = you host many ISPs (rent). on_premise = sold copy on customer server (license).
     */

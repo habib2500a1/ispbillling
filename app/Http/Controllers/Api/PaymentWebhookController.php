@@ -7,6 +7,8 @@ use App\Models\Customer;
 use App\Models\Invoice;
 use App\Services\Payments\PaymentProcessor;
 use App\Support\PaymentGateway;
+use App\Support\PublicTenantContext;
+use App\Support\WebhookCustomerResolver;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -45,6 +47,7 @@ class PaymentWebhookController extends Controller
         $data = $request->validate([
             'transaction_id' => ['required', 'string', 'max:255'],
             'amount' => ['required', 'numeric', 'min:0.01'],
+            'tenant_id' => ['nullable', 'integer', 'min:1'],
             'customer_id' => ['nullable', 'integer'],
             'customer_code' => ['nullable', 'string', 'max:64'],
             'phone' => ['nullable', 'string', 'max:32'],
@@ -53,7 +56,8 @@ class PaymentWebhookController extends Controller
             'reference' => ['nullable', 'string', 'max:255'],
         ]);
 
-        $customer = $this->resolveCustomer($data);
+        $tenantId = (int) ($data['tenant_id'] ?? PublicTenantContext::tenantId());
+        $customer = WebhookCustomerResolver::resolve($data, $tenantId);
         if ($customer === null) {
             return response()->json(['message' => 'Customer not found.'], 422);
         }
@@ -100,37 +104,6 @@ class PaymentWebhookController extends Controller
             ?? $request->header('X-Payment-Secret');
 
         return is_string($provided) && hash_equals($expected, $provided);
-    }
-
-    /**
-     * @param  array<string, mixed>  $data
-     */
-    private function resolveCustomer(array $data): ?Customer
-    {
-        if (! empty($data['customer_id'])) {
-            return Customer::query()->withoutGlobalScopes()->find($data['customer_id']);
-        }
-
-        if (! empty($data['customer_code'])) {
-            return Customer::query()->withoutGlobalScopes()
-                ->where('customer_code', $data['customer_code'])
-                ->first();
-        }
-
-        if (! empty($data['phone'])) {
-            $digits = preg_replace('/\D+/', '', (string) $data['phone']) ?? '';
-
-            return Customer::query()->withoutGlobalScopes()
-                ->where(function ($q) use ($data, $digits): void {
-                    $q->where('phone', $data['phone']);
-                    if ($digits !== '') {
-                        $q->orWhere('phone', $digits);
-                    }
-                })
-                ->first();
-        }
-
-        return null;
     }
 
     /**
