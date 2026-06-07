@@ -264,11 +264,85 @@ final class OperationsDashboardService
             'recent_payments' => ($capability->canPayments() || $capability->canBilling())
                 ? $this->recentPayments($tenantId)
                 : [],
+            'recent_customers' => $capability->canCustomers()
+                ? $this->recentCustomers($tenantId)
+                : [],
             'invoices' => $capability->canBilling() ? $this->latestInvoices($tenantId) : [],
             'upcoming_expire' => $capability->canCustomers() ? $this->upcomingExpire($tenantId) : [],
             'latest_expired' => $capability->canCustomers() ? $this->latestExpired($tenantId) : [],
             'top_due' => ($capability->canBilling() || $capability->canCustomers()) ? $this->topDue($tenantId) : [],
+            'activity_log' => $this->activityLog($tenantId, $capability),
         ];
+    }
+
+    /**
+     * Unified recent activity stream (payments, invoices, customers, expirations).
+     *
+     * @return list<array{type: string, summary: string, detail: string, at: string, url?: string, sort: int}>
+     */
+    private function activityLog(int $tenantId, StaffCapability $capability): array
+    {
+        $events = [];
+
+        if ($capability->canPayments() || $capability->canBilling()) {
+            foreach ($this->recentPayments($tenantId) as $row) {
+                $events[] = [
+                    'type' => 'Payment',
+                    'summary' => $row['customer'],
+                    'detail' => $row['gateway'].' · '.$row['amount'].' BDT',
+                    'at' => $row['at'],
+                    'url' => $row['url'] ?? null,
+                    'sort' => strtotime($row['at'] ?: 'now') ?: 0,
+                ];
+            }
+        }
+
+        if ($capability->canBilling()) {
+            foreach ($this->latestInvoices($tenantId) as $row) {
+                $events[] = [
+                    'type' => 'Invoice',
+                    'summary' => $row['user'],
+                    'detail' => $row['no'].' · '.$row['amount'].' BDT',
+                    'at' => '—',
+                    'url' => $row['url'],
+                    'sort' => 0,
+                ];
+            }
+        }
+
+        if ($capability->canCustomers()) {
+            foreach ($this->recentCustomers($tenantId) as $row) {
+                $events[] = [
+                    'type' => 'Customer',
+                    'summary' => $row['user'],
+                    'detail' => 'New signup · '.$row['bill'].' BDT/mo',
+                    'at' => $row['joined'],
+                    'url' => $row['url'],
+                    'sort' => strtotime($row['joined'] ?: 'now') ?: 0,
+                ];
+            }
+
+            foreach ($this->upcomingExpire($tenantId) as $row) {
+                $events[] = [
+                    'type' => 'Expiring',
+                    'summary' => $row['user'],
+                    'detail' => 'Expires '.$row['expire'],
+                    'at' => $row['expire'],
+                    'url' => $row['url'],
+                    'sort' => strtotime($row['expire'] ?: 'now') ?: 0,
+                ];
+            }
+        }
+
+        usort($events, fn (array $a, array $b): int => $b['sort'] <=> $a['sort']);
+
+        return array_slice(array_map(fn (array $e): array => [
+            'type' => $e['type'],
+            'summary' => $e['summary'],
+            'detail' => $e['detail'],
+            'at' => $e['at'],
+            'url' => $e['url'] ?? null,
+        ], $events), 0, 12);
     }
 
     /** @return list<array{gateway: string, trx: string, amount: string, customer: string, at: string, url?: string}> */
@@ -524,6 +598,25 @@ final class OperationsDashboardService
             'yesterday' => (float) (clone $base)->whereDate('paid_at', today()->subDay())->sum('amount'),
             'month' => (float) (clone $base)->whereBetween('paid_at', [now()->startOfMonth(), now()->endOfMonth()])->sum('amount'),
         ];
+    }
+
+    /** @return list<array{user: string, bill: string, joined: string, url: string}> */
+    private function recentCustomers(int $tenantId): array
+    {
+        return Customer::withoutGlobalScopes()
+            ->where('tenant_id', $tenantId)
+            ->where('status', '!=', CustomerStatus::TERMINATED)
+            ->with('package:id,price_monthly')
+            ->orderByDesc('created_at')
+            ->limit(8)
+            ->get(['id', 'name', 'customer_code', 'created_at', 'package_id'])
+            ->map(fn (Customer $c): array => [
+                'user' => $c->name ?: $c->customer_code,
+                'bill' => number_format((float) ($c->package?->price_monthly ?? 0), 0),
+                'joined' => $c->created_at?->format('d M, H:i') ?? '—',
+                'url' => CustomerResource::getUrl('view', ['record' => $c]),
+            ])
+            ->all();
     }
 
     /** @return list<array{no: string, user: string, amount: string, url: string}> */

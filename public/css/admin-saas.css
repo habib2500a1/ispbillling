@@ -52,6 +52,7 @@
     --isp-sidebar-link: rgba(255, 255, 255, 0.82);
     --isp-hero-bg: linear-gradient(125deg, #0c1222 0%, #1565C0 42%, #1976D2 100%);
     --isp-mobile-bar-height: 10.5rem;
+    --isp-glass-header: rgba(255, 255, 255, 0.85);
 }
 
 .dark,
@@ -64,6 +65,8 @@
     --isp-card: rgba(17, 24, 39, 0.88);
     --isp-card-muted: rgb(30 41 59);
     --isp-card-border: rgba(71, 85, 105, 0.45);
+    --isp-glass-header: rgba(0, 0, 0, 0.82);
+}
 
 /* --- 02-sidebar.css --- */
 /**

@@ -34,11 +34,15 @@
 @php($dashInsightsCssV = @filemtime(public_path('css/admin/saas/13-dashboard-insights.css')) ?: 1)
 @php($revChartFixV = @filemtime(public_path('css/dashboard-revenue-chart-fix.css')) ?: 1)
 @php($opsFeedFixV = @filemtime(public_path('css/dashboard-ops-feed-fix.css')) ?: 1)
+@php($dashV2CssV = @filemtime(public_path('css/admin/saas/15-dashboard-v2-zones.css')) ?: 1)
 <link rel="stylesheet" href="{{ asset('css/admin/saas/12-dashboard-home.css') }}?v={{ $dashHomeCssV }}">
 <link rel="stylesheet" href="{{ asset('css/admin/saas/13-dashboard-insights.css') }}?v={{ $dashInsightsCssV }}">
 @if (request()->routeIs('filament.admin.pages.dashboard'))
+<link rel="stylesheet" href="{{ asset('css/admin/saas/15-dashboard-v2-zones.css') }}?v={{ $dashV2CssV }}">
 <link rel="stylesheet" href="{{ asset('css/dashboard-revenue-chart-fix.css') }}?v={{ $revChartFixV }}" data-isp-rev-chart-fix="1">
 <link rel="stylesheet" href="{{ asset('css/dashboard-ops-feed-fix.css') }}?v={{ $opsFeedFixV }}" data-isp-ops-feed-fix="1">
+@php($dashV2JsV = @filemtime(public_path('js/isp-dashboard-v2.js')) ?: 1)
+<script src="{{ asset('js/isp-dashboard-v2.js') }}?v={{ $dashV2JsV }}" defer data-cfasync="false"></script>
 @endif
 @include('filament.hooks.today-snapshot-fix')
 @endunless

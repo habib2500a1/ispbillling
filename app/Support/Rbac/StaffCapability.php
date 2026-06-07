@@ -220,7 +220,7 @@ final class StaffCapability
             \App\Filament\Widgets\BillingExecutiveDashboardWidget::class => $this->canSeeBillingWidget(),
             \App\Filament\Widgets\OperationsCommandCenterWidget::class => $this->canSeeOperationsWidget(),
             \App\Filament\Widgets\DashboardCommandStripWidget::class => $this->canSeeCommandStrip(),
-            \App\Filament\Widgets\DashboardInsightsRowWidget::class => $this->canSeeRevenueChart() || $this->canSeeOnlineChart(),
+            \App\Filament\Widgets\DashboardInsightsRowWidget::class => $this->canSeeRevenueChart() || $this->canSeeOnlineChart() || $this->canCustomers() || $this->canNetwork(),
             \App\Filament\Widgets\RevenueTrendChartWidget::class => $this->canSeeRevenueChart(),
             \App\Filament\Widgets\OnlineUsersChartWidget::class => $this->canSeeOnlineChart(),
             default => $this->isTenantAdmin(),

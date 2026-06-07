@@ -1,31 +1,47 @@
 /**
  * Ops command center feed layout — standalone (Cloudflare may cache admin-saas.css).
  * Loaded only on filament.admin.pages.dashboard.
+ * v2: single full-width feed via tabs; no cramped 2-col squeeze.
  */
-.fi-dashboard-page .isp-cmd-feeds {
-    display: grid !important;
-    grid-template-columns: 1fr !important;
-    gap: 0.85rem !important;
+.fi-dashboard-page .isp-cmd-body--v2 .isp-cmd-feeds,
+.fi-dashboard-page .isp-cmd-feeds--v2 {
+    display: block !important;
+    grid-template-columns: unset !important;
     width: 100% !important;
     min-width: 0 !important;
 }
 
-@media (min-width: 900px) {
-    .fi-dashboard-page .isp-cmd-body:not(.isp-cmd-body--has-aside) .isp-cmd-feeds {
-        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+.fi-dashboard-page .isp-cmd-body--v2 {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 1rem !important;
+    width: 100% !important;
+}
+
+.fi-dashboard-page .isp-cmd-body--v2.isp-cmd-body--has-aside {
+    display: flex !important;
+    flex-direction: column !important;
+    grid-template-columns: 1fr !important;
+}
+
+@media (min-width: 1200px) {
+    .fi-dashboard-page .isp-cmd-body--v2.isp-cmd-body--has-aside {
+        display: grid !important;
+        grid-template-columns: minmax(0, 1fr) minmax(280px, 320px) !important;
     }
 }
 
-@media (min-width: 1280px) {
-    .fi-dashboard-page .isp-cmd-body--has-aside .isp-cmd-feeds {
-        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+@media (min-width: 768px) and (max-width: 1199px) {
+    .fi-dashboard-page .isp-cmd-body--v2.isp-cmd-body--has-aside {
+        display: flex !important;
+        flex-direction: column !important;
     }
 }
 
 .fi-dashboard-page .isp-cmd-feed--pro {
     background: var(--isp-card, #fff) !important;
     border: 1px solid var(--isp-card-border, #e2e8f0) !important;
-    border-radius: 0.75rem !important;
+    border-radius: 0.85rem !important;
     box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08) !important;
     min-width: 0 !important;
     max-width: 100% !important;
@@ -37,12 +53,16 @@
     max-width: 100% !important;
 }
 
-.fi-dashboard-page .isp-cmd-feed__scroll {
-    max-height: 14rem;
-    overflow: auto;
+.fi-dashboard-page .isp-cmd-feed--responsive .isp-cmd-feed__scroll {
+    overflow-x: auto;
     -webkit-overflow-scrolling: touch;
 }
 
-.fi-dashboard-page .isp-cmd-feed__table {
-    min-width: 17rem;
+.fi-dashboard-page .isp-cmd-feed--responsive .isp-cmd-feed__table {
+    min-width: 36rem;
+}
+
+.fi-dashboard-page .isp-cmd-aside-wrap {
+    min-width: 0 !important;
+    max-width: 100% !important;
 }

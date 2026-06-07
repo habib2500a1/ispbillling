@@ -35,8 +35,7 @@
         <button
             type="button"
             class="isp-dash-strip__btn isp-dash-strip__btn--muted"
-            x-data
-            @click="$dispatch('open-modal', { id: 'dashboard-layout-modal' })"
+            @click="$dispatch('open-layout-customizer')"
         >
             <x-filament::icon icon="heroicon-o-adjustments-horizontal" class="h-4 w-4" />
             Layout

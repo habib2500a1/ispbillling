@@ -37,6 +37,7 @@ final class AdminSaasStyles
             'admin/saas/12-dashboard-home.css',
             'admin/saas/13-dashboard-insights.css',
             'admin/saas/14-light-mode-global.css',
+            'admin/saas/15-dashboard-v2-zones.css',
         ];
     }
 

@@ -202,6 +202,167 @@ class DashboardMetricsService
     }
 
     /**
+     * Subscriber package mix for dashboard analytics (cached).
+     *
+     * @return array{labels: list<string>, values: list<int>, total: int}
+     */
+    public function packageDistribution(?int $tenantId = null): array
+    {
+        $tenantId = $tenantId ?? TenantResolver::requiredTenantId();
+
+        return Cache::remember(
+            "dashboard:package_mix:{$tenantId}",
+            now()->addSeconds((int) config('dashboard.snapshot_cache_seconds', 45)),
+            fn (): array => $this->buildPackageDistribution($tenantId),
+        );
+    }
+
+    /**
+     * Lightweight network overview for dashboard analytics (uses snapshot cache).
+     *
+     * @return array{
+     *     health_score: ?int,
+     *     mikrotik_online: int,
+     *     mikrotik_total: int,
+     *     onus_online: int,
+     *     onus_total: int,
+     *     bandwidth_mbps: float,
+     *     bandwidth_trend: array{labels: list<string>, download_mbps: list<float>}
+     * }
+     */
+    public function networkOverview(?int $tenantId = null): array
+    {
+        $tenantId = $tenantId ?? TenantResolver::requiredTenantId();
+
+        return Cache::remember(
+            "dashboard:network_overview:{$tenantId}",
+            now()->addSeconds((int) config('dashboard.snapshot_cache_seconds', 45)),
+            fn (): array => $this->buildNetworkOverview($tenantId),
+        );
+    }
+
+    /**
+     * New subscriber signups per day (customer growth).
+     *
+     * @return array{labels: list<string>, values: list<int>, total: int}
+     */
+    public function subscriberGrowth(int $days = 14, ?int $tenantId = null): array
+    {
+        $tenantId = $tenantId ?? TenantResolver::requiredTenantId();
+
+        return Cache::remember(
+            "dashboard:subscriber_growth:{$tenantId}:{$days}",
+            now()->addMinutes((int) config('dashboard.revenue_trend_cache_minutes', 5)),
+            fn (): array => $this->buildSubscriberGrowth($days, $tenantId),
+        );
+    }
+
+    /**
+     * @return array{labels: list<string>, values: list<int>, total: int}
+     */
+    private function buildSubscriberGrowth(int $days, int $tenantId): array
+    {
+        $start = now()->subDays($days - 1)->startOfDay();
+
+        $counts = Customer::withoutGlobalScopes()
+            ->where('tenant_id', $tenantId)
+            ->where('status', '!=', CustomerStatus::TERMINATED)
+            ->where('created_at', '>=', $start)
+            ->select(DB::raw('DATE(created_at) as day'), DB::raw('COUNT(*) as total'))
+            ->groupBy('day')
+            ->pluck('total', 'day');
+
+        $labels = [];
+        $values = [];
+
+        for ($i = 0; $i < $days; $i++) {
+            $day = $start->copy()->addDays($i)->toDateString();
+            $labels[] = Carbon::parse($day)->format('M j');
+            $values[] = (int) ($counts[$day] ?? 0);
+        }
+
+        return [
+            'labels' => $labels,
+            'values' => $values,
+            'total' => array_sum($values),
+        ];
+    }
+
+    /**
+     * @return array{labels: list<string>, values: list<int>, total: int}
+     */
+    private function buildPackageDistribution(int $tenantId): array
+    {
+        $row = Customer::withoutGlobalScopes()
+            ->where('tenant_id', $tenantId)
+            ->where('status', CustomerStatus::ACTIVE)
+            ->selectRaw(
+                <<<'SQL'
+                COUNT(*) FILTER (
+                    WHERE package_id IS NOT NULL
+                    AND EXISTS (SELECT 1 FROM packages p WHERE p.id = customers.package_id AND COALESCE(p.type, '') != 'hotspot')
+                ) as home,
+                COUNT(*) FILTER (
+                    WHERE package_id IS NOT NULL
+                    AND EXISTS (SELECT 1 FROM packages p WHERE p.id = customers.package_id AND p.type = 'hotspot')
+                ) as hotspot,
+                COUNT(*) FILTER (WHERE reseller_id IS NOT NULL) as reseller
+                SQL,
+            )
+            ->first();
+
+        $home = (int) ($row->home ?? 0);
+        $hotspot = (int) ($row->hotspot ?? 0);
+        $reseller = (int) ($row->reseller ?? 0);
+
+        return [
+            'labels' => ['Home / PPPoE', 'Hotspot', 'Reseller'],
+            'values' => [$home, $hotspot, $reseller],
+            'total' => $home + $hotspot + $reseller,
+        ];
+    }
+
+    /**
+     * @return array{
+     *     health_score: ?int,
+     *     mikrotik_online: int,
+     *     mikrotik_total: int,
+     *     onus_online: int,
+     *     onus_total: int,
+     *     bandwidth_mbps: float,
+     *     bandwidth_trend: array{labels: list<string>, download_mbps: list<float>}
+     * }
+     */
+    private function buildNetworkOverview(int $tenantId): array
+    {
+        $snap = $this->snapshot($tenantId);
+        $usersBps = BandwidthCollectionService::currentTenantLiveBps($tenantId);
+        $trend = BandwidthCollectionService::aggregateLiveMbpsPerSecond($tenantId, 10, 18);
+
+        $mtOnline = (int) ($snap['mikrotik_online'] ?? 0);
+        $mtTotal = (int) ($snap['mikrotik_total'] ?? 0);
+        $onuOnline = (int) ($snap['onus_online'] ?? 0);
+        $onuTotal = (int) ($snap['onus_total'] ?? 0);
+
+        $health = null;
+        if ($mtTotal > 0 || $onuTotal > 0) {
+            $routerScore = $mtTotal > 0 ? (int) round(($mtOnline / $mtTotal) * 100) : 100;
+            $onuScore = $onuTotal > 0 ? (int) round(($onuOnline / $onuTotal) * 100) : 100;
+            $health = (int) round(($routerScore + $onuScore) / 2);
+        }
+
+        return [
+            'health_score' => $health,
+            'mikrotik_online' => $mtOnline,
+            'mikrotik_total' => $mtTotal,
+            'onus_online' => $onuOnline,
+            'onus_total' => $onuTotal,
+            'bandwidth_mbps' => round($usersBps['down_bps'] / 1_000_000, 2),
+            'bandwidth_trend' => $trend,
+        ];
+    }
+
+    /**
      * @return array{labels: list<string>, online: list<int>}
      */
     private function buildOnlineUsersTrend(int $hours, int $tenantId): array
