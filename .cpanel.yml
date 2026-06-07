@@ -1,0 +1,7 @@
+---
+# cPanel Git Version Control — auto-deploy on "Pull or Deploy"
+# Repo: https://github.com/habib2500a1/ispbillling
+# Guide: docs/INSTALL_CPANEL_WEBUZO.md
+deployment:
+  tasks:
+    - /bin/bash scripts/post-deploy-cpanel.sh

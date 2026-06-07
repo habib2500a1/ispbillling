@@ -112,10 +112,18 @@ composer run dev
 | Platform | Guide |
 |----------|-------|
 | **NextDeploy** (recommended) | [`docs/DEPLOY_NEXTDEPLOY.md`](docs/DEPLOY_NEXTDEPLOY.md) |
-| **cPanel** (other users / shared hosting) | [`docs/DEPLOY_CPANEL.md`](docs/DEPLOY_CPANEL.md) |
+| **cPanel / Webuzo** (one-click) | [`docs/INSTALL_CPANEL_WEBUZO.md`](docs/INSTALL_CPANEL_WEBUZO.md) |
+| **cPanel** (manual steps) | [`docs/DEPLOY_CPANEL.md`](docs/DEPLOY_CPANEL.md) |
 | **Coolify** (other users / Docker PaaS) | [`docs/DEPLOY_COOLIFY.md`](docs/DEPLOY_COOLIFY.md) |
 | Env template for NextDeploy | [`deploy/.env.nextdeploy.example`](deploy/.env.nextdeploy.example) |
+| Env template for cPanel | [`deploy/.env.cpanel.example`](deploy/.env.cpanel.example) |
 | Production checklist | [`deploy/PRODUCTION_CHECKLIST.md`](deploy/PRODUCTION_CHECKLIST.md) |
+
+**cPanel / Webuzo one-click** (server terminal):
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/habib2500a1/ispbillling/main/install.sh | bash
+```
 
 ## Docker Deployment
 

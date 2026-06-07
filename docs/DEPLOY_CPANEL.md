@@ -6,6 +6,28 @@
 
 ---
 
+## এক ক্লিকে Install (সহজ — প্রথমে এটা দেখুন)
+
+**One-click guide:** [`docs/INSTALL_CPANEL_WEBUZO.md`](INSTALL_CPANEL_WEBUZO.md)
+
+Server Terminal এ এক লাইন:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/habib2500a1/ispbillling/main/install.sh | bash
+```
+
+অথবা clone করার পর:
+
+```bash
+cd ~/isp-platform && bash scripts/install-cpanel-webuzo.sh
+```
+
+cPanel Git Version Control ব্যবহার করলে `.cpanel.yml` auto-deploy করে — **Pull or Deploy** চাপলেই হবে।
+
+নিচের step-by-step guide manual setup বা troubleshooting এর জন্য।
+
+---
+
 ## Step 0 — আগে যা লাগবে
 
 | Item | Minimum |
@@ -352,8 +374,13 @@ bash scripts/production-optimize.sh
 
 | File | কাজ |
 |------|-----|
+| `install.sh` | GitHub one-liner (clone + install) |
+| `scripts/install-cpanel-webuzo.sh` | Interactive one-click installer |
+| `scripts/post-deploy-cpanel.sh` | cPanel shared hosting post-deploy |
+| `.cpanel.yml` | cPanel Git auto-deploy on pull |
+| `deploy/.env.cpanel.example` | cPanel `.env` template |
 | `deploy/PRODUCTION_CHECKLIST.md` | Full production checklist |
-| `scripts/post-deploy.sh` | Pull পর quick deploy |
+| `scripts/post-deploy.sh` | VPS pull পর quick deploy |
 | `scripts/production-optimize.sh` | Cache + FPM reload |
 | `deploy/scheduler-cron.example` | Cron line example |
 | `deploy/laravel-horizon.service.example` | Horizon systemd |
