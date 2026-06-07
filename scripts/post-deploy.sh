@@ -4,7 +4,8 @@ set -euo pipefail
 
 cd /var/www/isp-platform
 
-sudo -u www-data php artisan isp:post-deploy --no-interaction
+sudo -u www-data php artisan isp:post-deploy --fast --no-interaction
+sudo -u www-data php artisan isp:post-deploy --processes-only --no-interaction &
 sudo -u www-data php artisan optimize:clear
 
 if command -v systemctl >/dev/null 2>&1; then

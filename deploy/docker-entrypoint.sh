@@ -30,14 +30,14 @@ if [ -f /usr/local/bin/ensure-permissions.sh ]; then
   /usr/local/bin/ensure-permissions.sh || true
 fi
 
-# DB bootstrap must not block php-fpm (nginx returns 502 while entrypoint waits).
 if [ -f /usr/local/bin/ensure-db-user.sh ]; then
   /usr/local/bin/ensure-db-user.sh || true &
 fi
 
+# Block until fast bootstrap finishes so /admin/login is warm (heavy process sync runs in background).
 if [ "$#" -eq 0 ] || [ "$1" = "php-fpm" ]; then
   if [ -f /usr/local/bin/bootstrap-app.sh ]; then
-    /usr/local/bin/bootstrap-app.sh || true &
+    /usr/local/bin/bootstrap-app.sh || true
   fi
 fi
 

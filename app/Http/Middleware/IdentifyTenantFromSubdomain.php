@@ -8,6 +8,7 @@ use App\Services\Tenant\TenantScopedConfig;
 use App\Support\TenantResolver;
 use Closure;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Schema;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -17,7 +18,7 @@ class IdentifyTenantFromSubdomain
     {
         TenantResolver::setSubdomainTenantId(null);
 
-        if (! Schema::hasTable('tenants')) {
+        if (! Cache::remember('bootstrap.tenants_table', 300, fn (): bool => Schema::hasTable('tenants'))) {
             return $next($request);
         }
 

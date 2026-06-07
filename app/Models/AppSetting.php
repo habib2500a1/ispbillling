@@ -259,11 +259,79 @@ class AppSetting extends Model
     }
 
     /**
+     * Seed app_settings from .env on first deploy so login and panel boot skip empty DB lookups.
+     */
+    public static function syncMissingDefaultsFromEnv(): int
+    {
+        if (! Schema::hasTable('app_settings')) {
+            return 0;
+        }
+
+        $existing = array_flip(static::query()->pluck('key')->all());
+        $toAdd = [];
+
+        foreach (self::envDefaultRestorers() as $key => $resolver) {
+            if (isset($existing[$key])) {
+                continue;
+            }
+
+            $stored = self::plainValueToStorage($key, $resolver());
+            if ($stored !== null && $stored !== '') {
+                $toAdd[$key] = $stored;
+            }
+        }
+
+        if ($toAdd === []) {
+            return 0;
+        }
+
+        foreach ($toAdd as $key => $plain) {
+            static::query()->updateOrCreate(['key' => $key], ['value' => $plain]);
+        }
+
+        Cache::forget('bootstrap.app_settings_sync');
+
+        return count($toAdd);
+    }
+
+    /**
+     * @param  mixed  $value
+     */
+    private static function plainValueToStorage(string $key, $value): ?string
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        if (is_bool($value)) {
+            return $value ? '1' : '0';
+        }
+
+        if (is_array($value)) {
+            return implode(',', array_map('strval', $value));
+        }
+
+        return (string) $value;
+    }
+
+    /**
      * When a DB override is removed, fall back to the same env keys as config/*.php.
      */
     public static function restoreConfigKeyFromEnv(string $key): void
     {
-        $map = [
+        $map = self::envDefaultRestorers();
+
+        if (isset($map[$key])) {
+            config([$key => $map[$key]()]);
+        }
+    }
+
+    /**
+     * @return array<string, callable(): mixed>
+     */
+    private static function envDefaultRestorers(): array
+    {
+        return [
             'bkash.enabled' => fn (): bool => (bool) config('bkash.env_defaults.enabled'),
             'bkash.gateway_type' => fn (): string => (string) config('bkash.env_defaults.gateway_type'),
             'bkash.environment' => fn (): string => (string) config('bkash.env_defaults.environment'),
@@ -362,9 +430,5 @@ class AppSetting extends Model
             'optical.auto_ticket_enabled' => fn (): bool => (bool) config('optical.auto_ticket_enabled'),
             'optical.notify_ops' => fn (): bool => (bool) config('optical.notify_ops'),
         ];
-
-        if (isset($map[$key])) {
-            config([$key => $map[$key]()]);
-        }
     }
 }

@@ -26,8 +26,11 @@ php artisan migrate --force --no-interaction || {
   exit 0
 }
 
-echo "[bootstrap] Post-deploy sync (automatic processes, SMS templates, roles)..."
-php artisan isp:post-deploy --skip-migrate --no-interaction || true
+echo "[bootstrap] Fast post-deploy (admin, .env defaults, SMS templates)..."
+php artisan isp:post-deploy --skip-migrate --fast --no-interaction || true
+
+echo "[bootstrap] Automatic processes sync (background)..."
+php artisan isp:post-deploy --processes-only --no-interaction >>storage/logs/post-deploy-processes.log 2>&1 &
 
 if [ -f /usr/local/bin/ensure-permissions.sh ]; then
   /usr/local/bin/ensure-permissions.sh || true

@@ -11,14 +11,12 @@ use App\Filament\Hrm\HrmSidebarNavigation;
 use App\Filament\Olt\OltSidebarNavigation;
 use App\Filament\Settings\SettingsSidebarNavigation;
 use App\Filament\Sms\SmsSidebarNavigation;
-use App\Services\Sms\SmsTemplateService;
 use App\Contracts\NetworkAccessProvisioner;
 use App\Models\AppSetting;
 use App\Models\Customer;
 use App\Models\Invoice;
 use App\Models\InvoiceItem;
 use App\Models\Payment;
-use App\Models\SmsTemplate;
 use App\Models\SupportTicket;
 use App\Models\SupportTicketMessage;
 use App\Observers\CustomerObserver;
@@ -167,16 +165,20 @@ class AppServiceProvider extends ServiceProvider
         View::share('mobileAppDownloadUrl', MobileAppLinks::downloadUrl());
 
         try {
-            if (Cache::remember('bootstrap.app_settings_table', 300, fn (): bool => Schema::hasTable('app_settings'))) {
+            $isAuthRoute = ! $this->app->runningInConsole()
+                && request()->routeIs('filament.admin.auth.*', 'admin.login.session');
+
+            if (
+                ! $isAuthRoute
+                && Cache::remember('bootstrap.app_settings_table', 300, fn (): bool => Schema::hasTable('app_settings'))
+            ) {
                 // Must run every request: caching sync caused OTP/toggles to revert to config defaults.
                 AppSetting::syncToRuntimeConfig();
+            } elseif ($isAuthRoute) {
+                AppSetting::applyApplicationTimezone();
             }
 
             DemoMode::applySafetyOverrides();
-
-            if (Schema::hasTable('sms_templates') && SmsTemplate::query()->count() === 0) {
-                app(SmsTemplateService::class)->seedDefaults();
-            }
         } catch (\Throwable $e) {
             Log::channel('single')->warning('bootstrap.app_settings_skipped', [
                 'message' => $e->getMessage(),
