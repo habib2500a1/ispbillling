@@ -56,6 +56,10 @@ final class PostDeployCommand extends Command
 
         DeployReady::markReady();
 
+        if ($this->option('fast') || ! $this->option('processes-only')) {
+            Artisan::call('isp:warm-dashboard-caches', [], $this->output);
+        }
+
         return self::SUCCESS;
     }
 

@@ -180,15 +180,13 @@ class AppServiceProvider extends ServiceProvider
             $isAuthRoute = ! $this->app->runningInConsole()
                 && request()->routeIs('filament.admin.auth.*', 'admin.login.session');
 
-            if (
-                ! $isAuthRoute
-                && SafeCache::remember('bootstrap.app_settings_table', 300, fn (): bool => Schema::hasTable('app_settings'))
-            ) {
-                // Must run every request: caching sync caused OTP/toggles to revert to config defaults.
-                AppSetting::syncToRuntimeConfig();
-            } elseif ($isAuthRoute) {
-                AppSetting::applyApplicationTimezone();
+            if (! $isAuthRoute) {
+                if (SafeCache::remember('bootstrap.app_settings_table', 300, fn (): bool => Schema::hasTable('app_settings'))) {
+                    AppSetting::syncToRuntimeConfig();
+                }
             }
+
+            AppSetting::applyApplicationTimezone();
 
             DemoMode::applySafetyOverrides();
         } catch (\Throwable $e) {

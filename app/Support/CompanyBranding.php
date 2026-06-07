@@ -45,33 +45,37 @@ final class CompanyBranding
 
     public static function logoUrl(): ?string
     {
-        $path = self::resolveLogoStoragePath();
-        if ($path !== null) {
-            return self::versionedAssetUrl(Storage::disk('public')->url($path));
-        }
+        return SafeCache::remember('branding:logo_url', 300, function (): ?string {
+            $path = self::resolveLogoStoragePathUncached();
+            if ($path !== null) {
+                return self::versionedAssetUrl(Storage::disk('public')->url($path));
+            }
 
-        $legacy = trim((string) config('isp.company_logo_url', ''));
+            $legacy = trim((string) config('isp.company_logo_url', ''));
 
-        return $legacy !== '' ? self::versionedAssetUrl($legacy) : null;
+            return $legacy !== '' ? self::versionedAssetUrl($legacy) : null;
+        });
     }
 
     public static function faviconUrl(): ?string
     {
-        if (Storage::disk('public')->exists(\App\Services\Branding\FaviconGenerator::OUTPUT_32)) {
-            return self::versionedAssetUrl(Storage::disk('public')->url(\App\Services\Branding\FaviconGenerator::OUTPUT_32));
-        }
+        return SafeCache::remember('branding:favicon_url', 300, function (): ?string {
+            if (Storage::disk('public')->exists(\App\Services\Branding\FaviconGenerator::OUTPUT_32)) {
+                return self::versionedAssetUrl(Storage::disk('public')->url(\App\Services\Branding\FaviconGenerator::OUTPUT_32));
+            }
 
-        $logo = self::logoUrl();
-        if ($logo !== null) {
-            return $logo;
-        }
+            $logo = self::logoUrl();
+            if ($logo !== null) {
+                return $logo;
+            }
 
-        $publicFavicon = public_path('favicon.png');
-        if (is_file($publicFavicon) && filesize($publicFavicon) > 0) {
-            return self::versionedAssetUrl(asset('favicon.png'));
-        }
+            $publicFavicon = public_path('favicon.png');
+            if (is_file($publicFavicon) && filesize($publicFavicon) > 0) {
+                return self::versionedAssetUrl(asset('favicon.png'));
+            }
 
-        return null;
+            return null;
+        });
     }
 
     private static function versionedAssetUrl(string $url): string
@@ -114,10 +118,12 @@ final class CompanyBranding
             : 'I';
     }
 
-    /**
-     * Configured logo path, or newest image in storage/app/public/company-branding.
-     */
     public static function resolveLogoStoragePath(): ?string
+    {
+        return SafeCache::remember('branding:logo_path', 300, fn (): ?string => self::resolveLogoStoragePathUncached());
+    }
+
+    private static function resolveLogoStoragePathUncached(): ?string
     {
         $path = (string) config('isp.company_logo_path', '');
         if ($path !== '' && Storage::disk('public')->exists($path)) {

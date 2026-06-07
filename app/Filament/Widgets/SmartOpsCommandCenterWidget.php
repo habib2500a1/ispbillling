@@ -19,7 +19,7 @@ class SmartOpsCommandCenterWidget extends Widget
 
     protected int|string|array $columnSpan = 'full';
 
-    protected static ?string $pollingInterval = '60s';
+    protected static ?string $pollingInterval = '120s';
 
     /** @return array<string, mixed> */
     protected function getViewData(): array

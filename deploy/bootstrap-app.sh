@@ -73,6 +73,7 @@ if [ -f /usr/local/bin/optimize-app.sh ]; then
 fi
 
 php artisan isp:mark-deploy-ready --no-interaction 2>/dev/null || touch storage/framework/deploy-ready
+php artisan isp:warm-dashboard-caches --no-interaction 2>/dev/null || true
 rm -f storage/framework/deploy-bootstrapping 2>/dev/null || true
 chown www-data:www-data storage/framework/deploy-ready 2>/dev/null || true
 echo "[bootstrap] Deploy ready."

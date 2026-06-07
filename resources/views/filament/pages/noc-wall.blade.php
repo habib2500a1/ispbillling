@@ -120,9 +120,10 @@
     $companyName = $this->companyName();
     $companyLogo = $this->companyLogoUrl();
     $companyInitial = $this->companyInitial();
+    $pollSeconds = (int) config('dashboard.noc_wall_poll_seconds', 60);
 @endphp
 
-<div class="isp-noc-wall" wire:poll.15s id="isp-noc-wall">
+<div class="isp-noc-wall" wire:poll.{{ $pollSeconds }}s id="isp-noc-wall">
     <header class="isp-noc-wall__header isp-noc-wall__header--hero" wire:key="noc-brand-{{ md5($companyName.'|'.($companyLogo ?? '')) }}">
         <div class="isp-noc-wall__brand">
             @if ($companyLogo)
@@ -140,7 +141,7 @@
         <div style="display:flex;gap:1rem;align-items:center;flex-wrap:wrap;justify-content:flex-end;">
             <div style="display:flex;align-items:center;gap:.5rem;background:rgba(34,197,94,.12);border:1px solid rgba(34,197,94,.25);padding:.55rem .85rem;border-radius:.9rem;color:#86efac;">
                 <span style="display:inline-block;width:10px;height:10px;border-radius:999px;background:#22c55e;box-shadow:0 0 12px rgba(34,197,94,.85);animation:pulse 2s infinite;"></span>
-                <span style="font-size:.85rem;font-weight:700;">Live refresh 15s</span>
+                <span style="font-size:.85rem;font-weight:700;">Live refresh {{ $pollSeconds }}s</span>
             </div>
             <span id="noc-clock" style="font-family:monospace;font-size:1.4rem;font-weight:700;color:#fff;background:rgba(255,255,255,.05);padding:.55rem 1rem;border-radius:.9rem;">{{ now()->format('H:i:s') }}</span>
             <a href="{{ \App\Filament\Pages\Dashboard::getUrl() }}" style="background:rgba(239,68,68,.18);color:#fca5a5;padding:.7rem 1rem;border-radius:.9rem;text-decoration:none;font-weight:700;border:1px solid rgba(239,68,68,.35);">Exit Wall</a>

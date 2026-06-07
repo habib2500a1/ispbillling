@@ -41,6 +41,8 @@ final class RecoverSiteCommand extends Command
         DeployReady::markReady();
         $this->info('Site marked deploy-ready: '.DeployReady::flagPath());
 
+        Artisan::call('isp:warm-dashboard-caches', [], $this->output);
+
         return self::SUCCESS;
     }
 }

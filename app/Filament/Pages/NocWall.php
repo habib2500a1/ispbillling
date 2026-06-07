@@ -43,13 +43,6 @@ class NocWall extends Page
      */
     public function getWallData(): array
     {
-        $service = app(DashboardMetricsService::class);
-
-        return [
-            'noc' => $service->nocSnapshot(),
-            'gpon' => $service->gponSnapshot(),
-            'support' => $service->supportSnapshot(),
-            'alerts' => $service->liveAlerts(),
-        ];
+        return app(DashboardMetricsService::class)->nocWallPayload();
     }
 }

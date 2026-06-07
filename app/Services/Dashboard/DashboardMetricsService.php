@@ -25,6 +25,7 @@ use App\Support\CustomerBalanceDue;
 use App\Support\CustomerStatus;
 use App\Support\PaymentType;
 use App\Support\SubscriberType;
+use App\Support\SafeCache;
 use App\Support\TenantResolver;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
@@ -352,9 +353,38 @@ class DashboardMetricsService
 
         return Cache::remember(
             'dashboard:noc_snapshot:'.$tenantId,
-            now()->addSeconds((int) config('dashboard.noc_snapshot_cache_seconds', 45)),
+            now()->addSeconds((int) config('dashboard.noc_snapshot_cache_seconds', 60)),
             fn (): array => $this->buildNocSnapshot($tenantId),
         );
+    }
+
+    /**
+     * Cached bundle for the fullscreen NOC wall (survives Livewire poll without hammering DB).
+     *
+     * @return array{noc: array<string, mixed>, gpon: array<string, mixed>, support: array<string, mixed>, alerts: list<array<string, mixed>>}
+     */
+    public function nocWallPayload(?int $tenantId = null): array
+    {
+        $tenantId = $tenantId ?? TenantResolver::requiredTenantId();
+
+        return SafeCache::remember(
+            'dashboard:noc_wall:'.$tenantId,
+            now()->addSeconds((int) config('dashboard.noc_wall_cache_seconds', 60)),
+            fn (): array => [
+                'noc' => $this->nocSnapshot($tenantId),
+                'gpon' => $this->gponSnapshot($tenantId),
+                'support' => $this->supportSnapshot($tenantId),
+                'alerts' => $this->liveAlerts($tenantId),
+            ],
+        );
+    }
+
+    /** Pre-warm heavy dashboard caches after deploy (tenant 1 by default). */
+    public function warmCaches(?int $tenantId = null): void
+    {
+        $tenantId = $tenantId ?? TenantResolver::requiredTenantId();
+        $this->nocWallPayload($tenantId);
+        $this->snapshot($tenantId);
     }
 
     /**
@@ -367,7 +397,6 @@ class DashboardMetricsService
         $customerCounts = $this->customerCounts($tenantId);
         $oltHealth = app(\App\Services\Olt\OltNocDashboardService::class)->snapshot($tenantId);
         $oltRows = collect($oltHealth['olts'] ?? []);
-        $downCustomers = $this->downCustomersCollection($tenantId);
         $activeOutages = Outage::withoutGlobalScopes()
             ->where('tenant_id', $tenantId)
             ->currentlyActive()
@@ -378,6 +407,10 @@ class DashboardMetricsService
         $hotPonPorts = $this->hotPonPorts($tenantId);
         $telemetry = $this->accessTelemetry($tenantId, $oltRows);
         $oltReachability = $this->oltReachabilitySummary($tenantId, $oltRows);
+
+        $zoneImpact = $this->zoneImpactSummarySql($tenantId, $activeOutages);
+        $areaImpact = $this->areaImpactSummarySql($tenantId, $activeOutages);
+        $downSample = $this->downCustomersSample($tenantId, 12);
 
         $usersBps = BandwidthCollectionService::currentTenantLiveBps($tenantId);
         $wanBps = BandwidthCollectionService::currentWanLiveBps($tenantId);
@@ -417,7 +450,7 @@ class DashboardMetricsService
             'access_telemetry' => $telemetry,
             'olt_reachability' => $oltReachability,
             'hot_pon_ports' => $hotPonPorts,
-            'top_impact' => $this->topImpactRanking($downCustomers, $oltRows, $activeOutages, $hotPonPorts),
+            'top_impact' => $this->topImpactRankingFromSummaries($zoneImpact, $areaImpact, $oltRows, $hotPonPorts),
             'olt_offline' => (int) ($oltHealth['olt_offline'] ?? 0),
             'olt_partial' => $partialOltCount,
             'olt_high_cpu' => (int) ($oltHealth['olt_high_cpu'] ?? 0),
@@ -425,10 +458,10 @@ class DashboardMetricsService
             'olt_unhealthy' => (int) ($oltHealth['olt_unhealthy'] ?? 0),
             'olt_avg_health' => $oltHealth['avg_health_score'] ?? null,
             'olt_rows' => $oltRows->values()->all(),
-            'down_users' => $this->downUsersSummary($downCustomers),
-            'root_causes' => $this->rootCauseBreakdown($downCustomers),
-            'zone_impact' => $this->zoneImpactSummary($downCustomers, $activeOutages),
-            'area_impact' => $this->areaImpactSummary($downCustomers, $activeOutages),
+            'down_users' => $this->downUsersSummary($downSample),
+            'root_causes' => $this->rootCauseBreakdownSql($tenantId),
+            'zone_impact' => $zoneImpact,
+            'area_impact' => $areaImpact,
             'active_outages' => [
                 'count' => $activeOutages->count(),
                 'items' => $activeOutages->map(fn (Outage $outage): array => [
@@ -589,6 +622,149 @@ class DashboardMetricsService
                 'reason' => $this->downCustomerReason($customer),
             ];
         })->all();
+    }
+
+    /**
+     * @return \Illuminate\Database\Eloquent\Builder<Customer>
+     */
+    private function offlineCustomersQuery(int $tenantId)
+    {
+        return Customer::withoutGlobalScopes()
+            ->where('customers.tenant_id', $tenantId)
+            ->where('customers.status', '!=', CustomerStatus::TERMINATED)
+            ->where(function ($q): void {
+                $q->where('customers.is_ppp_online', false)->orWhereNull('customers.is_ppp_online');
+            });
+    }
+
+    /**
+     * @return Collection<int, Customer>
+     */
+    private function downCustomersSample(int $tenantId, int $limit = 12): Collection
+    {
+        return $this->offlineCustomersQuery($tenantId)
+            ->with([
+                'area:id,name',
+                'zone:id,name,area_id',
+                'mikrotikServer:id,name',
+                'lastEndedPppSession',
+            ])
+            ->withExists([
+                'invoices as has_due_invoice' => fn ($q) => $q
+                    ->whereIn('status', CustomerBalanceDue::OPEN_INVOICE_STATUSES)
+                    ->whereRaw('(total - amount_paid) > 0.009'),
+            ])
+            ->orderByRaw('CASE WHEN service_expires_at IS NOT NULL AND service_expires_at < ? THEN 0 ELSE 1 END', [now()->toDateString()])
+            ->orderBy('ppp_last_seen_at')
+            ->limit($limit)
+            ->get([
+                'id',
+                'tenant_id',
+                'name',
+                'customer_code',
+                'status',
+                'area_id',
+                'zone_id',
+                'mikrotik_server_id',
+                'radius_username',
+                'mikrotik_secret_name',
+                'service_expires_at',
+                'ppp_last_seen_at',
+            ]);
+    }
+
+    /**
+     * @return list<array{reason: string, count: int}>
+     */
+    private function rootCauseBreakdownSql(int $tenantId): array
+    {
+        $today = now()->toDateString();
+        $reasons = [
+            ['reason' => 'Suspended', 'count' => (int) $this->offlineCustomersQuery($tenantId)->where('customers.status', CustomerStatus::SUSPENDED)->count()],
+            ['reason' => 'Expired / billing due', 'count' => (int) $this->offlineCustomersQuery($tenantId)->whereNotNull('customers.service_expires_at')->where('customers.service_expires_at', '<', $today)->count()],
+            ['reason' => 'Never came online', 'count' => (int) $this->offlineCustomersQuery($tenantId)->whereNull('customers.ppp_last_seen_at')->count()],
+            ['reason' => 'Recently disconnected', 'count' => (int) $this->offlineCustomersQuery($tenantId)->where('customers.ppp_last_seen_at', '>=', now()->subMinutes(30))->count()],
+        ];
+
+        return collect($reasons)
+            ->filter(fn (array $row): bool => $row['count'] > 0)
+            ->sortByDesc('count')
+            ->take(6)
+            ->values()
+            ->all();
+    }
+
+    /**
+     * @param  Collection<int, Outage>  $activeOutages
+     * @return list<array{zone_id: int, area_id: int, area_name: string, zone: string, down_users: int, expired: int, suspended: int, due: int, active_outage: bool}>
+     */
+    private function zoneImpactSummarySql(int $tenantId, Collection $activeOutages): array
+    {
+        $outageAreaIds = $activeOutages->pluck('area_id')->filter()->map(fn ($id) => (int) $id)->all();
+        $today = now()->toDateString();
+
+        return $this->offlineCustomersQuery($tenantId)
+            ->leftJoin('zones', 'customers.zone_id', '=', 'zones.id')
+            ->leftJoin('areas', 'customers.area_id', '=', 'areas.id')
+            ->selectRaw("COALESCE(zones.name, 'Unassigned zone') as zone")
+            ->selectRaw('COALESCE(customers.zone_id, 0) as zone_id')
+            ->selectRaw('COALESCE(customers.area_id, 0) as area_id')
+            ->selectRaw("COALESCE(areas.name, 'Unassigned area') as area_name")
+            ->selectRaw('COUNT(*) as down_users')
+            ->selectRaw('SUM(CASE WHEN customers.status = ? THEN 1 ELSE 0 END) as suspended', [CustomerStatus::SUSPENDED])
+            ->selectRaw('SUM(CASE WHEN customers.service_expires_at IS NOT NULL AND customers.service_expires_at < ? THEN 1 ELSE 0 END) as expired', [$today])
+            ->groupBy('zones.name', 'customers.zone_id', 'customers.area_id', 'areas.name')
+            ->orderByDesc('down_users')
+            ->limit(6)
+            ->get()
+            ->map(function ($row) use ($outageAreaIds): array {
+                $areaId = (int) $row->area_id;
+
+                return [
+                    'zone_id' => (int) $row->zone_id,
+                    'area_id' => $areaId,
+                    'area_name' => (string) $row->area_name,
+                    'zone' => (string) $row->zone,
+                    'down_users' => (int) $row->down_users,
+                    'expired' => (int) $row->expired,
+                    'suspended' => (int) $row->suspended,
+                    'due' => 0,
+                    'active_outage' => $areaId > 0 && in_array($areaId, $outageAreaIds, true),
+                ];
+            })
+            ->all();
+    }
+
+    /**
+     * @param  Collection<int, Outage>  $activeOutages
+     * @return list<array{area_id: int, area: string, down_users: int, zones: int, active_outage: bool}>
+     */
+    private function areaImpactSummarySql(int $tenantId, Collection $activeOutages): array
+    {
+        $outageAreaIds = $activeOutages->pluck('area_id')->filter()->map(fn ($id) => (int) $id)->all();
+
+        return $this->offlineCustomersQuery($tenantId)
+            ->leftJoin('areas', 'customers.area_id', '=', 'areas.id')
+            ->selectRaw("COALESCE(areas.name, 'Unassigned area') as area")
+            ->selectRaw('COALESCE(customers.area_id, 0) as area_id')
+            ->selectRaw('COUNT(*) as down_users')
+            ->selectRaw('COUNT(DISTINCT customers.zone_id) as zones')
+            ->groupBy('areas.name', 'customers.area_id')
+            ->orderByDesc('down_users')
+            ->limit(6)
+            ->get()
+            ->map(function ($row) use ($outageAreaIds): array {
+                $areaId = (int) $row->area_id;
+
+                return [
+                    'area_id' => $areaId,
+                    'area' => (string) $row->area,
+                    'down_users' => (int) $row->down_users,
+                    'zones' => (int) $row->zones,
+                    'active_outage' => $areaId > 0 && in_array($areaId, $outageAreaIds, true),
+                ];
+            })
+            ->all();
     }
 
     /**
@@ -985,6 +1161,71 @@ class DashboardMetricsService
                 ];
             },
         );
+    }
+
+    /**
+     * @param  list<array{zone_id: int, area_id: int, area_name: string, zone: string, down_users: int, expired: int, suspended: int, due: int, active_outage: bool}>  $zoneImpact
+     * @param  list<array{area_id: int, area: string, down_users: int, zones: int, active_outage: bool}>  $areaImpact
+     * @param  Collection<int, array<string, mixed>>  $oltRows
+     * @param  list<array{id: string, label: string, olt_id: int, olt: string, port: string, offline: int, critical: int, total: int, fault_percent: float}>  $hotPonPorts
+     * @return list<array<string, int|string|float|null>>
+     */
+    private function topImpactRankingFromSummaries(array $zoneImpact, array $areaImpact, Collection $oltRows, array $hotPonPorts): array
+    {
+        $items = collect();
+
+        foreach (array_slice($zoneImpact, 0, 3) as $zone) {
+            $items->push([
+                'type' => 'zone',
+                'id' => (int) ($zone['zone_id'] ?? 0),
+                'label' => (string) ($zone['zone'] ?? 'Zone'),
+                'subtext' => (string) ($zone['area_name'] ?? 'Area'),
+                'impact' => (int) ($zone['down_users'] ?? 0),
+                'detail' => 'Due '.$zone['due'].' · Susp '.$zone['suspended'],
+                'score' => (int) ($zone['down_users'] ?? 0),
+            ]);
+        }
+
+        foreach (array_slice($areaImpact, 0, 2) as $area) {
+            $items->push([
+                'type' => 'area',
+                'id' => (int) ($area['area_id'] ?? 0),
+                'label' => (string) ($area['area'] ?? 'Area'),
+                'subtext' => (int) ($area['zones'] ?? 0).' impacted zone',
+                'impact' => (int) ($area['down_users'] ?? 0),
+                'detail' => ((bool) ($area['active_outage'] ?? false)) ? 'Active outage' : 'Heatmap cluster',
+                'score' => (int) ($area['down_users'] ?? 0),
+            ]);
+        }
+
+        foreach ($oltRows
+            ->sortByDesc(fn (array $row): int => ((int) ($row['onus_offline'] ?? 0) * 2) + max(0, (int) ($row['interfaces_total'] ?? 0) - (int) ($row['interfaces_up'] ?? 0)))
+            ->take(3) as $olt) {
+            $linkDown = max(0, (int) ($olt['interfaces_total'] ?? 0) - (int) ($olt['interfaces_up'] ?? 0));
+            $items->push([
+                'type' => 'olt',
+                'id' => (int) ($olt['id'] ?? 0),
+                'label' => (string) ($olt['name'] ?? 'OLT'),
+                'subtext' => (string) ($olt['status'] ?? 'unknown'),
+                'impact' => (int) ($olt['onus_offline'] ?? 0),
+                'detail' => 'Offline ONU '.(int) ($olt['onus_offline'] ?? 0).' · Link '.$linkDown,
+                'score' => ((int) ($olt['onus_offline'] ?? 0) * 2) + $linkDown,
+            ]);
+        }
+
+        foreach (array_slice($hotPonPorts, 0, 2) as $port) {
+            $items->push([
+                'type' => 'pon',
+                'id' => (string) ($port['id'] ?? ''),
+                'label' => (string) ($port['port'] ?? 'PON'),
+                'subtext' => (string) ($port['olt'] ?? 'OLT'),
+                'impact' => (int) ($port['offline'] ?? 0),
+                'detail' => 'Critical '.(int) ($port['critical'] ?? 0).' · Fault '.(float) ($port['fault_percent'] ?? 0).'%',
+                'score' => (int) ($port['offline'] ?? 0) + (int) ($port['critical'] ?? 0),
+            ]);
+        }
+
+        return $items->sortByDesc('score')->take(8)->values()->all();
     }
 
     /**

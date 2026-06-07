@@ -18,6 +18,12 @@ return [
     'revenue_trend_cache_minutes' => (int) env('DASHBOARD_REVENUE_TREND_CACHE_MINUTES', 5),
 
     /** Cache NOC dashboard snapshot (seconds). */
-    'noc_snapshot_cache_seconds' => (int) env('DASHBOARD_NOC_SNAPSHOT_CACHE_SECONDS', 45),
+    'noc_snapshot_cache_seconds' => (int) env('DASHBOARD_NOC_SNAPSHOT_CACHE_SECONDS', 60),
+
+    /** NOC wall bundled payload cache (seconds). */
+    'noc_wall_cache_seconds' => (int) env('DASHBOARD_NOC_WALL_CACHE_SECONDS', 60),
+
+    /** NOC wall Livewire poll interval (seconds). */
+    'noc_wall_poll_seconds' => (int) env('DASHBOARD_NOC_WALL_POLL_SECONDS', 60),
 
 ];
