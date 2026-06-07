@@ -47,10 +47,11 @@ class LandingPageController extends Controller
 
         $movieServers = PortalMovieServerCatalog::forLanding();
 
-        $shopEnabled = $this->shopHasActiveProducts($tenantId);
+        $shopOpen = config('inventory.shop_enabled', true);
 
         return [
-            'shopUrl' => $shopEnabled ? route('shop.index') : null,
+            'shopUrl' => $shopOpen ? route('shop.index') : null,
+            'shopHasProducts' => $shopOpen && $this->shopHasActiveProducts($tenantId),
             'portalNotices' => PortalContentCatalog::noticesForLanding(),
             'portalMarquee' => PortalContentCatalog::marqueeForLanding(),
             'company' => CompanyBranding::name(),

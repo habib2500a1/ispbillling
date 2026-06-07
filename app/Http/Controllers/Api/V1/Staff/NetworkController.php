@@ -3,25 +3,27 @@
 namespace App\Http\Controllers\Api\V1\Staff;
 
 use App\Http\Controllers\Controller;
-use App\Models\Customer;
 use App\Models\User;
 use App\Services\Mobile\MobileBroadcastService;
 use App\Services\Network\MikrotikNetworkProvisioner;
+use App\Support\StaffMobileApiAccess;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class NetworkController extends Controller
 {
+    use StaffMobileApiAccess;
+
     public function suspend(Request $request, MikrotikNetworkProvisioner $network, MobileBroadcastService $broadcast): JsonResponse
     {
-        $this->authorizeStaff($request);
+        $user = $this->authorizeStaff($request);
 
         $data = $request->validate([
             'customer_id' => ['required', 'integer', 'exists:customers,id'],
             'reason' => ['nullable', 'string', 'max:500'],
         ]);
 
-        $customer = Customer::query()->findOrFail((int) $data['customer_id']);
+        $customer = $this->staffCustomerOrFail($user, (int) $data['customer_id']);
         $customer->forceFill(['network_access_state' => 'suspended'])->save();
         $network->suspendCustomer($customer, $data['reason'] ?? 'mobile-api');
 
@@ -40,13 +42,13 @@ class NetworkController extends Controller
 
     public function reconnect(Request $request, MikrotikNetworkProvisioner $network, MobileBroadcastService $broadcast): JsonResponse
     {
-        $this->authorizeStaff($request);
+        $user = $this->authorizeStaff($request);
 
         $data = $request->validate([
             'customer_id' => ['required', 'integer', 'exists:customers,id'],
         ]);
 
-        $customer = Customer::query()->findOrFail((int) $data['customer_id']);
+        $customer = $this->staffCustomerOrFail($user, (int) $data['customer_id']);
         $customer->forceFill(['network_access_state' => 'active'])->save();
         $network->unsuspendCustomer($customer);
         $network->syncAccessPolicy($customer);

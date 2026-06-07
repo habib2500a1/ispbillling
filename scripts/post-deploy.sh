@@ -4,6 +4,9 @@ set -euo pipefail
 
 cd /var/www/isp-platform
 
+sudo -u www-data php artisan isp:generate-webhook-secrets --write --only-missing --no-interaction 2>/dev/null || true
+bash ./scripts/ensure-redis-horizon.sh 2>/dev/null || true
+
 sudo -u www-data php artisan isp:post-deploy --fast --no-interaction
 sudo -u www-data php artisan isp:post-deploy --processes-only --no-interaction &
 sudo -u www-data php artisan config:clear

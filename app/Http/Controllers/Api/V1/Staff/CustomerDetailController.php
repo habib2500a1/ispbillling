@@ -7,11 +7,14 @@ use App\Models\Customer;
 use App\Models\User;
 use App\Services\Billing\BillCollectionSearchService;
 use App\Services\Mobile\MobileCustomerListSerializer;
+use App\Support\StaffMobileApiAccess;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class CustomerDetailController extends Controller
 {
+    use StaffMobileApiAccess;
+
     private const ACCESS_ROLES = [
         'super-admin', 'isp-admin', 'admin', 'cashier', 'collector', 'branch-manager', 'isp-manager',
     ];
@@ -25,7 +28,7 @@ class CustomerDetailController extends Controller
             return response()->json(['message' => 'Access denied.'], 403);
         }
 
-        $data = $search->find($customer);
+        $data = $search->find($customer, $user->tenant_id !== null ? (int) $user->tenant_id : null);
         if ($data === null) {
             return response()->json(['message' => 'Customer not found.'], 404);
         }
@@ -44,7 +47,7 @@ class CustomerDetailController extends Controller
 
         $q = trim((string) $request->query('q', ''));
 
-        $query = Customer::query()
+        $query = $this->staffCustomerQuery($user)
             ->with(['package:id,name,download_mbps,price_monthly', 'zone:id,name', 'subzone:id,name', 'area:id,name'])
             ->orderBy('name');
 

@@ -4,16 +4,18 @@ namespace App\Http\Controllers\Api\V1\Staff;
 
 use App\Http\Controllers\Controller;
 use App\Jobs\SyncCustomerNetworkAccessJob;
-use App\Models\Customer;
 use App\Models\User;
 use App\Services\Mobile\MobileBroadcastService;
 use App\Services\Network\MikrotikNetworkProvisioner;
 use App\Services\Subscribers\CustomerServiceRenewalService;
+use App\Support\StaffMobileApiAccess;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class StaffCustomerQuickActionsController extends Controller
 {
+    use StaffMobileApiAccess;
+
     private const ACCESS_ROLES = [
         'super-admin', 'isp-admin', 'admin', 'cashier', 'collector', 'branch-manager', 'isp-manager',
         'isp-engineer', 'isp-support',
@@ -24,13 +26,13 @@ class StaffCustomerQuickActionsController extends Controller
         int $customer,
         CustomerServiceRenewalService $renewal,
     ): JsonResponse {
-        $this->authorizeStaff($request);
+        $user = $this->authorizeStaff($request);
 
         $data = $request->validate([
             'days' => ['nullable', 'integer', 'min:1', 'max:730'],
         ]);
 
-        $model = Customer::query()->findOrFail($customer);
+        $model = $this->staffCustomerOrFail($user, $customer);
         $days = (int) ($data['days'] ?? 30);
         $result = $renewal->extendDays($model, $days);
 
@@ -48,9 +50,9 @@ class StaffCustomerQuickActionsController extends Controller
         MikrotikNetworkProvisioner $network,
         MobileBroadcastService $broadcast,
     ): JsonResponse {
-        $this->authorizeStaff($request);
+        $user = $this->authorizeStaff($request);
 
-        $model = Customer::query()->findOrFail($customer);
+        $model = $this->staffCustomerOrFail($user, $customer);
         $suspend = ($model->network_access_state ?? 'active') !== 'suspended';
 
         if ($suspend) {

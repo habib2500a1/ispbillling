@@ -102,12 +102,18 @@ final class BillCollectionSearchService
         return $this->searchPresenter->annotateDuplicateNames($rows)->values();
     }
 
-    public function find(int $customerId): ?array
+    public function find(int $customerId, ?int $tenantId = null): ?array
     {
-        $customer = Customer::query()
+        $query = Customer::query()
             ->withoutGlobalScopes()
             ->with(['area', 'zone', 'subzone', 'package'])
-            ->find($customerId);
+            ->whereKey($customerId);
+
+        if ($tenantId !== null) {
+            $query->where('tenant_id', $tenantId);
+        }
+
+        $customer = $query->first();
 
         if ($customer === null) {
             return null;

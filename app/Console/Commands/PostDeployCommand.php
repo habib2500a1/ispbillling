@@ -46,6 +46,8 @@ final class PostDeployCommand extends Command
 
         Artisan::call('isp:bootstrap-admin', [], $this->output);
 
+        $this->ensureWebhookSecrets();
+
         if (! $this->option('fast')) {
             $this->syncAutomaticProcesses($processSeeder);
         } else {
@@ -101,6 +103,14 @@ final class PostDeployCommand extends Command
             : $smsTemplates->syncMissingDefaults();
 
         $this->info("SMS templates: {$smsCount} added from catalog.");
+    }
+
+    private function ensureWebhookSecrets(): void
+    {
+        Artisan::call('isp:generate-webhook-secrets', [
+            '--write' => true,
+            '--only-missing' => true,
+        ], $this->output);
     }
 
     private function dispatchMobileSyncInBackground(): void

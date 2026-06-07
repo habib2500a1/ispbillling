@@ -45,11 +45,7 @@ class StaffPaymentsController extends Controller
             'discount_custom' => ['nullable', 'numeric', 'min:0'],
         ]);
 
-        $customer = Customer::withoutGlobalScopes()->whereKey($data['customer_id'])->firstOrFail();
-
-        if ($user->tenant_id !== null && (int) $customer->tenant_id !== (int) $user->tenant_id) {
-            abort(404);
-        }
+        $customer = $this->staffCustomerOrFail($user, (int) $data['customer_id']);
 
         $result = $collections->record($user, $customer, $data, 'staff-mobile-api');
         $payment = $result['payment']->fresh(['invoice']);
