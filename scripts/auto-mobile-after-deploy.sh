@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Zero-touch mobile setup after deploy — reads everything from server .env.
-# Called automatically by post-deploy.sh and bootstrap-app.sh (background).
+# Zero-touch mobile APK — reads APP_URL from server .env only. No GitHub secrets needed.
+# Rebuilds automatically when domain changes or APK is missing.
 set -euo pipefail
 
 APP_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -28,39 +28,62 @@ fi
 APP_URL="${APP_URL%/}"
 
 if [[ -z "$APP_URL" ]]; then
-  echo "[auto-mobile] WARN: APP_URL missing in .env"
+  echo "[auto-mobile] WARN: APP_URL missing in .env — skip"
   exit 0
 fi
 
-CI_DEPLOY="$(grep -E '^MOBILE_CI_DEPLOY=' .env 2>/dev/null | head -1 | cut -d= -f2- | tr -d '"' | tr -d "'" || true)"
-if [[ "${CI_DEPLOY,,}" == "true" || "${CI_DEPLOY}" == "1" ]]; then
-  echo "[auto-mobile] MOBILE_CI_DEPLOY=true — APKs come from GitHub Actions (push → build → SCP)"
-  "$APP_ROOT/scripts/use-server-mobile-downloads.sh" --write-env || true
-  if [[ -f vendor/autoload.php ]]; then
-    php artisan config:clear --no-interaction 2>/dev/null || true
-    php artisan config:cache --no-interaction 2>/dev/null || true
+needs_rebuild() {
+  local apk="$APP_ROOT/public/downloads/isp-radiant.apk"
+  local info="$APP_ROOT/public/downloads/apk-build-info.json"
+
+  if [[ ! -f "$apk" ]] || [[ ! -s "$apk" ]]; then
+    return 0
   fi
-  echo "[auto-mobile] Server download links:"
-  echo "  ${APP_URL}/downloads/isp-radiant.apk"
-  echo "  ${APP_URL}/downloads/isp-mfs-verify.apk"
-  exit 0
-fi
 
-if command -v flutter >/dev/null 2>&1 || [[ -x /opt/flutter/bin/flutter ]]; then
-  export PATH="/opt/flutter/bin:$PATH"
-  echo "[auto-mobile] Flutter found — building APKs for $APP_URL"
-  if "$APP_ROOT/scripts/deploy-mobile-apks.sh" "$APP_URL"; then
-    echo "[auto-mobile] Build complete"
+  if [[ ! -f "$info" ]]; then
+    return 0
+  fi
+
+  local built
+  built="$(grep -o '"app_url"[[:space:]]*:[[:space:]]*"[^"]*"' "$info" 2>/dev/null | head -1 | sed 's/.*"\([^"]*\)"$/\1/' || true)"
+  built="${built%/}"
+
+  if [[ -z "$built" ]] || [[ "$built" != "$APP_URL" ]]; then
+    echo "[auto-mobile] Domain changed or unknown build: built=${built:-none} current=${APP_URL}"
+    return 0
+  fi
+
+  return 1
+}
+
+try_build() {
+  if command -v flutter >/dev/null 2>&1 || [[ -x /opt/flutter/bin/flutter ]]; then
+    export PATH="/opt/flutter/bin:$PATH"
+    echo "[auto-mobile] Flutter — building for ${APP_URL}"
+    "$APP_ROOT/scripts/deploy-mobile-apks.sh" "$APP_URL" && return 0
+  fi
+
+  if command -v docker >/dev/null 2>&1; then
+    echo "[auto-mobile] Docker — building for ${APP_URL}"
+    "$APP_ROOT/scripts/build-mobile-docker.sh" "$APP_URL" && return 0
+  fi
+
+  return 1
+}
+
+"$APP_ROOT/scripts/use-server-mobile-downloads.sh" --write-env 2>/dev/null || true
+
+if needs_rebuild; then
+  if try_build; then
+    echo "[auto-mobile] Build complete for ${APP_URL}"
   else
-    echo "[auto-mobile] Build failed — syncing from GitHub Releases"
-    "$APP_ROOT/scripts/sync-mobile-apks-from-github.sh" || true
+    echo "[auto-mobile] WARN: Could not build APK (install Flutter or Docker)."
+    echo "[auto-mobile] WARN: Not syncing old GitHub APK — wrong domain would break the app."
+    echo "[auto-mobile] Users can set domain in app: Login → Server settings → ${APP_URL}"
   fi
 else
-  echo "[auto-mobile] No Flutter — syncing APKs from GitHub Releases"
-  "$APP_ROOT/scripts/sync-mobile-apks-from-github.sh" || true
+  echo "[auto-mobile] APK already built for ${APP_URL} — skip rebuild"
 fi
-
-"$APP_ROOT/scripts/use-server-mobile-downloads.sh" --write-env || true
 
 if [[ -f vendor/autoload.php ]]; then
   php artisan config:clear --no-interaction 2>/dev/null || true

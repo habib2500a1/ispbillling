@@ -1,48 +1,38 @@
-# Mobile APK downloads
+# Mobile APK — automatic (zero manual setup)
 
-APK files live on **this server** — not in git. After GitHub push, CI builds for your `APP_URL` and uploads here.
+Server reads **`APP_URL` from `.env`** and builds APKs automatically. You do not configure GitHub secrets or mobile env vars.
 
-| App | Download URL |
-|-----|--------------|
-| Radiant ISP | `https://YOUR-DOMAIN/downloads/isp-radiant.apk` |
-| MFS Verify | `https://YOUR-DOMAIN/downloads/isp-mfs-verify.apk` |
+| When | What happens |
+|------|----------------|
+| Install wizard finishes | Background build for your domain |
+| `git pull` / deploy | Rebuild if domain changed or APK missing |
+| `APP_URL` changes in `.env` | Next deploy rebuilds for new domain |
 
-Landing page, portal, and admin use these links automatically when files exist in `public/downloads/`.
+Download links (same server):
 
-## Automatic (recommended) — GitHub push → build → this server
+- `https://YOUR-DOMAIN/downloads/isp-radiant.apk`
+- `https://YOUR-DOMAIN/downloads/isp-mfs-verify.apk`
 
-**Flow:** `git push main` → workflow **Mobile APKs** → build with `APP_URL` → SCP to `public/downloads/` → website serves `${APP_URL}/downloads/*.apk`
+## Requirements (one of)
 
-### One-time GitHub setup
+- **Flutter** on server, or
+- **Docker** (NextDeploy/VPS) — uses `ghcr.io/cirruslabs/flutter:stable`
 
-Repo → **Settings → Secrets and variables → Actions**:
-
-| Name | Type | Example (anetbd.com) |
-|------|------|---------------------|
-| `APP_URL` | **Variable** | `https://anetbd.com` |
-| `DEPLOY_PATH` | **Variable** | `/var/www/html` (NextDeploy) or `/var/www/isp-platform` |
-| `DEPLOY_SSH_HOST` | **Secret** | `204.136.10.31` |
-| `DEPLOY_SSH_USER` | **Secret** | `root` |
-| `DEPLOY_SSH_KEY` | **Secret** | SSH private key (full PEM) |
-
-### Server `.env`
-
-```env
-APP_URL=https://anetbd.com
-MOBILE_USE_GITHUB_RELEASES=false
-MOBILE_CI_DEPLOY=true
-```
-
-`MOBILE_CI_DEPLOY=true` stops the server from overwriting CI APKs with old GitHub Release sync.
-
-Manual run: **Actions → Mobile APKs → Run workflow**.
-
-## Manual build on server (needs Flutter)
+## Manual trigger
 
 ```bash
-./scripts/deploy-mobile-apks.sh https://anetbd.com
+bash scripts/auto-mobile-after-deploy.sh
+# or
+php artisan isp:rebuild-mobile-apks
 ```
 
-## GitHub Releases (optional backup only)
+Logs: `storage/logs/auto-mobile-deploy.log`
 
-Not used for website links when `MOBILE_USE_GITHUB_RELEASES=false` and APK exists in `public/downloads/`.
+## `.env` (auto-set by installer)
+
+```env
+APP_URL=https://your-new-domain.com
+MOBILE_USE_GITHUB_RELEASES=false
+```
+
+No `MOBILE_APK_URL`, no GitHub Actions variables required.

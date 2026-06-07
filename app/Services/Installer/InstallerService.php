@@ -204,6 +204,8 @@ final class InstallerService
 
             AppInstalled::markInstalled();
 
+            $this->queueMobileApkBuild();
+
             return ['ok' => true, 'message' => 'Installation completed successfully.'];
         } catch (Throwable $e) {
             return ['ok' => false, 'message' => $e->getMessage()];
@@ -232,6 +234,18 @@ final class InstallerService
         $contents = File::get($path);
 
         return preg_match('/^APP_KEY=base64:.+/m', $contents) === 1;
+    }
+
+    private function queueMobileApkBuild(): void
+    {
+        $script = base_path('scripts/auto-mobile-after-deploy.sh');
+        if (! is_file($script)) {
+            return;
+        }
+
+        $log = storage_path('logs/auto-mobile-deploy.log');
+        $cmd = 'nohup bash '.escapeshellarg($script).' >> '.escapeshellarg($log).' 2>&1 &';
+        @exec($cmd);
     }
 
     private function chmodRecursive(string $path, int $mode): void

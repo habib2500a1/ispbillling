@@ -1,23 +1,10 @@
 name: Mobile APKs
 
-# Push to main → build APKs for APP_URL (GitHub variable) → SCP to your server.
-# Website download links: https://APP_URL/downloads/*.apk (NOT GitHub Releases).
-#
-# GitHub repo → Settings → Secrets and variables → Actions:
-#   Variable APP_URL           https://anetbd.com
-#   Variable DEPLOY_PATH       /var/www/html  (NextDeploy workspace) or /var/www/isp-platform
-#   Secret  DEPLOY_SSH_HOST    server IP
-#   Secret  DEPLOY_SSH_USER     root
-#   Secret  DEPLOY_SSH_KEY      SSH private key (PEM)
-#
-# Server .env:
-#   MOBILE_USE_GITHUB_RELEASES=false
-#   MOBILE_CI_DEPLOY=true
+# Optional backup — primary flow is server auto-build from .env APP_URL (no GitHub config).
+# Manual run only. Server: scripts/auto-mobile-after-deploy.sh
 
 on:
   workflow_dispatch:
-  push:
-    branches: [main, master]
 
 concurrency:
   group: mobile-apks-${{ github.ref }}
@@ -113,11 +100,6 @@ jobs:
             "cd ${DEPLOY_PATH} && \
              chmod 644 public/downloads/*.apk public/downloads/*.json 2>/dev/null || true && \
              chown www-data:www-data public/downloads/*.apk public/downloads/*.json 2>/dev/null || true && \
-             if grep -q '^MOBILE_CI_DEPLOY=' .env 2>/dev/null; then \
-               sed -i 's|^MOBILE_CI_DEPLOY=.*|MOBILE_CI_DEPLOY=true|' .env; \
-             else \
-               echo 'MOBILE_CI_DEPLOY=true' >> .env; \
-             fi && \
              ./scripts/use-server-mobile-downloads.sh --write-env && \
              php artisan config:cache --no-interaction 2>/dev/null || true"
 
