@@ -179,21 +179,18 @@ App → **Deployment** tab → **Git webhook** section:
 
 ---
 
-## Step 11 — Mobile APK (automatic — কিছু দিতে হবে না)
+## Step 11 — Mobile APK (push → deploy = automatic)
 
-**Flow:** `.env` এ `APP_URL` → deploy/install শেষে **auto build** → `public/downloads/` → `${APP_URL}/downloads/*.apk`
-
-আলাদা GitHub secret, mobile tag, বা manual config **লাগে না**।
-
-Environment tab (শুধু domain):
+1. `deploy/production.url` এ domain (`https://anetbd.com`)
+2. `git push main` → GitHub **Mobile APKs** workflow → `mobile-production` release
+3. NextDeploy **Redeploy** → `auto-mobile-after-deploy.sh` → APK sync → `${APP_URL}/downloads/*.apk`
 
 ```env
 APP_URL=https://anetbd.com
 MOBILE_USE_GITHUB_RELEASES=false
 ```
 
-Deploy বা install wizard শেষে background এ `scripts/auto-mobile-after-deploy.sh` চলে।  
-Docker থাকলে Flutter ছাড়াই build হয় (`build-mobile-docker.sh`)।
+Manual একবার (Terminal): `bash scripts/on-deploy.sh`
 
 ### Manual (server এ Flutter থাকলে)
 

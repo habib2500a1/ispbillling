@@ -73,7 +73,7 @@ if [ -f /usr/local/bin/optimize-app.sh ]; then
 fi
 
 if [ -x /var/www/html/scripts/auto-mobile-after-deploy.sh ]; then
-  echo "[bootstrap] Mobile APK sync (background)..."
+  echo "[bootstrap] Mobile APK (background — sync/build for APP_URL)..."
   nohup /var/www/html/scripts/auto-mobile-after-deploy.sh >>/var/www/html/storage/logs/auto-mobile-deploy.log 2>&1 &
 fi
 

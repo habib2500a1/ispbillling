@@ -3,7 +3,18 @@
 এই ফোল্ডার ISP Platform কে [NextDeploy](https://github.com/masudranaxpert/NextDeploy) panel এ চালানোর জন্য।  
 Panel compose path: **`docker-compose.yml`** (repo root)।
 
-**লক্ষ্য:** GitHub থেকে pull → Redeploy — বাকি সব **auto** (permission, DB, admin, logo, cache, optimize)।
+**লক্ষ্য:** GitHub থেকে push → pull → Redeploy — বাকি সব **auto** (permission, DB, admin, logo, cache, mobile APK)।
+
+### Mobile APK (automatic)
+
+| Step | কী হয় |
+|------|--------|
+| `git push main` | GitHub Actions builds APK for `deploy/production.url` |
+| | Publishes `mobile-production` release |
+| Redeploy | `auto-mobile-after-deploy.sh` syncs APK → `public/downloads/` |
+| Download | `https://YOUR-DOMAIN/downloads/isp-radiant.apk` |
+
+Domain file: **`deploy/production.url`** (এখন `https://anetbd.com`) — নতুন domain এ শুধু এটা + `.env` `APP_URL` বদলান।
 
 ---
 

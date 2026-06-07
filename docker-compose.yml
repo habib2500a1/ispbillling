@@ -145,6 +145,17 @@ services:
     profiles:
       - setup
 
+  mobile-builder:
+    image: ghcr.io/cirruslabs/flutter:stable
+    working_dir: /var/www/html
+    volumes:
+      - .:/var/www/html
+    env_file:
+      - .env
+    command: bash -lc "chmod +x scripts/*.sh && APP_URL=$$(bash scripts/read-production-url.sh) && ./scripts/deploy-mobile-apks.sh \"$$APP_URL\""
+    profiles:
+      - mobile
+
 volumes:
   pgdata:
 

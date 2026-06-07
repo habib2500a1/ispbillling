@@ -1,22 +1,33 @@
 name: Mobile APKs
 
-# Optional backup — primary flow is server auto-build from .env APP_URL (no GitHub config).
-# Manual run only. Server: scripts/auto-mobile-after-deploy.sh
+# git push main → build APK for deploy/production.url → publish mobile-production release.
+# Server deploy → auto-mobile syncs from mobile-production (domain verified).
 
 on:
   workflow_dispatch:
+  push:
+    branches: [main, master]
 
 concurrency:
   group: mobile-apks-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  build-and-deploy:
+  build-and-publish:
     runs-on: ubuntu-latest
-    if: vars.APP_URL != ''
+    permissions:
+      contents: write
 
     steps:
       - uses: actions/checkout@v4
+
+      - name: Read production URL
+        id: url
+        run: |
+          APP_URL="$(grep -v '^#' deploy/production.url | head -1 | tr -d '[:space:]')"
+          APP_URL="${APP_URL%/}"
+          echo "app_url=$APP_URL" >> "$GITHUB_OUTPUT"
+          echo "Building for: $APP_URL"
 
       - uses: actions/setup-java@v4
         with:
@@ -31,85 +42,52 @@ jobs:
       - name: Accept Android licenses
         run: yes | flutter doctor --android-licenses || true
 
-      - name: Build APKs for APP_URL
+      - name: Build APKs
         env:
-          APP_URL: ${{ vars.APP_URL }}
+          APP_URL: ${{ steps.url.outputs.app_url }}
         run: |
           set -euo pipefail
           chmod +x scripts/*.sh
-          export COPY_LOCAL=1
-          export UPLOAD_GITHUB=0
-          APP_URL="${APP_URL%/}"
-          echo "Building mobile APKs for domain: ${APP_URL}"
+          export COPY_LOCAL=1 UPLOAD_GITHUB=0
           ./scripts/build-mobile-apk.sh "$APP_URL"
           ./scripts/build-mfs-verify-apk.sh "$APP_URL"
           ./scripts/write-apk-build-info.sh "$APP_URL"
-          ls -lh public/downloads/*.apk public/downloads/apk-build-info.json
+          strings public/downloads/isp-radiant.apk | grep -q "${APP_URL#https://}/api/v1"
+          ls -lh public/downloads/
 
-      - name: Verify API domain baked into Radiant APK
+      - name: Publish mobile-production release
         env:
-          APP_URL: ${{ vars.APP_URL }}
+          GH_TOKEN: ${{ github.token }}
+          APP_URL: ${{ steps.url.outputs.app_url }}
         run: |
-          APP_URL="${APP_URL%/}"
-          API_HOST="$(echo "$APP_URL" | sed -E 's#https?://##')"
-          if ! strings public/downloads/isp-radiant.apk | grep -q "${API_HOST}/api/v1"; then
-            echo "ERROR: APK does not contain ${API_HOST}/api/v1"
-            strings public/downloads/isp-radiant.apk | grep -E 'https?://' | head -20 || true
-            exit 1
+          TAG=mobile-production
+          REPO="${{ github.repository }}"
+          NOTES="Deploy APKs for ${APP_URL}. Commit ${{ github.sha }}."
+          if ! gh release view "$TAG" -R "$REPO" >/dev/null 2>&1; then
+            gh release create "$TAG" -R "$REPO" --title "Mobile production" --notes "$NOTES"
+          else
+            gh release edit "$TAG" -R "$REPO" --notes "$NOTES" || true
           fi
-          echo "OK: APK targets ${API_HOST}"
-
-      - name: Upload APK artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: mobile-apks-${{ github.sha }}
-          path: |
-            public/downloads/isp-radiant.apk
-            public/downloads/isp-mfs-verify.apk
+          gh release upload "$TAG" -R "$REPO" --clobber \
+            public/downloads/isp-radiant.apk \
+            public/downloads/isp-mfs-verify.apk \
             public/downloads/apk-build-info.json
-            public/downloads/mfs-verify-version.json
-          retention-days: 14
+          echo "https://github.com/${REPO}/releases/tag/${TAG}"
 
-      - name: Deploy APKs to production server (SCP)
+      - name: Deploy to server (optional SCP)
         if: ${{ secrets.DEPLOY_SSH_HOST != '' && secrets.DEPLOY_SSH_KEY != '' }}
         env:
-          APP_URL: ${{ vars.APP_URL }}
+          APP_URL: ${{ steps.url.outputs.app_url }}
           SSH_HOST: ${{ secrets.DEPLOY_SSH_HOST }}
           SSH_USER: ${{ secrets.DEPLOY_SSH_USER }}
           DEPLOY_PATH: ${{ vars.DEPLOY_PATH }}
           SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
         run: |
-          set -euo pipefail
-          DEPLOY_PATH="${DEPLOY_PATH:-/var/www/isp-platform}"
+          DEPLOY_PATH="${DEPLOY_PATH:-/var/www/html}"
           SSH_USER="${SSH_USER:-root}"
           mkdir -p ~/.ssh
           printf '%s\n' "$SSH_KEY" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
-
-          ssh -o StrictHostKeyChecking=no -i ~/.ssh/deploy_key "${SSH_USER}@${SSH_HOST}" \
-            "mkdir -p ${DEPLOY_PATH}/public/downloads"
-
-          scp -o StrictHostKeyChecking=no -i ~/.ssh/deploy_key \
-            public/downloads/isp-radiant.apk \
-            public/downloads/isp-mfs-verify.apk \
-            public/downloads/apk-build-info.json \
-            public/downloads/mfs-verify-version.json \
-            "${SSH_USER}@${SSH_HOST}:${DEPLOY_PATH}/public/downloads/"
-
-          ssh -o StrictHostKeyChecking=no -i ~/.ssh/deploy_key "${SSH_USER}@${SSH_HOST}" \
-            "cd ${DEPLOY_PATH} && \
-             chmod 644 public/downloads/*.apk public/downloads/*.json 2>/dev/null || true && \
-             chown www-data:www-data public/downloads/*.apk public/downloads/*.json 2>/dev/null || true && \
-             ./scripts/use-server-mobile-downloads.sh --write-env && \
-             php artisan config:cache --no-interaction 2>/dev/null || true"
-
-          echo ""
-          echo "Deployed to ${SSH_USER}@${SSH_HOST}:${DEPLOY_PATH}/public/downloads/"
-          echo "Radiant: ${APP_URL}/downloads/isp-radiant.apk"
-          echo "MFS:     ${APP_URL}/downloads/isp-mfs-verify.apk"
-
-      - name: Deploy skipped (no SSH secrets)
-        if: ${{ secrets.DEPLOY_SSH_HOST == '' || secrets.DEPLOY_SSH_KEY == '' }}
-        run: |
-          echo "::warning::Set DEPLOY_SSH_HOST + DEPLOY_SSH_KEY in GitHub Actions secrets to auto-upload APKs to your server."
-          echo "APK artifacts are still available from this workflow run for manual download."
+          ssh -o StrictHostKeyChecking=no -i ~/.ssh/deploy_key "${SSH_USER}@${SSH_HOST}" "mkdir -p ${DEPLOY_PATH}/public/downloads"
+          scp -o StrictHostKeyChecking=no -i ~/.ssh/deploy_key public/downloads/isp-radiant.apk public/downloads/isp-mfs-verify.apk public/downloads/apk-build-info.json "${SSH_USER}@${SSH_HOST}:${DEPLOY_PATH}/public/downloads/"
+          ssh -o StrictHostKeyChecking=no -i ~/.ssh/deploy_key "${SSH_USER}@${SSH_HOST}" "cd ${DEPLOY_PATH} && ./scripts/use-server-mobile-downloads.sh --write-env && php artisan config:cache --no-interaction 2>/dev/null || true"
