@@ -122,12 +122,15 @@ class AdminPanelProvider extends PanelProvider
             ->renderHook(
                 PanelsRenderHook::HEAD_END,
                 function (): string {
+                    $html = view('filament.hooks.design-system')->render();
+
                     if (request()->routeIs('filament.admin.auth.*')) {
-                        return view('filament.hooks.auth-head')->render();
+                        $html .= view('filament.hooks.auth-head')->render();
+                    } else {
+                        $html .= AdminRouteAssets::headLinks();
                     }
 
-                    return view('filament.hooks.design-system')->render()
-                        .AdminRouteAssets::headLinks();
+                    return $html;
                 },
             )
             ->renderHook(
