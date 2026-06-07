@@ -130,10 +130,11 @@ class HotspotVoucherResource extends Resource
                 Tables\Actions\BulkAction::make('print_pdf')
                     ->label('Print PDF')
                     ->icon('heroicon-o-printer')
-                    ->url(fn (\Illuminate\Support\Collection $records): string => route('admin.hotspot-vouchers.print', [
-                        'ids' => $records->pluck('id')->join(','),
-                    ]))
-                    ->openUrlInNewTab()
+                    ->action(function (\Illuminate\Support\Collection $records): void {
+                        redirect()->away(route('admin.hotspot-vouchers.print', [
+                            'ids' => $records->pluck('id')->join(','),
+                        ]));
+                    })
                     ->deselectRecordsAfterCompletion(),
             ]);
     }
