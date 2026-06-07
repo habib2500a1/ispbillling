@@ -1,64 +1,48 @@
 # Mobile APK downloads
 
-APK files are **not** stored in git (too large). After deploy they live on the **same server** as the website:
+APK files live on **this server** — not in git. After GitHub push, CI builds for your `APP_URL` and uploads here.
 
 | App | Download URL |
 |-----|--------------|
 | Radiant ISP | `https://YOUR-DOMAIN/downloads/isp-radiant.apk` |
 | MFS Verify | `https://YOUR-DOMAIN/downloads/isp-mfs-verify.apk` |
 
-Landing page, customer portal, and admin panel pick these up automatically when files exist in `public/downloads/`.
+Landing page, portal, and admin use these links automatically when files exist in `public/downloads/`.
 
-## One-time setup (GitHub Actions — recommended)
+## Automatic (recommended) — GitHub push → build → this server
 
-GitHub repo → **Settings → Secrets and variables → Actions**:
+**Flow:** `git push main` → workflow **Mobile APKs** → build with `APP_URL` → SCP to `public/downloads/` → website serves `${APP_URL}/downloads/*.apk`
 
-| Name | Type | Example |
-|------|------|---------|
-| `APP_URL` | Variable | `https://billing.yourisp.com` |
-| `DEPLOY_PATH` | Variable | `/var/www/isp-platform` |
-| `DEPLOY_SSH_HOST` | Secret | server IP |
-| `DEPLOY_SSH_USER` | Secret | `root` |
-| `DEPLOY_SSH_KEY` | Secret | SSH private key |
+### One-time GitHub setup
 
-When you push to `main` (and `mobile/**` changed), workflow **Mobile APKs** builds both apps for `APP_URL` and SCPs them to the server.
+Repo → **Settings → Secrets and variables → Actions**:
 
-Manual run: Actions → **Mobile APKs** → Run workflow.
+| Name | Type | Example (anetbd.com) |
+|------|------|---------------------|
+| `APP_URL` | **Variable** | `https://anetbd.com` |
+| `DEPLOY_PATH` | **Variable** | `/var/www/html` (NextDeploy) or `/var/www/isp-platform` |
+| `DEPLOY_SSH_HOST` | **Secret** | `204.136.10.31` |
+| `DEPLOY_SSH_USER` | **Secret** | `root` |
+| `DEPLOY_SSH_KEY` | **Secret** | SSH private key (full PEM) |
 
-## Server .env (website links = server, not GitHub)
+### Server `.env`
 
 ```env
-APP_URL=https://billing.yourisp.com
+APP_URL=https://anetbd.com
 MOBILE_USE_GITHUB_RELEASES=false
-# Do not set MOBILE_APK_URL — local public/downloads/*.apk is used first
+MOBILE_CI_DEPLOY=true
 ```
 
-Apply server mode:
+`MOBILE_CI_DEPLOY=true` stops the server from overwriting CI APKs with old GitHub Release sync.
 
-```bash
-./scripts/use-server-mobile-downloads.sh --write-env
-php artisan config:cache
-```
+Manual run: **Actions → Mobile APKs → Run workflow**.
 
 ## Manual build on server (needs Flutter)
 
 ```bash
-./scripts/deploy-mobile-apks.sh https://billing.yourisp.com
+./scripts/deploy-mobile-apks.sh https://anetbd.com
 ```
 
-Or after each deploy:
+## GitHub Releases (optional backup only)
 
-```env
-MOBILE_BUILD_ON_DEPLOY=1
-```
-
-Then `./scripts/post-deploy.sh` builds and publishes APKs.
-
-## GitHub Releases (optional fallback)
-
-Only needed if APK is **not** on the server:
-
-```bash
-UPLOAD_GITHUB=1 ./scripts/build-mobile-apk.sh https://billing.yourisp.com
-UPLOAD_GITHUB=1 ./scripts/build-mfs-verify-apk.sh https://billing.yourisp.com
-```
+Not used for website links when `MOBILE_USE_GITHUB_RELEASES=false` and APK exists in `public/downloads/`.

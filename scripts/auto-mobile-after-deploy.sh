@@ -32,6 +32,20 @@ if [[ -z "$APP_URL" ]]; then
   exit 0
 fi
 
+CI_DEPLOY="$(grep -E '^MOBILE_CI_DEPLOY=' .env 2>/dev/null | head -1 | cut -d= -f2- | tr -d '"' | tr -d "'" || true)"
+if [[ "${CI_DEPLOY,,}" == "true" || "${CI_DEPLOY}" == "1" ]]; then
+  echo "[auto-mobile] MOBILE_CI_DEPLOY=true — APKs come from GitHub Actions (push → build → SCP)"
+  "$APP_ROOT/scripts/use-server-mobile-downloads.sh" --write-env || true
+  if [[ -f vendor/autoload.php ]]; then
+    php artisan config:clear --no-interaction 2>/dev/null || true
+    php artisan config:cache --no-interaction 2>/dev/null || true
+  fi
+  echo "[auto-mobile] Server download links:"
+  echo "  ${APP_URL}/downloads/isp-radiant.apk"
+  echo "  ${APP_URL}/downloads/isp-mfs-verify.apk"
+  exit 0
+fi
+
 if command -v flutter >/dev/null 2>&1 || [[ -x /opt/flutter/bin/flutter ]]; then
   export PATH="/opt/flutter/bin:$PATH"
   echo "[auto-mobile] Flutter found — building APKs for $APP_URL"

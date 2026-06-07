@@ -179,31 +179,34 @@ App → **Deployment** tab → **Git webhook** section:
 
 ---
 
-## Step 11 — Mobile APK (website download link)
+## Step 11 — Mobile APK (push → build → same server download)
 
-GitHub deploy এর পর app build + download link **website URL** এ রাখতে:
+**Flow:** `git push main` → GitHub **Mobile APKs** workflow → `APP_URL` domain দিয়ে APK build → SCP → `public/downloads/` → website link `${APP_URL}/downloads/*.apk`
 
 ### GitHub Actions (recommended — server এ Flutter লাগে না)
 
 Repo → **Settings → Secrets and variables → Actions**:
 
-| Name | Value |
-|------|-------|
-| `APP_URL` (variable) | `https://billing.yourisp.com` |
-| `DEPLOY_PATH` (variable) | workspace path (e.g. `/var/www/isp-platform`) |
-| `DEPLOY_SSH_HOST` (secret) | server IP |
-| `DEPLOY_SSH_USER` (secret) | `root` |
-| `DEPLOY_SSH_KEY` (secret) | SSH private key |
+| Name | Type | Example (anetbd.com) |
+|------|------|---------------------|
+| `APP_URL` | Variable | `https://anetbd.com` |
+| `DEPLOY_PATH` | Variable | NextDeploy workspace (e.g. `/var/www/html`) |
+| `DEPLOY_SSH_HOST` | Secret | server IP |
+| `DEPLOY_SSH_USER` | Secret | `root` |
+| `DEPLOY_SSH_KEY` | Secret | SSH private key (PEM) |
 
-`mobile/**` change হলে **Mobile APKs** workflow auto build + SCP করে `public/downloads/`.
+প্রতিবার `main` এ push করলে workflow auto চালু হয় (~5–10 min)।
 
 Environment tab:
 
 ```env
+APP_URL=https://anetbd.com
 MOBILE_USE_GITHUB_RELEASES=false
+MOBILE_CI_DEPLOY=true
 ```
 
-(`MOBILE_APK_URL` unset রাখুন — local APK থাকলে website link = `APP_URL/downloads/...`)
+`MOBILE_CI_DEPLOY=true` = server পুরনো GitHub Release sync করবে না; CI থেকে আসা APK ব্যবহার করবে।
+`MOBILE_APK_URL` unset রাখুন।
 
 ### Manual (server এ Flutter থাকলে)
 
