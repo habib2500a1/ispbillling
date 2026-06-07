@@ -11,10 +11,79 @@ class AutomaticProcessSeeder extends Seeder
 {
     public function run(): void
     {
+        $this->applyDefaults(fullRestore: true);
+    }
+
+    /**
+     * Deploy-safe sync: add new built-ins from GitHub, update command metadata, keep enabled/intervals.
+     *
+     * @return array{created: int, updated: int}
+     */
+    public function syncOnDeploy(): array
+    {
+        return $this->applyDefaults(fullRestore: false);
+    }
+
+    /**
+     * @return array{created: int, updated: int}
+     */
+    private function applyDefaults(bool $fullRestore): array
+    {
         $tenantId = (int) (Tenant::query()->value('id') ?? 1);
         $scheduler = app(AutomaticProcessScheduler::class);
+        $stats = ['created' => 0, 'updated' => 0];
 
-        $defaults = [
+        foreach ($this->defaultRows() as $row) {
+            $enabled = (bool) ($row['enabled'] ?? true);
+            unset($row['enabled']);
+
+            $existing = AutomaticProcess::query()->withoutGlobalScopes()
+                ->where('slug', $row['slug'])
+                ->first();
+
+            if ($existing === null) {
+                $process = AutomaticProcess::query()->withoutGlobalScopes()->create(
+                    array_merge($row, ['tenant_id' => $tenantId, 'enabled' => $enabled]),
+                );
+                $process->forceFill([
+                    'next_run_at' => $scheduler->computeNextRunAt($process),
+                ])->save();
+                $stats['created']++;
+
+                continue;
+            }
+
+            if ($fullRestore) {
+                $existing->forceFill(array_merge($row, ['tenant_id' => $tenantId, 'enabled' => $enabled]))->save();
+            } else {
+                $existing->forceFill([
+                    'name' => $row['name'],
+                    'description' => $row['description'] ?? $existing->description,
+                    'artisan_command' => $row['artisan_command'],
+                    'command_options' => $row['command_options'],
+                    'when_config_key' => $row['when_config_key'] ?? null,
+                    'without_overlapping_minutes' => $row['without_overlapping_minutes'] ?? $existing->without_overlapping_minutes,
+                    'sort_order' => $row['sort_order'],
+                ])->save();
+                $stats['updated']++;
+            }
+
+            if ($existing->fresh()->next_run_at === null) {
+                $existing->forceFill([
+                    'next_run_at' => $scheduler->computeNextRunAt($existing),
+                ])->save();
+            }
+        }
+
+        return $stats;
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    private function defaultRows(): array
+    {
+        return [
             [
                 'slug' => 'fup-usage-alerts',
                 'name' => 'FUP data usage alerts',
@@ -413,21 +482,5 @@ class AutomaticProcessSeeder extends Seeder
                 'sort_order' => 200,
             ],
         ];
-
-        foreach ($defaults as $row) {
-            $enabled = (bool) ($row['enabled'] ?? true);
-            unset($row['enabled']);
-
-            $process = AutomaticProcess::query()->withoutGlobalScopes()->updateOrCreate(
-                ['slug' => $row['slug']],
-                array_merge($row, ['tenant_id' => $tenantId, 'enabled' => $enabled]),
-            );
-
-            if ($process->next_run_at === null) {
-                $process->forceFill([
-                    'next_run_at' => $scheduler->computeNextRunAt($process),
-                ])->save();
-            }
-        }
     }
 }

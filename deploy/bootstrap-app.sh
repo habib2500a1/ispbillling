@@ -26,8 +26,8 @@ php artisan migrate --force --no-interaction || {
   exit 0
 }
 
-echo "[bootstrap] Ensuring super-admin from ISP_ADMIN_* env..."
-php artisan isp:bootstrap-admin --no-interaction || true
+echo "[bootstrap] Post-deploy sync (automatic processes, SMS templates, roles)..."
+php artisan isp:post-deploy --skip-migrate --no-interaction || true
 
 if [ -f /usr/local/bin/ensure-permissions.sh ]; then
   /usr/local/bin/ensure-permissions.sh || true

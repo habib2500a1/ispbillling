@@ -135,4 +135,42 @@ final class SmsTemplateService
 
         return $count;
     }
+
+    /** Add templates shipped in GitHub that are not in the database yet (deploy-safe). */
+    public function syncMissingDefaults(?int $tenantId = null): int
+    {
+        if (! Schema::hasTable('sms_templates')) {
+            return 0;
+        }
+
+        $tenantId = $tenantId ?? TenantResolver::requiredTenantId();
+        $created = 0;
+
+        foreach (SmsTemplateCatalog::defaults() as $row) {
+            $exists = SmsTemplate::query()
+                ->withoutGlobalScopes()
+                ->where('tenant_id', $tenantId)
+                ->where('key', $row['key'])
+                ->exists();
+
+            if ($exists) {
+                continue;
+            }
+
+            SmsTemplate::withoutGlobalScopes()->create([
+                'tenant_id' => $tenantId,
+                'key' => $row['key'],
+                'name' => $row['name'],
+                'template_type' => 'default',
+                'event_key' => $row['event_key'],
+                'body' => $row['body'],
+                'placeholders' => $row['placeholders'],
+                'is_enabled' => true,
+                'sort_order' => $row['sort_order'],
+            ]);
+            $created++;
+        }
+
+        return $created;
+    }
 }
