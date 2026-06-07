@@ -1,4 +1,5 @@
 import '../models/login_role_config.dart';
+import 'app_config.dart';
 import 'server_config.dart';
 
 /// Cached server config from /mobile/config — synced with website branding.
