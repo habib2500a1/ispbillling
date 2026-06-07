@@ -26,6 +26,11 @@ class Dashboard extends BaseDashboard
 
     protected static string $view = 'filament.pages.dashboard';
 
+    public function getHeading(): string
+    {
+        return '';
+    }
+
     /** @var list<class-string> */
     public array $layoutOrder = [];
 

@@ -1,16 +1,15 @@
-<details class="isp-layout-customizer mb-4">
-    <summary class="isp-layout-customizer__summary">
-        <x-filament::icon icon="heroicon-o-adjustments-horizontal" class="h-4 w-4" />
-        Customize dashboard layout
-    </summary>
-    <form wire:submit="saveDashboardLayout" class="isp-layout-customizer__body">
-        <p class="text-xs text-gray-500 dark:text-gray-400 mb-3">
-            Check widgets to show. Use arrows to change order.
+<div class="isp-layout-customizer isp-layout-customizer--drawer">
+    <header class="isp-layout-customizer__head">
+        <h2 class="isp-layout-customizer__title">Customize dashboard</h2>
+        <p class="isp-layout-customizer__hint">
+            Choose widgets, reorder sections, and toggle compact spacing.
         </p>
-        <div class="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+    </header>
+    <form wire:submit="saveDashboardLayout" class="isp-layout-customizer__body">
+        <div class="isp-layout-customizer__list">
             @foreach ($this->layoutRows() as $row)
-                <div class="isp-layout-check flex items-center justify-between gap-2">
-                    <label class="flex min-w-0 flex-1 items-center gap-2">
+                <div class="isp-layout-check">
+                    <label class="isp-layout-check__label">
                         <input
                             type="checkbox"
                             @checked($row['enabled'])
@@ -20,18 +19,18 @@
                         <span class="truncate">{{ $row['label'] }}</span>
                     </label>
                     @if ($row['enabled'])
-                        <span class="isp-layout-customizer__actions flex shrink-0 gap-0.5">
+                        <span class="isp-layout-customizer__actions">
                             <button
                                 type="button"
                                 wire:click="moveLayoutWidgetUp(@js($row['class']))"
-                                class="rounded px-1.5 py-0.5 text-xs text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800"
+                                class="isp-layout-customizer__move"
                                 title="Move up"
                                 aria-label="Move up"
                             >↑</button>
                             <button
                                 type="button"
                                 wire:click="moveLayoutWidgetDown(@js($row['class']))"
-                                class="rounded px-1.5 py-0.5 text-xs text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800"
+                                class="isp-layout-customizer__move"
                                 title="Move down"
                                 aria-label="Move down"
                             >↓</button>
@@ -40,10 +39,10 @@
                 </div>
             @endforeach
         </div>
-        <label class="mt-3 flex items-center gap-2 text-sm">
+        <label class="isp-layout-customizer__compact">
             <input type="checkbox" wire:model="layoutCompact" class="rounded border-gray-300">
             Compact spacing
         </label>
-        <button type="submit" class="mt-4 isp-quick-pill isp-quick-pill-primary text-sm">Save layout</button>
+        <button type="submit" class="isp-quick-pill isp-quick-pill-primary isp-layout-customizer__save">Save layout</button>
     </form>
-</details>
+</div>

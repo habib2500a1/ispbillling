@@ -8,6 +8,7 @@ use App\Filament\Pages\Dashboard;
 use App\Filament\GlobalSearch\IspGlobalSearchProvider;
 use App\Support\CompanyBranding;
 use App\Http\Middleware\EnsureStaffTwoFactorVerified;
+use App\Http\Middleware\PreventAdminPageCache;
 use App\Http\Middleware\RedirectSubscribersOnlinePreset;
 use App\Http\Middleware\SetAppLocale;
 use App\Support\AdminCommandPalette;
@@ -118,6 +119,7 @@ class AdminPanelProvider extends PanelProvider
                 Authenticate::class,
                 EnsureStaffTwoFactorVerified::class,
                 RedirectSubscribersOnlinePreset::class,
+                PreventAdminPageCache::class,
             ])
             ->renderHook(
                 PanelsRenderHook::HEAD_END,
