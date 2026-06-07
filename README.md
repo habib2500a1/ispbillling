@@ -119,12 +119,9 @@ composer run dev
 | Env template for cPanel | [`deploy/.env.cpanel.example`](deploy/.env.cpanel.example) |
 | Production checklist | [`deploy/PRODUCTION_CHECKLIST.md`](deploy/PRODUCTION_CHECKLIST.md) |
 
-**cPanel / Webuzo ZIP + wizard** (upload zip, then open `/install`):
+**cPanel / Webuzo ZIP + wizard** (download from GitHub Releases):
 
-```bash
-bash scripts/build-cpanel-release-zip.sh
-# Upload releases/isp-platform-cpanel-public_html.zip to cPanel → unzip in /home/user/
-```
+https://github.com/habib2500a1/ispbillling/releases/latest → `isp-platform-cpanel-public_html.zip` → unzip in `/home/user/` → open `/install`
 
 **cPanel / Webuzo terminal one-click:**
 

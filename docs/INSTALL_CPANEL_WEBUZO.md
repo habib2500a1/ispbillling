@@ -8,9 +8,17 @@ GitHub থেকে **ZIP unzip** অথবা **এক কমান্ডে** 
 
 ## Method 0 — ZIP Upload (সবচেয়ে সহজ — public_html)
 
-### ZIP ডাউনলোড / বানানো
+### ZIP ডাউনলোড (GitHub Releases — ready)
 
-GitHub Releases থেকে `isp-platform-cpanel-public_html.zip` নিন, অথবা server এ build করুন:
+**সরাসরি download (vendor সহ, build করা):**
+
+https://github.com/habib2500a1/ispbillling/releases/latest
+
+→ `isp-platform-cpanel-public_html.zip` ডাউনলোড করুন
+
+GitHub Actions প্রতিবার `main` branch update এ automatic ZIP build করে `cpanel-latest` release এ রাখে।
+
+### ZIP নিজে বানাতে চাইলে
 
 ```bash
 bash scripts/build-cpanel-release-zip.sh

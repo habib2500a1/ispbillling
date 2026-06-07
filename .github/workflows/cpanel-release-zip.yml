@@ -1,0 +1,125 @@
+name: cPanel Release ZIP
+
+# Builds vendor-included ZIP packages and publishes to GitHub Releases.
+#
+# Downloads (after workflow runs):
+#   https://github.com/habib2500a1/ispbillling/releases/latest
+#   → isp-platform-cpanel-public_html.zip  (cPanel public_html layout)
+#   → isp-platform-cpanel-full.zip         (standard isp-platform/public layout)
+#
+# Triggers:
+#   - Push to main (updates rolling release tag cpanel-latest)
+#   - Push tag cpanel-v* (versioned release)
+#   - Manual: Actions → cPanel Release ZIP → Run workflow
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'GitHub Release tag'
+        required: false
+        default: 'cpanel-latest'
+      prerelease:
+        description: 'Mark as pre-release'
+        required: false
+        default: true
+        type: boolean
+
+  push:
+    tags:
+      - 'cpanel-v*'
+    branches: [main, master]
+    paths:
+      - 'app/**'
+      - 'bootstrap/**'
+      - 'config/**'
+      - 'database/**'
+      - 'deploy/**'
+      - 'public/**'
+      - 'resources/**'
+      - 'routes/**'
+      - 'install.sh'
+      - '.cpanel.yml'
+      - 'composer.json'
+      - 'composer.lock'
+      - 'scripts/build-cpanel-release-zip.sh'
+      - 'scripts/install-cpanel-webuzo.sh'
+      - 'scripts/post-deploy-cpanel.sh'
+      - '.github/workflows/cpanel-release-zip.yml'
+
+concurrency:
+  group: cpanel-release-zip-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: mbstring, xml, ctype, json, bcmath, fileinfo, intl, zip, pdo_mysql
+          coverage: none
+          tools: composer:v2
+
+      - name: Build cPanel ZIP packages
+        run: |
+          chmod +x scripts/build-cpanel-release-zip.sh
+          bash scripts/build-cpanel-release-zip.sh
+          ls -lh releases/*.zip
+          echo "BUILD_SHA=${GITHUB_SHA}" >> "$GITHUB_ENV"
+          echo "BUILD_DATE=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_ENV"
+
+      - name: Resolve release tag
+        id: meta
+        run: |
+          if [[ "${{ github.ref_type }}" == "tag" ]]; then
+            TAG="${{ github.ref_name }}"
+            PRERELEASE="false"
+          elif [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            TAG="${{ inputs.tag }}"
+            PRERELEASE="${{ inputs.prerelease }}"
+          else
+            TAG="cpanel-latest"
+            PRERELEASE="true"
+          fi
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "prerelease=$PRERELEASE" >> "$GITHUB_OUTPUT"
+          echo "Release tag: $TAG (prerelease=$PRERELEASE)"
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.meta.outputs.tag }}
+          name: cPanel install ZIP (${{ steps.meta.outputs.tag }})
+          prerelease: ${{ steps.meta.outputs.prerelease }}
+          make_latest: ${{ steps.meta.outputs.prerelease == 'true' && 'true' || 'false' }}
+          generate_release_notes: false
+          body: |
+            ## cPanel / Webuzo one-click install (vendor included)
+
+            **Built:** ${{ env.BUILD_DATE }} · **Commit:** `${{ env.BUILD_SHA }}`
+
+            ### Download & install
+
+            1. Download **`isp-platform-cpanel-public_html.zip`** (recommended for cPanel)
+            2. Upload to cPanel File Manager → `/home/YOUR_USER/` → Extract
+            3. Point domain document root to `public_html`
+            4. Open `https://your-domain.com/install` → wizard (permissions → database → admin)
+
+            | File | Use |
+            |------|-----|
+            | `isp-platform-cpanel-public_html.zip` | `isp-app/` + `public_html/` at home directory |
+            | `isp-platform-cpanel-full.zip` | `isp-platform/public` as document root |
+
+            Guide: [docs/INSTALL_CPANEL_WEBUZO.md](https://github.com/habib2500a1/ispbillling/blob/main/docs/INSTALL_CPANEL_WEBUZO.md)
+          files: |
+            releases/isp-platform-cpanel-public_html.zip
+            releases/isp-platform-cpanel-full.zip
+          fail_on_unmatched_files: true
