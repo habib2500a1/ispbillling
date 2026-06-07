@@ -6,6 +6,7 @@
     <div class="bp-card">
         <h2 class="bp-title">Pay your bill</h2>
         <p class="bp-sub">Provide your client code from the monthly invoice</p>
+        @include('partials.demo-credentials-hint', ['demoHint' => 'pay'])
         @if ($otpEnabled)
             <p class="mt-2 text-xs text-slate-500">A verification code will be sent to your registered mobile.</p>
         @else

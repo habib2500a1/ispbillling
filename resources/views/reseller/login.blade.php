@@ -25,6 +25,7 @@
     <script src="{{ asset('js/portal-theme.js') }}?v={{ $loginCssVer }}"></script>
 </head>
 <body class="rsl-page rsl-login-page">
+    @include('partials.demo-banner')
     <div class="rsl-login-shell">
         <aside class="rsl-login-brand-panel" aria-hidden="true">
             <div class="rsl-login-brand-inner">
@@ -61,6 +62,8 @@
                 <div class="rsl-login-card-body">
                     <h1 class="rsl-login-title">Partner login</h1>
                     <p class="rsl-login-sub">Sign in with partner ID, email, or phone</p>
+
+                    @include('partials.demo-credentials-hint', ['demoHint' => 'reseller'])
 
                     @if ($wl && filled($wl->portal_login_message))
                         <p class="rsl-login-wl-msg">{{ $wl->portal_login_message }}</p>

@@ -20,6 +20,17 @@ trap 'rm -f "$LOCK"' EXIT
 
 echo "[auto-mobile] $(date -u +%Y-%m-%dT%H:%M:%SZ) start"
 
+if [[ -f .env ]]; then
+  if grep -qE '^ISP_DEMO_MODE=true' .env 2>/dev/null; then
+    echo "[auto-mobile] ISP_DEMO_MODE=true — skip APK build/sync on demo"
+    exit 0
+  fi
+  if grep -qE '^MOBILE_BUILD_ON_DEPLOY=0' .env 2>/dev/null; then
+    echo "[auto-mobile] MOBILE_BUILD_ON_DEPLOY=0 — skip"
+    exit 0
+  fi
+fi
+
 APP_URL=""
 if [[ -f scripts/read-production-url.sh ]]; then
   APP_URL="$(bash scripts/read-production-url.sh 2>/dev/null || true)"

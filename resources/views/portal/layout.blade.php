@@ -25,6 +25,7 @@
     @stack('head')
 </head>
 <body class="portal-body antialiased">
+    @include('partials.demo-banner')
     @guest('customer')
         <div class="portal-locale-bar">
             <a href="{{ $mobileAppDownloadUrl ?? \App\Support\MobileAppLinks::downloadUrl() }}" class="portal-locale-link portal-locale-link--app">📱 Mobile app</a>

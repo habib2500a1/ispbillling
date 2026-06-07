@@ -16,6 +16,19 @@ Panel compose path: **`docker-compose.yml`** (repo root)।
 
 Domain file: **`deploy/production.url`** (এখন `https://anetbd.com`) — নতুন domain এ শুধু এটা + `.env` `APP_URL` বদলান।
 
+### Demo site (`demo.anetbd.com`)
+
+| File | Purpose |
+|------|---------|
+| `deploy/.env.demo.example` | Demo app Environment (আলাদা DB + `ISP_DEMO_MODE=true`) |
+| `deploy/demo.url` | `https://demo.anetbd.com` |
+| `scripts/setup-demo-site.sh` | একবার demo data seed |
+| `docs/DEMO_ANETBD.md` | সম্পূর্ণ বাংলা গাইড |
+
+Production app এর সাথে **মিশাবেন না** — NextDeploy এ আলাদা app + আলাদা `isp_platform_demo` database।
+
+**Git branch:** Production app → `main` · Demo app → **`demo`** (`deploy/production.url` = `https://demo.anetbd.com`) — [DEMO_BRANCH.md](../docs/DEMO_BRANCH.md)
+
 ---
 
 ## একবার মাত্র panel এ (ম্যানুয়াল)

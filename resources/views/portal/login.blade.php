@@ -21,6 +21,8 @@
                 @endif
             </p>
 
+            @include('partials.demo-credentials-hint', ['demoHint' => 'customer'])
+
             @if ($portalOtpEnabled ?? false)
                 <div class="portal-note-banner portal-auth-note-spaced">
                     Two-step login is enabled. After your password, you will enter a code sent to your email.

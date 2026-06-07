@@ -27,6 +27,7 @@
     <script src="{{ asset('js/portal-theme.js') }}?v={{ $rslJsVer }}"></script>
 </head>
 <body class="rsl-page rsl-bg antialiased" data-portal-build="{{ $rslPortalBuild }}">
+@include('partials.demo-banner')
 @auth('reseller')
     @php
         $reseller = auth('reseller')->user();

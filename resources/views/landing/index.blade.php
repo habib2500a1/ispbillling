@@ -11,6 +11,7 @@
     <link rel="stylesheet" href="{{ asset('css/landing.css') }}?v={{ @filemtime(public_path('css/landing.css')) ?: 1 }}">
 </head>
 <body class="isp-landing-page">
+    @include('partials.demo-banner')
     <div class="isp-premium-orbs" aria-hidden="true"><span></span><span></span><span></span></div>
     <div class="wrap">
         <header>

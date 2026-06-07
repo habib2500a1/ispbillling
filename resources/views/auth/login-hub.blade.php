@@ -16,6 +16,7 @@
     <script src="{{ asset('js/portal-theme.js') }}?v=1"></script>
 </head>
 <body class="portal-body antialiased isp-login-hub-page isp-premium-theme">
+    @include('partials.demo-banner')
     <div class="portal-premium-orbs isp-premium-orbs" aria-hidden="true">
         <span></span><span></span><span></span>
     </div>
@@ -23,6 +24,7 @@
     <main class="isp-login-hub">
         <div class="isp-login-hub__panel isp-gradient-border">
             <div class="isp-gradient-border__inner isp-login-hub__panel-inner">
+                @include('partials.demo-credentials-hint')
                 <header class="isp-login-hub__head">
                     <div class="isp-login-hub__brand">
                         @if ($logo)

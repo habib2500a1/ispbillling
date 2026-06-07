@@ -19,6 +19,7 @@
     <script src="{{ asset('js/portal-theme.js') }}?v=1"></script>
 </head>
 <body class="bp-bg antialiased">
+    @include('partials.demo-banner')
     <header class="bp-topbar">
         <div class="bp-topbar-inner">
             <div>

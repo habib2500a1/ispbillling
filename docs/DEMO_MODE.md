@@ -1,5 +1,7 @@
 # Demo mode — Sheba-Fi style ডেমো সাইট
 
+**anetbd.com ডেমো:** [DEMO_ANETBD.md](./DEMO_ANETBD.md) — `demo.anetbd.com`, **পুরো ওয়েবসাইট** (landing + portal + reseller + shop + pay + admin), আলাদা DB, `deploy/.env.demo.example`
+
 ## দ্রুত সেটআপ (নতুন সার্ভার / subdomain)
 
 ```bash
@@ -45,7 +47,7 @@ php artisan isp:seed-demo-network --tenant=1 --force
 ```
 
 - Demo router, OLT, POP, ONU
-- `isp:demo-setup` তে ৩ জন sample subscriber (`DEMO-001` …)
+- `isp:demo-setup` তে ১৫ জন sample subscriber (`DEMO-001` … `DEMO-015`, fake phone)
 
 Sheba-Fi JSON থেকে আরো ক্লায়েন্ট:
 

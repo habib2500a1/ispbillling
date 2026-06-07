@@ -230,6 +230,7 @@ class SeedDemoNetworkCommand extends Command
             'vat_percent' => 0,
             'billing_cycle_days' => 30,
             'is_active' => true,
+            'show_on_website' => true,
         ];
 
         $pkg = Package::query()

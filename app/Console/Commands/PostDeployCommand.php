@@ -3,8 +3,11 @@
 namespace App\Console\Commands;
 
 use App\Models\AppSetting;
+use App\Models\Customer;
+use App\Models\Reseller;
 use App\Models\SmsTemplate;
 use App\Models\Tenant;
+use App\Support\DemoMode;
 use App\Support\DeployReady;
 use App\Services\Sms\SmsTemplateService;
 use Database\Seeders\AutomaticProcessSeeder;
@@ -46,6 +49,8 @@ final class PostDeployCommand extends Command
 
         Artisan::call('isp:bootstrap-admin', [], $this->output);
 
+        $this->ensureDemoData();
+
         $this->ensureWebhookSecrets();
         Artisan::call('isp:check-ops-notifications', [], $this->output);
 
@@ -80,6 +85,23 @@ final class PostDeployCommand extends Command
         );
 
         $this->info('Default tenant ready.');
+    }
+
+    private function ensureDemoData(): void
+    {
+        if (! DemoMode::enabled() || ! Schema::hasTable('customers')) {
+            return;
+        }
+
+        if (
+            Customer::query()->where('customer_code', 'like', 'DEMO-%')->exists()
+            && Reseller::query()->where('code', 'DEMO-RSL')->exists()
+        ) {
+            return;
+        }
+
+        $this->line('Demo mode: seeding full demo website (landing, portal, reseller, shop)…');
+        Artisan::call('isp:demo-setup', [], $this->output);
     }
 
     private function syncRolesAndPermissions(): void

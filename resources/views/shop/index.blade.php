@@ -7,6 +7,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="min-h-screen bg-slate-950 text-slate-100">
+    @include('partials.demo-banner')
     <header class="border-b border-slate-800 bg-slate-900/80 backdrop-blur">
         <div class="mx-auto flex max-w-5xl items-center justify-between px-4 py-4">
             <div>
