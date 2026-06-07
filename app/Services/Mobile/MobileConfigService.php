@@ -28,7 +28,12 @@ class MobileConfigService
         return [
             'app_name' => CompanyBranding::name(),
             'api_version' => 'v1',
-            'app_version' => '2.6.0',
+            'app_version' => '2.6.7',
+            'server' => [
+                'app_url' => $base,
+                'api_base_url' => $base.'/api/v1',
+                'setup_hint' => 'Enter this domain in the app if you moved to a new server.',
+            ],
             'rcl_sms' => [
                 'app_name' => 'RCL SMS',
                 'company_name' => CompanyBranding::name(),

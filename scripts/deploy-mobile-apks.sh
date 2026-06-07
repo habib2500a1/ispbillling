@@ -59,6 +59,19 @@ echo "[mobile] Building Radiant ISP for ${BASE_URL}/api/v1 ..."
 echo "[mobile] Building MFS Verify for ${BASE_URL} ..."
 "$APP_ROOT/scripts/build-mfs-verify-apk.sh" "$BASE_URL"
 
+API_BASE="${BASE_URL}/api/v1"
+RADIANT_VERSION="$(grep -E '^version:' mobile/isp_radiant/pubspec.yaml 2>/dev/null | head -1 | awk '{print $2}' || echo '')"
+MFS_VERSION="$(grep -E '^version:' mobile/mfs_verify/pubspec.yaml 2>/dev/null | head -1 | awk '{print $2}' || echo '')"
+cat > public/downloads/apk-build-info.json <<EOF
+{
+  "app_url": "${BASE_URL}",
+  "api_base_url": "${API_BASE}",
+  "built_at": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+  "radiant_version": "${RADIANT_VERSION}",
+  "mfs_version": "${MFS_VERSION}"
+}
+EOF
+
 if id www-data >/dev/null 2>&1; then
   chown www-data:www-data public/downloads/*.apk public/downloads/*.json 2>/dev/null || true
 fi

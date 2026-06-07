@@ -5,6 +5,7 @@ namespace App\Support;
 use App\Filament\Pages\ManageApiConfiguration;
 use App\Filament\Pages\ManagePlatformDeployment;
 use App\Filament\Pages\ManageCompanySetup;
+use App\Filament\Pages\ManageMobileApp;
 use App\Filament\Pages\ManageMovieServerList;
 use App\Filament\Pages\ManagePortalMarquee;
 use App\Filament\Pages\ManagePortalNotices;
@@ -68,6 +69,14 @@ final class SettingsSidebarRegistry
                 'sort' => 5,
                 'url' => ManageCompanySetup::getUrl(),
                 'active_routes' => ['filament.admin.pages.company-setup'],
+            ],
+            [
+                'key' => 'mobile_app',
+                'label' => 'Mobile app',
+                'icon' => 'heroicon-o-device-phone-mobile',
+                'sort' => 55,
+                'url' => ManageMobileApp::getUrl(),
+                'active_routes' => ['filament.admin.pages.mobile-app'],
             ],
             [
                 'key' => 'api_configuration',

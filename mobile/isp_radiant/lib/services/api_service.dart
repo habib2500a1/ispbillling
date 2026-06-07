@@ -2,8 +2,8 @@ import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 
-import '../config/app_config.dart';
 import '../config/remote_config.dart';
+import '../config/server_config.dart';
 import 'session_storage.dart';
 
 class ApiService {
@@ -40,7 +40,7 @@ class ApiService {
     final limit = timeout ?? _bootTimeout;
     try {
       final res = await _client
-          .get(Uri.parse('${AppConfig.apiBaseUrl}/mobile/config'), headers: {'Accept': 'application/json'})
+          .get(Uri.parse('${ServerConfig.apiBaseUrl}/mobile/config'), headers: {'Accept': 'application/json'})
           .timeout(limit);
       if (res.statusCode == 200) {
         await RemoteConfig.loadFrom(_decode(res));
@@ -681,14 +681,14 @@ class ApiService {
     if (t != null) {
       final path = r == 'customer' ? '/customer/logout' : '/auth/logout';
       try {
-        await _client.post(Uri.parse('${AppConfig.apiBaseUrl}$path'), headers: await _headers()).timeout(_timeout);
+        await _client.post(Uri.parse('${ServerConfig.apiBaseUrl}$path'), headers: await _headers()).timeout(_timeout);
       } catch (_) {}
     }
     await clearSession();
   }
 
   Future<Map<String, dynamic>> _get(String path, {bool retried = false, bool skipRefresh = false}) async {
-    final res = await _client.get(Uri.parse('${AppConfig.apiBaseUrl}$path'), headers: await _headers()).timeout(_timeout);
+    final res = await _client.get(Uri.parse('${ServerConfig.apiBaseUrl}$path'), headers: await _headers()).timeout(_timeout);
     if (res.statusCode == 401 && !retried && !skipRefresh && await refreshToken()) {
       return _get(path, retried: true, skipRefresh: skipRefresh);
     }
@@ -698,7 +698,7 @@ class ApiService {
   Future<Map<String, dynamic>> _patch(String path, Map<String, dynamic> payload, {bool retried = false}) async {
     final res = await _client
         .patch(
-          Uri.parse('${AppConfig.apiBaseUrl}$path'),
+          Uri.parse('${ServerConfig.apiBaseUrl}$path'),
           headers: await _headers(),
           body: jsonEncode(payload),
         )
@@ -712,7 +712,7 @@ class ApiService {
   Future<Map<String, dynamic>> _post(String path, Map<String, dynamic> payload, {bool retried = false}) async {
     final res = await _client
         .post(
-          Uri.parse('${AppConfig.apiBaseUrl}$path'),
+          Uri.parse('${ServerConfig.apiBaseUrl}$path'),
           headers: await _headers(),
           body: jsonEncode(payload),
         )

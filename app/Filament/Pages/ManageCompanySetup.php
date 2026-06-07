@@ -162,7 +162,7 @@ class ManageCompanySetup extends Page
                                     ->directory('company-branding')
                                     ->visibility('public')
                                     ->maxSize(10240)
-                                    ->helperText('PNG or JPG, max 10 MB. Shown in admin sidebar, invoices, portal, and PDFs.'),
+                                    ->helperText('PNG or JPG, max 10 MB. Shown in admin, invoices, portal, PDFs, and mobile app login screens (updates without APK rebuild).'),
                                 FileUpload::make('company_favicon')
                                     ->label('Favicon source (optional)')
                                     ->image()

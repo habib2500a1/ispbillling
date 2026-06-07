@@ -7,6 +7,7 @@ import '../services/api_service.dart';
 import '../theme/app_theme.dart';
 import 'login_screen.dart';
 import 'reseller_web_portal_screen.dart';
+import 'server_setup_screen.dart';
 
 /// Unified sign-in hub — roles and labels synced from /api/v1/mobile/config (website /login).
 class LoginHubScreen extends StatefulWidget {
@@ -241,6 +242,23 @@ class _LoginHubScreenState extends State<LoginHubScreen> {
                         ],
                       ),
                     ],
+                    const SizedBox(height: 12),
+                    Center(
+                      child: TextButton.icon(
+                        onPressed: () async {
+                          await Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => ServerSetupScreen(api: widget.api),
+                            ),
+                          );
+                          if (mounted) setState(() => _loading = true);
+                          await widget.api.loadRemoteConfig();
+                          if (mounted) setState(() => _loading = false);
+                        },
+                        icon: const Icon(Icons.dns_outlined, size: 18),
+                        label: const Text('Server settings (change domain)'),
+                      ),
+                    ),
                   ],
                 ),
         ),

@@ -1,5 +1,5 @@
 import '../models/login_role_config.dart';
-import 'app_config.dart';
+import 'server_config.dart';
 
 /// Cached server config from /mobile/config — synced with website branding.
 class RemoteConfig {
@@ -104,14 +104,14 @@ class RemoteConfig {
     final links = _raw?['links'] as Map?;
     final fromLinks = links?['login_hub']?.toString();
     if (fromLinks != null && fromLinks.isNotEmpty) return fromLinks;
-    return '${AppConfig.apiBaseUrl.replaceAll('/api/v1', '')}/login';
+    return '${ServerConfig.siteRootFromApiBase()}/login';
   }
 
   static String get mobileLoginApiUrl {
     final login = _raw?['login'] as Map?;
     final url = login?['api_url']?.toString();
     if (url != null && url.isNotEmpty) return url;
-    return '${AppConfig.apiBaseUrl}/mobile/login';
+    return '${ServerConfig.apiBaseUrl}/mobile/login';
   }
 
   static String? get payUrl {
