@@ -6,6 +6,7 @@ use App\Filament\Resources\SmsTemplateResource\Pages;
 use App\Models\SmsTemplate;
 use App\Models\VoiceTemplate;
 use App\Services\Sms\SmsTemplateService;
+use App\Support\PrimaryTenant;
 use App\Support\TenantResolver;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -128,13 +129,30 @@ class SmsTemplateResource extends Resource
                 Tables\Actions\EditAction::make(),
             ])
             ->headerActions([
+                Tables\Actions\Action::make('sync_missing')
+                    ->label('Add missing templates')
+                    ->icon('heroicon-o-plus-circle')
+                    ->color('success')
+                    ->requiresConfirmation()
+                    ->modalDescription('Adds new built-in SMS templates from the catalog without overwriting your edits.')
+                    ->action(function (): void {
+                        $tenantId = TenantResolver::requiredTenantId();
+                        $count = app(SmsTemplateService::class)->syncMissingDefaults($tenantId);
+                        Notification::make()
+                            ->title("Added {$count} template(s)")
+                            ->success()
+                            ->send();
+                    }),
                 Tables\Actions\Action::make('seed_defaults')
                     ->label('Restore defaults')
                     ->icon('heroicon-o-arrow-path')
                     ->color('gray')
                     ->requiresConfirmation()
+                    ->modalDescription('Overwrites all built-in SMS templates with factory defaults.')
+                    ->visible(fn (): bool => PrimaryTenant::allowsRollback(TenantResolver::requiredTenantId()))
                     ->action(function (): void {
-                        $count = app(SmsTemplateService::class)->seedDefaults();
+                        $tenantId = TenantResolver::requiredTenantId();
+                        $count = app(SmsTemplateService::class)->seedDefaults($tenantId);
                         Notification::make()
                             ->title("Restored {$count} templates")
                             ->success()

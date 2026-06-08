@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\TenantResource\Pages;
 
 use App\Filament\Resources\TenantResource;
+use App\Support\PrimaryTenant;
 use Filament\Actions;
 use Filament\Resources\Pages\EditRecord;
 
@@ -22,13 +23,20 @@ class EditTenant extends EditRecord
             ->normalizeSubscriptionInput($subscription);
         $data['settings'] = $settings;
 
+        if (PrimaryTenant::isPrimary($this->record->getKey())) {
+            $data['is_active'] = true;
+            $data['slug'] = $this->record->slug;
+        }
+
         return $data;
     }
 
     protected function getHeaderActions(): array
     {
         return [
-            Actions\DeleteAction::make(),
+            Actions\DeleteAction::make()
+                ->visible(fn (): bool => ! PrimaryTenant::isPrimary((int) $this->record->getKey())),
         ];
     }
+
 }

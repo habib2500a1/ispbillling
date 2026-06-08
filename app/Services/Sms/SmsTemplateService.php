@@ -3,8 +3,10 @@
 namespace App\Services\Sms;
 
 use App\Models\SmsTemplate;
+use App\Support\PrimaryTenant;
 use App\Support\SmsTemplateCatalog;
 use App\Support\TenantResolver;
+use Illuminate\Validation\ValidationException;
 use Illuminate\Support\Facades\Schema;
 
 final class SmsTemplateService
@@ -115,6 +117,13 @@ final class SmsTemplateService
         }
 
         $tenantId = $tenantId ?? TenantResolver::requiredTenantId();
+
+        if (! PrimaryTenant::allowsRollback($tenantId)) {
+            throw ValidationException::withMessages([
+                'tenant' => 'Primary ISP SMS templates cannot be rolled back to factory defaults.',
+            ]);
+        }
+
         $count = 0;
 
         foreach (SmsTemplateCatalog::defaults() as $row) {

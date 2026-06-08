@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use App\Models\AutomaticProcess;
 use App\Models\Tenant;
 use App\Services\Automation\AutomaticProcessScheduler;
+use App\Support\PrimaryTenant;
 use Illuminate\Database\Seeder;
 
 class AutomaticProcessSeeder extends Seeder
@@ -27,22 +28,35 @@ class AutomaticProcessSeeder extends Seeder
     /**
      * @return array{created: int, updated: int}
      */
-    private function applyDefaults(bool $fullRestore): array
+    public function syncForTenant(int $tenantId, bool $fullRestore = false): array
+    {
+        return $this->applyDefaults($fullRestore, $tenantId);
+    }
+
+    /**
+     * @return array{created: int, updated: int}
+     */
+    private function applyDefaults(bool $fullRestore, ?int $onlyTenantId = null): array
     {
         $scheduler = app(AutomaticProcessScheduler::class);
         $stats = ['created' => 0, 'updated' => 0];
 
-        $tenantIds = Tenant::query()
-            ->where('is_active', true)
-            ->orderBy('id')
-            ->pluck('id');
+        if ($onlyTenantId !== null) {
+            $tenantIds = collect([$onlyTenantId]);
+        } else {
+            $tenantIds = Tenant::query()
+                ->where('is_active', true)
+                ->orderBy('id')
+                ->pluck('id');
 
-        if ($tenantIds->isEmpty()) {
-            $tenantIds = collect([1]);
+            if ($tenantIds->isEmpty()) {
+                $tenantIds = collect([PrimaryTenant::id()]);
+            }
         }
 
         foreach ($tenantIds as $tenantId) {
             $tenantId = (int) $tenantId;
+            $tenantFullRestore = $fullRestore && PrimaryTenant::allowsRollback($tenantId);
 
             foreach ($this->defaultRows() as $row) {
                 $enabled = (bool) ($row['enabled'] ?? true);
@@ -65,7 +79,7 @@ class AutomaticProcessSeeder extends Seeder
                     continue;
                 }
 
-                if ($fullRestore) {
+                if ($tenantFullRestore) {
                     $existing->forceFill(array_merge($row, ['tenant_id' => $tenantId, 'enabled' => $enabled]))->save();
                 } else {
                     $existing->forceFill([

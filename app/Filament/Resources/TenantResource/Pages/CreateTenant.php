@@ -3,9 +3,10 @@
 namespace App\Filament\Resources\TenantResource\Pages;
 
 use App\Filament\Resources\TenantResource;
+use App\Services\Tenant\TenantProvisioningService;
 use App\Services\Tenant\TenantSubscriptionService;
 use App\Support\TenantSubscriptionCatalog;
-use Database\Seeders\AutomaticProcessSeeder;
+use Filament\Notifications\Notification;
 use Filament\Resources\Pages\CreateRecord;
 
 class CreateTenant extends CreateRecord
@@ -31,6 +32,16 @@ class CreateTenant extends CreateRecord
 
     protected function afterCreate(): void
     {
-        app(AutomaticProcessSeeder::class)->syncOnDeploy();
+        $stats = app(TenantProvisioningService::class)->provision((int) $this->record->getKey());
+
+        Notification::make()
+            ->title('Tenant provisioned')
+            ->body(sprintf(
+                'Automatic processes: %d new · SMS templates: %d added',
+                $stats['automatic_processes']['created'],
+                $stats['sms_templates'],
+            ))
+            ->success()
+            ->send();
     }
 }

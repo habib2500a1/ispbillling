@@ -4,6 +4,7 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\TenantResource\Pages;
 use App\Models\Tenant;
+use App\Support\PrimaryTenant;
 use App\Support\TenantSubscriptionCatalog;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -56,7 +57,11 @@ class TenantResource extends Resource
                         ->default('single_isp')
                         ->required(),
                     Forms\Components\Toggle::make('is_active')
-                        ->required(),
+                        ->required()
+                        ->disabled(fn (?Tenant $record): bool => $record !== null && PrimaryTenant::isPrimary($record->getKey()))
+                        ->helperText(fn (?Tenant $record): ?string => $record !== null && PrimaryTenant::isPrimary($record->getKey())
+                            ? 'Primary ISP stays active — cannot be turned off.'
+                            : null),
                 ])->columns(2),
                 Forms\Components\Section::make('Contact & domain')->schema([
                     Forms\Components\TextInput::make('domain')
@@ -156,7 +161,10 @@ class TenantResource extends Resource
         return $table
             ->columns([
                 Tables\Columns\TextColumn::make('name')
-                    ->searchable(),
+                    ->searchable()
+                    ->description(fn (Tenant $record): ?string => PrimaryTenant::isPrimary($record->getKey())
+                        ? 'Primary ISP (protected)'
+                        : null),
                 Tables\Columns\TextColumn::make('organization_type')
                     ->label('Type')
                     ->formatStateUsing(fn (?string $state): string => match ($state) {
@@ -214,7 +222,23 @@ class TenantResource extends Resource
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
+                    Tables\Actions\DeleteBulkAction::make()
+                        ->action(function (\Illuminate\Database\Eloquent\Collection $records): void {
+                            $deletable = $records->reject(
+                                fn (Tenant $tenant): bool => PrimaryTenant::isPrimary($tenant->getKey()),
+                            );
+
+                            if ($deletable->isEmpty()) {
+                                \Filament\Notifications\Notification::make()
+                                    ->title('Primary ISP cannot be deleted')
+                                    ->danger()
+                                    ->send();
+
+                                return;
+                            }
+
+                            $deletable->each->delete();
+                        }),
                 ]),
             ]);
     }

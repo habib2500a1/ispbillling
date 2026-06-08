@@ -8,6 +8,9 @@ use App\Models\AutomaticProcess;
 use App\Models\Branch;
 use App\Services\Automation\AutomaticProcessRunCsvExporter;
 use App\Services\Automation\AutomaticProcessScheduler;
+use App\Support\PrimaryTenant;
+use App\Support\TenantResolver;
+use Database\Seeders\AutomaticProcessSeeder;
 use App\Support\IspTimezone;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -243,16 +246,38 @@ class AutomaticProcessResource extends Resource
                             ->success()
                             ->send();
                     }),
+                Tables\Actions\Action::make('sync_missing_processes')
+                    ->label('Add missing processes')
+                    ->icon('heroicon-o-plus-circle')
+                    ->color('success')
+                    ->requiresConfirmation()
+                    ->modalDescription('Adds new built-in automatic processes without changing your enabled/interval settings.')
+                    ->visible(fn (): bool => auth()->user()?->hasRole(['super-admin', 'isp-admin', 'admin']) ?? false)
+                    ->action(function (): void {
+                        $tenantId = TenantResolver::requiredTenantId();
+                        $stats = app(AutomaticProcessSeeder::class)->syncForTenant($tenantId, fullRestore: false);
+                        Notification::make()
+                            ->title('Automatic processes synced')
+                            ->body("Created {$stats['created']} · updated {$stats['updated']}")
+                            ->success()
+                            ->send();
+                    }),
                 Tables\Actions\Action::make('reseed_defaults')
                     ->label('Restore defaults')
                     ->icon('heroicon-o-arrow-down-tray')
                     ->color('gray')
                     ->requiresConfirmation()
-                    ->modalDescription('Re-imports built-in process definitions for every active tenant (does not delete custom rows).')
-                    ->visible(fn (): bool => auth()->user()?->hasRole(['super-admin', 'isp-admin', 'admin']) ?? false)
+                    ->modalDescription('Resets built-in process definitions for this ISP (enabled flags and intervals). Custom rows are kept.')
+                    ->visible(fn (): bool => (auth()->user()?->hasRole(['super-admin', 'isp-admin', 'admin']) ?? false)
+                        && PrimaryTenant::allowsRollback(TenantResolver::requiredTenantId()))
                     ->action(function (): void {
-                        Artisan::call('db:seed', ['--class' => 'Database\\Seeders\\AutomaticProcessSeeder', '--force' => true]);
-                        Notification::make()->title('Default processes restored')->success()->send();
+                        $tenantId = TenantResolver::requiredTenantId();
+                        $stats = app(AutomaticProcessSeeder::class)->syncForTenant($tenantId, fullRestore: true);
+                        Notification::make()
+                            ->title('Default processes restored')
+                            ->body("Updated {$stats['updated']} built-in row(s) for this tenant.")
+                            ->success()
+                            ->send();
                     }),
                 Tables\Actions\Action::make('export_run_history')
                     ->label('Export run history (CSV)')
