@@ -21,7 +21,9 @@ final class AdminRouteAssets
             'filament.admin.pages.optical-monitoring-hub' => ['optical-noc.css'],
             'filament.admin.pages.subscriber-traffic' => ['subscriber-live-traffic-pro.css'],
             'filament.admin.pages.network-intelligence-hub' => ['network-intelligence-hub.css'],
-            'filament.admin.pages.billing-dashboard' => ['billing-hub-pro.css'],
+            'filament.admin.pages.billing-dashboard' => ['billing-hub-pro.css', 'billing-pro.css'],
+            'filament.admin.pages.billing-overview' => ['billing-hub-pro.css', 'billing-pro.css'],
+            'filament.admin.pages.billing-notices' => ['billing-pro.css'],
             'filament.admin.pages.accounting-hub' => ['billing-hub-pro.css'],
             'filament.admin.pages.accounts-hub' => ['billing-hub-pro.css'],
             'filament.admin.pages.collection-desk-report' => ['collection-desk-report-pro.css'],
@@ -38,6 +40,14 @@ final class AdminRouteAssets
 
         if (request()->routeIs('filament.admin.resources.subscribers.*')) {
             $html .= ClientsDirectoryStyles::html();
+        }
+
+        if (request()->routeIs([
+            'filament.admin.pages.billing-overview',
+            'filament.admin.pages.billing-notices',
+            'filament.admin.resources.invoices.*',
+        ])) {
+            $html .= BillingStyles::html();
         }
 
         if (request()->routeIs('filament.admin.resources.products.*')
@@ -104,6 +114,18 @@ final class AdminRouteAssets
             $rules[] = [
                 'match' => 'subscribers-view',
                 'assets' => $viewAssets,
+            ];
+        }
+
+        $billingAssets = self::stylesheetAssetList(
+            BillingStyles::modules(),
+            BillingStyles::BUNDLE_FILE,
+            'billing',
+        );
+        if ($billingAssets !== []) {
+            $rules[] = [
+                'match' => 'billing-module',
+                'assets' => $billingAssets,
             ];
         }
 
@@ -188,6 +210,10 @@ final class AdminRouteAssets
             }
             var viewSegment = path.replace(/^\\/admin\\/subscribers\\/?/, '').split('/')[0] || '';
             return viewSegment !== '' && directoryPresets.indexOf(viewSegment) === -1;
+        }
+
+        if (rule.match === 'billing-module') {
+            return /\\/admin\\/(billing-overview|billing-notices|invoices|bill-collection|payments-report|collection-desk-report)/.test(path);
         }
 
         if (rule.match === 'path-prefix') {
@@ -278,6 +304,8 @@ JS;
             'filament.admin.pages.subscriber-traffic' => '/admin/subscriber-traffic',
             'filament.admin.pages.network-intelligence-hub' => '/admin/network-intelligence-hub',
             'filament.admin.pages.billing-dashboard' => '/admin/billing-dashboard',
+            'filament.admin.pages.billing-overview' => '/admin/billing-overview',
+            'filament.admin.pages.billing-notices' => '/admin/billing-notices',
             'filament.admin.pages.accounting-hub' => '/admin/accounting-hub',
             'filament.admin.pages.accounts-hub' => '/admin/accounts-hub',
             'filament.admin.pages.collection-desk-report' => '/admin/collection-desk-report',

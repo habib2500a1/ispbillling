@@ -1,0 +1,29 @@
+/** Billing light mode — premium fintech */
+
+:root:not(.dark):not([data-theme='dark']) .bh-pro,
+:root:not(.dark):not([data-theme='dark']) .bl-pro {
+    --bl-card: rgba(255, 255, 255, 0.92);
+    --bl-glass: rgba(255, 255, 255, 0.72);
+}
+
+:root:not(.dark):not([data-theme='dark']) .bh-pro .bh-stat,
+:root:not(.dark):not([data-theme='dark']) .bh-pro .bh-ops__card,
+:root:not(.dark):not([data-theme='dark']) .bh-pro .bh-tile,
+:root:not(.dark):not([data-theme='dark']) .bl-inv-stat,
+:root:not(.dark):not([data-theme='dark']) .bl-inv-table-wrap {
+    background: #ffffff;
+    border-color: rgba(148, 163, 184, 0.2);
+}
+
+:root:not(.dark):not([data-theme='dark']) .bl-inv-toolbar,
+:root:not(.dark):not([data-theme='dark']) .bl-inv-nav {
+    background: rgba(255, 255, 255, 0.85);
+}
+
+:root:not(.dark):not([data-theme='dark']) .bl-pro .fi-ta-row:hover {
+    background: rgba(99, 102, 241, 0.04);
+}
+
+:root:not(.dark):not([data-theme='dark']) .bh-revenue__bar {
+    background: linear-gradient(180deg, #a5b4fc 0%, #6366f1 100%);
+}

@@ -1,0 +1,48 @@
+/** Billing dark mode — OLED-friendly */
+
+.dark .bh-pro .bh-hero,
+[data-theme='dark'] .bh-pro .bh-hero {
+    background: linear-gradient(135deg, #0f0a1e 0%, #312e81 48%, #4338ca 100%);
+}
+
+.dark .bl-inv-hero,
+[data-theme='dark'] .bl-inv-hero {
+    background: linear-gradient(135deg, #0f0a1e 0%, #312e81 50%, #4338ca 100%);
+}
+
+.dark .bl-notices-hero,
+[data-theme='dark'] .bl-notices-hero {
+    background: linear-gradient(135deg, #450a0a 0%, #991b1b 50%, #b91c1c 100%);
+}
+
+.dark .bh-stat,
+.dark .bh-ops__card,
+.dark .bh-tile,
+.dark .bl-inv-stat,
+.dark .bl-inv-table-wrap,
+.dark .bl-notices-section,
+[data-theme='dark'] .bh-stat,
+[data-theme='dark'] .bh-ops__card,
+[data-theme='dark'] .bh-tile,
+[data-theme='dark'] .bl-inv-stat,
+[data-theme='dark'] .bl-inv-table-wrap,
+[data-theme='dark'] .bl-notices-section {
+    background: rgba(17, 24, 39, 0.92);
+}
+
+.dark .bl-inv-card,
+[data-theme='dark'] .bl-inv-card {
+    background: #111827;
+    border-color: rgba(100, 116, 139, 0.2);
+}
+
+.dark .bl-inv-dock,
+[data-theme='dark'] .bl-inv-dock {
+    background: rgba(11, 18, 32, 0.94);
+    border-top-color: rgba(100, 116, 139, 0.2);
+}
+
+.dark .bh-revenue__bar,
+[data-theme='dark'] .bh-revenue__bar {
+    background: linear-gradient(180deg, #818cf8 0%, #4f46e5 100%);
+}

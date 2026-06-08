@@ -9,4 +9,14 @@ use Filament\Resources\Pages\CreateRecord;
 class CreateInvoice extends CreateRecord
 {
     protected static string $resource = InvoiceResource::class;
+
+    /**
+     * @return array<string, string|bool>
+     */
+    public function getExtraBodyAttributes(): array
+    {
+        return [
+            'class' => 'isp-billing-module isp-billing-invoice-detail',
+        ];
+    }
 }

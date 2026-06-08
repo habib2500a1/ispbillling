@@ -1,0 +1,198 @@
+/** Billing mobile — invoice cards, action sheets */
+
+@media (max-width: 767px) {
+    .bl-pro[data-view='cards'] .fi-ta-table {
+        display: none !important;
+    }
+
+    .bl-pro[data-view='cards'] .bl-inv-mobile-cards {
+        display: flex;
+    }
+
+    .bl-inv-mobile-cards {
+        display: none;
+        flex-direction: column;
+        gap: 0.65rem;
+        padding: 0.75rem;
+    }
+
+    .bl-inv-card {
+        padding: 1rem;
+        border-radius: var(--bl-radius-sm);
+        background: var(--bl-card);
+        border: 1px solid var(--bl-border);
+        box-shadow: var(--bl-shadow);
+        transition: transform var(--bl-dur) var(--bl-ease);
+    }
+
+    .bl-inv-card:active {
+        transform: scale(0.98);
+    }
+
+    .bl-inv-card__head {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 0.5rem;
+        margin-bottom: 0.55rem;
+    }
+
+    .bl-inv-card__number {
+        font-size: 0.9rem;
+        font-weight: 800;
+        color: var(--bl-text);
+    }
+
+    .bl-inv-card__customer {
+        font-size: 0.8rem;
+        color: var(--bl-muted);
+        margin-top: 0.15rem;
+    }
+
+    .bl-inv-card__badge {
+        display: inline-flex;
+        padding: 0.2rem 0.55rem;
+        border-radius: 999px;
+        font-size: 0.65rem;
+        font-weight: 700;
+        text-transform: uppercase;
+    }
+
+    .bl-inv-card__badge--paid {
+        background: color-mix(in srgb, #059669 15%, transparent);
+        color: #059669;
+    }
+
+    .bl-inv-card__badge--due {
+        background: color-mix(in srgb, #d97706 15%, transparent);
+        color: #d97706;
+    }
+
+    .bl-inv-card__badge--overdue {
+        background: color-mix(in srgb, #dc2626 15%, transparent);
+        color: #dc2626;
+    }
+
+    .bl-inv-card__badge--open {
+        background: color-mix(in srgb, #6366f1 15%, transparent);
+        color: #6366f1;
+    }
+
+    .bl-inv-card__grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.45rem;
+        margin-top: 0.55rem;
+    }
+
+    .bl-inv-card__field label {
+        display: block;
+        font-size: 0.62rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: var(--bl-muted);
+    }
+
+    .bl-inv-card__field span {
+        font-size: 0.82rem;
+        font-weight: 700;
+        color: var(--bl-text);
+    }
+
+    .bl-inv-card__progress {
+        margin-top: 0.55rem;
+        height: 4px;
+        border-radius: 999px;
+        background: color-mix(in srgb, var(--bl-muted) 12%, transparent);
+        overflow: hidden;
+    }
+
+    .bl-inv-card__progress-fill {
+        height: 100%;
+        background: linear-gradient(90deg, #059669, #10b981);
+        border-radius: inherit;
+    }
+
+    .bl-inv-card__actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.4rem;
+        margin-top: 0.65rem;
+        padding-top: 0.65rem;
+        border-top: 1px dashed var(--bl-border);
+    }
+
+    .bl-inv-card__action {
+        flex: 1 1 auto;
+        min-height: 40px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.3rem;
+        padding: 0.45rem 0.65rem;
+        border-radius: 8px;
+        border: 1px solid var(--bl-border);
+        background: var(--bl-card);
+        font-size: 0.72rem;
+        font-weight: 600;
+        color: var(--bl-text);
+        text-decoration: none;
+    }
+
+    .bl-inv-card__action--primary {
+        background: linear-gradient(135deg, #059669, #10b981);
+        border-color: transparent;
+        color: #fff;
+    }
+
+    .bl-inv-view-toggle {
+        display: inline-flex;
+        border-radius: 9px;
+        border: 1px solid var(--bl-border);
+        overflow: hidden;
+    }
+
+    .bl-inv-view-toggle__btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0.45rem 0.65rem;
+        border: none;
+        background: transparent;
+        color: var(--bl-muted);
+        cursor: pointer;
+    }
+
+    .bl-inv-view-toggle__btn--active {
+        background: color-mix(in srgb, var(--bl-violet) 14%, transparent);
+        color: var(--bl-violet);
+    }
+
+    .bh-pro .bh-stats {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .bh-pro .bh-bento {
+        grid-template-columns: 1fr;
+    }
+
+    .bh-pro .bh-hero__actions .bh-btn {
+        flex: 1 1 calc(50% - 0.3rem);
+        justify-content: center;
+    }
+
+    .bl-inv-hero__actions {
+        width: 100%;
+    }
+
+    .bl-inv-hero__actions .bl-inv-btn {
+        flex: 1 1 auto;
+        justify-content: center;
+    }
+}
+
+@media (min-width: 768px) {
+    .bl-inv-mobile-cards { display: none !important; }
+    .bl-inv-view-toggle { display: none; }
+}

@@ -1,6 +1,15 @@
 @php
     $stats = $this->getStats();
+    $revenue = $this->getRevenueAnalytics();
+    $growth = $revenue['growth'] ?? [];
+    $growthLabels = $growth['labels'] ?? [];
+    $growthValues = $growth['values'] ?? [];
+    $maxGrowth = max(1, (float) ($growth['max'] ?? 1));
 @endphp
+
+{!! \App\Support\BillingStyles::navigatedScript() !!}
+<link rel="stylesheet" href="{{ asset('css/billing-hub-pro.css') }}?v={{ @filemtime(public_path('css/billing-hub-pro.css')) ?: 1 }}">
+<script src="{{ asset('js/billing-invoices-v2.js') }}?v={{ @filemtime(public_path('js/billing-invoices-v2.js')) ?: 1 }}" defer></script>
 
 <x-filament-panels::page class="isp-billing-hub-page">
     <div class="bh-pro">
@@ -35,6 +44,25 @@
             </div>
         </header>
 
+        <div class="bh-quick-actions">
+            <a href="{{ \App\Filament\Resources\InvoiceResource::getUrl('create') }}" class="bh-quick-actions__btn bh-quick-actions__btn--primary">
+                <x-filament::icon icon="heroicon-m-document-plus" class="h-4 w-4" />
+                New invoice
+            </a>
+            <a href="{{ \App\Filament\Pages\BillCollectionDesk::getUrl() }}" class="bh-quick-actions__btn">
+                <x-filament::icon icon="heroicon-m-currency-bangladeshi" class="h-4 w-4" />
+                Collect payment
+            </a>
+            <a href="{{ \App\Filament\Resources\InvoiceResource::getUrl('due') }}" class="bh-quick-actions__btn">
+                <x-filament::icon icon="heroicon-m-exclamation-triangle" class="h-4 w-4" />
+                Due bills
+            </a>
+            <a href="{{ \App\Filament\Pages\BillingNoticesPage::getUrl() }}" class="bh-quick-actions__btn">
+                <x-filament::icon icon="heroicon-m-bell-alert" class="h-4 w-4" />
+                Notices
+            </a>
+        </div>
+
         <div class="bh-stats">
             @foreach ($this->getKpiCards() as $kpi)
                 <a href="{{ $kpi['url'] }}" class="bh-stat bh-stat--{{ $kpi['tone'] }}">
@@ -49,6 +77,60 @@
                 </a>
             @endforeach
         </div>
+
+        <section class="bh-revenue">
+            <div class="bh-revenue__chart">
+                <div class="bh-revenue__chart-head">
+                    <div>
+                        <h2 class="bh-revenue__chart-title">Revenue growth</h2>
+                        <p class="bh-revenue__chart-sub">6-month collection trend</p>
+                    </div>
+                    <div class="bh-collection-rate">
+                        <div class="bh-collection-rate__track">
+                            <div class="bh-collection-rate__fill" style="width: {{ $revenue['collection_rate'] ?? 0 }}%"></div>
+                        </div>
+                        <span class="bh-collection-rate__label">{{ $revenue['collection_rate'] ?? 0 }}% collected</span>
+                    </div>
+                </div>
+                <div class="bh-revenue__bars">
+                    @foreach ($growthLabels as $idx => $label)
+                        @php
+                            $amount = (float) ($growthValues[$idx] ?? 0);
+                            $height = max(4, round(($amount / $maxGrowth) * 100));
+                        @endphp
+                        <div class="bh-revenue__bar-col">
+                            <span class="bh-revenue__bar-val">{{ $amount >= 1000 ? number_format($amount / 1000, 0).'k' : number_format($amount, 0) }}</span>
+                            <div class="bh-revenue__bar-wrap">
+                                <div class="bh-revenue__bar" style="height: {{ $height }}%"></div>
+                            </div>
+                            <span class="bh-revenue__bar-label">{{ $label }}</span>
+                        </div>
+                    @endforeach
+                </div>
+            </div>
+            <div class="bh-revenue__metrics">
+                <div class="bh-revenue__metric bl-grad--revenue">
+                    <span class="bh-revenue__metric-label">Total revenue (MTD)</span>
+                    <span class="bh-revenue__metric-value">{{ number_format($revenue['monthly_bill'] ?? 0, 0) }} BDT</span>
+                    <span class="bh-revenue__metric-hint">Monthly bill issued</span>
+                </div>
+                <div class="bh-revenue__metric bl-grad--collection">
+                    <span class="bh-revenue__metric-label">Today's collection</span>
+                    <span class="bh-revenue__metric-value">{{ number_format($revenue['collected_today'] ?? 0, 0) }} BDT</span>
+                    <span class="bh-revenue__metric-hint">Cash received today</span>
+                </div>
+                <div class="bh-revenue__metric bl-grad--paid">
+                    <span class="bh-revenue__metric-label">Monthly collection</span>
+                    <span class="bh-revenue__metric-value">{{ number_format($revenue['collected_month'] ?? 0, 0) }} BDT</span>
+                    <span class="bh-revenue__metric-hint">This month received</span>
+                </div>
+                <div class="bh-revenue__metric bl-grad--due">
+                    <span class="bh-revenue__metric-label">Due amount</span>
+                    <span class="bh-revenue__metric-value">{{ number_format($revenue['total_due'] ?? 0, 0) }} BDT</span>
+                    <span class="bh-revenue__metric-hint">Outstanding AR</span>
+                </div>
+            </div>
+        </section>
 
         <section>
             <div class="bh-section__head">

@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\InvoiceResource\Pages;
 
 use App\Filament\Resources\InvoiceResource;
+use App\Filament\Resources\InvoiceResource\Pages\Concerns\UsesBillingInvoiceLayout;
 use Filament\Actions;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\ListRecords;
@@ -10,7 +11,21 @@ use Illuminate\Support\Facades\Artisan;
 
 class ListInvoices extends ListRecords
 {
+    use UsesBillingInvoiceLayout;
+
     protected static string $resource = InvoiceResource::class;
+
+    protected static string $view = 'filament.resources.invoice-resource.pages.list-invoices';
+
+    public function booted(): void
+    {
+        $this->bootUsesBillingInvoiceLayout();
+    }
+
+    protected function getBillingListVariant(): string
+    {
+        return 'all';
+    }
 
     protected function getHeaderActions(): array
     {

@@ -1,0 +1,76 @@
+/** Billing design tokens — gradients, glass, motion */
+
+.bh-pro,
+.bl-pro {
+    --bl-violet: #6366f1;
+    --bl-indigo: #4f46e5;
+    --bl-purple: #7c3aed;
+    --bl-emerald: #059669;
+    --bl-green: #10b981;
+    --bl-amber: #d97706;
+    --bl-orange: #ea580c;
+    --bl-rose: #e11d48;
+    --bl-red: #dc2626;
+    --bl-cyan: #0891b2;
+    --bl-blue: #2563eb;
+    --bl-surface: #f8fafc;
+    --bl-card: rgba(255, 255, 255, 0.82);
+    --bl-glass: rgba(255, 255, 255, 0.55);
+    --bl-text: #0f172a;
+    --bl-muted: #64748b;
+    --bl-border: rgba(148, 163, 184, 0.28);
+    --bl-shadow: 0 1px 3px rgba(15, 23, 42, 0.06), 0 8px 24px rgba(15, 23, 42, 0.06);
+    --bl-shadow-lg: 0 4px 6px rgba(15, 23, 42, 0.04), 0 20px 40px rgba(99, 102, 241, 0.12);
+    --bl-radius: 16px;
+    --bl-radius-sm: 12px;
+    --bl-ease: cubic-bezier(0.4, 0, 0.2, 1);
+    --bl-dur: 0.18s;
+}
+
+.dark .bh-pro,
+.dark .bl-pro,
+[data-theme='dark'] .bh-pro,
+[data-theme='dark'] .bl-pro {
+    --bl-surface: #0b1220;
+    --bl-card: rgba(17, 24, 39, 0.88);
+    --bl-glass: rgba(15, 23, 42, 0.65);
+    --bl-text: #f1f5f9;
+    --bl-muted: #94a3b8;
+    --bl-border: rgba(100, 116, 139, 0.22);
+    --bl-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+    --bl-shadow-lg: 0 20px 50px rgba(0, 0, 0, 0.45);
+}
+
+/* Gradient presets */
+.bl-grad--revenue { background: linear-gradient(135deg, #7c3aed 0%, #4f46e5 55%, #6366f1 100%); }
+.bl-grad--paid { background: linear-gradient(135deg, #059669 0%, #10b981 100%); }
+.bl-grad--due { background: linear-gradient(135deg, #ea580c 0%, #f59e0b 100%); }
+.bl-grad--overdue { background: linear-gradient(135deg, #dc2626 0%, #f43f5e 100%); }
+.bl-grad--collection { background: linear-gradient(135deg, #2563eb 0%, #0891b2 100%); }
+
+/* Glass card */
+.bl-glass {
+    background: var(--bl-glass);
+    border: 1px solid var(--bl-border);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    box-shadow: var(--bl-shadow);
+}
+
+/* Skeleton */
+@keyframes bl-shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+}
+
+.bl-skeleton {
+    background: linear-gradient(90deg, color-mix(in srgb, var(--bl-muted) 12%, transparent) 25%, color-mix(in srgb, var(--bl-muted) 20%, transparent) 50%, color-mix(in srgb, var(--bl-muted) 12%, transparent) 75%);
+    background-size: 200% 100%;
+    animation: bl-shimmer 1.4s ease-in-out infinite;
+    border-radius: 8px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .bl-skeleton { animation: none; }
+    .bh-stat, .bh-tile, .bl-inv-stat, .bl-inv-card { transition: none !important; }
+}

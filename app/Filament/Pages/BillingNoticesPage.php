@@ -31,6 +31,16 @@ class BillingNoticesPage extends Page
     }
 
     /**
+     * @return array<string, string|bool>
+     */
+    public function getExtraBodyAttributes(): array
+    {
+        return [
+            'class' => 'isp-billing-module',
+        ];
+    }
+
+    /**
      * @return array<string, mixed>
      */
     public function getNotices(): array

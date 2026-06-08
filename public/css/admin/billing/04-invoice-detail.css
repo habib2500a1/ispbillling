@@ -1,0 +1,117 @@
+/** Invoice detail / create / edit — financial profile */
+
+.isp-billing-invoice-detail .fi-page,
+.isp-billing-invoice-detail .fi-main {
+    background: var(--bl-surface, #f8fafc) !important;
+}
+
+.dark .isp-billing-invoice-detail .fi-page,
+.dark .isp-billing-invoice-detail .fi-main,
+[data-theme='dark'] .isp-billing-invoice-detail .fi-page,
+[data-theme='dark'] .isp-billing-invoice-detail .fi-main {
+    background: #0b1220 !important;
+}
+
+.isp-billing-invoice-detail .fi-header {
+    padding: 1rem 0 0.5rem;
+}
+
+.isp-billing-invoice-detail .fi-header-heading {
+    font-size: clamp(1.25rem, 3vw, 1.65rem);
+    font-weight: 800;
+    letter-spacing: -0.02em;
+}
+
+.isp-billing-invoice-detail .fi-page-header-actions {
+    flex-wrap: wrap;
+    gap: 0.4rem;
+}
+
+.isp-billing-invoice-detail .fi-section {
+    border-radius: var(--bl-radius-sm);
+    border: 1px solid var(--bl-border);
+    background: var(--bl-card);
+    box-shadow: var(--bl-shadow);
+    overflow: hidden;
+}
+
+.isp-billing-invoice-detail .fi-section-header {
+    background: color-mix(in srgb, var(--bl-violet) 5%, var(--bl-card));
+    border-bottom: 1px solid var(--bl-border);
+}
+
+.isp-billing-invoice-detail .fi-fo-field-wrp label {
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--bl-muted);
+}
+
+.isp-billing-invoice-detail .fi-ta-ctn {
+    border-radius: var(--bl-radius-sm);
+    border: 1px solid var(--bl-border);
+    overflow: hidden;
+}
+
+.isp-billing-invoice-detail .fi-ac-btn-action[data-color='success'] {
+    background: linear-gradient(135deg, #059669, #10b981);
+    border-color: transparent;
+}
+
+.isp-billing-invoice-detail .fi-ac-btn-action[data-color='danger'] {
+    background: linear-gradient(135deg, #dc2626, #f43f5e);
+    border-color: transparent;
+}
+
+.bl-inv-summary {
+    display: grid;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+}
+
+@media (min-width: 768px) {
+    .bl-inv-summary {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+.bl-inv-summary__card {
+    padding: 1rem 1.1rem;
+    border-radius: var(--bl-radius-sm);
+    border: 1px solid var(--bl-border);
+    background: var(--bl-glass);
+    backdrop-filter: blur(8px);
+}
+
+.bl-inv-summary__label {
+    font-size: 0.65rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--bl-muted);
+}
+
+.bl-inv-summary__value {
+    display: block;
+    margin-top: 0.25rem;
+    font-size: 1.35rem;
+    font-weight: 800;
+    color: var(--bl-text);
+}
+
+.bl-inv-summary__card--due .bl-inv-summary__value { color: #d97706; }
+.bl-inv-summary__card--paid .bl-inv-summary__value { color: #059669; }
+.bl-inv-summary__card--total .bl-inv-summary__value { color: var(--bl-violet); }
+
+.bl-inv-progress {
+    margin-top: 0.5rem;
+    height: 5px;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--bl-muted) 15%, transparent);
+    overflow: hidden;
+}
+
+.bl-inv-progress__fill {
+    height: 100%;
+    border-radius: inherit;
+    background: linear-gradient(90deg, #059669, #10b981);
+}

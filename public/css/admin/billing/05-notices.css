@@ -1,0 +1,186 @@
+/** Billing notices board */
+
+.isp-billing-notices-page .fi-header-heading {
+    display: none !important;
+}
+
+.isp-billing-notices-page .fi-page,
+.isp-billing-notices-page .fi-main {
+    background: var(--bl-surface, #f8fafc) !important;
+}
+
+.dark .isp-billing-notices-page .fi-page,
+.dark .isp-billing-notices-page .fi-main,
+[data-theme='dark'] .isp-billing-notices-page .fi-page,
+[data-theme='dark'] .isp-billing-notices-page .fi-main {
+    background: #0b1220 !important;
+}
+
+.bl-notices {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    max-width: 960px;
+    padding-bottom: 2rem;
+}
+
+.bl-notices-hero {
+    padding: 1.35rem 1.4rem;
+    border-radius: calc(var(--bl-radius) + 2px);
+    background: linear-gradient(135deg, #7f1d1d 0%, #dc2626 45%, #f43f5e 100%);
+    color: #fff;
+    box-shadow: var(--bl-shadow-lg);
+}
+
+.bl-notices-hero__title {
+    margin: 0;
+    font-size: clamp(1.35rem, 3vw, 1.85rem);
+    font-weight: 800;
+}
+
+.bl-notices-hero__sub {
+    margin: 0.45rem 0 0;
+    font-size: 0.875rem;
+    opacity: 0.88;
+}
+
+.bl-notices-summary {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.6rem;
+}
+
+@media (min-width: 640px) {
+    .bl-notices-summary { grid-template-columns: repeat(4, 1fr); }
+}
+
+.bl-notices-summary__item {
+    padding: 0.85rem 1rem;
+    border-radius: var(--bl-radius-sm);
+    background: var(--bl-glass);
+    border: 1px solid var(--bl-border);
+    backdrop-filter: blur(10px);
+    text-align: center;
+}
+
+.bl-notices-summary__value {
+    display: block;
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: var(--bl-text);
+}
+
+.bl-notices-summary__label {
+    font-size: 0.68rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--bl-muted);
+}
+
+.bl-notices-section {
+    border-radius: var(--bl-radius);
+    background: var(--bl-card);
+    border: 1px solid var(--bl-border);
+    box-shadow: var(--bl-shadow);
+    overflow: hidden;
+}
+
+.bl-notices-section__head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    padding: 0.9rem 1.1rem;
+    border-bottom: 1px solid var(--bl-border);
+    background: color-mix(in srgb, var(--bl-card) 94%, var(--bl-violet) 6%);
+}
+
+.bl-notices-section__title {
+    margin: 0;
+    font-size: 0.95rem;
+    font-weight: 800;
+    color: var(--bl-text);
+}
+
+.bl-notices-section__hint {
+    margin: 0.15rem 0 0;
+    font-size: 0.75rem;
+    color: var(--bl-muted);
+}
+
+.bl-notices-section__link {
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--bl-violet);
+    text-decoration: none;
+}
+
+.bl-notices-list {
+    display: flex;
+    flex-direction: column;
+}
+
+.bl-notice-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding: 0.85rem 1.1rem;
+    border-bottom: 1px solid var(--bl-border);
+    text-decoration: none;
+    color: inherit;
+    transition: background var(--bl-dur) var(--bl-ease);
+}
+
+.bl-notice-item:last-child { border-bottom: none; }
+
+.bl-notice-item:hover {
+    background: color-mix(in srgb, var(--bl-violet) 5%, transparent);
+    text-decoration: none;
+    color: inherit;
+}
+
+.bl-notice-item__dot {
+    width: 0.55rem;
+    height: 0.55rem;
+    margin-top: 0.45rem;
+    border-radius: 999px;
+    flex-shrink: 0;
+}
+
+.bl-notice-item__dot--danger { background: #f43f5e; box-shadow: 0 0 0 3px rgba(244, 63, 94, 0.25); }
+.bl-notice-item__dot--warning { background: #f59e0b; box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.25); }
+.bl-notice-item__dot--amber { background: #fbbf24; }
+
+.bl-notice-item__title {
+    margin: 0;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--bl-text);
+}
+
+.bl-notice-item__message {
+    margin: 0.2rem 0 0;
+    font-size: 0.78rem;
+    line-height: 1.45;
+    color: var(--bl-muted);
+}
+
+.bl-notices-empty {
+    padding: 2.5rem 1.5rem;
+    text-align: center;
+    color: var(--bl-muted);
+}
+
+.bl-notices-empty__icon {
+    display: inline-flex;
+    width: 3.5rem;
+    height: 3.5rem;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    background: color-mix(in srgb, #059669 12%, transparent);
+    color: #059669;
+    margin-bottom: 0.75rem;
+}

@@ -1,0 +1,1394 @@
+/** Billing & invoices — bundled from public/css/admin/billing/ */
+
+/* --- 01-tokens.css --- */
+/** Billing design tokens — gradients, glass, motion */
+
+.bh-pro,
+.bl-pro {
+    --bl-violet: #6366f1;
+    --bl-indigo: #4f46e5;
+    --bl-purple: #7c3aed;
+    --bl-emerald: #059669;
+    --bl-green: #10b981;
+    --bl-amber: #d97706;
+    --bl-orange: #ea580c;
+    --bl-rose: #e11d48;
+    --bl-red: #dc2626;
+    --bl-cyan: #0891b2;
+    --bl-blue: #2563eb;
+    --bl-surface: #f8fafc;
+    --bl-card: rgba(255, 255, 255, 0.82);
+    --bl-glass: rgba(255, 255, 255, 0.55);
+    --bl-text: #0f172a;
+    --bl-muted: #64748b;
+    --bl-border: rgba(148, 163, 184, 0.28);
+    --bl-shadow: 0 1px 3px rgba(15, 23, 42, 0.06), 0 8px 24px rgba(15, 23, 42, 0.06);
+    --bl-shadow-lg: 0 4px 6px rgba(15, 23, 42, 0.04), 0 20px 40px rgba(99, 102, 241, 0.12);
+    --bl-radius: 16px;
+    --bl-radius-sm: 12px;
+    --bl-ease: cubic-bezier(0.4, 0, 0.2, 1);
+    --bl-dur: 0.18s;
+}
+
+.dark .bh-pro,
+.dark .bl-pro,
+[data-theme='dark'] .bh-pro,
+[data-theme='dark'] .bl-pro {
+    --bl-surface: #0b1220;
+    --bl-card: rgba(17, 24, 39, 0.88);
+    --bl-glass: rgba(15, 23, 42, 0.65);
+    --bl-text: #f1f5f9;
+    --bl-muted: #94a3b8;
+    --bl-border: rgba(100, 116, 139, 0.22);
+    --bl-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+    --bl-shadow-lg: 0 20px 50px rgba(0, 0, 0, 0.45);
+}
+
+/* Gradient presets */
+.bl-grad--revenue { background: linear-gradient(135deg, #7c3aed 0%, #4f46e5 55%, #6366f1 100%); }
+.bl-grad--paid { background: linear-gradient(135deg, #059669 0%, #10b981 100%); }
+.bl-grad--due { background: linear-gradient(135deg, #ea580c 0%, #f59e0b 100%); }
+.bl-grad--overdue { background: linear-gradient(135deg, #dc2626 0%, #f43f5e 100%); }
+.bl-grad--collection { background: linear-gradient(135deg, #2563eb 0%, #0891b2 100%); }
+
+/* Glass card */
+.bl-glass {
+    background: var(--bl-glass);
+    border: 1px solid var(--bl-border);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    box-shadow: var(--bl-shadow);
+}
+
+/* Skeleton */
+@keyframes bl-shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+}
+
+.bl-skeleton {
+    background: linear-gradient(90deg, color-mix(in srgb, var(--bl-muted) 12%, transparent) 25%, color-mix(in srgb, var(--bl-muted) 20%, transparent) 50%, color-mix(in srgb, var(--bl-muted) 12%, transparent) 75%);
+    background-size: 200% 100%;
+    animation: bl-shimmer 1.4s ease-in-out infinite;
+    border-radius: 8px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .bl-skeleton { animation: none; }
+    .bh-stat, .bh-tile, .bl-inv-stat, .bl-inv-card { transition: none !important; }
+}
+
+/* --- 02-hub-dashboard.css --- */
+/** Billing Center hub — premium dashboard evolution */
+
+.isp-billing-hub-page .fi-header,
+.isp-billing-hub-page .fi-page-header,
+.isp-billing-hub-page .fi-header-heading {
+    display: none !important;
+}
+
+.isp-billing-hub-page .fi-page,
+.isp-billing-hub-page .fi-main {
+    background: var(--bl-surface, #f8fafc) !important;
+}
+
+.dark .isp-billing-hub-page .fi-page,
+.dark .isp-billing-hub-page .fi-main,
+[data-theme='dark'] .isp-billing-hub-page .fi-page,
+[data-theme='dark'] .isp-billing-hub-page .fi-main {
+    background: #0b1220 !important;
+}
+
+.bh-pro .bh-stat,
+.bh-pro .bh-ops__card,
+.bh-pro .bh-tile,
+.bh-pro .bh-hero__money-card {
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+}
+
+.bh-pro .bh-revenue {
+    display: grid;
+    gap: 1rem;
+}
+
+@media (min-width: 1024px) {
+    .bh-pro .bh-revenue {
+        grid-template-columns: 1.4fr 1fr;
+        align-items: stretch;
+    }
+}
+
+.bh-revenue__chart {
+    padding: 1.15rem 1.2rem;
+    border-radius: var(--bl-radius);
+    background: var(--bl-card);
+    border: 1px solid var(--bl-border);
+    box-shadow: var(--bl-shadow);
+}
+
+.bh-revenue__chart-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.bh-revenue__chart-title {
+    margin: 0;
+    font-size: 0.95rem;
+    font-weight: 800;
+    color: var(--bl-text);
+}
+
+.bh-revenue__chart-sub {
+    margin: 0.15rem 0 0;
+    font-size: 0.75rem;
+    color: var(--bl-muted);
+}
+
+.bh-revenue__bars {
+    display: flex;
+    align-items: flex-end;
+    gap: 0.45rem;
+    min-height: 140px;
+    padding-top: 0.5rem;
+}
+
+.bh-revenue__bar-col {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.35rem;
+    min-width: 0;
+}
+
+.bh-revenue__bar-wrap {
+    width: 100%;
+    height: 110px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+}
+
+.bh-revenue__bar {
+    width: min(100%, 2.5rem);
+    border-radius: 8px 8px 4px 4px;
+    background: linear-gradient(180deg, #818cf8 0%, #6366f1 100%);
+    transition: height var(--bl-dur) var(--bl-ease);
+    min-height: 4px;
+}
+
+.bh-revenue__bar-label {
+    font-size: 0.62rem;
+    font-weight: 600;
+    color: var(--bl-muted);
+    text-align: center;
+}
+
+.bh-revenue__bar-val {
+    font-size: 0.65rem;
+    font-weight: 700;
+    color: var(--bl-text);
+}
+
+.bh-revenue__metrics {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.65rem;
+}
+
+.bh-revenue__metric {
+    padding: 0.9rem 1rem;
+    border-radius: var(--bl-radius-sm);
+    color: #fff;
+    box-shadow: var(--bl-shadow);
+    transition: transform var(--bl-dur) var(--bl-ease);
+}
+
+.bh-revenue__metric:hover {
+    transform: translateY(-2px);
+}
+
+.bh-revenue__metric-label {
+    font-size: 0.65rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    opacity: 0.85;
+}
+
+.bh-revenue__metric-value {
+    display: block;
+    margin-top: 0.25rem;
+    font-size: 1.25rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+}
+
+.bh-revenue__metric-hint {
+    display: block;
+    margin-top: 0.2rem;
+    font-size: 0.68rem;
+    opacity: 0.8;
+}
+
+.bh-pro .bh-quick-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    padding: 0.85rem 1rem;
+    border-radius: var(--bl-radius-sm);
+    background: var(--bl-glass);
+    border: 1px solid var(--bl-border);
+    backdrop-filter: blur(10px);
+}
+
+.bh-quick-actions__btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.5rem 0.9rem;
+    border-radius: 999px;
+    border: 1px solid var(--bl-border);
+    background: var(--bl-card);
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--bl-text);
+    text-decoration: none;
+    transition: transform var(--bl-dur) var(--bl-ease), box-shadow var(--bl-dur) var(--bl-ease);
+}
+
+.bh-quick-actions__btn:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--bl-shadow);
+    text-decoration: none;
+    color: var(--bl-text);
+}
+
+.bh-quick-actions__btn--primary {
+    background: linear-gradient(135deg, #6366f1, #7c3aed);
+    border-color: transparent;
+    color: #fff;
+}
+
+.bh-pro .bh-collection-rate {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-top: 0.5rem;
+}
+
+.bh-collection-rate__track {
+    flex: 1;
+    height: 6px;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--bl-muted) 18%, transparent);
+    overflow: hidden;
+}
+
+.bh-collection-rate__fill {
+    height: 100%;
+    border-radius: inherit;
+    background: linear-gradient(90deg, #059669, #10b981);
+    transition: width 0.4s var(--bl-ease);
+}
+
+.bh-collection-rate__label {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--bl-emerald);
+    white-space: nowrap;
+}
+
+/* --- 03-invoice-list.css --- */
+/** Invoice list pages — All / Due / Paid bills */
+
+.isp-billing-invoices-page .fi-header,
+.isp-billing-invoices-page .fi-page-header,
+.isp-billing-invoices-page .fi-header-heading {
+    display: none !important;
+}
+
+.isp-billing-invoices-page .fi-page,
+.isp-billing-invoices-page .fi-main {
+    background: var(--bl-surface, #f8fafc) !important;
+}
+
+.dark .isp-billing-invoices-page .fi-page,
+.dark .isp-billing-invoices-page .fi-main,
+[data-theme='dark'] .isp-billing-invoices-page .fi-page,
+[data-theme='dark'] .isp-billing-invoices-page .fi-main {
+    background: #0b1220 !important;
+}
+
+.bl-pro {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    max-width: 1440px;
+    padding-bottom: 5rem;
+}
+
+.bl-inv-hero {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1.35rem 1.4rem;
+    border-radius: calc(var(--bl-radius) + 2px);
+    background: linear-gradient(135deg, #1e1b4b 0%, #4f46e5 50%, #6366f1 100%);
+    color: #fff;
+    box-shadow: var(--bl-shadow-lg);
+    position: relative;
+    overflow: hidden;
+}
+
+.bl-inv-hero::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse 60% 50% at 100% 0%, rgba(255, 255, 255, 0.14), transparent 60%);
+    pointer-events: none;
+}
+
+.bl-inv-hero__body { position: relative; z-index: 1; }
+
+.bl-inv-hero__badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.28rem 0.7rem;
+    border-radius: 999px;
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    background: rgba(255, 255, 255, 0.14);
+    border: 1px solid rgba(255, 255, 255, 0.22);
+}
+
+.bl-inv-hero__title {
+    margin: 0.65rem 0 0;
+    font-size: clamp(1.4rem, 3.5vw, 2rem);
+    font-weight: 800;
+    letter-spacing: -0.03em;
+}
+
+.bl-inv-hero__sub {
+    margin: 0.45rem 0 0;
+    max-width: 32rem;
+    font-size: 0.875rem;
+    line-height: 1.5;
+    color: rgba(255, 255, 255, 0.82);
+}
+
+.bl-inv-hero__actions {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+    align-items: center;
+}
+
+.bl-inv-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.52rem 0.95rem;
+    border-radius: 10px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-decoration: none;
+    border: 1px solid transparent;
+    cursor: pointer;
+    transition: transform var(--bl-dur) var(--bl-ease), box-shadow var(--bl-dur) var(--bl-ease);
+}
+
+.bl-inv-btn:hover {
+    transform: translateY(-1px);
+    text-decoration: none;
+}
+
+.bl-inv-btn--ghost {
+    background: rgba(255, 255, 255, 0.12);
+    border-color: rgba(255, 255, 255, 0.28);
+    color: #fff;
+    backdrop-filter: blur(6px);
+}
+
+.bl-inv-btn--ghost:hover { color: #fff; }
+
+.bl-inv-btn--ghost.bl-inv-btn--active {
+    background: rgba(255, 255, 255, 0.24);
+    border-color: rgba(255, 255, 255, 0.4);
+}
+
+.bl-inv-btn--primary {
+    background: #fff;
+    color: var(--bl-indigo);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
+}
+
+.bl-inv-btn--primary:hover { color: var(--bl-indigo); }
+
+.bl-inv-btn--sm { padding: 0.42rem 0.75rem; font-size: 0.75rem; }
+
+.bl-inv-nav {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 0.35rem;
+    overflow-x: auto;
+    padding: 0.35rem;
+    border-radius: var(--bl-radius-sm);
+    background: var(--bl-glass);
+    border: 1px solid var(--bl-border);
+    backdrop-filter: blur(10px);
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+}
+
+.bl-inv-nav::-webkit-scrollbar { display: none; }
+
+.bl-inv-nav__link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    flex-shrink: 0;
+    padding: 0.5rem 0.9rem;
+    border-radius: 9px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--bl-muted);
+    text-decoration: none;
+    transition: background var(--bl-dur) var(--bl-ease), color var(--bl-dur) var(--bl-ease);
+}
+
+.bl-inv-nav__link:hover {
+    color: var(--bl-violet);
+    text-decoration: none;
+}
+
+.bl-inv-nav__link--active {
+    background: color-mix(in srgb, var(--bl-violet) 14%, transparent);
+    color: var(--bl-violet);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--bl-violet) 28%, transparent);
+}
+
+.bl-inv-nav__count {
+    display: inline-flex;
+    min-width: 1.35rem;
+    justify-content: center;
+    padding: 0.1rem 0.4rem;
+    border-radius: 999px;
+    font-size: 0.68rem;
+    font-weight: 700;
+    background: color-mix(in srgb, var(--bl-violet) 12%, transparent);
+}
+
+.bl-inv-stats {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.6rem;
+}
+
+@media (min-width: 640px) { .bl-inv-stats { grid-template-columns: repeat(4, 1fr); } }
+
+.bl-inv-stat {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    padding: 0.9rem 1rem;
+    border-radius: var(--bl-radius-sm);
+    background: var(--bl-card);
+    border: 1px solid var(--bl-border);
+    box-shadow: var(--bl-shadow);
+    text-decoration: none;
+    color: inherit;
+    position: relative;
+    overflow: hidden;
+    transition: transform var(--bl-dur) var(--bl-ease), box-shadow var(--bl-dur) var(--bl-ease);
+}
+
+.bl-inv-stat::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+    background: var(--bl-accent, var(--bl-violet));
+}
+
+.bl-inv-stat:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--bl-shadow-lg);
+    text-decoration: none;
+    color: inherit;
+}
+
+.bl-inv-stat__label {
+    font-size: 0.65rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--bl-muted);
+}
+
+.bl-inv-stat__value {
+    font-size: 1.2rem;
+    font-weight: 800;
+    color: var(--bl-text);
+}
+
+.bl-inv-stat--violet { --bl-accent: #6366f1; }
+.bl-inv-stat--emerald { --bl-accent: #059669; }
+.bl-inv-stat--amber { --bl-accent: #d97706; }
+.bl-inv-stat--rose { --bl-accent: #e11d48; }
+
+.bl-inv-toolbar {
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+    padding: 0.9rem 1rem;
+    border-radius: var(--bl-radius-sm);
+    background: var(--bl-glass);
+    border: 1px solid var(--bl-border);
+    backdrop-filter: blur(10px);
+}
+
+.bl-inv-toolbar__row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.55rem;
+}
+
+.bl-inv-search {
+    flex: 1 1 220px;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.55rem 0.85rem;
+    border-radius: 10px;
+    border: 1px solid var(--bl-border);
+    background: var(--bl-card);
+}
+
+.bl-inv-search input {
+    flex: 1;
+    min-width: 0;
+    border: none;
+    background: transparent;
+    font-size: 0.85rem;
+    color: var(--bl-text);
+    outline: none;
+}
+
+.bl-inv-search input::placeholder { color: var(--bl-muted); }
+
+.bl-inv-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+}
+
+.bl-inv-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.3rem 0.65rem;
+    border-radius: 999px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    background: color-mix(in srgb, var(--bl-violet) 10%, var(--bl-card));
+    border: 1px solid color-mix(in srgb, var(--bl-violet) 22%, var(--bl-border));
+    color: var(--bl-violet);
+    text-decoration: none;
+}
+
+.bl-inv-chip:hover { text-decoration: none; color: var(--bl-violet); }
+
+.bl-inv-table-wrap {
+    border-radius: var(--bl-radius);
+    background: var(--bl-card);
+    border: 1px solid var(--bl-border);
+    box-shadow: var(--bl-shadow);
+    overflow: hidden;
+}
+
+.bl-pro .fi-ta-table {
+    border-radius: 0;
+}
+
+.bl-pro .fi-ta-header-cell {
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.bl-pro .fi-ta-row {
+    transition: background var(--bl-dur) var(--bl-ease);
+}
+
+.bl-pro .fi-ta-row:hover {
+    background: color-mix(in srgb, var(--bl-violet) 4%, transparent);
+}
+
+.bl-pro .fi-badge {
+    font-weight: 700;
+    letter-spacing: 0.02em;
+}
+
+.bl-inv-table-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+    padding: 0.65rem 1rem;
+    border-bottom: 1px solid var(--bl-border);
+    background: color-mix(in srgb, var(--bl-card) 96%, var(--bl-violet) 4%);
+}
+
+.bl-inv-dock {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 40;
+    padding: 0.5rem 0.65rem calc(0.5rem + env(safe-area-inset-bottom));
+    background: color-mix(in srgb, var(--bl-card) 94%, transparent);
+    border-top: 1px solid var(--bl-border);
+    backdrop-filter: blur(14px);
+    box-shadow: 0 -4px 24px rgba(15, 23, 42, 0.08);
+}
+
+.bl-inv-dock__inner {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 0.25rem;
+    max-width: 480px;
+    margin: 0 auto;
+}
+
+.bl-inv-dock__link {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.15rem;
+    padding: 0.45rem 0.25rem;
+    border-radius: 10px;
+    font-size: 0.6rem;
+    font-weight: 600;
+    color: var(--bl-muted);
+    text-decoration: none;
+}
+
+.bl-inv-dock__link--active,
+.bl-inv-dock__link:hover {
+    background: color-mix(in srgb, var(--bl-violet) 12%, transparent);
+    color: var(--bl-violet);
+    text-decoration: none;
+}
+
+.bl-inv-dock__link svg { width: 1.2rem; height: 1.2rem; }
+
+@media (min-width: 1024px) {
+    .bl-inv-dock { display: none; }
+}
+
+/* --- 04-invoice-detail.css --- */
+/** Invoice detail / create / edit — financial profile */
+
+.isp-billing-invoice-detail .fi-page,
+.isp-billing-invoice-detail .fi-main {
+    background: var(--bl-surface, #f8fafc) !important;
+}
+
+.dark .isp-billing-invoice-detail .fi-page,
+.dark .isp-billing-invoice-detail .fi-main,
+[data-theme='dark'] .isp-billing-invoice-detail .fi-page,
+[data-theme='dark'] .isp-billing-invoice-detail .fi-main {
+    background: #0b1220 !important;
+}
+
+.isp-billing-invoice-detail .fi-header {
+    padding: 1rem 0 0.5rem;
+}
+
+.isp-billing-invoice-detail .fi-header-heading {
+    font-size: clamp(1.25rem, 3vw, 1.65rem);
+    font-weight: 800;
+    letter-spacing: -0.02em;
+}
+
+.isp-billing-invoice-detail .fi-page-header-actions {
+    flex-wrap: wrap;
+    gap: 0.4rem;
+}
+
+.isp-billing-invoice-detail .fi-section {
+    border-radius: var(--bl-radius-sm);
+    border: 1px solid var(--bl-border);
+    background: var(--bl-card);
+    box-shadow: var(--bl-shadow);
+    overflow: hidden;
+}
+
+.isp-billing-invoice-detail .fi-section-header {
+    background: color-mix(in srgb, var(--bl-violet) 5%, var(--bl-card));
+    border-bottom: 1px solid var(--bl-border);
+}
+
+.isp-billing-invoice-detail .fi-fo-field-wrp label {
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--bl-muted);
+}
+
+.isp-billing-invoice-detail .fi-ta-ctn {
+    border-radius: var(--bl-radius-sm);
+    border: 1px solid var(--bl-border);
+    overflow: hidden;
+}
+
+.isp-billing-invoice-detail .fi-ac-btn-action[data-color='success'] {
+    background: linear-gradient(135deg, #059669, #10b981);
+    border-color: transparent;
+}
+
+.isp-billing-invoice-detail .fi-ac-btn-action[data-color='danger'] {
+    background: linear-gradient(135deg, #dc2626, #f43f5e);
+    border-color: transparent;
+}
+
+.bl-inv-summary {
+    display: grid;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+}
+
+@media (min-width: 768px) {
+    .bl-inv-summary {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+.bl-inv-summary__card {
+    padding: 1rem 1.1rem;
+    border-radius: var(--bl-radius-sm);
+    border: 1px solid var(--bl-border);
+    background: var(--bl-glass);
+    backdrop-filter: blur(8px);
+}
+
+.bl-inv-summary__label {
+    font-size: 0.65rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--bl-muted);
+}
+
+.bl-inv-summary__value {
+    display: block;
+    margin-top: 0.25rem;
+    font-size: 1.35rem;
+    font-weight: 800;
+    color: var(--bl-text);
+}
+
+.bl-inv-summary__card--due .bl-inv-summary__value { color: #d97706; }
+.bl-inv-summary__card--paid .bl-inv-summary__value { color: #059669; }
+.bl-inv-summary__card--total .bl-inv-summary__value { color: var(--bl-violet); }
+
+.bl-inv-progress {
+    margin-top: 0.5rem;
+    height: 5px;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--bl-muted) 15%, transparent);
+    overflow: hidden;
+}
+
+.bl-inv-progress__fill {
+    height: 100%;
+    border-radius: inherit;
+    background: linear-gradient(90deg, #059669, #10b981);
+}
+
+/* --- 05-notices.css --- */
+/** Billing notices board */
+
+.isp-billing-notices-page .fi-header-heading {
+    display: none !important;
+}
+
+.isp-billing-notices-page .fi-page,
+.isp-billing-notices-page .fi-main {
+    background: var(--bl-surface, #f8fafc) !important;
+}
+
+.dark .isp-billing-notices-page .fi-page,
+.dark .isp-billing-notices-page .fi-main,
+[data-theme='dark'] .isp-billing-notices-page .fi-page,
+[data-theme='dark'] .isp-billing-notices-page .fi-main {
+    background: #0b1220 !important;
+}
+
+.bl-notices {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    max-width: 960px;
+    padding-bottom: 2rem;
+}
+
+.bl-notices-hero {
+    padding: 1.35rem 1.4rem;
+    border-radius: calc(var(--bl-radius) + 2px);
+    background: linear-gradient(135deg, #7f1d1d 0%, #dc2626 45%, #f43f5e 100%);
+    color: #fff;
+    box-shadow: var(--bl-shadow-lg);
+}
+
+.bl-notices-hero__title {
+    margin: 0;
+    font-size: clamp(1.35rem, 3vw, 1.85rem);
+    font-weight: 800;
+}
+
+.bl-notices-hero__sub {
+    margin: 0.45rem 0 0;
+    font-size: 0.875rem;
+    opacity: 0.88;
+}
+
+.bl-notices-summary {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.6rem;
+}
+
+@media (min-width: 640px) {
+    .bl-notices-summary { grid-template-columns: repeat(4, 1fr); }
+}
+
+.bl-notices-summary__item {
+    padding: 0.85rem 1rem;
+    border-radius: var(--bl-radius-sm);
+    background: var(--bl-glass);
+    border: 1px solid var(--bl-border);
+    backdrop-filter: blur(10px);
+    text-align: center;
+}
+
+.bl-notices-summary__value {
+    display: block;
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: var(--bl-text);
+}
+
+.bl-notices-summary__label {
+    font-size: 0.68rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--bl-muted);
+}
+
+.bl-notices-section {
+    border-radius: var(--bl-radius);
+    background: var(--bl-card);
+    border: 1px solid var(--bl-border);
+    box-shadow: var(--bl-shadow);
+    overflow: hidden;
+}
+
+.bl-notices-section__head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    padding: 0.9rem 1.1rem;
+    border-bottom: 1px solid var(--bl-border);
+    background: color-mix(in srgb, var(--bl-card) 94%, var(--bl-violet) 6%);
+}
+
+.bl-notices-section__title {
+    margin: 0;
+    font-size: 0.95rem;
+    font-weight: 800;
+    color: var(--bl-text);
+}
+
+.bl-notices-section__hint {
+    margin: 0.15rem 0 0;
+    font-size: 0.75rem;
+    color: var(--bl-muted);
+}
+
+.bl-notices-section__link {
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--bl-violet);
+    text-decoration: none;
+}
+
+.bl-notices-list {
+    display: flex;
+    flex-direction: column;
+}
+
+.bl-notice-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding: 0.85rem 1.1rem;
+    border-bottom: 1px solid var(--bl-border);
+    text-decoration: none;
+    color: inherit;
+    transition: background var(--bl-dur) var(--bl-ease);
+}
+
+.bl-notice-item:last-child { border-bottom: none; }
+
+.bl-notice-item:hover {
+    background: color-mix(in srgb, var(--bl-violet) 5%, transparent);
+    text-decoration: none;
+    color: inherit;
+}
+
+.bl-notice-item__dot {
+    width: 0.55rem;
+    height: 0.55rem;
+    margin-top: 0.45rem;
+    border-radius: 999px;
+    flex-shrink: 0;
+}
+
+.bl-notice-item__dot--danger { background: #f43f5e; box-shadow: 0 0 0 3px rgba(244, 63, 94, 0.25); }
+.bl-notice-item__dot--warning { background: #f59e0b; box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.25); }
+.bl-notice-item__dot--amber { background: #fbbf24; }
+
+.bl-notice-item__title {
+    margin: 0;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--bl-text);
+}
+
+.bl-notice-item__message {
+    margin: 0.2rem 0 0;
+    font-size: 0.78rem;
+    line-height: 1.45;
+    color: var(--bl-muted);
+}
+
+.bl-notices-empty {
+    padding: 2.5rem 1.5rem;
+    text-align: center;
+    color: var(--bl-muted);
+}
+
+.bl-notices-empty__icon {
+    display: inline-flex;
+    width: 3.5rem;
+    height: 3.5rem;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    background: color-mix(in srgb, #059669 12%, transparent);
+    color: #059669;
+    margin-bottom: 0.75rem;
+}
+
+/* --- 06-sidebar.css --- */
+/** Billing sidebar — active states, badges, compact mode */
+
+body.isp-billing-module .fi-sidebar-group[data-group-label='Billing'] .fi-sidebar-group-label,
+body.isp-billing-module .fi-sidebar-group:has([href*='billing-overview']) .fi-sidebar-group-label {
+    font-size: 0.68rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--bl-muted, #64748b);
+}
+
+body.isp-billing-module .fi-sidebar-item-button[href*='billing'],
+body.isp-billing-module .fi-sidebar-item-button[href*='invoices'],
+body.isp-billing-module .fi-sidebar-item-button[href*='bill-collection'],
+body.isp-billing-module .fi-sidebar-item-button[href*='payments-report'],
+body.isp-billing-module .fi-sidebar-item-button[href*='collection-desk'] {
+    border-radius: 10px;
+    margin: 0.1rem 0.35rem;
+    transition: background var(--bl-dur, 0.18s) ease, color var(--bl-dur, 0.18s) ease;
+}
+
+body.isp-billing-module .fi-sidebar-item.fi-active .fi-sidebar-item-button,
+body.isp-billing-module .fi-sidebar-item-button.fi-active {
+    background: linear-gradient(135deg, color-mix(in srgb, #6366f1 16%, transparent), color-mix(in srgb, #7c3aed 10%, transparent)) !important;
+    color: #6366f1 !important;
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, #6366f1 22%, transparent);
+}
+
+.dark body.isp-billing-module .fi-sidebar-item.fi-active .fi-sidebar-item-button,
+[data-theme='dark'] body.isp-billing-module .fi-sidebar-item.fi-active .fi-sidebar-item-button {
+    color: #a5b4fc !important;
+}
+
+body.isp-billing-module .fi-sidebar-item-badge {
+    font-size: 0.65rem;
+    font-weight: 800;
+    padding: 0.15rem 0.45rem;
+    border-radius: 999px;
+    background: linear-gradient(135deg, #6366f1, #7c3aed) !important;
+    color: #fff !important;
+    box-shadow: 0 2px 6px rgba(99, 102, 241, 0.35);
+}
+
+body.isp-billing-module .fi-sidebar-item-button[href*='due'] .fi-sidebar-item-badge,
+body.isp-billing-module .fi-sidebar-item-button[href*='billing-notices'] .fi-sidebar-item-badge {
+    background: linear-gradient(135deg, #dc2626, #f43f5e) !important;
+}
+
+body.isp-billing-module .fi-sidebar-item-button[href*='paid'] .fi-sidebar-item-badge {
+    background: linear-gradient(135deg, #059669, #10b981) !important;
+}
+
+/* Compact sidebar toggle */
+body.isp-billing-sidebar-compact .fi-main-sidebar .fi-sidebar-item-label,
+body.isp-billing-sidebar-compact .fi-main-sidebar .fi-sidebar-group-label {
+    opacity: 0;
+    width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+}
+
+body.isp-billing-sidebar-compact .fi-main-sidebar .fi-sidebar-item-button {
+    justify-content: center;
+    padding-left: 0.65rem;
+    padding-right: 0.65rem;
+}
+
+body.isp-billing-sidebar-compact .fi-main-sidebar .fi-sidebar-item-badge {
+    position: absolute;
+    top: 0.25rem;
+    right: 0.25rem;
+    min-width: 1rem;
+    height: 1rem;
+    padding: 0;
+    font-size: 0.55rem;
+    line-height: 1rem;
+}
+
+.bl-sidebar-toggle {
+    display: none;
+    position: fixed;
+    bottom: 5.5rem;
+    left: 0.75rem;
+    z-index: 35;
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: 999px;
+    border: 1px solid var(--bl-border);
+    background: var(--bl-card);
+    color: var(--bl-violet);
+    box-shadow: var(--bl-shadow);
+    cursor: pointer;
+    align-items: center;
+    justify-content: center;
+}
+
+@media (min-width: 1024px) {
+    body.isp-billing-module .bl-sidebar-toggle {
+        display: flex;
+    }
+}
+
+/* --- 07-mobile.css --- */
+/** Billing mobile — invoice cards, action sheets */
+
+@media (max-width: 767px) {
+    .bl-pro[data-view='cards'] .fi-ta-table {
+        display: none !important;
+    }
+
+    .bl-pro[data-view='cards'] .bl-inv-mobile-cards {
+        display: flex;
+    }
+
+    .bl-inv-mobile-cards {
+        display: none;
+        flex-direction: column;
+        gap: 0.65rem;
+        padding: 0.75rem;
+    }
+
+    .bl-inv-card {
+        padding: 1rem;
+        border-radius: var(--bl-radius-sm);
+        background: var(--bl-card);
+        border: 1px solid var(--bl-border);
+        box-shadow: var(--bl-shadow);
+        transition: transform var(--bl-dur) var(--bl-ease);
+    }
+
+    .bl-inv-card:active {
+        transform: scale(0.98);
+    }
+
+    .bl-inv-card__head {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 0.5rem;
+        margin-bottom: 0.55rem;
+    }
+
+    .bl-inv-card__number {
+        font-size: 0.9rem;
+        font-weight: 800;
+        color: var(--bl-text);
+    }
+
+    .bl-inv-card__customer {
+        font-size: 0.8rem;
+        color: var(--bl-muted);
+        margin-top: 0.15rem;
+    }
+
+    .bl-inv-card__badge {
+        display: inline-flex;
+        padding: 0.2rem 0.55rem;
+        border-radius: 999px;
+        font-size: 0.65rem;
+        font-weight: 700;
+        text-transform: uppercase;
+    }
+
+    .bl-inv-card__badge--paid {
+        background: color-mix(in srgb, #059669 15%, transparent);
+        color: #059669;
+    }
+
+    .bl-inv-card__badge--due {
+        background: color-mix(in srgb, #d97706 15%, transparent);
+        color: #d97706;
+    }
+
+    .bl-inv-card__badge--overdue {
+        background: color-mix(in srgb, #dc2626 15%, transparent);
+        color: #dc2626;
+    }
+
+    .bl-inv-card__badge--open {
+        background: color-mix(in srgb, #6366f1 15%, transparent);
+        color: #6366f1;
+    }
+
+    .bl-inv-card__grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.45rem;
+        margin-top: 0.55rem;
+    }
+
+    .bl-inv-card__field label {
+        display: block;
+        font-size: 0.62rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: var(--bl-muted);
+    }
+
+    .bl-inv-card__field span {
+        font-size: 0.82rem;
+        font-weight: 700;
+        color: var(--bl-text);
+    }
+
+    .bl-inv-card__progress {
+        margin-top: 0.55rem;
+        height: 4px;
+        border-radius: 999px;
+        background: color-mix(in srgb, var(--bl-muted) 12%, transparent);
+        overflow: hidden;
+    }
+
+    .bl-inv-card__progress-fill {
+        height: 100%;
+        background: linear-gradient(90deg, #059669, #10b981);
+        border-radius: inherit;
+    }
+
+    .bl-inv-card__actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.4rem;
+        margin-top: 0.65rem;
+        padding-top: 0.65rem;
+        border-top: 1px dashed var(--bl-border);
+    }
+
+    .bl-inv-card__action {
+        flex: 1 1 auto;
+        min-height: 40px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.3rem;
+        padding: 0.45rem 0.65rem;
+        border-radius: 8px;
+        border: 1px solid var(--bl-border);
+        background: var(--bl-card);
+        font-size: 0.72rem;
+        font-weight: 600;
+        color: var(--bl-text);
+        text-decoration: none;
+    }
+
+    .bl-inv-card__action--primary {
+        background: linear-gradient(135deg, #059669, #10b981);
+        border-color: transparent;
+        color: #fff;
+    }
+
+    .bl-inv-view-toggle {
+        display: inline-flex;
+        border-radius: 9px;
+        border: 1px solid var(--bl-border);
+        overflow: hidden;
+    }
+
+    .bl-inv-view-toggle__btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0.45rem 0.65rem;
+        border: none;
+        background: transparent;
+        color: var(--bl-muted);
+        cursor: pointer;
+    }
+
+    .bl-inv-view-toggle__btn--active {
+        background: color-mix(in srgb, var(--bl-violet) 14%, transparent);
+        color: var(--bl-violet);
+    }
+
+    .bh-pro .bh-stats {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .bh-pro .bh-bento {
+        grid-template-columns: 1fr;
+    }
+
+    .bh-pro .bh-hero__actions .bh-btn {
+        flex: 1 1 calc(50% - 0.3rem);
+        justify-content: center;
+    }
+
+    .bl-inv-hero__actions {
+        width: 100%;
+    }
+
+    .bl-inv-hero__actions .bl-inv-btn {
+        flex: 1 1 auto;
+        justify-content: center;
+    }
+}
+
+@media (min-width: 768px) {
+    .bl-inv-mobile-cards { display: none !important; }
+    .bl-inv-view-toggle { display: none; }
+}
+
+/* --- 08-light-mode.css --- */
+/** Billing light mode — premium fintech */
+
+:root:not(.dark):not([data-theme='dark']) .bh-pro,
+:root:not(.dark):not([data-theme='dark']) .bl-pro {
+    --bl-card: rgba(255, 255, 255, 0.92);
+    --bl-glass: rgba(255, 255, 255, 0.72);
+}
+
+:root:not(.dark):not([data-theme='dark']) .bh-pro .bh-stat,
+:root:not(.dark):not([data-theme='dark']) .bh-pro .bh-ops__card,
+:root:not(.dark):not([data-theme='dark']) .bh-pro .bh-tile,
+:root:not(.dark):not([data-theme='dark']) .bl-inv-stat,
+:root:not(.dark):not([data-theme='dark']) .bl-inv-table-wrap {
+    background: #ffffff;
+    border-color: rgba(148, 163, 184, 0.2);
+}
+
+:root:not(.dark):not([data-theme='dark']) .bl-inv-toolbar,
+:root:not(.dark):not([data-theme='dark']) .bl-inv-nav {
+    background: rgba(255, 255, 255, 0.85);
+}
+
+:root:not(.dark):not([data-theme='dark']) .bl-pro .fi-ta-row:hover {
+    background: rgba(99, 102, 241, 0.04);
+}
+
+:root:not(.dark):not([data-theme='dark']) .bh-revenue__bar {
+    background: linear-gradient(180deg, #a5b4fc 0%, #6366f1 100%);
+}
+
+/* --- 09-dark-mode.css --- */
+/** Billing dark mode — OLED-friendly */
+
+.dark .bh-pro .bh-hero,
+[data-theme='dark'] .bh-pro .bh-hero {
+    background: linear-gradient(135deg, #0f0a1e 0%, #312e81 48%, #4338ca 100%);
+}
+
+.dark .bl-inv-hero,
+[data-theme='dark'] .bl-inv-hero {
+    background: linear-gradient(135deg, #0f0a1e 0%, #312e81 50%, #4338ca 100%);
+}
+
+.dark .bl-notices-hero,
+[data-theme='dark'] .bl-notices-hero {
+    background: linear-gradient(135deg, #450a0a 0%, #991b1b 50%, #b91c1c 100%);
+}
+
+.dark .bh-stat,
+.dark .bh-ops__card,
+.dark .bh-tile,
+.dark .bl-inv-stat,
+.dark .bl-inv-table-wrap,
+.dark .bl-notices-section,
+[data-theme='dark'] .bh-stat,
+[data-theme='dark'] .bh-ops__card,
+[data-theme='dark'] .bh-tile,
+[data-theme='dark'] .bl-inv-stat,
+[data-theme='dark'] .bl-inv-table-wrap,
+[data-theme='dark'] .bl-notices-section {
+    background: rgba(17, 24, 39, 0.92);
+}
+
+.dark .bl-inv-card,
+[data-theme='dark'] .bl-inv-card {
+    background: #111827;
+    border-color: rgba(100, 116, 139, 0.2);
+}
+
+.dark .bl-inv-dock,
+[data-theme='dark'] .bl-inv-dock {
+    background: rgba(11, 18, 32, 0.94);
+    border-top-color: rgba(100, 116, 139, 0.2);
+}
+
+.dark .bh-revenue__bar,
+[data-theme='dark'] .bh-revenue__bar {
+    background: linear-gradient(180deg, #818cf8 0%, #4f46e5 100%);
+}

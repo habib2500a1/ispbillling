@@ -1,0 +1,224 @@
+/** Billing Center hub — premium dashboard evolution */
+
+.isp-billing-hub-page .fi-header,
+.isp-billing-hub-page .fi-page-header,
+.isp-billing-hub-page .fi-header-heading {
+    display: none !important;
+}
+
+.isp-billing-hub-page .fi-page,
+.isp-billing-hub-page .fi-main {
+    background: var(--bl-surface, #f8fafc) !important;
+}
+
+.dark .isp-billing-hub-page .fi-page,
+.dark .isp-billing-hub-page .fi-main,
+[data-theme='dark'] .isp-billing-hub-page .fi-page,
+[data-theme='dark'] .isp-billing-hub-page .fi-main {
+    background: #0b1220 !important;
+}
+
+.bh-pro .bh-stat,
+.bh-pro .bh-ops__card,
+.bh-pro .bh-tile,
+.bh-pro .bh-hero__money-card {
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+}
+
+.bh-pro .bh-revenue {
+    display: grid;
+    gap: 1rem;
+}
+
+@media (min-width: 1024px) {
+    .bh-pro .bh-revenue {
+        grid-template-columns: 1.4fr 1fr;
+        align-items: stretch;
+    }
+}
+
+.bh-revenue__chart {
+    padding: 1.15rem 1.2rem;
+    border-radius: var(--bl-radius);
+    background: var(--bl-card);
+    border: 1px solid var(--bl-border);
+    box-shadow: var(--bl-shadow);
+}
+
+.bh-revenue__chart-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.bh-revenue__chart-title {
+    margin: 0;
+    font-size: 0.95rem;
+    font-weight: 800;
+    color: var(--bl-text);
+}
+
+.bh-revenue__chart-sub {
+    margin: 0.15rem 0 0;
+    font-size: 0.75rem;
+    color: var(--bl-muted);
+}
+
+.bh-revenue__bars {
+    display: flex;
+    align-items: flex-end;
+    gap: 0.45rem;
+    min-height: 140px;
+    padding-top: 0.5rem;
+}
+
+.bh-revenue__bar-col {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.35rem;
+    min-width: 0;
+}
+
+.bh-revenue__bar-wrap {
+    width: 100%;
+    height: 110px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+}
+
+.bh-revenue__bar {
+    width: min(100%, 2.5rem);
+    border-radius: 8px 8px 4px 4px;
+    background: linear-gradient(180deg, #818cf8 0%, #6366f1 100%);
+    transition: height var(--bl-dur) var(--bl-ease);
+    min-height: 4px;
+}
+
+.bh-revenue__bar-label {
+    font-size: 0.62rem;
+    font-weight: 600;
+    color: var(--bl-muted);
+    text-align: center;
+}
+
+.bh-revenue__bar-val {
+    font-size: 0.65rem;
+    font-weight: 700;
+    color: var(--bl-text);
+}
+
+.bh-revenue__metrics {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.65rem;
+}
+
+.bh-revenue__metric {
+    padding: 0.9rem 1rem;
+    border-radius: var(--bl-radius-sm);
+    color: #fff;
+    box-shadow: var(--bl-shadow);
+    transition: transform var(--bl-dur) var(--bl-ease);
+}
+
+.bh-revenue__metric:hover {
+    transform: translateY(-2px);
+}
+
+.bh-revenue__metric-label {
+    font-size: 0.65rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    opacity: 0.85;
+}
+
+.bh-revenue__metric-value {
+    display: block;
+    margin-top: 0.25rem;
+    font-size: 1.25rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+}
+
+.bh-revenue__metric-hint {
+    display: block;
+    margin-top: 0.2rem;
+    font-size: 0.68rem;
+    opacity: 0.8;
+}
+
+.bh-pro .bh-quick-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    padding: 0.85rem 1rem;
+    border-radius: var(--bl-radius-sm);
+    background: var(--bl-glass);
+    border: 1px solid var(--bl-border);
+    backdrop-filter: blur(10px);
+}
+
+.bh-quick-actions__btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.5rem 0.9rem;
+    border-radius: 999px;
+    border: 1px solid var(--bl-border);
+    background: var(--bl-card);
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--bl-text);
+    text-decoration: none;
+    transition: transform var(--bl-dur) var(--bl-ease), box-shadow var(--bl-dur) var(--bl-ease);
+}
+
+.bh-quick-actions__btn:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--bl-shadow);
+    text-decoration: none;
+    color: var(--bl-text);
+}
+
+.bh-quick-actions__btn--primary {
+    background: linear-gradient(135deg, #6366f1, #7c3aed);
+    border-color: transparent;
+    color: #fff;
+}
+
+.bh-pro .bh-collection-rate {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-top: 0.5rem;
+}
+
+.bh-collection-rate__track {
+    flex: 1;
+    height: 6px;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--bl-muted) 18%, transparent);
+    overflow: hidden;
+}
+
+.bh-collection-rate__fill {
+    height: 100%;
+    border-radius: inherit;
+    background: linear-gradient(90deg, #059669, #10b981);
+    transition: width 0.4s var(--bl-ease);
+}
+
+.bh-collection-rate__label {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--bl-emerald);
+    white-space: nowrap;
+}

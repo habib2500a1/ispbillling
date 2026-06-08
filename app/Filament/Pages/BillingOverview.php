@@ -9,6 +9,7 @@ use App\Models\Invoice;
 use App\Models\Payment;
 use App\Services\Billing\AdminBillingNoticesService;
 use App\Services\Billing\BillingOpsMetricsService;
+use App\Services\Dashboard\BillingDashboardMetricsService;
 use Filament\Pages\Page;
 
 class BillingOverview extends Page
@@ -36,6 +37,44 @@ class BillingOverview extends Page
     public static function canAccess(): bool
     {
         return StaffCapability::for(auth()->user())->canBilling();
+    }
+
+    /**
+     * @return array<string, string|bool>
+     */
+    public function getExtraBodyAttributes(): array
+    {
+        return [
+            'class' => 'isp-billing-module',
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function getRevenueAnalytics(): array
+    {
+        $payload = app(BillingDashboardMetricsService::class)->payload();
+        $kpis = collect($payload['kpis'] ?? [])->keyBy('key');
+        $growth = $payload['growth'] ?? [];
+        $monthlyBill = (float) ($kpis->get('monthly_bill')['value'] ?? 0);
+        $collected = (float) ($kpis->get('collected')['value'] ?? 0);
+        $rate = $monthlyBill > 0 ? min(100, round(($collected / $monthlyBill) * 100, 1)) : 0;
+
+        $collectedToday = (float) Payment::query()
+            ->where('status', 'completed')
+            ->whereDate('paid_at', now()->toDateString())
+            ->sum('amount');
+
+        return [
+            'growth' => $growth,
+            'collection_rate' => $rate,
+            'collected_today' => $collectedToday,
+            'monthly_bill' => $monthlyBill,
+            'collected_month' => $collected,
+            'total_due' => (float) ($kpis->get('total_due')['value'] ?? 0),
+            'income' => (float) ($kpis->get('income')['value'] ?? 0),
+        ];
     }
 
     /**

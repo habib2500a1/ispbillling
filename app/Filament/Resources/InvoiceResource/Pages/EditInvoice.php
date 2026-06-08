@@ -18,6 +18,16 @@ class EditInvoice extends EditRecord
 {
     protected static string $resource = InvoiceResource::class;
 
+    /**
+     * @return array<string, string|bool>
+     */
+    public function getExtraBodyAttributes(): array
+    {
+        return [
+            'class' => 'isp-billing-module isp-billing-invoice-detail',
+        ];
+    }
+
     protected function getHeaderActions(): array
     {
         return [
