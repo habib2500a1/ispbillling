@@ -4,8 +4,6 @@
 @endphp
 
 <x-filament-panels::page class="isp-cdr-page">
-    @include('filament.partials.ensure-route-stylesheet', ['file' => 'collection-desk-report-pro.css'])
-
     <div class="cdr-pro">
         <header class="cdr-hero">
             <div>
