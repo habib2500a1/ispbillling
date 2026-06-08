@@ -35,9 +35,11 @@ final class PostDeployCommand extends Command
         if (! $this->option('skip-migrate')) {
             $this->line('Running migrations...');
             Artisan::call('migrate', ['--force' => true]);
+            Artisan::call('db:sync-pgsql-sequences');
         }
 
         $this->ensureDefaultTenant();
+        Artisan::call('db:sync-pgsql-sequences');
         $this->syncRolesAndPermissions();
 
         $settingsAdded = AppSetting::syncMissingDefaultsFromEnv();
