@@ -2,6 +2,7 @@
 
 namespace App\Support;
 
+use App\Filament\Pages\AiOperationsCopilotHub;
 use App\Filament\Pages\FaultManagementHub;
 use App\Filament\Pages\FieldTechnicianCenter;
 use App\Filament\Pages\IspOsHub;
@@ -19,6 +20,14 @@ final class IspOsSidebarRegistry
     public static function definitions(): array
     {
         return [
+            [
+                'key' => 'ai_copilot',
+                'label' => 'AI Copilot',
+                'icon' => 'heroicon-o-sparkles',
+                'sort' => 0,
+                'url' => AiOperationsCopilotHub::getUrl(),
+                'active_routes' => ['filament.admin.pages.ai-copilot'],
+            ],
             [
                 'key' => 'isp_os_hub',
                 'label' => 'ISP OS center',
@@ -103,6 +112,7 @@ final class IspOsSidebarRegistry
     public static function canSeeEntry(string $key): bool
     {
         return match ($key) {
+            'ai_copilot' => AiOperationsCopilotHub::canAccess(),
             'isp_os_hub' => IspOsHub::canAccess(),
             'fault_center' => FaultManagementHub::canAccess(),
             'field_technicians' => FieldTechnicianCenter::canAccess(),

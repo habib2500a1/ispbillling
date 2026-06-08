@@ -4,6 +4,7 @@ namespace App\Support;
 
 use App\Support\Rbac\StaffCapability;
 use App\Filament\Pages\AccountingHub;
+use App\Filament\Pages\AiOperationsCopilotHub;
 use App\Filament\Pages\AnalyticsReports;
 use App\Filament\Pages\BandwidthMonitor;
 use App\Filament\Pages\BillCollectionDesk;
@@ -80,6 +81,7 @@ class AdminModuleRegistry
     {
         return [
             // ── ISP OS ──
+            ['group' => 'ISP OS', 'section' => 'Command', 'label' => 'AI Operations Copilot', 'description' => 'Conversational ISP intelligence — billing, NOC, tickets', 'url' => AiOperationsCopilotHub::getUrl(), 'accent' => 'text-indigo-500', 'icon' => 'heroicon-o-sparkles'],
             ['group' => 'ISP OS', 'section' => 'Command', 'label' => 'ISP OS center', 'description' => 'Unified operations — billing, network, GIS, faults', 'url' => IspOsHub::getUrl(), 'accent' => 'text-indigo-600', 'icon' => 'heroicon-o-command-line'],
             ['group' => 'ISP OS', 'section' => 'NOC', 'label' => 'Fault management', 'description' => 'Active faults, RCA, severity', 'url' => FaultManagementHub::getUrl(), 'accent' => 'text-rose-600', 'icon' => 'heroicon-o-exclamation-triangle'],
             ['group' => 'ISP OS', 'section' => 'Field', 'label' => 'Field technicians', 'description' => 'Visits, tasks, mobile tools', 'url' => FieldTechnicianCenter::getUrl(), 'accent' => 'text-amber-600', 'icon' => 'heroicon-o-wrench-screwdriver'],

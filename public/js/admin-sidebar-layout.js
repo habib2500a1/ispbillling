@@ -366,7 +366,8 @@
 
         return (
             path.includes('fiber-plant-map')
-            || path.includes('isp-os')
+            ||             path.includes('isp-os')
+            || path.includes('ai-copilot')
             || path.includes('noc-wall')
             || path.includes('field-technicians')
             || path.includes('fault-center')

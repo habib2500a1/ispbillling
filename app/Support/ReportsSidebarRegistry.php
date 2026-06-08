@@ -2,6 +2,7 @@
 
 namespace App\Support;
 
+use App\Filament\Pages\AiOperationsCopilotHub;
 use App\Filament\Pages\AnalyticsReports;
 use App\Filament\Pages\AreaWiseClientsReport;
 use App\Filament\Pages\BillingReports;
@@ -26,6 +27,14 @@ final class ReportsSidebarRegistry
     public static function definitions(): array
     {
         return [
+            [
+                'key' => 'ai_copilot',
+                'label' => 'AI Operations Copilot',
+                'icon' => 'heroicon-o-sparkles',
+                'sort' => 0,
+                'url' => AiOperationsCopilotHub::getUrl(),
+                'active_routes' => ['filament.admin.pages.ai-copilot'],
+            ],
             [
                 'key' => 'reports_center',
                 'label' => 'Reports center',
@@ -171,6 +180,7 @@ final class ReportsSidebarRegistry
     public static function canSeeEntry(string $key): bool
     {
         return match ($key) {
+            'ai_copilot' => AiOperationsCopilotHub::canAccess(),
             'reports_center' => ReportsHub::canAccess(),
             'monthly' => BillingReports::canAccess(),
             'gateway' => GatewayReconciliationReport::canAccess(),

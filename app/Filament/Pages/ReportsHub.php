@@ -77,6 +77,7 @@ class ReportsHub extends Page
     public function getReportCatalog(): array
     {
         $domains = [
+            'ai_copilot' => 'AI',
             'reports_center' => 'Hub',
             'analytics' => 'Analytics',
             'monthly' => 'Revenue',
@@ -93,6 +94,7 @@ class ReportsHub extends Page
         ];
 
         $hints = [
+            'ai_copilot' => 'Ask about billing, NOC, tickets, inventory, HR, GIS',
             'reports_center' => 'Analytics intelligence home',
             'analytics' => 'KPIs, charts, and tabbed analytics',
             'monthly' => 'Monthly revenue widgets and AR aging',
@@ -124,15 +126,6 @@ class ReportsHub extends Page
                 'keywords' => strtolower($entry['label'].' '.($domains[$entry['key']] ?? '').' '.($hints[$entry['key']] ?? '')),
             ];
         }
-
-        $catalog[] = [
-            'domain' => 'Analytics',
-            'label' => 'AI analytics',
-            'hint' => 'Churn risk, payment risk, fiber risk, forecast',
-            'url' => AiAnalyticsDashboard::getUrl(),
-            'icon' => 'heroicon-o-sparkles',
-            'keywords' => 'ai analytics forecast churn risk optical',
-        ];
 
         $catalog[] = [
             'domain' => 'Collection',
