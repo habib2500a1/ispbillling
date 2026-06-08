@@ -43,9 +43,51 @@ class EditSupportTicket extends EditRecord
      */
     protected function getViewData(): array
     {
+        $workspace = $this->isFormSelectAjaxRequest()
+            ? ($this->ticketWorkspace ?? $this->emptyWorkspace())
+            : $this->resolveTicketWorkspace();
+
         return array_merge(parent::getViewData(), [
-            'workspace' => $this->resolveTicketWorkspace(),
+            'workspace' => $workspace,
         ]);
+    }
+
+    private function isFormSelectAjaxRequest(): bool
+    {
+        if (! request()->hasHeader('X-Livewire')) {
+            return false;
+        }
+
+        $calls = request()->input('components.0.calls', []);
+        if (! is_array($calls)) {
+            return false;
+        }
+
+        foreach ($calls as $call) {
+            $method = is_array($call) ? ($call['method'] ?? '') : '';
+            if (is_string($method) && str_contains($method, 'getFormSelect')) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function emptyWorkspace(): array
+    {
+        return [
+            'c360' => ['linked' => false],
+            'timeline' => [],
+            'hints' => [],
+            'gis' => ['available' => false],
+            'network' => [],
+            'live' => ['linked' => false],
+            'close_offline_notice' => null,
+            'assignment' => ['assigned' => false, 'name' => 'Unassigned'],
+        ];
     }
 
     public function updatedDataCustomerId(): void

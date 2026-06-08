@@ -97,4 +97,9 @@ final class SupportPanelAccess
     {
         return User::query()->where('is_active', true);
     }
+
+    public static function applyAssignableStaffScope(\Illuminate\Database\Eloquent\Builder $query): \Illuminate\Database\Eloquent\Builder
+    {
+        return $query->where('is_active', true);
+    }
 }

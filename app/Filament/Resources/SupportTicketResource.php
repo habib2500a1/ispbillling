@@ -32,6 +32,29 @@ class SupportTicketResource extends Resource
 
     protected static bool $shouldRegisterNavigation = false;
 
+    public static function assigneeSelectField(): Forms\Components\Select
+    {
+        return Forms\Components\Select::make('assigned_to')
+            ->label('Assigned technician')
+            ->options(fn (): array => SupportPanelAccess::assignableStaffOptions())
+            ->getOptionLabelUsing(function ($value): ?string {
+                if (! filled($value)) {
+                    return null;
+                }
+
+                $options = SupportPanelAccess::assignableStaffOptions();
+
+                return $options[$value]
+                    ?? $options[(string) $value]
+                    ?? User::query()->find($value)?->name;
+            })
+            ->searchable()
+            ->preload()
+            ->nullable()
+            ->placeholder('Unassigned')
+            ->helperText('Staff list loads instantly — or use Assign staff in the page header.');
+    }
+
     public static function form(Form $form): Form
     {
         return $form
@@ -58,19 +81,7 @@ class SupportTicketResource extends Resource
                 Forms\Components\Section::make('Assignment')
                     ->description('Who owns this ticket in the queue.')
                     ->schema([
-                        Forms\Components\Select::make('assigned_to')
-                            ->label('Assigned technician')
-                            ->relationship(
-                                name: 'assignee',
-                                titleAttribute: 'name',
-                                modifyQueryUsing: fn ($query) => SupportPanelAccess::assignableStaffQuery()
-                                    ->orderBy('name'),
-                            )
-                            ->searchable(['name', 'email'])
-                            ->preload()
-                            ->nullable()
-                            ->placeholder('Unassigned')
-                            ->helperText('Search by staff name or email.'),
+                        static::assigneeSelectField(),
                     ])
                     ->columns(1)
                     ->visibleOn('edit'),
@@ -101,19 +112,7 @@ class SupportTicketResource extends Resource
                     ->required()
                     ->rows(4)
                     ->columnSpanFull(),
-                Forms\Components\Select::make('assigned_to')
-                    ->label('Assigned technician')
-                    ->relationship(
-                        name: 'assignee',
-                        titleAttribute: 'name',
-                        modifyQueryUsing: fn ($query) => SupportPanelAccess::assignableStaffQuery()
-                            ->orderBy('name'),
-                    )
-                    ->searchable(['name', 'email'])
-                    ->preload()
-                    ->nullable()
-                    ->placeholder('Unassigned')
-                    ->hiddenOn('edit'),
+                static::assigneeSelectField()->hiddenOn('edit'),
                 Forms\Components\DateTimePicker::make('sla_resolve_due_at')
                     ->label('SLA resolve due'),
                 Forms\Components\DateTimePicker::make('resolved_at'),
