@@ -5,6 +5,7 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\TenantResource\Pages;
 use App\Models\Tenant;
 use App\Support\PrimaryTenant;
+use App\Support\Rbac\IspModuleCatalog;
 use App\Support\TenantSubscriptionCatalog;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -136,6 +137,16 @@ class TenantResource extends Resource
                             ->columnSpanFull(),
                     ])
                     ->columns(2),
+                Forms\Components\Section::make('ISP modules (tenant-wide)')
+                    ->description('Disable OLT, Map, Billing, etc. for this entire ISP. Main admin on this tenant also loses access.')
+                    ->schema(collect(IspModuleCatalog::modules())->map(
+                        fn (array $meta, string $key): Forms\Components\Toggle => Forms\Components\Toggle::make('settings.enabled_modules.'.$key)
+                            ->label($meta['label'])
+                            ->helperText($meta['hint'])
+                            ->default(true),
+                    )->values()->all())
+                    ->columns(2)
+                    ->collapsed(),
                 Forms\Components\Section::make('Branding')->schema([
                     Forms\Components\TextInput::make('branding.app_name')
                         ->label('App name')

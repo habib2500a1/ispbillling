@@ -14,6 +14,7 @@ final class TenantProvisioningService
      */
     public function provision(int $tenantId): array
     {
+        app(TenantModuleSettingsService::class)->seedDefaults($tenantId);
         $processStats = app(AutomaticProcessSeeder::class)->syncForTenant($tenantId, fullRestore: false);
         $smsCount = app(SmsTemplateService::class)->syncMissingDefaults($tenantId);
 

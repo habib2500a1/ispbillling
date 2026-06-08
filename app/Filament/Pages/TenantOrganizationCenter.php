@@ -4,9 +4,11 @@ namespace App\Filament\Pages;
 
 use App\Filament\Pages\Concerns\HidesHubNavigation;
 use App\Services\Rbac\ModulePermissionService;
+use App\Services\Tenant\TenantModuleSettingsService;
 use App\Services\Tenant\TenantOrganizationIntelligenceService;
 use App\Support\Rbac\IspModuleCatalog;
 use App\Support\Rbac\StaffCapability;
+use App\Support\TenantResolver;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Spatie\Permission\Models\Role;
@@ -95,6 +97,33 @@ class TenantOrganizationCenter extends Page
             ->send();
 
         $this->refreshOrg();
+    }
+
+    public function toggleTenantModule(string $moduleKey): void
+    {
+        abort_unless($this->canManageModules(), 403);
+
+        $tenantId = TenantResolver::requiredTenantId();
+        $enabled = app(TenantModuleSettingsService::class)->toggle($tenantId, $moduleKey);
+        $label = IspModuleCatalog::get($moduleKey)['label'] ?? $moduleKey;
+
+        Notification::make()
+            ->title($label.' '.($enabled ? 'enabled for entire ISP' : 'disabled for entire ISP'))
+            ->body($enabled
+                ? 'All staff can use this module if their role allows it.'
+                : 'Hidden for everyone on this ISP — including main admin.')
+            ->success()
+            ->send();
+
+        $this->refreshOrg();
+    }
+
+    /**
+     * @return array<string, array{label: string, hint: string, enabled: bool}>
+     */
+    public function tenantModuleStates(): array
+    {
+        return app(TenantModuleSettingsService::class)->labeledForTenant(TenantResolver::requiredTenantId());
     }
 
     public function canManageModules(): bool
@@ -208,6 +237,7 @@ class TenantOrganizationCenter extends Page
                 ])
                 ->all(),
             'moduleToggles' => $this->moduleToggleStates(),
+            'tenantModuleToggles' => $this->tenantModuleStates(),
             'canManageModules' => $this->canManageModules(),
         ];
     }
@@ -221,7 +251,8 @@ class TenantOrganizationCenter extends Page
             ['label' => 'Add staff', 'url' => \App\Filament\Resources\UserResource::getUrl('create'), 'icon' => 'user-plus', 'tone' => 'violet'],
             ['label' => 'Roles', 'url' => \App\Filament\Resources\RoleResource::getUrl('index'), 'icon' => 'shield-check', 'tone' => 'indigo'],
             ['label' => 'Permission matrix', 'url' => PermissionMatrix::getUrl(), 'icon' => 'table-cells', 'tone' => 'sky'],
-            ['label' => 'Module on/off', 'url' => static::getUrl().'?tab=roles#module-access', 'icon' => 'adjustments-horizontal', 'tone' => 'teal'],
+            ['label' => 'ISP modules', 'url' => static::getUrl().'?tab=modules', 'icon' => 'squares-2x2', 'tone' => 'teal'],
+            ['label' => 'Role modules', 'url' => static::getUrl().'?tab=roles#module-access', 'icon' => 'adjustments-horizontal', 'tone' => 'cyan'],
             ['label' => 'Branches', 'url' => \App\Filament\Resources\BranchResource::getUrl('index'), 'icon' => 'building-office-2', 'tone' => 'cyan'],
             ['label' => 'Activity log', 'url' => \App\Filament\Resources\ActivityLogResource::getUrl('index'), 'icon' => 'clipboard-document-list', 'tone' => 'rose'],
             ['label' => 'Security', 'url' => ManageStaffSecurity::getUrl(), 'icon' => 'lock-closed', 'tone' => 'amber'],

@@ -10,6 +10,7 @@
     $moduleRoleId = $data['moduleRoleId'] ?? null;
     $moduleRoles = $data['moduleRoles'] ?? [];
     $moduleToggles = $data['moduleToggles'] ?? [];
+    $tenantModuleToggles = $data['tenantModuleToggles'] ?? [];
     $canManageModules = $data['canManageModules'] ?? false;
 @endphp
 
@@ -69,6 +70,7 @@
                 'dashboard' => 'Dashboard',
                 'staff' => 'Staff',
                 'roles' => 'Roles',
+                'modules' => 'ISP modules',
                 'branches' => 'Branches',
                 'resellers' => 'Resellers',
                 'security' => 'Security',
@@ -91,7 +93,7 @@
             </nav>
 
             <main class="space-y-4">
-                @if (in_array($activeTab, ['dashboard', 'staff', 'roles', 'branches', 'security'], true))
+                @if (in_array($activeTab, ['dashboard', 'staff', 'roles', 'modules', 'branches', 'security'], true))
                     <section class="torg-glass p-4">
                         <h2 class="text-sm font-semibold mb-3">Quick actions</h2>
                         <div class="torg-quick-grid">
@@ -183,13 +185,43 @@
                     </section>
                 @endif
 
+                @if ($activeTab === 'modules' && $canManageModules)
+                    <section class="torg-glass p-4" id="tenant-modules">
+                        <h2 class="text-sm font-semibold">ISP-wide module switches</h2>
+                        <p class="text-xs opacity-70 mt-1 mb-3">
+                            Turn off OLT, Map, Billing, etc. for <strong>this entire ISP</strong>.
+                            Main admin and all staff lose access until you turn it back on.
+                        </p>
+                        <div class="torg-module-grid">
+                            @foreach ($tenantModuleToggles as $key => $module)
+                                <button
+                                    type="button"
+                                    wire:click="toggleTenantModule('{{ $key }}')"
+                                    wire:loading.attr="disabled"
+                                    @class(['torg-module', 'torg-module--on' => $module['enabled'], 'torg-module--off' => ! $module['enabled']])
+                                >
+                                    <span class="torg-module__state">{{ $module['enabled'] ? 'ON' : 'OFF' }}</span>
+                                    <strong>{{ $module['label'] }}</strong>
+                                    <span>{{ $module['hint'] }}</span>
+                                </button>
+                            @endforeach
+                        </div>
+                        <p class="text-xs opacity-60 mt-3">
+                            Per-role fine tuning:
+                            <a href="{{ \App\Filament\Pages\TenantOrganizationCenter::getUrl() }}?tab=roles#module-access" class="underline">Role modules</a>
+                            ·
+                            <a href="{{ \App\Filament\Pages\PermissionMatrix::getUrl() }}" class="underline">Permission matrix</a>
+                        </p>
+                    </section>
+                @endif
+
                 @if ($activeTab === 'roles')
                     @if ($canManageModules)
                         <section class="torg-glass p-4" id="module-access">
                             <div class="flex flex-wrap items-center justify-between gap-3 mb-3">
                                 <div>
-                                    <h2 class="text-sm font-semibold">Module on / off (per role)</h2>
-                                    <p class="text-xs opacity-70 mt-1">Main admin can hide Billing, OLT, Map, Inventory buy, etc. for each staff role.</p>
+                                    <h2 class="text-sm font-semibold">Per-role module on / off</h2>
+                                    <p class="text-xs opacity-70 mt-1">Within enabled ISP modules — limit what each staff role can see.</p>
                                 </div>
                                 <label class="text-xs font-semibold opacity-80">
                                     Role

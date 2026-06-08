@@ -38,7 +38,13 @@ trait ChecksIspPermission
         if ($user === null) {
             return false;
         }
-        if (\App\Support\Rbac\StaffCapability::for($user)->isTenantAdmin()) {
+
+        $capability = \App\Support\Rbac\StaffCapability::for($user);
+        if (! $capability->tenantAllowsPermission($permission)) {
+            return false;
+        }
+
+        if ($capability->isTenantAdmin()) {
             return true;
         }
 

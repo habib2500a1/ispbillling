@@ -14,6 +14,8 @@ use App\Filament\Resources\InvoiceResource;
 use App\Filament\Resources\PaymentResource;
 use App\Filament\Resources\ResellerResource;
 use App\Models\User;
+use App\Services\Tenant\TenantModuleSettingsService;
+use App\Support\TenantResolver;
 
 /**
  * Maps Spatie permissions to dashboard widgets, sidebar modules, and home URLs.
@@ -43,11 +45,44 @@ final class StaffCapability
             return false;
         }
 
+        if (! $this->tenantAllowsPermission($permission)) {
+            return false;
+        }
+
         if ($this->isTenantAdmin()) {
             return true;
         }
 
         return $this->user->can($permission);
+    }
+
+    public function tenantModuleEnabled(string $moduleKey): bool
+    {
+        if ($this->user?->hasRole('super-admin')) {
+            return true;
+        }
+
+        $tenantId = $this->user?->tenant_id ?? TenantResolver::currentTenantId();
+
+        if ($tenantId === null) {
+            return true;
+        }
+
+        return app(TenantModuleSettingsService::class)->isEnabled((int) $tenantId, $moduleKey);
+    }
+
+    public function tenantAllowsPermission(string $permission): bool
+    {
+        if ($this->user?->hasRole('super-admin')) {
+            return true;
+        }
+
+        $moduleKey = app(TenantModuleSettingsService::class)->moduleKeyForPermission($permission);
+        if ($moduleKey === null) {
+            return true;
+        }
+
+        return $this->tenantModuleEnabled($moduleKey);
     }
 
     public function canAny(array $permissions): bool
@@ -69,34 +104,40 @@ final class StaffCapability
 
     public function canBilling(): bool
     {
-        return $this->canAny(['billing.view', 'billing.manage', 'billing.analytics'])
-            || InvoiceResource::canViewAny();
+        return $this->tenantModuleEnabled('billing')
+            && ($this->canAny(['billing.view', 'billing.manage', 'billing.analytics'])
+                || InvoiceResource::canViewAny());
     }
 
     public function canPayments(): bool
     {
-        return $this->canAny(['payments.view', 'payments.add', 'collections.view'])
-            || PaymentResource::canViewAny();
+        return $this->tenantModuleEnabled('payments')
+            && ($this->canAny(['payments.view', 'payments.add', 'collections.view'])
+                || PaymentResource::canViewAny());
     }
 
     public function canCollect(): bool
     {
-        return $this->canAny(['payments.add', 'collections.view', 'billing.view']);
+        return $this->tenantModuleEnabled('payments')
+            && $this->canAny(['payments.add', 'collections.view', 'billing.view']);
     }
 
     public function canMikrotik(): bool
     {
-        return $this->canAny(['mikrotik.view', 'mikrotik.manage', 'network.monitor', 'network.traffic']);
+        return $this->tenantModuleEnabled('mikrotik')
+            && $this->canAny(['mikrotik.view', 'mikrotik.manage', 'network.monitor', 'network.traffic']);
     }
 
     public function canOlt(): bool
     {
-        return $this->canAny(['olts.view', 'olts.manage', 'onu.signal', 'devices.view']);
+        return $this->tenantModuleEnabled('olt')
+            && $this->canAny(['olts.view', 'olts.manage', 'onu.signal', 'devices.view']);
     }
 
     public function canMaps(): bool
     {
-        return $this->can('network.maps') || $this->canOlt() || $this->canMikrotik();
+        return $this->tenantModuleEnabled('map')
+            && ($this->can('network.maps') || $this->canOlt() || $this->canMikrotik());
     }
 
     public function canNetwork(): bool
@@ -106,37 +147,42 @@ final class StaffCapability
 
     public function canSupport(): bool
     {
-        return $this->can('support.view');
+        return $this->tenantModuleEnabled('support') && $this->can('support.view');
     }
 
     public function canReports(): bool
     {
-        return $this->canAny(['reports.view', 'reports.revenue', 'reports.analytics', 'billing.analytics']);
+        return $this->tenantModuleEnabled('reports')
+            && $this->canAny(['reports.view', 'reports.revenue', 'reports.analytics', 'billing.analytics']);
     }
 
     public function canResellers(): bool
     {
-        return $this->can('resellers.view') || ResellerResource::canViewAny();
+        return $this->tenantModuleEnabled('resellers')
+            && ($this->can('resellers.view') || ResellerResource::canViewAny());
     }
 
     public function canAccounting(): bool
     {
-        return $this->canAny(['accounting.view', 'accounting.manage', 'accounting.ledger', 'payroll.view']);
+        return $this->tenantModuleEnabled('accounting')
+            && $this->canAny(['accounting.view', 'accounting.manage', 'accounting.ledger', 'payroll.view']);
     }
 
     public function canSms(): bool
     {
-        return $this->canAny(['system.notifications', 'integrations.view']);
+        return $this->tenantModuleEnabled('sms')
+            && $this->canAny(['system.notifications', 'integrations.view']);
     }
 
     public function canInventory(): bool
     {
-        return $this->can('inventory.view');
+        return $this->tenantModuleEnabled('inventory') && $this->can('inventory.view');
     }
 
     public function canStaffModule(): bool
     {
-        return $this->canAny(['staff.view', 'staff.manage', 'staff.kpi']);
+        return $this->tenantModuleEnabled('staff')
+            && $this->canAny(['staff.view', 'staff.manage', 'staff.kpi']);
     }
 
     public function canHrm(): bool

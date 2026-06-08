@@ -3,7 +3,9 @@
 namespace App\Filament\Resources\TenantResource\Pages;
 
 use App\Filament\Resources\TenantResource;
+use App\Services\Tenant\TenantModuleSettingsService;
 use App\Support\PrimaryTenant;
+use App\Support\SafeCache;
 use Filament\Actions;
 use Filament\Resources\Pages\EditRecord;
 
@@ -39,4 +41,10 @@ class EditTenant extends EditRecord
         ];
     }
 
+    protected function afterSave(): void
+    {
+        app(TenantModuleSettingsService::class)->seedDefaults((int) $this->record->getKey());
+        SafeCache::forget('tenant_modules:'.(int) $this->record->getKey());
+        SafeCache::forget('tenant_org:snapshot:'.(int) $this->record->getKey());
+    }
 }
