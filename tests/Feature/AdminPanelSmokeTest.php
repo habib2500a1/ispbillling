@@ -46,6 +46,7 @@ class AdminPanelSmokeTest extends TestCase
             'resellers create' => ['/admin/resellers/create', 'Add reseller'],
             'accounting hub' => ['/admin/accounting-hub', 'Finance Operations'],
             'workforce hub' => ['/admin/hr-payroll-hub', 'Workforce Operations'],
+            'isp os hub' => ['/admin/isp-os', 'Executive command center'],
             'financial reports' => ['/admin/financial-reports', 'Profit'],
             'reports hub' => ['/admin/reports-hub', 'Reporting'],
             'analytics reports' => ['/admin/analytics-reports', 'Collection'],

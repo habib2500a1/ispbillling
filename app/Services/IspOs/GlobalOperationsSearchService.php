@@ -4,8 +4,12 @@ namespace App\Services\IspOs;
 
 use App\Models\Customer;
 use App\Models\Device;
+use App\Models\Employee;
 use App\Models\FiberPlantNode;
+use App\Models\InternalTask;
+use App\Models\Invoice;
 use App\Models\MikrotikServer;
+use App\Models\Payment;
 use App\Models\SupportTicket;
 use App\Support\TenantResolver;
 
@@ -115,6 +119,86 @@ final class GlobalOperationsSearchService
                     ];
                 });
         }
+
+        SupportTicket::withoutGlobalScopes()
+            ->where('tenant_id', $tenantId)
+            ->where('subject', 'like', $like)
+            ->orderByDesc('id')
+            ->limit(4)
+            ->get(['id', 'subject'])
+            ->each(function (SupportTicket $t) use (&$results): void {
+                $results[] = [
+                    'label' => 'Ticket #'.$t->id.' — '.($t->subject ?? ''),
+                    'group' => 'Ticket',
+                    'url' => \App\Filament\Resources\SupportTicketResource::getUrl('view', ['record' => $t->id]),
+                ];
+            });
+
+        Invoice::withoutGlobalScopes()
+            ->where('tenant_id', $tenantId)
+            ->where('invoice_number', 'like', $like)
+            ->orderByDesc('id')
+            ->limit(4)
+            ->get(['id', 'invoice_number', 'total'])
+            ->each(function (Invoice $inv) use (&$results): void {
+                $results[] = [
+                    'label' => $inv->invoice_number,
+                    'group' => 'Invoice',
+                    'url' => \App\Filament\Resources\InvoiceResource::getUrl('edit', ['record' => $inv->id]),
+                    'meta' => number_format((float) $inv->total, 0).' BDT',
+                ];
+            });
+
+        Payment::withoutGlobalScopes()
+            ->where('tenant_id', $tenantId)
+            ->where(function ($builder) use ($like): void {
+                $builder->where('receipt_number', 'like', $like)
+                    ->orWhere('reference', 'like', $like);
+            })
+            ->orderByDesc('id')
+            ->limit(4)
+            ->get(['id', 'receipt_number', 'amount'])
+            ->each(function (Payment $pay) use (&$results): void {
+                $results[] = [
+                    'label' => $pay->receipt_number ?: 'Payment #'.$pay->id,
+                    'group' => 'Payment',
+                    'url' => \App\Filament\Resources\PaymentResource::getUrl('edit', ['record' => $pay->id]),
+                    'meta' => number_format((float) $pay->amount, 0).' BDT',
+                ];
+            });
+
+        Employee::withoutGlobalScopes()
+            ->where('tenant_id', $tenantId)
+            ->where(function ($builder) use ($like): void {
+                $builder->where('name', 'like', $like)
+                    ->orWhere('employee_code', 'like', $like)
+                    ->orWhere('department', 'like', $like);
+            })
+            ->limit(4)
+            ->get(['id', 'name', 'employee_code'])
+            ->each(function (Employee $e) use (&$results): void {
+                $results[] = [
+                    'label' => $e->name,
+                    'group' => 'Employee',
+                    'url' => \App\Filament\Resources\EmployeeResource::getUrl('edit', ['record' => $e->id]),
+                    'meta' => $e->employee_code,
+                ];
+            });
+
+        InternalTask::withoutGlobalScopes()
+            ->where('tenant_id', $tenantId)
+            ->where('title', 'like', $like)
+            ->orderByDesc('id')
+            ->limit(3)
+            ->get(['id', 'title', 'status'])
+            ->each(function (InternalTask $task) use (&$results): void {
+                $results[] = [
+                    'label' => $task->title,
+                    'group' => 'Task',
+                    'url' => \App\Filament\Resources\InternalTaskResource::getUrl('edit', ['record' => $task->id]),
+                    'meta' => $task->status,
+                ];
+            });
 
         FiberPlantNode::withoutGlobalScopes()
             ->where('tenant_id', $tenantId)

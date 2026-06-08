@@ -52,7 +52,7 @@ final class AdminRouteAssets
             'filament.admin.pages.billing-reports' => ['reports-intelligence-pro.css'],
             'filament.admin.pages.gateway-reconciliation-report' => ['reports-intelligence-pro.css'],
             'filament.admin.pages.btrc-report' => ['reports-intelligence-pro.css'],
-            'filament.admin.pages.isp-os' => ['isp-os-pro.css'],
+            'filament.admin.pages.isp-os' => ['isp-os-pro.css', 'isp-os-executive.css'],
             'filament.admin.pages.fault-center' => ['isp-os-pro.css'],
             'filament.admin.pages.field-technicians' => ['isp-os-pro.css'],
         ];

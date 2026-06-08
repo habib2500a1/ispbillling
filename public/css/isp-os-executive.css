@@ -1,0 +1,152 @@
+/* ISP OS Executive layer — command centers + cross-module KPIs */
+.ios-exec-kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.65rem;
+}
+@media (min-width: 768px) {
+    .ios-exec-kpi-grid { grid-template-columns: repeat(4, 1fr); }
+}
+@media (min-width: 1280px) {
+    .ios-exec-kpi-grid { grid-template-columns: repeat(8, 1fr); }
+}
+
+.ios-exec-kpi {
+    padding: 0.75rem;
+    border-radius: 14px;
+    background: var(--ios-glass, rgba(255, 255, 255, 0.72));
+    border: 1px solid var(--ios-border, rgba(15, 23, 42, 0.08));
+    border-top: 3px solid #6366f1;
+}
+.ios-exec-kpi span {
+    display: block;
+    font-size: 0.62rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    opacity: 0.7;
+}
+.ios-exec-kpi strong {
+    display: block;
+    font-size: 1.1rem;
+    margin-top: 0.15rem;
+    font-variant-numeric: tabular-nums;
+}
+
+.ios-cmd-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.65rem;
+}
+@media (min-width: 640px) {
+    .ios-cmd-grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (min-width: 1024px) {
+    .ios-cmd-grid { grid-template-columns: repeat(3, 1fr); }
+}
+
+.ios-cmd-card {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: 0.65rem;
+    align-items: start;
+    padding: 0.85rem 1rem;
+    border-radius: 14px;
+    text-decoration: none;
+    color: inherit;
+    background: var(--ios-glass, rgba(255, 255, 255, 0.72));
+    border: 1px solid var(--ios-border, rgba(15, 23, 42, 0.08));
+    transition: transform 0.15s, box-shadow 0.15s;
+}
+.ios-cmd-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.08);
+}
+.ios-cmd-card strong { display: block; font-size: 0.85rem; }
+.ios-cmd-card span { display: block; font-size: 0.72rem; opacity: 0.7; margin-top: 0.15rem; }
+.ios-cmd-card em {
+    font-style: normal;
+    font-size: 0.65rem;
+    font-weight: 700;
+    padding: 0.15rem 0.45rem;
+    border-radius: 999px;
+    background: rgba(99, 102, 241, 0.12);
+    color: #4f46e5;
+    white-space: nowrap;
+}
+.ios-cmd-card--emerald { border-left: 3px solid #059669; }
+.ios-cmd-card--rose { border-left: 3px solid #e11d48; }
+.ios-cmd-card--sky { border-left: 3px solid #0ea5e9; }
+.ios-cmd-card--orange { border-left: 3px solid #f97316; }
+.ios-cmd-card--violet { border-left: 3px solid #7c3aed; }
+.ios-cmd-card--cyan { border-left: 3px solid #06b6d4; }
+.ios-cmd-card--indigo { border-left: 3px solid #4f46e5; }
+.ios-cmd-card--purple { border-left: 3px solid #a855f7; }
+.ios-cmd-card--fuchsia { border-left: 3px solid #d946ef; }
+.ios-cmd-card--slate { border-left: 3px solid #64748b; }
+
+.ios-os-tabs {
+    display: flex;
+    gap: 0.35rem;
+    overflow-x: auto;
+    padding-bottom: 0.25rem;
+}
+.ios-os-tab {
+    flex-shrink: 0;
+    padding: 0.45rem 0.85rem;
+    border-radius: 999px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    border: 1px solid var(--ios-border, rgba(15, 23, 42, 0.08));
+    background: var(--ios-glass, rgba(255, 255, 255, 0.72));
+    cursor: pointer;
+}
+.ios-os-tab--active {
+    background: linear-gradient(135deg, #6366f1, #8b5cf6);
+    color: #fff;
+    border-color: transparent;
+}
+
+.ios-mobile-bar {
+    display: flex;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 45;
+    background: var(--ios-glass, rgba(255, 255, 255, 0.85));
+    backdrop-filter: blur(20px);
+    border-top: 1px solid var(--ios-border, rgba(15, 23, 42, 0.08));
+    padding: 0.35rem 0.25rem calc(0.35rem + env(safe-area-inset-bottom));
+    box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.1);
+}
+.ios-mobile-bar a {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.1rem;
+    padding: 0.35rem 0.15rem;
+    text-decoration: none;
+    color: inherit;
+    font-size: 0.58rem;
+    font-weight: 600;
+    opacity: 0.85;
+}
+.ios-mobile-bar a:hover { opacity: 1; color: #6366f1; }
+
+@media (min-width: 768px) {
+    .ios-mobile-bar { display: none; }
+}
+@media (max-width: 767px) {
+    .isp-os-hub-page { padding-bottom: 4rem; }
+}
+
+.dark .ios-exec-kpi,
+.dark .ios-cmd-card,
+.dark .ios-os-tab,
+[data-theme='dark'] .ios-exec-kpi,
+[data-theme='dark'] .ios-cmd-card,
+[data-theme='dark'] .ios-os-tab {
+    background: rgba(15, 23, 42, 0.88);
+    border-color: rgba(148, 163, 184, 0.12);
+}

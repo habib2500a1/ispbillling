@@ -26,7 +26,7 @@
                 <input type="search" x-model="q" placeholder="Search modules…" class="isp-dash-search max-w-md">
                 <div class="isp-hub-toolbar__meta">
                     <span class="isp-hub-results">{{ count($modules) }} modules indexed</span>
-                    <a href="{{ \App\Filament\Pages\Dashboard::getUrl() }}" class="text-sm font-medium text-teal-600 hover:underline dark:text-teal-400">← Command center</a>
+                    <a href="{{ \App\Filament\Pages\IspOsHub::getUrl() }}" class="text-sm font-medium text-teal-600 hover:underline dark:text-teal-400">← ISP OS</a>
                 </div>
             </div>
         </x-isp.hub-hero>
