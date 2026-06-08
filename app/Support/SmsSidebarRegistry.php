@@ -24,7 +24,7 @@ final class SmsSidebarRegistry
         return [
             [
                 'key' => 'notifications_hub',
-                'label' => 'Notifications hub',
+                'label' => 'Communication hub',
                 'icon' => 'heroicon-o-bell-alert',
                 'sort' => 0,
                 'url' => NotificationsHub::getUrl(),
