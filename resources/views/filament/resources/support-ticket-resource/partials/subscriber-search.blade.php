@@ -21,25 +21,25 @@
         Type at least 2 characters — customer code, mobile, name, MikroTik/RADIUS username, or address.
     </p>
 
-    @if ($subscriberSearch !== '' && $subscriberResults->isEmpty())
+    @if ($this->subscriberSearch !== '' && $this->subscriberResults->isEmpty())
         <div class="isp-collection-empty mt-4 rounded-xl border border-dashed border-gray-300 p-6 text-center dark:border-gray-600">
             <p class="font-medium text-gray-700 dark:text-gray-300">No subscriber found</p>
             <p class="mt-1 text-sm text-gray-500">Try phone number, customer ID (e.g. TST0001), or PPP username.</p>
         </div>
     @endif
 
-    @if ($subscriberResults->isNotEmpty())
-        <div class="isp-collection-results mt-4 {{ $selectedSubscriber ? 'isp-collection-results--with-panel' : '' }}">
+    @if ($this->subscriberResults->isNotEmpty())
+        <div class="isp-collection-results mt-4 {{ $this->selectedSubscriber ? 'isp-collection-results--with-panel' : '' }}">
             <p class="mb-2 text-xs font-bold uppercase tracking-wide text-gray-500">
-                {{ $subscriberResults->count() }} result(s) — tap to link ticket
+                {{ $this->subscriberResults->count() }} result(s) — tap to link ticket
             </p>
-            <ul class="space-y-2 {{ $selectedSubscriber ? 'max-h-52 overflow-y-auto' : '' }}">
-                @foreach ($subscriberResults as $row)
+            <ul class="space-y-2 {{ $this->selectedSubscriber ? 'max-h-52 overflow-y-auto' : '' }}">
+                @foreach ($this->subscriberResults as $row)
                     <li>
                         <button
                             type="button"
                             wire:click="selectSubscriber({{ $row['id'] }})"
-                            class="isp-collection-result-card w-full text-left {{ (int) ($selectedSubscriberId ?? 0) === (int) $row['id'] ? 'ring-2 ring-primary-500 dark:ring-primary-400' : '' }}"
+                            class="isp-collection-result-card w-full text-left {{ (int) ($this->selectedSubscriberId ?? 0) === (int) $row['id'] ? 'ring-2 ring-primary-500 dark:ring-primary-400' : '' }}"
                         >
                             <div class="flex flex-wrap items-start justify-between gap-2">
                                 <div class="min-w-0 flex-1">
@@ -73,17 +73,17 @@
         </div>
     @endif
 
-    @if ($selectedSubscriber)
+    @if ($this->selectedSubscriber)
         <div class="isp-support-subscriber-picked mt-4 rounded-xl border border-primary-200 bg-primary-50/80 p-4 dark:border-primary-800 dark:bg-primary-950/30">
             <div class="flex flex-wrap items-start justify-between gap-2">
                 <div>
                     <p class="text-xs font-bold uppercase tracking-wide text-primary-700 dark:text-primary-300">Linked subscriber</p>
                     <p class="mt-1 text-lg font-bold text-gray-900 dark:text-white">
-                        {{ $selectedSubscriber['name'] }}
-                        <span class="font-mono text-sm font-normal text-violet-600 dark:text-violet-400">#{{ $selectedSubscriber['customer_code'] }}</span>
+                        {{ $this->selectedSubscriber['name'] }}
+                        <span class="font-mono text-sm font-normal text-violet-600 dark:text-violet-400">#{{ $this->selectedSubscriber['customer_code'] }}</span>
                     </p>
                     <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">
-                        {{ $selectedSubscriber['phone'] ?: '—' }} · {{ $selectedSubscriber['username'] }}
+                        {{ $this->selectedSubscriber['phone'] ?: '—' }} · {{ $this->selectedSubscriber['username'] }}
                     </p>
                 </div>
                 <button
@@ -95,7 +95,7 @@
                 </button>
             </div>
         </div>
-    @elseif ($subscriberSearch === '')
+    @elseif ($this->subscriberSearch === '')
         <p class="mt-3 text-sm text-amber-700 dark:text-amber-300">
             Search and pick a subscriber before saving the ticket.
         </p>
