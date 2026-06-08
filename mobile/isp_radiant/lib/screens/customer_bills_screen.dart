@@ -3,17 +3,19 @@ import 'package:intl/intl.dart';
 
 import '../core/network/api_result.dart';
 import '../core/theme/design_tokens.dart';
-import '../core/widgets/skeleton.dart';
 import '../core/widgets/states.dart';
+import '../design_system/components/radiant_skeleton.dart';
+import '../design_system/navigation/radiant_super_shell.dart';
+import '../design_system/radiant_tokens.dart';
 import '../features/customer/data/customer_repository.dart';
 import '../features/customer/domain/customer_models.dart';
 import '../services/api_service.dart';
 import '../utils/layout.dart';
-import '../widgets/isp_ui_kit.dart';
+import '../widgets/radiant_list_tiles.dart';
 import 'customer_invoice_detail_screen.dart';
 import 'customer_pay_screen.dart';
 
-/// Payment history — typed models + repository, skeleton load, friendly states.
+/// Payment history — Radiant 3.0 UI.
 class CustomerBillsScreen extends StatefulWidget {
   const CustomerBillsScreen({
     super.key,
@@ -75,16 +77,14 @@ class _CustomerBillsScreenState extends State<CustomerBillsScreen> {
       widget.onPay!();
       return;
     }
-    Navigator.push(context, MaterialPageRoute(builder: (_) => CustomerPayScreen(api: widget.api)))
-        .then((_) => _load());
+    Navigator.push(context, RadiantPageRoute(page: CustomerPayScreen(api: widget.api))).then((_) => _load());
   }
 
   void _openInvoice(PaymentRecord p) {
     if (p.invoiceId == null) return;
     Navigator.push(
       context,
-      MaterialPageRoute(
-          builder: (_) => CustomerInvoiceDetailScreen(api: widget.api, invoiceId: p.invoiceId!)),
+      RadiantPageRoute(page: CustomerInvoiceDetailScreen(api: widget.api, invoiceId: p.invoiceId!)),
     );
   }
 
@@ -93,13 +93,14 @@ class _CustomerBillsScreenState extends State<CustomerBillsScreen> {
     final body = _buildBody();
     if (widget.embedded) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Payment History')),
+        backgroundColor: context.isDark ? RadiantTokens.darkBg : RadiantTokens.lightBg,
+        appBar: AppBar(title: const Text('Billing & history')),
         floatingActionButton: FloatingActionButton.extended(
           onPressed: _openPay,
-          backgroundColor: DesignTokens.success,
+          backgroundColor: RadiantTokens.brand,
           foregroundColor: Colors.white,
-          icon: const Icon(Icons.payments_rounded),
-          label: const Text('Recharge / Pay'),
+          icon: const Icon(Icons.bolt_rounded),
+          label: const Text('Pay now'),
         ),
         body: body,
       );
@@ -108,7 +109,7 @@ class _CustomerBillsScreenState extends State<CustomerBillsScreen> {
   }
 
   Widget _buildBody() {
-    if (_loading) return const SkeletonList();
+    if (_loading) return const RadiantDashboardSkeleton();
     if (_error != null) return ErrorStateView(failure: _error!, onRetry: _load);
     if (_payments.isEmpty) {
       return EmptyStateView(
@@ -122,14 +123,14 @@ class _CustomerBillsScreenState extends State<CustomerBillsScreen> {
 
     return RefreshIndicator(
       onRefresh: _load,
-      color: DesignTokens.primary,
+      color: RadiantTokens.brand,
       child: ListView.separated(
-        padding: pagePadding(context, top: 10).copyWith(bottom: 88),
+        padding: pagePadding(context, top: 10).copyWith(bottom: 100),
         itemCount: _payments.length,
         separatorBuilder: (_, _) => const SizedBox(height: 10),
         itemBuilder: (context, i) {
           final p = _payments[i];
-          return IspUiKit.paymentHistoryCard(
+          return RadiantPaymentRow(
             title: p.title,
             date: p.paidAt,
             amount: _fmt.format(p.amount),

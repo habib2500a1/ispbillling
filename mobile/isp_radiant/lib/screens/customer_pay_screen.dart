@@ -3,9 +3,13 @@ import 'package:intl/intl.dart';
 
 import '../core/network/api_result.dart';
 import '../core/theme/design_tokens.dart';
-import '../core/widgets/cards.dart';
-import '../core/widgets/skeleton.dart';
 import '../core/widgets/states.dart';
+import '../design_system/components/radiant_glass_card.dart';
+import '../design_system/components/radiant_kpi_tile.dart';
+import '../design_system/components/radiant_section.dart';
+import '../design_system/components/radiant_skeleton.dart';
+import '../design_system/navigation/radiant_super_shell.dart';
+import '../design_system/radiant_tokens.dart';
 import '../features/customer/data/customer_repository.dart';
 import '../features/customer/domain/customer_models.dart';
 import '../services/api_service.dart';
@@ -13,7 +17,7 @@ import '../utils/app_nav.dart';
 import '../utils/layout.dart';
 import 'payment_checkout_screen.dart';
 
-/// Client pay: all due invoices, full amount only. Typed [Payables] + repository.
+/// Client pay — Radiant 3.0 UI (logic unchanged).
 class CustomerPayScreen extends StatefulWidget {
   const CustomerPayScreen({
     super.key,
@@ -64,7 +68,6 @@ class _CustomerPayScreenState extends State<CustomerPayScreen> {
           _payables = data;
           _loading = false;
         });
-        // Deep-link: auto-start payment for a specific invoice if it is due.
         if (widget.invoiceId != null && data.dueInvoices.any((e) => e.id == widget.invoiceId)) {
           final gw = data.gatewayOptions.keys.isNotEmpty ? data.gatewayOptions.keys.first : 'bkash';
           await _payInvoice(widget.invoiceId!, gw);
@@ -89,8 +92,8 @@ class _CustomerPayScreenState extends State<CustomerPayScreen> {
         }
         final amount = data['amount']?.toString() ?? '';
         final done = await Navigator.of(context).push<bool>(
-          MaterialPageRoute(
-            builder: (_) => PaymentCheckoutScreen(
+          RadiantPageRoute(
+            page: PaymentCheckoutScreen(
               paymentUrl: url,
               title: amount.isNotEmpty ? 'Pay $amount BDT' : 'Pay bill',
             ),
@@ -122,8 +125,7 @@ class _CustomerPayScreenState extends State<CustomerPayScreen> {
           children: [
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
-              child: Text('Pay ${invoice.invoiceNumber}',
-                  style: const TextStyle(fontWeight: FontWeight.w700)),
+              child: Text('Pay ${invoice.invoiceNumber}', style: const TextStyle(fontWeight: FontWeight.w700)),
             ),
             ...options.entries.map(
               (e) => ListTile(
@@ -151,8 +153,8 @@ class _CustomerPayScreenState extends State<CustomerPayScreen> {
         }
         final amount = data['amount']?.toString() ?? '';
         final done = await Navigator.of(context).push<bool>(
-          MaterialPageRoute(
-            builder: (_) => PaymentCheckoutScreen(
+          RadiantPageRoute(
+            page: PaymentCheckoutScreen(
               paymentUrl: url,
               title: amount.isNotEmpty ? 'Advance pay $amount BDT' : 'Advance payment',
             ),
@@ -212,13 +214,13 @@ class _CustomerPayScreenState extends State<CustomerPayScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const SectionHeader(title: 'Advance payment'),
+        const RadiantSectionHeader(title: 'Advance payment'),
         if (prepay.packageName.isNotEmpty)
           Padding(
             padding: const EdgeInsets.only(bottom: 8),
             child: Text(
               '${prepay.packageName} · ৳${_fmt.format(prepay.monthlyRate)}/mo',
-              style: TextStyle(fontSize: 12, color: context.brand.textMuted),
+              style: TextStyle(fontSize: 12, color: context.radiant.muted),
             ),
           ),
         Wrap(
@@ -230,19 +232,15 @@ class _CustomerPayScreenState extends State<CustomerPayScreen> {
             return ActionChip(
               avatar: const Icon(Icons.event_available_rounded, size: 18),
               label: Text('$months mo · ৳${_fmt.format(quote.totalAmount)}'),
-              onPressed: prepay.canPayOnline
-                  ? () => _chooseGatewayAndPrepay(months)
-                  : null,
+              onPressed: prepay.canPayOnline ? () => _chooseGatewayAndPrepay(months) : null,
             );
           }).toList(),
         ),
         if (!prepay.canPayOnline)
           Padding(
             padding: const EdgeInsets.only(top: 8),
-            child: Text(
-              'Online payment is not enabled. Contact your ISP.',
-              style: TextStyle(fontSize: 11, color: context.brand.textMuted),
-            ),
+            child: Text('Online payment is not enabled. Contact your ISP.',
+                style: TextStyle(fontSize: 11, color: context.radiant.muted)),
           ),
         const SizedBox(height: 18),
       ],
@@ -251,90 +249,54 @@ class _CustomerPayScreenState extends State<CustomerPayScreen> {
 
   @override
   Widget build(BuildContext context) {
-    if (widget.embedded) {
-      return _buildBody();
-    }
-    return Scaffold(
-      appBar: AppBar(title: const Text('Pay bill')),
-      body: _buildBody(),
-    );
+    if (widget.embedded) return _buildBody();
+    return Scaffold(appBar: AppBar(title: const Text('Pay bill')), body: _buildBody());
   }
 
   Widget _buildBody() {
-    if (_loading) {
-      return ListView(padding: pagePadding(context), children: const [
-        SkeletonCard(height: 110),
-        SizedBox(height: 12),
-        SkeletonCard(height: 80),
-        SizedBox(height: 16),
-        SkeletonCard(height: 90),
-        SizedBox(height: 12),
-        SkeletonCard(height: 90),
-      ]);
-    }
+    if (_loading) return const RadiantDashboardSkeleton();
     if (_error != null) return ErrorStateView(failure: _error!, onRetry: _load);
     final p = _payables;
     if (p == null) return ErrorStateView(failure: const Failure('No data'), onRetry: _load);
 
     return RefreshIndicator(
       onRefresh: _load,
-      color: DesignTokens.primary,
+      color: RadiantTokens.brand,
       child: ListView(
-        padding: pagePadding(context),
+        padding: pagePadding(context).copyWith(bottom: 100),
         children: [
-          AppCard(
-            gradient: LinearGradient(
-              colors: context.brand.heroGradient,
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
+          RadiantGlassCard(
+            padding: const EdgeInsets.all(20),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('Total due', style: TextStyle(color: Colors.white70, fontSize: 13)),
-                const SizedBox(height: 4),
+                Text('Total due', style: context.text.labelMedium?.copyWith(color: context.radiant.muted)),
+                const SizedBox(height: 6),
                 Text('৳${_fmt.format(p.totalDue)}',
-                    style: const TextStyle(color: Colors.white, fontSize: 30, fontWeight: FontWeight.w800)),
+                    style: context.text.headlineMedium?.copyWith(fontWeight: FontWeight.w800, letterSpacing: -0.8)),
                 if (p.message.isNotEmpty) ...[
                   const SizedBox(height: 8),
-                  Text(p.message, style: const TextStyle(color: Colors.white, fontSize: 12)),
+                  Text(p.message, style: context.text.bodySmall?.copyWith(color: context.radiant.muted)),
                 ],
               ],
             ),
           ),
           const SizedBox(height: 12),
-          AppCard(
-            child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(9),
-                  decoration: BoxDecoration(
-                      color: DesignTokens.primary.withValues(alpha: 0.14),
-                      borderRadius: BorderRadius.circular(DesignTokens.radiusSm)),
-                  child: const Icon(Icons.account_balance_wallet_rounded, color: DesignTokens.primary),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('Wallet balance',
-                          style: TextStyle(fontSize: 11, color: context.brand.textMuted)),
-                      Text('৳${_fmt.format(p.walletBalance)}',
-                          style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
-                      Text('Line turns on only when all dues below are cleared.',
-                          style: TextStyle(fontSize: 10, color: context.brand.textMuted)),
-                    ],
-                  ),
-                ),
-              ],
-            ),
+          RadiantKpiTile(
+            icon: Icons.account_balance_wallet_outlined,
+            label: 'Wallet balance',
+            value: '৳${_fmt.format(p.walletBalance)}',
+            color: RadiantTokens.accentCyan,
+            compact: true,
           ),
+          const SizedBox(height: 8),
+          Text('Line turns on only when all dues below are cleared.',
+              style: context.text.labelSmall?.copyWith(color: context.radiant.muted)),
           const SizedBox(height: 18),
           _prepaySection(p.prepay),
-          const SectionHeader(title: 'Outstanding invoices'),
+          const RadiantSectionHeader(title: 'Outstanding invoices'),
           if (p.dueInvoices.isEmpty)
-            EmptyStateView(
+            const EmptyStateView(
               icon: Icons.check_circle_rounded,
               title: 'No due bills',
               message: 'You are up to date.',
@@ -342,7 +304,7 @@ class _CustomerPayScreenState extends State<CustomerPayScreen> {
           else
             ...p.dueInvoices.map((inv) => Padding(
                   padding: const EdgeInsets.only(bottom: 10),
-                  child: AppCard(
+                  child: RadiantGlassCard(
                     onTap: () => _chooseGatewayAndPay(inv),
                     child: Row(
                       children: [
@@ -350,11 +312,9 @@ class _CustomerPayScreenState extends State<CustomerPayScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(inv.invoiceNumber,
-                                  style: const TextStyle(fontWeight: FontWeight.w700)),
-                              const SizedBox(height: 2),
+                              Text(inv.invoiceNumber, style: context.text.bodyMedium?.copyWith(fontWeight: FontWeight.w700)),
                               Text('Due ${inv.dueDate} · ${inv.status}',
-                                  style: TextStyle(fontSize: 12, color: context.brand.textMuted)),
+                                  style: context.text.bodySmall?.copyWith(color: context.radiant.muted)),
                             ],
                           ),
                         ),
@@ -362,10 +322,9 @@ class _CustomerPayScreenState extends State<CustomerPayScreen> {
                           crossAxisAlignment: CrossAxisAlignment.end,
                           children: [
                             Text('৳${_fmt.format(inv.balanceDue)}',
-                                style: const TextStyle(
-                                    fontWeight: FontWeight.w800, color: DesignTokens.danger)),
+                                style: context.text.titleSmall?.copyWith(fontWeight: FontWeight.w800, color: RadiantTokens.danger)),
                             const SizedBox(height: 4),
-                            const StatusPill(label: 'Pay now', color: DesignTokens.success, icon: Icons.bolt_rounded),
+                            RadiantStatusChip(label: 'Pay now', color: RadiantTokens.success, icon: Icons.bolt_rounded),
                           ],
                         ),
                       ],

@@ -3,8 +3,14 @@ import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../core/network/api_result.dart';
+import '../design_system/components/radiant_glass_card.dart';
+import '../design_system/components/radiant_kpi_tile.dart';
+import '../design_system/components/radiant_screen_header.dart';
+import '../design_system/components/radiant_section.dart';
+import '../design_system/components/radiant_skeleton.dart';
+import '../design_system/navigation/radiant_super_shell.dart';
+import '../design_system/radiant_tokens.dart';
 import '../core/theme/design_tokens.dart';
-import '../core/widgets/cards.dart';
 import '../core/widgets/collection_card.dart';
 import '../core/widgets/due_client_card.dart';
 import '../core/widgets/skeleton.dart';
@@ -146,9 +152,9 @@ class _StaffBillingHubScreenState extends State<StaffBillingHubScreen>
       controller: _tabs,
       isScrollable: true,
       tabAlignment: TabAlignment.start,
-      indicatorColor: Colors.white,
-      labelColor: Colors.white,
-      unselectedLabelColor: Colors.white70,
+      indicatorColor: RadiantTokens.brand,
+      labelColor: RadiantTokens.brandDeep,
+      unselectedLabelColor: context.radiant.muted,
       tabs: const [
         Tab(text: 'Monthly'),
         Tab(text: 'Due'),
@@ -158,7 +164,7 @@ class _StaffBillingHubScreenState extends State<StaffBillingHubScreen>
     );
 
     final body = _loading
-        ? const SkeletonList(count: 5, rowHeight: 110)
+        ? const RadiantDashboardSkeleton()
         : _error != null
             ? ErrorStateView(failure: _error!, onRetry: _loadAll)
             : TabBarView(
@@ -170,9 +176,10 @@ class _StaffBillingHubScreenState extends State<StaffBillingHubScreen>
       return Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          IspUiKit.gradientHeader(
+          RadiantScreenHeader(
             title: 'Billing',
             subtitle: 'Due · invoices · collections',
+            compact: true,
             child: tabs,
           ),
           Expanded(child: body),
@@ -198,28 +205,12 @@ class _StaffBillingHubScreenState extends State<StaffBillingHubScreen>
       crossAxisCount: 2,
       mainAxisSpacing: 12,
       crossAxisSpacing: 12,
-      childAspectRatio: 1.5,
+      childAspectRatio: 1.45,
       children: [
-        StatCard(
-            icon: Icons.person_rounded,
-            label: 'Paid clients',
-            value: '${s.paidClients}',
-            color: DesignTokens.success),
-        StatCard(
-            icon: Icons.group_rounded,
-            label: 'Unpaid clients',
-            value: '${s.unpaidClients}',
-            color: DesignTokens.danger),
-        StatCard(
-            icon: Icons.verified_rounded,
-            label: 'Received bill',
-            value: _fmt.format(s.collected),
-            color: DesignTokens.primary),
-        StatCard(
-            icon: Icons.schedule_rounded,
-            label: 'Due amount',
-            value: _fmt.format(s.due),
-            color: DesignTokens.warning),
+        RadiantKpiTile(icon: Icons.person_rounded, label: 'Paid clients', value: '${s.paidClients}', color: RadiantTokens.success, compact: true),
+        RadiantKpiTile(icon: Icons.group_rounded, label: 'Unpaid clients', value: '${s.unpaidClients}', color: RadiantTokens.danger, compact: true),
+        RadiantKpiTile(icon: Icons.verified_rounded, label: 'Received bill', value: '৳${_fmt.format(s.collected)}', color: RadiantTokens.brand, compact: true),
+        RadiantKpiTile(icon: Icons.schedule_rounded, label: 'Due amount', value: '৳${_fmt.format(s.due)}', color: RadiantTokens.warning, compact: true),
       ],
     );
   }
@@ -242,16 +233,8 @@ class _StaffBillingHubScreenState extends State<StaffBillingHubScreen>
             crossAxisSpacing: 12,
             childAspectRatio: 1.5,
             children: [
-              StatCard(
-                  icon: Icons.receipt_long_rounded,
-                  label: 'Monthly bill',
-                  value: _fmt.format(s.monthlyBill),
-                  color: DesignTokens.primary),
-              StatCard(
-                  icon: Icons.percent_rounded,
-                  label: 'Discount',
-                  value: _fmt.format(s.discount),
-                  color: DesignTokens.pink),
+              RadiantKpiTile(icon: Icons.receipt_long_rounded, label: 'Monthly bill', value: '৳${_fmt.format(s.monthlyBill)}', color: RadiantTokens.brand, compact: true),
+              RadiantKpiTile(icon: Icons.percent_rounded, label: 'Discount', value: '৳${_fmt.format(s.discount)}', color: RadiantTokens.accent, compact: true),
             ],
           ),
         ],
@@ -269,7 +252,7 @@ class _StaffBillingHubScreenState extends State<StaffBillingHubScreen>
         children: [
           _statGrid(),
           const SizedBox(height: 12),
-          SectionHeader(title: 'Due clients (${due.length})'),
+          const RadiantSectionHeader(title: 'Due clients'),
           if (due.isEmpty)
             const EmptyStateView(
                 icon: Icons.check_circle_rounded, title: 'No due customers', message: 'All caught up.')
@@ -324,7 +307,7 @@ class _StaffBillingHubScreenState extends State<StaffBillingHubScreen>
   }
 
   Widget _invoiceRow(InvoiceRow inv) {
-    return AppCard(
+    return RadiantGlassCard(
       onTap: inv.customerId == null
           ? null
           : () => Navigator.push(
@@ -377,19 +360,11 @@ class _StaffBillingHubScreenState extends State<StaffBillingHubScreen>
           Row(
             children: [
               Expanded(
-                child: StatCard(
-                    icon: Icons.receipt_long_rounded,
-                    label: 'Total transaction',
-                    value: '${cs.transactionCount}',
-                    color: DesignTokens.primary),
+                child: RadiantKpiTile(icon: Icons.receipt_long_rounded, label: 'Total transaction', value: '${cs.transactionCount}', color: RadiantTokens.brand, compact: true),
               ),
               const SizedBox(width: 12),
               Expanded(
-                child: StatCard(
-                    icon: Icons.savings_rounded,
-                    label: 'Collected amount',
-                    value: _fmt.format(cs.collected),
-                    color: DesignTokens.success),
+                child: RadiantKpiTile(icon: Icons.savings_rounded, label: 'Collected amount', value: '৳${_fmt.format(cs.collected)}', color: RadiantTokens.success, compact: true),
               ),
             ],
           ),

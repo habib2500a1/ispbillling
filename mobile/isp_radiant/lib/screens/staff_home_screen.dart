@@ -12,6 +12,13 @@ import '../core/roles/staff_interface.dart';
 import '../core/network/api_result.dart';
 import '../core/network/connectivity.dart';
 import '../core/theme/design_tokens.dart';
+import '../design_system/components/radiant_glass_card.dart';
+import '../design_system/components/radiant_kpi_tile.dart';
+import '../design_system/components/radiant_screen_header.dart';
+import '../design_system/components/radiant_section.dart';
+import '../design_system/components/radiant_skeleton.dart';
+import '../design_system/navigation/radiant_super_shell.dart';
+import '../design_system/radiant_tokens.dart';
 import '../core/widgets/cards.dart';
 import '../core/widgets/skeleton.dart';
 import '../core/widgets/states.dart';
@@ -51,7 +58,6 @@ import 'staff_ai_screen.dart';
 import 'staff_global_search_screen.dart';
 import '../widgets/role_switcher_sheet.dart';
 import '../services/mfs_sms_listener.dart';
-import '../widgets/isp_ui_kit.dart';
 import '../widgets/module_tile.dart';
 
 class StaffHomeScreen extends ConsumerStatefulWidget {
@@ -267,6 +273,9 @@ class _StaffHomeScreenState extends ConsumerState<StaffHomeScreen> {
           AppShell(
             tabIndex: _tab,
             onTab: _go,
+            centerAction: () => _go(2),
+            centerActionIcon: Icons.payments_rounded,
+            centerActionLabel: 'Collect',
             destinations: const [
               NavigationDestination(icon: Icon(Icons.grid_view_rounded), label: 'Home'),
               NavigationDestination(icon: Icon(Icons.receipt_long_rounded), label: 'Billing'),
@@ -307,49 +316,31 @@ class _StaffHomeScreenState extends ConsumerState<StaffHomeScreen> {
   }
 
   Widget _buildHomeTab(bool online) {
-    if (_loading && _dash == null) return const _StaffDashboardSkeleton();
+    if (_loading && _dash == null) return const RadiantDashboardSkeleton();
     if (_error != null && _dash == null) {
       return ErrorStateView(failure: _error!, onRetry: _load);
     }
     final d = _dash;
-    if (d == null) return const _StaffDashboardSkeleton();
+    if (d == null) return const RadiantDashboardSkeleton();
 
     return RefreshIndicator(
       onRefresh: _load,
-      color: DesignTokens.primary,
+      color: RadiantTokens.brand,
       child: ListView(
         padding: EdgeInsets.zero,
         children: [
           if (!online) const OfflineBanner(),
-          IspUiKit.gradientHeader(
-            title: 'Home',
+          RadiantScreenHeader(
+            title: 'Operations',
             subtitle: '${_user?['name'] ?? 'Staff'} · ${RemoteConfig.appName}',
             trailing: [
               if (_roleCaps?.hasMultipleInterfaces == true)
-                IconButton(
-                  icon: const Icon(Icons.swap_horiz_rounded, color: Colors.white),
-                  onPressed: _openRoleSwitcher,
-                ),
-              IconButton(
-                icon: const Icon(Icons.map_outlined, color: Colors.white),
-                onPressed: () => _push(StaffGisMapScreen(api: widget.api)),
-              ),
-              IconButton(
-                icon: const Icon(Icons.search, color: Colors.white),
-                onPressed: () => _push(StaffGlobalSearchScreen(api: widget.api)),
-              ),
-              IconButton(
-                icon: const Icon(Icons.smart_toy_outlined, color: Colors.white),
-                onPressed: () => _push(StaffAiScreen(api: widget.api)),
-              ),
-              IconButton(
-                icon: const Icon(Icons.refresh, color: Colors.white),
-                onPressed: _load,
-              ),
-              IconButton(
-                icon: const Icon(Icons.logout, color: Colors.white),
-                onPressed: _logout,
-              ),
+                RadiantHeaderIcon(icon: Icons.swap_horiz_rounded, onPressed: _openRoleSwitcher, tooltip: 'Switch role'),
+              RadiantHeaderIcon(icon: Icons.map_outlined, onPressed: () => _push(StaffGisMapScreen(api: widget.api)), tooltip: 'Map'),
+              RadiantHeaderIcon(icon: Icons.search_rounded, onPressed: () => _push(StaffGlobalSearchScreen(api: widget.api)), tooltip: 'Search'),
+              RadiantHeaderIcon(icon: Icons.auto_awesome_rounded, onPressed: () => _push(StaffAiScreen(api: widget.api)), tooltip: 'AI'),
+              RadiantHeaderIcon(icon: Icons.refresh_rounded, onPressed: _load, tooltip: 'Refresh'),
+              RadiantHeaderIcon(icon: Icons.logout_rounded, onPressed: _logout, tooltip: 'Sign out'),
             ],
           ),
           Padding(
@@ -369,11 +360,10 @@ class _StaffHomeScreenState extends ConsumerState<StaffHomeScreen> {
                 if (_pendingSync > 0)
                   Padding(
                     padding: const EdgeInsets.only(bottom: 10),
-                    child: AppCard(
-                      borderColor: DesignTokens.warning.withValues(alpha: 0.4),
+                    child: RadiantGlassCard(
                       child: Row(
                         children: [
-                          const Icon(Icons.sync_problem_rounded, color: DesignTokens.warning),
+                          Icon(Icons.sync_problem_rounded, color: context.radiant.warning),
                           const SizedBox(width: 10),
                           Expanded(child: Text('$_pendingSync offline payment(s) pending')),
                           TextButton(onPressed: _flushOffline, child: const Text('Sync now')),
@@ -384,15 +374,17 @@ class _StaffHomeScreenState extends ConsumerState<StaffHomeScreen> {
                 if (_mode == 'admin')
                   Padding(
                     padding: const EdgeInsets.only(bottom: 12),
-                    child: AppCard(
+                    child: RadiantGlassCard(
                       onTap: () => _push(StaffTeamDiscountScreen(api: widget.api)),
                       child: Row(
                         children: [
                           Container(
                             padding: const EdgeInsets.all(9),
                             decoration: BoxDecoration(
-                              gradient: const LinearGradient(colors: [DesignTokens.primaryDeep, DesignTokens.info]),
-                              borderRadius: BorderRadius.circular(DesignTokens.radiusSm),
+                              gradient: LinearGradient(
+                                colors: [RadiantTokens.brandDeep, RadiantTokens.accentCyan],
+                              ),
+                              borderRadius: BorderRadius.circular(RadiantTokens.radiusSm),
                             ),
                             child: const Icon(Icons.percent_rounded, color: Colors.white, size: 20),
                           ),
@@ -406,30 +398,30 @@ class _StaffHomeScreenState extends ConsumerState<StaffHomeScreen> {
                               ],
                             ),
                           ),
-                          Icon(Icons.chevron_right_rounded, color: context.brand.textMuted),
+                          Icon(Icons.chevron_right_rounded, color: context.radiant.muted),
                         ],
                       ),
                     ),
                   ),
                 if (d.quickActions.isNotEmpty) ...[
-                  const SectionHeader(title: 'Quick actions'),
+                  const RadiantSectionHeader(title: 'Quick actions'),
                   QuickActionGrid(actions: d.quickActions, onAction: _onQuickAction),
                   const SizedBox(height: 16),
                 ],
-                const SectionHeader(title: 'Today'),
+                const RadiantSectionHeader(title: 'Today'),
                 _kpiRow(d.kpis),
                 const SizedBox(height: 16),
-                const SectionHeader(title: 'Collection overview'),
+                const RadiantSectionHeader(title: 'Collection overview'),
                 _financeOverview(d.billing, d.finance),
                 if (d.finance.hasExtended) ...[
                   const SizedBox(height: 16),
-                  const SectionHeader(title: 'Finance & reseller'),
+                  const RadiantSectionHeader(title: 'Finance & reseller'),
                   _resellerFinanceCard(d.finance),
                 ],
                 const SizedBox(height: 16),
                 _revenueChart7d(d.revenue7d),
                 const SizedBox(height: 16),
-                const SectionHeader(title: 'Modules'),
+                const RadiantSectionHeader(title: 'Modules'),
                 GridView.builder(
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
@@ -471,10 +463,10 @@ class _StaffHomeScreenState extends ConsumerState<StaffHomeScreen> {
   Widget _noticeCard(Map<String, dynamic> n) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
-      child: AppCard(
+      child: RadiantGlassCard(
         child: Row(
           children: [
-            const Icon(Icons.campaign_rounded, color: DesignTokens.primary),
+            Icon(Icons.campaign_rounded, color: RadiantTokens.brand),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
@@ -497,7 +489,7 @@ class _StaffHomeScreenState extends ConsumerState<StaffHomeScreen> {
   Widget _financeOverview(StaffBilling b, FinanceSummary f) {
     final target = b.monthlyBill <= 0 ? 1.0 : b.monthlyBill;
     final rate = (b.collected / target).clamp(0.0, 1.0);
-    return AppCard(
+    return RadiantGlassCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -559,26 +551,10 @@ class _StaffHomeScreenState extends ConsumerState<StaffHomeScreen> {
       crossAxisSpacing: 12,
       childAspectRatio: 1.5,
       children: [
-        StatCard(
-            icon: Icons.account_balance_wallet_rounded,
-            label: 'Reseller wallet',
-            value: _fmt.format(f.resellerWallet),
-            color: DesignTokens.primary),
-        StatCard(
-            icon: Icons.handshake_rounded,
-            label: 'Reseller settled (mo)',
-            value: _fmt.format(f.resellerSettledMonth),
-            color: DesignTokens.info),
-        StatCard(
-            icon: Icons.badge_rounded,
-            label: 'Paid salary (mo)',
-            value: _fmt.format(f.paidSalaryMonth),
-            color: DesignTokens.warning),
-        StatCard(
-            icon: Icons.receipt_long_rounded,
-            label: 'Expense (mo)',
-            value: _fmt.format(f.expenseMonth),
-            color: DesignTokens.danger),
+        RadiantKpiTile(icon: Icons.account_balance_wallet_rounded, label: 'Reseller wallet', value: '৳${_fmt.format(f.resellerWallet)}', color: RadiantTokens.brand, compact: true),
+        RadiantKpiTile(icon: Icons.handshake_rounded, label: 'Reseller settled (mo)', value: '৳${_fmt.format(f.resellerSettledMonth)}', color: RadiantTokens.accentCyan, compact: true),
+        RadiantKpiTile(icon: Icons.badge_rounded, label: 'Paid salary (mo)', value: '৳${_fmt.format(f.paidSalaryMonth)}', color: RadiantTokens.warning, compact: true),
+        RadiantKpiTile(icon: Icons.receipt_long_rounded, label: 'Expense (mo)', value: '৳${_fmt.format(f.expenseMonth)}', color: RadiantTokens.danger, compact: true),
       ],
     );
   }
@@ -607,14 +583,14 @@ class _StaffHomeScreenState extends ConsumerState<StaffHomeScreen> {
       crossAxisCount: 2,
       mainAxisSpacing: 12,
       crossAxisSpacing: 12,
-      childAspectRatio: 1.5,
+      childAspectRatio: 1.45,
       children: [
-        StatCard(label: "Today's collection", value: _fmt.format(k.collectedToday), icon: Icons.payments, color: DesignTokens.success),
-        StatCard(label: 'Cash on hand', value: _fmt.format(k.cashOnHand), icon: Icons.account_balance_wallet, color: DesignTokens.primary),
-        StatCard(label: 'Online PPP', value: '${k.onlineClients}', icon: Icons.wifi, color: DesignTokens.success),
-        StatCard(label: 'Due clients', value: '${k.dueClients}', icon: Icons.warning_amber, color: DesignTokens.warning),
-        StatCard(label: 'Active clients', value: '${k.activeClients}', icon: Icons.people, color: DesignTokens.primary),
-        StatCard(label: 'Expire today', value: '${k.expiringToday}', icon: Icons.event_busy, color: DesignTokens.pink),
+        RadiantKpiTile(label: "Today's collection", value: '৳${_fmt.format(k.collectedToday)}', icon: Icons.payments_rounded, color: RadiantTokens.success, compact: true),
+        RadiantKpiTile(label: 'Cash on hand', value: '৳${_fmt.format(k.cashOnHand)}', icon: Icons.account_balance_wallet_rounded, color: RadiantTokens.brand, compact: true),
+        RadiantKpiTile(label: 'Online PPP', value: '${k.onlineClients}', icon: Icons.wifi_rounded, color: RadiantTokens.accentCyan, compact: true),
+        RadiantKpiTile(label: 'Due clients', value: '${k.dueClients}', icon: Icons.warning_amber_rounded, color: RadiantTokens.warning, compact: true),
+        RadiantKpiTile(label: 'Active clients', value: '${k.activeClients}', icon: Icons.groups_rounded, color: RadiantTokens.brand, compact: true),
+        RadiantKpiTile(label: 'Expire today', value: '${k.expiringToday}', icon: Icons.event_busy_rounded, color: RadiantTokens.accent, compact: true),
       ],
     );
   }
@@ -625,7 +601,7 @@ class _StaffHomeScreenState extends ConsumerState<StaffHomeScreen> {
     final labels = series.labels;
     final maxY = collected.fold<double>(0, (a, b) => a > b ? a : b) * 1.2 + 1;
 
-    return AppCard(
+    return RadiantGlassCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -675,7 +651,7 @@ class _StaffHomeScreenState extends ConsumerState<StaffHomeScreen> {
 
   Widget _statusCard(String title, CountStat stat) {
     final maxVal = stat.total == 0 ? 1 : stat.total;
-    return AppCard(
+    return RadiantGlassCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -712,7 +688,7 @@ class _StaffHomeScreenState extends ConsumerState<StaffHomeScreen> {
   Widget _zoneChart(List<ZoneRow> rows) {
     final maxY = rows.fold<double>(0, (a, r) => [a, r.paid, r.unpaid].reduce((x, y) => x > y ? x : y)) * 1.2 + 1;
 
-    return AppCard(
+    return RadiantGlassCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -771,32 +747,6 @@ class _StaffHomeScreenState extends ConsumerState<StaffHomeScreen> {
         Container(width: 10, height: 10, decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(3))),
         const SizedBox(width: 5),
         Text(label, style: const TextStyle(fontSize: 11)),
-      ],
-    );
-  }
-}
-
-class _StaffDashboardSkeleton extends StatelessWidget {
-  const _StaffDashboardSkeleton();
-
-  @override
-  Widget build(BuildContext context) {
-    return ListView(
-      padding: const EdgeInsets.all(16),
-      children: [
-        const SkeletonCard(height: 90),
-        const SizedBox(height: 16),
-        GridView.count(
-          crossAxisCount: 2,
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          mainAxisSpacing: 12,
-          crossAxisSpacing: 12,
-          childAspectRatio: 1.5,
-          children: const [SkeletonCard(), SkeletonCard(), SkeletonCard(), SkeletonCard()],
-        ),
-        const SizedBox(height: 16),
-        const SkeletonCard(height: 180),
       ],
     );
   }

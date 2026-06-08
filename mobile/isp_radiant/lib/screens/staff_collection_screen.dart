@@ -3,17 +3,20 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+import '../core/network/api_result.dart';
 import '../config/remote_config.dart';
+import '../design_system/components/radiant_glass_card.dart';
+import '../design_system/components/radiant_screen_header.dart';
+import '../design_system/components/radiant_section.dart';
+import '../core/theme/design_tokens.dart';
+import '../design_system/radiant_tokens.dart';
 import '../services/api_service.dart';
 import '../services/offline_sync_service.dart';
-import '../theme/app_theme.dart';
 import '../utils/app_nav.dart';
 import '../utils/layout.dart';
 import '../widgets/customer_search_result_tile.dart';
-import '../widgets/isp_ui_kit.dart';
-import '../widgets/state_views.dart';
+import '../design_system/navigation/radiant_super_shell.dart';
 import 'staff_billing_hub_screen.dart';
-import 'staff_customer_detail_screen.dart';
 import 'staff_expense_screen.dart';
 import 'staff_receive_bill_screen.dart';
 
@@ -94,9 +97,7 @@ class _StaffCollectionScreenState extends State<StaffCollectionScreen> {
       if (!mounted) return;
       final ok = await Navigator.push<bool>(
         context,
-        MaterialPageRoute(
-          builder: (_) => StaffReceiveBillScreen(api: widget.api, customer: detail),
-        ),
+        RadiantPageRoute(page: StaffReceiveBillScreen(api: widget.api, customer: detail)),
       );
       if (ok == true) {
         _loadWallet();
@@ -129,37 +130,65 @@ class _StaffCollectionScreenState extends State<StaffCollectionScreen> {
   Widget build(BuildContext context) {
     final fmt = NumberFormat('#,##0.00');
     final balance = (_wallet?['cash_in_hand'] as num?)?.toDouble() ?? (_wallet?['balance'] as num?)?.toDouble();
+    final brand = context.radiant;
 
     return ListView(
       padding: EdgeInsets.zero,
       children: [
-        IspUiKit.gradientHeader(
+        RadiantScreenHeader(
           title: 'Collection',
           subtitle: 'Search client · receive payment',
           trailing: [
-            IconButton(
-              icon: const Icon(Icons.history, color: Colors.white),
-              onPressed: () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => StaffBillingHubScreen(api: widget.api)),
-              ),
+            RadiantHeaderIcon(
+              icon: Icons.history_rounded,
+              onPressed: () => Navigator.push(context, RadiantPageRoute(page: StaffBillingHubScreen(api: widget.api))),
+              tooltip: 'History',
             ),
           ],
           child: Row(
             children: [
               Expanded(
-                child: _headerStat(
-                  'Cash on hand',
-                  balance != null ? '${fmt.format(balance)} BDT' : '—',
-                  Icons.account_balance_wallet,
+                child: RadiantGlassCard(
+                  padding: const EdgeInsets.all(12),
+                  child: Row(
+                    children: [
+                      Icon(Icons.account_balance_wallet_rounded, color: RadiantTokens.brand, size: 22),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('Cash on hand', style: context.text.labelSmall?.copyWith(color: brand.muted)),
+                            Text(
+                              balance != null ? '${fmt.format(balance)} BDT' : '—',
+                              style: context.text.titleSmall?.copyWith(fontWeight: FontWeight.w800),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 10),
               Expanded(
-                child: _headerStat(
-                  'Queued',
-                  '$_pending',
-                  Icons.cloud_upload_outlined,
+                child: RadiantGlassCard(
+                  padding: const EdgeInsets.all(12),
+                  child: Row(
+                    children: [
+                      Icon(Icons.cloud_upload_outlined, color: RadiantTokens.warning, size: 22),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('Queued sync', style: context.text.labelSmall?.copyWith(color: brand.muted)),
+                            Text('$_pending', style: context.text.titleSmall?.copyWith(fontWeight: FontWeight.w800)),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ],
@@ -171,70 +200,71 @@ class _StaffCollectionScreenState extends State<StaffCollectionScreen> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               if (_pending > 0 && RemoteConfig.offlineSync)
-                Card(
-                  color: AppTheme.warning.withValues(alpha: 0.12),
-                  child: ListTile(
-                    title: Text('$_pending queued collection(s)'),
-                    trailing: TextButton(
-                      onPressed: () async {
-                        await _offline.flush();
-                        await _refreshPending();
-                        if (mounted) showSnack(context, 'Sync attempted');
-                      },
-                      child: const Text('Sync'),
-                    ),
+                RadiantGlassCard(
+                  child: Row(
+                    children: [
+                      Icon(Icons.sync_rounded, color: brand.warning),
+                      const SizedBox(width: 10),
+                      Expanded(child: Text('$_pending queued collection(s)')),
+                      TextButton(
+                        onPressed: () async {
+                          await _offline.flush();
+                          await _refreshPending();
+                          if (mounted) showSnack(context, 'Sync attempted');
+                        },
+                        child: const Text('Sync'),
+                      ),
+                    ],
                   ),
                 ),
               if (_walletError != null)
-                Card(
-                  color: AppTheme.warning.withValues(alpha: 0.12),
-                  child: ListTile(
-                    leading: const Icon(Icons.info_outline, color: AppTheme.warning),
-                    title: Text(_walletError!, style: const TextStyle(fontSize: 13)),
-                    subtitle: const Text('Search a client below to receive payment'),
+                Padding(
+                  padding: const EdgeInsets.only(top: 10),
+                  child: RadiantGlassCard(
+                    child: Row(
+                      children: [
+                        Icon(Icons.info_outline_rounded, color: brand.warning),
+                        const SizedBox(width: 10),
+                        Expanded(child: Text(_walletError!, style: const TextStyle(fontSize: 13))),
+                      ],
+                    ),
                   ),
                 ),
+              const SizedBox(height: 12),
               Row(
                 children: [
                   Expanded(
                     child: OutlinedButton.icon(
-                      onPressed: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => StaffBillingHubScreen(api: widget.api)),
-                      ),
-                      icon: const Icon(Icons.list_alt),
+                      onPressed: () => Navigator.push(context, RadiantPageRoute(page: StaffBillingHubScreen(api: widget.api))),
+                      icon: const Icon(Icons.list_alt_rounded),
                       label: const Text('Billing list'),
                     ),
                   ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: OutlinedButton.icon(
-                      onPressed: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => StaffExpenseScreen(api: widget.api)),
-                      ),
-                      icon: const Icon(Icons.receipt_long),
+                      onPressed: () => Navigator.push(context, RadiantPageRoute(page: StaffExpenseScreen(api: widget.api))),
+                      icon: const Icon(Icons.receipt_long_rounded),
                       label: const Text('Expense'),
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 14),
-              const SectionTitle('Bill receive'),
-              const SizedBox(height: 6),
-              IspUiKit.searchBar(
+              const SizedBox(height: 16),
+              const RadiantSectionHeader(title: 'Bill receive'),
+              RadiantSearchField(
                 controller: _searchCtrl,
                 hint: 'Name, code, phone, username…',
                 loading: _searching,
                 onSearch: _search,
                 onClear: () => _searchCtrl.clear(),
               ),
-              const SizedBox(height: 6),
+              const SizedBox(height: 8),
               Text(
-                'Select customer → Receive Bill (cash / bKash / Nagad / bank)',
-                style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+                'Select customer → receive payment (cash / bKash / Nagad / bank)',
+                style: context.text.labelSmall?.copyWith(color: brand.muted),
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 12),
               ..._results.map((c) {
                 final id = (c['id'] as num).toInt();
                 return Padding(
@@ -247,35 +277,11 @@ class _StaffCollectionScreenState extends State<StaffCollectionScreen> {
                   ),
                 );
               }),
+              const SizedBox(height: 80),
             ],
           ),
         ),
       ],
-    );
-  }
-
-  Widget _headerStat(String label, String value, IconData icon) {
-    return Container(
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.18),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Row(
-        children: [
-          Icon(icon, color: Colors.white, size: 22),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(label, style: const TextStyle(color: Colors.white70, fontSize: 10)),
-                Text(value, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
-              ],
-            ),
-          ),
-        ],
-      ),
     );
   }
 }

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 
 import '../config/remote_config.dart';
@@ -9,8 +8,11 @@ import '../core/widgets/states.dart';
 import '../services/api_service.dart';
 import '../utils/app_nav.dart';
 import '../utils/layout.dart';
-import '../widgets/glass_card.dart';
-import '../widgets/isp_ui_kit.dart';
+import '../design_system/navigation/radiant_super_shell.dart';
+import '../design_system/components/radiant_glass_card.dart';
+import '../design_system/components/radiant_kpi_tile.dart';
+import '../design_system/components/radiant_section.dart';
+import '../design_system/radiant_tokens.dart';
 import 'login_hub_screen.dart';
 import 'reseller_web_portal_screen.dart';
 
@@ -80,26 +82,21 @@ class _ResellerHomeScreenState extends State<ResellerHomeScreen> {
         widget.loginPayload['user']?['name']?.toString() ??
         'Partner';
 
-    return Scaffold(
-      body: IndexedStack(
-        index: _tab,
-        children: [
-          _buildDashboard(name),
-          _ResellerListTab(api: widget.api, loader: widget.api.resellerCustomers, title: 'Customers'),
-          _ResellerListTab(api: widget.api, loader: widget.api.resellerCommissions, title: 'Commissions'),
-          _buildMoreTab(name),
-        ],
-      ),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _tab,
-        onDestinationSelected: (i) => setState(() => _tab = i),
-        destinations: const [
-          NavigationDestination(icon: Icon(Icons.dashboard_outlined), label: 'Home'),
-          NavigationDestination(icon: Icon(Icons.people_outline), label: 'Customers'),
-          NavigationDestination(icon: Icon(Icons.payments_outlined), label: 'Commission'),
-          NavigationDestination(icon: Icon(Icons.more_horiz), label: 'More'),
-        ],
-      ),
+    return RadiantSuperShell(
+      tabIndex: _tab,
+      onTab: (i) => setState(() => _tab = i),
+      destinations: const [
+        RadiantNavDestination(icon: Icon(Icons.space_dashboard_outlined), selectedIcon: Icon(Icons.space_dashboard_rounded), label: 'Home'),
+        RadiantNavDestination(icon: Icon(Icons.groups_outlined), selectedIcon: Icon(Icons.groups_rounded), label: 'Customers'),
+        RadiantNavDestination(icon: Icon(Icons.payments_outlined), selectedIcon: Icon(Icons.payments_rounded), label: 'Commission'),
+        RadiantNavDestination(icon: Icon(Icons.grid_view_rounded), selectedIcon: Icon(Icons.grid_view_rounded), label: 'More'),
+      ],
+      pages: [
+        _buildDashboard(name),
+        _ResellerListTab(api: widget.api, loader: widget.api.resellerCustomers, title: 'Customers'),
+        _ResellerListTab(api: widget.api, loader: widget.api.resellerCommissions, title: 'Commissions'),
+        _buildMoreTab(name),
+      ],
     );
   }
 
@@ -120,13 +117,25 @@ class _ResellerHomeScreenState extends State<ResellerHomeScreen> {
       child: ListView(
         padding: EdgeInsets.zero,
         children: [
-          IspUiKit.gradientHeader(
-            title: 'Partner center',
-            subtitle: '$name · ${RemoteConfig.appName}',
-            trailing: [
-              IconButton(icon: const Icon(Icons.refresh, color: Colors.white), onPressed: _load),
-              IconButton(icon: const Icon(Icons.logout, color: Colors.white), onPressed: _logout),
-            ],
+          RadiantMeshBackground(
+            child: Padding(
+              padding: EdgeInsets.fromLTRB(20, MediaQuery.paddingOf(context).top + 16, 20, 24),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Partner center', style: context.text.headlineSmall?.copyWith(fontWeight: FontWeight.w800)),
+                        Text('$name · ${RemoteConfig.appName}', style: context.text.bodySmall?.copyWith(color: context.radiant.muted)),
+                      ],
+                    ),
+                  ),
+                  IconButton(icon: const Icon(Icons.refresh_rounded), onPressed: _load),
+                  IconButton(icon: const Icon(Icons.logout_rounded), onPressed: _logout),
+                ],
+              ),
+            ),
           ),
           Padding(
             padding: pagePadding(context),
@@ -150,12 +159,11 @@ class _ResellerHomeScreenState extends State<ResellerHomeScreen> {
                   ],
                 ),
                 const SizedBox(height: 16),
-                GlassCard(
+                RadiantGlassCard(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text('Quick actions', style: TextStyle(fontWeight: FontWeight.w800)),
-                      const SizedBox(height: 10),
+                      const RadiantSectionHeader(title: 'Quick actions'),
                       Wrap(
                         spacing: 8,
                         runSpacing: 8,
@@ -167,8 +175,8 @@ class _ResellerHomeScreenState extends State<ResellerHomeScreen> {
                               if (url == null) return;
                               Navigator.push(
                                 context,
-                                MaterialPageRoute(
-                                  builder: (_) => ResellerWebPortalScreen(initialUrl: url, title: 'Partner portal'),
+                                RadiantPageRoute(
+                                  page: ResellerWebPortalScreen(initialUrl: url, title: 'Partner portal'),
                                 ),
                               );
                             },
@@ -205,17 +213,7 @@ class _ResellerHomeScreenState extends State<ResellerHomeScreen> {
   }
 
   Widget _kpi(String label, String value) {
-    return GlassCard(
-      padding: const EdgeInsets.all(14),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(label, style: TextStyle(fontSize: 11, color: Colors.grey.shade600)),
-          const SizedBox(height: 4),
-          Text(value, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
-        ],
-      ),
-    );
+    return RadiantKpiTile(icon: Icons.insights_rounded, label: label, value: value, compact: true);
   }
 
   Widget _buildMoreTab(String name) {
@@ -231,7 +229,7 @@ class _ResellerHomeScreenState extends State<ResellerHomeScreen> {
             if (url == null) return;
             Navigator.push(
               context,
-              MaterialPageRoute(builder: (_) => ResellerWebPortalScreen(initialUrl: url, title: 'Partner portal')),
+              RadiantPageRoute(page: ResellerWebPortalScreen(initialUrl: url, title: 'Partner portal')),
             );
           },
         ),

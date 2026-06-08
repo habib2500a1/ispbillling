@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'core/theme/app_themes.dart';
+import 'design_system/radiant_theme.dart';
 import 'core/theme/theme_controller.dart';
 import 'screens/splash_gate.dart';
 
@@ -16,8 +16,8 @@ class IspRadiantApp extends ConsumerWidget {
     return MaterialApp(
       title: 'RADIANT ISP',
       debugShowCheckedModeBanner: false,
-      theme: AppThemes.light,
-      darkTheme: AppThemes.dark,
+      theme: RadiantTheme.light,
+      darkTheme: RadiantTheme.dark,
       themeMode: mode,
       home: const SplashGate(),
     );

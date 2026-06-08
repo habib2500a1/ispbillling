@@ -1,12 +1,16 @@
 import 'package:flutter/material.dart';
 
 import '../core/theme/design_tokens.dart';
+import '../core/theme/design_tokens.dart';
+import '../design_system/components/radiant_screen_header.dart';
+import '../design_system/components/radiant_skeleton.dart';
+import '../design_system/navigation/radiant_super_shell.dart';
+import '../design_system/radiant_tokens.dart';
 import '../features/customer/data/customer_repository.dart';
 import '../services/api_service.dart';
 import '../utils/app_nav.dart';
 import '../utils/layout.dart';
-import '../widgets/isp_tab_screen.dart';
-import '../widgets/support_ticket_ui.dart';
+import '../widgets/radiant_list_tiles.dart';
 import '../widgets/state_views.dart';
 import 'ticket_thread_screen.dart';
 
@@ -36,12 +40,12 @@ class CustomerTicketsScreen extends StatefulWidget {
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Row(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(RadiantTokens.radiusMd)),
+        title: Row(
           children: [
-            Icon(Icons.support_agent, color: DesignTokens.primary),
-            SizedBox(width: 8),
-            Text('New support ticket'),
+            Icon(Icons.support_agent_rounded, color: RadiantTokens.brand),
+            const SizedBox(width: 8),
+            const Text('New support ticket'),
           ],
         ),
         content: SingleChildScrollView(
@@ -50,18 +54,12 @@ class CustomerTicketsScreen extends StatefulWidget {
             children: [
               TextField(
                 controller: subjectCtrl,
-                decoration: const InputDecoration(
-                  labelText: 'Subject',
-                  border: OutlineInputBorder(),
-                ),
+                decoration: const InputDecoration(labelText: 'Subject'),
               ),
               const SizedBox(height: 12),
               TextField(
                 controller: descCtrl,
-                decoration: const InputDecoration(
-                  labelText: 'Describe your issue',
-                  border: OutlineInputBorder(),
-                ),
+                decoration: const InputDecoration(labelText: 'Describe your issue'),
                 maxLines: 4,
               ),
             ],
@@ -134,42 +132,61 @@ class _CustomerTicketsScreenState extends State<CustomerTicketsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return IspTabScreen(
-      title: 'Support',
-      subtitle: 'Tickets & help',
-      loading: _loading,
-      error: _error,
-      onRetry: _load,
-      onRefresh: _load,
-      trailing: [
-        IconButton(
-          onPressed: () => CustomerTicketsScreen.showCreateDialog(context, widget.api, onCreated: _load),
-          icon: const Icon(Icons.add_comment_outlined, color: Colors.white),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        RadiantScreenHeader(
+          title: 'Support',
+          subtitle: 'Tickets & help',
+          compact: true,
+          trailing: [
+            RadiantHeaderIcon(
+              icon: Icons.add_comment_outlined,
+              onPressed: () => CustomerTicketsScreen.showCreateDialog(context, widget.api, onCreated: _load),
+              tooltip: 'New ticket',
+            ),
+          ],
         ),
+        Expanded(child: _buildBody()),
       ],
-      empty: !_loading && _error == null && _tickets.isEmpty
-          ? EmptyState(
-              icon: Icons.support_agent,
-              title: 'No tickets yet',
-              subtitle: 'Create a support ticket — we will reply in the app',
-              action: () => CustomerTicketsScreen.showCreateDialog(context, widget.api, onCreated: _load),
-              actionLabel: 'New ticket',
-            )
-          : null,
+    );
+  }
+
+  Widget _buildBody() {
+    if (_loading) return const RadiantDashboardSkeleton();
+    if (_error != null) {
+      return Center(child: Text(_error!, style: TextStyle(color: context.radiant.danger)));
+    }
+    if (_tickets.isEmpty) {
+      return EmptyState(
+        icon: Icons.support_agent_rounded,
+        title: 'No tickets yet',
+        subtitle: 'Create a support ticket — we will reply in the app',
+        action: () => CustomerTicketsScreen.showCreateDialog(context, widget.api, onCreated: _load),
+        actionLabel: 'New ticket',
+      );
+    }
+
+    return RefreshIndicator(
+      onRefresh: _load,
+      color: RadiantTokens.brand,
       child: ListView.separated(
-        padding: pagePadding(context, top: 10),
+        padding: pagePadding(context, top: 10).copyWith(bottom: 100),
         itemCount: _tickets.length,
         separatorBuilder: (_, _) => const SizedBox(height: 10),
         itemBuilder: (context, i) {
           final t = _tickets[i];
           final id = (t['id'] as num).toInt();
-          return SupportTicketUi.ticketListCard(
-            ticket: {...t, 'customer_name': 'You'},
+          return RadiantTicketRow(
+            subject: t['subject']?.toString() ?? 'Ticket #$id',
+            status: t['status']?.toString() ?? 'open',
+            updated: t['updated_at']?.toString() ?? t['created_at']?.toString() ?? '',
+            priority: t['priority']?.toString(),
             onTap: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(
-                  builder: (_) => TicketThreadScreen(
+                RadiantPageRoute(
+                  page: TicketThreadScreen(
                     api: widget.api,
                     ticketId: id,
                     isStaff: false,

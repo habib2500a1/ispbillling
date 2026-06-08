@@ -2,14 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../config/remote_config.dart';
+import '../design_system/components/radiant_glass_card.dart';
+import '../design_system/components/radiant_screen_header.dart';
+import '../design_system/radiant_tokens.dart';
 import '../core/theme/design_tokens.dart';
 import '../services/api_service.dart';
 import '../services/offline_sync_service.dart';
-import '../theme/app_theme.dart';
-import '../theme/app_theme.dart';
 import '../utils/app_nav.dart';
 import '../widgets/payment_success_sheet.dart';
-import '../widgets/staff_blue_app_bar.dart';
 
 /// Reference "Receive Bill" screen — client card, payment method, summary grid, submit.
 class StaffReceiveBillScreen extends StatefulWidget {
@@ -172,8 +172,11 @@ class _StaffReceiveBillScreenState extends State<StaffReceiveBillScreen> {
     final gross = _payable;
 
     return Scaffold(
-      backgroundColor: DesignTokens.lightBg,
-      appBar: const StaffBlueAppBar(title: 'Receive Bill'),
+      backgroundColor: context.isDark ? RadiantTokens.darkBg : RadiantTokens.lightBg,
+      appBar: AppBar(
+        title: const Text('Receive payment'),
+        centerTitle: false,
+      ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : SingleChildScrollView(
@@ -183,12 +186,11 @@ class _StaffReceiveBillScreenState extends State<StaffReceiveBillScreen> {
                 children: [
                   _clientCard(c, monthly),
                   const SizedBox(height: 12),
-                  _sectionCard(
+                  RadiantFormSection(
+                    title: 'Payment method',
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text('Payment method', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
-                        const SizedBox(height: 10),
                         Wrap(
                           spacing: 8,
                           runSpacing: 8,
@@ -322,7 +324,7 @@ class _StaffReceiveBillScreenState extends State<StaffReceiveBillScreen> {
                         child: FilledButton(
                           onPressed: _saving ? null : () => Navigator.pop(context),
                           style: FilledButton.styleFrom(
-                            backgroundColor: AppTheme.danger,
+                            backgroundColor: RadiantTokens.danger,
                             minimumSize: const Size.fromHeight(48),
                           ),
                           child: const Text('Cancel'),
@@ -333,7 +335,7 @@ class _StaffReceiveBillScreenState extends State<StaffReceiveBillScreen> {
                         child: FilledButton(
                           onPressed: _saving ? null : _submit,
                           style: FilledButton.styleFrom(
-                            backgroundColor: AppTheme.primary,
+                            backgroundColor: RadiantTokens.brand,
                             minimumSize: const Size.fromHeight(48),
                           ),
                           child: _saving
@@ -371,15 +373,15 @@ class _StaffReceiveBillScreenState extends State<StaffReceiveBillScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Expanded(
-                child: _infoCol(Icons.location_on, 'Zone', c['zone']?.toString() ?? '—', valueColor: AppTheme.accent),
+                child: _infoCol(Icons.location_on, 'Zone', c['zone']?.toString() ?? '—', valueColor: RadiantTokens.accentCyan),
               ),
-              Expanded(child: _infoCol(Icons.phone, 'Mobile', c['phone']?.toString() ?? '—', valueColor: AppTheme.accent)),
+              Expanded(child: _infoCol(Icons.phone, 'Mobile', c['phone']?.toString() ?? '—', valueColor: RadiantTokens.accentCyan)),
             ],
           ),
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(child: _infoCol(Icons.inventory_2, 'Package', pkg, valueColor: AppTheme.accent)),
+              Expanded(child: _infoCol(Icons.inventory_2, 'Package', pkg, valueColor: RadiantTokens.accentCyan)),
               Expanded(
                 child: _infoCol(
                   Icons.payments,
@@ -395,15 +397,7 @@ class _StaffReceiveBillScreenState extends State<StaffReceiveBillScreen> {
   }
 
   Widget _sectionCard({required Widget child, Color? color}) {
-    return Card(
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: Theme.of(context).colorScheme.outline),
-      ),
-      color: color ?? Theme.of(context).colorScheme.surface,
-      child: Padding(padding: const EdgeInsets.all(14), child: child),
-    );
+    return RadiantGlassCard(padding: const EdgeInsets.all(14), child: child);
   }
 
   Widget _infoCol(IconData icon, String label, String value, {Color? valueColor}) {
@@ -414,7 +408,7 @@ class _StaffReceiveBillScreenState extends State<StaffReceiveBillScreen> {
         children: [
           Row(
             children: [
-              Icon(icon, size: 18, color: AppTheme.primary),
+              Icon(icon, size: 18, color: RadiantTokens.brand),
               const SizedBox(width: 6),
               Text(label, style: TextStyle(fontSize: 11, color: Colors.grey.shade700)),
             ],
@@ -434,7 +428,7 @@ class _StaffReceiveBillScreenState extends State<StaffReceiveBillScreen> {
           Row(
             children: [
               Expanded(child: _infoCol(Icons.receipt_long, 'Payable amount', _fmt.format(payable))),
-              Expanded(child: _infoCol(Icons.schedule, 'Balance due', _fmt.format(payable), valueColor: AppTheme.danger)),
+              Expanded(child: _infoCol(Icons.schedule, 'Balance due', _fmt.format(payable), valueColor: RadiantTokens.danger)),
             ],
           ),
           Row(
@@ -454,9 +448,9 @@ class _StaffReceiveBillScreenState extends State<StaffReceiveBillScreen> {
       label: Text(label),
       selected: selected,
       onSelected: (_) => setState(() => _method = code),
-      selectedColor: AppTheme.primary,
+      selectedColor: RadiantTokens.brand,
       labelStyle: TextStyle(
-        color: selected ? Colors.white : AppTheme.primary,
+        color: selected ? Colors.white : RadiantTokens.brand,
         fontWeight: FontWeight.w600,
         fontSize: 12,
       ),

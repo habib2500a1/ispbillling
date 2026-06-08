@@ -2,14 +2,19 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../config/remote_config.dart';
+import '../core/theme/design_tokens.dart';
+import '../design_system/components/radiant_glass_card.dart';
+import '../design_system/components/radiant_section.dart';
+import '../design_system/components/radiant_skeleton.dart';
+import '../design_system/navigation/radiant_super_shell.dart';
+import '../design_system/radiant_tokens.dart';
 import '../models/login_role_config.dart';
 import '../services/api_service.dart';
-import '../theme/app_theme.dart';
 import 'login_screen.dart';
 import 'reseller_web_portal_screen.dart';
 import 'server_setup_screen.dart';
 
-/// Unified sign-in hub — roles and labels synced from /api/v1/mobile/config (website /login).
+/// Radiant 3.0 sign-in hub — roles from /api/v1/mobile/config (logic unchanged).
 class LoginHubScreen extends StatefulWidget {
   const LoginHubScreen({super.key, required this.api});
 
@@ -21,10 +26,6 @@ class LoginHubScreen extends StatefulWidget {
 
 class _LoginHubScreenState extends State<LoginHubScreen> {
   bool _loading = true;
-
-  static const _headerStart = Color(0xFF312E81);
-  static const _headerEnd = Color(0xFF7C3AED);
-  static const _pageBg = Color(0xFFF1F5F9);
 
   @override
   void initState() {
@@ -39,8 +40,8 @@ class _LoginHubScreenState extends State<LoginHubScreen> {
       final url = role.webUrl ?? RemoteConfig.resellerLoginUrl;
       if (url == null || url.isEmpty) return;
       Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (_) => ResellerWebPortalScreen(initialUrl: url, title: role.label),
+        RadiantPageRoute(
+          page: ResellerWebPortalScreen(initialUrl: url, title: role.label),
         ),
       );
       return;
@@ -48,99 +49,70 @@ class _LoginHubScreenState extends State<LoginHubScreen> {
 
     if (role.id == 'customer' || role.id == 'staff' || role.id == 'reseller') {
       Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (_) => LoginScreen(api: widget.api, roleId: role.id),
-        ),
+        RadiantPageRoute(page: LoginScreen(api: widget.api, roleId: role.id)),
       );
     }
   }
 
-  Widget _roleCard(LoginRoleConfig role) {
-    Color accent;
-    Color iconBg;
-    IconData icon;
-    String badge;
-    switch (role.id) {
-      case 'customer':
-        accent = const Color(0xFF047857);
-        iconBg = const Color(0xFFD1FAE5);
-        icon = Icons.person_outline_rounded;
-        badge = 'Customer';
-        break;
-      case 'staff':
-        accent = const Color(0xFF4338CA);
-        iconBg = const Color(0xFFE0E7FF);
-        icon = Icons.shield_outlined;
-        badge = 'Staff';
-        break;
-      case 'reseller':
-        accent = const Color(0xFFB45309);
-        iconBg = const Color(0xFFFEF3C7);
-        icon = Icons.handshake_outlined;
-        badge = 'Partner';
-        break;
-      default:
-        accent = _headerStart;
-        iconBg = const Color(0xFFE0E7FF);
-        icon = Icons.login_rounded;
-        badge = 'Sign in';
-    }
+  (Color, IconData, String) _roleMeta(String id) {
+    return switch (id) {
+      'customer' => (RadiantTokens.success, Icons.person_rounded, 'Customer'),
+      'staff' => (RadiantTokens.brand, Icons.badge_outlined, 'Staff'),
+      'reseller' => (RadiantTokens.warning, Icons.handshake_rounded, 'Partner'),
+      _ => (RadiantTokens.accent, Icons.login_rounded, 'Sign in'),
+    };
+  }
 
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: () => _openRole(role),
-        borderRadius: BorderRadius.circular(14),
-        child: Ink(
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: Colors.grey.shade200),
-            boxShadow: [
-              BoxShadow(
-                color: accent.withValues(alpha: 0.08),
-                blurRadius: 14,
-                offset: const Offset(0, 4),
+  Widget _roleCard(LoginRoleConfig role) {
+    final (accent, icon, badge) = _roleMeta(role.id);
+    return RadiantGlassCard(
+      onTap: () => _openRole(role),
+      padding: const EdgeInsets.all(16),
+      child: Row(
+        children: [
+          Container(
+            width: 52,
+            height: 52,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [accent.withValues(alpha: 0.25), accent.withValues(alpha: 0.08)],
               ),
-            ],
+              borderRadius: BorderRadius.circular(RadiantTokens.radiusSm),
+              border: Border.all(color: accent.withValues(alpha: 0.25)),
+            ),
+            child: Icon(icon, color: accent, size: 26),
           ),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-            child: Row(
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Container(
-                  width: 46,
-                  height: 46,
-                  decoration: BoxDecoration(color: iconBg, borderRadius: BorderRadius.circular(12)),
-                  child: Icon(icon, color: accent, size: 24),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(badge, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, letterSpacing: 0.6, color: Colors.grey.shade500)),
-                      Text(role.label, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
-                      const SizedBox(height: 2),
-                      Text(
-                        role.description,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(fontSize: 12, color: Colors.grey.shade600, height: 1.3),
-                      ),
-                    ],
+                Text(
+                  badge.toUpperCase(),
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.8,
+                    color: context.radiant.muted,
                   ),
                 ),
-                Container(
-                  width: 28,
-                  height: 28,
-                  decoration: BoxDecoration(color: accent.withValues(alpha: 0.1), shape: BoxShape.circle),
-                  child: Icon(Icons.chevron_right_rounded, color: accent, size: 20),
+                const SizedBox(height: 2),
+                Text(
+                  role.label,
+                  style: context.text.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  role.description,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: context.text.bodySmall?.copyWith(color: context.radiant.muted, height: 1.35),
                 ),
               ],
             ),
           ),
-        ),
+          Icon(Icons.arrow_forward_ios_rounded, size: 16, color: accent),
+        ],
       ),
     );
   }
@@ -149,114 +121,126 @@ class _LoginHubScreenState extends State<LoginHubScreen> {
     final url = RemoteConfig.logoUrl;
     if (url != null && url.isNotEmpty) {
       return ClipRRect(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(RadiantTokens.radiusMd),
         child: Image.network(
           url,
-          width: 72,
-          height: 72,
+          width: 64,
+          height: 64,
           fit: BoxFit.contain,
-          errorBuilder: (_, __, ___) => const Icon(Icons.wifi_tethering, size: 48, color: Colors.white),
+          errorBuilder: (_, __, ___) => _defaultLogo(),
         ),
       );
     }
-    return const Icon(Icons.wifi_tethering, size: 48, color: Colors.white);
+    return _defaultLogo();
+  }
+
+  Widget _defaultLogo() {
+    return Container(
+      width: 64,
+      height: 64,
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [RadiantTokens.brand, RadiantTokens.accent],
+        ),
+        borderRadius: BorderRadius.circular(RadiantTokens.radiusMd),
+      ),
+      child: const Icon(Icons.hub_rounded, color: Colors.white, size: 32),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     final roles = RemoteConfig.loginRoles;
+    final isDark = context.isDark;
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: SystemUiOverlayStyle.light,
+      value: isDark ? SystemUiOverlayStyle.light : SystemUiOverlayStyle.dark,
       child: Scaffold(
-        backgroundColor: _pageBg,
+        backgroundColor: isDark ? RadiantTokens.darkBg : RadiantTokens.lightBg,
         body: SafeArea(
           child: _loading
-              ? const Center(child: CircularProgressIndicator())
+              ? const Padding(
+                  padding: EdgeInsets.all(24),
+                  child: RadiantDashboardSkeleton(),
+                )
               : ListView(
-                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+                  padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
                   children: [
-                    Container(
-                      padding: const EdgeInsets.fromLTRB(20, 22, 20, 20),
-                      decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [_headerStart, _headerEnd],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
+                    RadiantMeshBackground(
+                      bottomRadius: RadiantTokens.radiusXl,
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(24, 32, 24, 32),
+                        child: Column(
+                          children: [
+                            _brandLogo(),
+                            const SizedBox(height: 16),
+                            Text(
+                              RemoteConfig.appName,
+                              style: context.text.headlineSmall?.copyWith(
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: -0.5,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              'Enterprise ISP Super App',
+                              style: context.text.bodyMedium?.copyWith(color: context.radiant.muted),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'Select your workspace to continue',
+                              style: context.text.bodySmall?.copyWith(color: context.radiant.muted),
+                            ),
+                          ],
                         ),
-                        borderRadius: BorderRadius.circular(20),
-                        boxShadow: [
-                          BoxShadow(
-                            color: _headerStart.withValues(alpha: 0.35),
-                            blurRadius: 24,
-                            offset: const Offset(0, 10),
-                          ),
-                        ],
-                      ),
-                      child: Column(
-                        children: [
-                          _brandLogo(),
-                          const SizedBox(height: 12),
-                          Text(
-                            RemoteConfig.appName,
-                            style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w800),
-                            textAlign: TextAlign.center,
-                          ),
-                          const SizedBox(height: 6),
-                          Text(
-                            'Secure access',
-                            style: TextStyle(color: Colors.white.withValues(alpha: 0.75), fontSize: 12, fontWeight: FontWeight.w600, letterSpacing: 0.8),
-                          ),
-                          const SizedBox(height: 4),
-                          const Text(
-                            'Choose your portal',
-                            style: TextStyle(color: Colors.white70, fontSize: 14),
-                          ),
-                        ],
                       ),
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 28),
+                    const RadiantSectionHeader(title: 'Sign in as'),
                     ...roles.map((r) => Padding(
-                          padding: const EdgeInsets.only(bottom: 10),
+                          padding: const EdgeInsets.only(bottom: 12),
                           child: _roleCard(r),
                         )),
                     if (RemoteConfig.payUrl != null) ...[
-                      const SizedBox(height: 6),
-                      Wrap(
-                        alignment: WrapAlignment.center,
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: [
-                          ActionChip(
-                            avatar: const Icon(Icons.payment, size: 18),
-                            label: const Text('Pay bill'),
-                            onPressed: () {
-                              final pay = RemoteConfig.payUrl!;
-                              Navigator.of(context).push(
-                                MaterialPageRoute(
-                                  builder: (_) => ResellerWebPortalScreen(initialUrl: pay, title: 'Pay bill'),
-                                ),
-                              );
-                            },
-                          ),
-                        ],
+                      const SizedBox(height: 8),
+                      RadiantGlassCard(
+                        onTap: () {
+                          final pay = RemoteConfig.payUrl!;
+                          Navigator.of(context).push(
+                            RadiantPageRoute(
+                              page: ResellerWebPortalScreen(initialUrl: pay, title: 'Pay bill'),
+                            ),
+                          );
+                        },
+                        child: Row(
+                          children: [
+                            Icon(Icons.payment_rounded, color: RadiantTokens.brand),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                'Quick pay without login',
+                                style: context.text.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
+                              ),
+                            ),
+                            Icon(Icons.chevron_right_rounded, color: context.radiant.muted),
+                          ],
+                        ),
                       ),
                     ],
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 20),
                     Center(
                       child: TextButton.icon(
                         onPressed: () async {
                           await Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (_) => ServerSetupScreen(api: widget.api),
-                            ),
+                            RadiantPageRoute(page: ServerSetupScreen(api: widget.api)),
                           );
                           if (mounted) setState(() => _loading = true);
                           await widget.api.loadRemoteConfig();
                           if (mounted) setState(() => _loading = false);
                         },
                         icon: const Icon(Icons.dns_outlined, size: 18),
-                        label: const Text('Server settings (change domain)'),
+                        label: const Text('Server settings'),
                       ),
                     ),
                   ],

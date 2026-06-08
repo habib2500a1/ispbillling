@@ -146,7 +146,7 @@ class BrandColors extends ThemeExtension<BrandColors> {
   }
 }
 
-/// Ergonomic `context.brand` / `context.cs` accessors.
+/// Ergonomic `context.brand` / theme accessors.
 extension BrandContext on BuildContext {
   BrandColors get brand => BrandColors.of(this);
   ColorScheme get cs => Theme.of(this).colorScheme;
