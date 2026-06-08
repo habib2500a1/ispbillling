@@ -28,7 +28,7 @@ final class HrmSidebarRegistry
         return [
             [
                 'key' => 'hr_dashboard',
-                'label' => 'HR Dashboard',
+                'label' => 'Workforce operations',
                 'icon' => 'heroicon-o-chart-bar',
                 'sort' => 1,
                 'url' => HrPayrollHub::getUrl(),

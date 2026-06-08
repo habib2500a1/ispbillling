@@ -127,7 +127,7 @@ class AdminCommandPalette
             ['group' => 'System', 'label' => 'Movie server list', 'url' => ManageMovieServerList::getUrl()],
             ['group' => 'System', 'label' => 'App settings', 'url' => ManageAppSettings::getUrl()],
             ['group' => 'System', 'label' => 'Queue monitor', 'url' => HorizonQueueMonitor::getUrl()],
-            ['group' => 'HR Management', 'label' => 'HR Dashboard', 'url' => HrPayrollHub::getUrl()],
+            ['group' => 'HR Management', 'label' => 'Workforce operations', 'url' => HrPayrollHub::getUrl()],
             ['group' => 'HR Management', 'label' => 'Employees', 'url' => \App\Filament\Resources\EmployeeResource::getUrl()],
             ['group' => 'HR Management', 'label' => 'Leave Management', 'url' => \App\Filament\Pages\HrLeaveManagementPage::getUrl()],
             ['group' => 'HR Management', 'label' => 'Payroll Generation', 'url' => \App\Filament\Resources\PayrollRunResource::getUrl()],

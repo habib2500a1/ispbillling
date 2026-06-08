@@ -140,7 +140,7 @@ class AdminModuleRegistry
             ['group' => 'Support', 'section' => 'Alerts', 'label' => 'Outage broadcast', 'description' => 'SMS / email alerts', 'url' => BroadcastOutage::getUrl(), 'accent' => 'text-amber-600', 'icon' => 'heroicon-o-megaphone'],
 
             // ── HR ──
-            ['group' => 'HR & Payroll', 'section' => 'Hub', 'label' => 'HR center', 'description' => 'Overview & payroll', 'url' => HrPayrollHub::getUrl(), 'accent' => 'text-rose-600', 'icon' => 'heroicon-o-briefcase'],
+            ['group' => 'HR & Payroll', 'section' => 'Hub', 'label' => 'Workforce operations', 'description' => 'Employees · attendance · payroll · techs', 'url' => HrPayrollHub::getUrl(), 'accent' => 'text-rose-600', 'icon' => 'heroicon-o-briefcase'],
             ['group' => 'HR & Payroll', 'section' => 'Staff', 'label' => 'Employees', 'description' => 'Staff profiles', 'url' => EmployeeResource::getUrl('index'), 'accent' => 'text-rose-600', 'icon' => 'heroicon-o-user'],
             ['group' => 'HR & Payroll', 'section' => 'Payroll', 'label' => 'Payroll runs', 'description' => 'Salary processing', 'url' => PayrollRunResource::getUrl('index'), 'accent' => 'text-rose-600', 'icon' => 'heroicon-o-currency-dollar'],
 
