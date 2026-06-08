@@ -1,0 +1,179 @@
+/** Smart ticket workspace — 3-column layout */
+
+.isp-support-ticket-edit .fi-header-heading {
+    display: none;
+}
+
+.sp-workspace {
+    display: grid;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+@media (min-width: 1100px) {
+    .sp-workspace {
+        grid-template-columns: minmax(14rem, 18rem) minmax(0, 1fr) minmax(13rem, 16rem);
+        align-items: start;
+    }
+}
+
+.sp-workspace__rail {
+    position: sticky;
+    top: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+}
+
+.sp-panel {
+    padding: 0.75rem;
+    border-radius: var(--sp-radius-sm);
+    background: var(--sp-card);
+    border: 1px solid var(--sp-border);
+    box-shadow: var(--sp-shadow);
+}
+
+.sp-panel__title {
+    margin: 0 0 0.5rem;
+    font-size: 0.72rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--sp-muted);
+}
+
+.sp-360__name {
+    margin: 0;
+    font-size: 0.95rem;
+    font-weight: 900;
+    color: var(--sp-text);
+}
+
+.sp-360__code {
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: var(--sp-amber);
+}
+
+.sp-360__row {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.5rem;
+    padding: 0.35rem 0;
+    border-bottom: 1px solid var(--sp-border);
+    font-size: 0.72rem;
+}
+
+.sp-360__row:last-child {
+    border-bottom: none;
+}
+
+.sp-360__label {
+    color: var(--sp-muted);
+    font-weight: 600;
+}
+
+.sp-360__value {
+    text-align: right;
+    font-weight: 700;
+    color: var(--sp-text);
+}
+
+.sp-360__links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    margin-top: 0.5rem;
+}
+
+.sp-360__link {
+    flex: 1 1 auto;
+    min-height: 2rem;
+    padding: 0.3rem 0.5rem;
+    border-radius: 8px;
+    border: 1px solid var(--sp-border);
+    font-size: 0.65rem;
+    font-weight: 700;
+    text-align: center;
+    text-decoration: none;
+    color: var(--sp-text);
+    background: var(--sp-glass);
+}
+
+.sp-360__link--primary {
+    background: var(--sp-amber);
+    border-color: var(--sp-amber);
+    color: #fff;
+}
+
+.sp-status-dot {
+    display: inline-block;
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 999px;
+    margin-right: 0.25rem;
+}
+
+.sp-status-dot--online { background: #16a34a; }
+.sp-status-dot--offline { background: #dc2626; }
+
+.sp-ticket-hero {
+    padding: 0.85rem 1rem;
+    border-radius: var(--sp-radius-sm);
+    background: var(--sp-card);
+    border: 1px solid var(--sp-border);
+    margin-bottom: 0.65rem;
+}
+
+.sp-ticket-hero__number {
+    font-size: 0.68rem;
+    font-weight: 800;
+    color: var(--sp-amber);
+    text-transform: uppercase;
+}
+
+.sp-ticket-hero__subject {
+    margin: 0.2rem 0 0;
+    font-size: 1.05rem;
+    font-weight: 900;
+    color: var(--sp-text);
+}
+
+.sp-rca {
+    border-left: 3px solid var(--sp-amber);
+    padding: 0.5rem 0.6rem;
+    margin-bottom: 0.45rem;
+    border-radius: 0 8px 8px 0;
+    background: rgba(217, 119, 6, 0.08);
+    font-size: 0.68rem;
+}
+
+.sp-rca__title {
+    font-weight: 800;
+    color: var(--sp-text);
+}
+
+.sp-rca__cause {
+    color: var(--sp-muted);
+    margin-top: 0.15rem;
+    line-height: 1.4;
+}
+
+.sp-rca__confidence {
+    margin-top: 0.2rem;
+    font-size: 0.58rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    color: var(--sp-amber);
+}
+
+.sp-workspace__main .fi-fo-section,
+.sp-workspace__main .fi-section {
+    border-radius: var(--sp-radius-sm);
+}
+
+@media (max-width: 1099px) {
+    .sp-workspace__rail--left { order: 2; }
+    .sp-workspace__main { order: 1; }
+    .sp-workspace__rail--right { order: 3; }
+}

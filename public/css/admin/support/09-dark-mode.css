@@ -1,0 +1,54 @@
+/** Support dark mode — OLED-friendly */
+
+.dark .sh-hero,
+[data-theme='dark'] .sh-hero {
+    background: linear-gradient(135deg, #451a03 0%, #92400e 50%, #b45309 100%);
+}
+
+.dark .sp-inv-hero,
+.dark .sp-inv-toolbar,
+.dark .sp-ticket-card,
+.dark .sh-stat,
+[data-theme='dark'] .sp-inv-hero,
+[data-theme='dark'] .sp-inv-toolbar,
+[data-theme='dark'] .sp-ticket-card,
+[data-theme='dark'] .sh-stat {
+    background: rgba(15, 23, 42, 0.92);
+    border-color: rgba(100, 116, 139, 0.22);
+}
+
+.dark .sp-queue-chip,
+[data-theme='dark'] .sp-queue-chip {
+    background: rgba(15, 23, 42, 0.88);
+    color: #e2e8f0;
+}
+
+.dark .sp-priority-badge--critical,
+[data-theme='dark'] .sp-priority-badge--critical {
+    color: #fca5a5;
+}
+
+.dark .sp-sla-badge--breach,
+[data-theme='dark'] .sp-sla-badge--breach {
+    color: #f87171;
+}
+
+.dark .sh-inbox,
+[data-theme='dark'] .sh-inbox {
+    background: linear-gradient(135deg, rgba(127, 29, 29, 0.25), rgba(69, 26, 3, 0.2));
+    border-color: rgba(251, 146, 60, 0.3);
+}
+
+.dark .sp-panel,
+.dark .sp-timeline,
+.dark .sp-ticket-hero,
+[data-theme='dark'] .sp-panel,
+[data-theme='dark'] .sp-timeline,
+[data-theme='dark'] .sp-ticket-hero {
+    background: rgba(15, 23, 42, 0.92);
+}
+
+.dark .sp-rca,
+[data-theme='dark'] .sp-rca {
+    background: rgba(120, 53, 15, 0.25);
+}

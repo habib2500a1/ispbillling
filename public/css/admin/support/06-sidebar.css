@@ -1,0 +1,38 @@
+/** Support module — sidebar compact mode */
+
+body.isp-support-module .fi-sidebar-group[data-group-label='Support'] {
+    order: 4;
+}
+
+body.isp-support-sidebar-compact .fi-sidebar-group[data-group-label='Support'] .fi-sidebar-item-label {
+    font-size: 0.72rem;
+}
+
+body.isp-support-sidebar-compact .fi-sidebar-group[data-group-label='Support'] .fi-sidebar-item {
+    padding-top: 0.35rem;
+    padding-bottom: 0.35rem;
+}
+
+.sp-sidebar-toggle {
+    position: fixed;
+    bottom: 5.5rem;
+    right: 1rem;
+    z-index: 40;
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: 999px;
+    border: 1px solid var(--sp-border, rgba(148, 163, 184, 0.35));
+    background: var(--sp-card, #fff);
+    color: var(--sp-amber, #d97706);
+    box-shadow: var(--sp-shadow-lg);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+@media (min-width: 1024px) {
+    .sp-sidebar-toggle {
+        bottom: 1.5rem;
+    }
+}

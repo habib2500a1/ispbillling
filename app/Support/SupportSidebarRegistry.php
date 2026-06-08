@@ -4,12 +4,8 @@ namespace App\Support;
 
 use App\Filament\Pages\BroadcastOutage;
 use App\Filament\Pages\CallCenterHub;
-use App\Filament\Pages\CallCenterReports;
-use App\Filament\Pages\ManageCallCenterSettings;
 use App\Filament\Pages\SalesLeadPipeline;
 use App\Filament\Pages\SupportHub;
-use App\Filament\Resources\CallFollowUpResource;
-use App\Filament\Resources\CallLogResource;
 use App\Filament\Resources\KnowledgeArticleResource;
 use App\Models\SalesLead;
 use App\Support\SalesLeadPanelAccess;
@@ -54,46 +50,6 @@ final class SupportSidebarRegistry
                 ],
             ],
             [
-                'key' => 'call_logs',
-                'label' => 'Call logs',
-                'icon' => 'heroicon-o-phone-arrow-up-right',
-                'sort' => 0.55,
-                'url' => CallLogResource::getUrl(),
-                'active_routes' => [
-                    'filament.admin.resources.call-logs.index',
-                    'filament.admin.resources.call-logs.create',
-                    'filament.admin.resources.call-logs.edit',
-                ],
-            ],
-            [
-                'key' => 'call_follow_ups',
-                'label' => 'Follow-ups',
-                'icon' => 'heroicon-o-calendar-days',
-                'sort' => 0.56,
-                'url' => CallFollowUpResource::getUrl(),
-                'active_routes' => [
-                    'filament.admin.resources.call-follow-ups.index',
-                    'filament.admin.resources.call-follow-ups.create',
-                    'filament.admin.resources.call-follow-ups.edit',
-                ],
-            ],
-            [
-                'key' => 'call_reports',
-                'label' => 'Call reports',
-                'icon' => 'heroicon-o-chart-bar-square',
-                'sort' => 0.57,
-                'url' => CallCenterReports::getUrl(),
-                'active_routes' => ['filament.admin.pages.call-center-reports'],
-            ],
-            [
-                'key' => 'call_sip_settings',
-                'label' => 'SIP / WebSIP',
-                'icon' => 'heroicon-o-cog-6-tooth',
-                'sort' => 0.58,
-                'url' => ManageCallCenterSettings::getUrl(),
-                'active_routes' => ['filament.admin.pages.manage-call-center-settings'],
-            ],
-            [
                 'key' => 'leads',
                 'label' => 'New connections (portal)',
                 'icon' => 'heroicon-o-user-plus',
@@ -115,7 +71,7 @@ final class SupportSidebarRegistry
             ],
             [
                 'key' => 'tickets',
-                'label' => 'All tickets',
+                'label' => 'Tickets',
                 'icon' => 'heroicon-o-ticket',
                 'sort' => 3,
                 'url' => SupportTicketResource::getUrl(),
@@ -125,14 +81,6 @@ final class SupportSidebarRegistry
                     'filament.admin.resources.support-tickets.edit',
                     'filament.admin.resources.support-tickets.view',
                 ],
-            ],
-            [
-                'key' => 'new_ticket',
-                'label' => 'New ticket',
-                'icon' => 'heroicon-o-plus-circle',
-                'sort' => 4,
-                'url' => SupportTicketResource::getUrl('create'),
-                'active_routes' => ['filament.admin.resources.support-tickets.create'],
             ],
             [
                 'key' => 'broadcast_outage',
@@ -246,8 +194,8 @@ final class SupportSidebarRegistry
 
         return match ($key) {
             'support_center' => SupportHub::canAccess(),
-            'call_center', 'call_logs', 'call_follow_ups', 'call_reports', 'call_sip_settings' => CallCenterHub::canAccess(),
-            'tickets', 'new_ticket' => SupportPanelAccess::viewTickets($user),
+            'call_center' => CallCenterHub::canAccess(),
+            'tickets' => SupportPanelAccess::viewTickets($user),
             'pipeline', 'leads' => SalesLeadPanelAccess::canView(),
             'broadcast_outage' => BroadcastOutage::canAccess(),
             'outages' => OutageResource::canViewAny(),

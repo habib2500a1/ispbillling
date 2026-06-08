@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\SupportTicketResource\Pages;
 
 use App\Filament\Resources\SupportTicketResource;
+use App\Filament\Resources\SupportTicketResource\Pages\Concerns\ProvidesSupportTicketWorkspace;
 use App\Models\SupportTicket;
 use Filament\Actions;
 use Filament\Notifications\Notification;
@@ -10,12 +11,41 @@ use Filament\Resources\Pages\EditRecord;
 
 class EditSupportTicket extends EditRecord
 {
+    use ProvidesSupportTicketWorkspace;
+
     protected static string $resource = SupportTicketResource::class;
+
+    protected static string $view = 'filament.resources.support-ticket-resource.pages.edit-support-ticket';
+
+    public function getTitle(): string
+    {
+        return '';
+    }
+
+    /**
+     * @return array<string, string|bool>
+     */
+    public function getExtraBodyAttributes(): array
+    {
+        return [
+            'class' => 'isp-support-module isp-support-ticket-edit',
+        ];
+    }
 
     public function mount(int | string $record): void
     {
         parent::mount($record);
-        $this->record->loadMissing(['customer.area']);
+        $this->record->loadMissing([
+            'customer.area',
+            'customer.zone',
+            'customer.package',
+            'customer.mikrotikServer',
+            'customer.onuDevice.olt',
+            'assignee',
+            'messages.user',
+            'messages.customer',
+            'fieldVisits.assignee',
+        ]);
     }
 
     protected function getHeaderActions(): array

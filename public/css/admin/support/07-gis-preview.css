@@ -1,0 +1,50 @@
+/** GIS map preview inside ticket */
+
+.sp-map-preview {
+    height: 11rem;
+    border-radius: 10px;
+    overflow: hidden;
+    border: 1px solid var(--sp-border);
+    background: #0f172a;
+}
+
+.sp-map-preview--empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--sp-muted);
+    font-size: 0.72rem;
+    text-align: center;
+    padding: 0.75rem;
+    background: var(--sp-glass);
+}
+
+.sp-map-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    margin-top: 0.45rem;
+}
+
+.sp-map-actions a {
+    flex: 1;
+    min-height: 2rem;
+    padding: 0.3rem 0.5rem;
+    border-radius: 8px;
+    border: 1px solid var(--sp-border);
+    font-size: 0.65rem;
+    font-weight: 700;
+    text-align: center;
+    text-decoration: none;
+    color: var(--sp-text);
+}
+
+.sp-map-trace {
+    margin-top: 0.35rem;
+    font-size: 0.65rem;
+    color: var(--sp-muted);
+}
+
+.leaflet-container.sp-mini-map {
+    font-family: inherit;
+}

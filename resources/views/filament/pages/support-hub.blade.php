@@ -1,124 +1,219 @@
 @php
     $stats = $this->getStats();
     $slaRows = $this->getSlaByDepartment();
+    $inbox = $this->getActionInbox();
     $ticketsUrl = \App\Filament\Resources\SupportTicketResource::getUrl('index');
 @endphp
 
-<x-filament-panels::page>
-    <div class="isp-hub-page space-y-6">
-        <x-isp.hub-hero
-            eyebrow="Support workspace"
-            title="Support center"
-            description="Portal tickets, call-center complaints, SLA tracking, technician assignment, and live chat — all in one place."
-            class="isp-hub-hero--amber"
-        />
+{!! \App\Support\SupportStyles::html() !!}
+{!! \App\Support\SupportStyles::navigatedScript() !!}
+<script src="{{ asset('js/support-hub-v3.js') }}?v={{ @filemtime(public_path('js/support-hub-v3.js')) ?: 1 }}" defer></script>
 
-        <x-isp.hub-stat-grid :stats="$this->getStatCards()" />
+<x-filament-panels::page class="isp-support-hub-page">
+    <div class="sh-pro" data-sh-hub>
+        <header class="sh-hero sp-grad--hero">
+            <div>
+                <span class="sh-hero__badge">Service operations</span>
+                <h1 class="sh-hero__title">Support Operations Center</h1>
+                <p class="sh-hero__sub">
+                    Portal tickets · call center · SLA tracking · technician assignment · live chat — enterprise ISP service desk.
+                </p>
+                <div class="sh-hero__actions">
+                    <a href="{{ \App\Filament\Resources\SupportTicketResource::getUrl('create') }}" class="sh-btn sh-btn--white">
+                        <x-filament::icon icon="heroicon-m-plus-circle" class="h-4 w-4" />
+                        New ticket
+                    </a>
+                    <a href="{{ $ticketsUrl }}" class="sh-btn sh-btn--glass">
+                        <x-filament::icon icon="heroicon-m-ticket" class="h-4 w-4" />
+                        All tickets
+                    </a>
+                    <a href="{{ \App\Filament\Pages\CallCenterHub::getUrl() }}" class="sh-btn sh-btn--glass">
+                        <x-filament::icon icon="heroicon-m-phone" class="h-4 w-4" />
+                        Call center
+                    </a>
+                </div>
+            </div>
+            <div class="sh-hero__kpi">
+                <span class="sh-hero__kpi-label">Open queue</span>
+                <strong class="sh-hero__kpi-value">{{ number_format($stats['open']) }}</strong>
+                <span class="sh-hero__kpi-label" style="margin-top:0.35rem;display:block;">
+                    {{ $stats['breached'] }} SLA breach · {{ $stats['unassigned'] }} unassigned
+                </span>
+            </div>
+        </header>
 
-        <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            <a href="{{ $ticketsUrl }}" class="isp-module-card group">
-                <div class="flex items-start gap-3">
-                    <span class="isp-module-icon text-amber-600">
-                        <x-filament::icon icon="heroicon-o-queue-list" class="h-5 w-5" />
-                    </span>
-                    <div class="min-w-0 flex-1">
-                        <p class="isp-module-card__eyebrow">Queue</p>
-                        <p class="isp-module-card__title">All tickets</p>
-                        <p class="isp-module-card__desc">Filters · bulk assign · SLA</p>
+        <nav class="sh-tabs" aria-label="Support sections">
+            <button type="button" class="sh-tabs__btn sh-tabs__btn--active" data-sh-tab="overview">Overview</button>
+            <button type="button" class="sh-tabs__btn" data-sh-tab="queue">Queue</button>
+            <button type="button" class="sh-tabs__btn" data-sh-tab="analytics">Analytics</button>
+            <button type="button" class="sh-tabs__btn" data-sh-tab="tools">Tools</button>
+        </nav>
+
+        <div class="sh-tab-panel" data-sh-panel="overview">
+            @if ($inbox !== [])
+                <section class="sh-inbox" aria-label="Action inbox">
+                    <h2 class="text-sm font-extrabold text-gray-900 dark:text-white" style="margin:0 0 0.5rem;">Action inbox</h2>
+                    <ul class="sh-inbox__list">
+                        @foreach ($inbox as $item)
+                            <li class="sh-inbox__item">
+                                <a href="{{ $item['url'] }}">
+                                    <strong>{{ $item['title'] }}</strong><br>
+                                    <span style="font-size:0.68rem;color:var(--sp-muted);">{{ $item['message'] }}</span>
+                                </a>
+                            </li>
+                        @endforeach
+                    </ul>
+                </section>
+            @endif
+
+            <div class="sh-stats">
+                @foreach ($this->getKpiCards() as $kpi)
+                    <a href="{{ $kpi['url'] }}" class="sh-stat sh-stat--{{ $kpi['tone'] }}">
+                        <span class="sh-stat__label">{{ $kpi['label'] }}</span>
+                        <strong class="sh-stat__value">{{ $kpi['value'] }}</strong>
+                        <span class="sh-stat__hint">{{ $kpi['hint'] }}</span>
+                    </a>
+                @endforeach
+            </div>
+
+            @if (count($slaRows) > 0)
+                <section style="margin-top:1rem;padding:0.85rem;border-radius:var(--sp-radius-sm);background:var(--sp-card);border:1px solid var(--sp-border);">
+                    <h3 style="margin:0 0 0.65rem;font-size:0.85rem;font-weight:800;color:var(--sp-text);">SLA by department</h3>
+                    <div style="overflow-x:auto;">
+                        <table class="sh-sla-table">
+                            <thead>
+                                <tr>
+                                    <th>Department</th>
+                                    <th style="text-align:right;">Open</th>
+                                    <th style="text-align:right;">Overdue</th>
+                                    <th style="text-align:right;">Unassigned</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach ($slaRows as $row)
+                                    <tr>
+                                        <td style="font-weight:600;color:var(--sp-text);">{{ $row['label'] }}</td>
+                                        <td style="text-align:right;">{{ $row['open'] }}</td>
+                                        <td style="text-align:right;" @class(['sh-sla-breached' => $row['breached'] > 0])>{{ $row['breached'] }}</td>
+                                        <td style="text-align:right;">{{ $row['unassigned'] }}</td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
                     </div>
-                    <span class="isp-module-card__arrow" aria-hidden="true">→</span>
-                </div>
-            </a>
-            <a href="{{ \App\Filament\Resources\SupportTicketResource::getUrl('create') }}" class="isp-module-card group">
-                <div class="flex items-start gap-3">
-                    <span class="isp-module-icon text-amber-600">
-                        <x-filament::icon icon="heroicon-o-plus-circle" class="h-5 w-5" />
-                    </span>
-                    <div class="min-w-0 flex-1">
-                        <p class="isp-module-card__eyebrow">New</p>
-                        <p class="isp-module-card__title">Open ticket</p>
-                        <p class="isp-module-card__desc">Phone or walk-in</p>
-                    </div>
-                    <span class="isp-module-card__arrow" aria-hidden="true">→</span>
-                </div>
-            </a>
-            <a href="{{ \App\Filament\Pages\TaskKanbanBoard::getUrl() }}" class="isp-module-card group border-amber-200/80 dark:border-amber-900/40">
-                <div class="flex items-start gap-3">
-                    <span class="isp-module-icon text-amber-600">
-                        <x-filament::icon icon="heroicon-o-view-columns" class="h-5 w-5" />
-                    </span>
-                    <div class="min-w-0 flex-1">
-                        <p class="isp-module-card__eyebrow">Tasks</p>
-                        <p class="isp-module-card__title">Kanban board</p>
-                        <p class="isp-module-card__desc">Staff work items</p>
-                    </div>
-                    <span class="isp-module-card__arrow" aria-hidden="true">→</span>
-                </div>
-            </a>
-            <a href="{{ \App\Filament\Resources\OutageResource::getUrl('index') }}" class="isp-module-card group">
-                <div class="flex items-start gap-3">
-                    <span class="isp-module-icon text-amber-600">
-                        <x-filament::icon icon="heroicon-o-megaphone" class="h-5 w-5" />
-                    </span>
-                    <div class="min-w-0 flex-1">
-                        <p class="isp-module-card__eyebrow">Network</p>
-                        <p class="isp-module-card__title">Outages</p>
-                        <p class="isp-module-card__desc">Area maintenance notices</p>
-                    </div>
-                    <span class="isp-module-card__arrow" aria-hidden="true">→</span>
-                </div>
-            </a>
+                </section>
+            @endif
         </div>
 
-        @if (count($slaRows) > 0)
-            <section class="isp-ops-section">
-                <h3 class="isp-ops-section-title">SLA by department</h3>
-                <div class="isp-hub-sla-table-wrap overflow-x-auto">
-                    <table class="isp-hub-sla-table w-full text-sm">
-                        <thead>
-                            <tr>
-                                <th class="text-left">Department</th>
-                                <th class="text-right">Open</th>
-                                <th class="text-right">Overdue</th>
-                                <th class="text-right">Unassigned</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach ($slaRows as $row)
-                                <tr>
-                                    <td class="font-medium text-gray-900 dark:text-white">{{ $row['label'] }}</td>
-                                    <td class="text-right tabular-nums">{{ $row['open'] }}</td>
-                                    <td class="text-right tabular-nums {{ $row['breached'] > 0 ? 'isp-hub-sla-breached' : 'text-gray-500 dark:text-gray-400' }}">
-                                        {{ $row['breached'] }}
-                                    </td>
-                                    <td class="text-right tabular-nums">{{ $row['unassigned'] }}</td>
-                                </tr>
-                            @endforeach
-                        </tbody>
-                    </table>
-                </div>
-            </section>
-        @endif
-
-        <x-isp.hub-module-grid group="Support" :skip-sections="['Hub']" />
-
-        <details class="isp-ops-details">
-            <summary class="isp-ops-details-summary">Webhook &amp; scheduler</summary>
-            <div class="mt-3 rounded-xl border border-amber-200/80 bg-amber-50/80 p-4 text-sm dark:border-amber-900/50 dark:bg-amber-950/25">
-                <p class="font-semibold text-amber-950 dark:text-amber-100">External ticket ingest</p>
-                <p class="mt-2 font-mono text-xs text-amber-900 dark:text-amber-200">
-                    POST {{ url('/api/webhooks/support-ticket-ingest') }}<br>
-                    Header: X-ISP-Webhook-Secret
-                </p>
-                <p class="mt-2 text-xs text-amber-800/90 dark:text-amber-300">
-                    SLA checked every 30 minutes via <span class="font-mono">isp:support-check-sla</span>.
-                    @if ($stats['breached'] > 0)
-                        <strong class="text-rose-700 dark:text-rose-300">{{ $stats['breached'] }} ticket(s) need attention now.</strong>
-                    @endif
-                </p>
+        <div class="sh-tab-panel" data-sh-panel="queue" hidden>
+            <p style="font-size:0.8rem;color:var(--sp-muted);margin:0 0 0.75rem;">Jump to filtered ticket queues — same logic as the ticket list tabs.</p>
+            <div class="sp-queue-chips">
+                @foreach ([
+                    ['key' => 'open', 'label' => 'Open', 'count' => $stats['open']],
+                    ['key' => 'sla', 'label' => 'SLA breach', 'count' => $stats['breached']],
+                    ['key' => 'unassigned', 'label' => 'Unassigned', 'count' => $stats['unassigned']],
+                    ['key' => 'live_chat', 'label' => 'Live chat', 'count' => $stats['live_chat']],
+                ] as $chip)
+                    <a href="{{ $ticketsUrl }}?{{ http_build_query(['activeTab' => $chip['key']]) }}" class="sp-queue-chip">
+                        {{ $chip['label'] }}
+                        <span class="sp-queue-chip__count">{{ $chip['count'] }}</span>
+                    </a>
+                @endforeach
+                <a href="{{ $ticketsUrl }}" class="sp-queue-chip sp-queue-chip--active">All tickets →</a>
             </div>
-        </details>
+        </div>
 
-        <x-isp.hub-footer />
+        <div class="sh-tab-panel" data-sh-panel="analytics" hidden>
+            <div class="sh-stats">
+                @foreach ($this->getAnalyticsStats() as $stat)
+                    <div class="sh-stat" style="cursor:default;">
+                        <span class="sh-stat__label">{{ $stat['label'] }}</span>
+                        <strong class="sh-stat__value">{{ $stat['value'] }}</strong>
+                        <span class="sh-stat__hint">{{ $stat['hint'] }}</span>
+                    </div>
+                @endforeach
+            </div>
+
+            <section style="margin-top:1rem;display:grid;gap:1rem;">
+                @if (count($categories = $this->getCategoryTrends()) > 0)
+                    <div style="padding:0.85rem;border-radius:var(--sp-radius-sm);background:var(--sp-card);border:1px solid var(--sp-border);">
+                        <h3 style="margin:0 0 0.65rem;font-size:0.85rem;font-weight:800;">Complaint categories (30d)</h3>
+                        @foreach ($categories as $cat)
+                            <div style="margin-bottom:0.45rem;">
+                                <div style="display:flex;justify-content:space-between;font-size:0.72rem;font-weight:700;">
+                                    <span>{{ $cat['label'] }}</span>
+                                    <span>{{ $cat['count'] }} ({{ $cat['percent'] }}%)</span>
+                                </div>
+                                <div style="height:6px;border-radius:999px;background:var(--sp-border);overflow:hidden;">
+                                    <div style="height:100%;width:{{ min(100, $cat['percent']) }}%;background:var(--sp-amber);"></div>
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+                @endif
+
+                @if (count($techs = $this->getTechnicianPerformance()) > 0)
+                    <div style="padding:0.85rem;border-radius:var(--sp-radius-sm);background:var(--sp-card);border:1px solid var(--sp-border);">
+                        <h3 style="margin:0 0 0.65rem;font-size:0.85rem;font-weight:800;">Technician performance (30d)</h3>
+                        <table class="sh-sla-table">
+                            <thead>
+                                <tr>
+                                    <th>Technician</th>
+                                    <th style="text-align:right;">Resolved</th>
+                                    <th style="text-align:right;">Open</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach ($techs as $row)
+                                    <tr>
+                                        <td>{{ $row['name'] }}</td>
+                                        <td style="text-align:right;">{{ $row['resolved'] }}</td>
+                                        <td style="text-align:right;">{{ $row['open'] }}</td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                @endif
+            </section>
+        </div>
+
+        <div class="sh-tab-panel" data-sh-panel="tools" hidden>
+            <div class="sh-bento">
+                @foreach ($this->getToolCards() as $card)
+                    <a href="{{ $card['url'] }}" @class(['sh-tile', 'sh-tile--featured' => ! empty($card['featured'])])>
+                        <x-filament::icon :icon="$card['icon']" class="h-6 w-6" style="color:var(--sp-amber);" />
+                        <span class="sh-tile__title">{{ $card['title'] }}</span>
+                        <span class="sh-tile__desc">{{ $card['desc'] }}</span>
+                    </a>
+                @endforeach
+            </div>
+
+            <details style="margin-top:1rem;font-size:0.78rem;color:var(--sp-muted);">
+                <summary style="cursor:pointer;font-weight:700;color:var(--sp-text);">Webhook &amp; scheduler</summary>
+                <div style="margin-top:0.5rem;padding:0.75rem;border-radius:10px;border:1px solid var(--sp-border);background:var(--sp-card);">
+                    <code style="font-size:0.68rem;">POST {{ url('/api/webhooks/support-ticket-ingest') }}</code><br>
+                    <span style="font-size:0.68rem;">Header: X-ISP-Webhook-Secret · SLA: <code>isp:support-check-sla</code> every 30 min</span>
+                </div>
+            </details>
+        </div>
+
+        <nav class="sh-dock" aria-label="Quick navigation">
+            <div class="sh-dock__inner">
+                @foreach ([
+                    ['url' => \App\Filament\Pages\Dashboard::getUrl(), 'label' => 'Home', 'icon' => 'heroicon-o-home'],
+                    ['url' => $ticketsUrl, 'label' => 'Tickets', 'icon' => 'heroicon-o-ticket'],
+                    ['url' => \App\Filament\Pages\CallCenterHub::getUrl(), 'label' => 'Calls', 'icon' => 'heroicon-o-phone'],
+                    ['url' => \App\Filament\Pages\SupportHub::getUrl(['tab' => 'tools']), 'label' => 'Tools', 'icon' => 'heroicon-o-wrench-screwdriver', 'active' => true],
+                ] as $link)
+                    @if (filled($link['url'] ?? null))
+                        <a href="{{ $link['url'] }}" @class(['sh-dock__link', 'sh-dock__link--active' => ! empty($link['active'])])>
+                            <x-filament::icon :icon="$link['icon']" class="h-5 w-5" />
+                            <span>{{ $link['label'] }}</span>
+                        </a>
+                    @endif
+                @endforeach
+            </div>
+        </nav>
     </div>
 </x-filament-panels::page>

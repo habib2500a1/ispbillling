@@ -1,0 +1,199 @@
+/** Support ticket list — premium queue */
+
+.isp-support-tickets-page .fi-header,
+.isp-support-tickets-page .fi-page-header {
+    display: none !important;
+}
+
+.isp-support-tickets-page .fi-page,
+.isp-support-tickets-page .fi-main {
+    background: var(--sp-surface) !important;
+}
+
+.sp-pro[data-view='cards'] .fi-ta-table {
+    display: none;
+}
+
+.sp-pro[data-view='table'] .sp-ticket-mobile-cards {
+    display: none;
+}
+
+.sp-inv-hero {
+    padding: 1rem 1.1rem;
+    border-radius: var(--sp-radius);
+    background: var(--sp-card);
+    border: 1px solid var(--sp-border);
+    margin-bottom: 0.75rem;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.75rem;
+}
+
+.sp-inv-hero__title {
+    margin: 0;
+    font-size: 1.2rem;
+    font-weight: 900;
+    color: var(--sp-text);
+}
+
+.sp-inv-hero__sub {
+    margin: 0.25rem 0 0;
+    font-size: 0.75rem;
+    color: var(--sp-muted);
+}
+
+.sp-queue-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    margin-bottom: 0.65rem;
+}
+
+.sp-queue-chip {
+    min-height: 2.1rem;
+    padding: 0.3rem 0.65rem;
+    border-radius: 999px;
+    border: 1px solid var(--sp-border);
+    background: var(--sp-card);
+    color: var(--sp-text);
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.sp-queue-chip--active {
+    background: var(--sp-amber);
+    border-color: var(--sp-amber);
+    color: #fff;
+}
+
+.sp-queue-chip__count {
+    font-size: 0.6rem;
+    padding: 0.05rem 0.35rem;
+    border-radius: 999px;
+    background: rgba(0, 0, 0, 0.12);
+}
+
+.sp-queue-chip--active .sp-queue-chip__count {
+    background: rgba(255, 255, 255, 0.25);
+}
+
+.sp-inv-toolbar {
+    margin-bottom: 0.65rem;
+    padding: 0.65rem;
+    border-radius: var(--sp-radius-sm);
+    background: var(--sp-card);
+    border: 1px solid var(--sp-border);
+}
+
+.sp-inv-toolbar__row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.sp-view-toggle {
+    display: flex;
+    gap: 0.2rem;
+    padding: 0.2rem;
+    border-radius: 8px;
+    background: var(--sp-glass);
+    border: 1px solid var(--sp-border);
+}
+
+.sp-view-toggle__btn {
+    min-height: 2rem;
+    min-width: 2rem;
+    border: none;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--sp-muted);
+    cursor: pointer;
+}
+
+.sp-view-toggle__btn--active {
+    background: var(--sp-amber);
+    color: #fff;
+}
+
+.sp-ticket-card {
+    padding: 0.75rem;
+    border-radius: var(--sp-radius-sm);
+    background: var(--sp-card);
+    border: 1px solid var(--sp-border);
+    margin-bottom: 0.5rem;
+    text-decoration: none;
+    color: var(--sp-text);
+    display: block;
+    transition: transform var(--sp-dur) var(--sp-ease);
+}
+
+.sp-ticket-card:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--sp-shadow);
+}
+
+.sp-ticket-card--critical { border-left: 4px solid var(--sp-priority-critical); }
+.sp-ticket-card--high { border-left: 4px solid var(--sp-priority-high); }
+.sp-ticket-card--medium { border-left: 4px solid var(--sp-priority-medium); }
+.sp-ticket-card--low { border-left: 4px solid var(--sp-priority-low); }
+
+.sp-ticket-card__head {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.5rem;
+    align-items: flex-start;
+}
+
+.sp-ticket-card__number {
+    font-weight: 800;
+    font-size: 0.82rem;
+}
+
+.sp-ticket-card__subject {
+    font-size: 0.75rem;
+    color: var(--sp-muted);
+    margin-top: 0.15rem;
+}
+
+.sp-ticket-card__meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    margin-top: 0.45rem;
+    font-size: 0.65rem;
+    color: var(--sp-muted);
+}
+
+.sp-priority-badge {
+    font-size: 0.58rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    padding: 0.1rem 0.4rem;
+    border-radius: 4px;
+}
+
+.sp-priority-badge--critical { background: rgba(220, 38, 38, 0.15); color: var(--sp-priority-critical); }
+.sp-priority-badge--high { background: rgba(234, 88, 12, 0.15); color: var(--sp-priority-high); }
+.sp-priority-badge--medium { background: rgba(202, 138, 4, 0.15); color: var(--sp-priority-medium); }
+.sp-priority-badge--low { background: rgba(22, 163, 74, 0.15); color: var(--sp-priority-low); }
+
+.sp-sla-badge--breach {
+    color: var(--sp-red);
+    font-weight: 800;
+}
+
+.sp-pro .fi-ta-header-ctn {
+    border-radius: var(--sp-radius-sm);
+}
+
+/* Custom queue chips replace default Filament tabs */
+.isp-support-tickets-page .fi-tabs:not(.sp-queue-chips) {
+    display: none !important;
+}

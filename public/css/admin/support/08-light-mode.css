@@ -1,0 +1,23 @@
+/** Support light mode refinements */
+
+.sp-pro .sp-inv-hero,
+.sh-pro .sh-stat,
+.sh-pro .sh-inbox__item a,
+.sp-pro .sp-ticket-card {
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+.sp-pro .fi-ta-ctn {
+    background: var(--sp-card);
+    border: 1px solid var(--sp-border);
+    border-radius: var(--sp-radius-sm);
+}
+
+.sh-pro .sh-bento__tile {
+    background: #fff;
+}
+
+.sp-queue-chip:hover:not(.sp-queue-chip--active) {
+    background: rgba(217, 119, 6, 0.08);
+    border-color: rgba(217, 119, 6, 0.35);
+}

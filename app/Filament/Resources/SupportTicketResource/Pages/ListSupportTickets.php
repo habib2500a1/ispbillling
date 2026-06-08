@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\SupportTicketResource\Pages;
 
 use App\Filament\Resources\SupportTicketResource;
+use App\Filament\Resources\SupportTicketResource\Pages\Concerns\UsesSupportTicketLayout;
 use App\Models\SupportTicket;
 use Filament\Actions;
 use Filament\Resources\Components\Tab;
@@ -11,7 +12,17 @@ use Illuminate\Database\Eloquent\Builder;
 
 class ListSupportTickets extends ListRecords
 {
+    use UsesSupportTicketLayout;
+
     protected static string $resource = SupportTicketResource::class;
+
+    protected static string $view = 'filament.resources.support-ticket-resource.pages.list-support-tickets';
+
+    public function mount(): void
+    {
+        parent::mount();
+        $this->mountSupportTicketLayout();
+    }
 
     public function getTabs(): array
     {
