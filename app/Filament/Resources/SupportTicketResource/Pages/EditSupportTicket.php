@@ -32,6 +32,26 @@ class EditSupportTicket extends EditRecord
         ];
     }
 
+    /**
+     * @return array<string, mixed>
+     */
+    public function getTicketWorkspaceViewData(): array
+    {
+        $c360 = $this->getCustomer360();
+        $live = $c360['live'] ?? ['linked' => false];
+
+        return [
+            'c360' => $c360,
+            'timeline' => $this->getTicketTimeline(),
+            'hints' => $this->getRootCauseHints(),
+            'gis' => $this->getGisPreview(),
+            'network' => $this->getNetworkRail(),
+            'live' => $live,
+            'close_blocked' => ! $this->canCloseTicket(),
+            'close_block_reason' => $this->getCloseBlockReason(),
+        ];
+    }
+
     public function mount(int | string $record): void
     {
         parent::mount($record);

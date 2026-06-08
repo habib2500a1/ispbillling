@@ -29,13 +29,31 @@ trait ProvidesSupportTicketWorkspace
         return $record;
     }
 
+    protected function workspaceCustomer(): ?Customer
+    {
+        $customerId = null;
+
+        if (property_exists($this, 'data') && is_array($this->data ?? null)) {
+            $customerId = $this->data['customer_id'] ?? null;
+        }
+
+        if ($customerId) {
+            return Customer::query()
+                ->with(['package', 'area', 'zone', 'mikrotikServer', 'onuDevice.olt', 'lastEndedPppSession'])
+                ->find($customerId);
+        }
+
+        $ticket = $this->workspaceTicket();
+
+        return $ticket->customer;
+    }
+
     /**
      * @return array<string, mixed>
      */
     public function getCustomer360(): array
     {
-        $ticket = $this->workspaceTicket();
-        $customer = $ticket->customer;
+        $customer = $this->workspaceCustomer();
 
         if ($customer === null) {
             return ['linked' => false];
@@ -120,8 +138,7 @@ trait ProvidesSupportTicketWorkspace
      */
     public function getLiveServiceStatus(): array
     {
-        $ticket = $this->workspaceTicket();
-        $customer = $ticket->customer;
+        $customer = $this->workspaceCustomer();
 
         if ($customer === null) {
             return ['linked' => false];
@@ -185,11 +202,13 @@ trait ProvidesSupportTicketWorkspace
             return true;
         }
 
-        if (! in_array($ticket->issue_type, ['connection', 'speed', 'outage', 'equipment'], true)) {
+        $issueType = $this->data['issue_type'] ?? $ticket->issue_type;
+
+        if (! in_array($issueType, ['connection', 'speed', 'outage', 'equipment'], true)) {
             return true;
         }
 
-        $customer = $ticket->customer;
+        $customer = $this->workspaceCustomer();
         if ($customer === null) {
             return true;
         }
@@ -304,7 +323,7 @@ trait ProvidesSupportTicketWorkspace
     public function getRootCauseHints(): array
     {
         $ticket = $this->workspaceTicket();
-        $customer = $ticket->customer;
+        $customer = $this->workspaceCustomer();
 
         if ($customer === null) {
             return [];
@@ -373,7 +392,7 @@ trait ProvidesSupportTicketWorkspace
     public function getGisPreview(): array
     {
         $ticket = $this->workspaceTicket();
-        $customer = $ticket->customer;
+        $customer = $this->workspaceCustomer();
 
         if ($customer === null) {
             return ['available' => false];
@@ -425,7 +444,7 @@ trait ProvidesSupportTicketWorkspace
             return [];
         }
 
-        $live = $this->getLiveServiceStatus();
+        $live = $c360['live'] ?? $this->getLiveServiceStatus();
 
         return [
             'ppp_online' => $live['ppp_online'],

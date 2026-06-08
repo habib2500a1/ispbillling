@@ -4,10 +4,12 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\SupportTicketResource\Pages;
 use App\Filament\Resources\SupportTicketResource\RelationManagers;
+use App\Models\Customer;
 use App\Models\SupportTicket;
 use App\Models\User;
 use App\Support\SupportPanelAccess;
 use Filament\Forms;
+use Filament\Forms\Get;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
@@ -37,7 +39,8 @@ class SupportTicketResource extends Resource
                     ->relationship('customer', 'name')
                     ->searchable()
                     ->preload()
-                    ->required(),
+                    ->required()
+                    ->live(),
                 Forms\Components\Select::make('channel')
                     ->options(SupportTicket::CHANNELS)
                     ->required()
@@ -80,18 +83,42 @@ class SupportTicketResource extends Resource
                     ->schema([
                         Forms\Components\Placeholder::make('subscriber_net')
                             ->label('')
-                            ->content(function (SupportTicket $record): HtmlString {
-                                $c = $record->customer;
+                            ->content(function (Get $get, SupportTicket $record): HtmlString {
+                                $customerId = $get('customer_id') ?? $record->customer_id;
+                                $c = $customerId
+                                    ? Customer::query()
+                                        ->with(['area', 'onuDevice', 'lastEndedPppSession'])
+                                        ->find($customerId)
+                                    : null;
+
                                 if ($c === null) {
                                     return new HtmlString('<span class="text-gray-500">No subscriber linked.</span>');
                                 }
+
+                                $pppOnline = $c->isPppOnline();
+                                $onu = $c->primaryOnu();
+                                $onuOper = strtolower((string) ($onu?->onu_oper_status ?? ''));
+                                $onuOnline = $onu === null
+                                    ? null
+                                    : in_array($onuOper, ['online', 'active', 'up', 'working'], true);
+                                $lastLogout = $c->lastEndedPppSession?->ended_at ?? $c->ppp_last_seen_at;
                                 $radius = filled($c->radius_username) ? $c->radius_username : '(defaults to subscriber code)';
                                 $lines = [
+                                    '<strong>PPP</strong>: <span style="color:'.($pppOnline ? '#16a34a' : '#dc2626').';font-weight:700;">'.($pppOnline ? 'Online' : 'Offline').'</span>',
+                                    '<strong>ONU</strong>: '.($onuOnline === null ? 'Not mapped' : ($onuOnline ? '<span style="color:#16a34a;font-weight:700;">Online</span>' : '<span style="color:#dc2626;font-weight:700;">Offline</span>')),
                                     '<strong>Code</strong>: '.e($c->customer_code),
                                     '<strong>RADIUS user</strong>: '.e((string) $radius),
                                     '<strong>Access</strong>: '.e((string) $c->network_access_state),
                                     '<strong>Area</strong>: '.e((string) ($c->area?->name ?? '—')),
                                 ];
+
+                                if (! $pppOnline && $lastLogout) {
+                                    $lines[] = '<strong>Last logout</strong>: '.e($lastLogout->format('d M Y, h:i A')).' ('.e($lastLogout->diffForHumans()).')';
+                                }
+
+                                if ($onu !== null && ! $onuOnline && filled($onu->offline_reason)) {
+                                    $lines[] = '<strong>ONU reason</strong>: '.e((string) $onu->offline_reason);
+                                }
 
                                 return new HtmlString('<div class="prose prose-sm dark:prose-invert">'.implode('<br>', $lines).'</div>');
                             }),

@@ -1,14 +1,15 @@
 @php
     /** @var \App\Models\SupportTicket $record */
     $record = $this->record;
-    $c360 = $this->getCustomer360();
-    $timeline = $this->getTicketTimeline();
-    $hints = $this->getRootCauseHints();
-    $gis = $this->getGisPreview();
-    $network = $this->getNetworkRail();
-    $live = $this->getLiveServiceStatus();
-    $closeBlocked = ! $this->canCloseTicket();
-    $closeBlockReason = $this->getCloseBlockReason();
+    $workspace = $this->getTicketWorkspaceViewData();
+    $c360 = $workspace['c360'];
+    $timeline = $workspace['timeline'];
+    $hints = $workspace['hints'];
+    $gis = $workspace['gis'];
+    $network = $workspace['network'];
+    $live = $workspace['live'];
+    $closeBlocked = $workspace['close_blocked'];
+    $closeBlockReason = $workspace['close_block_reason'];
     $hubUrl = \App\Filament\Pages\SupportHub::getUrl();
     $listUrl = \App\Filament\Resources\SupportTicketResource::getUrl('index');
 @endphp
@@ -42,6 +43,7 @@
 
         @if (! empty($live['linked']))
             <section
+                wire:key="sp-live-status-{{ $c360['id'] ?? 'none' }}"
                 @class([
                     'sp-live-status',
                     'sp-live-status--ok' => $live['ppp_online'] && ($live['onu_online'] !== false),
