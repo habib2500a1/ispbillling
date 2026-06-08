@@ -1,0 +1,81 @@
+/** SNMP, NetFlow, RADIUS, topology — shared monitoring chrome */
+
+.isp-network-monitoring-page .fi-header { display: none !important; }
+
+.noc-pro .mon-hero {
+    padding: 1.2rem 1.4rem;
+    border-radius: var(--nr-radius);
+    border: 1px solid var(--nr-border);
+    background: var(--nr-card);
+    box-shadow: var(--nr-shadow-lg);
+    margin-bottom: 1rem;
+}
+
+.noc-pro .mon-hero__title {
+    margin: 0;
+    font-size: 1.35rem;
+    font-weight: 700;
+    color: var(--nr-text);
+}
+
+.noc-pro .mon-hero__sub {
+    margin: 0.35rem 0 0;
+    font-size: 0.88rem;
+    color: var(--nr-muted);
+}
+
+.noc-pro .mon-stat-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+}
+
+.noc-pro .mon-stat {
+    padding: 0.9rem 1rem;
+    border-radius: var(--nr-radius-sm);
+    border: 1px solid var(--nr-border);
+    background: var(--nr-glass);
+}
+
+.noc-pro .mon-table-card {
+    border-radius: var(--nr-radius);
+    border: 1px solid var(--nr-border);
+    background: var(--nr-card);
+    overflow: hidden;
+    box-shadow: var(--nr-shadow);
+}
+
+.noc-pro .mon-table-card table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.noc-pro .mon-table-card th {
+    padding: 0.65rem 0.85rem;
+    font-size: 0.68rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--nr-muted);
+    background: color-mix(in srgb, var(--nr-muted) 6%, transparent);
+    text-align: left;
+}
+
+.noc-pro .mon-table-card td {
+    padding: 0.65rem 0.85rem;
+    font-size: 0.84rem;
+    color: var(--nr-text);
+    border-top: 1px solid var(--nr-border);
+}
+
+.noc-pro .mon-filter-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    align-items: center;
+    padding: 0.75rem 1rem;
+    border-radius: var(--nr-radius-sm);
+    border: 1px solid var(--nr-border);
+    background: var(--nr-glass);
+    margin-bottom: 1rem;
+}

@@ -1,0 +1,223 @@
+/** Router list — table, cards, toolbar, status badges */
+
+.isp-network-routers-page .fi-header,
+.isp-network-page.isp-network-routers-page .fi-header { display: none !important; }
+
+.nr-pro {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.nr-inv-hero {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1.35rem 1.5rem;
+    border-radius: var(--nr-radius);
+    border: 1px solid var(--nr-border);
+    background: var(--nr-card);
+    box-shadow: var(--nr-shadow-lg);
+}
+
+.nr-inv-hero__badge {
+    display: inline-block;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--nr-indigo);
+    margin-bottom: 0.35rem;
+}
+
+.nr-inv-hero__title {
+    margin: 0;
+    font-size: 1.55rem;
+    font-weight: 700;
+    color: var(--nr-text);
+    letter-spacing: -0.02em;
+}
+
+.nr-inv-hero__sub {
+    margin: 0.4rem 0 0;
+    font-size: 0.9rem;
+    color: var(--nr-muted);
+    max-width: 42rem;
+    line-height: 1.5;
+}
+
+.nr-inv-hero__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.nr-inv-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 0.75rem;
+}
+
+.nr-inv-stat {
+    padding: 0.9rem 1rem;
+    border-radius: var(--nr-radius-sm);
+    border: 1px solid var(--nr-border);
+    background: var(--nr-glass);
+    text-decoration: none;
+    color: inherit;
+    transition: transform var(--nr-dur) var(--nr-ease), box-shadow var(--nr-dur) var(--nr-ease);
+}
+
+.nr-inv-stat:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--nr-shadow);
+}
+
+.nr-inv-stat__label {
+    display: block;
+    font-size: 0.68rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--nr-muted);
+}
+
+.nr-inv-stat__value {
+    display: block;
+    margin-top: 0.25rem;
+    font-size: 1.35rem;
+    font-weight: 700;
+    color: var(--nr-text);
+}
+
+.nr-inv-stat--emerald { border-top: 3px solid var(--nr-emerald); }
+.nr-inv-stat--rose { border-top: 3px solid var(--nr-rose); }
+.nr-inv-stat--indigo { border-top: 3px solid var(--nr-indigo); }
+.nr-inv-stat--cyan { border-top: 3px solid var(--nr-cyan); }
+
+.nr-inv-toolbar {
+    padding: 0.85rem 1rem;
+    border-radius: var(--nr-radius-sm);
+    border: 1px solid var(--nr-border);
+    background: var(--nr-glass);
+    backdrop-filter: blur(10px);
+}
+
+.nr-inv-toolbar__row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+    align-items: center;
+}
+
+.nr-inv-search {
+    flex: 1 1 220px;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    border-radius: 10px;
+    border: 1px solid var(--nr-border);
+    background: var(--nr-card);
+}
+
+.nr-inv-search input {
+    flex: 1;
+    border: 0;
+    background: transparent;
+    font-size: 0.875rem;
+    color: var(--nr-text);
+    outline: none;
+}
+
+.nr-inv-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin-top: 0.65rem;
+}
+
+.nr-inv-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.25rem 0.6rem;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    border: 1px solid var(--nr-border);
+    background: var(--nr-card);
+    color: var(--nr-text);
+    text-decoration: none;
+}
+
+.nr-inv-table-card {
+    border-radius: var(--nr-radius);
+    border: 1px solid var(--nr-border);
+    background: var(--nr-card);
+    box-shadow: var(--nr-shadow);
+    overflow: hidden;
+}
+
+.nr-inv-table-card .fi-ta-header-cell {
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.nr-inv-table-card .fi-badge {
+    font-weight: 600;
+}
+
+.nr-pro[data-view='cards'] .fi-ta-ctn .fi-ta-content { display: none; }
+.nr-pro[data-view='cards'] [data-nr-mobile-cards] { display: grid; }
+
+[data-nr-mobile-cards] {
+    display: none;
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+    padding: 0.75rem;
+}
+
+.nr-router-card {
+    padding: 1rem;
+    border-radius: var(--nr-radius-sm);
+    border: 1px solid var(--nr-border);
+    background: var(--nr-glass);
+}
+
+.nr-router-card__head {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.nr-router-card__icon {
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: 12px;
+    display: grid;
+    place-items: center;
+    background: var(--nr-grad--health);
+    color: #fff;
+    flex-shrink: 0;
+}
+
+.nr-router-card__status {
+    margin-left: auto;
+    padding: 0.2rem 0.55rem;
+    border-radius: 999px;
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.nr-router-card__status--online { background: rgba(16, 185, 129, 0.15); color: #047857; }
+.nr-router-card__status--offline { background: rgba(244, 63, 94, 0.12); color: #be123c; }
+
+.nr-inv-dock {
+    display: none;
+}

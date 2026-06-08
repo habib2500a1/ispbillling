@@ -1,0 +1,59 @@
+/** Network module sidebar — active states, badges, compact mode */
+
+body.isp-network-module .isp-admin-sidebar [data-nav-group='Network'] .isp-sidebar-group-label {
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    color: var(--nr-indigo, #4f46e5);
+}
+
+body.isp-network-module .isp-admin-sidebar a[href*='/admin/mikrotik'],
+body.isp-network-module .isp-admin-sidebar a[href*='/admin/network'],
+body.isp-network-module .isp-admin-sidebar a[href*='/admin/online-clients'],
+body.isp-network-module .isp-admin-sidebar a[href*='/admin/bandwidth-monitor'],
+body.isp-network-module .isp-admin-sidebar a[href*='/admin/import-from-mikrotik'],
+body.isp-network-module .isp-admin-sidebar a[href*='/admin/subscriber-traffic'],
+body.isp-network-module .isp-admin-sidebar a[href*='/admin/snmp'],
+body.isp-network-module .isp-admin-sidebar a[href*='/admin/netflow'],
+body.isp-network-module .isp-admin-sidebar a[href*='/admin/radius'],
+body.isp-network-module .isp-admin-sidebar a[href*='/admin/fiber-plant'],
+body.isp-network-module .isp-admin-sidebar a[href*='/admin/network-topology'] {
+    transition: background 0.18s ease, color 0.18s ease, padding-left 0.18s ease;
+}
+
+body.isp-network-module .isp-admin-sidebar a.is-active,
+body.isp-network-module .isp-admin-sidebar a[aria-current='page'] {
+    background: color-mix(in srgb, #4f46e5 14%, transparent) !important;
+    color: #4f46e5 !important;
+    font-weight: 600;
+    border-left: 3px solid #4f46e5;
+    padding-left: calc(0.75rem - 3px);
+}
+
+.dark body.isp-network-module .isp-admin-sidebar a.is-active,
+.dark body.isp-network-module .isp-admin-sidebar a[aria-current='page'] {
+    color: #a5b4fc !important;
+    background: color-mix(in srgb, #6366f1 18%, transparent) !important;
+    border-left-color: #818cf8;
+}
+
+body.isp-network-module.isp-sidebar-compact .isp-admin-sidebar {
+    width: 4.25rem;
+}
+
+body.isp-network-module.isp-sidebar-compact .isp-admin-sidebar .isp-sidebar-label {
+    display: none;
+}
+
+body.isp-network-module .isp-sidebar-network-badge {
+    display: inline-flex;
+    min-width: 1.1rem;
+    height: 1.1rem;
+    align-items: center;
+    justify-content: center;
+    padding: 0 0.25rem;
+    border-radius: 999px;
+    font-size: 0.62rem;
+    font-weight: 700;
+    background: rgba(37, 99, 235, 0.15);
+    color: #2563eb;
+}

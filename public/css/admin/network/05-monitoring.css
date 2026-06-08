@@ -1,0 +1,196 @@
+/** Online clients, bandwidth, monitoring shells */
+
+.net-noc-pro .net-mon-hero {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1.25rem 1.5rem;
+    border-radius: var(--net-radius);
+    background: var(--net-grad--bandwidth);
+    color: #fff;
+    box-shadow: var(--net-shadow-lg);
+}
+
+.net-noc-pro .net-mon-hero__title {
+    margin: 0.35rem 0 0;
+    font-size: 1.45rem;
+    font-weight: 800;
+}
+
+.net-noc-pro .net-mon-hero__sub {
+    margin: 0.4rem 0 0;
+    font-size: 0.85rem;
+    opacity: 0.9;
+    max-width: 38rem;
+    line-height: 1.5;
+}
+
+.net-noc-pro .net-mon-sync {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    padding: 0.65rem 0.85rem;
+    border-radius: var(--net-radius-sm);
+    background: rgba(255, 255, 255, 0.12);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    font-size: 0.78rem;
+}
+
+.net-noc-pro .net-mon-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #34d399;
+    flex-shrink: 0;
+}
+
+.net-noc-pro .net-mon-dot--pulse {
+    animation: net-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes net-pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.55; transform: scale(0.85); }
+}
+
+.net-noc-pro .net-mon-stats {
+    display: grid;
+    gap: 0.65rem;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+@media (min-width: 1024px) {
+    .net-noc-pro .net-mon-stats { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+
+.net-noc-pro .net-mon-stat {
+    padding: 0.9rem 1rem;
+    border-radius: var(--net-radius-sm);
+    background: var(--net-card);
+    border: 1px solid var(--net-border);
+    border-left: 3px solid var(--net-blue);
+}
+
+.net-noc-pro .net-mon-stat--live { border-left-color: var(--net-emerald); }
+.net-noc-pro .net-mon-stat--warn { border-left-color: var(--net-amber); }
+.net-noc-pro .net-mon-stat--traffic { border-left-color: var(--net-cyan); }
+
+.net-noc-pro .net-mon-stat__label {
+    display: block;
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--net-muted);
+}
+
+.net-noc-pro .net-mon-stat__value {
+    display: block;
+    margin-top: 0.3rem;
+    font-size: 1.3rem;
+    font-weight: 800;
+    color: var(--net-text);
+}
+
+.net-noc-pro .net-mon-panel {
+    border-radius: var(--net-radius);
+    background: var(--net-glass);
+    border: 1px solid var(--net-border);
+    backdrop-filter: blur(10px);
+    padding: 0.85rem 1rem;
+}
+
+.net-noc-pro .net-mon-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    margin-bottom: 0.75rem;
+}
+
+.net-noc-pro .net-mon-tab {
+    padding: 0.45rem 0.85rem;
+    border-radius: 10px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--net-muted);
+    background: var(--net-card);
+    border: 1px solid var(--net-border);
+    text-decoration: none;
+    transition: background var(--net-dur) var(--net-ease), color var(--net-dur) var(--net-ease);
+}
+
+.net-noc-pro .net-mon-tab--active {
+    color: var(--net-blue);
+    background: color-mix(in srgb, var(--net-blue) 10%, var(--net-card));
+    border-color: color-mix(in srgb, var(--net-blue) 30%, var(--net-border));
+}
+
+.net-noc-pro .net-mon-health {
+    display: grid;
+    gap: 0.5rem;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.net-noc-pro .net-mon-health__item {
+    text-align: center;
+    padding: 0.65rem;
+    border-radius: 10px;
+    background: var(--net-card);
+    border: 1px solid var(--net-border);
+}
+
+.net-noc-pro .net-mon-health__label {
+    display: block;
+    font-size: 0.62rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--net-muted);
+}
+
+.net-noc-pro .net-mon-health__bar {
+    height: 4px;
+    margin-top: 0.45rem;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--net-muted) 20%, transparent);
+    overflow: hidden;
+}
+
+.net-noc-pro .net-mon-health__fill {
+    height: 100%;
+    border-radius: 999px;
+    background: var(--net-grad--health);
+}
+
+.net-noc-pro .net-mon-health__fill--warn { background: var(--net-grad--warning); }
+.net-noc-pro .net-mon-health__fill--danger { background: var(--net-grad--offline); }
+
+/* Bandwidth status cards inside net shell */
+.net-noc-pro .net-api-card {
+    padding: 1rem 1.15rem;
+    border-radius: var(--net-radius-sm);
+    background: var(--net-card);
+    border: 1px solid var(--net-border);
+    box-shadow: var(--net-shadow);
+}
+
+.net-noc-pro .net-api-card__label {
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--net-muted);
+}
+
+.net-noc-pro .net-api-card__value {
+    margin-top: 0.35rem;
+    font-size: 1.75rem;
+    font-weight: 800;
+    color: var(--net-text);
+}
+
+.net-noc-pro .net-api-card--api { border-top: 3px solid var(--net-cyan); }
+.net-noc-pro .net-api-card--radius { border-top: 3px solid var(--net-indigo); }
+.net-noc-pro .net-api-card--sync { border-top: 3px solid var(--net-emerald); }

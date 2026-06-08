@@ -12,9 +12,13 @@
     );
 @endphp
 
+{!! \App\Support\NetworkStyles::navigatedScript() !!}
+
+{!! \App\Support\NetworkStyles::navigatedScript() !!}
+
 <x-filament-panels::page class="isp-online-clients-page oc-pro">
     <div
-        class="oc-pro-layout space-y-4"
+        class="net-noc-pro oc-pro-layout space-y-4"
         @if ($pollSeconds > 0)
             wire:poll.{{ $pollSeconds }}s="refreshLiveData"
         @endif
@@ -22,11 +26,11 @@
             wire:poll.{{ $livePollSeconds }}s="$refresh"
         @endif
     >
-        <section class="isp-online-clients-hero oc-pro-hero">
+        <section class="net-mon-hero">
             <div>
-                <p class="isp-online-clients-hero__eyebrow">Network operations</p>
-                <h2 class="isp-online-clients-hero__title">Live PPP / online clients</h2>
-                <p class="isp-online-clients-hero__sub">
+                <p style="margin:0;font-size:0.68rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;opacity:0.9;">Network operations</p>
+                <h2 class="net-mon-hero__title">Live PPP / online clients</h2>
+                <p class="net-mon-hero__sub">
                     Real-time sessions from MikroTik — login, logout, client IP, router NAS, MAC, and traffic.
                 </p>
             </div>

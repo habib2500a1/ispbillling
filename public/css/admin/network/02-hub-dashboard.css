@@ -1,0 +1,79 @@
+/** Network Intelligence hub — NOC dashboard chrome */
+
+.isp-network-hub-page .fi-header { display: none !important; }
+
+.nh-pro .net-pro,
+.nh-pro .olt-pro {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+
+.nh-pro .net-hero,
+.nh-pro .olt-hero {
+    border-radius: var(--nr-radius);
+    border: 1px solid var(--nr-border);
+    background: var(--nr-card);
+    box-shadow: var(--nr-shadow-lg);
+    overflow: hidden;
+}
+
+.nh-pro .net-health__pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.3rem 0.65rem;
+    border-radius: 999px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    border: 1px solid var(--nr-border);
+    background: var(--nr-glass);
+    color: var(--nr-muted);
+    transition: transform var(--nr-dur) var(--nr-ease), border-color var(--nr-dur) var(--nr-ease);
+}
+
+.nh-pro .net-health__pill--ok {
+    color: #047857;
+    border-color: rgba(5, 150, 105, 0.35);
+    background: rgba(16, 185, 129, 0.12);
+}
+
+.nh-pro .net-health__pill--danger {
+    color: #b91c1c;
+    border-color: rgba(220, 38, 38, 0.35);
+    background: rgba(244, 63, 94, 0.1);
+}
+
+.nh-pro .olt-stat {
+    transition: transform var(--nr-dur) var(--nr-ease), box-shadow var(--nr-dur) var(--nr-ease);
+}
+
+.nh-pro .olt-stat:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--nr-shadow-lg);
+}
+
+.nh-pro .olt-tile,
+.nh-pro .net-action-card {
+    border-radius: var(--nr-radius-sm);
+    border: 1px solid var(--nr-border);
+    background: var(--nr-glass);
+    backdrop-filter: blur(10px);
+    transition: border-color var(--nr-dur) var(--nr-ease), transform var(--nr-dur) var(--nr-ease);
+}
+
+.nh-pro .olt-tile:hover,
+.nh-pro .net-action-card:hover {
+    border-color: color-mix(in srgb, var(--nr-indigo) 40%, var(--nr-border));
+    transform: translateY(-1px);
+}
+
+.nh-pro .olt-btn--white {
+    box-shadow: 0 4px 14px rgba(37, 99, 235, 0.2);
+}
+
+.nh-pro .olt-hero__live-card {
+    background: var(--nr-glass);
+    border: 1px solid var(--nr-border);
+    border-radius: var(--nr-radius-sm);
+}

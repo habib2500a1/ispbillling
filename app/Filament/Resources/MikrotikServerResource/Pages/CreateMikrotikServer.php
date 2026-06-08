@@ -14,6 +14,11 @@ class CreateMikrotikServer extends CreateRecord
 
     protected static string $view = 'filament.resources.mikrotik-server-resource.pages.create-mikrotik-server';
 
+    public function getExtraBodyAttributes(): array
+    {
+        return ['class' => 'isp-network-noc-page'];
+    }
+
     protected function mutateFormDataBeforeCreate(array $data): array
     {
         $tid = auth()->user()?->tenant_id ?? (int) (Tenant::query()->value('id') ?? 1);

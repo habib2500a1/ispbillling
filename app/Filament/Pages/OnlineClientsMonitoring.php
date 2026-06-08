@@ -43,6 +43,11 @@ class OnlineClientsMonitoring extends Page implements HasForms, HasTable
 
     protected static bool $shouldRegisterNavigation = false;
 
+    public function getExtraBodyAttributes(): array
+    {
+        return ['class' => 'isp-network-noc-page'];
+    }
+
     protected static ?int $navigationSort = 3;
 
     protected static ?string $slug = 'online-clients';

@@ -39,6 +39,28 @@ class NetworkIntelligenceHub extends Page
         return '';
     }
 
+    public function getExtraBodyAttributes(): array
+    {
+        return [
+            'class' => 'isp-network-module isp-network-noc-page',
+        ];
+    }
+
+    /**
+     * @return array{total: int, online: int, offline: int, enabled: int}
+     */
+    public function getRouterFleetStats(): array
+    {
+        $base = MikrotikServer::query();
+
+        return [
+            'total' => (int) (clone $base)->count(),
+            'online' => (int) (clone $base)->where('last_api_status', 'online')->count(),
+            'offline' => (int) (clone $base)->where('last_api_status', 'offline')->count(),
+            'enabled' => (int) (clone $base)->where('is_enabled', true)->count(),
+        ];
+    }
+
     /**
      * @return array<string, mixed>
      */

@@ -1,0 +1,91 @@
+/** Dark mode — OLED-friendly NOC */
+
+.dark .net-noc-pro,
+.dark .net-pro-v2,
+[data-theme='dark'] .net-noc-pro,
+[data-theme='dark'] .net-pro-v2 {
+    --net-surface: #030712;
+    --net-card: rgba(15, 23, 42, 0.94);
+    --net-glass: rgba(15, 23, 42, 0.75);
+    --net-text: #f1f5f9;
+    --net-muted: #94a3b8;
+    --net-border: rgba(71, 85, 105, 0.45);
+    --net-shadow: 0 1px 3px rgba(0, 0, 0, 0.45);
+    --net-shadow-lg: 0 16px 40px rgba(0, 0, 0, 0.55);
+}
+
+.dark .isp-network-noc-page .fi-main,
+[data-theme='dark'] .isp-network-noc-page .fi-main {
+    background: radial-gradient(ellipse at top, #0f172a 0%, #030712 55%);
+}
+
+.dark .net-noc-pro .net-rt-table-card,
+.dark .net-noc-pro .net-profile-form,
+.dark .net-noc-pro .net-rt-card {
+    background: rgba(15, 23, 42, 0.92);
+}
+
+.dark .net-noc-pro .fi-ta-row:hover {
+    background: color-mix(in srgb, #3b82f6 8%, transparent);
+}
+
+.dark .net-noc-pro .net-rt-search,
+.dark .net-noc-pro .net-rt-view-toggle {
+    background: rgba(15, 23, 42, 0.9);
+}
+
+.dark .net-noc-pro .net-rt-search input {
+    color: #f1f5f9;
+}
+
+.dark .net-noc-pro .net-rt-search input::placeholder {
+    color: #64748b;
+}
+
+.dark .net-noc-pro .net-hub-stat,
+.dark .net-noc-pro .net-mon-stat,
+.dark .net-noc-pro .net-api-card {
+    background: rgba(15, 23, 42, 0.88);
+}
+
+.dark .net-noc-pro .net-hub-tile:hover {
+    border-color: color-mix(in srgb, #60a5fa 40%, var(--net-border));
+}
+
+.dark .net-noc-pro .net-rt-badge--online {
+    background: color-mix(in srgb, #34d399 18%, transparent);
+    color: #6ee7b7;
+}
+
+.dark .net-noc-pro .net-rt-badge--offline {
+    background: color-mix(in srgb, #f87171 18%, transparent);
+    color: #fca5a5;
+}
+
+.dark .net-noc-pro .net-mobile-sheet__panel,
+.dark .net-noc-pro .net-profile-drawer__panel {
+    background: #0f172a;
+}
+
+.dark .net-noc-pro .net-dock {
+    background: rgba(15, 23, 42, 0.92);
+}
+
+.dark .net-noc-pro .fi-section {
+    background: rgba(3, 7, 18, 0.6) !important;
+    border-color: rgba(71, 85, 105, 0.4) !important;
+}
+
+.dark .net-noc-pro .fi-input-wrp {
+    background: rgba(15, 23, 42, 0.9);
+    border-color: rgba(71, 85, 105, 0.5);
+}
+
+.dark .net-noc-pro .net-rt-btn--primary {
+    background: #f1f5f9;
+    color: #1e3a8a;
+}
+
+.dark .net-noc-pro .net-mon-dot {
+    box-shadow: 0 0 8px rgba(52, 211, 153, 0.5);
+}

@@ -1,0 +1,114 @@
+/** Network settings, import from MikroTik — form chrome */
+
+.isp-network-settings-page .fi-header,
+.isp-network-import-page .fi-header { display: none !important; }
+
+.noc-pro .isp-network-hero,
+.nr-pro .isp-network-hero {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1.25rem 1.5rem;
+    border-radius: var(--nr-radius);
+    border: 1px solid var(--nr-border);
+    background: var(--nr-card);
+    box-shadow: var(--nr-shadow-lg);
+}
+
+.noc-pro .isp-network-hero__title,
+.nr-pro .isp-network-hero__title {
+    margin: 0;
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: var(--nr-text);
+}
+
+.noc-pro .isp-network-hero__eyebrow,
+.nr-pro .isp-network-hero__eyebrow {
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--nr-indigo);
+}
+
+.noc-pro .isp-network-hero__sub,
+.nr-pro .isp-network-hero__sub {
+    margin: 0.35rem 0 0;
+    font-size: 0.88rem;
+    color: var(--nr-muted);
+    max-width: 40rem;
+}
+
+.noc-pro .isp-network-hero__stats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.65rem;
+}
+
+.noc-pro .isp-network-stat,
+.nr-pro .isp-network-stat {
+    min-width: 5rem;
+    padding: 0.6rem 0.85rem;
+    border-radius: var(--nr-radius-sm);
+    border: 1px solid var(--nr-border);
+    background: var(--nr-glass);
+    text-align: center;
+}
+
+.noc-pro .isp-network-stat strong,
+.nr-pro .isp-network-stat strong {
+    display: block;
+    font-size: 1.2rem;
+    color: var(--nr-text);
+}
+
+.noc-pro .isp-network-stat__label,
+.nr-pro .isp-network-stat__label {
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--nr-muted);
+}
+
+.noc-pro .isp-network-stat--primary,
+.nr-pro .isp-network-stat--primary {
+    border-top: 3px solid var(--nr-emerald);
+}
+
+.noc-pro .isp-network-form-card,
+.nr-pro .isp-network-form-card {
+    border-radius: var(--nr-radius);
+    border: 1px solid var(--nr-border);
+    background: var(--nr-card);
+    box-shadow: var(--nr-shadow);
+    padding: 1.25rem;
+}
+
+.noc-pro .isp-network-table-card,
+.nr-pro .isp-network-table-card {
+    border-radius: var(--nr-radius);
+    border: 1px solid var(--nr-border);
+    background: var(--nr-card);
+    box-shadow: var(--nr-shadow);
+    overflow: hidden;
+}
+
+.noc-pro .isp-network-table-card__head {
+    padding: 0.85rem 1.1rem;
+    border-bottom: 1px solid var(--nr-border);
+    font-weight: 700;
+    color: var(--nr-text);
+}
+
+.noc-pro .net-settings-guide {
+    padding: 1rem 1.15rem;
+    border-radius: var(--nr-radius-sm);
+    border: 1px solid rgba(8, 145, 178, 0.35);
+    background: rgba(8, 145, 178, 0.08);
+    color: var(--nr-text);
+    font-size: 0.85rem;
+    line-height: 1.55;
+}

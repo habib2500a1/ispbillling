@@ -1,0 +1,87 @@
+/** Live PPP / online clients monitoring */
+
+.isp-online-clients-page .fi-header { display: none !important; }
+
+.noc-pro .oc-pro-layout {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.noc-pro .isp-online-clients-hero,
+.noc-pro .oc-pro-hero {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1.25rem 1.5rem;
+    border-radius: var(--nr-radius);
+    border: 1px solid var(--nr-border);
+    background: var(--nr-card);
+    box-shadow: var(--nr-shadow-lg);
+}
+
+.noc-pro .isp-online-clients-hero__title {
+    margin: 0;
+    font-size: 1.45rem;
+    font-weight: 700;
+    color: var(--nr-text);
+}
+
+.noc-pro .isp-online-clients-hero__eyebrow {
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--nr-cyan);
+}
+
+.noc-pro .isp-online-clients-stats,
+.noc-pro .oc-pro-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+    gap: 0.75rem;
+}
+
+.noc-pro .isp-online-clients-stat {
+    padding: 0.85rem 1rem;
+    border-radius: var(--nr-radius-sm);
+    border: 1px solid var(--nr-border);
+    background: var(--nr-glass);
+    backdrop-filter: blur(8px);
+}
+
+.noc-pro .isp-online-clients-stat--blue { border-top: 3px solid var(--nr-blue); }
+.noc-pro .isp-online-clients-stat--green { border-top: 3px solid var(--nr-emerald); }
+.noc-pro .isp-online-clients-stat--amber { border-top: 3px solid var(--nr-amber); }
+.noc-pro .isp-online-clients-stat--rose { border-top: 3px solid var(--nr-rose); }
+
+.noc-pro .isp-live-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--nr-emerald);
+    flex-shrink: 0;
+}
+
+.noc-pro .isp-live-dot--pulse {
+    animation: nr-pulse 1.8s ease-in-out infinite;
+}
+
+@keyframes nr-pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.55; transform: scale(0.92); }
+}
+
+.noc-pro .oc-pro-table-wrap {
+    border-radius: var(--nr-radius);
+    border: 1px solid var(--nr-border);
+    background: var(--nr-card);
+    box-shadow: var(--nr-shadow);
+    overflow: hidden;
+}
+
+.noc-pro .fi-ta-row:hover {
+    background: color-mix(in srgb, var(--nr-cyan) 4%, transparent);
+}

@@ -1,5 +1,6 @@
 @php
     $stats = $this->getStats();
+    $fleet = $this->getRouterFleetStats();
     $onlinePct = ($stats['onus'] ?? 0) > 0
         ? round(100 * ($stats['onus_online'] ?? 0) / max(1, $stats['onus']))
         : 0;
@@ -8,109 +9,95 @@
     $netflowOn = $stats['netflow_enabled'] ?? false;
 @endphp
 
-<x-filament-panels::page class="isp-network-hub-page">
-    <div class="net-pro olt-pro">
-        <header class="net-hero olt-hero">
-            <div class="olt-hero__grid">
-                <span class="olt-hero__badge">
-                    <span @class([
-                        'olt-hero__badge-dot',
-                        'net-hero__badge-dot--warn' => ! $snmpOk || $pollOk === false,
-                    ]) aria-hidden="true"></span>
-                    SNMP · NetFlow · NOC
+{!! \App\Support\NetworkStyles::navigatedScript() !!}
+
+<x-filament-panels::page class="isp-network-noc-page">
+    <div class="net-noc-pro net-pro olt-pro space-y-5">
+        <header class="net-hub-hero">
+            <div>
+                <span class="net-hub-hero__badge">
+                    <span @class(['net-hub-hero__dot', 'net-hub-hero__dot--warn' => ! $snmpOk || $pollOk === false]) aria-hidden="true"></span>
+                    Network Operations Center
                 </span>
-                <h1 class="olt-hero__title">Network Intelligence</h1>
-                <p class="olt-hero__sub">
-                    MikroTik routing, GPON optical polling, SNMP health, NetFlow traffic analysis, and live PPP sessions — unified network operations center.
+                <h1 class="net-hub-hero__title">Network Intelligence</h1>
+                <p class="net-hub-hero__sub">
+                    MikroTik routing, GPON optical polling, SNMP health, NetFlow traffic analysis, and live PPP sessions — unified NOC.
                 </p>
-                <div class="net-health">
-                    <span @class(['net-health__pill', 'net-health__pill--ok' => $snmpOk, 'net-health__pill--warn' => ! $snmpOk])>
-                        SNMP {{ $snmpOk ? 'ready' : 'missing' }}
-                    </span>
-                    <span @class(['net-health__pill', 'net-health__pill--ok' => $netflowOn, 'net-health__pill--muted' => ! $netflowOn])>
-                        NetFlow {{ $netflowOn ? 'enabled' : 'disabled' }}
-                    </span>
+                <div class="net-hub-pills">
+                    <span class="net-hub-pill">SNMP {{ $snmpOk ? 'ready' : 'missing' }}</span>
+                    <span class="net-hub-pill">NetFlow {{ $netflowOn ? 'on' : 'off' }}</span>
                     @if ($pollOk === true)
-                        <span class="net-health__pill net-health__pill--ok">Poll OK</span>
+                        <span class="net-hub-pill">Poll OK</span>
                     @elseif ($pollOk === false)
-                        <span class="net-health__pill net-health__pill--danger">Poll failed</span>
+                        <span class="net-hub-pill">Poll failed</span>
                     @endif
                     @if ($stats['last_poll'])
-                        <span class="net-health__pill net-health__pill--muted">Last poll {{ $stats['last_poll'] }}</span>
+                        <span class="net-hub-pill">Last poll {{ $stats['last_poll'] }}</span>
                     @endif
                 </div>
-                <div class="olt-hero__actions">
-                    <a href="{{ \App\Filament\Pages\OnlineClientsMonitoring::getUrl() }}" class="olt-btn olt-btn--white">
+                <div class="net-hub-actions">
+                    <a href="{{ \App\Filament\Pages\OnlineClientsMonitoring::getUrl() }}" class="net-hub-btn net-hub-btn--white">
                         <x-filament::icon icon="heroicon-m-bolt" class="h-4 w-4" />
                         Live PPP
                     </a>
-                    <a href="{{ \App\Filament\Pages\SnmpMonitor::getUrl() }}" class="olt-btn olt-btn--glass">
+                    <a href="{{ \App\Filament\Resources\MikrotikServerResource::getUrl() }}" class="net-hub-btn net-hub-btn--glass">
+                        <x-filament::icon icon="heroicon-m-server" class="h-4 w-4" />
+                        Routers
+                    </a>
+                    <a href="{{ \App\Filament\Pages\SnmpMonitor::getUrl() }}" class="net-hub-btn net-hub-btn--glass">
                         <x-filament::icon icon="heroicon-m-signal" class="h-4 w-4" />
                         SNMP
                     </a>
-                    <a href="{{ \App\Filament\Pages\NetflowAnalysis::getUrl() }}" class="olt-btn olt-btn--glass">
+                    <a href="{{ \App\Filament\Pages\NetflowAnalysis::getUrl() }}" class="net-hub-btn net-hub-btn--glass">
                         <x-filament::icon icon="heroicon-m-chart-bar" class="h-4 w-4" />
                         NetFlow
                     </a>
-                    @if (\App\Filament\Pages\OltHub::canAccess())
-                        <a href="{{ \App\Filament\Pages\OltHub::getUrl() }}" class="olt-btn olt-btn--glass">
-                            <x-filament::icon icon="heroicon-m-server-stack" class="h-4 w-4" />
-                            OLT center
-                        </a>
-                    @endif
                 </div>
             </div>
-            <div class="olt-hero__live">
-                <div class="olt-hero__live-card">
-                    <span class="olt-hero__live-label">ONUs online</span>
-                    <strong class="olt-hero__live-value">{{ number_format($stats['onus_online'] ?? 0) }}</strong>
-                    <span class="olt-hero__live-hint">
-                        {{ $onlinePct }}% of {{ number_format($stats['onus'] ?? 0) }} ONUs
-                        · {{ number_format($stats['mikrotik'] ?? 0) }} MikroTik
-                    </span>
-                </div>
+            <div class="net-hub-hero__live">
+                <span style="font-size:0.68rem;opacity:0.85;text-transform:uppercase;letter-spacing:0.06em;">Routers online</span>
+                <strong>{{ number_format($fleet['online']) }}/{{ number_format($fleet['total']) }}</strong>
+                <span style="font-size:0.78rem;opacity:0.85;display:block;margin-top:0.35rem;">
+                    {{ number_format($stats['onus_online'] ?? 0) }} ONUs up · {{ number_format($stats['mikrotik'] ?? 0) }} MikroTik
+                </span>
             </div>
         </header>
 
-        <div class="olt-stats">
-            @foreach ($this->getKpiCards() as $kpi)
-                <a href="{{ $kpi['url'] }}" class="olt-stat olt-stat--{{ $kpi['tone'] }}">
-                    <div class="olt-stat__row">
-                        <span class="olt-stat__icon">
-                            <x-filament::icon :icon="$kpi['icon']" class="h-5 w-5" />
-                        </span>
-                    </div>
-                    <span class="olt-stat__label">{{ $kpi['label'] }}</span>
-                    <strong class="olt-stat__value">{{ $kpi['value'] }}</strong>
-                    <span class="olt-stat__hint">{{ $kpi['hint'] }}</span>
-                </a>
-            @endforeach
+        <div class="net-hub-stats">
+            <a href="{{ \App\Filament\Resources\MikrotikServerResource::getUrl() }}" class="net-hub-stat net-hub-stat--online">
+                <span class="net-hub-stat__label">Routers online</span>
+                <strong class="net-hub-stat__value">{{ number_format($fleet['online']) }}</strong>
+            </a>
+            <a href="{{ \App\Filament\Resources\MikrotikServerResource::getUrl() }}" class="net-hub-stat net-hub-stat--offline">
+                <span class="net-hub-stat__label">Routers offline</span>
+                <strong class="net-hub-stat__value">{{ number_format($fleet['offline']) }}</strong>
+            </a>
+            <a href="{{ \App\Filament\Pages\OnlineClientsMonitoring::getUrl() }}" class="net-hub-stat net-hub-stat--bandwidth">
+                <span class="net-hub-stat__label">MikroTik fleet</span>
+                <strong class="net-hub-stat__value">{{ number_format($fleet['total']) }}</strong>
+            </a>
+            <a href="{{ \App\Filament\Pages\OpticalMonitoringHub::canAccess() ? \App\Filament\Pages\OpticalMonitoringHub::getUrl() : \App\Filament\Pages\SnmpMonitor::getUrl() }}" class="net-hub-stat net-hub-stat--warning">
+                <span class="net-hub-stat__label">ONUs online</span>
+                <strong class="net-hub-stat__value">{{ number_format($stats['onus_online'] ?? 0) }}</strong>
+            </a>
         </div>
 
         <section>
-            <div class="olt-section__head">
-                <h2 class="olt-section__title">Network tools</h2>
-                <p class="olt-section__sub">Routers, monitoring, traffic analysis, IPAM, and infrastructure</p>
+            <div class="net-hub-section__head" style="margin-bottom:0.75rem;">
+                <h2 class="net-hub-section__title">Network tools</h2>
+                <p class="net-hub-section__sub">Routers, monitoring, traffic analysis, IPAM, and infrastructure</p>
             </div>
-            <div class="olt-bento">
+            <div class="net-hub-tiles">
                 @foreach ($this->getActionCards() as $card)
                     <a
                         href="{{ $card['url'] }}"
                         @class([
-                            'olt-tile olt-tile--' . $card['tone'],
-                            'olt-tile--featured' => ! empty($card['featured']),
+                            'net-hub-tile',
+                            'net-hub-tile--featured' => ! empty($card['featured']),
                         ])
                     >
-                        <div class="olt-tile__head">
-                            <span class="olt-tile__icon">
-                                <x-filament::icon :icon="$card['icon']" class="h-6 w-6" />
-                            </span>
-                            <x-filament::icon icon="heroicon-m-arrow-up-right" class="olt-tile__go" />
-                        </div>
-                        <div>
-                            <h3 class="olt-tile__title">{{ $card['title'] }}</h3>
-                            <p class="olt-tile__desc">{{ $card['desc'] }}</p>
-                        </div>
+                        <h3 class="net-hub-tile__title">{{ $card['title'] }}</h3>
+                        <p class="net-hub-tile__desc">{{ $card['desc'] }}</p>
                     </a>
                 @endforeach
             </div>
@@ -140,11 +127,11 @@
             </div>
         </section>
 
-        <nav class="olt-dock" aria-label="Network quick navigation">
-            <div class="olt-dock__inner">
+        <nav class="net-dock net-dock--mobile-only" aria-label="Network quick navigation">
+            <div class="net-dock__inner">
                 @foreach ([
                     ['url' => \App\Filament\Pages\Dashboard::getUrl(), 'label' => 'Home', 'icon' => 'heroicon-o-home'],
-                    ['url' => \App\Filament\Resources\MikrotikServerResource::getUrl(), 'label' => 'MikroTik', 'icon' => 'heroicon-o-server'],
+                    ['url' => \App\Filament\Resources\MikrotikServerResource::getUrl(), 'label' => 'Routers', 'icon' => 'heroicon-o-server'],
                     ['url' => \App\Filament\Pages\OnlineClientsMonitoring::getUrl(), 'label' => 'Live', 'icon' => 'heroicon-o-bolt'],
                     ['url' => \App\Filament\Pages\SnmpMonitor::getUrl(), 'label' => 'SNMP', 'icon' => 'heroicon-o-signal'],
                     ['url' => \App\Filament\Pages\NetflowAnalysis::getUrl(), 'label' => 'Flow', 'icon' => 'heroicon-o-arrows-right-left', 'active' => true],
@@ -152,8 +139,8 @@
                     <a
                         href="{{ $link['url'] }}"
                         @class([
-                            'olt-dock__link',
-                            'olt-dock__link--active' => ! empty($link['active']),
+                            'net-dock__link',
+                            'net-dock__link--active' => ! empty($link['active']),
                         ])
                     >
                         <x-filament::icon :icon="$link['icon']" />

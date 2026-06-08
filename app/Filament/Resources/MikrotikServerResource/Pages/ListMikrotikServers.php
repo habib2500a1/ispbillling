@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\MikrotikServerResource\Pages;
 
 use App\Filament\Resources\MikrotikServerResource;
+use App\Filament\Resources\MikrotikServerResource\Pages\Concerns\UsesNetworkRouterLayout;
 use App\Models\MikrotikServer;
 use App\Services\Mikrotik\MikrotikPppImportService;
 use Filament\Actions;
@@ -15,22 +16,29 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ListMikrotikServers extends ListRecords
 {
+    use UsesNetworkRouterLayout;
+
     protected static string $resource = MikrotikServerResource::class;
 
     protected static string $view = 'filament.resources.mikrotik-server-resource.pages.list-mikrotik-servers';
+
+    public function getExtraBodyAttributes(): array
+    {
+        return ['class' => 'isp-network-noc-page'];
+    }
 
     /**
      * @return array{total: int, enabled: int, online: int, subscribers: int}
      */
     public function getRouterStats(): array
     {
-        $base = MikrotikServer::query();
+        $stats = $this->getNetworkFleetStats();
 
         return [
-            'total' => (int) (clone $base)->count(),
-            'enabled' => (int) (clone $base)->where('is_enabled', true)->count(),
-            'online' => (int) (clone $base)->where('last_api_status', 'online')->count(),
-            'subscribers' => (int) MikrotikServer::query()->withCount('customers')->get()->sum('customers_count'),
+            'total' => $stats['total'],
+            'enabled' => $stats['enabled'],
+            'online' => $stats['online'],
+            'subscribers' => $stats['subscribers'],
         ];
     }
 

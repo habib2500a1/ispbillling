@@ -1,0 +1,69 @@
+/** Light mode — enterprise network dashboard */
+
+:root:not(.dark) .net-noc-pro,
+:root:not(.dark) .net-pro-v2 {
+    --net-surface: #f8fafc;
+    --net-card: rgba(255, 255, 255, 0.92);
+    --net-glass: rgba(255, 255, 255, 0.72);
+    --net-text: #0f172a;
+    --net-muted: #64748b;
+    --net-border: rgba(148, 163, 184, 0.32);
+}
+
+:root:not(.dark) .net-noc-pro .net-rt-table-card,
+:root:not(.dark) .net-noc-pro .net-profile-form {
+    background: #ffffff;
+}
+
+:root:not(.dark) .net-noc-pro .fi-ta-row:hover {
+    background: color-mix(in srgb, #2563eb 4%, #ffffff);
+}
+
+:root:not(.dark) .net-noc-pro .net-rt-card {
+    background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+}
+
+:root:not(.dark) .net-noc-pro .net-mon-panel {
+    background: rgba(248, 250, 252, 0.85);
+}
+
+:root:not(.dark) .net-noc-pro .net-hub-stat--online {
+    border-left: 3px solid #059669;
+}
+
+:root:not(.dark) .net-noc-pro .net-hub-stat--offline {
+    border-left: 3px solid #dc2626;
+}
+
+:root:not(.dark) .net-noc-pro .net-hub-stat--warning {
+    border-left: 3px solid #d97706;
+}
+
+:root:not(.dark) .net-noc-pro .net-hub-stat--bandwidth {
+    border-left: 3px solid #0891b2;
+}
+
+:root:not(.dark) .isp-network-noc-page .fi-main {
+    background: linear-gradient(180deg, #f1f5f9 0%, #f8fafc 120px, #f8fafc 100%);
+}
+
+:root:not(.dark) .net-noc-pro .net-api-card--ok .net-api-card__value {
+    color: #059669;
+}
+
+:root:not(.dark) .net-noc-pro .net-api-card--fail .net-api-card__value {
+    color: #dc2626;
+}
+
+:root:not(.dark) .net-noc-pro .fi-section-header-heading {
+    color: #0f172a;
+}
+
+:root:not(.dark) .net-noc-pro .fi-input-wrp {
+    background: #ffffff;
+    border-color: rgba(148, 163, 184, 0.4);
+}
+
+:root:not(.dark) .net-noc-pro .net-rt-search input::placeholder {
+    color: #94a3b8;
+}

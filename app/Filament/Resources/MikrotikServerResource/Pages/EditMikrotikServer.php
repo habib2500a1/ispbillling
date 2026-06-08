@@ -12,6 +12,15 @@ class EditMikrotikServer extends EditRecord
 {
     protected static string $resource = MikrotikServerResource::class;
 
+    protected static string $view = 'filament.resources.mikrotik-server-resource.pages.edit-mikrotik-server';
+
+    public function getExtraBodyAttributes(): array
+    {
+        return [
+            'class' => 'isp-network-module isp-network-router-profile',
+        ];
+    }
+
     protected function getHeaderActions(): array
     {
         return [

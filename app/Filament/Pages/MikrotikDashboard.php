@@ -34,6 +34,11 @@ class MikrotikDashboard extends Page
         return static::staff()->canMikrotik();
     }
 
+    public function getExtraBodyAttributes(): array
+    {
+        return ['class' => 'isp-network-noc-page'];
+    }
+
     /**
      * @return list<array{label: string, value: string, hint: string, class?: string}>
      */

@@ -1,5 +1,7 @@
-<x-filament-panels::page class="isp-network-page">
-    <div class="space-y-5">
+{!! \App\Support\NetworkStyles::navigatedScript() !!}
+
+<x-filament-panels::page class="isp-network-page isp-network-import-page">
+    <div class="noc-pro space-y-5">
         <section class="isp-network-hero">
             <div class="isp-network-hero__main">
                 <p class="isp-network-hero__eyebrow">Network</p>

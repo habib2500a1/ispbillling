@@ -1,0 +1,94 @@
+/** Bandwidth monitor — sync cards, tabs, widgets */
+
+.isp-bandwidth-monitor-page .fi-header { display: none !important; }
+
+.noc-pro .bw-sync-grid {
+    display: grid;
+    gap: 0.85rem;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.noc-pro .bw-sync-card {
+    padding: 1.1rem 1.2rem;
+    border-radius: var(--nr-radius-sm);
+    border: 1px solid var(--nr-border);
+    background: var(--nr-glass);
+    backdrop-filter: blur(10px);
+    box-shadow: var(--nr-shadow);
+    transition: transform var(--nr-dur) var(--nr-ease);
+}
+
+.noc-pro .bw-sync-card:hover {
+    transform: translateY(-2px);
+}
+
+.noc-pro .bw-sync-card--api { border-top: 3px solid var(--nr-cyan); }
+.noc-pro .bw-sync-card--radius { border-top: 3px solid var(--nr-indigo); }
+.noc-pro .bw-sync-card--merged { border-top: 3px solid var(--nr-emerald); }
+
+.noc-pro .bw-sync-card__label {
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: var(--nr-muted);
+}
+
+.noc-pro .bw-sync-card__value {
+    margin-top: 0.35rem;
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: var(--nr-text);
+    line-height: 1.1;
+}
+
+.noc-pro .bw-sync-badge {
+    display: inline-flex;
+    padding: 0.2rem 0.55rem;
+    border-radius: 999px;
+    font-size: 0.68rem;
+    font-weight: 700;
+}
+
+.noc-pro .bw-sync-badge--ok {
+    background: rgba(16, 185, 129, 0.14);
+    color: #047857;
+}
+
+.noc-pro .bw-sync-badge--err {
+    background: rgba(244, 63, 94, 0.12);
+    color: #be123c;
+}
+
+.noc-pro .bw-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    padding: 0.35rem;
+    border-radius: var(--nr-radius-sm);
+    border: 1px solid var(--nr-border);
+    background: var(--nr-glass);
+}
+
+.noc-pro .bw-tab {
+    padding: 0.45rem 0.85rem;
+    border-radius: 8px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--nr-muted);
+    text-decoration: none;
+    transition: background var(--nr-dur) var(--nr-ease), color var(--nr-dur) var(--nr-ease);
+}
+
+.noc-pro .bw-tab--active,
+.noc-pro .bw-tab:hover {
+    background: color-mix(in srgb, var(--nr-indigo) 12%, transparent);
+    color: var(--nr-indigo);
+}
+
+.noc-pro .bw-widget-shell {
+    border-radius: var(--nr-radius);
+    border: 1px solid var(--nr-border);
+    background: var(--nr-card);
+    padding: 0.75rem;
+}

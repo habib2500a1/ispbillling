@@ -1,0 +1,110 @@
+/** Light/dark polish + mobile NOC layouts */
+
+.nr-inv-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.5rem 0.9rem;
+    border-radius: 10px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    text-decoration: none;
+    border: 1px solid var(--nr-border);
+    transition: background var(--nr-dur) var(--nr-ease), transform var(--nr-dur) var(--nr-ease);
+    cursor: pointer;
+}
+
+.nr-inv-btn--sm { padding: 0.4rem 0.7rem; font-size: 0.78rem; }
+.nr-inv-btn--ghost { background: var(--nr-card); color: var(--nr-text); }
+.nr-inv-btn--primary {
+    background: var(--nr-grad--health);
+    color: #fff;
+    border-color: transparent;
+}
+
+.nr-inv-btn:hover { transform: translateY(-1px); }
+
+.nr-inv-view-toggle {
+    display: inline-flex;
+    border: 1px solid var(--nr-border);
+    border-radius: 10px;
+    overflow: hidden;
+    background: var(--nr-card);
+}
+
+.nr-inv-view-toggle__btn {
+    padding: 0.45rem 0.6rem;
+    border: 0;
+    background: transparent;
+    color: var(--nr-muted);
+    cursor: pointer;
+}
+
+.nr-inv-view-toggle__btn--active {
+    background: color-mix(in srgb, var(--nr-indigo) 14%, transparent);
+    color: var(--nr-indigo);
+}
+
+@media (max-width: 1023px) {
+    .nr-inv-hero { padding: 1rem; }
+    .nr-inv-hero__title { font-size: 1.25rem; }
+    .nr-inv-stats { grid-template-columns: repeat(2, 1fr); }
+    .nr-inv-dock {
+        display: flex;
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 40;
+        padding: 0.35rem 0.5rem calc(0.35rem + env(safe-area-inset-bottom));
+        background: var(--nr-card);
+        border-top: 1px solid var(--nr-border);
+        backdrop-filter: blur(14px);
+        justify-content: space-around;
+        gap: 0.25rem;
+    }
+    .nr-inv-dock__link {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.15rem;
+        padding: 0.35rem 0.5rem;
+        font-size: 0.62rem;
+        font-weight: 600;
+        color: var(--nr-muted);
+        text-decoration: none;
+        border-radius: 10px;
+        min-width: 3.5rem;
+    }
+    .nr-inv-dock__link--active {
+        color: var(--nr-indigo);
+        background: color-mix(in srgb, var(--nr-indigo) 12%, transparent);
+    }
+    .isp-network-routers-page .fi-main { padding-bottom: 4.5rem !important; }
+    .noc-pro .bw-sync-grid { grid-template-columns: 1fr; }
+}
+
+.dark .nr-inv-btn--ghost,
+[data-theme='dark'] .nr-inv-btn--ghost {
+    background: var(--nr-glass);
+}
+
+.dark .noc-pro .mon-table-card th,
+[data-theme='dark'] .noc-pro .mon-table-card th {
+    background: rgba(15, 23, 42, 0.6);
+}
+
+.light .nh-pro,
+.light .nr-pro,
+.light .noc-pro {
+    color-scheme: light;
+}
+
+.dark .nh-pro,
+.dark .nr-pro,
+.dark .noc-pro,
+[data-theme='dark'] .nh-pro,
+[data-theme='dark'] .nr-pro,
+[data-theme='dark'] .noc-pro {
+    color-scheme: dark;
+}

@@ -1,0 +1,335 @@
+/** Router list — table, cards, toolbar */
+
+.net-noc-pro .net-rt-hero {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1.35rem 1.5rem;
+    border-radius: var(--net-radius);
+    background: var(--net-grad--health);
+    color: #fff;
+    box-shadow: var(--net-shadow-lg);
+}
+
+.net-noc-pro .net-rt-hero__eyebrow {
+    margin: 0;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    opacity: 0.85;
+}
+
+.net-noc-pro .net-rt-hero__title {
+    margin: 0.35rem 0 0;
+    font-size: clamp(1.35rem, 2.5vw, 1.75rem);
+    font-weight: 800;
+    letter-spacing: -0.03em;
+}
+
+.net-noc-pro .net-rt-hero__sub {
+    margin: 0.4rem 0 0;
+    max-width: 36rem;
+    font-size: 0.85rem;
+    line-height: 1.5;
+    opacity: 0.88;
+}
+
+.net-noc-pro .net-rt-hero__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+}
+
+.net-noc-pro .net-rt-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.5rem 0.9rem;
+    border-radius: 10px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    text-decoration: none;
+    border: 1px solid transparent;
+    cursor: pointer;
+    transition: transform var(--net-dur) var(--net-ease), background var(--net-dur) var(--net-ease);
+}
+
+.net-noc-pro .net-rt-btn--ghost {
+    background: rgba(255, 255, 255, 0.12);
+    border-color: rgba(255, 255, 255, 0.25);
+    color: #fff;
+}
+
+.net-noc-pro .net-rt-btn--primary {
+    background: #fff;
+    color: #1e40af;
+}
+
+.net-noc-pro .net-rt-btn:hover { transform: translateY(-1px); }
+
+.net-noc-pro .net-rt-stats {
+    display: grid;
+    gap: 0.65rem;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+@media (min-width: 768px) {
+    .net-noc-pro .net-rt-stats { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+
+.net-noc-pro .net-rt-stat {
+    padding: 0.9rem 1rem;
+    border-radius: var(--net-radius-sm);
+    background: var(--net-card);
+    border: 1px solid var(--net-border);
+    box-shadow: var(--net-shadow);
+}
+
+.net-noc-pro .net-rt-stat__label {
+    display: block;
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--net-muted);
+}
+
+.net-noc-pro .net-rt-stat__value {
+    display: block;
+    margin-top: 0.3rem;
+    font-size: 1.35rem;
+    font-weight: 800;
+    color: var(--net-text);
+}
+
+.net-noc-pro .net-rt-stat--online .net-rt-stat__value { color: var(--net-emerald); }
+.net-noc-pro .net-rt-stat--offline .net-rt-stat__value { color: var(--net-red); }
+.net-noc-pro .net-rt-stat--warn .net-rt-stat__value { color: var(--net-amber); }
+
+.net-noc-pro .net-rt-toolbar {
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+    padding: 0.85rem 1rem;
+    border-radius: var(--net-radius-sm);
+    background: var(--net-glass);
+    border: 1px solid var(--net-border);
+    backdrop-filter: blur(10px);
+}
+
+.net-noc-pro .net-rt-toolbar__row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.55rem;
+}
+
+.net-noc-pro .net-rt-search {
+    display: flex;
+    flex: 1 1 14rem;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    border-radius: 10px;
+    background: var(--net-card);
+    border: 1px solid var(--net-border);
+}
+
+.net-noc-pro .net-rt-search input {
+    flex: 1;
+    min-width: 0;
+    border: 0;
+    background: transparent;
+    font-size: 0.85rem;
+    color: var(--net-text);
+    outline: none;
+}
+
+.net-noc-pro .net-rt-view-toggle {
+    display: inline-flex;
+    padding: 3px;
+    border-radius: 10px;
+    background: var(--net-card);
+    border: 1px solid var(--net-border);
+}
+
+.net-noc-pro .net-rt-view-toggle__btn {
+    display: grid;
+    place-items: center;
+    width: 2rem;
+    height: 2rem;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--net-muted);
+    cursor: pointer;
+}
+
+.net-noc-pro .net-rt-view-toggle__btn--active {
+    background: color-mix(in srgb, var(--net-blue) 12%, transparent);
+    color: var(--net-blue);
+}
+
+.net-noc-pro .net-rt-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+}
+
+.net-noc-pro .net-rt-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.28rem 0.6rem;
+    border-radius: 999px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    background: color-mix(in srgb, var(--net-indigo) 10%, var(--net-card));
+    border: 1px solid color-mix(in srgb, var(--net-indigo) 25%, var(--net-border));
+    color: var(--net-text);
+    text-decoration: none;
+}
+
+.net-noc-pro .net-rt-table-card {
+    border-radius: var(--net-radius);
+    background: var(--net-card);
+    border: 1px solid var(--net-border);
+    box-shadow: var(--net-shadow);
+    overflow: hidden;
+}
+
+.net-noc-pro .net-rt-table-card__head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    padding: 0.85rem 1.1rem;
+    border-bottom: 1px solid var(--net-border);
+}
+
+.net-noc-pro .net-rt-table-card__head h3 {
+    margin: 0;
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--net-text);
+}
+
+.net-noc-pro .net-rt-table-card__body {
+    padding: 0.5rem 0.75rem 0.75rem;
+}
+
+.net-noc-pro .net-rt-cards {
+    display: none;
+    grid-template-columns: 1fr;
+    gap: 0.65rem;
+    padding: 0.5rem 0;
+}
+
+.net-noc-pro[data-view='cards'] .net-rt-table-wrap { display: none; }
+.net-noc-pro[data-view='cards'] .net-rt-cards { display: grid; }
+
+.net-noc-pro .net-rt-card {
+    display: grid;
+    gap: 0.55rem;
+    padding: 1rem;
+    border-radius: var(--net-radius-sm);
+    background: var(--net-card);
+    border: 1px solid var(--net-border);
+    box-shadow: var(--net-shadow);
+    transition: transform var(--net-dur) var(--net-ease);
+}
+
+.net-noc-pro .net-rt-card:hover { transform: translateY(-1px); }
+
+.net-noc-pro .net-rt-card__head {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+}
+
+.net-noc-pro .net-rt-avatar {
+    display: grid;
+    place-items: center;
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: 12px;
+    background: var(--net-grad--health);
+    color: #fff;
+    font-size: 0.75rem;
+    font-weight: 800;
+}
+
+.net-noc-pro .net-rt-card__name {
+    margin: 0;
+    font-size: 0.92rem;
+    font-weight: 700;
+    color: var(--net-text);
+}
+
+.net-noc-pro .net-rt-card__host {
+    margin: 0.15rem 0 0;
+    font-size: 0.75rem;
+    color: var(--net-muted);
+    font-family: ui-monospace, monospace;
+}
+
+.net-noc-pro .net-rt-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.2rem 0.55rem;
+    border-radius: 999px;
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.net-noc-pro .net-rt-badge--online {
+    background: color-mix(in srgb, var(--net-emerald) 15%, transparent);
+    color: var(--net-emerald);
+}
+
+.net-noc-pro .net-rt-badge--offline {
+    background: color-mix(in srgb, var(--net-red) 15%, transparent);
+    color: var(--net-red);
+}
+
+.net-noc-pro .net-rt-badge--unknown {
+    background: color-mix(in srgb, var(--net-muted) 15%, transparent);
+    color: var(--net-muted);
+}
+
+.net-noc-pro .net-rt-card__meta {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.45rem;
+    font-size: 0.72rem;
+    color: var(--net-muted);
+}
+
+.net-noc-pro .net-rt-card__meta strong {
+    display: block;
+    font-size: 0.82rem;
+    color: var(--net-text);
+}
+
+/* Filament table polish inside network shell */
+.net-noc-pro .fi-ta-table {
+    border-radius: var(--net-radius-sm);
+}
+
+.net-noc-pro .fi-ta-header-cell {
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+}
+
+.net-noc-pro .net-rt-table-actions .fi-btn {
+    border-radius: 10px;
+}

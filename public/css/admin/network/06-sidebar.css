@@ -1,0 +1,114 @@
+/** Network sidebar polish — active states, badges */
+
+.net-noc-pro ~ .fi-sidebar,
+.fi-body:has(.net-noc-pro) .fi-sidebar {
+    --net-sidebar-accent: var(--net-blue, #2563eb);
+}
+
+.fi-body:has(.isp-network-noc-page) .fi-sidebar-item-button[aria-current='page'],
+.fi-body:has(.isp-network-noc-page) .fi-sidebar-item.fi-active .fi-sidebar-item-button {
+    background: color-mix(in srgb, #2563eb 12%, transparent) !important;
+    border-radius: 10px;
+}
+
+.fi-body:has(.isp-network-noc-page) .fi-sidebar-item-button[aria-current='page'] .fi-sidebar-item-label,
+.fi-body:has(.isp-network-noc-page) .fi-sidebar-item.fi-active .fi-sidebar-item-label {
+    font-weight: 700;
+    color: #1d4ed8;
+}
+
+.dark .fi-body:has(.isp-network-noc-page) .fi-sidebar-item-button[aria-current='page'] .fi-sidebar-item-label,
+.dark .fi-body:has(.isp-network-noc-page) .fi-sidebar-item.fi-active .fi-sidebar-item-label {
+    color: #93c5fd;
+}
+
+.fi-body:has(.isp-network-noc-page) .fi-sidebar-group-label {
+    font-size: 0.65rem;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+}
+
+.fi-body:has(.isp-network-noc-page) .fi-sidebar-item-button {
+    transition: background 0.15s ease, transform 0.15s ease;
+}
+
+.fi-body:has(.isp-network-noc-page) .fi-sidebar-item-button:hover {
+    transform: translateX(2px);
+}
+
+.net-noc-pro .net-dock {
+    position: sticky;
+    bottom: 0;
+    z-index: 20;
+    margin-top: 1.5rem;
+    padding: 0.5rem;
+    border-radius: 14px;
+    background: var(--net-glass);
+    border: 1px solid var(--net-border);
+    backdrop-filter: blur(12px);
+    box-shadow: var(--net-shadow-lg);
+}
+
+.net-noc-pro .net-dock__inner {
+    display: flex;
+    justify-content: space-around;
+    gap: 0.25rem;
+}
+
+.net-noc-pro .net-dock__link {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.2rem;
+    padding: 0.45rem 0.55rem;
+    border-radius: 10px;
+    font-size: 0.62rem;
+    font-weight: 600;
+    color: var(--net-muted);
+    text-decoration: none;
+    transition: background var(--net-dur) var(--net-ease), color var(--net-dur) var(--net-ease);
+}
+
+.net-noc-pro .net-dock__link svg {
+    width: 1.15rem;
+    height: 1.15rem;
+}
+
+.net-noc-pro .net-dock__link--active,
+.net-noc-pro .net-dock__link:hover {
+    color: var(--net-blue);
+    background: color-mix(in srgb, var(--net-blue) 10%, transparent);
+}
+
+@media (min-width: 1024px) {
+    .net-noc-pro .net-dock--mobile-only {
+        display: none;
+    }
+}
+
+.fi-sidebar.fi-sidebar-collapsed .fi-sidebar-item-label {
+    transition: opacity 0.15s ease;
+}
+
+.net-noc-badge {
+    display: inline-flex;
+    min-width: 1.1rem;
+    height: 1.1rem;
+    align-items: center;
+    justify-content: center;
+    padding: 0 0.3rem;
+    border-radius: 999px;
+    font-size: 0.6rem;
+    font-weight: 800;
+    background: var(--net-grad--offline);
+    color: #fff;
+}
+
+.net-noc-badge--ok {
+    background: var(--net-grad--online);
+}
+
+.net-noc-badge--warn {
+    background: var(--net-grad--warning);
+}

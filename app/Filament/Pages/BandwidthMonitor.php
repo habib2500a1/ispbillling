@@ -58,6 +58,11 @@ class BandwidthMonitor extends Page
 
     protected static bool $shouldRegisterNavigation = false;
 
+    public function getExtraBodyAttributes(): array
+    {
+        return ['class' => 'isp-network-noc-page'];
+    }
+
     protected static ?int $navigationSort = 5;
 
     public string $activeTab = 'online';

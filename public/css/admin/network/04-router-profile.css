@@ -1,0 +1,127 @@
+/** Router profile — create/edit forms, overview panels */
+
+.isp-network-router-profile .fi-header { display: none !important; }
+
+.nr-profile-hero {
+    display: grid;
+    gap: 1rem;
+    padding: 1.35rem 1.5rem;
+    border-radius: var(--nr-radius);
+    border: 1px solid var(--nr-border);
+    background: var(--nr-card);
+    box-shadow: var(--nr-shadow-lg);
+}
+
+@media (min-width: 768px) {
+    .nr-profile-hero {
+        grid-template-columns: 1fr auto;
+        align-items: center;
+    }
+}
+
+.nr-profile-hero__title {
+    margin: 0;
+    font-size: 1.45rem;
+    font-weight: 700;
+    color: var(--nr-text);
+}
+
+.nr-profile-hero__meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 0.65rem;
+}
+
+.nr-profile-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.28rem 0.65rem;
+    border-radius: 999px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    border: 1px solid var(--nr-border);
+    background: var(--nr-glass);
+    color: var(--nr-muted);
+}
+
+.nr-profile-pill--online { color: #047857; border-color: rgba(5, 150, 105, 0.35); }
+.nr-profile-pill--offline { color: #be123c; border-color: rgba(220, 38, 38, 0.35); }
+
+.nr-profile-stats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+}
+
+.nr-profile-stat {
+    min-width: 5.5rem;
+    padding: 0.65rem 0.85rem;
+    border-radius: var(--nr-radius-sm);
+    border: 1px solid var(--nr-border);
+    background: var(--nr-glass);
+    text-align: center;
+}
+
+.nr-profile-stat strong {
+    display: block;
+    font-size: 1.15rem;
+    color: var(--nr-text);
+}
+
+.nr-profile-stat span {
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--nr-muted);
+}
+
+.nr-profile-form-card {
+    border-radius: var(--nr-radius);
+    border: 1px solid var(--nr-border);
+    background: var(--nr-card);
+    box-shadow: var(--nr-shadow);
+    padding: 1.25rem;
+}
+
+.nr-profile-form-card .fi-section-header-heading {
+    font-weight: 700;
+    color: var(--nr-text);
+}
+
+.nr-profile-sections {
+    display: grid;
+    gap: 1rem;
+}
+
+@media (min-width: 1024px) {
+    .nr-profile-sections--edit {
+        grid-template-columns: 280px 1fr;
+        align-items: start;
+    }
+}
+
+.nr-profile-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    padding: 0.75rem;
+    border-radius: var(--nr-radius-sm);
+    border: 1px solid var(--nr-border);
+    background: var(--nr-glass);
+}
+
+.nr-profile-nav__item {
+    padding: 0.5rem 0.65rem;
+    border-radius: 8px;
+    font-size: 0.82rem;
+    font-weight: 500;
+    color: var(--nr-muted);
+}
+
+.nr-profile-nav__item--active {
+    background: color-mix(in srgb, var(--nr-indigo) 12%, transparent);
+    color: var(--nr-indigo);
+    font-weight: 600;
+}

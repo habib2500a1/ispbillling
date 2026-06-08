@@ -48,6 +48,13 @@ class ManageNetworkSettings extends Page
 
     protected static bool $shouldRegisterNavigation = false;
 
+    public function getExtraBodyAttributes(): array
+    {
+        return [
+            'class' => 'isp-network-module',
+        ];
+    }
+
     /**
      * @var array<string, mixed>|null
      */

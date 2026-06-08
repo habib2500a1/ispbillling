@@ -20,7 +20,12 @@ final class AdminRouteAssets
             'filament.admin.pages.olt-hub' => ['olt-hub-pro.css'],
             'filament.admin.pages.optical-monitoring-hub' => ['optical-noc.css'],
             'filament.admin.pages.subscriber-traffic' => ['subscriber-live-traffic-pro.css'],
-            'filament.admin.pages.network-intelligence-hub' => ['network-intelligence-hub.css'],
+            'filament.admin.pages.network-intelligence-hub' => ['network-pro.css'],
+            'filament.admin.pages.mikrotik-dashboard' => ['network-pro.css'],
+            'filament.admin.pages.online-clients' => ['network-pro.css'],
+            'filament.admin.pages.bandwidth-monitor' => ['network-pro.css'],
+            'filament.admin.pages.import-from-mikrotik' => ['network-pro.css'],
+            'filament.admin.pages.network-settings' => ['network-pro.css'],
             'filament.admin.pages.billing-dashboard' => ['billing-hub-pro.css', 'billing-pro.css'],
             'filament.admin.pages.billing-overview' => ['billing-hub-pro.css', 'billing-pro.css'],
             'filament.admin.pages.billing-notices' => ['billing-pro.css'],
@@ -48,6 +53,18 @@ final class AdminRouteAssets
             'filament.admin.resources.invoices.*',
         ])) {
             $html .= BillingStyles::html();
+        }
+
+        if (request()->routeIs([
+            'filament.admin.pages.network-intelligence-hub',
+            'filament.admin.pages.mikrotik-dashboard',
+            'filament.admin.pages.online-clients',
+            'filament.admin.pages.bandwidth-monitor',
+            'filament.admin.pages.import-from-mikrotik',
+            'filament.admin.pages.network-settings',
+            'filament.admin.resources.mikrotik-servers.*',
+        ])) {
+            $html .= NetworkStyles::html();
         }
 
         if (request()->routeIs('filament.admin.resources.products.*')
@@ -126,6 +143,18 @@ final class AdminRouteAssets
             $rules[] = [
                 'match' => 'billing-module',
                 'assets' => $billingAssets,
+            ];
+        }
+
+        $networkAssets = self::stylesheetAssetList(
+            NetworkStyles::modules(),
+            NetworkStyles::BUNDLE_FILE,
+            'network',
+        );
+        if ($networkAssets !== []) {
+            $rules[] = [
+                'match' => 'network-module',
+                'assets' => $networkAssets,
             ];
         }
 
@@ -216,6 +245,10 @@ final class AdminRouteAssets
             return /\\/admin\\/(billing-overview|billing-notices|invoices|bill-collection|payments-report|collection-desk-report)/.test(path);
         }
 
+        if (rule.match === 'network-module') {
+            return /\\/admin\\/(network-intelligence-hub|mikrotik-dashboard|network-settings|mikrotik-servers|online-clients|bandwidth-monitor|import-from-mikrotik)/.test(path);
+        }
+
         if (rule.match === 'path-prefix') {
             return path === rule.prefix || path.startsWith(rule.prefix + '/');
         }
@@ -303,6 +336,11 @@ JS;
             'filament.admin.pages.optical-monitoring-hub' => '/admin/optical-noc',
             'filament.admin.pages.subscriber-traffic' => '/admin/subscriber-traffic',
             'filament.admin.pages.network-intelligence-hub' => '/admin/network-intelligence-hub',
+            'filament.admin.pages.mikrotik-dashboard' => '/admin/mikrotik-dashboard',
+            'filament.admin.pages.online-clients' => '/admin/online-clients',
+            'filament.admin.pages.bandwidth-monitor' => '/admin/bandwidth-monitor',
+            'filament.admin.pages.import-from-mikrotik' => '/admin/import-from-mikrotik',
+            'filament.admin.pages.network-settings' => '/admin/network-settings',
             'filament.admin.pages.billing-dashboard' => '/admin/billing-dashboard',
             'filament.admin.pages.billing-overview' => '/admin/billing-overview',
             'filament.admin.pages.billing-notices' => '/admin/billing-notices',

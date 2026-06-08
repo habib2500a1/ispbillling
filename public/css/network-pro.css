@@ -1,0 +1,1069 @@
+/** Router / MikroTik NOC — bundled from public/css/admin/network/ */
+
+/* --- 01-tokens.css --- */
+/** Network NOC design tokens — glass, gradients, motion */
+
+.nh-pro,
+.nr-pro,
+.noc-pro {
+    --nr-emerald: #059669;
+    --nr-teal: #14b8a6;
+    --nr-orange: #ea580c;
+    --nr-amber: #f59e0b;
+    --nr-red: #dc2626;
+    --nr-rose: #f43f5e;
+    --nr-blue: #2563eb;
+    --nr-indigo: #4f46e5;
+    --nr-cyan: #0891b2;
+    --nr-surface: #f1f5f9;
+    --nr-card: rgba(255, 255, 255, 0.84);
+    --nr-glass: rgba(255, 255, 255, 0.58);
+    --nr-text: #0f172a;
+    --nr-muted: #64748b;
+    --nr-border: rgba(148, 163, 184, 0.3);
+    --nr-shadow: 0 1px 3px rgba(15, 23, 42, 0.06), 0 10px 28px rgba(15, 23, 42, 0.07);
+    --nr-shadow-lg: 0 4px 6px rgba(15, 23, 42, 0.04), 0 24px 48px rgba(37, 99, 235, 0.1);
+    --nr-radius: 16px;
+    --nr-radius-sm: 12px;
+    --nr-ease: cubic-bezier(0.4, 0, 0.2, 1);
+    --nr-dur: 0.18s;
+}
+
+.dark .nh-pro,
+.dark .nr-pro,
+.dark .noc-pro,
+[data-theme='dark'] .nh-pro,
+[data-theme='dark'] .nr-pro,
+[data-theme='dark'] .noc-pro {
+    --nr-surface: #070b14;
+    --nr-card: rgba(12, 18, 32, 0.92);
+    --nr-glass: rgba(15, 23, 42, 0.72);
+    --nr-text: #f1f5f9;
+    --nr-muted: #94a3b8;
+    --nr-border: rgba(71, 85, 105, 0.35);
+    --nr-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+    --nr-shadow-lg: 0 24px 56px rgba(0, 0, 0, 0.55);
+}
+
+.nr-grad--online { background: linear-gradient(135deg, #059669 0%, #14b8a6 100%); }
+.nr-grad--warn { background: linear-gradient(135deg, #ea580c 0%, #f59e0b 100%); }
+.nr-grad--offline { background: linear-gradient(135deg, #dc2626 0%, #f43f5e 100%); }
+.nr-grad--health { background: linear-gradient(135deg, #2563eb 0%, #4f46e5 100%); }
+.nr-grad--bandwidth { background: linear-gradient(135deg, #0891b2 0%, #2563eb 100%); }
+
+.nr-glass {
+    background: var(--nr-glass);
+    border: 1px solid var(--nr-border);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    box-shadow: var(--nr-shadow);
+}
+
+@keyframes nr-shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+}
+
+.nr-skeleton {
+    background: linear-gradient(90deg, color-mix(in srgb, var(--nr-muted) 12%, transparent) 25%, color-mix(in srgb, var(--nr-muted) 20%, transparent) 50%, color-mix(in srgb, var(--nr-muted) 12%, transparent) 75%);
+    background-size: 200% 100%;
+    animation: nr-shimmer 1.4s ease-in-out infinite;
+    border-radius: 8px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .nr-skeleton { animation: none; }
+    .nr-stat, .nr-router-card, .nh-tile { transition: none !important; }
+}
+
+/* --- 02-hub-dashboard.css --- */
+/** Network Intelligence hub — NOC dashboard chrome */
+
+.isp-network-hub-page .fi-header { display: none !important; }
+
+.nh-pro .net-pro,
+.nh-pro .olt-pro {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+
+.nh-pro .net-hero,
+.nh-pro .olt-hero {
+    border-radius: var(--nr-radius);
+    border: 1px solid var(--nr-border);
+    background: var(--nr-card);
+    box-shadow: var(--nr-shadow-lg);
+    overflow: hidden;
+}
+
+.nh-pro .net-health__pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.3rem 0.65rem;
+    border-radius: 999px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    border: 1px solid var(--nr-border);
+    background: var(--nr-glass);
+    color: var(--nr-muted);
+    transition: transform var(--nr-dur) var(--nr-ease), border-color var(--nr-dur) var(--nr-ease);
+}
+
+.nh-pro .net-health__pill--ok {
+    color: #047857;
+    border-color: rgba(5, 150, 105, 0.35);
+    background: rgba(16, 185, 129, 0.12);
+}
+
+.nh-pro .net-health__pill--danger {
+    color: #b91c1c;
+    border-color: rgba(220, 38, 38, 0.35);
+    background: rgba(244, 63, 94, 0.1);
+}
+
+.nh-pro .olt-stat {
+    transition: transform var(--nr-dur) var(--nr-ease), box-shadow var(--nr-dur) var(--nr-ease);
+}
+
+.nh-pro .olt-stat:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--nr-shadow-lg);
+}
+
+.nh-pro .olt-tile,
+.nh-pro .net-action-card {
+    border-radius: var(--nr-radius-sm);
+    border: 1px solid var(--nr-border);
+    background: var(--nr-glass);
+    backdrop-filter: blur(10px);
+    transition: border-color var(--nr-dur) var(--nr-ease), transform var(--nr-dur) var(--nr-ease);
+}
+
+.nh-pro .olt-tile:hover,
+.nh-pro .net-action-card:hover {
+    border-color: color-mix(in srgb, var(--nr-indigo) 40%, var(--nr-border));
+    transform: translateY(-1px);
+}
+
+.nh-pro .olt-btn--white {
+    box-shadow: 0 4px 14px rgba(37, 99, 235, 0.2);
+}
+
+.nh-pro .olt-hero__live-card {
+    background: var(--nr-glass);
+    border: 1px solid var(--nr-border);
+    border-radius: var(--nr-radius-sm);
+}
+
+/* --- 03-routers-list.css --- */
+/** Router list — table, cards, toolbar, status badges */
+
+.isp-network-routers-page .fi-header,
+.isp-network-page.isp-network-routers-page .fi-header { display: none !important; }
+
+.nr-pro {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.nr-inv-hero {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1.35rem 1.5rem;
+    border-radius: var(--nr-radius);
+    border: 1px solid var(--nr-border);
+    background: var(--nr-card);
+    box-shadow: var(--nr-shadow-lg);
+}
+
+.nr-inv-hero__badge {
+    display: inline-block;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--nr-indigo);
+    margin-bottom: 0.35rem;
+}
+
+.nr-inv-hero__title {
+    margin: 0;
+    font-size: 1.55rem;
+    font-weight: 700;
+    color: var(--nr-text);
+    letter-spacing: -0.02em;
+}
+
+.nr-inv-hero__sub {
+    margin: 0.4rem 0 0;
+    font-size: 0.9rem;
+    color: var(--nr-muted);
+    max-width: 42rem;
+    line-height: 1.5;
+}
+
+.nr-inv-hero__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.nr-inv-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 0.75rem;
+}
+
+.nr-inv-stat {
+    padding: 0.9rem 1rem;
+    border-radius: var(--nr-radius-sm);
+    border: 1px solid var(--nr-border);
+    background: var(--nr-glass);
+    text-decoration: none;
+    color: inherit;
+    transition: transform var(--nr-dur) var(--nr-ease), box-shadow var(--nr-dur) var(--nr-ease);
+}
+
+.nr-inv-stat:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--nr-shadow);
+}
+
+.nr-inv-stat__label {
+    display: block;
+    font-size: 0.68rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--nr-muted);
+}
+
+.nr-inv-stat__value {
+    display: block;
+    margin-top: 0.25rem;
+    font-size: 1.35rem;
+    font-weight: 700;
+    color: var(--nr-text);
+}
+
+.nr-inv-stat--emerald { border-top: 3px solid var(--nr-emerald); }
+.nr-inv-stat--rose { border-top: 3px solid var(--nr-rose); }
+.nr-inv-stat--indigo { border-top: 3px solid var(--nr-indigo); }
+.nr-inv-stat--cyan { border-top: 3px solid var(--nr-cyan); }
+
+.nr-inv-toolbar {
+    padding: 0.85rem 1rem;
+    border-radius: var(--nr-radius-sm);
+    border: 1px solid var(--nr-border);
+    background: var(--nr-glass);
+    backdrop-filter: blur(10px);
+}
+
+.nr-inv-toolbar__row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+    align-items: center;
+}
+
+.nr-inv-search {
+    flex: 1 1 220px;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    border-radius: 10px;
+    border: 1px solid var(--nr-border);
+    background: var(--nr-card);
+}
+
+.nr-inv-search input {
+    flex: 1;
+    border: 0;
+    background: transparent;
+    font-size: 0.875rem;
+    color: var(--nr-text);
+    outline: none;
+}
+
+.nr-inv-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin-top: 0.65rem;
+}
+
+.nr-inv-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.25rem 0.6rem;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    border: 1px solid var(--nr-border);
+    background: var(--nr-card);
+    color: var(--nr-text);
+    text-decoration: none;
+}
+
+.nr-inv-table-card {
+    border-radius: var(--nr-radius);
+    border: 1px solid var(--nr-border);
+    background: var(--nr-card);
+    box-shadow: var(--nr-shadow);
+    overflow: hidden;
+}
+
+.nr-inv-table-card .fi-ta-header-cell {
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.nr-inv-table-card .fi-badge {
+    font-weight: 600;
+}
+
+.nr-pro[data-view='cards'] .fi-ta-ctn .fi-ta-content { display: none; }
+.nr-pro[data-view='cards'] [data-nr-mobile-cards] { display: grid; }
+
+[data-nr-mobile-cards] {
+    display: none;
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+    padding: 0.75rem;
+}
+
+.nr-router-card {
+    padding: 1rem;
+    border-radius: var(--nr-radius-sm);
+    border: 1px solid var(--nr-border);
+    background: var(--nr-glass);
+}
+
+.nr-router-card__head {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.nr-router-card__icon {
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: 12px;
+    display: grid;
+    place-items: center;
+    background: var(--nr-grad--health);
+    color: #fff;
+    flex-shrink: 0;
+}
+
+.nr-router-card__status {
+    margin-left: auto;
+    padding: 0.2rem 0.55rem;
+    border-radius: 999px;
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.nr-router-card__status--online { background: rgba(16, 185, 129, 0.15); color: #047857; }
+.nr-router-card__status--offline { background: rgba(244, 63, 94, 0.12); color: #be123c; }
+
+.nr-inv-dock {
+    display: none;
+}
+
+/* --- 04-router-profile.css --- */
+/** Router profile — create/edit forms, overview panels */
+
+.isp-network-router-profile .fi-header { display: none !important; }
+
+.nr-profile-hero {
+    display: grid;
+    gap: 1rem;
+    padding: 1.35rem 1.5rem;
+    border-radius: var(--nr-radius);
+    border: 1px solid var(--nr-border);
+    background: var(--nr-card);
+    box-shadow: var(--nr-shadow-lg);
+}
+
+@media (min-width: 768px) {
+    .nr-profile-hero {
+        grid-template-columns: 1fr auto;
+        align-items: center;
+    }
+}
+
+.nr-profile-hero__title {
+    margin: 0;
+    font-size: 1.45rem;
+    font-weight: 700;
+    color: var(--nr-text);
+}
+
+.nr-profile-hero__meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 0.65rem;
+}
+
+.nr-profile-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.28rem 0.65rem;
+    border-radius: 999px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    border: 1px solid var(--nr-border);
+    background: var(--nr-glass);
+    color: var(--nr-muted);
+}
+
+.nr-profile-pill--online { color: #047857; border-color: rgba(5, 150, 105, 0.35); }
+.nr-profile-pill--offline { color: #be123c; border-color: rgba(220, 38, 38, 0.35); }
+
+.nr-profile-stats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+}
+
+.nr-profile-stat {
+    min-width: 5.5rem;
+    padding: 0.65rem 0.85rem;
+    border-radius: var(--nr-radius-sm);
+    border: 1px solid var(--nr-border);
+    background: var(--nr-glass);
+    text-align: center;
+}
+
+.nr-profile-stat strong {
+    display: block;
+    font-size: 1.15rem;
+    color: var(--nr-text);
+}
+
+.nr-profile-stat span {
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--nr-muted);
+}
+
+.nr-profile-form-card {
+    border-radius: var(--nr-radius);
+    border: 1px solid var(--nr-border);
+    background: var(--nr-card);
+    box-shadow: var(--nr-shadow);
+    padding: 1.25rem;
+}
+
+.nr-profile-form-card .fi-section-header-heading {
+    font-weight: 700;
+    color: var(--nr-text);
+}
+
+.nr-profile-sections {
+    display: grid;
+    gap: 1rem;
+}
+
+@media (min-width: 1024px) {
+    .nr-profile-sections--edit {
+        grid-template-columns: 280px 1fr;
+        align-items: start;
+    }
+}
+
+.nr-profile-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    padding: 0.75rem;
+    border-radius: var(--nr-radius-sm);
+    border: 1px solid var(--nr-border);
+    background: var(--nr-glass);
+}
+
+.nr-profile-nav__item {
+    padding: 0.5rem 0.65rem;
+    border-radius: 8px;
+    font-size: 0.82rem;
+    font-weight: 500;
+    color: var(--nr-muted);
+}
+
+.nr-profile-nav__item--active {
+    background: color-mix(in srgb, var(--nr-indigo) 12%, transparent);
+    color: var(--nr-indigo);
+    font-weight: 600;
+}
+
+/* --- 05-online-clients.css --- */
+/** Live PPP / online clients monitoring */
+
+.isp-online-clients-page .fi-header { display: none !important; }
+
+.noc-pro .oc-pro-layout {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.noc-pro .isp-online-clients-hero,
+.noc-pro .oc-pro-hero {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1.25rem 1.5rem;
+    border-radius: var(--nr-radius);
+    border: 1px solid var(--nr-border);
+    background: var(--nr-card);
+    box-shadow: var(--nr-shadow-lg);
+}
+
+.noc-pro .isp-online-clients-hero__title {
+    margin: 0;
+    font-size: 1.45rem;
+    font-weight: 700;
+    color: var(--nr-text);
+}
+
+.noc-pro .isp-online-clients-hero__eyebrow {
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--nr-cyan);
+}
+
+.noc-pro .isp-online-clients-stats,
+.noc-pro .oc-pro-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+    gap: 0.75rem;
+}
+
+.noc-pro .isp-online-clients-stat {
+    padding: 0.85rem 1rem;
+    border-radius: var(--nr-radius-sm);
+    border: 1px solid var(--nr-border);
+    background: var(--nr-glass);
+    backdrop-filter: blur(8px);
+}
+
+.noc-pro .isp-online-clients-stat--blue { border-top: 3px solid var(--nr-blue); }
+.noc-pro .isp-online-clients-stat--green { border-top: 3px solid var(--nr-emerald); }
+.noc-pro .isp-online-clients-stat--amber { border-top: 3px solid var(--nr-amber); }
+.noc-pro .isp-online-clients-stat--rose { border-top: 3px solid var(--nr-rose); }
+
+.noc-pro .isp-live-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--nr-emerald);
+    flex-shrink: 0;
+}
+
+.noc-pro .isp-live-dot--pulse {
+    animation: nr-pulse 1.8s ease-in-out infinite;
+}
+
+@keyframes nr-pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.55; transform: scale(0.92); }
+}
+
+.noc-pro .oc-pro-table-wrap {
+    border-radius: var(--nr-radius);
+    border: 1px solid var(--nr-border);
+    background: var(--nr-card);
+    box-shadow: var(--nr-shadow);
+    overflow: hidden;
+}
+
+.noc-pro .fi-ta-row:hover {
+    background: color-mix(in srgb, var(--nr-cyan) 4%, transparent);
+}
+
+/* --- 06-bandwidth-monitor.css --- */
+/** Bandwidth monitor — sync cards, tabs, widgets */
+
+.isp-bandwidth-monitor-page .fi-header { display: none !important; }
+
+.noc-pro .bw-sync-grid {
+    display: grid;
+    gap: 0.85rem;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.noc-pro .bw-sync-card {
+    padding: 1.1rem 1.2rem;
+    border-radius: var(--nr-radius-sm);
+    border: 1px solid var(--nr-border);
+    background: var(--nr-glass);
+    backdrop-filter: blur(10px);
+    box-shadow: var(--nr-shadow);
+    transition: transform var(--nr-dur) var(--nr-ease);
+}
+
+.noc-pro .bw-sync-card:hover {
+    transform: translateY(-2px);
+}
+
+.noc-pro .bw-sync-card--api { border-top: 3px solid var(--nr-cyan); }
+.noc-pro .bw-sync-card--radius { border-top: 3px solid var(--nr-indigo); }
+.noc-pro .bw-sync-card--merged { border-top: 3px solid var(--nr-emerald); }
+
+.noc-pro .bw-sync-card__label {
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: var(--nr-muted);
+}
+
+.noc-pro .bw-sync-card__value {
+    margin-top: 0.35rem;
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: var(--nr-text);
+    line-height: 1.1;
+}
+
+.noc-pro .bw-sync-badge {
+    display: inline-flex;
+    padding: 0.2rem 0.55rem;
+    border-radius: 999px;
+    font-size: 0.68rem;
+    font-weight: 700;
+}
+
+.noc-pro .bw-sync-badge--ok {
+    background: rgba(16, 185, 129, 0.14);
+    color: #047857;
+}
+
+.noc-pro .bw-sync-badge--err {
+    background: rgba(244, 63, 94, 0.12);
+    color: #be123c;
+}
+
+.noc-pro .bw-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    padding: 0.35rem;
+    border-radius: var(--nr-radius-sm);
+    border: 1px solid var(--nr-border);
+    background: var(--nr-glass);
+}
+
+.noc-pro .bw-tab {
+    padding: 0.45rem 0.85rem;
+    border-radius: 8px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--nr-muted);
+    text-decoration: none;
+    transition: background var(--nr-dur) var(--nr-ease), color var(--nr-dur) var(--nr-ease);
+}
+
+.noc-pro .bw-tab--active,
+.noc-pro .bw-tab:hover {
+    background: color-mix(in srgb, var(--nr-indigo) 12%, transparent);
+    color: var(--nr-indigo);
+}
+
+.noc-pro .bw-widget-shell {
+    border-radius: var(--nr-radius);
+    border: 1px solid var(--nr-border);
+    background: var(--nr-card);
+    padding: 0.75rem;
+}
+
+/* --- 07-monitoring-pages.css --- */
+/** SNMP, NetFlow, RADIUS, topology — shared monitoring chrome */
+
+.isp-network-monitoring-page .fi-header { display: none !important; }
+
+.noc-pro .mon-hero {
+    padding: 1.2rem 1.4rem;
+    border-radius: var(--nr-radius);
+    border: 1px solid var(--nr-border);
+    background: var(--nr-card);
+    box-shadow: var(--nr-shadow-lg);
+    margin-bottom: 1rem;
+}
+
+.noc-pro .mon-hero__title {
+    margin: 0;
+    font-size: 1.35rem;
+    font-weight: 700;
+    color: var(--nr-text);
+}
+
+.noc-pro .mon-hero__sub {
+    margin: 0.35rem 0 0;
+    font-size: 0.88rem;
+    color: var(--nr-muted);
+}
+
+.noc-pro .mon-stat-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+}
+
+.noc-pro .mon-stat {
+    padding: 0.9rem 1rem;
+    border-radius: var(--nr-radius-sm);
+    border: 1px solid var(--nr-border);
+    background: var(--nr-glass);
+}
+
+.noc-pro .mon-table-card {
+    border-radius: var(--nr-radius);
+    border: 1px solid var(--nr-border);
+    background: var(--nr-card);
+    overflow: hidden;
+    box-shadow: var(--nr-shadow);
+}
+
+.noc-pro .mon-table-card table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.noc-pro .mon-table-card th {
+    padding: 0.65rem 0.85rem;
+    font-size: 0.68rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--nr-muted);
+    background: color-mix(in srgb, var(--nr-muted) 6%, transparent);
+    text-align: left;
+}
+
+.noc-pro .mon-table-card td {
+    padding: 0.65rem 0.85rem;
+    font-size: 0.84rem;
+    color: var(--nr-text);
+    border-top: 1px solid var(--nr-border);
+}
+
+.noc-pro .mon-filter-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    align-items: center;
+    padding: 0.75rem 1rem;
+    border-radius: var(--nr-radius-sm);
+    border: 1px solid var(--nr-border);
+    background: var(--nr-glass);
+    margin-bottom: 1rem;
+}
+
+/* --- 08-settings-import.css --- */
+/** Network settings, import from MikroTik — form chrome */
+
+.isp-network-settings-page .fi-header,
+.isp-network-import-page .fi-header { display: none !important; }
+
+.noc-pro .isp-network-hero,
+.nr-pro .isp-network-hero {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1.25rem 1.5rem;
+    border-radius: var(--nr-radius);
+    border: 1px solid var(--nr-border);
+    background: var(--nr-card);
+    box-shadow: var(--nr-shadow-lg);
+}
+
+.noc-pro .isp-network-hero__title,
+.nr-pro .isp-network-hero__title {
+    margin: 0;
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: var(--nr-text);
+}
+
+.noc-pro .isp-network-hero__eyebrow,
+.nr-pro .isp-network-hero__eyebrow {
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--nr-indigo);
+}
+
+.noc-pro .isp-network-hero__sub,
+.nr-pro .isp-network-hero__sub {
+    margin: 0.35rem 0 0;
+    font-size: 0.88rem;
+    color: var(--nr-muted);
+    max-width: 40rem;
+}
+
+.noc-pro .isp-network-hero__stats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.65rem;
+}
+
+.noc-pro .isp-network-stat,
+.nr-pro .isp-network-stat {
+    min-width: 5rem;
+    padding: 0.6rem 0.85rem;
+    border-radius: var(--nr-radius-sm);
+    border: 1px solid var(--nr-border);
+    background: var(--nr-glass);
+    text-align: center;
+}
+
+.noc-pro .isp-network-stat strong,
+.nr-pro .isp-network-stat strong {
+    display: block;
+    font-size: 1.2rem;
+    color: var(--nr-text);
+}
+
+.noc-pro .isp-network-stat__label,
+.nr-pro .isp-network-stat__label {
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--nr-muted);
+}
+
+.noc-pro .isp-network-stat--primary,
+.nr-pro .isp-network-stat--primary {
+    border-top: 3px solid var(--nr-emerald);
+}
+
+.noc-pro .isp-network-form-card,
+.nr-pro .isp-network-form-card {
+    border-radius: var(--nr-radius);
+    border: 1px solid var(--nr-border);
+    background: var(--nr-card);
+    box-shadow: var(--nr-shadow);
+    padding: 1.25rem;
+}
+
+.noc-pro .isp-network-table-card,
+.nr-pro .isp-network-table-card {
+    border-radius: var(--nr-radius);
+    border: 1px solid var(--nr-border);
+    background: var(--nr-card);
+    box-shadow: var(--nr-shadow);
+    overflow: hidden;
+}
+
+.noc-pro .isp-network-table-card__head {
+    padding: 0.85rem 1.1rem;
+    border-bottom: 1px solid var(--nr-border);
+    font-weight: 700;
+    color: var(--nr-text);
+}
+
+.noc-pro .net-settings-guide {
+    padding: 1rem 1.15rem;
+    border-radius: var(--nr-radius-sm);
+    border: 1px solid rgba(8, 145, 178, 0.35);
+    background: rgba(8, 145, 178, 0.08);
+    color: var(--nr-text);
+    font-size: 0.85rem;
+    line-height: 1.55;
+}
+
+/* --- 09-sidebar.css --- */
+/** Network module sidebar — active states, badges, compact mode */
+
+body.isp-network-module .isp-admin-sidebar [data-nav-group='Network'] .isp-sidebar-group-label {
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    color: var(--nr-indigo, #4f46e5);
+}
+
+body.isp-network-module .isp-admin-sidebar a[href*='/admin/mikrotik'],
+body.isp-network-module .isp-admin-sidebar a[href*='/admin/network'],
+body.isp-network-module .isp-admin-sidebar a[href*='/admin/online-clients'],
+body.isp-network-module .isp-admin-sidebar a[href*='/admin/bandwidth-monitor'],
+body.isp-network-module .isp-admin-sidebar a[href*='/admin/import-from-mikrotik'],
+body.isp-network-module .isp-admin-sidebar a[href*='/admin/subscriber-traffic'],
+body.isp-network-module .isp-admin-sidebar a[href*='/admin/snmp'],
+body.isp-network-module .isp-admin-sidebar a[href*='/admin/netflow'],
+body.isp-network-module .isp-admin-sidebar a[href*='/admin/radius'],
+body.isp-network-module .isp-admin-sidebar a[href*='/admin/fiber-plant'],
+body.isp-network-module .isp-admin-sidebar a[href*='/admin/network-topology'] {
+    transition: background 0.18s ease, color 0.18s ease, padding-left 0.18s ease;
+}
+
+body.isp-network-module .isp-admin-sidebar a.is-active,
+body.isp-network-module .isp-admin-sidebar a[aria-current='page'] {
+    background: color-mix(in srgb, #4f46e5 14%, transparent) !important;
+    color: #4f46e5 !important;
+    font-weight: 600;
+    border-left: 3px solid #4f46e5;
+    padding-left: calc(0.75rem - 3px);
+}
+
+.dark body.isp-network-module .isp-admin-sidebar a.is-active,
+.dark body.isp-network-module .isp-admin-sidebar a[aria-current='page'] {
+    color: #a5b4fc !important;
+    background: color-mix(in srgb, #6366f1 18%, transparent) !important;
+    border-left-color: #818cf8;
+}
+
+body.isp-network-module.isp-sidebar-compact .isp-admin-sidebar {
+    width: 4.25rem;
+}
+
+body.isp-network-module.isp-sidebar-compact .isp-admin-sidebar .isp-sidebar-label {
+    display: none;
+}
+
+body.isp-network-module .isp-sidebar-network-badge {
+    display: inline-flex;
+    min-width: 1.1rem;
+    height: 1.1rem;
+    align-items: center;
+    justify-content: center;
+    padding: 0 0.25rem;
+    border-radius: 999px;
+    font-size: 0.62rem;
+    font-weight: 700;
+    background: rgba(37, 99, 235, 0.15);
+    color: #2563eb;
+}
+
+/* --- 10-light-dark-mobile.css --- */
+/** Light/dark polish + mobile NOC layouts */
+
+.nr-inv-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.5rem 0.9rem;
+    border-radius: 10px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    text-decoration: none;
+    border: 1px solid var(--nr-border);
+    transition: background var(--nr-dur) var(--nr-ease), transform var(--nr-dur) var(--nr-ease);
+    cursor: pointer;
+}
+
+.nr-inv-btn--sm { padding: 0.4rem 0.7rem; font-size: 0.78rem; }
+.nr-inv-btn--ghost { background: var(--nr-card); color: var(--nr-text); }
+.nr-inv-btn--primary {
+    background: var(--nr-grad--health);
+    color: #fff;
+    border-color: transparent;
+}
+
+.nr-inv-btn:hover { transform: translateY(-1px); }
+
+.nr-inv-view-toggle {
+    display: inline-flex;
+    border: 1px solid var(--nr-border);
+    border-radius: 10px;
+    overflow: hidden;
+    background: var(--nr-card);
+}
+
+.nr-inv-view-toggle__btn {
+    padding: 0.45rem 0.6rem;
+    border: 0;
+    background: transparent;
+    color: var(--nr-muted);
+    cursor: pointer;
+}
+
+.nr-inv-view-toggle__btn--active {
+    background: color-mix(in srgb, var(--nr-indigo) 14%, transparent);
+    color: var(--nr-indigo);
+}
+
+@media (max-width: 1023px) {
+    .nr-inv-hero { padding: 1rem; }
+    .nr-inv-hero__title { font-size: 1.25rem; }
+    .nr-inv-stats { grid-template-columns: repeat(2, 1fr); }
+    .nr-inv-dock {
+        display: flex;
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 40;
+        padding: 0.35rem 0.5rem calc(0.35rem + env(safe-area-inset-bottom));
+        background: var(--nr-card);
+        border-top: 1px solid var(--nr-border);
+        backdrop-filter: blur(14px);
+        justify-content: space-around;
+        gap: 0.25rem;
+    }
+    .nr-inv-dock__link {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.15rem;
+        padding: 0.35rem 0.5rem;
+        font-size: 0.62rem;
+        font-weight: 600;
+        color: var(--nr-muted);
+        text-decoration: none;
+        border-radius: 10px;
+        min-width: 3.5rem;
+    }
+    .nr-inv-dock__link--active {
+        color: var(--nr-indigo);
+        background: color-mix(in srgb, var(--nr-indigo) 12%, transparent);
+    }
+    .isp-network-routers-page .fi-main { padding-bottom: 4.5rem !important; }
+    .noc-pro .bw-sync-grid { grid-template-columns: 1fr; }
+}
+
+.dark .nr-inv-btn--ghost,
+[data-theme='dark'] .nr-inv-btn--ghost {
+    background: var(--nr-glass);
+}
+
+.dark .noc-pro .mon-table-card th,
+[data-theme='dark'] .noc-pro .mon-table-card th {
+    background: rgba(15, 23, 42, 0.6);
+}
+
+.light .nh-pro,
+.light .nr-pro,
+.light .noc-pro {
+    color-scheme: light;
+}
+
+.dark .nh-pro,
+.dark .nr-pro,
+.dark .noc-pro,
+[data-theme='dark'] .nh-pro,
+[data-theme='dark'] .nr-pro,
+[data-theme='dark'] .noc-pro {
+    color-scheme: dark;
+}
