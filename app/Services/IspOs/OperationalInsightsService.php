@@ -16,12 +16,19 @@ final class OperationalInsightsService
     public function forTenant(?int $tenantId = null): array
     {
         $tenantId = $tenantId ?? TenantResolver::requiredTenantId();
-        $insights = array_merge(
-            $this->ponCapacityInsights($tenantId),
-            $this->signalInsights($tenantId),
-            $this->oltTemperatureInsights($tenantId),
-            $this->complaintZoneInsights($tenantId),
-        );
+
+        try {
+            $insights = array_merge(
+                $this->ponCapacityInsights($tenantId),
+                $this->signalInsights($tenantId),
+                $this->oltTemperatureInsights($tenantId),
+                $this->complaintZoneInsights($tenantId),
+            );
+        } catch (\Throwable $e) {
+            report($e);
+
+            return [];
+        }
 
         return array_slice($insights, 0, 8);
     }
@@ -34,7 +41,7 @@ final class OperationalInsightsService
         $out = [];
         $stats = PonSignalStat::withoutGlobalScopes()
             ->where('tenant_id', $tenantId)
-            ->with('oltPort.device:id,display_name,label')
+            ->with('oltPort.device:id,display_name,serial_number')
             ->orderByDesc('onu_total')
             ->limit(3)
             ->get();
@@ -47,7 +54,7 @@ final class OperationalInsightsService
             $capacity = (int) config('optical.pon_max_onus', 64);
             $pct = $capacity > 0 ? round(100 * $total / $capacity) : 0;
             if ($pct >= 75) {
-                $oltName = $pon->oltPort?->device?->display_name ?? $pon->oltPort?->device?->label ?? 'OLT';
+                $oltName = $pon->oltPort?->device?->adminLabel() ?? 'OLT';
                 $out[] = [
                     'message' => "PON utilization high — {$oltName} port at {$pct}% capacity ({$total} ONUs).",
                     'tone' => $pct >= 90 ? 'critical' : 'warning',
@@ -87,12 +94,12 @@ final class OperationalInsightsService
             ->where('type', 'olt')
             ->whereNotNull('olt_health')
             ->limit(20)
-            ->get(['id', 'display_name', 'label', 'olt_health']);
+            ->get(['id', 'display_name', 'serial_number', 'olt_health']);
 
         foreach ($olts as $olt) {
             $temp = $olt->olt_health['temperature_c'] ?? null;
             if ($temp !== null && (float) $temp >= 60) {
-                $name = $olt->display_name ?? $olt->label ?? 'OLT';
+                $name = $olt->adminLabel();
                 $out[] = [
                     'message' => "OLT temperature warning — {$name} at {$temp} °C (above normal).",
                     'tone' => (float) $temp >= 70 ? 'critical' : 'warning',

@@ -19,7 +19,7 @@
         <header class="olt-profile-hero">
             <div>
                 <p class="text-xs font-bold uppercase tracking-widest" style="color:var(--olt-muted);">OLT profile</p>
-                <h1 class="olt-list-hero__title" style="color:var(--olt-text);">{{ $record->display_name ?? $record->label ?? 'OLT' }}</h1>
+                <h1 class="olt-list-hero__title" style="color:var(--olt-text);">{{ $record->adminLabel() }}</h1>
                 <div class="olt-profile-pills">
                     <span class="olt-profile-pill">{{ strtoupper((string) ($record->olt_driver ?? $record->vendor ?? 'OLT')) }}</span>
                     <span class="olt-profile-pill">{{ $record->management_ip ?? '—' }}</span>

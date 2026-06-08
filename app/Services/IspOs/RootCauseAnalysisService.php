@@ -41,7 +41,7 @@ final class RootCauseAnalysisService
         return FiberFaultLog::withoutGlobalScopes()
             ->where('tenant_id', $tenantId)
             ->whereNull('resolved_at')
-            ->with('olt:id,display_name,label')
+            ->with('olt:id,display_name,serial_number')
             ->orderByDesc('detected_at')
             ->limit(5)
             ->get()
@@ -58,7 +58,7 @@ final class RootCauseAnalysisService
                     'message' => sprintf(
                         'Probable %s on %s — %d ONUs affected.',
                         str_replace('_', ' ', $cause),
-                        $f->olt?->display_name ?? $f->olt?->label ?? 'OLT',
+                        $f->olt?->adminLabel() ?? 'OLT',
                         (int) $f->affected_onu_count,
                     ),
                     'tone' => 'critical',
@@ -81,7 +81,7 @@ final class RootCauseAnalysisService
             ->map(fn (Device $olt): array => [
                 'root_cause' => 'olt_offline',
                 'confidence' => 0.92,
-                'message' => 'OLT offline — '.($olt->display_name ?? $olt->label ?? 'OLT').' — check power and uplink.',
+                'message' => 'OLT offline — '.$olt->adminLabel().' — check power and uplink.',
                 'tone' => 'critical',
             ])
             ->all();

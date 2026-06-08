@@ -62,7 +62,7 @@ final class NetworkDependencyTreeService
         }
 
         if ($onu?->olt_id) {
-            $olt = Device::query()->find($onu->olt_id, ['id', 'display_name', 'label', 'status', 'management_ip']);
+            $olt = Device::query()->find($onu->olt_id, ['id', 'display_name', 'serial_number', 'status', 'management_ip', 'type']);
             if ($olt) {
                 $pon = trim(($onu->card_no !== null ? 'C'.$onu->card_no.'/' : '').($onu->pon_no !== null ? 'P'.$onu->pon_no : ''), '/') ?: '—';
                 $chain[] = [
@@ -73,7 +73,7 @@ final class NetworkDependencyTreeService
                 $chain[] = [
                     'label' => 'OLT',
                     'status' => ($olt->status ?? '') === 'active' ? 'online' : 'offline',
-                    'detail' => ($olt->display_name ?? $olt->label).' · '.($olt->management_ip ?? '—'),
+                    'detail' => $olt->adminLabel().' · '.($olt->management_ip ?? '—'),
                     'url' => \App\Filament\Resources\OltResource::getUrl('edit', ['record' => $olt->id]),
                 ];
             }

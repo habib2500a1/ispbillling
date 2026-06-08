@@ -73,14 +73,14 @@ final class GlobalOperationsSearchService
             ->where('type', 'olt')
             ->where(function ($builder) use ($like): void {
                 $builder->where('display_name', 'like', $like)
-                    ->orWhere('label', 'like', $like)
+                    ->orWhere('serial_number', 'like', $like)
                     ->orWhere('management_ip', 'like', $like);
             })
             ->limit(4)
-            ->get(['id', 'display_name', 'label'])
+            ->get(['id', 'display_name', 'serial_number', 'type'])
             ->each(function (Device $d) use (&$results): void {
                 $results[] = [
-                    'label' => 'OLT '.($d->display_name ?? $d->label ?? '#'.$d->id),
+                    'label' => 'OLT '.$d->adminLabel(),
                     'group' => 'OLT',
                     'url' => \App\Filament\Resources\OltResource::getUrl('edit', ['record' => $d->id]),
                 ];

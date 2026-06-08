@@ -47,7 +47,7 @@ final class FaultManagementService
         return FiberFaultLog::withoutGlobalScopes()
             ->where('tenant_id', $tenantId)
             ->whereNull('resolved_at')
-            ->with('olt:id,display_name,label')
+            ->with('olt:id,display_name,serial_number')
             ->orderByDesc('detected_at')
             ->limit(20)
             ->get()
@@ -57,7 +57,7 @@ final class FaultManagementService
                 'severity' => $f->severity ?? 'critical',
                 'title' => $f->fault_type ?? 'Fiber fault',
                 'message' => $f->description,
-                'entity' => $f->olt?->display_name ?? $f->olt?->label ?? 'OLT',
+                'entity' => $f->olt?->adminLabel() ?? 'OLT',
                 'affected' => (int) $f->affected_onu_count,
                 'zones' => $f->affected_zones ?? [],
                 'at' => $f->detected_at?->diffForHumans(),
@@ -127,7 +127,7 @@ final class FaultManagementService
             ->where('type', 'olt')
             ->where('status', 'offline')
             ->limit(10)
-            ->get(['id', 'display_name', 'label', 'updated_at']);
+            ->get(['id', 'display_name', 'serial_number', 'updated_at']);
 
         foreach ($offlineOlts as $olt) {
             $out[] = [
@@ -135,8 +135,8 @@ final class FaultManagementService
                 'type' => 'olt_offline',
                 'severity' => 'critical',
                 'title' => 'OLT offline',
-                'message' => ($olt->display_name ?? $olt->label ?? 'OLT').' reported offline.',
-                'entity' => $olt->display_name ?? $olt->label ?? 'OLT',
+                'message' => $olt->adminLabel().' reported offline.',
+                'entity' => $olt->adminLabel(),
                 'affected' => 0,
                 'zones' => [],
                 'at' => $olt->updated_at?->diffForHumans() ?? '—',
