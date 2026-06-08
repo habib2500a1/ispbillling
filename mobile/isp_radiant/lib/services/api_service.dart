@@ -117,18 +117,55 @@ class ApiService {
     );
   }
 
-  /// Single sign-in — server detects customer / staff / reseller from credentials.
+  /// Single sign-in — tries staff / customer / reseller until credentials match.
   Future<Map<String, dynamic>> loginUnified({
     required String login,
     required String password,
     String? twoFactorCode,
   }) async {
-    return _loginRequest(
-      role: 'auto',
-      login: login,
-      password: password,
-      twoFactorCode: twoFactorCode,
-    );
+    try {
+      return await _loginRequest(
+        role: 'auto',
+        login: login,
+        password: password,
+        twoFactorCode: twoFactorCode,
+      );
+    } on ApiException catch (e) {
+      if (!_isInvalidRoleError(e)) rethrow;
+    }
+
+    final roles = <String>[
+      if (login.contains('@')) 'staff',
+      'customer',
+      'reseller',
+    ];
+
+    ApiException? lastAuthError;
+    for (final role in roles) {
+      try {
+        return await _loginRequest(
+          role: role,
+          login: login,
+          password: password,
+          twoFactorCode: twoFactorCode,
+        );
+      } on ApiException catch (e) {
+        if (e.statusCode == 401) {
+          lastAuthError = e;
+          continue;
+        }
+        rethrow;
+      }
+    }
+
+    throw lastAuthError ?? ApiException('Invalid credentials.');
+  }
+
+  bool _isInvalidRoleError(ApiException e) {
+    if (e.statusCode != 422) return false;
+    final errors = e.data?['errors'];
+    if (errors is Map && errors['role'] != null) return true;
+    return e.message.toLowerCase().contains('selected role is invalid');
   }
 
   Future<Map<String, dynamic>> _loginRequest({
