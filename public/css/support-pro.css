@@ -456,6 +456,99 @@
 /* --- 04-ticket-detail.css --- */
 /** Smart ticket workspace — 3-column layout */
 
+.sp-live-status {
+    margin-bottom: 1rem;
+    padding: 0.85rem 1rem;
+    border-radius: var(--sp-radius-sm);
+    border: 1px solid var(--sp-border);
+    background: var(--sp-card);
+    box-shadow: var(--sp-shadow);
+}
+
+.sp-live-status--ok {
+    border-color: rgba(34, 197, 94, 0.35);
+    background: linear-gradient(135deg, rgba(34, 197, 94, 0.08), transparent 55%);
+}
+
+.sp-live-status--warn {
+    border-color: rgba(239, 68, 68, 0.35);
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.08), transparent 55%);
+}
+
+.sp-live-status__grid {
+    display: grid;
+    gap: 0.75rem;
+}
+
+@media (min-width: 768px) {
+    .sp-live-status__grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+}
+
+.sp-live-status__item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+}
+
+.sp-live-status__label {
+    font-size: 0.62rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--sp-muted);
+}
+
+.sp-live-status__badge {
+    display: inline-flex;
+    align-items: center;
+    width: fit-content;
+    padding: 0.2rem 0.55rem;
+    border-radius: 999px;
+    font-size: 0.72rem;
+    font-weight: 800;
+}
+
+.sp-live-status__badge--online {
+    color: #166534;
+    background: rgba(34, 197, 94, 0.18);
+}
+
+.sp-live-status__badge--offline {
+    color: #991b1b;
+    background: rgba(239, 68, 68, 0.16);
+}
+
+.sp-live-status__badge--muted {
+    color: var(--sp-muted);
+    background: rgba(148, 163, 184, 0.15);
+}
+
+.sp-live-status__reason,
+.sp-live-status__meta,
+.sp-live-status__time {
+    font-size: 0.68rem;
+    color: var(--sp-muted);
+    line-height: 1.35;
+}
+
+.sp-live-status__time {
+    font-weight: 700;
+    color: var(--sp-text);
+}
+
+.sp-live-status__block {
+    margin: 0.65rem 0 0;
+    padding: 0.55rem 0.65rem;
+    border-radius: 0.45rem;
+    font-size: 0.68rem;
+    font-weight: 600;
+    color: #92400e;
+    background: rgba(245, 158, 11, 0.14);
+    border: 1px solid rgba(245, 158, 11, 0.35);
+}
+
 .isp-support-ticket-edit .fi-header-heading {
     display: none;
 }

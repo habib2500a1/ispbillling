@@ -13,6 +13,7 @@ use App\Models\FieldVisit;
 use App\Models\Payment;
 use App\Models\SupportTicket;
 use App\Services\Network\FiberPlantMapService;
+use App\Support\CustomerStatus;
 use Illuminate\Support\Str;
 
 /**
@@ -40,9 +41,10 @@ trait ProvidesSupportTicketWorkspace
             return ['linked' => false];
         }
 
-        $customer->loadMissing(['package', 'area', 'zone', 'mikrotikServer', 'onuDevice.olt']);
+        $customer->loadMissing(['package', 'area', 'zone', 'mikrotikServer', 'onuDevice.olt', 'lastEndedPppSession']);
 
         $onu = $customer->primaryOnu();
+        $live = $this->buildLiveServiceStatus($customer, $onu);
         $due = $customer->openInvoiceBalance();
         $ticketCount = SupportTicket::query()->where('customer_id', $customer->id)->count();
         $lastPayment = Payment::query()
@@ -62,9 +64,14 @@ trait ProvidesSupportTicketWorkspace
             'area' => $customer->area?->name ?? '—',
             'zone' => $customer->zone?->name ?? '—',
             'address' => $customer->formattedAddress(),
-            'ppp_online' => $customer->isPppOnline(),
+            'ppp_online' => $live['ppp_online'],
             'ppp_login' => $customer->pppLoginName(),
+            'ppp_offline_reason' => $live['ppp_offline_reason'],
+            'last_logout_at' => $live['last_logout_at'],
+            'last_logout_ago' => $live['last_logout_ago'],
+            'onu_online' => $live['onu_online'],
             'network_access' => (string) ($customer->network_access_state ?? '—'),
+            'live' => $live,
             'billing_due' => $due,
             'billing_due_fmt' => number_format($due, 0).' BDT',
             'ticket_count' => $ticketCount,
@@ -93,14 +100,116 @@ trait ProvidesSupportTicketWorkspace
         }
 
         $rx = $onu->rx_power_dbm !== null ? round((float) $onu->rx_power_dbm, 2) : null;
+        $oper = strtolower((string) ($onu->onu_oper_status ?? ''));
+        $onuOnline = in_array($oper, ['online', 'active', 'up', 'working'], true);
 
         return [
             'serial' => $onu->serial_number ?? '—',
             'status' => (string) ($onu->onu_oper_status ?? 'unknown'),
+            'online' => $onuOnline,
+            'offline_reason' => filled($onu->offline_reason) ? (string) $onu->offline_reason : null,
+            'last_polled' => $onu->last_polled_at?->diffForHumans(),
             'rx_dbm' => $rx,
             'olt' => $onu->olt?->adminLabel() ?? '—',
             'pon' => $onu->pon_no !== null ? 'PON '.$onu->pon_no : '—',
         ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function getLiveServiceStatus(): array
+    {
+        $ticket = $this->workspaceTicket();
+        $customer = $ticket->customer;
+
+        if ($customer === null) {
+            return ['linked' => false];
+        }
+
+        $customer->loadMissing(['onuDevice.olt', 'lastEndedPppSession']);
+        $onu = $customer->primaryOnu();
+
+        return array_merge(['linked' => true], $this->buildLiveServiceStatus($customer, $onu));
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function buildLiveServiceStatus(Customer $customer, ?Device $onu): array
+    {
+        $pppOnline = $customer->isPppOnline();
+        $lastLogout = $customer->lastEndedPppSession?->ended_at ?? $customer->ppp_last_seen_at;
+        $onuOnline = null;
+        $onuStatus = null;
+        $onuOfflineReason = null;
+
+        if ($onu !== null) {
+            $onuStatus = (string) ($onu->onu_oper_status ?? 'unknown');
+            $oper = strtolower($onuStatus);
+            $onuOnline = in_array($oper, ['online', 'active', 'up', 'working'], true);
+            $onuOfflineReason = filled($onu->offline_reason) ? (string) $onu->offline_reason : null;
+        }
+
+        return [
+            'ppp_online' => $pppOnline,
+            'ppp_offline_reason' => $pppOnline ? null : $this->resolvePppOfflineReason($customer),
+            'last_logout_at' => $lastLogout?->format('d M Y, h:i A'),
+            'last_logout_ago' => $lastLogout?->diffForHumans() ?? 'Never',
+            'onu_online' => $onuOnline,
+            'onu_status' => $onuStatus,
+            'onu_offline_reason' => $onuOfflineReason,
+            'onu_last_polled' => $onu?->last_polled_at?->diffForHumans(),
+        ];
+    }
+
+    private function resolvePppOfflineReason(Customer $customer): string
+    {
+        $lastSeen = $customer->ppp_last_seen_at ?? $customer->lastEndedPppSession?->ended_at;
+
+        return match (true) {
+            $customer->status === CustomerStatus::SUSPENDED => 'Suspended by billing',
+            $customer->isServiceExpired() => 'Service expired / billing due',
+            $customer->openInvoiceBalance() > 0.009 => 'Due balance — line may be restricted',
+            $lastSeen !== null && $lastSeen->greaterThan(now()->subMinutes(30)) => 'Recently disconnected',
+            $lastSeen === null => 'Never came online',
+            default => 'Offline — check router, PPP secret, or NAS',
+        };
+    }
+
+    public function canCloseTicket(): bool
+    {
+        $ticket = $this->workspaceTicket();
+
+        if (in_array($ticket->status, ['resolved', 'closed'], true)) {
+            return true;
+        }
+
+        if (! in_array($ticket->issue_type, ['connection', 'speed', 'outage', 'equipment'], true)) {
+            return true;
+        }
+
+        $customer = $ticket->customer;
+        if ($customer === null) {
+            return true;
+        }
+
+        return $customer->isPppOnline();
+    }
+
+    public function getCloseBlockReason(): ?string
+    {
+        if ($this->canCloseTicket()) {
+            return null;
+        }
+
+        $live = $this->getLiveServiceStatus();
+        $parts = array_filter([
+            $live['ppp_offline_reason'] ?? 'Subscriber PPP is offline',
+            isset($live['last_logout_at']) ? 'Last logout: '.$live['last_logout_at'].' ('.$live['last_logout_ago'].')' : null,
+        ]);
+
+        return 'Connection tickets can only be resolved/closed when the subscriber is online. '.implode(' · ', $parts);
     }
 
     /**
@@ -316,12 +425,19 @@ trait ProvidesSupportTicketWorkspace
             return [];
         }
 
+        $live = $this->getLiveServiceStatus();
+
         return [
-            'ppp_online' => $c360['ppp_online'],
+            'ppp_online' => $live['ppp_online'],
             'ppp_login' => $c360['ppp_login'],
+            'ppp_offline_reason' => $live['ppp_offline_reason'],
+            'last_logout_at' => $live['last_logout_at'],
+            'last_logout_ago' => $live['last_logout_ago'],
             'network_access' => $c360['network_access'],
             'router' => $c360['router'],
             'onu' => $c360['onu'],
+            'onu_online' => $live['onu_online'],
+            'onu_offline_reason' => $live['onu_offline_reason'],
         ];
     }
 }

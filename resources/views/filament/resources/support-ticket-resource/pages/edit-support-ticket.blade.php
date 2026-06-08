@@ -6,6 +6,9 @@
     $hints = $this->getRootCauseHints();
     $gis = $this->getGisPreview();
     $network = $this->getNetworkRail();
+    $live = $this->getLiveServiceStatus();
+    $closeBlocked = ! $this->canCloseTicket();
+    $closeBlockReason = $this->getCloseBlockReason();
     $hubUrl = \App\Filament\Pages\SupportHub::getUrl();
     $listUrl = \App\Filament\Resources\SupportTicketResource::getUrl('index');
 @endphp
@@ -37,6 +40,55 @@
             </div>
         </header>
 
+        @if (! empty($live['linked']))
+            <section
+                @class([
+                    'sp-live-status',
+                    'sp-live-status--ok' => $live['ppp_online'] && ($live['onu_online'] !== false),
+                    'sp-live-status--warn' => ! $live['ppp_online'] || $live['onu_online'] === false,
+                ])
+                aria-label="Live subscriber status"
+            >
+                <div class="sp-live-status__grid">
+                    <div class="sp-live-status__item">
+                        <span class="sp-live-status__label">PPP / Internet</span>
+                        <span class="sp-live-status__badge @if ($live['ppp_online']) sp-live-status__badge--online @else sp-live-status__badge--offline @endif">
+                            {{ $live['ppp_online'] ? 'Online' : 'Offline' }}
+                        </span>
+                        @if (! $live['ppp_online'] && filled($live['ppp_offline_reason']))
+                            <span class="sp-live-status__reason">{{ $live['ppp_offline_reason'] }}</span>
+                        @endif
+                    </div>
+                    <div class="sp-live-status__item">
+                        <span class="sp-live-status__label">ONU</span>
+                        @if ($live['onu_online'] === null)
+                            <span class="sp-live-status__badge sp-live-status__badge--muted">Not mapped</span>
+                        @else
+                            <span class="sp-live-status__badge @if ($live['onu_online']) sp-live-status__badge--online @else sp-live-status__badge--offline @endif">
+                                {{ $live['onu_online'] ? 'Online' : 'Offline' }}
+                            </span>
+                            @if (! $live['onu_online'])
+                                <span class="sp-live-status__reason">
+                                    {{ $live['onu_offline_reason'] ?? ('Status: '.($live['onu_status'] ?? 'unknown')) }}
+                                </span>
+                            @endif
+                        @endif
+                        @if (filled($live['onu_last_polled']))
+                            <span class="sp-live-status__meta">Polled {{ $live['onu_last_polled'] }}</span>
+                        @endif
+                    </div>
+                    <div class="sp-live-status__item">
+                        <span class="sp-live-status__label">Last logout / seen</span>
+                        <span class="sp-live-status__time">{{ $live['last_logout_at'] ?? '—' }}</span>
+                        <span class="sp-live-status__meta">{{ $live['last_logout_ago'] ?? '' }}</span>
+                    </div>
+                </div>
+                @if ($closeBlocked && filled($closeBlockReason))
+                    <p class="sp-live-status__block">{{ $closeBlockReason }}</p>
+                @endif
+            </section>
+        @endif
+
         <div class="sp-workspace">
             <aside class="sp-workspace__rail sp-workspace__rail--left">
                 <section class="sp-panel" aria-label="Customer 360">
@@ -65,6 +117,16 @@
                                 {{ $c360['ppp_online'] ? 'Online' : 'Offline' }}
                             </span>
                         </div>
+                        @if (! $c360['ppp_online'] && filled($c360['ppp_offline_reason'] ?? null))
+                            <div class="sp-360__row">
+                                <span class="sp-360__label">PPP reason</span>
+                                <span class="sp-360__value" style="font-size:0.62rem;">{{ $c360['ppp_offline_reason'] }}</span>
+                            </div>
+                            <div class="sp-360__row">
+                                <span class="sp-360__label">Last logout</span>
+                                <span class="sp-360__value" style="font-size:0.62rem;">{{ $c360['last_logout_at'] ?? '—' }}</span>
+                            </div>
+                        @endif
                         <div class="sp-360__row">
                             <span class="sp-360__label">Tickets</span>
                             <span class="sp-360__value">{{ $c360['ticket_count'] }} total</span>
@@ -84,7 +146,17 @@
                 @if (! empty($c360['onu']))
                     <section class="sp-panel">
                         <h2 class="sp-panel__title">ONU / OLT</h2>
-                        <div class="sp-360__row"><span class="sp-360__label">ONU</span><span class="sp-360__value">{{ $c360['onu']['serial'] }}</span></div>
+                        <div class="sp-360__row">
+                            <span class="sp-360__label">ONU</span>
+                            <span class="sp-360__value">
+                                <span @class(['sp-status-dot', ($c360['onu']['online'] ?? false) ? 'sp-status-dot--online' : 'sp-status-dot--offline'])></span>
+                                {{ ($c360['onu']['online'] ?? false) ? 'Online' : 'Offline' }}
+                            </span>
+                        </div>
+                        <div class="sp-360__row"><span class="sp-360__label">Serial</span><span class="sp-360__value">{{ $c360['onu']['serial'] }}</span></div>
+                        @if (! ($c360['onu']['online'] ?? false) && filled($c360['onu']['offline_reason'] ?? null))
+                            <div class="sp-360__row"><span class="sp-360__label">ONU reason</span><span class="sp-360__value" style="font-size:0.62rem;">{{ $c360['onu']['offline_reason'] }}</span></div>
+                        @endif
                         <div class="sp-360__row"><span class="sp-360__label">Signal</span><span class="sp-360__value">{{ $c360['onu']['rx_dbm'] !== null ? $c360['onu']['rx_dbm'].' dBm' : '—' }}</span></div>
                         <div class="sp-360__row"><span class="sp-360__label">OLT</span><span class="sp-360__value">{{ $c360['onu']['olt'] }}</span></div>
                         <div class="sp-360__row"><span class="sp-360__label">PON</span><span class="sp-360__value">{{ $c360['onu']['pon'] }}</span></div>
@@ -148,6 +220,26 @@
                     @if ($network === [])
                         <p style="font-size:0.72rem;color:var(--sp-muted);margin:0;">Link a subscriber for live context.</p>
                     @else
+                        <div class="sp-360__row">
+                            <span class="sp-360__label">PPP</span>
+                            <span class="sp-360__value">
+                                <span @class(['sp-status-dot', $network['ppp_online'] ? 'sp-status-dot--online' : 'sp-status-dot--offline'])></span>
+                                {{ $network['ppp_online'] ? 'Online' : 'Offline' }}
+                            </span>
+                        </div>
+                        @if (! $network['ppp_online'] && filled($network['ppp_offline_reason'] ?? null))
+                            <div class="sp-360__row"><span class="sp-360__label">Reason</span><span class="sp-360__value" style="font-size:0.62rem;">{{ $network['ppp_offline_reason'] }}</span></div>
+                            <div class="sp-360__row"><span class="sp-360__label">Last logout</span><span class="sp-360__value" style="font-size:0.62rem;">{{ $network['last_logout_at'] ?? '—' }}</span></div>
+                        @endif
+                        @if ($network['onu_online'] !== null)
+                            <div class="sp-360__row">
+                                <span class="sp-360__label">ONU</span>
+                                <span class="sp-360__value">
+                                    <span @class(['sp-status-dot', $network['onu_online'] ? 'sp-status-dot--online' : 'sp-status-dot--offline'])></span>
+                                    {{ $network['onu_online'] ? 'Online' : 'Offline' }}
+                                </span>
+                            </div>
+                        @endif
                         <div class="sp-360__row"><span class="sp-360__label">Router/NAS</span><span class="sp-360__value">{{ $network['router'] }}</span></div>
                         <div class="sp-360__row"><span class="sp-360__label">PPP user</span><span class="sp-360__value" style="font-size:0.65rem;">{{ $network['ppp_login'] }}</span></div>
                         <div class="sp-360__row"><span class="sp-360__label">Access</span><span class="sp-360__value">{{ $network['network_access'] }}</span></div>

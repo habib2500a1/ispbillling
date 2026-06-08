@@ -41,6 +41,7 @@ class EditSupportTicket extends EditRecord
             'customer.package',
             'customer.mikrotikServer',
             'customer.onuDevice.olt',
+            'customer.lastEndedPppSession',
             'assignee',
             'messages.user',
             'messages.customer',
@@ -55,7 +56,21 @@ class EditSupportTicket extends EditRecord
                 ->label('Mark resolved')
                 ->color('success')
                 ->visible(fn (): bool => ! in_array($this->record->status, ['resolved', 'closed'], true))
+                ->disabled(fn (): bool => ! $this->canCloseTicket())
+                ->tooltip(fn (): ?string => $this->getCloseBlockReason())
+                ->requiresConfirmation()
+                ->modalDescription(fn (): ?string => $this->getCloseBlockReason() ?? 'Subscriber is online. Mark this ticket as resolved?')
                 ->action(function (): void {
+                    if (! $this->canCloseTicket()) {
+                        Notification::make()
+                            ->title('Cannot resolve yet')
+                            ->body($this->getCloseBlockReason() ?? 'Subscriber must be online.')
+                            ->danger()
+                            ->send();
+
+                        return;
+                    }
+
                     /** @var SupportTicket $record */
                     $record = $this->record;
                     $record->update([
@@ -69,7 +84,21 @@ class EditSupportTicket extends EditRecord
                 ->label('Close')
                 ->color('gray')
                 ->visible(fn (): bool => $this->record->status !== 'closed')
+                ->disabled(fn (): bool => ! $this->canCloseTicket())
+                ->tooltip(fn (): ?string => $this->getCloseBlockReason())
+                ->requiresConfirmation()
+                ->modalDescription(fn (): ?string => $this->getCloseBlockReason() ?? 'Subscriber is online. Close this ticket?')
                 ->action(function (): void {
+                    if (! $this->canCloseTicket()) {
+                        Notification::make()
+                            ->title('Cannot close yet')
+                            ->body($this->getCloseBlockReason() ?? 'Subscriber must be online.')
+                            ->danger()
+                            ->send();
+
+                        return;
+                    }
+
                     /** @var SupportTicket $record */
                     $record = $this->record;
                     $record->update([
