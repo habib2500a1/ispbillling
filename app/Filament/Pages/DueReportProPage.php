@@ -22,6 +22,11 @@ class DueReportProPage extends Page
 
     protected static bool $shouldRegisterNavigation = false;
 
+    public function getExtraBodyAttributes(): array
+    {
+        return ['class' => 'isp-bi-module'];
+    }
+
     public static function canAccess(): bool
     {
         return PaymentsReport::canAccess();

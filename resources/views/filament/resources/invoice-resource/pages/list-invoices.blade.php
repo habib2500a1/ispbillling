@@ -20,7 +20,12 @@
 <script src="{{ asset('js/billing-invoices-v2.js') }}?v={{ @filemtime(public_path('js/billing-invoices-v2.js')) ?: 1 }}" defer></script>
 
 <x-filament-panels::page class="isp-billing-invoices-page">
-    <div class="bl-pro" data-view="table" wire:loading.class="bl-pro-loading">
+    <div
+        class="bl-pro"
+        data-view="table"
+        wire:loading.class="bl-pro-loading"
+        data-bl-saved-filters='@json($this->getBillingSavedFilters())'
+    >
         <header class="bl-inv-hero">
             <div class="bl-inv-hero__body">
                 <span class="bl-inv-hero__badge">Billing &amp; invoices</span>
@@ -71,7 +76,15 @@
             @endforeach
         </div>
 
+        <div class="bl-bulk-bar" data-bl-bulk-bar aria-live="polite">
+            <span><span data-bl-bulk-count>0</span> selected</span>
+            <button type="button" class="bl-bulk-bar__btn" data-bl-bulk-print>Print</button>
+            <button type="button" class="bl-bulk-bar__btn" data-bl-bulk-export style="background:#0f766e;">Export</button>
+        </div>
+
         <section class="bl-inv-toolbar" aria-label="Search and filters">
+            <div class="bl-saved-filters" data-bl-saved-filters aria-label="Saved filters"></div>
+
             <form method="GET" action="{{ $indexUrl }}" id="bl-inv-toolbar-form" class="bl-inv-toolbar__row">
                 <label class="bl-inv-search">
                     <x-filament::icon icon="heroicon-m-magnifying-glass" class="h-4 w-4" style="color:var(--bl-muted);" />

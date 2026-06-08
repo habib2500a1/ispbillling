@@ -1,3 +1,6 @@
+{!! \App\Support\BillingStyles::navigatedScript() !!}
+<script src="{{ asset('js/billing-collection-v3.js') }}?v={{ @filemtime(public_path('js/billing-collection-v3.js')) ?: 1 }}" defer></script>
+
 <x-filament-panels::page>
     <div class="isp-collection-desk space-y-6">
         <div class="isp-collection-search-wrap">
@@ -16,6 +19,12 @@
                     Search
                 </button>
             </div>
+
+            <div class="isp-collection-recent" data-collection-recent hidden>
+                <p class="isp-collection-recent__label">Recent searches</p>
+                <div class="isp-collection-recent__chips" data-collection-recent-chips></div>
+            </div>
+
             <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">
                 Search by customer code, mobile, name, MikroTik/RADIUS username, NID, invoice number, or address.
                 Cash collections are tracked in

@@ -12,6 +12,7 @@ use App\Filament\Pages\PaymentsReport;
 use App\Support\Rbac\StaffCapability;
 use App\Filament\Pages\CollectionDeskReport;
 use App\Filament\Pages\CollectorMobile;
+use App\Filament\Pages\DunningReport;
 use App\Filament\Pages\ManageCollectionDiscountSettings;
 use App\Filament\Pages\ManagePaymentRenewalSettings;
 use App\Filament\Pages\CollectorVisitsReport;
@@ -128,21 +129,11 @@ final class BillingSidebarRegistry
             ],
             [
                 'key' => 'payment_reports',
-                'label' => 'Payment & collection report',
+                'label' => 'Payment report (incl. bKash)',
                 'icon' => 'heroicon-o-document-chart-bar',
                 'sort' => 5.5,
                 'url_target' => 'billing.payment_reports',
                 'active_routes' => ['filament.admin.pages.payments-report'],
-            ],
-            [
-                'key' => 'bkash_collections',
-                'label' => 'bKash collections',
-                'icon' => 'heroicon-o-device-phone-mobile',
-                'sort' => 5.6,
-                'url_target' => 'billing.bkash_collections',
-                'active_routes' => ['filament.admin.pages.payments-report'],
-                'active_when' => fn (): bool => request()->routeIs('filament.admin.pages.payments-report')
-                    && request()->query('gateway') === 'bkash',
             ],
             [
                 'key' => 'admin_wallets',
@@ -221,25 +212,23 @@ final class BillingSidebarRegistry
                 ],
             ],
             [
-                'key' => 'today_collection',
-                'label' => "Today's collection",
-                'icon' => 'heroicon-o-calendar-days',
+                'key' => 'collection_report',
+                'label' => 'Collection report',
+                'icon' => 'heroicon-o-banknotes',
                 'sort' => 11,
                 'count_key' => 'today_collection',
-                'url_target' => 'collection.today',
+                'url_target' => 'collection.report',
                 'active_routes' => [
                     'filament.admin.pages.collection-desk-report',
                 ],
             ],
             [
-                'key' => 'all_collection',
-                'label' => 'All collection',
-                'icon' => 'heroicon-o-banknotes',
-                'sort' => 12,
-                'url_target' => 'collection.month',
-                'active_routes' => [
-                    'filament.admin.pages.collection-desk-report',
-                ],
+                'key' => 'dunning_report',
+                'label' => 'Dunning report',
+                'icon' => 'heroicon-o-bell-alert',
+                'sort' => 11.5,
+                'url_target' => 'billing.dunning',
+                'active_routes' => ['filament.admin.pages.dunning-report'],
             ],
             [
                 'key' => 'collector_visits',
@@ -294,18 +283,6 @@ final class BillingSidebarRegistry
                         return false;
                     }
 
-                    if ($entry['key'] === 'payment_reports') {
-                        return request()->query('gateway') !== 'bkash';
-                    }
-
-                    if ($entry['key'] === 'today_collection') {
-                        return request()->query('preset', 'today') === 'today';
-                    }
-
-                    if ($entry['key'] === 'all_collection') {
-                        return request()->query('preset') === 'month';
-                    }
-
                     return true;
                 });
 
@@ -332,7 +309,8 @@ final class BillingSidebarRegistry
             'bill_money_trail' => BillingFundFlowReport::canAccess(),
             'staff_expenses' => StaffExpenseResource::canViewAny(),
             'collection_desk' => BillCollectionDesk::canAccess(),
-            'payment_reports', 'bkash_collections' => PaymentsReport::canAccess(),
+            'payment_reports' => PaymentsReport::canAccess(),
+            'dunning_report' => DunningReport::canAccess(),
             'admin_wallets' => AccountsWalletHubPage::canAccess(),
             'collection_discount_settings' => ManageCollectionDiscountSettings::canAccess(),
             'payment_renewal_settings' => ManagePaymentRenewalSettings::canAccess(),
@@ -359,11 +337,10 @@ final class BillingSidebarRegistry
             'invoices.due' => InvoiceResource::getUrl('due'),
             'invoices.paid' => InvoiceResource::getUrl('paid'),
             'invoices.create' => InvoiceResource::getUrl('create'),
-            'collection.today' => CollectionDeskReport::getUrl(['preset' => 'today']),
-            'collection.month' => CollectionDeskReport::getUrl(['preset' => 'month']),
+            'collection.report' => CollectionDeskReport::getUrl(['preset' => 'today']),
+            'billing.dunning' => DunningReport::getUrl(),
             'collection.desk' => BillCollectionDesk::getUrl(),
             'billing.payment_reports' => PaymentsReport::getUrl(),
-            'billing.bkash_collections' => PaymentsReport::getUrl().'?gateway=bkash',
             'billing.wallets' => AccountsWalletHubPage::getUrl(),
             'collection.discount_settings' => ManageCollectionDiscountSettings::getUrl(),
             'collection.renewal_settings' => ManagePaymentRenewalSettings::getUrl(),

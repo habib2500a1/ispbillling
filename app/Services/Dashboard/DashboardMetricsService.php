@@ -843,11 +843,20 @@ class DashboardMetricsService
     private function rootCauseBreakdownSql(int $tenantId): array
     {
         $today = now()->toDateString();
+        $recentCutoff = now()->subMinutes(30);
+
+        $counts = $this->offlineCustomersQuery($tenantId)
+            ->selectRaw('SUM(CASE WHEN customers.status = ? THEN 1 ELSE 0 END) as suspended', [CustomerStatus::SUSPENDED])
+            ->selectRaw('SUM(CASE WHEN customers.service_expires_at IS NOT NULL AND customers.service_expires_at < ? THEN 1 ELSE 0 END) as expired', [$today])
+            ->selectRaw('SUM(CASE WHEN customers.ppp_last_seen_at IS NULL THEN 1 ELSE 0 END) as never_online')
+            ->selectRaw('SUM(CASE WHEN customers.ppp_last_seen_at >= ? THEN 1 ELSE 0 END) as recent_disconnect', [$recentCutoff])
+            ->first();
+
         $reasons = [
-            ['reason' => 'Suspended', 'count' => (int) $this->offlineCustomersQuery($tenantId)->where('customers.status', CustomerStatus::SUSPENDED)->count()],
-            ['reason' => 'Expired / billing due', 'count' => (int) $this->offlineCustomersQuery($tenantId)->whereNotNull('customers.service_expires_at')->where('customers.service_expires_at', '<', $today)->count()],
-            ['reason' => 'Never came online', 'count' => (int) $this->offlineCustomersQuery($tenantId)->whereNull('customers.ppp_last_seen_at')->count()],
-            ['reason' => 'Recently disconnected', 'count' => (int) $this->offlineCustomersQuery($tenantId)->where('customers.ppp_last_seen_at', '>=', now()->subMinutes(30))->count()],
+            ['reason' => 'Suspended', 'count' => (int) ($counts->suspended ?? 0)],
+            ['reason' => 'Expired / billing due', 'count' => (int) ($counts->expired ?? 0)],
+            ['reason' => 'Never came online', 'count' => (int) ($counts->never_online ?? 0)],
+            ['reason' => 'Recently disconnected', 'count' => (int) ($counts->recent_disconnect ?? 0)],
         ];
 
         return collect($reasons)
@@ -1144,9 +1153,8 @@ class DashboardMetricsService
                     ->get()
                     ->keyBy('id');
 
-                $probe = app(\App\Services\Olt\OltSnmpProbeService::class);
-
-                return $targetIds->map(function (int $id) use ($devices, $probe, $oltRows): ?array {
+                // Use cached OLT health rows only — live ping/VPN probes block PHP-FPM for minutes.
+                return $targetIds->map(function (int $id) use ($devices, $oltRows): ?array {
                     /** @var Device|null $device */
                     $device = $devices->get($id);
                     $row = (array) ($oltRows->firstWhere('id', $id) ?? []);
@@ -1155,17 +1163,18 @@ class DashboardMetricsService
                         return null;
                     }
 
-                    $ping = $probe->pingSummary($device, 2);
+                    $status = (string) ($row['status'] ?? 'unknown');
+                    $host = (string) ($row['management_ip'] ?? $device->management_ip ?? $device->snmp_host ?? '—');
 
                     return [
                         'id' => $id,
                         'name' => (string) ($row['name'] ?? $device->adminLabel()),
-                        'host' => (string) ($ping['host'] ?: ($row['management_ip'] ?? '—')),
-                        'reachable' => (bool) $ping['reachable'],
-                        'packet_loss_percent' => $ping['packet_loss_percent'] !== null ? (float) $ping['packet_loss_percent'] : null,
-                        'avg_latency_ms' => $ping['avg_latency_ms'] !== null ? (float) $ping['avg_latency_ms'] : null,
-                        'sample_count' => (int) ($ping['sample_count'] ?? 2),
-                        'status' => (string) ($row['status'] ?? 'unknown'),
+                        'host' => $host,
+                        'reachable' => $status !== 'offline',
+                        'packet_loss_percent' => null,
+                        'avg_latency_ms' => null,
+                        'sample_count' => 0,
+                        'status' => $status,
                         'snmp_ok' => (bool) ($row['snmp_ok'] ?? false),
                         'temperature_c' => isset($row['temperature_c']) && is_numeric($row['temperature_c']) ? round((float) $row['temperature_c'], 1) : null,
                         'health_score' => isset($row['health_score']) ? (int) $row['health_score'] : null,

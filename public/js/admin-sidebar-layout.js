@@ -11,13 +11,13 @@
     /** Must match AdminPanelProvider::navigationGroups() order */
     const SIDEBAR_GROUP_ORDER = [
         'Overview',
-        'ISP OS',
         'Clients',
         'Billing',
         'Payments',
         'Inventory Pro',
-        'OLT & Tools',
         'Network',
+        'OLT & Tools',
+        'Network map',
         'SMS Service',
         'Support',
         'Reports',
@@ -43,6 +43,7 @@
 
         mergeLegacyOltSidebarGroup(root);
         mergeLegacyHrmSidebarGroup(root);
+        mergeLegacyIspOsSidebarGroup(root);
         moveOltLinksOutOfInventoryPro(root);
     }
 
@@ -139,6 +140,36 @@
                 targetList.appendChild(item);
             }
         });
+    }
+
+    /** Collapse legacy «ISP OS» group into «Network map». */
+    function mergeLegacyIspOsSidebarGroup(root) {
+        const legacy = root.querySelector(':scope > .fi-sidebar-group[data-group-label="ISP OS"]');
+        const target = root.querySelector(':scope > .fi-sidebar-group[data-group-label="Network map"]');
+
+        if (!legacy) {
+            return;
+        }
+
+        if (target) {
+            const legacyList = legacy.querySelector('.fi-sidebar-group-items');
+            const targetList = target.querySelector('.fi-sidebar-group-items');
+
+            if (legacyList && targetList) {
+                [...legacyList.children].forEach((node) => targetList.appendChild(node));
+            }
+
+            legacy.remove();
+
+            return;
+        }
+
+        legacy.dataset.groupLabel = 'Network map';
+        const labelEl = legacy.querySelector('.fi-sidebar-group-label');
+
+        if (labelEl) {
+            labelEl.textContent = 'Network map';
+        }
     }
 
     /** Collapse duplicate bare «OLT» group into «OLT & Tools». */
@@ -330,7 +361,20 @@
         );
     }
 
-    function pathSuggestsNetworkGroup() {
+    function pathSuggestsNetworkMapGroup() {
+        const path = window.location.pathname || '';
+
+        return (
+            path.includes('fiber-plant-map')
+            || path.includes('isp-os')
+            || path.includes('noc-wall')
+            || path.includes('field-technicians')
+            || path.includes('fault-center')
+            || path.includes('fault-management')
+        );
+    }
+
+    function pathSuggestsOltGroup() {
         const path = window.location.pathname || '';
 
         return (
@@ -340,21 +384,23 @@
             || path.includes('olt-mac-table')
             || path.includes('optical-laser-settings')
             || path.includes('network-topology')
-            || path.includes('fiber-plant-map')
-            || path.includes('network-intelligence-hub')
-            || path.includes('bandwidth-monitor')
         );
     }
 
-    function pathSuggestsIspOsGroup() {
+    function pathSuggestsNetworkGroup() {
         const path = window.location.pathname || '';
 
         return (
-            path.includes('isp-os')
-            || path.includes('noc-wall')
-            || path.includes('field-technicians')
-            || path.includes('fault-center')
-            || path.includes('fault-management')
+            path.includes('network-intelligence-hub')
+            || path.includes('bandwidth-monitor')
+            || path.includes('network-settings')
+            || path.includes('mikrotik-servers')
+            || path.includes('import-from-mikrotik')
+            || path.includes('radius-user-admin')
+            || path.includes('subscriber-traffic-monitor')
+            || path.includes('snmp-monitor')
+            || path.includes('netflow-analysis')
+            || path.includes('pop-boxes')
         );
     }
 
@@ -396,16 +442,15 @@
             return null;
         }
 
-        // OLT / fiber map pages live under Network (not ISP OS).
-        if (pathSuggestsNetworkGroup()) {
+        if (pathSuggestsNetworkMapGroup() && labels.includes('Network map')) {
+            return 'Network map';
+        }
+
+        if (pathSuggestsOltGroup()) {
             try {
-                sessionStorage.setItem(OPEN_GROUP_KEY, 'Network');
+                sessionStorage.setItem(OPEN_GROUP_KEY, 'OLT & Tools');
             } catch (e) {
                 /* ignore */
-            }
-
-            if (labels.includes('Network')) {
-                return 'Network';
             }
 
             if (labels.includes('OLT & Tools')) {
@@ -417,14 +462,14 @@
             }
         }
 
-        if (pathSuggestsIspOsGroup() && labels.includes('ISP OS')) {
-            return 'ISP OS';
+        if (pathSuggestsNetworkGroup() && labels.includes('Network')) {
+            return 'Network';
         }
 
         const active = activeGroupLabel();
 
-        if (active === 'Inventory Pro' && pathSuggestsNetworkGroup() && labels.includes('Network')) {
-            return 'Network';
+        if (active === 'Inventory Pro' && pathSuggestsOltGroup() && labels.includes('OLT & Tools')) {
+            return 'OLT & Tools';
         }
 
         if (active) {

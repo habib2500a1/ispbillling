@@ -7,9 +7,12 @@ use App\Filament\Pages\Concerns\HidesHubNavigation;
 use App\Support\Rbac\StaffCapability;
 use App\Models\Invoice;
 use App\Models\Payment;
+use App\Filament\Widgets\AgedReceivablesWidget;
+use App\Filament\Widgets\RevenueTrendChartWidget;
 use App\Services\Billing\AdminBillingNoticesService;
 use App\Services\Billing\BillingOpsMetricsService;
 use App\Services\Dashboard\BillingDashboardMetricsService;
+use App\Services\Dashboard\DashboardMetricsService;
 use Filament\Pages\Page;
 
 class BillingOverview extends Page
@@ -214,9 +217,69 @@ class BillingOverview extends Page
     }
 
     /**
+     * @return list<array{label: string, value: string, hint?: string}>
+     */
+    public function getAnalyticsStats(): array
+    {
+        $m = app(DashboardMetricsService::class)->billingSnapshot();
+
+        return [
+            ['label' => 'Collected (MTD)', 'value' => number_format((float) ($m['collected'] ?? 0), 0).' BDT', 'hint' => 'This month'],
+            ['label' => 'Today collection', 'value' => number_format((float) ($m['collected_today'] ?? 0), 0).' BDT', 'hint' => 'Completed payments'],
+            ['label' => 'Outstanding', 'value' => number_format((float) ($m['outstanding'] ?? 0), 0).' BDT', 'hint' => 'Total due'],
+            ['label' => 'Due customers', 'value' => (string) ($m['due_customers'] ?? 0), 'hint' => 'With open balance'],
+            ['label' => 'Open invoices', 'value' => (string) ($m['open_invoices'] ?? 0), 'hint' => 'Draft / open / partial'],
+            ['label' => 'Unpaid subs', 'value' => (string) ($m['unpaid'] ?? 0), 'hint' => 'Active with due'],
+        ];
+    }
+
+    /**
+     * @return list<class-string>
+     */
+    public function getAnalyticsWidgets(): array
+    {
+        return [
+            RevenueTrendChartWidget::class,
+            AgedReceivablesWidget::class,
+        ];
+    }
+
+    /**
+     * @return list<array{severity: string, title: string, message: string, url: string, section: string}>
+     */
+    public function getActionInbox(): array
+    {
+        $payload = app(AdminBillingNoticesService::class)->payload();
+        $items = [];
+
+        foreach ($payload['sections'] ?? [] as $section) {
+            foreach ($section['items'] ?? [] as $item) {
+                $items[] = [
+                    'severity' => (string) ($item['severity'] ?? 'warning'),
+                    'title' => (string) ($item['title'] ?? ''),
+                    'message' => (string) ($item['message'] ?? ''),
+                    'url' => (string) ($item['url'] ?? '#'),
+                    'section' => (string) ($section['title'] ?? ''),
+                ];
+            }
+        }
+
+        return array_slice($items, 0, 12);
+    }
+
+    public function getDefaultPinsJson(): string
+    {
+        return json_encode([
+            ['label' => 'Collect', 'url' => BillCollectionDesk::getUrl()],
+            ['label' => 'Due bills', 'url' => \App\Filament\Resources\InvoiceResource::getUrl('due')],
+            ['label' => 'New invoice', 'url' => \App\Filament\Resources\InvoiceResource::getUrl('create')],
+        ], JSON_THROW_ON_ERROR);
+    }
+
+    /**
      * @return list<array{title: string, desc: string, url: string, icon: string, tone: string, featured?: bool, external?: bool}>
      */
-    public function getActionCards(): array
+    public function getToolCards(): array
     {
         $cards = [];
 
@@ -256,13 +319,6 @@ class BillingOverview extends Page
                 'tone' => 'indigo',
             ],
             [
-                'title' => 'Bill money trail',
-                'desc' => 'Where cash went · print · CSV export.',
-                'url' => BillingFundFlowReport::getUrl(),
-                'icon' => 'heroicon-o-arrows-right-left',
-                'tone' => 'violet',
-            ],
-            [
                 'title' => 'Staff expenses',
                 'desc' => 'Vendor · office · approve reimbursements.',
                 'url' => \App\Filament\Resources\StaffExpenseResource::getUrl('index'),
@@ -284,39 +340,11 @@ class BillingOverview extends Page
                 'tone' => 'teal',
             ],
             [
-                'title' => "Today's collection",
-                'desc' => 'Desk report for today\'s receipts.',
-                'url' => CollectionDeskReport::getUrl(),
-                'icon' => 'heroicon-o-calendar-days',
-                'tone' => 'sky',
-            ],
-            [
-                'title' => 'Payment & bKash report',
-                'desc' => 'All collections · filter bKash · CSV export.',
-                'url' => \App\Filament\Pages\PaymentsReport::getUrl(),
-                'icon' => 'heroicon-o-document-chart-bar',
-                'tone' => 'emerald',
-            ],
-            [
-                'title' => 'bKash collections',
-                'desc' => 'Personal & merchant bKash receipts.',
-                'url' => \App\Filament\Pages\PaymentsReport::getUrl().'?gateway=bkash',
-                'icon' => 'heroicon-o-device-phone-mobile',
-                'tone' => 'pink',
-            ],
-            [
                 'title' => 'Wallets',
                 'desc' => 'Cashbook · bank · collector · reseller balances.',
                 'url' => \App\Filament\Pages\AccountsWalletHubPage::getUrl(),
                 'icon' => 'heroicon-o-wallet',
                 'tone' => 'indigo',
-            ],
-            [
-                'title' => 'Gateway reconciliation',
-                'desc' => 'Match bKash/Nagad vs ledger.',
-                'url' => GatewayReconciliationReport::getUrl(),
-                'icon' => 'heroicon-o-scale',
-                'tone' => 'orange',
             ],
             [
                 'title' => 'Customer /pay page',
@@ -327,5 +355,64 @@ class BillingOverview extends Page
                 'external' => true,
             ],
         ];
+    }
+
+    /**
+     * @return list<array{title: string, desc: string, url: string, chips: list<string>}>
+     */
+    public function getReportCards(): array
+    {
+        return [
+            [
+                'title' => 'Payment & collection report',
+                'desc' => 'All gateways · filter bKash · CSV export.',
+                'url' => \App\Filament\Pages\PaymentsReport::getUrl(),
+                'chips' => ['bKash', 'Nagad', 'Cash'],
+            ],
+            [
+                'title' => "Today's collection",
+                'desc' => 'Desk receipts by date, user, and customer.',
+                'url' => CollectionDeskReport::getUrl(['preset' => 'today']),
+                'chips' => ['Today'],
+            ],
+            [
+                'title' => 'Monthly collection',
+                'desc' => 'Month-to-date collection summary.',
+                'url' => CollectionDeskReport::getUrl(['preset' => 'month']),
+                'chips' => ['MTD'],
+            ],
+            [
+                'title' => 'Bill money trail',
+                'desc' => 'Where cash went · print · CSV export.',
+                'url' => BillingFundFlowReport::getUrl(),
+                'chips' => ['Ledger'],
+            ],
+            [
+                'title' => 'Dunning report',
+                'desc' => 'Overdue reminders · grace · suspension pipeline.',
+                'url' => DunningReport::getUrl(),
+                'chips' => ['AR'],
+            ],
+            [
+                'title' => 'Gateway reconciliation',
+                'desc' => 'Match bKash/Nagad vs ledger.',
+                'url' => GatewayReconciliationReport::getUrl(),
+                'chips' => ['MFS'],
+            ],
+            [
+                'title' => 'Collector visits',
+                'desc' => 'Field visits · GPS · collection proof.',
+                'url' => CollectorVisitsReport::getUrl(),
+                'chips' => ['Field'],
+            ],
+        ];
+    }
+
+    /**
+     * @return list<array{title: string, desc: string, url: string, icon: string, tone: string, featured?: bool, external?: bool}>
+     */
+    public function getActionCards(): array
+    {
+        return $this->getToolCards();
     }
 }

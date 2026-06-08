@@ -20,6 +20,7 @@ use App\Support\ClientsSidebarRegistry;
 use App\Support\HrmSidebarRegistry;
 use App\Support\InventorySidebarRegistry;
 use App\Support\IspOsSidebarRegistry;
+use App\Support\NetworkMapSidebarRegistry;
 use App\Support\NetworkSidebarRegistry;
 use App\Support\OltSidebarRegistry;
 use App\Support\PaymentsSidebarRegistry;
@@ -75,8 +76,9 @@ final class IspSidebarNavigation
             }
 
             static::stripOltLinksFromInventoryProGroup($panel);
-            static::normalizeOltGroupOnPanel($panel);
+            static::normalizeNetworkModuleGroupsOnPanel($panel);
             static::ensureOltNavigationOnPanel($panel);
+            static::ensureNetworkMapNavigationOnPanel($panel);
             static::ensureHrManagementNavigationOnPanel($panel);
         });
     }
@@ -184,28 +186,43 @@ final class IspSidebarNavigation
 
         $urls = [];
 
-        $oltKeys = [
-            'fiber_map', 'olt_hub', 'olt_list', 'optical_database', 'topology',
-            'olt_vpn', 'pon_mac', 'laser_thresholds',
-        ];
-
-        foreach (NetworkSidebarRegistry::definitions() as $entry) {
-            if (! in_array($entry['key'], $oltKeys, true)) {
-                continue;
-            }
+        foreach (OltSidebarRegistry::definitions() as $entry) {
             $urls[] = $entry['url'];
         }
 
         return $urls = array_values(array_unique($urls));
     }
 
-    public static function normalizeOltGroupOnPanel(Panel $panel): void
+    public static function isNetworkMapAdminPath(string $url): bool
+    {
+        $path = parse_url($url, PHP_URL_PATH) ?? $url;
+
+        return str_contains($path, 'fiber-plant-map')
+            || str_contains($path, 'isp-os')
+            || str_contains($path, 'noc-wall')
+            || str_contains($path, 'field-technicians')
+            || str_contains($path, 'fault-center')
+            || str_contains($path, 'fault-management');
+    }
+
+    public static function normalizeNetworkModuleGroupsOnPanel(Panel $panel): void
     {
         $items = static::panelNavigationItems($panel);
 
         foreach ($items as $item) {
-            if (in_array((string) ($item->getGroup() ?? ''), ['OLT', 'OLT & Tools'], true)) {
-                $item->group('Network');
+            $url = (string) $item->getUrl();
+            if ($url === '') {
+                continue;
+            }
+
+            if (static::isNetworkMapAdminPath($url)) {
+                $item->group(NetworkMapSidebarRegistry::GROUP_LABEL);
+
+                continue;
+            }
+
+            if (static::isOltAdminPath($url)) {
+                $item->group(OltSidebarRegistry::GROUP_LABEL);
             }
         }
 
@@ -237,7 +254,59 @@ final class IspSidebarNavigation
 
     public static function ensureOltNavigationOnPanel(Panel $panel): void
     {
-        // OLT links are registered under Network via NetworkSidebarRegistry.
+        if (! OltSidebarRegistry::hasVisibleEntries()) {
+            return;
+        }
+
+        $oltGroups = [
+            OltSidebarRegistry::GROUP_LABEL,
+            'OLT',
+        ];
+
+        $filtered = array_values(array_filter(
+            static::panelNavigationItems($panel),
+            static function (NavigationItem $item) use ($oltGroups): bool {
+                return ! in_array((string) ($item->getGroup() ?? ''), $oltGroups, true);
+            },
+        ));
+
+        static::setPanelNavigationItems($panel, $filtered);
+        $panel->navigationItems(OltSidebarRegistry::navigationItems());
+    }
+
+    public static function ensureNetworkMapNavigationOnPanel(Panel $panel): void
+    {
+        if (! NetworkMapSidebarRegistry::hasVisibleEntries() && ! IspOsSidebarRegistry::hasVisibleEntries()) {
+            return;
+        }
+
+        $groupsToStrip = [
+            NetworkMapSidebarRegistry::GROUP_LABEL,
+            'ISP OS',
+        ];
+
+        $filtered = array_values(array_filter(
+            static::panelNavigationItems($panel),
+            static function (NavigationItem $item) use ($groupsToStrip): bool {
+                return ! in_array((string) ($item->getGroup() ?? ''), $groupsToStrip, true);
+            },
+        ));
+
+        static::setPanelNavigationItems($panel, $filtered);
+
+        $items = [];
+
+        if (NetworkMapSidebarRegistry::hasVisibleEntries()) {
+            array_push($items, ...NetworkMapSidebarRegistry::navigationItems());
+        }
+
+        if (IspOsSidebarRegistry::hasVisibleEntries()) {
+            array_push($items, ...IspOsSidebarRegistry::navigationItems());
+        }
+
+        if ($items !== []) {
+            $panel->navigationItems($items);
+        }
     }
 
     /**
@@ -280,6 +349,8 @@ final class IspSidebarNavigation
         static::appendIf($merged, InventorySidebarRegistry::hasVisibleEntries(), InventorySidebarRegistry::navigationItems());
         static::appendIf($merged, PaymentsSidebarRegistry::hasVisibleEntries(), PaymentsSidebarRegistry::navigationItems());
         static::appendIf($merged, NetworkSidebarNavigation::userCanSee(), NetworkSidebarRegistry::navigationItems());
+        static::appendIf($merged, OltSidebarRegistry::hasVisibleEntries(), OltSidebarRegistry::navigationItems());
+        static::appendIf($merged, NetworkMapSidebarRegistry::hasVisibleEntries(), NetworkMapSidebarRegistry::navigationItems());
         static::appendIf($merged, SmsSidebarNavigation::userCanSee(), SmsSidebarRegistry::navigationItems());
         static::appendIf($merged, SupportSidebarRegistry::hasVisibleEntries(), SupportSidebarRegistry::navigationItems());
         static::appendIf($merged, ReportsSidebarNavigation::userCanSee(), ReportsSidebarRegistry::navigationItems());
@@ -343,8 +414,8 @@ final class IspSidebarNavigation
     private static function navigationGroupPriority(string $group): int
     {
         return match ($group) {
-            IspOsSidebarRegistry::GROUP_LABEL => 110,
             OltSidebarRegistry::GROUP_LABEL, 'OLT' => 100,
+            NetworkMapSidebarRegistry::GROUP_LABEL => 95,
             'Network' => 90,
             InventorySidebarRegistry::GROUP_LABEL => 40,
             default => 50,

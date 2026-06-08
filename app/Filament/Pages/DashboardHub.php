@@ -66,10 +66,10 @@ class DashboardHub extends Page
             [
                 'title' => 'Billing dashboard',
                 'description' => 'Collections, dues, invoices, payment desk',
-                'url' => BillingDashboard::getUrl(),
+                'url' => BillingOverview::getUrl(['tab' => 'analytics']),
                 'tone' => 'emerald',
                 'icon' => 'heroicon-o-banknotes',
-                'visible' => BillingDashboard::canAccess(),
+                'visible' => BillingOverview::canAccess(),
             ],
             [
                 'title' => 'GPON / ONU',

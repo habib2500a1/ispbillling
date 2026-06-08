@@ -11,7 +11,7 @@ use Filament\Navigation\NavigationItem;
 
 final class IspOsSidebarRegistry
 {
-    public const GROUP_LABEL = 'ISP OS';
+    public const GROUP_LABEL = NetworkMapSidebarRegistry::GROUP_LABEL;
 
     /**
      * @return list<array{key: string, label: string, icon: string, sort: int|float, url: string, active_routes: list<string>}>
@@ -23,7 +23,7 @@ final class IspOsSidebarRegistry
                 'key' => 'isp_os_hub',
                 'label' => 'ISP OS center',
                 'icon' => 'heroicon-o-command-line',
-                'sort' => 0,
+                'sort' => 1,
                 'url' => IspOsHub::getUrl(),
                 'active_routes' => ['filament.admin.pages.isp-os'],
             ],
@@ -31,7 +31,7 @@ final class IspOsSidebarRegistry
                 'key' => 'fault_center',
                 'label' => 'Fault center',
                 'icon' => 'heroicon-o-exclamation-triangle',
-                'sort' => 1,
+                'sort' => 2,
                 'url' => FaultManagementHub::getUrl(),
                 'active_routes' => ['filament.admin.pages.fault-center'],
             ],
@@ -39,7 +39,7 @@ final class IspOsSidebarRegistry
                 'key' => 'field_technicians',
                 'label' => 'Field technicians',
                 'icon' => 'heroicon-o-wrench-screwdriver',
-                'sort' => 2,
+                'sort' => 3,
                 'url' => FieldTechnicianCenter::getUrl(),
                 'active_routes' => ['filament.admin.pages.field-technicians'],
             ],
@@ -47,7 +47,7 @@ final class IspOsSidebarRegistry
                 'key' => 'noc_wall',
                 'label' => 'NOC wall',
                 'icon' => 'heroicon-o-tv',
-                'sort' => 3,
+                'sort' => 4,
                 'url' => NocWall::getUrl(),
                 'active_routes' => ['filament.admin.pages.noc-wall'],
             ],

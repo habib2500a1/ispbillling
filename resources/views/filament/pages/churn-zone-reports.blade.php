@@ -4,37 +4,45 @@
 @endphp
 
 <x-filament-panels::page>
-    <div class="space-y-6">
-        <div class="flex flex-wrap items-center justify-between gap-4">
-            <a href="{{ \App\Filament\Pages\ReportsHub::getUrl() }}" class="text-sm text-indigo-600 hover:underline">&larr; Reports hub</a>
-            <form wire:submit.prevent class="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-900">
-                {{ $this->form }}
-            </form>
+    <div class="isp-bi-page">
+        <x-isp.reports.page-header
+            eyebrow="Customer analytics"
+            title="Churn &amp; zone collection"
+            :subtitle="$report['from']->format('d M Y').' – '.$report['to']->format('d M Y').' · Zone recovery and churn by geography'"
+            score-label="Collection rate"
+            :score-value="$summary['collection_rate'].'%'"
+        />
+
+        <div class="isp-bi-toolbar">
+            <a href="{{ \App\Filament\Pages\ReportsHub::getUrl() }}" class="isp-bi-back">← Intelligence center</a>
+            <a href="{{ \App\Filament\Pages\AnalyticsReports::getUrl(['tab' => 'churn']) }}" class="isp-bi-back">Analytics churn tab →</a>
         </div>
 
-        <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <div class="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-900">
-                <p class="text-xs uppercase text-gray-500">Collected (period)</p>
-                <p class="text-xl font-bold text-emerald-600">{{ number_format($summary['collected'], 2) }} BDT</p>
+        <div class="isp-bi-filters">
+            <div class="flex flex-wrap gap-2">
+                <button type="button" wire:click="applyDatePreset('today')" class="isp-bi-preset">Today</button>
+                <button type="button" wire:click="applyDatePreset('week')" class="isp-bi-preset">This week</button>
+                <button type="button" wire:click="applyDatePreset('month')" class="isp-bi-preset">This month</button>
+                <button type="button" wire:click="applyDatePreset('year')" class="isp-bi-preset">This year</button>
             </div>
-            <div class="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-900">
-                <p class="text-xs uppercase text-gray-500">Collection rate</p>
-                <p class="text-xl font-bold text-indigo-600">{{ $summary['collection_rate'] }}%</p>
-            </div>
-            <div class="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-900">
-                <p class="text-xs uppercase text-gray-500">Outstanding (now)</p>
-                <p class="text-xl font-bold text-rose-600">{{ number_format($summary['outstanding'], 2) }} BDT</p>
-            </div>
-            <div class="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-900">
-                <p class="text-xs uppercase text-gray-500">Churned (period)</p>
-                <p class="text-xl font-bold text-rose-700">−{{ $report['churn']['totals']['churned'] }}</p>
-            </div>
+            <div class="flex-1 min-w-[14rem]">{{ $this->form }}</div>
         </div>
 
-        <div class="flex flex-wrap gap-2 border-b border-gray-200 pb-2 dark:border-gray-700">
-            <button type="button" wire:click="setActiveTab('zones')" class="rounded-lg px-3 py-1.5 text-sm font-medium {{ $activeTab === 'zones' ? 'bg-cyan-600 text-white' : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300' }}">Zone collection</button>
-            <button type="button" wire:click="setActiveTab('churn')" class="rounded-lg px-3 py-1.5 text-sm font-medium {{ $activeTab === 'churn' ? 'bg-rose-600 text-white' : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300' }}">Churn by zone</button>
+        <div class="isp-bi-kpi-grid isp-bi-kpi-grid--4">
+            <x-isp.reports.kpi-card label="Collected (period)" :value="number_format($summary['collected'], 2).' BDT'" tone="emerald" />
+            <x-isp.reports.kpi-card label="Collection rate" :value="$summary['collection_rate'].'%'" tone="violet" />
+            <x-isp.reports.kpi-card label="Outstanding (now)" :value="number_format($summary['outstanding'], 2).' BDT'" tone="rose" />
+            <x-isp.reports.kpi-card label="Churned (period)" :value="'−'.$report['churn']['totals']['churned']" tone="amber" />
         </div>
+
+        <section class="isp-bi-section">
+            <div class="isp-bi-section__body space-y-3">
+                <div class="isp-bi-tabs">
+                    <button type="button" wire:click="setActiveTab('zones')" class="isp-bi-tab {{ $activeTab === 'zones' ? 'is-active' : '' }}">Zone collection</button>
+                    <button type="button" wire:click="setActiveTab('churn')" class="isp-bi-tab {{ $activeTab === 'churn' ? 'is-active' : '' }}">Churn by zone</button>
+                </div>
+            </div>
+        </section>
 
         @if ($activeTab === 'zones')
             @php
@@ -42,91 +50,95 @@
                 $totalCollected = collect($zones)->sum('collected');
                 $totalInvoiced = collect($zones)->sum('invoiced');
             @endphp
-            <div class="rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-900">
-                <h3 class="text-lg font-semibold dark:text-white">Zone-wise collection</h3>
-                <p class="text-sm text-gray-500">{{ $report['from']->format('d M Y') }} – {{ $report['to']->format('d M Y') }} · {{ number_format($totalCollected, 2) }} BDT collected / {{ number_format($totalInvoiced, 2) }} invoiced</p>
-                <div class="mt-4 overflow-x-auto">
-                    <table class="w-full min-w-[720px] text-left text-sm">
-                        <thead class="border-b dark:border-gray-700">
+            <section class="isp-bi-section">
+                <div class="isp-bi-section__head">
+                    <div>
+                        <h2 class="isp-bi-section__title">Zone-wise collection</h2>
+                        <p class="isp-bi-section__desc">{{ number_format($totalCollected, 2) }} BDT collected / {{ number_format($totalInvoiced, 2) }} invoiced</p>
+                    </div>
+                </div>
+                <div class="isp-bi-section__body isp-bi-table-wrap">
+                    <table class="isp-bi-table">
+                        <thead>
                             <tr>
-                                <th class="py-2">Area</th>
-                                <th class="py-2">Zone</th>
-                                <th class="py-2 text-right">Subs</th>
-                                <th class="py-2 text-right">Active</th>
-                                <th class="py-2 text-right">Invoiced</th>
-                                <th class="py-2 text-right">Collected</th>
-                                <th class="py-2 text-right">Rate</th>
-                                <th class="py-2 text-right">Due now</th>
+                                <th>Area</th><th>Zone</th><th class="num">Subs</th><th class="num">Active</th>
+                                <th class="num">Invoiced</th><th class="num">Collected</th><th class="num">Rate</th><th class="num">Due now</th>
                             </tr>
                         </thead>
                         <tbody>
                             @forelse ($zones as $row)
-                                <tr class="border-b border-gray-100 dark:border-gray-800">
-                                    <td class="py-2">{{ $row['area'] }}</td>
-                                    <td class="py-2 font-medium">{{ $row['zone'] }}</td>
-                                    <td class="py-2 text-right">{{ $row['subscribers'] }}</td>
-                                    <td class="py-2 text-right">{{ $row['active'] }}</td>
-                                    <td class="py-2 text-right tabular-nums">{{ number_format($row['invoiced'], 2) }}</td>
-                                    <td class="py-2 text-right font-semibold text-emerald-700 tabular-nums">{{ number_format($row['collected'], 2) }}</td>
-                                    <td class="py-2 text-right">{{ $row['collection_rate'] }}%</td>
-                                    <td class="py-2 text-right text-rose-600 tabular-nums">{{ number_format($row['outstanding'], 2) }}</td>
+                                <tr>
+                                    <td>{{ $row['area'] }}</td>
+                                    <td class="font-medium">{{ $row['zone'] }}</td>
+                                    <td class="num">{{ $row['subscribers'] }}</td>
+                                    <td class="num">{{ $row['active'] }}</td>
+                                    <td class="num">{{ number_format($row['invoiced'], 2) }}</td>
+                                    <td class="num" style="color:var(--bi-success);font-weight:600">{{ number_format($row['collected'], 2) }}</td>
+                                    <td class="num">{{ $row['collection_rate'] }}%</td>
+                                    <td class="num danger">{{ number_format($row['outstanding'], 2) }}</td>
                                 </tr>
                             @empty
-                                <tr><td colspan="8" class="py-8 text-center text-gray-500">No zones with subscribers.</td></tr>
+                                <tr><td colspan="8" class="isp-bi-empty">No zones with subscribers.</td></tr>
                             @endforelse
                         </tbody>
                     </table>
                 </div>
-            </div>
+            </section>
         @endif
 
         @if ($activeTab === 'churn')
             @php $churn = $report['churn']; @endphp
-            <div class="grid gap-6 lg:grid-cols-2">
-                <div class="rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-900">
-                    <h3 class="text-lg font-semibold dark:text-white">Churn by zone</h3>
-                    <p class="text-sm text-gray-500">
-                        {{ $churn['totals']['suspended'] }} suspended · {{ $churn['totals']['terminated'] }} terminated · {{ $churn['totals']['expired'] }} expired
-                    </p>
-                    <table class="mt-4 w-full text-left text-sm">
-                        <thead class="border-b dark:border-gray-700">
-                            <tr><th class="py-2">Area</th><th class="py-2">Zone</th><th class="py-2 text-right">Total</th></tr>
-                        </thead>
-                        <tbody>
-                            @forelse ($churn['by_zone'] as $row)
-                                <tr class="border-b border-gray-100 dark:border-gray-800">
-                                    <td class="py-2">{{ $row['area'] }}</td>
-                                    <td class="py-2">{{ $row['zone'] }}</td>
-                                    <td class="py-2 text-right font-bold text-rose-700">{{ $row['churned'] }}</td>
-                                </tr>
-                            @empty
-                                <tr><td colspan="3" class="py-6 text-center text-gray-500">No churn in this period.</td></tr>
-                            @endforelse
-                        </tbody>
-                    </table>
-                </div>
-                <div class="rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-900">
-                    <h3 class="text-lg font-semibold dark:text-white">Recent churned subscribers</h3>
-                    <div class="mt-4 max-h-96 overflow-y-auto">
-                        <table class="w-full text-left text-sm">
-                            <thead class="border-b dark:border-gray-700">
-                                <tr><th class="py-2">Code</th><th class="py-2">Name</th><th class="py-2">Zone</th><th class="py-2">Status</th></tr>
-                            </thead>
+            <div class="isp-bi-split isp-bi-split--2">
+                <section class="isp-bi-section">
+                    <div class="isp-bi-section__head">
+                        <div>
+                            <h2 class="isp-bi-section__title">Churn by zone</h2>
+                            <p class="isp-bi-section__desc">
+                                {{ $churn['totals']['suspended'] }} suspended · {{ $churn['totals']['terminated'] }} terminated · {{ $churn['totals']['expired'] }} expired
+                            </p>
+                        </div>
+                    </div>
+                    <div class="isp-bi-section__body isp-bi-table-wrap">
+                        <table class="isp-bi-table">
+                            <thead><tr><th>Area</th><th>Zone</th><th class="num">Total</th></tr></thead>
                             <tbody>
-                                @forelse ($churn['recent'] as $row)
-                                    <tr class="border-b border-gray-100 dark:border-gray-800">
-                                        <td class="py-2 font-mono text-xs">{{ $row['customer_code'] }}</td>
-                                        <td class="py-2">{{ $row['name'] }}</td>
-                                        <td class="py-2 text-xs">{{ $row['zone'] }}</td>
-                                        <td class="py-2 capitalize">{{ $row['status'] }}</td>
+                                @forelse ($churn['by_zone'] as $row)
+                                    <tr>
+                                        <td>{{ $row['area'] }}</td>
+                                        <td>{{ $row['zone'] }}</td>
+                                        <td class="num danger">{{ $row['churned'] }}</td>
                                     </tr>
                                 @empty
-                                    <tr><td colspan="4" class="py-6 text-center text-gray-500">No records</td></tr>
+                                    <tr><td colspan="3" class="isp-bi-empty">No churn in this period.</td></tr>
                                 @endforelse
                             </tbody>
                         </table>
                     </div>
-                </div>
+                </section>
+                <section class="isp-bi-section">
+                    <div class="isp-bi-section__head">
+                        <div>
+                            <h2 class="isp-bi-section__title">Recent churned subscribers</h2>
+                        </div>
+                    </div>
+                    <div class="isp-bi-section__body isp-bi-table-wrap max-h-96 overflow-y-auto">
+                        <table class="isp-bi-table">
+                            <thead><tr><th>Code</th><th>Name</th><th>Zone</th><th>Status</th></tr></thead>
+                            <tbody>
+                                @forelse ($churn['recent'] as $row)
+                                    <tr>
+                                        <td class="font-mono text-xs">{{ $row['customer_code'] }}</td>
+                                        <td>{{ $row['name'] }}</td>
+                                        <td class="text-xs">{{ $row['zone'] }}</td>
+                                        <td class="capitalize">{{ $row['status'] }}</td>
+                                    </tr>
+                                @empty
+                                    <tr><td colspan="4" class="isp-bi-empty">No records</td></tr>
+                                @endforelse
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
             </div>
         @endif
     </div>

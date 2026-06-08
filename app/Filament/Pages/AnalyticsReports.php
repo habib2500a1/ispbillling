@@ -34,6 +34,8 @@ class AnalyticsReports extends Page implements HasForms
 
     public string $activeTab = 'collection';
 
+    public string $activeDomain = 'revenue';
+
     public function mount(): void
     {
         $this->form->fill([
@@ -45,6 +47,38 @@ class AnalyticsReports extends Page implements HasForms
         if (is_string($tab)) {
             $this->setActiveTab($tab);
         }
+
+        $this->syncDomainFromTab();
+    }
+
+    public function getExtraBodyAttributes(): array
+    {
+        return ['class' => 'isp-bi-module'];
+    }
+
+    public function applyDatePreset(string $preset): void
+    {
+        $this->data = match ($preset) {
+            'today' => [
+                'from' => now()->toDateString(),
+                'to' => now()->toDateString(),
+            ],
+            'week' => [
+                'from' => now()->startOfWeek()->toDateString(),
+                'to' => now()->endOfWeek()->toDateString(),
+            ],
+            'month' => [
+                'from' => now()->startOfMonth()->toDateString(),
+                'to' => now()->endOfMonth()->toDateString(),
+            ],
+            'year' => [
+                'from' => now()->startOfYear()->toDateString(),
+                'to' => now()->endOfYear()->toDateString(),
+            ],
+            default => $this->data ?? [],
+        };
+
+        $this->form->fill($this->data);
     }
 
     public function form(Form $form): Form
@@ -64,7 +98,93 @@ class AnalyticsReports extends Page implements HasForms
             'collection', 'due', 'revenue', 'churn', 'growth', 'online', 'area', 'packages',
         ], true)) {
             $this->activeTab = $tab;
+            $this->syncDomainFromTab();
         }
+    }
+
+    public function setActiveDomain(string $domain): void
+    {
+        if (! in_array($domain, ['revenue', 'customers', 'network', 'gis'], true)) {
+            return;
+        }
+
+        $this->activeDomain = $domain;
+
+        $this->activeTab = match ($domain) {
+            'revenue' => 'collection',
+            'customers' => 'growth',
+            'network' => 'online',
+            'gis' => 'area',
+            default => $this->activeTab,
+        };
+    }
+
+    private function syncDomainFromTab(): void
+    {
+        $this->activeDomain = match ($this->activeTab) {
+            'collection', 'due', 'revenue' => 'revenue',
+            'churn', 'growth', 'packages' => 'customers',
+            'online' => 'network',
+            'area' => 'gis',
+            default => $this->activeDomain,
+        };
+    }
+
+    /**
+     * @return list<array{key: string, label: string, export_url: string|null, export_label: string|null}>
+     */
+    public function getTabDefinitions(): array
+    {
+        return [
+            'collection' => [
+                'key' => 'collection',
+                'label' => 'Collection',
+                'export_url' => PaymentsReport::getUrl(),
+                'export_label' => 'Full payments CSV',
+            ],
+            'due' => [
+                'key' => 'due',
+                'label' => 'Due',
+                'export_url' => DueReportProPage::getUrl(),
+                'export_label' => 'Due pro export',
+            ],
+            'revenue' => [
+                'key' => 'revenue',
+                'label' => 'Revenue',
+                'export_url' => BillingReports::getUrl(),
+                'export_label' => 'Monthly billing',
+            ],
+            'churn' => [
+                'key' => 'churn',
+                'label' => 'Churn',
+                'export_url' => ChurnZoneReports::getUrl(),
+                'export_label' => 'Zone churn report',
+            ],
+            'growth' => [
+                'key' => 'growth',
+                'label' => 'Growth',
+                'export_url' => ExportClientsReport::getUrl(),
+                'export_label' => 'Export clients',
+            ],
+            'online' => [
+                'key' => 'online',
+                'label' => 'Online users',
+                'export_url' => null,
+                'export_label' => null,
+            ],
+            'area' => [
+                'key' => 'area',
+                'label' => 'Area-wise',
+                'export_url' => AreaWiseClientsReport::getUrl(),
+                'export_label' => 'Area CSV',
+            ],
+            'packages' => [
+                'key' => 'packages',
+                'label' => 'Packages',
+                'export_url' => PackageWiseReportPage::getUrl(),
+                'export_label' => 'Package CSV',
+            ],
+        ];
     }
 
     /**

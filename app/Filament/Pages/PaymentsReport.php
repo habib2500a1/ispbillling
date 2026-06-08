@@ -36,6 +36,11 @@ class PaymentsReport extends Page implements HasTable
 
     protected static bool $shouldRegisterNavigation = false;
 
+    public function getExtraBodyAttributes(): array
+    {
+        return ['class' => 'isp-bi-module'];
+    }
+
     public string $dateFrom = '';
 
     public string $dateTo = '';

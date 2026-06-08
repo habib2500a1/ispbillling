@@ -12,6 +12,11 @@ class BillingDashboard extends Page
 {
     use HasRoleDashboard;
 
+    public function mount(): void
+    {
+        $this->redirect(BillingOverview::getUrl(['tab' => 'analytics']), navigate: true);
+    }
+
     protected static ?string $navigationIcon = 'heroicon-o-banknotes';
 
     protected static string $view = 'filament.pages.billing-dashboard';

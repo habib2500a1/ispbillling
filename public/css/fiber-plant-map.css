@@ -960,3 +960,225 @@
     background: #0f766e;
     color: #fff;
 }
+
+/* ── Dark mode (Filament .dark / data-theme) ── */
+.dark .isp-fiber-plant-page,
+[data-theme='dark'] .isp-fiber-plant-page {
+    color: #e2e8f0;
+}
+
+.dark .fpm-panel,
+[data-theme='dark'] .fpm-panel {
+    color: #e2e8f0;
+}
+
+.dark .fpm-form__title,
+.dark .fpm-form__hint,
+.dark .fpm-field span,
+.dark .fpm-legend__title,
+.dark .fpm-help,
+[data-theme='dark'] .fpm-form__title,
+[data-theme='dark'] .fpm-form__hint,
+[data-theme='dark'] .fpm-field span,
+[data-theme='dark'] .fpm-legend__title,
+[data-theme='dark'] .fpm-help {
+    color: #94a3b8;
+}
+
+.dark .fpm-tool,
+[data-theme='dark'] .fpm-tool {
+    color: #e2e8f0;
+    border-color: rgba(148, 163, 184, 0.45);
+}
+
+.dark .fpm-tool:not(.fpm-tool--active):hover,
+[data-theme='dark'] .fpm-tool:not(.fpm-tool--active):hover {
+    background: rgba(148, 163, 184, 0.12);
+}
+
+.dark .fpm-filter,
+[data-theme='dark'] .fpm-filter {
+    color: #cbd5e1;
+    border-color: rgba(148, 163, 184, 0.45);
+}
+
+.dark .fpm-field input,
+.dark .fpm-field select,
+.dark .fpm-field textarea,
+.dark .fpm-search input,
+[data-theme='dark'] .fpm-field input,
+[data-theme='dark'] .fpm-field select,
+[data-theme='dark'] .fpm-field textarea,
+[data-theme='dark'] .fpm-search input {
+    color: #f1f5f9;
+    background: rgba(15, 23, 42, 0.65);
+    border-color: rgba(148, 163, 184, 0.4);
+}
+
+.dark .fpm-field input::placeholder,
+.dark .fpm-search input::placeholder,
+[data-theme='dark'] .fpm-field input::placeholder,
+[data-theme='dark'] .fpm-search input::placeholder {
+    color: #64748b;
+}
+
+.dark .fpm-import-card,
+[data-theme='dark'] .fpm-import-card {
+    background: linear-gradient(135deg, rgba(15, 118, 110, 0.22), rgba(30, 58, 95, 0.35));
+    border-color: rgba(45, 212, 191, 0.35);
+    color: #e2e8f0;
+}
+
+.dark .fpm-coord-panel,
+[data-theme='dark'] .fpm-coord-panel {
+    background: rgba(120, 53, 15, 0.35);
+    border-color: rgba(251, 146, 60, 0.45);
+    color: #f1f5f9;
+}
+
+.dark .fpm-coord-panel summary,
+.dark .fpm-coord-panel__head,
+[data-theme='dark'] .fpm-coord-panel summary,
+[data-theme='dark'] .fpm-coord-panel__head {
+    color: #f8fafc;
+}
+
+.dark .fpm-coord-panel__ok,
+[data-theme='dark'] .fpm-coord-panel__ok {
+    color: #86efac;
+}
+
+.dark .fpm-coord-list li,
+[data-theme='dark'] .fpm-coord-list li {
+    color: #e2e8f0;
+}
+
+.dark .fpm-coord-list small,
+[data-theme='dark'] .fpm-coord-list small {
+    color: #94a3b8;
+}
+
+.dark .fpm-coord-list a,
+[data-theme='dark'] .fpm-coord-list a {
+    color: #5eead4;
+}
+
+.dark .fpm-coord-list a:hover,
+[data-theme='dark'] .fpm-coord-list a:hover {
+    color: #99f6e4;
+}
+
+.dark .fpm-customer-detail,
+[data-theme='dark'] .fpm-customer-detail {
+    background: rgba(30, 41, 59, 0.85);
+    border-color: rgba(148, 163, 184, 0.35);
+    color: #e2e8f0;
+}
+
+.dark .fpm-customer-detail__title,
+[data-theme='dark'] .fpm-customer-detail__title {
+    color: #f8fafc;
+}
+
+.dark .fpm-customer-path,
+[data-theme='dark'] .fpm-customer-path {
+    background: rgba(14, 165, 233, 0.12);
+    color: #e2e8f0;
+}
+
+.dark .fpm-olt-strip,
+[data-theme='dark'] .fpm-olt-strip {
+    background: rgba(15, 118, 110, 0.18);
+    border-color: rgba(45, 212, 191, 0.3);
+}
+
+.dark .fpm-olt-chip,
+[data-theme='dark'] .fpm-olt-chip {
+    background: rgba(30, 41, 59, 0.9);
+    border-color: rgba(148, 163, 184, 0.35);
+    color: #e2e8f0;
+}
+
+.dark .fpm-olt-strip__more,
+.dark .fpm-popup-link,
+[data-theme='dark'] .fpm-olt-strip__more,
+[data-theme='dark'] .fpm-popup-link {
+    color: #5eead4;
+}
+
+.dark .fpm-search-results__item,
+[data-theme='dark'] .fpm-search-results__item {
+    color: #e2e8f0;
+}
+
+.dark .fpm-search-results__map,
+[data-theme='dark'] .fpm-search-results__map {
+    color: #86efac;
+}
+
+.dark .fpm-search-results__nomap,
+[data-theme='dark'] .fpm-search-results__nomap {
+    color: #fdba74;
+}
+
+.dark .fpm-map-tool,
+[data-theme='dark'] .fpm-map-tool {
+    background: rgba(30, 41, 59, 0.92);
+    color: #e2e8f0;
+}
+
+.dark .fpm-status-legend,
+[data-theme='dark'] .fpm-status-legend {
+    color: #cbd5e1;
+}
+
+.dark .fpm-btn--ghost,
+[data-theme='dark'] .fpm-btn--ghost {
+    background: rgba(148, 163, 184, 0.15);
+    color: #e2e8f0;
+    border: 1px solid rgba(148, 163, 184, 0.35);
+}
+
+/* Leaflet popups on dark admin */
+.dark .isp-fiber-plant-page .leaflet-popup-content-wrapper,
+.dark .isp-fiber-plant-page .leaflet-popup-tip,
+[data-theme='dark'] .isp-fiber-plant-page .leaflet-popup-content-wrapper,
+[data-theme='dark'] .isp-fiber-plant-page .leaflet-popup-tip {
+    background: #1e293b;
+    color: #f1f5f9;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.45);
+}
+
+.dark .isp-fiber-plant-page .fpm-popup-dl dt,
+[data-theme='dark'] .isp-fiber-plant-page .fpm-popup-dl dt {
+    color: #94a3b8;
+}
+
+.dark .isp-fiber-plant-page .fpm-popup-dl dd,
+[data-theme='dark'] .isp-fiber-plant-page .fpm-popup-dl dd {
+    color: #f1f5f9;
+}
+
+.dark .isp-fiber-plant-page .fpm-popup-reason,
+[data-theme='dark'] .isp-fiber-plant-page .fpm-popup-reason {
+    background: rgba(127, 29, 29, 0.45);
+    color: #fecaca;
+}
+
+.dark .isp-fiber-plant-page .fpm-badge--ok,
+[data-theme='dark'] .isp-fiber-plant-page .fpm-badge--ok {
+    background: rgba(22, 101, 52, 0.45);
+    color: #86efac;
+}
+
+.dark .isp-fiber-plant-page .fpm-badge--bad,
+[data-theme='dark'] .isp-fiber-plant-page .fpm-badge--bad {
+    background: rgba(127, 29, 29, 0.45);
+    color: #fca5a5;
+}
+
+.dark .isp-fiber-plant-page .fpm-badge--muted,
+[data-theme='dark'] .isp-fiber-plant-page .fpm-badge--muted {
+    background: rgba(51, 65, 85, 0.65);
+    color: #cbd5e1;
+}

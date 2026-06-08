@@ -124,10 +124,78 @@
         }
     }
 
+    function initSavedFilters(root) {
+        const wrap = root.querySelector('[data-bl-saved-filters]');
+        if (!wrap) return;
+
+        let filters = [];
+        try {
+            filters = JSON.parse(root.dataset.blSavedFilters || '[]');
+        } catch (e) {
+            filters = [];
+        }
+
+        if (!filters.length) {
+            wrap.hidden = true;
+            return;
+        }
+
+        const current = window.location.pathname + window.location.search;
+        wrap.innerHTML = filters
+            .map((f) => {
+                const active = current.includes(f.url.replace(/^https?:\/\/[^/]+/, '')) ? ' bl-saved-filter--active' : '';
+                return `<button type="button" class="bl-saved-filter${active}" data-bl-filter-url="${escapeHtml(f.url)}">${escapeHtml(f.label)}</button>`;
+            })
+            .join('');
+
+        wrap.querySelectorAll('[data-bl-filter-url]').forEach((btn) => {
+            btn.addEventListener('click', () => {
+                const url = btn.dataset.blFilterUrl;
+                if (url) window.location.href = url;
+            });
+        });
+    }
+
+    function initBulkBar(root) {
+        const bar = root.querySelector('[data-bl-bulk-bar]');
+        const table = root.querySelector('.fi-ta-table');
+        if (!bar || !table) return;
+
+        const countEl = bar.querySelector('[data-bl-bulk-count]');
+        const sync = () => {
+            const checked = table.querySelectorAll('tbody input[type="checkbox"]:checked').length;
+            bar.classList.toggle('bl-bulk-bar--visible', checked > 0);
+            if (countEl) countEl.textContent = String(checked);
+        };
+
+        table.addEventListener('change', (ev) => {
+            if (ev.target && ev.target.type === 'checkbox') sync();
+        });
+
+        const printBtn = bar.querySelector('[data-bl-bulk-print]');
+        if (printBtn) {
+            printBtn.addEventListener('click', () => window.print());
+        }
+
+        const exportBtn = bar.querySelector('[data-bl-bulk-export]');
+        if (exportBtn) {
+            exportBtn.addEventListener('click', () => {
+                const exportLink = root.querySelector('a[href*="export"], button[wire\\:click*="export"]');
+                if (exportLink) exportLink.click();
+            });
+        }
+    }
+
+    function bootRoot(root) {
+        initViewToggle(root);
+        initSavedFilters(root);
+        initBulkBar(root);
+    }
+
     function boot() {
         markBillingModule();
         initSidebarCompact();
-        document.querySelectorAll('.bl-pro').forEach(initViewToggle);
+        document.querySelectorAll('.bl-pro').forEach(bootRoot);
     }
 
     if (document.readyState === 'loading') {
@@ -138,6 +206,6 @@
 
     document.addEventListener('livewire:navigated', () => {
         markBillingModule();
-        document.querySelectorAll('.bl-pro').forEach(initViewToggle);
+        document.querySelectorAll('.bl-pro').forEach(bootRoot);
     });
 })();

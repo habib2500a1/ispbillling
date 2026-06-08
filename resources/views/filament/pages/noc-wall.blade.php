@@ -123,7 +123,7 @@
     $pollSeconds = (int) config('dashboard.noc_wall_poll_seconds', 60);
 @endphp
 
-<div class="isp-noc-wall" wire:poll.{{ $pollSeconds }}s id="isp-noc-wall">
+<div class="isp-noc-wall" wire:poll.{{ $pollSeconds }}s="refreshWallData" id="isp-noc-wall">
     <header class="isp-noc-wall__header isp-noc-wall__header--hero" wire:key="noc-brand-{{ md5($companyName.'|'.($companyLogo ?? '')) }}">
         <div class="isp-noc-wall__brand">
             @if ($companyLogo)
@@ -1082,9 +1082,17 @@
 
     syncNocBars();
 
-    const nocWall = document.getElementById('isp-noc-wall');
-    if (nocWall && typeof MutationObserver !== 'undefined') {
-        const observer = new MutationObserver(() => syncNocBars());
-        observer.observe(nocWall, { childList: true, subtree: true });
-    }
+    let nocBarRaf = 0;
+    const scheduleNocBars = () => {
+        if (nocBarRaf) {
+            cancelAnimationFrame(nocBarRaf);
+        }
+        nocBarRaf = requestAnimationFrame(() => {
+            nocBarRaf = 0;
+            syncNocBars();
+        });
+    };
+
+    document.addEventListener('livewire:navigated', scheduleNocBars);
+    document.addEventListener('livewire:morph.updated', scheduleNocBars);
 </script>

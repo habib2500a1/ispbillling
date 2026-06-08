@@ -46,3 +46,29 @@
 [data-theme='dark'] .bh-revenue__bar {
     background: linear-gradient(180deg, #818cf8 0%, #4f46e5 100%);
 }
+
+.dark .bh-tabs,
+[data-theme='dark'] .bh-tabs {
+    background: rgba(17, 24, 39, 0.88);
+    border-color: rgba(100, 116, 139, 0.25);
+}
+
+.dark .bh-hub-search__input,
+.dark .bh-report-card,
+.dark .bh-analytics-stat,
+.dark .bh-pin,
+[data-theme='dark'] .bh-hub-search__input,
+[data-theme='dark'] .bh-report-card,
+[data-theme='dark'] .bh-analytics-stat,
+[data-theme='dark'] .bh-pin {
+    background: rgba(17, 24, 39, 0.92);
+    color: #e2e8f0;
+    border-color: rgba(100, 116, 139, 0.25);
+}
+
+.dark .bl-saved-filter,
+[data-theme='dark'] .bl-saved-filter {
+    background: rgba(17, 24, 39, 0.92);
+    color: #e2e8f0;
+    border-color: rgba(100, 116, 139, 0.3);
+}

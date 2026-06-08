@@ -3,7 +3,7 @@
 namespace App\Services\Dashboard;
 
 use App\Filament\Pages\BillCollectionDesk;
-use App\Filament\Pages\BillingDashboard;
+use App\Filament\Pages\BillingOverview;
 use App\Filament\Pages\MikrotikDashboard;
 use App\Filament\Pages\OnlineClientsMonitoring;
 use App\Filament\Pages\OpticalMonitoringHub;
@@ -150,7 +150,7 @@ final class OperationsDashboardService
             $links[] = ['label' => 'Payments', 'url' => \App\Filament\Resources\PaymentResource::getUrl('index'), 'icon' => 'heroicon-m-currency-dollar'];
             $links[] = ['label' => 'Invoices', 'url' => InvoiceResource::getUrl('index'), 'icon' => 'heroicon-m-document-text'];
             if ($capability->canReports()) {
-                $links[] = ['label' => 'Billing reports', 'url' => BillingDashboard::getUrl(), 'icon' => 'heroicon-m-chart-bar'];
+                $links[] = ['label' => 'Billing reports', 'url' => BillingOverview::getUrl(['tab' => 'reports']), 'icon' => 'heroicon-m-chart-bar'];
             }
         }
 
@@ -488,9 +488,9 @@ final class OperationsDashboardService
                 'accent' => 'green',
                 'cards' => [
                     ['label' => 'Collection today', 'value' => $money($sales['today']).' BDT', 'url' => BillCollectionDesk::getUrl(), 'tone' => 'green'],
-                    ['label' => 'Yesterday', 'value' => $money($sales['yesterday']).' BDT', 'url' => BillingDashboard::getUrl(), 'tone' => 'teal'],
-                    ['label' => 'This month', 'value' => $money($sales['month']).' BDT', 'url' => BillingDashboard::getUrl(), 'tone' => 'sky'],
-                    ['label' => 'Month collected', 'value' => $money((float) ($snap['collected'] ?? 0)).' BDT', 'url' => BillingDashboard::getUrl(), 'tone' => 'green'],
+                    ['label' => 'Yesterday', 'value' => $money($sales['yesterday']).' BDT', 'url' => BillingOverview::getUrl(['tab' => 'analytics']), 'tone' => 'teal'],
+                    ['label' => 'This month', 'value' => $money($sales['month']).' BDT', 'url' => BillingOverview::getUrl(['tab' => 'analytics']), 'tone' => 'sky'],
+                    ['label' => 'Month collected', 'value' => $money((float) ($snap['collected'] ?? 0)).' BDT', 'url' => BillingOverview::getUrl(['tab' => 'analytics']), 'tone' => 'green'],
                     ['label' => 'Outstanding', 'value' => $money((float) ($snap['outstanding'] ?? 0)).' BDT', 'url' => BillCollectionDesk::getUrl(), 'tone' => 'amber'],
                     ['label' => 'Due subscribers', 'value' => $n($snap['due_customers'] ?? 0), 'url' => BillCollectionDesk::getUrl(), 'tone' => 'rose'],
                 ],

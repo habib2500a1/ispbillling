@@ -190,6 +190,24 @@ trait UsesBillingInvoiceLayout
         return count($this->getBillingFilterChips());
     }
 
+    /**
+     * @return list<array{key: string, label: string, url: string}>
+     */
+    public function getBillingSavedFilters(): array
+    {
+        $index = \App\Filament\Resources\InvoiceResource::getUrl('index');
+        $due = \App\Filament\Resources\InvoiceResource::getUrl('due');
+        $paid = \App\Filament\Resources\InvoiceResource::getUrl('paid');
+
+        return [
+            ['key' => 'due', 'label' => 'Due bills', 'url' => $due],
+            ['key' => 'paid', 'label' => 'Paid bills', 'url' => $paid],
+            ['key' => 'draft', 'label' => 'Drafts', 'url' => $index.'?tableFilters[status][value]=draft'],
+            ['key' => 'open', 'label' => 'Open', 'url' => $index.'?tableFilters[status][value]=open'],
+            ['key' => 'overdue', 'label' => 'Overdue', 'url' => $due.'?tableFilters[overdue][isActive]=1'],
+        ];
+    }
+
     public function getBillingResultSummary(): string
     {
         $count = $this->getTableRecords()->total();

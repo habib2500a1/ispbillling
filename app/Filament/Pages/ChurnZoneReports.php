@@ -33,6 +33,23 @@ class ChurnZoneReports extends Page implements HasForms
 
     public string $activeTab = 'zones';
 
+    public function getExtraBodyAttributes(): array
+    {
+        return ['class' => 'isp-bi-module'];
+    }
+
+    public function applyDatePreset(string $preset): void
+    {
+        $this->data = match ($preset) {
+            'today' => ['from' => now()->toDateString(), 'to' => now()->toDateString()],
+            'week' => ['from' => now()->startOfWeek()->toDateString(), 'to' => now()->endOfWeek()->toDateString()],
+            'month' => ['from' => now()->startOfMonth()->toDateString(), 'to' => now()->endOfMonth()->toDateString()],
+            'year' => ['from' => now()->startOfYear()->toDateString(), 'to' => now()->endOfYear()->toDateString()],
+            default => $this->data ?? [],
+        };
+        $this->form->fill($this->data);
+    }
+
     public function mount(): void
     {
         $this->form->fill([

@@ -68,21 +68,7 @@ class InvoiceResource extends Resource
                 ->icon($entry['icon'])
                 ->group('Billing')
                 ->sort($entry['sort'])
-                ->isActiveWhen(function () use ($routes, $entry): bool {
-                    if (! request()->routeIs($routes)) {
-                        return false;
-                    }
-
-                    if ($entry['key'] === 'today_collection') {
-                        return request()->query('preset', 'today') === 'today';
-                    }
-
-                    if ($entry['key'] === 'all_collection') {
-                        return request()->query('preset') === 'month';
-                    }
-
-                    return true;
-                });
+                ->isActiveWhen(fn (): bool => request()->routeIs($routes));
 
             if ($count > 0 && isset($entry['count_key'])) {
                 $item->badge((string) $count);

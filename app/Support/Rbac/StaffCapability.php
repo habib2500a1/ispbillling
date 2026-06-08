@@ -3,7 +3,7 @@
 namespace App\Support\Rbac;
 
 use App\Filament\Pages\BillCollectionDesk;
-use App\Filament\Pages\BillingDashboard;
+use App\Filament\Pages\BillingOverview;
 use App\Filament\Pages\Dashboard;
 use App\Filament\Pages\OnlineClientsMonitoring;
 use App\Filament\Pages\OperationsHub;
@@ -282,8 +282,8 @@ final class StaffCapability
             }
         }
 
-        if ($this->canBilling() && BillingDashboard::canAccess()) {
-            return BillingDashboard::getUrl();
+        if ($this->canBilling() && BillingOverview::canAccess()) {
+            return BillingOverview::getUrl(['tab' => 'analytics']);
         }
 
         return null;
