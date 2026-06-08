@@ -9,7 +9,7 @@ final class QueueJobDispatcher
     /**
      * @param  callable(): void  $sync
      */
-    public static function run(ShouldQueue|object $job, callable $sync): void
+    public static function run(ShouldQueue $job, callable $sync): void
     {
         if (config('queue_ops.heavy_jobs_enabled', false)) {
             dispatch($job);
