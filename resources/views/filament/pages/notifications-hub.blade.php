@@ -1,5 +1,5 @@
 @php
-    $d = $dashboard;
+    $d = $this->dashboard;
     $kpis = $d['kpis'] ?? [];
     $channels = $d['channels'] ?? [];
     $billing = $d['billing_automation'] ?? [];
@@ -49,9 +49,9 @@
                     autocomplete="off"
                     aria-label="Global communication search"
                 >
-                @if (strlen($searchQuery) >= 2)
+                @if (strlen($this->searchQuery) >= 2)
                     <div class="isp-comms-search-results">
-                        @forelse ($searchResults as $row)
+                        @forelse ($this->searchResults as $row)
                             <a href="{{ $row['url'] ?? '#' }}">
                                 <strong>{{ $row['label'] }}</strong>
                                 <span class="block opacity-70">{{ ucfirst($row['type']) }} · {{ $row['meta'] ?? '' }}</span>
@@ -84,7 +84,7 @@
         {{-- Tabs --}}
         <div class="isp-comms-tabs">
             @foreach (['dashboard' => 'Dashboard', 'campaigns' => 'Campaigns', 'templates' => 'Templates', 'analytics' => 'Analytics', 'outage' => 'Outage', 'billing' => 'Billing auto', 'inbox' => 'Inbox'] as $tab => $label)
-                <button type="button" wire:click="setTab('{{ $tab }}')" class="isp-comms-tab {{ $activeTab === $tab ? 'isp-comms-tab--active' : '' }}">{{ $label }}</button>
+                <button type="button" wire:click="setTab('{{ $tab }}')" class="isp-comms-tab {{ $this->activeTab === $tab ? 'isp-comms-tab--active' : '' }}">{{ $label }}</button>
             @endforeach
             <button type="button" wire:click="refreshDashboard" class="isp-comms-tab ml-auto" wire:loading.attr="disabled">
                 <span wire:loading.remove wire:target="refreshDashboard">↻ Refresh</span>
@@ -105,7 +105,7 @@
 
             {{-- Main --}}
             <main class="space-y-4">
-                @if ($activeTab === 'dashboard' || $activeTab === 'outage')
+                @if ($this->activeTab === 'dashboard' || $this->activeTab === 'outage')
                     <section class="isp-comms-glass p-4">
                         <h2 class="text-sm font-semibold mb-3">Quick actions</h2>
                         <div class="isp-comms-quick-grid">
@@ -119,7 +119,7 @@
                     </section>
                 @endif
 
-                @if ($activeTab === 'dashboard')
+                @if ($this->activeTab === 'dashboard')
                     <section class="isp-comms-glass p-4">
                         <div class="flex items-center justify-between mb-3">
                             <h2 class="text-sm font-semibold">Recent delivery log</h2>
@@ -161,7 +161,7 @@
                     </section>
                 @endif
 
-                @if ($activeTab === 'campaigns')
+                @if ($this->activeTab === 'campaigns')
                     <section class="isp-comms-glass p-4">
                         <div class="flex items-center justify-between mb-3">
                             <h2 class="text-sm font-semibold">Campaign center</h2>
@@ -197,7 +197,7 @@
                     </section>
                 @endif
 
-                @if ($activeTab === 'templates')
+                @if ($this->activeTab === 'templates')
                     @php $tpl = $d['templates_summary'] ?? []; @endphp
                     <section class="isp-comms-glass p-4">
                         <div class="flex items-center justify-between mb-3">
@@ -216,7 +216,7 @@
                     </section>
                 @endif
 
-                @if ($activeTab === 'analytics')
+                @if ($this->activeTab === 'analytics')
                     <section class="isp-comms-glass p-4">
                         <h2 class="text-sm font-semibold mb-3">Delivery analytics (7 days)</h2>
                         <div class="isp-comms-bar-chart mb-2">
@@ -243,7 +243,7 @@
                     </section>
                 @endif
 
-                @if ($activeTab === 'outage')
+                @if ($this->activeTab === 'outage')
                     <section class="isp-comms-glass p-4">
                         <h2 class="text-sm font-semibold mb-2">Outage & maintenance broadcast</h2>
                         <p class="text-sm opacity-80 mb-3">Area outage · Fiber cut · OLT/Router maintenance · Emergency network notice.</p>
@@ -252,7 +252,7 @@
                     </section>
                 @endif
 
-                @if ($activeTab === 'billing')
+                @if ($this->activeTab === 'billing')
                     <section class="isp-comms-glass p-4">
                         <h2 class="text-sm font-semibold mb-3">Billing automation</h2>
                         <p class="text-xs opacity-60 mb-2">Scheduler: <code>{{ $billing['scheduler'] ?? '' }}</code> · {{ $billing['schedule'] ?? '' }}</p>
@@ -277,7 +277,7 @@
                     </section>
                 @endif
 
-                @if ($activeTab === 'inbox')
+                @if ($this->activeTab === 'inbox')
                     <section class="isp-comms-glass p-4">
                         <h2 class="text-sm font-semibold mb-3">Notification inbox</h2>
                         @forelse ($d['inbox'] ?? [] as $item)
