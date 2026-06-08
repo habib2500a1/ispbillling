@@ -1,34 +1,3 @@
-@php
-    $d = $this->dashboard;
-    $kpis = $d['kpis'] ?? [];
-    $channels = $d['channels'] ?? [];
-    $billing = $d['billing_automation'] ?? [];
-    $analytics = $d['analytics'] ?? ['labels' => [], 'sent' => [], 'failed' => []];
-    $maxBar = max(array_merge($analytics['sent'] ?? [1], [1]));
-
-    $kpiCards = [
-        ['key' => 'sms_today', 'label' => 'SMS today', 'class' => 'isp-comms-kpi--sms'],
-        ['key' => 'whatsapp_today', 'label' => 'WhatsApp today', 'class' => 'isp-comms-kpi--wa'],
-        ['key' => 'email_today', 'label' => 'Email today', 'class' => 'isp-comms-kpi--email'],
-        ['key' => 'push_today', 'label' => 'Push today', 'class' => 'isp-comms-kpi--push'],
-        ['key' => 'failed_24h', 'label' => 'Failed 24h', 'class' => 'isp-comms-kpi--fail'],
-        ['key' => 'scheduled', 'label' => 'Scheduled', 'class' => 'isp-comms-kpi--sched'],
-        ['key' => 'active_campaigns', 'label' => 'Active campaigns', 'class' => 'isp-comms-kpi--camp'],
-        ['key' => 'delivery_rate', 'label' => 'Delivery rate %', 'class' => 'isp-comms-kpi--rate', 'suffix' => '%'],
-    ];
-
-    $quickActions = [
-        ['url' => \App\Filament\Pages\SendSms::getUrl(), 'title' => 'Send SMS', 'desc' => 'Single subscriber'],
-        ['url' => \App\Filament\Pages\BulkSmsCampaign::getUrl(), 'title' => 'Bulk campaign', 'desc' => 'Targeted blast'],
-        ['url' => \App\Filament\Pages\BroadcastOutage::getUrl(), 'title' => 'Outage broadcast', 'desc' => 'Maintenance notice'],
-        ['url' => \App\Filament\Resources\SmsTemplateResource::getUrl(), 'title' => 'Templates', 'desc' => 'Message library'],
-        ['url' => \App\Filament\Pages\SmsGatewaySetup::getUrl(), 'title' => 'SMS gateway', 'desc' => 'Balance & test'],
-        ['url' => \App\Filament\Pages\WhatsAppBotHub::getUrl(), 'title' => 'WhatsApp', 'desc' => 'Bot & Cloud API'],
-        ['url' => \App\Filament\Pages\ManageNotifications::getUrl(), 'title' => 'All settings', 'desc' => 'Channels & events'],
-        ['url' => \App\Filament\Pages\FiberPlantMap::getUrl(), 'title' => 'GIS targeting', 'desc' => 'Map → bulk audience'],
-    ];
-@endphp
-
 <x-filament-panels::page class="isp-comms-page isp-hub-page">
     <link rel="stylesheet" href="{{ asset('css/comms-hub.css') }}?v={{ @filemtime(public_path('css/comms-hub.css')) ?: 1 }}">
     <script src="{{ asset('js/comms-hub.js') }}?v={{ @filemtime(public_path('js/comms-hub.js')) ?: 1 }}" defer data-cfasync="false"></script>
@@ -49,9 +18,9 @@
                     autocomplete="off"
                     aria-label="Global communication search"
                 >
-                @if (strlen($this->searchQuery) >= 2)
+                @if (strlen($searchQuery) >= 2)
                     <div class="isp-comms-search-results">
-                        @forelse ($this->searchResults as $row)
+                        @forelse ($searchResults as $row)
                             <a href="{{ $row['url'] ?? '#' }}">
                                 <strong>{{ $row['label'] }}</strong>
                                 <span class="block opacity-70">{{ ucfirst($row['type']) }} · {{ $row['meta'] ?? '' }}</span>
@@ -84,7 +53,7 @@
         {{-- Tabs --}}
         <div class="isp-comms-tabs">
             @foreach (['dashboard' => 'Dashboard', 'campaigns' => 'Campaigns', 'templates' => 'Templates', 'analytics' => 'Analytics', 'outage' => 'Outage', 'billing' => 'Billing auto', 'inbox' => 'Inbox'] as $tab => $label)
-                <button type="button" wire:click="setTab('{{ $tab }}')" class="isp-comms-tab {{ $this->activeTab === $tab ? 'isp-comms-tab--active' : '' }}">{{ $label }}</button>
+                <button type="button" wire:click="setTab('{{ $tab }}')" class="isp-comms-tab {{ $activeTab === $tab ? 'isp-comms-tab--active' : '' }}">{{ $label }}</button>
             @endforeach
             <button type="button" wire:click="refreshDashboard" class="isp-comms-tab ml-auto" wire:loading.attr="disabled">
                 <span wire:loading.remove wire:target="refreshDashboard">↻ Refresh</span>
@@ -105,7 +74,7 @@
 
             {{-- Main --}}
             <main class="space-y-4">
-                @if ($this->activeTab === 'dashboard' || $this->activeTab === 'outage')
+                @if ($activeTab === 'dashboard' || $activeTab === 'outage')
                     <section class="isp-comms-glass p-4">
                         <h2 class="text-sm font-semibold mb-3">Quick actions</h2>
                         <div class="isp-comms-quick-grid">
@@ -119,7 +88,7 @@
                     </section>
                 @endif
 
-                @if ($this->activeTab === 'dashboard')
+                @if ($activeTab === 'dashboard')
                     <section class="isp-comms-glass p-4">
                         <div class="flex items-center justify-between mb-3">
                             <h2 class="text-sm font-semibold">Recent delivery log</h2>
@@ -161,7 +130,7 @@
                     </section>
                 @endif
 
-                @if ($this->activeTab === 'campaigns')
+                @if ($activeTab === 'campaigns')
                     <section class="isp-comms-glass p-4">
                         <div class="flex items-center justify-between mb-3">
                             <h2 class="text-sm font-semibold">Campaign center</h2>
@@ -197,7 +166,7 @@
                     </section>
                 @endif
 
-                @if ($this->activeTab === 'templates')
+                @if ($activeTab === 'templates')
                     @php $tpl = $d['templates_summary'] ?? []; @endphp
                     <section class="isp-comms-glass p-4">
                         <div class="flex items-center justify-between mb-3">
@@ -216,7 +185,7 @@
                     </section>
                 @endif
 
-                @if ($this->activeTab === 'analytics')
+                @if ($activeTab === 'analytics')
                     <section class="isp-comms-glass p-4">
                         <h2 class="text-sm font-semibold mb-3">Delivery analytics (7 days)</h2>
                         <div class="isp-comms-bar-chart mb-2">
@@ -243,7 +212,7 @@
                     </section>
                 @endif
 
-                @if ($this->activeTab === 'outage')
+                @if ($activeTab === 'outage')
                     <section class="isp-comms-glass p-4">
                         <h2 class="text-sm font-semibold mb-2">Outage & maintenance broadcast</h2>
                         <p class="text-sm opacity-80 mb-3">Area outage · Fiber cut · OLT/Router maintenance · Emergency network notice.</p>
@@ -252,7 +221,7 @@
                     </section>
                 @endif
 
-                @if ($this->activeTab === 'billing')
+                @if ($activeTab === 'billing')
                     <section class="isp-comms-glass p-4">
                         <h2 class="text-sm font-semibold mb-3">Billing automation</h2>
                         <p class="text-xs opacity-60 mb-2">Scheduler: <code>{{ $billing['scheduler'] ?? '' }}</code> · {{ $billing['schedule'] ?? '' }}</p>
@@ -277,7 +246,7 @@
                     </section>
                 @endif
 
-                @if ($this->activeTab === 'inbox')
+                @if ($activeTab === 'inbox')
                     <section class="isp-comms-glass p-4">
                         <h2 class="text-sm font-semibold mb-3">Notification inbox</h2>
                         @forelse ($d['inbox'] ?? [] as $item)

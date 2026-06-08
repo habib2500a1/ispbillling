@@ -3,6 +3,7 @@
 namespace App\Filament\Pages;
 
 use App\Filament\Pages\Concerns\HidesHubNavigation;
+use App\Filament\Resources\SmsTemplateResource;
 use App\Services\Notifications\CommsHubDashboardService;
 use App\Support\SmsSidebarRegistry;
 use Filament\Pages\Page;
@@ -62,6 +63,44 @@ class NotificationsHub extends Page
     public function getNavLinks(): array
     {
         return SmsSidebarRegistry::definitions();
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function getViewData(): array
+    {
+        $d = $this->dashboard;
+        $analytics = $d['analytics'] ?? ['labels' => [], 'sent' => [], 'failed' => []];
+
+        return [
+            'd' => $d,
+            'kpis' => $d['kpis'] ?? [],
+            'channels' => $d['channels'] ?? [],
+            'billing' => $d['billing_automation'] ?? [],
+            'analytics' => $analytics,
+            'maxBar' => max(array_merge($analytics['sent'] ?? [1], [1])),
+            'kpiCards' => [
+                ['key' => 'sms_today', 'label' => 'SMS today', 'class' => 'isp-comms-kpi--sms'],
+                ['key' => 'whatsapp_today', 'label' => 'WhatsApp today', 'class' => 'isp-comms-kpi--wa'],
+                ['key' => 'email_today', 'label' => 'Email today', 'class' => 'isp-comms-kpi--email'],
+                ['key' => 'push_today', 'label' => 'Push today', 'class' => 'isp-comms-kpi--push'],
+                ['key' => 'failed_24h', 'label' => 'Failed 24h', 'class' => 'isp-comms-kpi--fail'],
+                ['key' => 'scheduled', 'label' => 'Scheduled', 'class' => 'isp-comms-kpi--sched'],
+                ['key' => 'active_campaigns', 'label' => 'Active campaigns', 'class' => 'isp-comms-kpi--camp'],
+                ['key' => 'delivery_rate', 'label' => 'Delivery rate %', 'class' => 'isp-comms-kpi--rate', 'suffix' => '%'],
+            ],
+            'quickActions' => [
+                ['url' => SendSms::getUrl(), 'title' => 'Send SMS', 'desc' => 'Single subscriber'],
+                ['url' => BulkSmsCampaign::getUrl(), 'title' => 'Bulk campaign', 'desc' => 'Targeted blast'],
+                ['url' => BroadcastOutage::getUrl(), 'title' => 'Outage broadcast', 'desc' => 'Maintenance notice'],
+                ['url' => SmsTemplateResource::getUrl(), 'title' => 'Templates', 'desc' => 'Message library'],
+                ['url' => SmsGatewaySetup::getUrl(), 'title' => 'SMS gateway', 'desc' => 'Balance & test'],
+                ['url' => WhatsAppBotHub::getUrl(), 'title' => 'WhatsApp', 'desc' => 'Bot & Cloud API'],
+                ['url' => ManageNotifications::getUrl(), 'title' => 'All settings', 'desc' => 'Channels & events'],
+                ['url' => FiberPlantMap::getUrl(), 'title' => 'GIS targeting', 'desc' => 'Map → bulk audience'],
+            ],
+        ];
     }
 
     public static function canAccess(): bool
