@@ -57,7 +57,7 @@
                 name="remember"
                 value="1"
                 tabindex="3"
-                {{ old('remember') ? 'checked' : '' }}
+                {{ (old('remember') !== null ? old('remember') : config('auth_session.remember_default', true)) ? 'checked' : '' }}
                 class="rounded border-gray-300 text-primary-600 focus:ring-primary-500 dark:border-gray-600"
             />
             Remember me

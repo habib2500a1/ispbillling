@@ -1,8 +1,9 @@
 {
   "app_url": "https://bill.flixbd.xyz",
   "api_base_url": "https://bill.flixbd.xyz/api/v1",
-  "built_at": "2026-06-08T20:15:00Z",
-  "radiant_version": "3.1.0+41",
+  "built_at": "2026-06-08T22:45:00Z",
+  "radiant_version": "3.3.0+43",
   "mfs_version": "1.0.12+13",
-  "download_url": "https://bill.flixbd.xyz/downloads/isp-radiant.apk?v=3.1.0_41"
+  "download_url": "https://bill.flixbd.xyz/downloads/isp-radiant.apk?v=3.3.0_43",
+  "notes": "Unified login, Radiant staff nav + menu tab, module grid rebuild"
 }

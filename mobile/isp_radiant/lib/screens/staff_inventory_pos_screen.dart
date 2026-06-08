@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+import '../core/theme/design_tokens.dart';
+import '../design_system/components/radiant_glass_card.dart';
+import '../design_system/components/radiant_kpi_tile.dart';
+import '../design_system/components/radiant_section.dart';
+import '../design_system/radiant_tokens.dart';
 import '../services/api_service.dart';
-import '../theme/app_theme.dart';
 import '../utils/app_nav.dart';
 import '../utils/layout.dart';
 import '../widgets/barcode_scan_screen.dart';
@@ -216,13 +220,29 @@ class _StaffInventoryPosScreenState extends State<StaffInventoryPosScreen> {
     }
   }
 
+  InputDecoration _field(String label, {Widget? suffixIcon}) {
+    return InputDecoration(
+      labelText: label,
+      filled: true,
+      fillColor: context.isDark ? RadiantTokens.darkSurface : RadiantTokens.lightSurface,
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(RadiantTokens.radiusSm)),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(RadiantTokens.radiusSm),
+        borderSide: BorderSide(color: context.radiant.border),
+      ),
+      suffixIcon: suffixIcon,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final warehouses = (_bootstrap?['warehouses'] as List<dynamic>?) ?? [];
     final methods = (_bootstrap?['payment_methods'] as List<dynamic>?) ?? [];
     final summary = _bootstrap?['summary'] as Map<String, dynamic>? ?? {};
+    final brand = context.radiant;
 
     return Scaffold(
+      backgroundColor: context.isDark ? RadiantTokens.darkBg : RadiantTokens.lightBg,
       appBar: AppBar(
         title: const Text('Retail POS'),
         actions: [
@@ -242,37 +262,33 @@ class _StaffInventoryPosScreenState extends State<StaffInventoryPosScreen> {
                   child: ListView(
                     padding: pagePadding(context),
                     children: [
-                      Card(
-                        child: Padding(
-                          padding: const EdgeInsets.all(12),
-                          child: Row(
-                            children: [
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text('Stock value', style: TextStyle(color: Colors.grey.shade600, fontSize: 12)),
-                                    Text('${_fmt.format(summary['stock_value'] ?? 0)} BDT', style: const TextStyle(fontWeight: FontWeight.bold)),
-                                  ],
-                                ),
-                              ),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text('Month sales', style: TextStyle(color: Colors.grey.shade600, fontSize: 12)),
-                                    Text('${_fmt.format(summary['month_sales'] ?? 0)} BDT', style: const TextStyle(fontWeight: FontWeight.bold)),
-                                  ],
-                                ),
-                              ),
-                            ],
+                      Row(
+                        children: [
+                          Expanded(
+                            child: RadiantKpiTile(
+                              compact: true,
+                              label: 'Stock value',
+                              value: '${_fmt.format(summary['stock_value'] ?? 0)} BDT',
+                              icon: Icons.inventory_2_outlined,
+                              color: RadiantTokens.brand,
+                            ),
                           ),
-                        ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: RadiantKpiTile(
+                              compact: true,
+                              label: 'Month sales',
+                              value: '${_fmt.format(summary['month_sales'] ?? 0)} BDT',
+                              icon: Icons.point_of_sale_outlined,
+                              color: RadiantTokens.success,
+                            ),
+                          ),
+                        ],
                       ),
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 12),
                       DropdownButtonFormField<int>(
                         value: _warehouseId,
-                        decoration: const InputDecoration(labelText: 'Warehouse', border: OutlineInputBorder()),
+                        decoration: _field('Warehouse'),
                         items: warehouses
                             .map((w) => DropdownMenuItem<int>(
                                   value: w['id'] as int,
@@ -281,12 +297,11 @@ class _StaffInventoryPosScreenState extends State<StaffInventoryPosScreen> {
                             .toList(),
                         onChanged: (v) => setState(() => _warehouseId = v),
                       ),
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 10),
                       TextField(
                         controller: _barcodeCtrl,
-                        decoration: InputDecoration(
-                          labelText: 'Barcode / SKU scan',
-                          border: const OutlineInputBorder(),
+                        decoration: _field(
+                          'Barcode / SKU scan',
                           suffixIcon: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
@@ -305,12 +320,11 @@ class _StaffInventoryPosScreenState extends State<StaffInventoryPosScreen> {
                         textInputAction: TextInputAction.done,
                         onSubmitted: (_) => _lookupBarcode(),
                       ),
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 10),
                       TextField(
                         controller: _searchCtrl,
-                        decoration: InputDecoration(
-                          labelText: 'Search product',
-                          border: const OutlineInputBorder(),
+                        decoration: _field(
+                          'Search product',
                           suffixIcon: IconButton(
                             icon: const Icon(Icons.search),
                             onPressed: _busy ? null : _searchProducts,
@@ -319,32 +333,57 @@ class _StaffInventoryPosScreenState extends State<StaffInventoryPosScreen> {
                         onSubmitted: (_) => _searchProducts(),
                       ),
                       if (_searchHits.isNotEmpty) ...[
-                        const SizedBox(height: 8),
-                        ..._searchHits.map((p) => ListTile(
-                              dense: true,
-                              title: Text(p['name']?.toString() ?? ''),
-                              subtitle: Text(
-                                'WH stock ${p['stock_at_warehouse']} · ${_fmt.format(p['sell_price'] ?? 0)} BDT',
+                        const SizedBox(height: 10),
+                        ..._searchHits.map((p) => Padding(
+                              padding: const EdgeInsets.only(bottom: 8),
+                              child: RadiantGlassCard(
+                                onTap: () => _addProduct(p),
+                                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                                child: Row(
+                                  children: [
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(p['name']?.toString() ?? '', style: context.text.titleSmall?.copyWith(fontWeight: FontWeight.w600)),
+                                          Text(
+                                            'WH stock ${p['stock_at_warehouse']} · ${_fmt.format(p['sell_price'] ?? 0)} BDT',
+                                            style: context.text.bodySmall?.copyWith(color: brand.muted),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    const Icon(Icons.add_circle_outline, color: RadiantTokens.brand),
+                                  ],
+                                ),
                               ),
-                              trailing: const Icon(Icons.add_circle_outline),
-                              onTap: () => _addProduct(p),
                             )),
                       ],
-                      const SizedBox(height: 12),
-                      const Text('Cart', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                      const SizedBox(height: 14),
+                      const RadiantSectionHeader(title: 'Cart'),
                       if (_cart.isEmpty)
-                        const Padding(
-                          padding: EdgeInsets.symmetric(vertical: 24),
-                          child: Center(child: Text('Scan or search to add items')),
+                        RadiantGlassCard(
+                          child: Text(
+                            'Scan or search to add items',
+                            textAlign: TextAlign.center,
+                            style: context.text.bodyMedium?.copyWith(color: brand.muted),
+                          ),
                         )
                       else
-                        ..._cart.map((c) => Card(
-                              child: ListTile(
-                                title: Text(c.name),
-                                subtitle: Text('${_fmt.format(c.unitPrice)} × ${c.qty}'),
-                                trailing: Row(
-                                  mainAxisSize: MainAxisSize.min,
+                        ..._cart.map((c) => Padding(
+                              padding: const EdgeInsets.only(bottom: 8),
+                              child: RadiantGlassCard(
+                                child: Row(
                                   children: [
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(c.name, style: context.text.titleSmall?.copyWith(fontWeight: FontWeight.w700)),
+                                          Text('${_fmt.format(c.unitPrice)} × ${c.qty}', style: context.text.bodySmall?.copyWith(color: brand.muted)),
+                                        ],
+                                      ),
+                                    ),
                                     IconButton(
                                       icon: const Icon(Icons.remove_circle_outline),
                                       onPressed: () {
@@ -357,21 +396,19 @@ class _StaffInventoryPosScreenState extends State<StaffInventoryPosScreen> {
                                         });
                                       },
                                     ),
-                                    Text('${c.qty}'),
+                                    Text('${c.qty}', style: context.text.titleSmall?.copyWith(fontWeight: FontWeight.w700)),
                                     IconButton(
                                       icon: const Icon(Icons.add_circle_outline),
-                                      onPressed: c.qty >= c.maxStock
-                                          ? null
-                                          : () => setState(() => c.qty++),
+                                      onPressed: c.qty >= c.maxStock ? null : () => setState(() => c.qty++),
                                     ),
                                   ],
                                 ),
                               ),
                             )),
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 10),
                       DropdownButtonFormField<String>(
                         value: _payment,
-                        decoration: const InputDecoration(labelText: 'Payment', border: OutlineInputBorder()),
+                        decoration: _field('Payment'),
                         items: methods
                             .map((m) => DropdownMenuItem<String>(
                                   value: m['code']?.toString(),
@@ -382,42 +419,41 @@ class _StaffInventoryPosScreenState extends State<StaffInventoryPosScreen> {
                           if (v != null) setState(() => _payment = v);
                         },
                       ),
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 10),
                       TextField(
                         controller: _nameCtrl,
-                        decoration: const InputDecoration(labelText: 'Customer name (optional)', border: OutlineInputBorder()),
+                        decoration: _field('Customer name (optional)'),
                       ),
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 10),
                       TextField(
                         controller: _phoneCtrl,
-                        decoration: const InputDecoration(labelText: 'Phone (optional)', border: OutlineInputBorder()),
+                        decoration: _field('Phone (optional)'),
                         keyboardType: TextInputType.phone,
                       ),
                     ],
                   ),
                 ),
-                Material(
-                  elevation: 8,
+                RadiantGlassCard(
+                  borderRadius: 0,
+                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
                   child: SafeArea(
-                    child: Padding(
-                      padding: const EdgeInsets.all(12),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              'Total ${_fmt.format(_subtotal)} BDT',
-                              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                            ),
+                    top: false,
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            'Total ${_fmt.format(_subtotal)} BDT',
+                            style: context.text.titleMedium?.copyWith(fontWeight: FontWeight.w800),
                           ),
-                          FilledButton(
-                            onPressed: _busy || _cart.isEmpty ? null : _submit,
-                            style: FilledButton.styleFrom(backgroundColor: AppTheme.primary),
-                            child: _busy
-                                ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                                : const Text('Complete sale'),
-                          ),
-                        ],
-                      ),
+                        ),
+                        FilledButton(
+                          onPressed: _busy || _cart.isEmpty ? null : _submit,
+                          style: FilledButton.styleFrom(backgroundColor: RadiantTokens.brand),
+                          child: _busy
+                              ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                              : const Text('Complete sale'),
+                        ),
+                      ],
                     ),
                   ),
                 ),

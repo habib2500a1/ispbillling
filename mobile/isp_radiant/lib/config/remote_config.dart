@@ -89,6 +89,10 @@ class RemoteConfig {
   static bool get mfsSmsStaff => (_raw?['features'] as Map?)?['mfs_sms_staff'] == true;
   static bool get pushFcm => (_raw?['features'] as Map?)?['push_fcm'] == true;
   static bool get biometricLogin => (_raw?['features'] as Map?)?['biometric_login'] == true;
+  static bool get allowServerSetup => (_raw?['features'] as Map?)?['allow_server_setup'] == true;
+
+  /// Whether login hub may show domain override UI.
+  static bool get canChangeServer => AppConfig.allowServerSetup || allowServerSetup;
 
   static String get mfsVerifyApkUrl {
     final links = _raw?['links'] as Map?;

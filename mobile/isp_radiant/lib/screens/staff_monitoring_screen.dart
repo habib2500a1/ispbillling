@@ -4,14 +4,16 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../core/theme/design_tokens.dart';
-import '../core/widgets/cards.dart';
+import '../design_system/components/radiant_glass_card.dart';
+import '../design_system/components/radiant_kpi_tile.dart';
+import '../design_system/components/radiant_screen_header.dart';
+import '../design_system/components/radiant_section.dart';
+import '../design_system/radiant_tokens.dart';
 import '../core/widgets/states.dart';
 import '../features/staff_monitoring/data/monitoring_repository.dart';
 import '../services/api_service.dart';
 import '../utils/layout.dart';
 import '../widgets/live_bandwidth_chart.dart';
-import '../widgets/page_scaffold.dart';
-import '../widgets/state_views.dart';
 import 'staff_customer_detail_screen.dart';
 
 class StaffMonitoringScreen extends StatefulWidget {
@@ -84,124 +86,148 @@ class _StaffMonitoringScreenState extends State<StaffMonitoringScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return PageScaffold(
-      title: 'Live monitoring',
-      useGradientBody: true,
-      actions: [IconButton(icon: const Icon(Icons.refresh), onPressed: _load)],
+    final brand = context.radiant;
+
+    return Scaffold(
+      backgroundColor: context.isDark ? RadiantTokens.darkBg : RadiantTokens.lightBg,
       body: _loading
-          ? const ListLoading()
+          ? const Center(child: CircularProgressIndicator(color: RadiantTokens.brand))
           : RefreshIndicator(
               onRefresh: _load,
-              color: DesignTokens.primary,
+              color: RadiantTokens.brand,
               child: ListView(
-                padding: pagePadding(context, top: 8),
+                padding: EdgeInsets.zero,
                 children: [
-                  _liveHeader(),
-                  const SizedBox(height: 12),
-                  AppCard(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                  RadiantScreenHeader(
+                    title: 'Live monitoring',
+                    subtitle: 'Updates every second',
+                    trailing: [
+                      RadiantHeaderIcon(icon: Icons.refresh_rounded, onPressed: _load, tooltip: 'Refresh'),
+                    ],
+                    child: Row(
                       children: [
-                        Text('All users — Mbps per second',
-                            style: context.text.titleSmall?.copyWith(fontWeight: FontWeight.w700)),
-                        const SizedBox(height: 8),
-                        LiveBandwidthChart(chart: _chartData),
+                        Expanded(
+                          child: RadiantKpiTile(
+                            compact: true,
+                            label: 'Online now',
+                            value: '$_total',
+                            icon: Icons.sensors_rounded,
+                            color: RadiantTokens.success,
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: RadiantKpiTile(
+                            compact: true,
+                            label: 'Per second',
+                            value: _downloadLabel != null ? '↓ $_downloadLabel' : '—',
+                            icon: Icons.speed_rounded,
+                            color: RadiantTokens.brand,
+                            trend: _uploadLabel != null ? '↑ $_uploadLabel' : null,
+                          ),
+                        ),
                       ],
                     ),
                   ),
-                  const SizedBox(height: 16),
-                  SectionHeader(title: 'Online now ($_total)'),
-                  if (_online.isEmpty)
-                    const EmptyStateView(
-                        icon: Icons.wifi_off_rounded,
-                        title: 'No clients online',
-                        message: 'Graph updates every second'),
-                  ..._online.map(_clientCard),
+                  Padding(
+                    padding: pagePadding(context, top: 8),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        RadiantGlassCard(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      'All users — Mbps per second',
+                                      style: context.text.titleSmall?.copyWith(fontWeight: FontWeight.w700),
+                                    ),
+                                  ),
+                                  const RadiantStatusChip(
+                                    label: 'LIVE',
+                                    color: RadiantTokens.success,
+                                    icon: Icons.fiber_manual_record,
+                                  ),
+                                ],
+                              ),
+                              if (_bandwidthLabel != null && _downloadLabel == null)
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 4),
+                                  child: Text('Total $_bandwidthLabel', style: context.text.bodySmall?.copyWith(color: brand.muted)),
+                                ),
+                              const SizedBox(height: 12),
+                              LiveBandwidthChart(chart: _chartData),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        RadiantSectionHeader(title: 'Online now ($_total)'),
+                        if (_online.isEmpty)
+                          const EmptyStateView(
+                            icon: Icons.wifi_off_rounded,
+                            title: 'No clients online',
+                            message: 'Graph updates every second',
+                          )
+                        else
+                          ..._online.map(_clientCard),
+                      ],
+                    ),
+                  ),
                 ],
               ),
             ),
     );
   }
 
-  Widget _liveHeader() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: context.brand.heroGradient,
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(DesignTokens.radius),
-      ),
-      child: Row(
-        children: [
-          const Icon(Icons.sensors_rounded, color: Colors.white, size: 36),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('$_total online',
-                    style: const TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.bold)),
-                Text(
-                  _downloadLabel != null
-                      ? '↓ $_downloadLabel · ↑ ${_uploadLabel ?? '—'} (per sec)'
-                      : (_bandwidthLabel != null ? 'Total $_bandwidthLabel' : 'Updating every 1 second…'),
-                  style: const TextStyle(color: Colors.white70, fontSize: 12),
-                ),
-              ],
-            ),
-          ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-            decoration: BoxDecoration(color: DesignTokens.success, borderRadius: BorderRadius.circular(20)),
-            child: const Text('LIVE',
-                style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _clientCard(OnlineClient c) {
+    final brand = context.radiant;
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
-      child: AppCard(
+      child: RadiantGlassCard(
         onTap: () => Navigator.push(
           context,
           MaterialPageRoute(
-              builder: (_) => StaffCustomerDetailScreen(api: widget.api, customerId: c.id)),
+            builder: (_) => StaffCustomerDetailScreen(api: widget.api, customerId: c.id),
+          ),
         ),
         child: Row(
           children: [
             Container(
-              padding: const EdgeInsets.all(9),
+              padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                  color: DesignTokens.success.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(DesignTokens.radiusSm)),
-              child: const Icon(Icons.wifi_rounded, color: DesignTokens.success, size: 20),
+                color: RadiantTokens.success.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(RadiantTokens.radiusSm),
+              ),
+              child: const Icon(Icons.wifi_rounded, color: RadiantTokens.success, size: 20),
             ),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(c.name, style: const TextStyle(fontWeight: FontWeight.w700)),
-                  Text('${c.customerCode}${c.package.isNotEmpty ? ' · ${c.package}' : ''}',
-                      style: TextStyle(fontSize: 12, color: context.brand.textMuted)),
+                  Text(c.name, style: context.text.titleSmall?.copyWith(fontWeight: FontWeight.w700)),
+                  Text(
+                    '${c.customerCode}${c.package.isNotEmpty ? ' · ${c.package}' : ''}',
+                    style: context.text.bodySmall?.copyWith(color: brand.muted),
+                  ),
                   if (c.sessionStarted.isNotEmpty)
                     Text(
                       'Since ${_formatSince(c.sessionStarted)}${c.onlineDuration.isNotEmpty ? ' · ${c.onlineDuration}' : ''}',
-                      style: TextStyle(fontSize: 11, color: context.brand.textMuted),
+                      style: context.text.labelSmall?.copyWith(color: brand.muted),
                     ),
                   if (c.downloadHuman.isNotEmpty)
-                    Text('↓ ${c.downloadHuman} ↑ ${c.uploadHuman.isNotEmpty ? c.uploadHuman : '—'}',
-                        style: const TextStyle(fontSize: 11, color: DesignTokens.primary)),
+                    Text(
+                      '↓ ${c.downloadHuman} ↑ ${c.uploadHuman.isNotEmpty ? c.uploadHuman : '—'}',
+                      style: context.text.labelSmall?.copyWith(color: RadiantTokens.brand, fontWeight: FontWeight.w600),
+                    ),
                 ],
               ),
             ),
-            Icon(Icons.chevron_right_rounded, color: context.brand.textMuted),
+            Icon(Icons.chevron_right_rounded, color: brand.muted),
           ],
         ),
       ),

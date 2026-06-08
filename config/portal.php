@@ -5,6 +5,10 @@ return [
     /** Master switch: /login and /portal/* (customer self-service). Bill pay (/pay) stays available. */
     'enabled' => (bool) env('PORTAL_ENABLED', true),
 
+    'session' => [
+        'remember_default' => (bool) env('PORTAL_REMEMBER_DEFAULT', env('AUTH_REMEMBER_DEFAULT', true)),
+    ],
+
     /*
     | Optional second step after portal password: one-time code (email and/or log).
     | Super-admin / isp-admin / isp-manager: Filament → System → Customer portal.

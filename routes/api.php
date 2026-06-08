@@ -224,6 +224,7 @@ Route::prefix('v1')->group(function (): void {
         $registerResellerApiReads();
 
         Route::get('/me', [\App\Http\Controllers\Api\V1\Reseller\ResellerAuthController::class, 'me']);
+        Route::post('/auth/refresh', [TokenRefreshController::class, 'refreshReseller']);
         Route::post('/logout', [\App\Http\Controllers\Api\V1\Reseller\ResellerAuthController::class, 'logout']);
         Route::post('/notifications/{notification}/read', [\App\Http\Controllers\Api\V1\Reseller\ResellerApiNotificationController::class, 'markRead'])
             ->whereNumber('notification');

@@ -8,12 +8,16 @@ import '../core/network/api_result.dart';
 import '../core/network/connectivity.dart';
 import '../core/roles/role_resolver.dart';
 import '../core/theme/design_tokens.dart';
+import '../design_system/components/radiant_glass_card.dart';
+import '../design_system/components/radiant_kpi_tile.dart';
+import '../design_system/components/radiant_screen_header.dart';
+import '../design_system/components/radiant_section.dart';
+import '../design_system/radiant_tokens.dart';
 import '../core/widgets/states.dart';
 import '../services/api_service.dart';
 import '../utils/app_nav.dart';
 import '../utils/layout.dart';
 import '../widgets/app_shell.dart';
-import '../widgets/isp_ui_kit.dart';
 import '../widgets/role_switcher_sheet.dart';
 import 'login_hub_screen.dart';
 import 'staff_ai_screen.dart';
@@ -183,30 +187,48 @@ class _TechnicianHomeScreenState extends ConsumerState<TechnicianHomeScreen> {
 
     return RefreshIndicator(
       onRefresh: _loadVisits,
+      color: RadiantTokens.brand,
       child: ListView(
         padding: EdgeInsets.zero,
         children: [
           if (!online) const OfflineBanner(),
-          IspUiKit.gradientHeader(
+          RadiantScreenHeader(
             title: 'Field Ops',
             subtitle: '$name · ${RemoteConfig.appName}',
             trailing: [
               if (_caps?.hasMultipleInterfaces == true)
-                IconButton(icon: const Icon(Icons.swap_horiz_rounded, color: Colors.white), onPressed: _openSwitcher),
-              IconButton(
-                icon: const Icon(Icons.smart_toy_outlined, color: Colors.white),
+                RadiantHeaderIcon(icon: Icons.swap_horiz_rounded, onPressed: _openSwitcher, tooltip: 'Switch role'),
+              RadiantHeaderIcon(
+                icon: Icons.smart_toy_outlined,
                 onPressed: () => Navigator.push(
                   context,
                   MaterialPageRoute(builder: (_) => StaffAiScreen(api: widget.api, technicianMode: true)),
                 ),
+                tooltip: 'AI',
               ),
-              IconButton(icon: const Icon(Icons.logout, color: Colors.white), onPressed: _logout),
+              RadiantHeaderIcon(icon: Icons.logout_rounded, onPressed: _logout, tooltip: 'Logout'),
             ],
             child: Row(
               children: [
-                Expanded(child: _stat('Assigned', '$pending', Icons.assignment_outlined)),
-                const SizedBox(width: 8),
-                Expanded(child: _stat('Today', '$today', Icons.today_outlined)),
+                Expanded(
+                  child: RadiantKpiTile(
+                    compact: true,
+                    label: 'Assigned',
+                    value: '$pending',
+                    icon: Icons.assignment_outlined,
+                    color: RadiantTokens.brand,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: RadiantKpiTile(
+                    compact: true,
+                    label: 'Today',
+                    value: '$today',
+                    icon: Icons.today_outlined,
+                    color: RadiantTokens.accent,
+                  ),
+                ),
               ],
             ),
           ),
@@ -216,64 +238,82 @@ class _TechnicianHomeScreenState extends ConsumerState<TechnicianHomeScreen> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 const SizedBox(height: 8),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
+                Row(
                   children: [
-                    _actionChip('My tickets', Icons.confirmation_number_outlined, () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => StaffTicketsScreen(
-                            api: widget.api,
-                            staffUserId: _user?['id'] as int?,
-                          ),
-                        ),
-                      );
-                    }),
-                    _actionChip('Scan ONU/MAC', Icons.qr_code_scanner, () async {
-                      final code = await Navigator.push<String>(
-                        context,
-                        MaterialPageRoute(builder: (_) => const BarcodeScanScreen()),
-                      );
-                      if (code == null || code.isEmpty || !mounted) return;
-                      try {
-                        final hits = await widget.api.searchCustomers(code);
-                        if (!mounted) return;
-                        if (hits.isEmpty) {
-                          showSnack(context, 'No customer for: $code', isError: true);
-                          return;
-                        }
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (_) => StaffClientsScreen(api: widget.api)),
-                        );
-                      } on ApiException catch (e) {
-                        if (mounted) showSnack(context, e.message, isError: true);
-                      }
-                    }),
-                    _actionChip('AI assistant', Icons.auto_awesome, () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => StaffAiScreen(api: widget.api, technicianMode: true)),
-                      );
-                    }),
+                    Expanded(
+                      child: RadiantQuickChip(
+                        icon: Icons.confirmation_number_outlined,
+                        label: 'My tickets',
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => StaffTicketsScreen(
+                                api: widget.api,
+                                staffUserId: _user?['id'] as int?,
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                    Expanded(
+                      child: RadiantQuickChip(
+                        icon: Icons.qr_code_scanner,
+                        label: 'Scan ONU/MAC',
+                        onTap: () async {
+                          final code = await Navigator.push<String>(
+                            context,
+                            MaterialPageRoute(builder: (_) => const BarcodeScanScreen()),
+                          );
+                          if (code == null || code.isEmpty || !mounted) return;
+                          try {
+                            final hits = await widget.api.searchCustomers(code);
+                            if (!mounted) return;
+                            if (hits.isEmpty) {
+                              showSnack(context, 'No customer for: $code', isError: true);
+                              return;
+                            }
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (_) => StaffClientsScreen(api: widget.api)),
+                            );
+                          } on ApiException catch (e) {
+                            if (mounted) showSnack(context, e.message, isError: true);
+                          }
+                        },
+                      ),
+                    ),
+                    Expanded(
+                      child: RadiantQuickChip(
+                        icon: Icons.auto_awesome,
+                        label: 'AI assistant',
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (_) => StaffAiScreen(api: widget.api, technicianMode: true)),
+                          );
+                        },
+                      ),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 16),
-                const Text('Upcoming visits', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
-                const SizedBox(height: 8),
+                const RadiantSectionHeader(title: 'Upcoming visits'),
                 if (_loading && _visits.isEmpty)
-                  const Center(child: Padding(padding: EdgeInsets.all(24), child: CircularProgressIndicator()))
+                  const Center(child: Padding(padding: EdgeInsets.all(24), child: CircularProgressIndicator(color: RadiantTokens.brand)))
                 else if (_error != null && _visits.isEmpty)
                   ErrorStateView(
                     failure: Failure(_error!, type: FailureType.server),
                     onRetry: _loadVisits,
                   )
                 else if (_visits.isEmpty)
-                  const Padding(
-                    padding: EdgeInsets.all(24),
-                    child: Text('No field visits assigned.', textAlign: TextAlign.center),
+                  RadiantGlassCard(
+                    child: Text(
+                      'No field visits assigned.',
+                      textAlign: TextAlign.center,
+                      style: context.text.bodyMedium?.copyWith(color: context.radiant.muted),
+                    ),
                   )
                 else
                   ..._visits.take(5).map(_visitCard),
@@ -287,17 +327,24 @@ class _TechnicianHomeScreenState extends ConsumerState<TechnicianHomeScreen> {
 
   Widget _buildVisitsTab() {
     if (_loading && _visits.isEmpty) {
-      return const Center(child: CircularProgressIndicator());
+      return const Center(child: CircularProgressIndicator(color: RadiantTokens.brand));
     }
     return RefreshIndicator(
       onRefresh: _loadVisits,
+      color: RadiantTokens.brand,
       child: ListView(
         padding: pagePadding(context),
         children: [
           const SizedBox(height: 8),
           ..._visits.map(_visitCard),
           if (_visits.isEmpty)
-            const Padding(padding: EdgeInsets.all(32), child: Text('No visits', textAlign: TextAlign.center)),
+            RadiantGlassCard(
+              child: Text(
+                'No visits',
+                textAlign: TextAlign.center,
+                style: context.text.bodyMedium?.copyWith(color: context.radiant.muted),
+              ),
+            ),
         ],
       ),
     );
@@ -310,38 +357,72 @@ class _TechnicianHomeScreenState extends ConsumerState<TechnicianHomeScreen> {
     final scheduled = visit['scheduled_at']?.toString();
     final when = scheduled != null ? fmt.format(DateTime.tryParse(scheduled)?.toLocal() ?? DateTime.now()) : '—';
     final status = visit['status']?.toString() ?? 'pending';
+    final statusColor = _statusColor(status);
+    final brand = context.radiant;
 
-    return Card(
-      margin: const EdgeInsets.only(bottom: 10),
-      child: Padding(
-        padding: const EdgeInsets.all(12),
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: RadiantGlassCard(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: statusColor.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(RadiantTokens.radiusSm),
+                  ),
+                  child: Icon(Icons.home_repair_service_outlined, color: statusColor, size: 20),
+                ),
+                const SizedBox(width: 12),
                 Expanded(
-                  child: Text(
-                    ticket?['subject']?.toString() ?? 'Visit #${visit['id']}',
-                    style: const TextStyle(fontWeight: FontWeight.w700),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        ticket?['subject']?.toString() ?? 'Visit #${visit['id']}',
+                        style: context.text.titleSmall?.copyWith(fontWeight: FontWeight.w700),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(when, style: context.text.bodySmall?.copyWith(color: brand.muted)),
+                    ],
                   ),
                 ),
-                Chip(label: Text(status), visualDensity: VisualDensity.compact),
+                RadiantStatusChip(label: status.replaceAll('_', ' '), color: statusColor),
               ],
             ),
-            Text(when, style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
             if (customer != null) ...[
-              const SizedBox(height: 6),
-              Text('${customer['name'] ?? ''} · ${customer['phone'] ?? ''}', style: const TextStyle(fontSize: 13)),
+              const SizedBox(height: 10),
+              Text(
+                '${customer['name'] ?? ''} · ${customer['phone'] ?? ''}',
+                style: context.text.bodyMedium?.copyWith(fontWeight: FontWeight.w500),
+              ),
             ],
-            const SizedBox(height: 10),
-            Row(
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
               children: [
-                TextButton.icon(onPressed: () => _openMaps(visit), icon: const Icon(Icons.navigation_outlined), label: const Text('Navigate')),
+                OutlinedButton.icon(
+                  onPressed: () => _openMaps(visit),
+                  icon: const Icon(Icons.navigation_outlined, size: 18),
+                  label: const Text('Navigate'),
+                ),
                 if (status == 'pending' || status == 'scheduled')
-                  TextButton(onPressed: () => _updateVisitStatus(visit, 'in_progress'), child: const Text('Start')),
+                  FilledButton(
+                    onPressed: () => _updateVisitStatus(visit, 'in_progress'),
+                    style: FilledButton.styleFrom(backgroundColor: RadiantTokens.brand),
+                    child: const Text('Start'),
+                  ),
                 if (status == 'in_progress')
-                  FilledButton(onPressed: () => _updateVisitStatus(visit, 'completed'), child: const Text('Complete')),
+                  FilledButton(
+                    onPressed: () => _updateVisitStatus(visit, 'completed'),
+                    style: FilledButton.styleFrom(backgroundColor: RadiantTokens.success),
+                    child: const Text('Complete'),
+                  ),
               ],
             ),
           ],
@@ -350,36 +431,16 @@ class _TechnicianHomeScreenState extends ConsumerState<TechnicianHomeScreen> {
     );
   }
 
-  Widget _stat(String label, String value, IconData icon) {
-    return Container(
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.18),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Row(
-        children: [
-          Icon(icon, color: Colors.white, size: 22),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(label, style: const TextStyle(color: Colors.white70, fontSize: 10)),
-                Text(value, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _actionChip(String label, IconData icon, VoidCallback onTap) {
-    return ActionChip(
-      avatar: Icon(icon, size: 18, color: DesignTokens.primary),
-      label: Text(label),
-      onPressed: onTap,
-    );
+  Color _statusColor(String status) {
+    switch (status) {
+      case 'completed':
+        return RadiantTokens.success;
+      case 'in_progress':
+        return RadiantTokens.brand;
+      case 'cancelled':
+        return RadiantTokens.danger;
+      default:
+        return RadiantTokens.warning;
+    }
   }
 }

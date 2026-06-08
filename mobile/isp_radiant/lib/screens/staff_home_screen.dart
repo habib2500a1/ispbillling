@@ -17,10 +17,9 @@ import '../design_system/components/radiant_kpi_tile.dart';
 import '../design_system/components/radiant_screen_header.dart';
 import '../design_system/components/radiant_section.dart';
 import '../design_system/components/radiant_skeleton.dart';
+import '../design_system/components/radiant_quick_action_grid.dart';
 import '../design_system/navigation/radiant_super_shell.dart';
 import '../design_system/radiant_tokens.dart';
-import '../core/widgets/cards.dart';
-import '../core/widgets/skeleton.dart';
 import '../core/widgets/states.dart';
 import '../features/dashboard_staff/data/staff_dashboard_repository.dart';
 import '../features/dashboard_staff/domain/staff_dashboard.dart';
@@ -29,10 +28,9 @@ import '../services/offline_sync_service.dart';
 import '../services/realtime_service.dart';
 import '../utils/app_nav.dart';
 import '../utils/layout.dart';
-import '../widgets/app_shell.dart';
 import '../widgets/profile_banner.dart';
-import '../widgets/quick_action_grid.dart';
 import 'login_hub_screen.dart';
+import 'staff_menu_tab.dart';
 import 'staff_clients_screen.dart';
 import 'staff_collection_screen.dart';
 import 'staff_monitoring_screen.dart';
@@ -58,7 +56,6 @@ import 'staff_ai_screen.dart';
 import 'staff_global_search_screen.dart';
 import '../widgets/role_switcher_sheet.dart';
 import '../services/mfs_sms_listener.dart';
-import '../widgets/module_tile.dart';
 
 class StaffHomeScreen extends ConsumerStatefulWidget {
   const StaffHomeScreen({super.key, required this.api, required this.loginPayload, this.staffMode = 'admin'});
@@ -179,7 +176,9 @@ class _StaffHomeScreenState extends ConsumerState<StaffHomeScreen> {
 
   void _go(int i) => setState(() => _tab = i);
 
-  void _push(Widget screen) => Navigator.push(context, MaterialPageRoute(builder: (_) => screen));
+  void _push(Widget screen) => Navigator.push(context, RadiantPageRoute(page: screen));
+
+  void _openCollect() => _push(StaffCollectionScreen(api: widget.api, active: true));
 
   void _openRoleSwitcher() {
     final caps = _roleCaps;
@@ -196,7 +195,7 @@ class _StaffHomeScreenState extends ConsumerState<StaffHomeScreen> {
   void _onQuickAction(String key) {
     switch (key) {
       case 'collect':
-        _go(2);
+        _openCollect();
       case 'approval':
         _push(StaffApprovalsScreen(api: widget.api));
       case 'billing':
@@ -204,7 +203,7 @@ class _StaffHomeScreenState extends ConsumerState<StaffHomeScreen> {
       case 'tickets':
         _push(StaffCreateTicketScreen(api: widget.api));
       case 'support':
-        _go(3);
+        _go(2);
       case 'monitoring':
         _push(_mode == 'noc' ? StaffNocScreen(api: widget.api) : StaffMonitoringScreen(api: widget.api));
       case 'noc':
@@ -227,7 +226,7 @@ class _StaffHomeScreenState extends ConsumerState<StaffHomeScreen> {
       case 'billing':
         _push(StaffBillingHubScreen(api: widget.api));
       case 'collect':
-        _go(2);
+        _openCollect();
       case 'packages':
         _push(StaffPackagesScreen(api: widget.api));
       case 'mikrotik':
@@ -235,7 +234,7 @@ class _StaffHomeScreenState extends ConsumerState<StaffHomeScreen> {
       case 'reports':
         _push(StaffReportsScreen(api: widget.api));
       case 'support':
-        _go(3);
+        _go(2);
       case 'comms':
         _push(StaffCommsScreen(api: widget.api));
       case 'inventory':
@@ -270,25 +269,49 @@ class _StaffHomeScreenState extends ConsumerState<StaffHomeScreen> {
       child: Stack(
         fit: StackFit.expand,
         children: [
-          AppShell(
+          RadiantSuperShell(
             tabIndex: _tab,
             onTab: _go,
-            centerAction: () => _go(2),
+            centerAction: _openCollect,
             centerActionIcon: Icons.payments_rounded,
             centerActionLabel: 'Collect',
             destinations: const [
-              NavigationDestination(icon: Icon(Icons.grid_view_rounded), label: 'Home'),
-              NavigationDestination(icon: Icon(Icons.receipt_long_rounded), label: 'Billing'),
-              NavigationDestination(icon: Icon(Icons.account_balance_wallet_rounded), label: 'Collection'),
-              NavigationDestination(icon: Icon(Icons.confirmation_number_outlined), label: 'Support'),
-              NavigationDestination(icon: Icon(Icons.task_alt_rounded), label: 'Task'),
+              RadiantNavDestination(
+                icon: Icon(Icons.grid_view_rounded),
+                selectedIcon: Icon(Icons.grid_view_rounded),
+                label: 'Home',
+              ),
+              RadiantNavDestination(
+                icon: Icon(Icons.receipt_long_outlined),
+                selectedIcon: Icon(Icons.receipt_long_rounded),
+                label: 'Billing',
+              ),
+              RadiantNavDestination(
+                icon: Icon(Icons.forum_outlined),
+                selectedIcon: Icon(Icons.forum_rounded),
+                label: 'Support',
+              ),
+              RadiantNavDestination(
+                icon: Icon(Icons.apps_rounded),
+                selectedIcon: Icon(Icons.apps_rounded),
+                label: 'Menu',
+              ),
             ],
             pages: [
               _buildHomeTab(online),
               StaffBillingHubScreen(api: widget.api, embedded: true),
-              StaffCollectionScreen(api: widget.api, active: _tab == 2),
-              StaffTicketsScreen(api: widget.api, active: _tab == 3, staffUserId: _user?['id'] as int?),
-              StaffTasksScreen(api: widget.api, active: _tab == 4),
+              StaffTicketsScreen(api: widget.api, active: _tab == 2, staffUserId: _user?['id'] as int?),
+              StaffMenuTab(
+                api: widget.api,
+                modules: _dash?.modules ?? const [],
+                user: _user,
+                staffMode: _mode,
+                roleCapabilities: _roleCaps,
+                loginPayload: widget.loginPayload,
+                onModule: _openModule,
+                onTasks: () => _push(StaffTasksScreen(api: widget.api, active: true)),
+                active: _tab == 3,
+              ),
             ],
           ),
           if (_receiptOverlay != null)
@@ -405,7 +428,7 @@ class _StaffHomeScreenState extends ConsumerState<StaffHomeScreen> {
                   ),
                 if (d.quickActions.isNotEmpty) ...[
                   const RadiantSectionHeader(title: 'Quick actions'),
-                  QuickActionGrid(actions: d.quickActions, onAction: _onQuickAction),
+                  RadiantQuickActionGrid(actions: d.quickActions, onAction: _onQuickAction),
                   const SizedBox(height: 16),
                 ],
                 const RadiantSectionHeader(title: 'Today'),
@@ -421,29 +444,6 @@ class _StaffHomeScreenState extends ConsumerState<StaffHomeScreen> {
                 const SizedBox(height: 16),
                 _revenueChart7d(d.revenue7d),
                 const SizedBox(height: 16),
-                const RadiantSectionHeader(title: 'Modules'),
-                GridView.builder(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2,
-                    mainAxisSpacing: 12,
-                    crossAxisSpacing: 12,
-                    childAspectRatio: 1.05,
-                  ),
-                  itemCount: d.modules.length,
-                  itemBuilder: (context, i) {
-                    final m = d.modules[i];
-                    return ModuleTile(
-                      title: m['title']?.toString() ?? '',
-                      subtitle: m['subtitle']?.toString() ?? '',
-                      icon: ModuleTile.iconFromKey(m['icon']?.toString() ?? ''),
-                      color: ModuleTile.colorFromKey(m['color']?.toString() ?? 'blue'),
-                      onTap: () => _openModule(m['key']?.toString() ?? ''),
-                    );
-                  },
-                ),
-                const SizedBox(height: 16),
                 Row(
                   children: [
                     Expanded(child: _statusCard('Tickets', d.tickets)),
@@ -452,6 +452,7 @@ class _StaffHomeScreenState extends ConsumerState<StaffHomeScreen> {
                   ],
                 ),
                 if (d.zoneChart.isNotEmpty) ...[const SizedBox(height: 16), _zoneChart(d.zoneChart)],
+                const SizedBox(height: 88),
               ],
             ),
           ),

@@ -1,10 +1,12 @@
+import 'dart:ui' as ui;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 
+import '../design_system/components/radiant_glass_card.dart';
+import '../design_system/radiant_tokens.dart';
 import '../services/api_service.dart';
-import '../utils/app_nav.dart';
-import '../widgets/page_scaffold.dart';
 
 /// In-app GIS map using OpenStreetMap tiles (Phase 2).
 class StaffGisMapScreen extends StatefulWidget {
@@ -54,12 +56,17 @@ class _StaffGisMapScreenState extends State<StaffGisMapScreen> {
         final lat = (n['lat'] as num?)?.toDouble() ?? (n['latitude'] as num?)?.toDouble();
         final lng = (n['lng'] as num?)?.toDouble() ?? (n['longitude'] as num?)?.toDouble();
         if (lat == null || lng == null) continue;
+        final type = n['type']?.toString() ?? '';
         markers.add(
           Marker(
             point: LatLng(lat, lng),
-            width: 36,
-            height: 36,
-            child: Icon(_iconForType(n['type']?.toString() ?? ''), color: _colorForType(n['type']?.toString() ?? '')),
+            width: 40,
+            height: 48,
+            child: _GisMarkerPin(
+              icon: _iconForType(type),
+              color: _colorForType(type),
+              label: n['label']?.toString(),
+            ),
           ),
         );
       }
@@ -75,7 +82,7 @@ class _StaffGisMapScreenState extends State<StaffGisMapScreen> {
               LatLng((from[0] as num).toDouble(), (from[1] as num).toDouble()),
               LatLng((to[0] as num).toDouble(), (to[1] as num).toDouble()),
             ],
-            color: Colors.deepOrange.withValues(alpha: 0.85),
+            color: RadiantTokens.accent.withValues(alpha: 0.85),
             strokeWidth: 3,
           ),
         );
@@ -117,13 +124,23 @@ class _StaffGisMapScreenState extends State<StaffGisMapScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return PageScaffold(
-      title: 'Network map',
-      useGradientBody: true,
+    return Scaffold(
+      backgroundColor: context.isDark ? RadiantTokens.darkBg : RadiantTokens.lightBg,
+      appBar: AppBar(
+        title: const Text('Network map'),
+        actions: [
+          IconButton(icon: const Icon(Icons.refresh), onPressed: _load),
+        ],
+      ),
       body: _loading
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(child: CircularProgressIndicator(color: RadiantTokens.brand))
           : _error != null
-              ? Center(child: Text(_error!))
+              ? Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Text(_error!, textAlign: TextAlign.center),
+                  ),
+                )
               : Stack(
                   children: [
                     FlutterMap(
@@ -140,11 +157,38 @@ class _StaffGisMapScreenState extends State<StaffGisMapScreen> {
                     ),
                     Positioned(
                       left: 12,
+                      top: 12,
+                      right: 12,
+                      child: RadiantGlassCard(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.hub_outlined, size: 18, color: RadiantTokens.brand),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                '${_nodes.length} nodes · OpenStreetMap',
+                                style: Theme.of(context).textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w600),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    Positioned(
+                      left: 12,
                       bottom: 12,
-                      child: Card(
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                          child: Text('${_nodes.length} nodes · OSM', style: const TextStyle(fontSize: 12)),
+                      child: RadiantGlassCard(
+                        padding: const EdgeInsets.all(10),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            _legendRow(Icons.dns_rounded, 'OLT', RadiantTokens.brand),
+                            _legendRow(Icons.router_rounded, 'ONU', RadiantTokens.accentCyan),
+                            _legendRow(Icons.home_rounded, 'Customer', RadiantTokens.success),
+                            _legendRow(Icons.call_split_rounded, 'Splitter', RadiantTokens.warning),
+                          ],
                         ),
                       ),
                     ),
@@ -152,6 +196,8 @@ class _StaffGisMapScreenState extends State<StaffGisMapScreen> {
                       right: 12,
                       bottom: 12,
                       child: FloatingActionButton.small(
+                        backgroundColor: RadiantTokens.brand,
+                        foregroundColor: Colors.white,
                         onPressed: _load,
                         child: const Icon(Icons.refresh),
                       ),
@@ -161,31 +207,107 @@ class _StaffGisMapScreenState extends State<StaffGisMapScreen> {
     );
   }
 
+  Widget _legendRow(IconData icon, String label, Color color) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 3),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 16, color: color),
+          const SizedBox(width: 8),
+          Text(label, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600)),
+        ],
+      ),
+    );
+  }
+
   IconData _iconForType(String type) {
     switch (type) {
       case 'olt':
-        return Icons.dns;
+        return Icons.dns_rounded;
       case 'onu':
-        return Icons.router;
+        return Icons.router_rounded;
       case 'splitter':
-        return Icons.call_split;
+        return Icons.call_split_rounded;
       case 'customer':
-        return Icons.home;
+        return Icons.home_rounded;
       default:
-        return Icons.place;
+        return Icons.place_rounded;
     }
   }
 
   Color _colorForType(String type) {
     switch (type) {
       case 'olt':
-        return Colors.indigo;
+        return RadiantTokens.brand;
       case 'onu':
-        return Colors.teal;
+        return RadiantTokens.accentCyan;
       case 'customer':
-        return Colors.green;
+        return RadiantTokens.success;
       default:
-        return Colors.orange;
+        return RadiantTokens.warning;
     }
   }
+}
+
+class _GisMarkerPin extends StatelessWidget {
+  const _GisMarkerPin({required this.icon, required this.color, this.label});
+
+  final IconData icon;
+  final Color color;
+  final String? label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (label != null && label!.isNotEmpty)
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+            margin: const EdgeInsets.only(bottom: 4),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.92),
+              borderRadius: BorderRadius.circular(6),
+              border: Border.all(color: color.withValues(alpha: 0.4)),
+            ),
+            child: Text(label!, style: TextStyle(fontSize: 9, fontWeight: FontWeight.w700, color: color)),
+          ),
+        Container(
+          width: 34,
+          height: 34,
+          decoration: BoxDecoration(
+            color: color,
+            shape: BoxShape.circle,
+            border: Border.all(color: Colors.white, width: 2),
+            boxShadow: [
+              BoxShadow(color: color.withValues(alpha: 0.45), blurRadius: 8, offset: const Offset(0, 3)),
+            ],
+          ),
+          child: Icon(icon, color: Colors.white, size: 18),
+        ),
+        CustomPaint(size: const Size(12, 8), painter: _PinTailPainter(color)),
+      ],
+    );
+  }
+}
+
+class _PinTailPainter extends CustomPainter {
+  _PinTailPainter(this.color);
+
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()..color = color;
+    final path = ui.Path()
+      ..moveTo(size.width / 2, size.height)
+      ..lineTo(0, 0)
+      ..lineTo(size.width, 0)
+      ..close();
+    canvas.drawPath(path, paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

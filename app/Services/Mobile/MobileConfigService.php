@@ -49,6 +49,13 @@ class MobileConfigService
                 'phase_4' => 'live',
             ],
             'login' => MobileLoginHubConfig::payload(),
+            'auth' => [
+                'customer_token_days' => (int) config('mobile.customer_token_expiry_days', 365),
+                'staff_token_days' => (int) config('mobile.staff_token_expiry_days', 180),
+                'reseller_token_days' => (int) config('mobile.reseller_token_expiry_days', 180),
+                'web_session_minutes' => (int) config('session.lifetime', 43200),
+                'remember_default' => (bool) config('auth_session.remember_default', true),
+            ],
             'links' => [
                 'base' => $base,
                 'pay' => $base.'/pay',
@@ -82,6 +89,7 @@ class MobileConfigService
                 'biometric_login' => true,
                 'ssl_pinning' => (bool) config('mobile.ssl_pinning', false),
                 'crash_reporting' => (bool) config('mobile.crash_reporting', true),
+                'allow_server_setup' => (bool) config('mobile.allow_server_override', false),
             ],
             'apps' => [
                 'customer' => [

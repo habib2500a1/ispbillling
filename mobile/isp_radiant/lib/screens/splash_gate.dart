@@ -7,10 +7,8 @@ import '../core/theme/design_tokens.dart';
 import '../services/api_service.dart';
 import '../core/navigation/super_app_navigator.dart';
 import '../core/roles/staff_interface.dart';
-import '../config/remote_config.dart';
 import '../services/biometric_auth_service.dart';
 import 'login_hub_screen.dart';
-import 'customer_home_screen.dart';
 
 /// Boots the app: loads remote config, validates the stored session, and
 /// redirects to the right home by role (staff / customer) or to login.
@@ -60,6 +58,8 @@ class _SplashGateState extends State<SplashGate> {
         _goLogin();
         return;
       }
+
+      unawaited(_api.maybeRefreshIfExpiring());
 
       if (RemoteConfig.biometricLogin) {
         final bio = BiometricAuthService();

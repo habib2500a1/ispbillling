@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1\Mobile;
 
 use App\Http\Controllers\Controller;
 use App\Models\Customer;
+use App\Models\Reseller;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -57,6 +58,29 @@ class TokenRefreshController extends Controller
         $token = $customer->createToken(
             config('mobile.customer_token_name', 'isp-radiant-customer'),
             ['customer'],
+            $expiresAt,
+        );
+
+        return response()->json([
+            'token' => $token->plainTextToken,
+            'token_type' => 'Bearer',
+            'expires_at' => $expiresAt->toIso8601String(),
+        ]);
+    }
+
+    public function refreshReseller(Request $request): JsonResponse
+    {
+        $reseller = $request->user();
+        if (! $reseller instanceof Reseller) {
+            return response()->json(['message' => 'Reseller authentication required.'], 401);
+        }
+
+        $reseller->currentAccessToken()?->delete();
+
+        $expiresAt = now()->addDays((int) config('mobile.reseller_token_expiry_days', 180));
+        $token = $reseller->createToken(
+            'isp-radiant-reseller',
+            ['reseller'],
             $expiresAt,
         );
 

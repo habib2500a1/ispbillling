@@ -82,7 +82,12 @@ class ResellerAuthController extends Controller
     private function issueOwnerToken(Reseller $reseller, array $data): JsonResponse
     {
         $abilities = ['reseller'];
-        $token = $reseller->createToken($data['device_name'] ?? 'reseller-api', $abilities)->plainTextToken;
+        $expiresAt = now()->addDays((int) config('mobile.reseller_token_expiry_days', 180));
+        $token = $reseller->createToken(
+            $data['device_name'] ?? 'reseller-api',
+            $abilities,
+            $expiresAt,
+        )->plainTextToken;
 
         app(ResellerPortalActivityLogger::class)->log($reseller, 'api.login', meta: ['login' => $reseller->portalLoginId()]);
 
@@ -93,7 +98,7 @@ class ResellerAuthController extends Controller
             'guard' => 'reseller',
             'actor_type' => 'owner',
             'issued_at' => now()->toIso8601String(),
-            'expires_at' => null,
+            'expires_at' => $expiresAt->toIso8601String(),
             'abilities' => $abilities,
             'reseller' => [
                 'id' => $reseller->id,
@@ -121,7 +126,12 @@ class ResellerAuthController extends Controller
         app(ResellerPortalActivityLogger::class)->log($reseller, 'api.login.staff', $staff, ['login' => $staff->login], $request);
 
         $abilities = ['reseller', 'staff:'.$staff->id];
-        $token = $reseller->createToken($data['device_name'] ?? 'reseller-staff-api', $abilities)->plainTextToken;
+        $expiresAt = now()->addDays((int) config('mobile.reseller_token_expiry_days', 180));
+        $token = $reseller->createToken(
+            $data['device_name'] ?? 'reseller-staff-api',
+            $abilities,
+            $expiresAt,
+        )->plainTextToken;
 
         return response()->json([
             'token' => $token,
@@ -130,7 +140,7 @@ class ResellerAuthController extends Controller
             'guard' => 'reseller',
             'actor_type' => 'staff',
             'issued_at' => now()->toIso8601String(),
-            'expires_at' => null,
+            'expires_at' => $expiresAt->toIso8601String(),
             'abilities' => $abilities,
             'reseller' => [
                 'id' => $reseller->id,

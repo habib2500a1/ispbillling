@@ -6,4 +6,10 @@ class AppConfig {
   );
 
   static const String appName = 'RADIANT ISP';
+
+  /// Build-time gate for "Server settings" on login hub. Keep false for production single-domain APK.
+  static const bool allowServerSetup = bool.fromEnvironment(
+    'ALLOW_SERVER_SETUP',
+    defaultValue: false,
+  );
 }

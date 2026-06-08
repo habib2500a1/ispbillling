@@ -46,7 +46,7 @@
                     <input id="password" name="password" type="password" required autocomplete="current-password" placeholder="Enter your portal password">
                 </div>
                 <label class="portal-auth-remember">
-                    <input name="remember" type="checkbox" value="1" class="portal-auth-checkbox" {{ old('remember') ? 'checked' : '' }}>
+                    <input name="remember" type="checkbox" value="1" class="portal-auth-checkbox" {{ (old('remember') !== null ? old('remember') : config('portal.session.remember_default', true)) ? 'checked' : '' }}>
                     {{ __('portal.remember_device') }}
                 </label>
                 <div class="portal-auth-actions">

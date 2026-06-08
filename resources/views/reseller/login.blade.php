@@ -81,7 +81,7 @@
                         <input id="password" name="password" type="password" required class="rsl-input rsl-login-input" autocomplete="current-password">
 
                         <label class="rsl-login-remember">
-                            <input type="checkbox" name="remember" value="1">
+                            <input type="checkbox" name="remember" value="1" {{ (old('remember') !== null ? old('remember') : config('reseller_portal.session.remember_default', true)) ? 'checked' : '' }}>
                             <span>Remember me</span>
                         </label>
 

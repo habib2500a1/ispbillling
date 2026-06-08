@@ -5,6 +5,7 @@ import '../../screens/reseller_home_screen.dart';
 import '../../screens/staff_home_screen.dart';
 import '../../screens/technician_home_screen.dart';
 import '../../services/api_service.dart';
+import '../../services/push_service.dart';
 import '../roles/role_resolver.dart';
 import '../roles/staff_interface.dart';
 
@@ -80,6 +81,34 @@ abstract final class SuperAppNavigator {
 
     if (!context.mounted) return;
     await goStaffHome(context, api, loginPayload: loginBody, staffMode: mode);
+  }
+
+  /// Navigate to the correct home after unified or role-specific login.
+  static Future<void> routeAfterLogin(
+    BuildContext context,
+    ApiService api,
+    Map<String, dynamic> body,
+  ) async {
+    final role = body['role']?.toString() ?? 'customer';
+
+    if (role == 'staff') {
+      await applyStaffLogin(context, api, loginBody: body);
+      if (!context.mounted) return;
+      final mode = await api.staffMode ?? StaffInterface.admin;
+      await PushService(api).registerAfterLogin(role: role, staffMode: mode);
+      return;
+    }
+
+    if (role == 'reseller') {
+      await PushService(api).registerAfterLogin(role: role);
+      if (!context.mounted) return;
+      await goResellerHome(context, api, loginPayload: body);
+      return;
+    }
+
+    await PushService(api).registerAfterLogin(role: 'customer');
+    if (!context.mounted) return;
+    await goCustomerHome(context, api, loginPayload: body);
   }
 
   static Future<void> switchStaffInterface(

@@ -1,8 +1,13 @@
 import 'package:flutter/material.dart';
 
+import '../core/theme/design_tokens.dart';
+import '../design_system/components/radiant_glass_card.dart';
+import '../design_system/components/radiant_kpi_tile.dart';
+import '../design_system/components/radiant_screen_header.dart';
+import '../design_system/components/radiant_section.dart';
+import '../design_system/radiant_tokens.dart';
 import '../services/api_service.dart';
-import '../theme/app_theme.dart';
-import '../widgets/page_scaffold.dart';
+import '../utils/layout.dart';
 import '../widgets/state_views.dart';
 
 class StaffNocScreen extends StatefulWidget {
@@ -45,70 +50,141 @@ class _StaffNocScreenState extends State<StaffNocScreen> {
   @override
   Widget build(BuildContext context) {
     final alerts = (_data?['alerts'] as List<dynamic>?) ?? [];
+    final brand = context.radiant;
 
-    return PageScaffold(
-      title: 'NOC Dashboard',
-      useGradientBody: true,
-      actions: [IconButton(icon: const Icon(Icons.refresh), onPressed: _load)],
+    return Scaffold(
+      backgroundColor: context.isDark ? RadiantTokens.darkBg : RadiantTokens.lightBg,
       body: _loading
           ? const ListLoading()
           : RefreshIndicator(
               onRefresh: _load,
+              color: RadiantTokens.brand,
               child: ListView(
-                padding: const EdgeInsets.all(14),
+                padding: EdgeInsets.zero,
                 children: [
-                  if (_error != null) ErrorBanner(message: _error!, onRetry: _load),
-                  GridView.count(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    crossAxisCount: 2,
-                    mainAxisSpacing: 8,
-                    crossAxisSpacing: 8,
-                    childAspectRatio: 1.5,
-                    children: [
-                      _stat('OLT', _data?['olt_count']),
-                      _stat('ONU', _data?['onu_count']),
-                      _stat('Online', _data?['customers_online']),
-                      _stat('Weak signal', _data?['onu_weak_count']),
+                  RadiantScreenHeader(
+                    title: 'NOC Dashboard',
+                    subtitle: 'Network health overview',
+                    trailing: [
+                      RadiantHeaderIcon(icon: Icons.refresh_rounded, onPressed: _load, tooltip: 'Refresh'),
                     ],
                   ),
-                  const SizedBox(height: 16),
-                  const Text('Alerts', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                  const SizedBox(height: 8),
-                  if (alerts.isEmpty)
-                    const Card(child: ListTile(title: Text('No active alerts'), leading: Icon(Icons.check_circle, color: AppTheme.success)))
-                  else
-                    ...alerts.map((a) {
-                      final m = Map<String, dynamic>.from(a as Map);
-                      return Card(
-                        child: ListTile(
-                          leading: Icon(
-                            m['severity'] == 'critical' ? Icons.error : Icons.warning_amber,
-                            color: m['severity'] == 'critical' ? Colors.red : AppTheme.warning,
+                  Padding(
+                    padding: pagePadding(context, top: 8),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        if (_error != null)
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 12),
+                            child: ErrorBanner(message: _error!, onRetry: _load),
                           ),
-                          title: Text(m['title']?.toString() ?? 'Alert'),
-                          subtitle: Text(m['message']?.toString() ?? ''),
+                        GridView.count(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          crossAxisCount: 2,
+                          mainAxisSpacing: 10,
+                          crossAxisSpacing: 10,
+                          childAspectRatio: 1.35,
+                          children: [
+                            RadiantKpiTile(
+                              compact: true,
+                              label: 'OLT',
+                              value: '${_data?['olt_count'] ?? '—'}',
+                              icon: Icons.dns_rounded,
+                              color: RadiantTokens.brand,
+                            ),
+                            RadiantKpiTile(
+                              compact: true,
+                              label: 'ONU',
+                              value: '${_data?['onu_count'] ?? '—'}',
+                              icon: Icons.router_rounded,
+                              color: RadiantTokens.accent,
+                            ),
+                            RadiantKpiTile(
+                              compact: true,
+                              label: 'Online',
+                              value: '${_data?['customers_online'] ?? '—'}',
+                              icon: Icons.wifi_rounded,
+                              color: RadiantTokens.success,
+                            ),
+                            RadiantKpiTile(
+                              compact: true,
+                              label: 'Weak signal',
+                              value: '${_data?['onu_weak_count'] ?? '—'}',
+                              icon: Icons.signal_cellular_alt_1_bar_rounded,
+                              color: RadiantTokens.warning,
+                            ),
+                          ],
                         ),
-                      );
-                    }),
+                        const SizedBox(height: 20),
+                        const RadiantSectionHeader(title: 'Alerts'),
+                        if (alerts.isEmpty)
+                          RadiantGlassCard(
+                            child: Row(
+                              children: [
+                                const Icon(Icons.check_circle_rounded, color: RadiantTokens.success),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Text(
+                                    'No active alerts',
+                                    style: context.text.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          )
+                        else
+                          ...alerts.map((a) {
+                            final m = Map<String, dynamic>.from(a as Map);
+                            final critical = m['severity'] == 'critical';
+                            final color = critical ? RadiantTokens.danger : RadiantTokens.warning;
+                            return Padding(
+                              padding: const EdgeInsets.only(bottom: 10),
+                              child: RadiantGlassCard(
+                                child: Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.all(8),
+                                      decoration: BoxDecoration(
+                                        color: color.withValues(alpha: 0.12),
+                                        borderRadius: BorderRadius.circular(RadiantTokens.radiusSm),
+                                      ),
+                                      child: Icon(
+                                        critical ? Icons.error_rounded : Icons.warning_amber_rounded,
+                                        color: color,
+                                        size: 20,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            m['title']?.toString() ?? 'Alert',
+                                            style: context.text.titleSmall?.copyWith(fontWeight: FontWeight.w700),
+                                          ),
+                                          const SizedBox(height: 4),
+                                          Text(
+                                            m['message']?.toString() ?? '',
+                                            style: context.text.bodySmall?.copyWith(color: brand.muted),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          }),
+                      ],
+                    ),
+                  ),
                 ],
               ),
             ),
-    );
-  }
-
-  Widget _stat(String label, dynamic value) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text('$value', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
-            Text(label, style: const TextStyle(color: Colors.black54)),
-          ],
-        ),
-      ),
     );
   }
 }

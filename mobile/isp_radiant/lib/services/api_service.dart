@@ -16,6 +16,7 @@ class ApiService {
   static const _tokenKey = 'auth_token';
   static const _roleKey = 'user_role';
   static const _staffModeKey = 'staff_mode';
+  static const _expiresKey = 'token_expires_at';
   static const _timeout = Duration(seconds: 30);
   static const _bootTimeout = Duration(seconds: 8);
 
@@ -25,15 +26,24 @@ class ApiService {
 
   Future<void> saveStaffMode(String mode) => _storage.write(_staffModeKey, mode);
 
-  Future<void> saveSession(String token, String role) async {
+  Future<void> saveSession(String token, String role, {String? expiresAt}) async {
     await _storage.write(_tokenKey, token);
     await _storage.write(_roleKey, role);
+    if (expiresAt != null && expiresAt.isNotEmpty) {
+      await _storage.write(_expiresKey, expiresAt);
+    }
   }
 
   Future<void> clearSession() async {
     await _storage.delete(_tokenKey);
     await _storage.delete(_roleKey);
     await _storage.delete(_staffModeKey);
+    await _storage.delete(_expiresKey);
+  }
+
+  Future<bool> hasStoredSession() async {
+    final t = await token;
+    return t != null && t.isNotEmpty;
   }
 
   Future<void> loadRemoteConfig({Duration? timeout}) async {
@@ -54,6 +64,10 @@ class ApiService {
     final r = await role;
     if (t == null || t.isEmpty || r == null || r.isEmpty) return false;
 
+    if (!quick) {
+      await maybeRefreshIfExpiring();
+    }
+
     final limit = quick ? _bootTimeout : _timeout;
     try {
       if (r == 'customer') {
@@ -65,17 +79,63 @@ class ApiService {
       }
       return true;
     } on ApiException catch (e) {
-      if (e.statusCode == 401) await clearSession();
-      return false;
+      if (e.statusCode == 401) {
+        if (!quick && await refreshToken()) {
+          return validateSession(quick: true);
+        }
+        await clearSession();
+        return false;
+      }
+      return true;
     } catch (_) {
-      return false;
+      return true;
     }
+  }
+
+  /// Refresh bearer token when within 14 days of expiry (keeps app logged in long-term).
+  Future<void> maybeRefreshIfExpiring() async {
+    final expRaw = await _storage.read(_expiresKey);
+    if (expRaw == null || expRaw.isEmpty) return;
+    try {
+      final exp = DateTime.parse(expRaw).toLocal();
+      if (exp.isAfter(DateTime.now().add(const Duration(days: 14)))) return;
+      await refreshToken();
+    } catch (_) {}
   }
 
   Future<Map<String, dynamic>> login({
     required String role,
     required String login,
     required String password,
+    String? twoFactorCode,
+  }) async {
+    return _loginRequest(
+      role: role,
+      login: login,
+      password: password,
+      twoFactorCode: twoFactorCode,
+    );
+  }
+
+  /// Single sign-in — server detects customer / staff / reseller from credentials.
+  Future<Map<String, dynamic>> loginUnified({
+    required String login,
+    required String password,
+    String? twoFactorCode,
+  }) async {
+    return _loginRequest(
+      role: 'auto',
+      login: login,
+      password: password,
+      twoFactorCode: twoFactorCode,
+    );
+  }
+
+  Future<Map<String, dynamic>> _loginRequest({
+    required String role,
+    required String login,
+    required String password,
+    String? twoFactorCode,
   }) async {
     await loadRemoteConfig();
     final res = await _client
@@ -86,6 +146,7 @@ class ApiService {
             'role': role,
             'login': login,
             'password': password,
+            if (twoFactorCode != null && twoFactorCode.isNotEmpty) 'two_factor_code': twoFactorCode,
             'device_name': 'isp-radiant-android',
           }),
         )
@@ -93,13 +154,14 @@ class ApiService {
 
     final body = _decode(res);
     if (res.statusCode >= 400) {
-      throw ApiException(_messageFrom(body), statusCode: res.statusCode);
+      throw ApiException(_messageFrom(body), statusCode: res.statusCode, data: body);
     }
 
     final token = body['token']?.toString();
     if (token == null || token.isEmpty) throw ApiException('No token received');
 
-    await saveSession(token, role);
+    final resolvedRole = body['role']?.toString() ?? (role == 'auto' ? 'customer' : role);
+    await saveSession(token, resolvedRole, expiresAt: body['expires_at']?.toString());
     return body;
   }
 
@@ -725,12 +787,16 @@ class ApiService {
 
   Future<bool> refreshToken() async {
     final r = await role;
-    final path = r == 'customer' ? '/customer/auth/refresh' : '/auth/refresh';
+    final path = switch (r) {
+      'customer' => '/customer/auth/refresh',
+      'reseller' => '/reseller/auth/refresh',
+      _ => '/auth/refresh',
+    };
     try {
-      final body = await _post(path, {});
+      final body = await _post(path, {}, skipRefreshOn401: true);
       final token = body['token']?.toString();
       if (token != null && token.isNotEmpty && r != null) {
-        await saveSession(token, r);
+        await saveSession(token, r, expiresAt: body['expires_at']?.toString());
         return true;
       }
     } catch (_) {}
@@ -771,7 +837,7 @@ class ApiService {
     return _handle(res);
   }
 
-  Future<Map<String, dynamic>> _post(String path, Map<String, dynamic> payload, {bool retried = false}) async {
+  Future<Map<String, dynamic>> _post(String path, Map<String, dynamic> payload, {bool retried = false, bool skipRefreshOn401 = false}) async {
     final res = await _client
         .post(
           Uri.parse('${ServerConfig.apiBaseUrl}$path'),
@@ -779,16 +845,18 @@ class ApiService {
           body: jsonEncode(payload),
         )
         .timeout(_timeout);
-    if (res.statusCode == 401 && !retried && await refreshToken()) {
-      return _post(path, payload, retried: true);
+    if (res.statusCode == 401 && !retried && !skipRefreshOn401 && await refreshToken()) {
+      return _post(path, payload, retried: true, skipRefreshOn401: skipRefreshOn401);
     }
-    return _handle(res);
+    return _handle(res, skipClearOn401: skipRefreshOn401);
   }
 
-  Map<String, dynamic> _handle(http.Response res) {
+  Map<String, dynamic> _handle(http.Response res, {bool skipClearOn401 = false}) {
     final body = _decode(res);
     if (res.statusCode == 401) {
-      clearSession();
+      if (!skipClearOn401) {
+        clearSession();
+      }
       throw ApiException('Session expired. Please sign in again.', statusCode: 401);
     }
     if (res.statusCode >= 400) {
@@ -842,9 +910,10 @@ class ApiService {
 }
 
 class ApiException implements Exception {
-  ApiException(this.message, {this.statusCode});
+  ApiException(this.message, {this.statusCode, this.data});
   final String message;
   final int? statusCode;
+  final Map<String, dynamic>? data;
   @override
   String toString() => message;
 }
