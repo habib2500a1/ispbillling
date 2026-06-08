@@ -4,6 +4,7 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\UserResource\Pages;
 use App\Models\Branch;
+use App\Models\Tenant;
 use App\Models\User;
 use App\Support\UserCollectionDiscount;
 use Filament\Forms;
@@ -48,14 +49,38 @@ class UserResource extends Resource
             ])->columns(2),
             Forms\Components\Section::make('Organization')->schema([
                 Forms\Components\Select::make('tenant_id')
-                    ->relationship('tenant', 'name')
+                    ->label('Tenant')
+                    ->options(fn (): array => Tenant::query()
+                        ->where('is_active', true)
+                        ->orderBy('name')
+                        ->pluck('name', 'id')
+                        ->all())
                     ->searchable()
+                    ->preload()
+                    ->default(fn (): ?int => $isSuper ? null : ($authUser?->tenant_id))
+                    ->helperText($isSuper
+                        ? 'Required for Organization center KPIs. Super-admin without tenant still defaults to Default ISP in reports.'
+                        : 'Inherited from your tenant account.')
                     ->visible($isSuper)
-                    ->required($isSuper),
+                    ->required($isSuper)
+                    ->live(),
                 Forms\Components\Select::make('branch_id')
                     ->label('Branch')
-                    ->options(fn (): array => Branch::query()->orderBy('name')->pluck('name', 'id')->all())
-                    ->searchable(),
+                    ->options(function (Forms\Get $get) use ($authUser, $isSuper): array {
+                        $tenantId = $isSuper
+                            ? ($get('tenant_id') ?: $authUser?->tenant_id)
+                            : $authUser?->tenant_id;
+
+                        $query = Branch::query()->orderBy('name');
+                        if ($tenantId) {
+                            $query->where('tenant_id', (int) $tenantId);
+                        }
+
+                        return $query->pluck('name', 'id')->all();
+                    })
+                    ->searchable()
+                    ->preload()
+                    ->helperText('Create branches from Organization center → Branches if the list is empty.'),
                 Forms\Components\Select::make('roles')
                     ->label('Roles')
                     ->multiple()
