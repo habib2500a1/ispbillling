@@ -44,6 +44,28 @@ class ItemsRelationManager extends RelationManager
                     ->required()
                     ->live()
                     ->native(false),
+                Forms\Components\TextInput::make('barcode_scan')
+                    ->label('Scan barcode')
+                    ->placeholder('Scan or type barcode…')
+                    ->autocomplete('off')
+                    ->live(debounce: 400)
+                    ->visible(fn (Get $get): bool => in_array($get('item_type'), ['hardware', 'product'], true))
+                    ->afterStateUpdated(function (?string $state, Set $set): void {
+                        if (! filled($state)) {
+                            return;
+                        }
+                        $product = Product::query()
+                            ->where('is_active', true)
+                            ->where(function ($q) use ($state): void {
+                                $q->where('barcode', $state)->orWhere('sku', $state);
+                            })
+                            ->first();
+                        if ($product) {
+                            $set('product_id', $product->id);
+                            $set('description', $product->name);
+                            $set('unit_price', $product->effectiveSellPrice());
+                        }
+                    }),
                 Forms\Components\Select::make('product_id')
                     ->label('Catalog product')
                     ->options(fn () => Product::query()->where('is_active', true)->orderBy('name')->pluck('name', 'id'))
@@ -158,6 +180,24 @@ class ItemsRelationManager extends RelationManager
                     ->label('Add hardware line')
                     ->icon('heroicon-o-cpu-chip')
                     ->form([
+                        Forms\Components\TextInput::make('barcode_scan')
+                            ->label('Scan barcode')
+                            ->placeholder('Scan or type barcode…')
+                            ->live(debounce: 400)
+                            ->afterStateUpdated(function (?string $state, Set $set): void {
+                                if (! filled($state)) {
+                                    return;
+                                }
+                                $product = Product::query()
+                                    ->where('is_active', true)
+                                    ->where(function ($q) use ($state): void {
+                                        $q->where('barcode', $state)->orWhere('sku', $state);
+                                    })
+                                    ->first();
+                                if ($product) {
+                                    $set('product_id', $product->id);
+                                }
+                            }),
                         Forms\Components\Select::make('product_id')
                             ->label('Product')
                             ->options(fn () => Product::query()->where('is_active', true)->orderBy('name')->pluck('name', 'id'))

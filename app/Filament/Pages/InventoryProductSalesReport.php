@@ -3,6 +3,7 @@
 namespace App\Filament\Pages;
 
 use App\Filament\Pages\Concerns\InventoryReportPage;
+use App\Filament\Pages\Concerns\UsesInventoryReportLayout;
 use App\Filament\Resources\InventorySaleResource;
 use App\Models\InventorySale;
 use Filament\Pages\Page;
@@ -16,6 +17,7 @@ class InventoryProductSalesReport extends Page implements HasTable
 {
     use InteractsWithTable;
     use InventoryReportPage;
+    use UsesInventoryReportLayout;
 
     protected static ?string $slug = 'inventory-report-product-sales';
 
@@ -30,6 +32,22 @@ class InventoryProductSalesReport extends Page implements HasTable
         $this->dateFrom = now()->startOfMonth()->toDateString();
         $this->dateTo = now()->toDateString();
         $this->mountInteractsWithTable();
+        $this->mountInventoryReportLayout();
+    }
+
+    /**
+     * @return list<array{label: string, value: string, tone: string}>
+     */
+    public function getReportStats(): array
+    {
+        $m = $this->inventorySummary;
+
+        return [
+            ['label' => 'Month sales', 'value' => number_format((float) ($m['month_sales'] ?? 0)).' BDT', 'tone' => 'teal'],
+            ['label' => 'Month profit', 'value' => number_format((float) ($m['month_profit'] ?? 0)).' BDT', 'tone' => 'emerald'],
+            ['label' => 'Month COGS', 'value' => number_format((float) ($m['month_cogs'] ?? 0)).' BDT', 'tone' => 'amber'],
+            ['label' => 'Stock value', 'value' => number_format((float) ($m['stock_value'] ?? 0)).' BDT', 'tone' => 'orange'],
+        ];
     }
 
     public function getReportTitle(): string

@@ -118,6 +118,8 @@ final class AdminRouteAssets
             'filament.admin.resources.stock-movements.*',
             'filament.admin.resources.fixed-assets.*',
             'filament.admin.resources.store-device-loans.*',
+            'filament.admin.resources.devices.*',
+            'filament.admin.resources.pop-boxes.*',
             'filament.admin.pages.inventory-*',
         ])) {
             $html .= self::linkTag('inventory-hub-pro.css');

@@ -3,6 +3,7 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Concerns\ChecksIspPermission;
+use App\Filament\Pages\FiberPlantMap;
 use App\Filament\Resources\PopBoxResource\Pages;
 use App\Models\Area;
 use App\Models\PopBox;
@@ -50,8 +51,29 @@ class PopBoxResource extends Resource
             Tables\Columns\TextColumn::make('name')->searchable(),
             Tables\Columns\TextColumn::make('area.name')->label('Area'),
             Tables\Columns\TextColumn::make('capacity'),
+            Tables\Columns\TextColumn::make('coordinates')
+                ->label('GIS')
+                ->state(fn (PopBox $record): string => filled($record->latitude) && filled($record->longitude)
+                    ? $record->latitude.', '.$record->longitude
+                    : '—')
+                ->fontFamily('mono')
+                ->toggleable(),
             Tables\Columns\IconColumn::make('is_active')->boolean(),
-        ])->actions([Tables\Actions\EditAction::make()]);
+        ])->actions([
+            Tables\Actions\Action::make('map')
+                ->label('Map')
+                ->icon('heroicon-o-map-pin')
+                ->color('gray')
+                ->url(function (PopBox $record): string {
+                    if (filled($record->latitude) && filled($record->longitude)) {
+                        return 'https://www.google.com/maps/search/?api=1&query='.$record->latitude.','.$record->longitude;
+                    }
+
+                    return FiberPlantMap::getUrl();
+                })
+                ->openUrlInNewTab(),
+            Tables\Actions\EditAction::make(),
+        ]);
     }
 
     public static function getPages(): array

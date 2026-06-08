@@ -61,6 +61,18 @@ class ProductResource extends Resource
                     ->label('Stock')
                     ->sortable()
                     ->color(fn (Product $record): string => $record->isLowStock() ? 'danger' : 'success'),
+                Tables\Columns\TextColumn::make('warehouse_breakdown')
+                    ->label('By warehouse')
+                    ->state(function (Product $record): string {
+                        return $record->warehouseStocks()
+                            ->with('warehouse')
+                            ->get()
+                            ->filter(fn ($row) => (int) $row->stock_qty > 0)
+                            ->map(fn ($row) => ($row->warehouse?->code ?? '?').': '.(int) $row->stock_qty)
+                            ->join(' · ') ?: '—';
+                    })
+                    ->wrap()
+                    ->toggleable(),
                 Tables\Columns\TextColumn::make('cost_price')->label('Buy')->money('BDT'),
                 Tables\Columns\TextColumn::make('sell_price')->label('Sell')->money('BDT'),
                 Tables\Columns\TextColumn::make('margin')

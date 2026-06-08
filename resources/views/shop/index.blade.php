@@ -1,32 +1,37 @@
 <!DOCTYPE html>
-<html lang="bn">
+<html lang="bn" class="iv-shop">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Shop — {{ $company }}</title>
+    <link rel="stylesheet" href="{{ asset('css/inventory-hub-pro.css') }}?v={{ @filemtime(public_path('css/inventory-hub-pro.css')) ?: 1 }}">
     <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { background: #0b1220; color: #e2e8f0; font-family: system-ui, sans-serif; }
+    </style>
 </head>
-<body class="min-h-screen bg-slate-950 text-slate-100">
+<body class="min-h-screen iv-shop">
     @include('partials.demo-banner')
-    <header class="border-b border-slate-800 bg-slate-900/80 backdrop-blur">
-        <div class="mx-auto flex max-w-5xl items-center justify-between px-4 py-4">
+    <header class="iv-shop-header">
+        <div class="mx-auto flex max-w-5xl items-center justify-between px-4 py-5">
             <div>
-                <h1 class="text-lg font-bold">{{ $company }}</h1>
-                <p class="text-sm text-slate-400">Hardware & accessories shop</p>
+                <p class="text-xs font-bold uppercase tracking-widest text-orange-400">Asset shop</p>
+                <h1 class="text-xl font-extrabold text-white">{{ $company }}</h1>
+                <p class="text-sm text-slate-400">Hardware &amp; accessories · live stock</p>
             </div>
-            <a href="{{ url('/') }}" class="text-sm font-semibold text-teal-400 hover:underline">← Home</a>
+            <a href="{{ url('/') }}" class="text-sm font-semibold text-orange-300 hover:underline">← Home</a>
         </div>
     </header>
 
     <main class="mx-auto max-w-5xl px-4 py-8">
         @if (session('shop_success'))
-            <div class="mb-6 rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-4 py-3 text-emerald-200">
+            <div class="mb-6 rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-4 py-3 text-emerald-200">
                 {{ session('shop_success') }}
             </div>
         @endif
 
         @if ($errors->any())
-            <div class="mb-6 rounded-lg border border-rose-500/40 bg-rose-500/10 px-4 py-3 text-rose-200">
+            <div class="mb-6 rounded-xl border border-rose-500/40 bg-rose-500/10 px-4 py-3 text-rose-200">
                 <ul class="list-disc pl-5 text-sm">
                     @foreach ($errors->all() as $error)
                         <li>{{ $error }}</li>
@@ -42,47 +47,44 @@
                 @foreach ($products as $product)
                     @php
                         $sell = $product->effectiveSellPrice();
-                        $cost = $product->effectiveCost();
                     @endphp
-                    <article class="rounded-2xl border border-slate-800 bg-slate-900 p-5 shadow-lg">
+                    <article class="iv-shop-card p-5">
                         @if ($product->imageUrl())
                             <img
                                 src="{{ $product->imageUrl() }}"
                                 alt="{{ $product->name }}"
-                                class="mb-4 aspect-[4/3] w-full rounded-xl border border-slate-800 object-cover"
+                                class="mb-4 aspect-[4/3] w-full rounded-xl border border-white/10 object-cover"
                                 loading="lazy"
                             >
                         @endif
                         <div class="flex items-start justify-between gap-2">
                             <div>
-                                <h2 class="text-lg font-semibold">{{ $product->name }}</h2>
+                                <h2 class="text-lg font-bold text-white">{{ $product->name }}</h2>
                                 @if ($product->sku)
                                     <p class="font-mono text-xs text-slate-500">{{ $product->sku }}</p>
                                 @endif
                             </div>
-                            <span class="rounded-full bg-teal-500/20 px-2 py-0.5 text-xs font-bold text-teal-300">
-                                {{ $product->stock_qty }} in stock
-                            </span>
+                            <span class="iv-shop-badge">{{ $product->stock_qty }} in stock</span>
                         </div>
                         @if ($product->description)
                             <p class="mt-2 text-sm text-slate-400">{{ $product->description }}</p>
                         @endif
-                        <p class="mt-4 text-2xl font-bold text-white">
+                        <p class="mt-4 text-2xl font-extrabold text-white">
                             {{ number_format($sell, 0) }} <span class="text-sm font-normal text-slate-400">BDT</span>
                         </p>
 
-                        <form method="post" action="{{ route('shop.checkout') }}" class="mt-4 space-y-3 border-t border-slate-800 pt-4">
+                        <form method="post" action="{{ route('shop.checkout') }}" class="mt-4 space-y-3 border-t border-white/10 pt-4">
                             @csrf
                             <input type="hidden" name="product_id" value="{{ $product->id }}">
                             <div class="grid grid-cols-2 gap-2">
                                 <label class="block text-xs text-slate-400">
                                     Qty
                                     <input type="number" name="quantity" min="1" max="{{ $product->stock_qty }}" value="1"
-                                        class="mt-1 w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm">
+                                        class="mt-1 w-full rounded-lg border border-white/10 bg-slate-900 px-3 py-2 text-sm text-white">
                                 </label>
                                 <label class="block text-xs text-slate-400">
                                     Pay with
-                                    <select name="payment_method" class="mt-1 w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm">
+                                    <select name="payment_method" class="mt-1 w-full rounded-lg border border-white/10 bg-slate-900 px-3 py-2 text-sm text-white">
                                         <option value="cash">Cash on delivery</option>
                                         <option value="bkash">bKash</option>
                                         <option value="nagad">Nagad</option>
@@ -93,15 +95,14 @@
                             <label class="block text-xs text-slate-400">
                                 Your name
                                 <input type="text" name="customer_name" required value="{{ old('customer_name') }}"
-                                    class="mt-1 w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm">
+                                    class="mt-1 w-full rounded-lg border border-white/10 bg-slate-900 px-3 py-2 text-sm text-white">
                             </label>
                             <label class="block text-xs text-slate-400">
                                 Mobile
                                 <input type="tel" name="customer_phone" required value="{{ old('customer_phone') }}"
-                                    class="mt-1 w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm">
+                                    class="mt-1 w-full rounded-lg border border-white/10 bg-slate-900 px-3 py-2 text-sm text-white">
                             </label>
-                            <button type="submit"
-                                class="w-full rounded-lg bg-teal-600 py-2.5 text-sm font-bold text-white hover:bg-teal-500">
+                            <button type="submit" class="iv-shop-btn">
                                 Order now
                             </button>
                         </form>

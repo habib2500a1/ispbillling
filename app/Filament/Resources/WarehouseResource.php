@@ -36,7 +36,9 @@ class WarehouseResource extends Resource
                 ->maxLength(32)
                 ->unique(ignoreRecord: true),
             Forms\Components\TextInput::make('name')->required(),
-            Forms\Components\Textarea::make('address')->columnSpanFull(),
+            Forms\Components\Textarea::make('address')
+                ->columnSpanFull()
+                ->hint('Paste address for Google Maps link on list view'),
             Forms\Components\Toggle::make('is_default')
                 ->label('Default warehouse')
                 ->helperText('New PO/sales use this when none selected.'),
@@ -56,6 +58,26 @@ class WarehouseResource extends Resource
                 Tables\Columns\TextColumn::make('stock_levels_count')
                     ->label('SKU rows')
                     ->counts('stockLevels'),
+                Tables\Columns\TextColumn::make('stock_units')
+                    ->label('Units')
+                    ->state(fn (Warehouse $record): int => (int) $record->stockLevels()->sum('stock_qty'))
+                    ->numeric(),
+                Tables\Columns\TextColumn::make('stock_value')
+                    ->label('Value')
+                    ->state(function (Warehouse $record): float {
+                        return (float) $record->stockLevels()
+                            ->with('product')
+                            ->get()
+                            ->sum(fn ($row) => (int) $row->stock_qty * ($row->product?->effectiveCost() ?? 0));
+                    })
+                    ->money('BDT'),
+                Tables\Columns\TextColumn::make('address')
+                    ->limit(30)
+                    ->toggleable(isToggledHiddenByDefault: true)
+                    ->url(fn (Warehouse $record): ?string => filled($record->address)
+                        ? 'https://www.google.com/maps/search/?api=1&query='.urlencode((string) $record->address)
+                        : null)
+                    ->openUrlInNewTab(),
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),

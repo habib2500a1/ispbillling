@@ -2,19 +2,36 @@
 
 namespace App\Filament\Resources\PurchaseOrderResource\Pages;
 
+use App\Filament\Pages\Concerns\UsesInventoryFormLayout;
 use App\Filament\Resources\PurchaseOrderResource;
+use Filament\Actions;
 use Filament\Resources\Pages\EditRecord;
 
 class EditPurchaseOrder extends EditRecord
 {
+    use UsesInventoryFormLayout;
+
     protected static string $resource = PurchaseOrderResource::class;
 
-    protected function afterSave(): void
+    protected static string $view = 'filament.inventory.form-shell';
+
+    public function mount(int|string $record): void
     {
-        $order = $this->record->fresh('items');
-        foreach ($order->items as $item) {
-            $item->update(['line_total' => $item->quantity * $item->unit_price]);
-        }
-        $order->update(['total' => $order->items->sum('line_total')]);
+        parent::mount($record);
+        $po = $this->getRecord();
+        $this->configureInventoryFormShell(
+            $po->po_number,
+            ucfirst((string) $po->status).' · '.$po->vendor?->name,
+            PurchaseOrderResource::getUrl(),
+            'Purchase orders',
+        );
+    }
+
+    protected function getHeaderActions(): array
+    {
+        return [
+            $this->inventoryHubAction(),
+            Actions\DeleteAction::make(),
+        ];
     }
 }

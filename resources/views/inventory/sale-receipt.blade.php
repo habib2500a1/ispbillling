@@ -56,11 +56,26 @@
             max-height: 14mm;
             margin: 0 auto 6px;
         }
+        .receipt__accent {
+            height: 3px;
+            background: linear-gradient(90deg, #f97316, #ea580c);
+            margin: 0 0 8px;
+            border-radius: 2px;
+        }
         .receipt__brand {
             text-align: center;
             font-weight: 800;
             font-size: 13px;
             margin: 0 0 2px;
+            letter-spacing: 0.02em;
+        }
+        .receipt__tagline {
+            text-align: center;
+            font-size: 9px;
+            color: #94a3b8;
+            margin: 0 0 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
         }
         .receipt__meta {
             text-align: center;
@@ -152,10 +167,12 @@
     </div>
 
     <article class="receipt">
+        <div class="receipt__accent" aria-hidden="true"></div>
         @if ($logoUrl)
             <img src="{{ $logoUrl }}" alt="" class="receipt__logo">
         @endif
         <p class="receipt__brand">{{ $company }}</p>
+        <p class="receipt__tagline">Inventory POS</p>
         @if ($companyPhone || $companyAddress)
             <p class="receipt__meta">
                 {{ collect([$companyPhone, $companyAddress])->filter()->implode(' · ') }}

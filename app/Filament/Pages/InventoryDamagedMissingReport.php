@@ -3,6 +3,7 @@
 namespace App\Filament\Pages;
 
 use App\Filament\Pages\Concerns\InventoryReportPage;
+use App\Filament\Pages\Concerns\UsesInventoryReportLayout;
 use App\Models\Product;
 use App\Services\Inventory\ProductConditionService;
 use Filament\Forms;
@@ -18,6 +19,7 @@ class InventoryDamagedMissingReport extends Page implements HasTable
 {
     use InteractsWithTable;
     use InventoryReportPage;
+    use UsesInventoryReportLayout;
 
     protected static ?string $slug = 'inventory-report-damaged-missing';
 
@@ -28,6 +30,22 @@ class InventoryDamagedMissingReport extends Page implements HasTable
     public function mount(): void
     {
         $this->mountInteractsWithTable();
+        $this->mountInventoryReportLayout();
+    }
+
+    /**
+     * @return list<array{label: string, value: string, tone: string}>
+     */
+    public function getReportStats(): array
+    {
+        $m = $this->inventorySummary;
+
+        return [
+            ['label' => 'Issue SKUs', 'value' => (string) ($m['damaged_missing_count'] ?? 0), 'tone' => 'rose'],
+            ['label' => 'Damaged devices', 'value' => (string) (($m['damaged_assets'] ?? 0) - ($m['damaged_missing_count'] ?? 0)), 'tone' => 'amber'],
+            ['label' => 'Stock value', 'value' => number_format((float) ($m['stock_value'] ?? 0)).' BDT', 'tone' => 'orange'],
+            ['label' => 'Low stock', 'value' => (string) ($m['low_stock_count'] ?? 0), 'tone' => 'sky'],
+        ];
     }
 
     public function getReportTitle(): string

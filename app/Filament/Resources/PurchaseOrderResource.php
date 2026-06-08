@@ -12,6 +12,7 @@ use App\Services\Inventory\InventoryAccountingService;
 use App\Services\Inventory\InventoryStockService;
 use Filament\Notifications\Notification;
 use Filament\Forms;
+use Illuminate\Support\HtmlString;
 use Filament\Forms\Form;
 use Filament\Forms\Set;
 use Filament\Resources\Resource;
@@ -98,7 +99,20 @@ class PurchaseOrderResource extends Resource
         return $table->columns([
             Tables\Columns\TextColumn::make('po_number')->searchable()->fontFamily('mono'),
             Tables\Columns\TextColumn::make('vendor.name')->label('Vendor'),
-            Tables\Columns\TextColumn::make('status')->badge(),
+            Tables\Columns\TextColumn::make('warehouse.code')->label('Warehouse')->fontFamily('mono')->placeholder('—'),
+            Tables\Columns\TextColumn::make('status')
+                ->badge()
+                ->color(fn (string $state): string => match ($state) {
+                    'draft' => 'gray',
+                    'ordered' => 'warning',
+                    'received' => 'success',
+                    'cancelled' => 'danger',
+                    default => 'gray',
+                }),
+            Tables\Columns\TextColumn::make('items_count')
+                ->label('Lines')
+                ->counts('items')
+                ->alignCenter(),
             Tables\Columns\TextColumn::make('total')->money('BDT'),
             Tables\Columns\TextColumn::make('ordered_at')->date(),
         ])->actions([
@@ -107,7 +121,28 @@ class PurchaseOrderResource extends Resource
                 ->label('Received')
                 ->icon('heroicon-o-check')
                 ->color('success')
-                ->requiresConfirmation()
+                ->modalHeading('Receive purchase order')
+                ->modalDescription('Verify each line before posting stock into the warehouse.')
+                ->form([
+                    Forms\Components\Placeholder::make('line_checklist')
+                        ->label('Line items')
+                        ->content(function (PurchaseOrder $record): HtmlString {
+                            $record->loadMissing('items.product');
+                            $rows = $record->items->map(function ($item): string {
+                                $name = $item->description ?: ($item->product?->name ?? 'Line');
+                                $qty = (int) $item->quantity;
+                                $price = number_format((float) $item->unit_price, 2);
+
+                                return '<li class="iv-po-checklist__item"><span>'.e($name).'</span><strong>'.$qty.' × '.$price.' BDT</strong></li>';
+                            })->join('');
+
+                            return new HtmlString('<ul class="iv-po-checklist">'.($rows ?: '<li>No line items</li>').'</ul>');
+                        }),
+                    Forms\Components\Checkbox::make('confirm_all')
+                        ->label('All items physically received and quantities match')
+                        ->accepted()
+                        ->required(),
+                ])
                 ->visible(fn (PurchaseOrder $record): bool => ! in_array($record->status, ['received', 'cancelled'], true))
                 ->action(function (PurchaseOrder $record): void {
                     $record->load('items');

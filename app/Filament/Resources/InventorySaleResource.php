@@ -36,6 +36,7 @@ class InventorySaleResource extends Resource
     {
         return $table->columns([
             Tables\Columns\TextColumn::make('sale_number')->searchable()->fontFamily('mono'),
+            Tables\Columns\TextColumn::make('warehouse.code')->label('Warehouse')->fontFamily('mono')->placeholder('—'),
             Tables\Columns\TextColumn::make('sold_at')->dateTime()->sortable(),
             Tables\Columns\TextColumn::make('channel')->badge(),
             Tables\Columns\TextColumn::make('customer_name')->placeholder('Walk-in'),

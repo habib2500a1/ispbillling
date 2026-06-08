@@ -3,6 +3,7 @@
 namespace App\Filament\Pages;
 
 use App\Filament\Pages\Concerns\InventoryReportPage;
+use App\Filament\Pages\Concerns\UsesInventoryReportLayout;
 use App\Filament\Resources\DeviceResource;
 use App\Models\Device;
 use Filament\Forms;
@@ -18,6 +19,7 @@ class InventoryWarrantyManagement extends Page implements HasTable
 {
     use InteractsWithTable;
     use InventoryReportPage;
+    use UsesInventoryReportLayout;
 
     protected static ?string $slug = 'inventory-warranty';
 
@@ -26,6 +28,22 @@ class InventoryWarrantyManagement extends Page implements HasTable
     public function mount(): void
     {
         $this->mountInteractsWithTable();
+        $this->mountInventoryReportLayout();
+    }
+
+    /**
+     * @return list<array{label: string, value: string, tone: string}>
+     */
+    public function getReportStats(): array
+    {
+        $m = $this->inventorySummary;
+
+        return [
+            ['label' => 'Expiring (30d)', 'value' => (string) ($m['warranty_expiring'] ?? 0), 'tone' => 'amber'],
+            ['label' => 'Total devices', 'value' => (string) ($m['total_devices'] ?? 0), 'tone' => 'teal'],
+            ['label' => 'Assigned', 'value' => (string) ($m['assigned_assets'] ?? 0), 'tone' => 'sky'],
+            ['label' => 'Damaged', 'value' => (string) ($m['damaged_assets'] ?? 0), 'tone' => 'rose'],
+        ];
     }
 
     public function getReportTitle(): string

@@ -956,3 +956,129 @@ body.isp-inventory-module .fi-main-ctn {
 .iv-stat--red { --iv-accent: #dc2626; }
 .iv-stat--sky { --iv-accent: #0284c7; }
 .iv-tile--red { --iv-accent: #dc2626; }
+
+/* Reports */
+.iv-report-eyebrow {
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--iv-orange);
+    margin-bottom: 0.25rem;
+}
+
+.iv-warranty-banner {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    flex-wrap: wrap;
+    padding: 0.85rem 1rem;
+    margin-bottom: 0.85rem;
+    border-radius: var(--iv-radius-sm);
+    background: color-mix(in srgb, #d97706 12%, var(--iv-card));
+    border: 1px solid color-mix(in srgb, #d97706 35%, var(--iv-border));
+    color: var(--iv-text);
+    font-size: 0.82rem;
+}
+
+.iv-warranty-banner a {
+    margin-left: auto;
+    font-weight: 700;
+    color: var(--iv-orange);
+    text-decoration: none;
+}
+
+.iv-report-filters {
+    margin-top: 0.75rem;
+}
+
+/* PO receive checklist */
+.iv-po-checklist {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+}
+
+.iv-po-checklist__item {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.55rem 0.65rem;
+    border-radius: 8px;
+    background: var(--iv-card);
+    border: 1px solid var(--iv-border);
+    font-size: 0.8rem;
+}
+
+/* Barcode label preview */
+.iv-barcode-preview {
+    margin-top: 0.75rem;
+    padding: 0.85rem;
+    border-radius: var(--iv-radius-sm);
+    background: #fff;
+    border: 1px dashed var(--iv-border);
+    text-align: center;
+}
+
+.iv-barcode-preview svg {
+    max-width: 100%;
+    height: auto;
+}
+
+.iv-barcode-preview__code {
+    display: block;
+    margin-top: 0.35rem;
+    font-family: ui-monospace, monospace;
+    font-size: 0.75rem;
+    color: #334155;
+}
+
+/* Public shop (iv-shop) */
+.iv-shop {
+    --iv-shop-bg: #0b1220;
+    --iv-shop-card: #111827;
+    --iv-shop-accent: #f97316;
+}
+
+.iv-shop body,
+body.iv-shop {
+    background: var(--iv-shop-bg);
+}
+
+.iv-shop-header {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    background: linear-gradient(180deg, rgba(17, 24, 39, 0.95), rgba(11, 18, 32, 0.85));
+    backdrop-filter: blur(8px);
+}
+
+.iv-shop-badge {
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--iv-shop-accent) 20%, transparent);
+    color: #fdba74;
+    font-size: 0.68rem;
+    font-weight: 800;
+    padding: 0.2rem 0.55rem;
+}
+
+.iv-shop-card {
+    border-radius: 1rem;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: var(--iv-shop-card);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
+}
+
+.iv-shop-btn {
+    width: 100%;
+    border-radius: 0.65rem;
+    background: linear-gradient(135deg, #f97316, #ea580c);
+    color: #fff;
+    font-weight: 800;
+    padding: 0.65rem 1rem;
+    border: none;
+}
+
+.iv-list-stat--emerald { --iv-accent: #059669; }
+.iv-list-stat--rose { --iv-accent: #e11d48; }

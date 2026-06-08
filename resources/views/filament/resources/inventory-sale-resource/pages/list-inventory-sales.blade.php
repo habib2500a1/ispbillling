@@ -24,6 +24,24 @@
             </div>
         </header>
 
+        @php
+            $m = $inventorySummary ?? [];
+            $saleStats = [
+                ['label' => 'Month sales', 'value' => number_format((float) ($m['month_sales'] ?? 0)).' BDT', 'tone' => 'teal'],
+                ['label' => 'Month profit', 'value' => number_format((float) ($m['month_profit'] ?? 0)).' BDT', 'tone' => 'emerald'],
+                ['label' => 'Month COGS', 'value' => number_format((float) ($m['month_cogs'] ?? 0)).' BDT', 'tone' => 'amber'],
+                ['label' => 'Stock value', 'value' => number_format((float) ($m['stock_value'] ?? 0)).' BDT', 'tone' => 'orange'],
+            ];
+        @endphp
+        <div class="iv-list-stats">
+            @foreach ($saleStats as $stat)
+                <article @class(['iv-list-stat', 'iv-list-stat--' . ($stat['tone'] ?? 'orange')])>
+                    <span class="iv-list-stat__label">{{ $stat['label'] }}</span>
+                    <strong class="iv-list-stat__value">{{ $stat['value'] }}</strong>
+                </article>
+            @endforeach
+        </div>
+
         <div class="iv-list-table-card">
             {{ $this->table }}
         </div>

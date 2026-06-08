@@ -285,8 +285,30 @@ class DeviceResource extends Resource
                 Tables\Columns\TextColumn::make('customer.name')
                     ->numeric()
                     ->sortable(),
+                Tables\Columns\TextColumn::make('asset_status')
+                    ->label('Asset state')
+                    ->state(function (Device $record): string {
+                        $hasLoan = $record->storeDeviceLoans()
+                            ->where('status', \App\Models\StoreDeviceLoan::STATUS_ISSUED)
+                            ->exists();
+                        if ($hasLoan) {
+                            return 'loaned';
+                        }
+
+                        return (string) $record->status;
+                    })
+                    ->badge()
+                    ->color(fn (string $state): string => match ($state) {
+                        'in_stock' => 'success',
+                        'assigned' => 'info',
+                        'loaned' => 'warning',
+                        'faulty' => 'danger',
+                        default => 'gray',
+                    })
+                    ->formatStateUsing(fn (string $state): string => str_replace('_', ' ', $state)),
                 Tables\Columns\TextColumn::make('status')
-                    ->searchable(),
+                    ->searchable()
+                    ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()

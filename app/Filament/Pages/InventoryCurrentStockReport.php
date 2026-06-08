@@ -3,6 +3,7 @@
 namespace App\Filament\Pages;
 
 use App\Filament\Pages\Concerns\InventoryReportPage;
+use App\Filament\Pages\Concerns\UsesInventoryReportLayout;
 use App\Filament\Resources\ProductResource;
 use App\Models\Product;
 use Filament\Pages\Page;
@@ -16,6 +17,7 @@ class InventoryCurrentStockReport extends Page implements HasTable
 {
     use InteractsWithTable;
     use InventoryReportPage;
+    use UsesInventoryReportLayout;
 
     protected static ?string $slug = 'inventory-report-current-stock';
 
@@ -24,6 +26,22 @@ class InventoryCurrentStockReport extends Page implements HasTable
     public function mount(): void
     {
         $this->mountInteractsWithTable();
+        $this->mountInventoryReportLayout();
+    }
+
+    /**
+     * @return list<array{label: string, value: string, tone: string}>
+     */
+    public function getReportStats(): array
+    {
+        $m = $this->inventorySummary;
+
+        return [
+            ['label' => 'Stock value', 'value' => number_format((float) ($m['stock_value'] ?? 0)).' BDT', 'tone' => 'orange'],
+            ['label' => 'Active SKUs', 'value' => (string) ($m['product_count'] ?? 0), 'tone' => 'teal'],
+            ['label' => 'Low stock', 'value' => (string) ($m['low_stock_count'] ?? 0), 'tone' => 'amber'],
+            ['label' => 'Stock units', 'value' => number_format((int) ($m['stock_units'] ?? 0)), 'tone' => 'sky'],
+        ];
     }
 
     public function getReportTitle(): string
