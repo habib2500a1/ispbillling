@@ -26,7 +26,7 @@ class SupportTicketsRelationManager extends RelationManager
                 Tables\Columns\TextColumn::make('ticket_number')
                     ->label('Ticket')
                     ->searchable()
-                    ->url(fn (SupportTicket $record): string => SupportTicketResource::getUrl('view', ['record' => $record])),
+                    ->url(fn (SupportTicket $record): string => SupportTicketResource::getUrl('edit', ['record' => $record])),
                 Tables\Columns\TextColumn::make('subject')->limit(40)->searchable(),
                 Tables\Columns\TextColumn::make('priority')
                     ->badge()
@@ -49,9 +49,9 @@ class SupportTicketsRelationManager extends RelationManager
             ->headerActions([])
             ->actions([
                 Tables\Actions\Action::make('open')
-                    ->label('View')
-                    ->icon('heroicon-o-eye')
-                    ->url(fn (SupportTicket $record): string => SupportTicketResource::getUrl('view', ['record' => $record])),
+                    ->label('Open')
+                    ->icon('heroicon-o-pencil-square')
+                    ->url(fn (SupportTicket $record): string => SupportTicketResource::getUrl('edit', ['record' => $record])),
             ])
             ->bulkActions([]);
     }

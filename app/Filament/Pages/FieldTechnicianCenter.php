@@ -52,7 +52,7 @@ class FieldTechnicianCenter extends Page
                 'subject' => $v->supportTicket?->subject ?? '—',
                 'priority' => $v->supportTicket?->priority ?? 'normal',
                 'url' => $v->support_ticket_id
-                    ? \App\Filament\Resources\SupportTicketResource::getUrl('view', ['record' => $v->support_ticket_id])
+                    ? \App\Filament\Resources\SupportTicketResource::getUrl('edit', ['record' => $v->support_ticket_id])
                     : SupportHub::getUrl(),
             ])
             ->all();

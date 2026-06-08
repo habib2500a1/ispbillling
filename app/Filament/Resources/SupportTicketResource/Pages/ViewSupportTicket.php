@@ -4,7 +4,9 @@ namespace App\Filament\Resources\SupportTicketResource\Pages;
 
 use App\Filament\Resources\SupportTicketResource;
 use App\Models\SupportTicket;
+use App\Support\SupportPanelAccess;
 use Filament\Actions;
+use Filament\Forms;
 use Filament\Infolists;
 use Filament\Infolists\Infolist;
 use Filament\Notifications\Notification;
@@ -16,6 +18,12 @@ class ViewSupportTicket extends ViewRecord
 
     public function mount(int | string $record): void
     {
+        if (SupportPanelAccess::manageTickets(auth()->user())) {
+            $this->redirect(SupportTicketResource::getUrl('edit', ['record' => $record]));
+
+            return;
+        }
+
         parent::mount($record);
         $this->record->loadMissing(['customer.area', 'assignee', 'messages.user', 'messages.customer']);
     }
@@ -78,6 +86,33 @@ class ViewSupportTicket extends ViewRecord
     {
         return [
             Actions\EditAction::make(),
+            Actions\Action::make('assignStaff')
+                ->label(fn (): string => $this->record->assignee
+                    ? 'Assigned: '.$this->record->assignee->name
+                    : 'Assign staff')
+                ->icon('heroicon-o-user-plus')
+                ->color(fn (): string => $this->record->assignee ? 'gray' : 'warning')
+                ->visible(fn (): bool => SupportPanelAccess::assignTickets(auth()->user()))
+                ->form([
+                    Forms\Components\Select::make('assigned_to')
+                        ->label('Technician')
+                        ->options(fn (): array => SupportPanelAccess::assignableStaffOptions())
+                        ->searchable()
+                        ->preload()
+                        ->nullable()
+                        ->default(fn (): ?int => $this->record->assigned_to ? (int) $this->record->assigned_to : null)
+                        ->placeholder('Unassigned'),
+                ])
+                ->action(function (array $data): void {
+                    $assignedTo = filled($data['assigned_to'] ?? null) ? (int) $data['assigned_to'] : null;
+                    $this->record->update(['assigned_to' => $assignedTo]);
+                    $this->record->refresh();
+                    $this->record->load('assignee');
+                    Notification::make()
+                        ->title($assignedTo ? 'Technician assigned' : 'Ticket unassigned')
+                        ->success()
+                        ->send();
+                }),
             Actions\Action::make('markResolved')
                 ->label('Mark resolved')
                 ->color('success')
@@ -93,6 +128,8 @@ class ViewSupportTicket extends ViewRecord
                 ->visible(fn (): bool => auth()->id() && (int) $this->record->assigned_to !== (int) auth()->id())
                 ->action(function (): void {
                     $this->record->update(['assigned_to' => auth()->id()]);
+                    $this->record->refresh();
+                    $this->record->load('assignee');
                     Notification::make()->title('Assigned to you')->success()->send();
                 }),
         ];

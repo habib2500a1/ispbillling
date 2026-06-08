@@ -219,8 +219,8 @@ class SupportTicketResource extends Resource
                 Tables\Filters\SelectFilter::make('priority')
                     ->options(SupportTicket::PRIORITIES),
             ])
+            ->recordUrl(fn (SupportTicket $record): string => static::getUrl('edit', ['record' => $record]))
             ->actions([
-                Tables\Actions\ViewAction::make(),
                 Tables\Actions\EditAction::make(),
             ])
             ->bulkActions([
@@ -231,7 +231,7 @@ class SupportTicketResource extends Resource
                         ->form([
                             Forms\Components\Select::make('assigned_to')
                                 ->label('Staff user')
-                                ->options(fn (): array => User::query()->orderBy('name')->pluck('name', 'id')->all())
+                                ->options(fn (): array => SupportPanelAccess::assignableStaffOptions())
                                 ->searchable()
                                 ->required(),
                         ])
