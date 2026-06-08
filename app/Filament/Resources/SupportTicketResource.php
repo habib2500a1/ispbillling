@@ -83,23 +83,18 @@ class SupportTicketResource extends Resource
     {
         return Forms\Components\Select::make('assigned_to')
             ->label('Assigned technician')
-            ->options(fn (): array => SupportPanelAccess::assignableStaffOptions())
-            ->getOptionLabelUsing(function ($value): ?string {
-                if (! filled($value)) {
-                    return null;
-                }
+            ->options(function (Get $get, ?SupportTicket $record = null): array {
+                $current = $get('assigned_to') ?? $record?->assigned_to;
 
-                $options = SupportPanelAccess::assignableStaffOptions();
-
-                return $options[$value]
-                    ?? $options[(string) $value]
-                    ?? User::query()->find($value)?->name;
+                return SupportPanelAccess::assignableStaffOptions(
+                    filled($current) ? (int) $current : null,
+                );
             })
-            ->searchable()
-            ->preload()
+            ->dehydrateStateUsing(fn ($state): ?int => filled($state) ? (int) $state : null)
             ->nullable()
             ->placeholder('Unassigned')
-            ->helperText('Staff list loads instantly — or use Assign staff in the page header.');
+            ->native(false)
+            ->helperText('Pick technician — or use Assign staff in the page header on edit.');
     }
 
     public static function form(Form $form): Form
@@ -272,8 +267,8 @@ class SupportTicketResource extends Resource
                             Forms\Components\Select::make('assigned_to')
                                 ->label('Staff user')
                                 ->options(fn (): array => SupportPanelAccess::assignableStaffOptions())
-                                ->searchable()
-                                ->required(),
+                                ->required()
+                                ->native(false),
                         ])
                         ->action(function (\Illuminate\Support\Collection $records, array $data): void {
                             foreach ($records as $record) {

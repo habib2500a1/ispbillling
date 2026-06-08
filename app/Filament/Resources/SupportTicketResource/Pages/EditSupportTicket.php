@@ -100,6 +100,19 @@ class EditSupportTicket extends EditRecord
         $this->ticketWorkspace = null;
     }
 
+    /**
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    protected function mutateFormDataBeforeFill(array $data): array
+    {
+        if (filled($data['assigned_to'] ?? null)) {
+            $data['assigned_to'] = (string) $data['assigned_to'];
+        }
+
+        return $data;
+    }
+
     public function mount(int | string $record): void
     {
         parent::mount($record);
@@ -130,12 +143,15 @@ class EditSupportTicket extends EditRecord
                 ->form([
                     Forms\Components\Select::make('assigned_to')
                         ->label('Technician')
-                        ->options(fn (): array => SupportPanelAccess::assignableStaffOptions())
-                        ->searchable()
-                        ->preload()
+                        ->options(fn (): array => SupportPanelAccess::assignableStaffOptions(
+                            $this->record->assigned_to ? (int) $this->record->assigned_to : null,
+                        ))
                         ->nullable()
-                        ->default(fn (): ?int => $this->record->assigned_to ? (int) $this->record->assigned_to : null)
-                        ->placeholder('Unassigned'),
+                        ->default(fn (): ?string => $this->record->assigned_to
+                            ? (string) $this->record->assigned_to
+                            : null)
+                        ->placeholder('Unassigned')
+                        ->native(false),
                 ])
                 ->action(function (array $data): void {
                     $assignedTo = filled($data['assigned_to'] ?? null) ? (int) $data['assigned_to'] : null;

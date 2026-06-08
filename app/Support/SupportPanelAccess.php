@@ -83,14 +83,25 @@ final class SupportPanelAccess
     }
 
     /**
-     * @return array<int|string, string>
+     * @return array<string, string>
      */
-    public static function assignableStaffOptions(): array
+    public static function assignableStaffOptions(?int $includeUserId = null): array
     {
-        return self::assignableStaffQuery()
+        $options = self::assignableStaffQuery()
             ->orderBy('name')
-            ->pluck('name', 'id')
+            ->get()
+            ->mapWithKeys(fn (User $user): array => [(string) $user->id => $user->name])
             ->all();
+
+        if ($includeUserId !== null && ! isset($options[(string) $includeUserId])) {
+            $extra = User::query()->find($includeUserId);
+            if ($extra !== null) {
+                $suffix = $extra->is_active ? '' : ' (inactive)';
+                $options[(string) $extra->id] = $extra->name.$suffix;
+            }
+        }
+
+        return $options;
     }
 
     public static function assignableStaffQuery(): \Illuminate\Database\Eloquent\Builder

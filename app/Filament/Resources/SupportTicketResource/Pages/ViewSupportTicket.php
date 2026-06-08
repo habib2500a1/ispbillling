@@ -96,12 +96,15 @@ class ViewSupportTicket extends ViewRecord
                 ->form([
                     Forms\Components\Select::make('assigned_to')
                         ->label('Technician')
-                        ->options(fn (): array => SupportPanelAccess::assignableStaffOptions())
-                        ->searchable()
-                        ->preload()
+                        ->options(fn (): array => SupportPanelAccess::assignableStaffOptions(
+                            $this->record->assigned_to ? (int) $this->record->assigned_to : null,
+                        ))
                         ->nullable()
-                        ->default(fn (): ?int => $this->record->assigned_to ? (int) $this->record->assigned_to : null)
-                        ->placeholder('Unassigned'),
+                        ->default(fn (): ?string => $this->record->assigned_to
+                            ? (string) $this->record->assigned_to
+                            : null)
+                        ->placeholder('Unassigned')
+                        ->native(false),
                 ])
                 ->action(function (array $data): void {
                     $assignedTo = filled($data['assigned_to'] ?? null) ? (int) $data['assigned_to'] : null;
