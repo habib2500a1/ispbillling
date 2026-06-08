@@ -36,9 +36,9 @@ final class AdminRouteAssets
             'filament.admin.pages.accounting-hub' => ['billing-hub-pro.css'],
             'filament.admin.pages.accounts-hub' => ['billing-hub-pro.css'],
             'filament.admin.pages.collection-desk-report' => ['collection-desk-report-pro.css'],
-            'filament.admin.pages.isp-os-hub' => ['isp-os-pro.css'],
-            'filament.admin.pages.fault-management-hub' => ['isp-os-pro.css'],
-            'filament.admin.pages.field-technician-center' => ['isp-os-pro.css'],
+            'filament.admin.pages.isp-os' => ['isp-os-pro.css'],
+            'filament.admin.pages.fault-center' => ['isp-os-pro.css'],
+            'filament.admin.pages.field-technicians' => ['isp-os-pro.css'],
         ];
     }
 
@@ -87,9 +87,9 @@ final class AdminRouteAssets
         }
 
         if (request()->routeIs([
-            'filament.admin.pages.isp-os-hub',
-            'filament.admin.pages.fault-management-hub',
-            'filament.admin.pages.field-technician-center',
+            'filament.admin.pages.isp-os',
+            'filament.admin.pages.fault-center',
+            'filament.admin.pages.field-technicians',
         ])) {
             $html .= IspOsStyles::html();
         }

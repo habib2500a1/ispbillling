@@ -80,6 +80,7 @@ class AdminPanelProvider extends PanelProvider
                 // No group icons: Filament strips item icons and draws a second tree rail (grouped-border),
                 // which duplicated our custom sidebar dots in admin-saas.css.
                 NavigationGroup::make('Overview')->collapsed(false),
+                NavigationGroup::make('ISP OS')->collapsed(false),
                 NavigationGroup::make('Clients')->collapsed(true),
                 NavigationGroup::make('Billing')->collapsed(true),
                 NavigationGroup::make('Payments')->collapsed(true),

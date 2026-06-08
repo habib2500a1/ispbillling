@@ -7,6 +7,7 @@ use App\Filament\Billing\BillingSidebarNavigation;
 use App\Filament\Bw\BwSidebarNavigation;
 use App\Filament\Clients\ClientsSidebarNavigation;
 use App\Filament\Hrm\HrmSidebarNavigation;
+use App\Filament\IspOs\IspOsSidebarNavigation;
 use App\Filament\Network\NetworkSidebarNavigation;
 use App\Filament\Olt\OltSidebarNavigation;
 use App\Filament\Reports\ReportsSidebarNavigation;
@@ -19,6 +20,7 @@ use App\Support\BwSidebarRegistry;
 use App\Support\ClientsSidebarRegistry;
 use App\Support\HrmSidebarRegistry;
 use App\Support\InventorySidebarRegistry;
+use App\Support\IspOsSidebarRegistry;
 use App\Support\NetworkSidebarRegistry;
 use App\Support\OltSidebarRegistry;
 use App\Support\PaymentsSidebarRegistry;
@@ -324,6 +326,7 @@ final class IspSidebarNavigation
         $merged = [];
 
         static::appendIf($merged, SuperadminQuickSidebarRegistry::hasVisibleEntries(), SuperadminQuickSidebarRegistry::navigationItems());
+        static::appendIf($merged, IspOsSidebarNavigation::userCanSee(), IspOsSidebarRegistry::navigationItems());
         static::appendIf($merged, ClientsSidebarNavigation::userCanSee(), ClientsSidebarRegistry::navigationItems());
         static::appendIf($merged, BillingSidebarNavigation::userCanSee(), BillingSidebarRegistry::navigationItems());
         static::appendIf($merged, InventorySidebarRegistry::hasVisibleEntries(), InventorySidebarRegistry::navigationItems());
@@ -393,6 +396,7 @@ final class IspSidebarNavigation
     private static function navigationGroupPriority(string $group): int
     {
         return match ($group) {
+            IspOsSidebarRegistry::GROUP_LABEL => 110,
             OltSidebarRegistry::GROUP_LABEL, 'OLT' => 100,
             'Network' => 90,
             InventorySidebarRegistry::GROUP_LABEL => 40,
