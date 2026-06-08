@@ -7,6 +7,7 @@ use App\Filament\Resources\SupportTicketResource\RelationManagers;
 use App\Models\Customer;
 use App\Models\SupportTicket;
 use App\Models\User;
+use App\Services\Support\SupportTicketWorkspaceService;
 use App\Support\SupportPanelAccess;
 use Filament\Forms;
 use Filament\Forms\Get;
@@ -41,6 +42,13 @@ class SupportTicketResource extends Resource
                     ->preload()
                     ->required()
                     ->live(),
+                Forms\Components\Placeholder::make('live_service_status')
+                    ->label('Live subscriber status')
+                    ->content(fn (Get $get, SupportTicket $record): HtmlString => app(SupportTicketWorkspaceService::class)->liveStatusHtml(
+                        $get('customer_id') ?? $record->customer_id
+                    ))
+                    ->columnSpanFull()
+                    ->visibleOn('edit'),
                 Forms\Components\Select::make('channel')
                     ->options(SupportTicket::CHANNELS)
                     ->required()

@@ -1,7 +1,7 @@
 @php
     /** @var \App\Models\SupportTicket $record */
+    /** @var array<string, mixed> $workspace */
     $record = $this->record;
-    $workspace = $this->getTicketWorkspaceViewData();
     $c360 = $workspace['c360'];
     $timeline = $workspace['timeline'];
     $hints = $workspace['hints'];

@@ -5,6 +5,7 @@ namespace App\Filament\Resources\SupportTicketResource\Pages;
 use App\Filament\Resources\SupportTicketResource;
 use App\Filament\Resources\SupportTicketResource\Pages\Concerns\ProvidesSupportTicketWorkspace;
 use App\Models\SupportTicket;
+use App\Services\Support\SupportTicketWorkspaceService;
 use Filament\Actions;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\EditRecord;
@@ -35,24 +36,14 @@ class EditSupportTicket extends EditRecord
     /**
      * @return array<string, mixed>
      */
-    public function getTicketWorkspaceViewData(): array
+    protected function getViewData(): array
     {
-        $c360 = $this->getCustomer360();
-        $linked = ! empty($c360['linked']);
-        $live = array_merge(
-            ['linked' => $linked],
-            is_array($c360['live'] ?? null) ? $c360['live'] : []
-        );
-
-        return [
-            'c360' => $c360,
-            'timeline' => $this->getTicketTimeline(),
-            'hints' => $this->getRootCauseHints(),
-            'gis' => $this->getGisPreview(),
-            'network' => $this->getNetworkRail(),
-            'live' => $live,
-            'close_offline_notice' => $this->getCloseOfflineNotice(),
-        ];
+        return array_merge(parent::getViewData(), [
+            'workspace' => $this->workspaceService()->buildViewBundle(
+                $this->record,
+                $this->data['customer_id'] ?? null,
+            ),
+        ]);
     }
 
     public function mount(int | string $record): void
@@ -80,7 +71,7 @@ class EditSupportTicket extends EditRecord
                 ->color('success')
                 ->visible(fn (): bool => ! in_array($this->record->status, ['resolved', 'closed'], true))
                 ->requiresConfirmation()
-                ->modalDescription(fn (): string => $this->getCloseOfflineNotice() ?? 'Mark this ticket as resolved?')
+                ->modalDescription(fn (): string => $this->closeConfirmMessage('Mark this ticket as resolved?'))
                 ->action(function (): void {
                     /** @var SupportTicket $record */
                     $record = $this->record;
@@ -96,7 +87,7 @@ class EditSupportTicket extends EditRecord
                 ->color('gray')
                 ->visible(fn (): bool => $this->record->status !== 'closed')
                 ->requiresConfirmation()
-                ->modalDescription(fn (): string => $this->getCloseOfflineNotice() ?? 'Close this ticket?')
+                ->modalDescription(fn (): string => $this->closeConfirmMessage('Close this ticket?'))
                 ->action(function (): void {
                     /** @var SupportTicket $record */
                     $record = $this->record;
@@ -123,5 +114,20 @@ class EditSupportTicket extends EditRecord
                 }),
             Actions\DeleteAction::make(),
         ];
+    }
+
+    private function workspaceService(): SupportTicketWorkspaceService
+    {
+        return app(SupportTicketWorkspaceService::class);
+    }
+
+    private function closeConfirmMessage(string $default): string
+    {
+        $live = $this->workspaceService()->buildViewBundle(
+            $this->record,
+            $this->data['customer_id'] ?? null,
+        )['live'];
+
+        return $this->workspaceService()->closeOfflineNotice($live) ?? $default;
     }
 }

@@ -555,6 +555,14 @@
     border-color: rgba(59, 130, 246, 0.3);
 }
 
+.sp-live-status--compact {
+    margin: 0;
+    padding: 0.65rem 0.75rem;
+    border-radius: var(--sp-radius-sm);
+    border: 1px solid var(--sp-border);
+    background: var(--sp-card);
+}
+
 .isp-support-ticket-edit .fi-header-heading {
     display: none;
 }
