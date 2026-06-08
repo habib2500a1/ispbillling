@@ -1,4 +1,6 @@
 {!! \App\Support\SupportStyles::html() !!}
+{!! \App\Support\SupportStyles::navigatedScript() !!}
+<script src="{{ asset('js/support-ticket-create.js') }}?v={{ @filemtime(public_path('js/support-ticket-create.js')) ?: 1 }}" defer data-cfasync="false"></script>
 
 <x-filament-panels::page
     @class([
@@ -7,7 +9,9 @@
         'isp-support-ticket-create',
     ])
 >
-    @include('filament.resources.support-ticket-resource.partials.subscriber-search')
+    <div wire:key="support-subscriber-search-{{ $this->getId() }}">
+        @include('filament.resources.support-ticket-resource.partials.subscriber-search')
+    </div>
 
     <x-filament-panels::form
         id="form"

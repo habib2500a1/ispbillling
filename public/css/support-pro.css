@@ -1140,3 +1140,51 @@ body.isp-support-sidebar-compact .fi-sidebar-group[data-group-label='Support'] .
         flex: 1 1 calc(50% - 0.35rem);
     }
 }
+
+/* --- 11-ticket-create.css --- */
+/** Support ticket create — layout + subscriber search */
+
+body.isp-support-ticket-create .fi-main-ctn {
+    position: relative;
+    z-index: 2;
+    min-width: 0;
+    flex: 1 1 auto;
+}
+
+@media (min-width: 1024px) {
+    body.isp-support-ticket-create .fi-main-sidebar,
+    body.isp-support-ticket-create .fi-main-sidebar .fi-sidebar {
+        z-index: 1 !important;
+    }
+
+    body.isp-support-ticket-create .fi-main-ctn {
+        z-index: 2;
+    }
+}
+
+@media (max-width: 1023px) {
+    body.isp-support-ticket-create:not(.isp-admin-sidebar-open) .fi-sidebar-close-overlay {
+        display: none !important;
+    }
+}
+
+body.isp-support-ticket-create .isp-support-subscriber-search {
+    position: relative;
+    z-index: 3;
+}
+
+body.isp-support-ticket-create .isp-collection-results {
+    position: relative;
+    z-index: 4;
+    max-height: min(24rem, 55vh);
+    overflow-y: auto;
+}
+
+body.isp-support-ticket-create .isp-collection-result-card {
+    cursor: pointer;
+}
+
+body.isp-support-ticket-create .fi-page,
+body.isp-support-ticket-create .fi-main {
+    overflow: visible !important;
+}

@@ -25,6 +25,7 @@ final class SupportStyles
             'admin/support/08-light-mode.css',
             'admin/support/09-dark-mode.css',
             'admin/support/10-hub-v3.css',
+            'admin/support/11-ticket-create.css',
         ];
     }
 
