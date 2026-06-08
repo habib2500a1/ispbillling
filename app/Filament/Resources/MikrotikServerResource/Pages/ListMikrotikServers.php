@@ -32,7 +32,7 @@ class ListMikrotikServers extends ListRecords
      */
     public function getRouterStats(): array
     {
-        $stats = $this->getNetworkFleetStats();
+        $stats = $this->getNetworkRouterStats();
 
         return [
             'total' => $stats['total'],

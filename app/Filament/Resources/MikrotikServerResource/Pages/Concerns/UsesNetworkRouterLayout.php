@@ -36,17 +36,44 @@ trait UsesNetworkRouterLayout
     }
 
     /**
-     * @return list<array{label: string, value: string, tone: string}>
+     * @return array{total: int, enabled: int, online: int, offline: int, warning: int, subscribers: int}
+     */
+    public function getNetworkFleetStats(): array
+    {
+        return $this->getNetworkRouterStats();
+    }
+
+    /**
+     * @return list<array{label: string, value: string, hint?: string, tone: string, url?: string}>
      */
     public function getNetworkStatCards(): array
     {
         $s = $this->getNetworkRouterStats();
 
         return [
-            ['label' => 'Total routers', 'value' => number_format($s['total']), 'tone' => ''],
-            ['label' => 'Online', 'value' => number_format($s['online']), 'tone' => 'online'],
-            ['label' => 'Offline', 'value' => number_format($s['offline']), 'tone' => 'offline'],
-            ['label' => 'Subscribers', 'value' => number_format($s['subscribers']), 'tone' => 'bandwidth'],
+            [
+                'label' => 'Total routers',
+                'value' => number_format($s['total']),
+                'tone' => 'indigo',
+            ],
+            [
+                'label' => 'Online',
+                'value' => number_format($s['online']),
+                'tone' => 'emerald',
+                'url' => MikrotikServerResource::getUrl('index'),
+            ],
+            [
+                'label' => 'Offline',
+                'value' => number_format($s['offline']),
+                'tone' => 'rose',
+            ],
+            [
+                'label' => 'Subscribers',
+                'value' => number_format($s['subscribers']),
+                'hint' => number_format($s['enabled']).' enabled',
+                'tone' => 'cyan',
+                'url' => OnlineClientsMonitoring::getUrl(),
+            ],
         ];
     }
 
