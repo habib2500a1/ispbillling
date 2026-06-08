@@ -9,6 +9,7 @@
     $network = $workspace['network'];
     $live = $workspace['live'];
     $closeOfflineNotice = $workspace['close_offline_notice'] ?? null;
+    $assignment = $workspace['assignment'] ?? ['assigned' => false, 'name' => 'Unassigned'];
     $hubUrl = \App\Filament\Pages\SupportHub::getUrl();
     $listUrl = \App\Filament\Resources\SupportTicketResource::getUrl('index');
 @endphp
@@ -31,6 +32,7 @@
                         · {{ \App\Models\SupportTicket::PRIORITIES[$record->priority] ?? $record->priority }}
                         · {{ \App\Models\SupportTicket::STATUSES[$record->status] ?? $record->status }}
                         · SLA {{ $record->slaRemainingLabel() }}
+                        · Technician: <strong style="color:var(--sp-text);">{{ $assignment['name'] }}</strong>
                     </p>
                 </div>
                 <div style="display:flex;flex-wrap:wrap;gap:0.35rem;">
@@ -92,6 +94,17 @@
 
         <div class="sp-workspace">
             <aside class="sp-workspace__rail sp-workspace__rail--left">
+                <section class="sp-panel" aria-label="Assignment">
+                    <h2 class="sp-panel__title">Assignment</h2>
+                    <div class="sp-360__row">
+                        <span class="sp-360__label">Technician</span>
+                        <span class="sp-360__value">{{ $assignment['name'] }}</span>
+                    </div>
+                    @if (empty($assignment['assigned']))
+                        <p style="font-size:0.68rem;color:var(--sp-muted);margin:0.35rem 0 0;">Use <strong>Assign staff</strong> above or the Assignment section in the form.</p>
+                    @endif
+                </section>
+
                 <section class="sp-panel" aria-label="Customer 360">
                     <h2 class="sp-panel__title">Customer 360</h2>
                     @if (empty($c360['linked']))

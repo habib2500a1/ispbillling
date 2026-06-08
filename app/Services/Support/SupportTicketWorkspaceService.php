@@ -12,6 +12,7 @@ use App\Models\Device;
 use App\Models\FieldVisit;
 use App\Models\Payment;
 use App\Models\SupportTicket;
+use App\Models\User;
 use App\Support\CustomerStatus;
 use Illuminate\Support\HtmlString;
 use Illuminate\Support\Str;
@@ -40,10 +41,15 @@ class SupportTicketWorkspaceService
     /**
      * @return array<string, mixed>
      */
-    public function buildViewBundle(SupportTicket $ticket, mixed $formCustomerId = null): array
+    public function buildViewBundle(SupportTicket $ticket, mixed $formCustomerId = null, mixed $formAssignedTo = null): array
     {
+        $ticket->loadMissing('assignee');
         $customer = $this->resolveCustomer($ticket, $formCustomerId);
         $c360 = $this->customer360($ticket, $customer);
+        $assignedTo = $formAssignedTo ?? $ticket->assigned_to;
+        $assigneeName = $assignedTo
+            ? (User::query()->find($assignedTo)?->name ?? $ticket->assignee?->name ?? 'Staff #'.$assignedTo)
+            : null;
         $linked = ! empty($c360['linked']);
         $live = array_merge(
             ['linked' => $linked],
@@ -58,6 +64,11 @@ class SupportTicketWorkspaceService
             'network' => $this->networkRail($c360, $live),
             'live' => $live,
             'close_offline_notice' => $this->closeOfflineNotice($live),
+            'assignment' => [
+                'assigned' => filled($assignedTo),
+                'id' => $assignedTo ? (int) $assignedTo : null,
+                'name' => $assigneeName ?? 'Unassigned',
+            ],
         ];
     }
 

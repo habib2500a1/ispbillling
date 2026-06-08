@@ -81,4 +81,20 @@ final class SupportPanelAccess
     {
         return self::manageKnowledge($user);
     }
+
+    /**
+     * @return array<int|string, string>
+     */
+    public static function assignableStaffOptions(): array
+    {
+        return self::assignableStaffQuery()
+            ->orderBy('name')
+            ->pluck('name', 'id')
+            ->all();
+    }
+
+    public static function assignableStaffQuery(): \Illuminate\Database\Eloquent\Builder
+    {
+        return User::query()->where('is_active', true);
+    }
 }

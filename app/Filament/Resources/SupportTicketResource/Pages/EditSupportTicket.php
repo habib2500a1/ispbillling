@@ -6,7 +6,9 @@ use App\Filament\Resources\SupportTicketResource;
 use App\Filament\Resources\SupportTicketResource\Pages\Concerns\ProvidesSupportTicketWorkspace;
 use App\Models\SupportTicket;
 use App\Services\Support\SupportTicketWorkspaceService;
+use App\Support\SupportPanelAccess;
 use Filament\Actions;
+use Filament\Forms;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\EditRecord;
 
@@ -51,6 +53,11 @@ class EditSupportTicket extends EditRecord
         $this->ticketWorkspace = null;
     }
 
+    public function updatedDataAssignedTo(): void
+    {
+        $this->ticketWorkspace = null;
+    }
+
     public function mount(int | string $record): void
     {
         parent::mount($record);
@@ -71,6 +78,47 @@ class EditSupportTicket extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
+            Actions\Action::make('assignStaff')
+                ->label(fn (): string => $this->record->assignee
+                    ? 'Assigned: '.$this->record->assignee->name
+                    : 'Assign staff')
+                ->icon('heroicon-o-user-plus')
+                ->color(fn (): string => $this->record->assignee ? 'gray' : 'warning')
+                ->visible(fn (): bool => SupportPanelAccess::manageTickets(auth()->user()))
+                ->form([
+                    Forms\Components\Select::make('assigned_to')
+                        ->label('Technician')
+                        ->options(fn (): array => SupportPanelAccess::assignableStaffOptions())
+                        ->searchable()
+                        ->preload()
+                        ->nullable()
+                        ->default(fn (): ?int => $this->record->assigned_to ? (int) $this->record->assigned_to : null)
+                        ->placeholder('Unassigned'),
+                ])
+                ->action(function (array $data): void {
+                    $assignedTo = filled($data['assigned_to'] ?? null) ? (int) $data['assigned_to'] : null;
+                    $this->record->update(['assigned_to' => $assignedTo]);
+                    $this->record->load('assignee');
+                    $this->data['assigned_to'] = $assignedTo;
+                    $this->ticketWorkspace = null;
+                    Notification::make()
+                        ->title($assignedTo ? 'Technician assigned' : 'Ticket unassigned')
+                        ->success()
+                        ->send();
+                }),
+            Actions\Action::make('assignToMe')
+                ->label('Assign to me')
+                ->icon('heroicon-o-user')
+                ->visible(fn (): bool => auth()->id()
+                    && (int) $this->record->assigned_to !== (int) auth()->id()
+                    && SupportPanelAccess::manageTickets(auth()->user()))
+                ->action(function (): void {
+                    $this->record->update(['assigned_to' => auth()->id()]);
+                    $this->record->load('assignee');
+                    $this->data['assigned_to'] = auth()->id();
+                    $this->ticketWorkspace = null;
+                    Notification::make()->title('Assigned to you')->success()->send();
+                }),
             Actions\Action::make('markResolved')
                 ->label('Mark resolved')
                 ->color('success')
@@ -127,7 +175,8 @@ class EditSupportTicket extends EditRecord
     private function resolveTicketWorkspace(): array
     {
         $customerId = $this->data['customer_id'] ?? $this->record->customer_id;
-        $cacheKey = $this->record->getKey().':'.(string) $customerId;
+        $assignedTo = $this->data['assigned_to'] ?? $this->record->assigned_to;
+        $cacheKey = $this->record->getKey().':'.(string) $customerId.':'.(string) ($assignedTo ?? '');
 
         if (
             $this->ticketWorkspace !== null
@@ -137,7 +186,7 @@ class EditSupportTicket extends EditRecord
         }
 
         $this->ticketWorkspace = array_merge(
-            $this->workspaceService()->buildViewBundle($this->record, $customerId),
+            $this->workspaceService()->buildViewBundle($this->record, $customerId, $assignedTo),
             ['_cache_key' => $cacheKey],
         );
 

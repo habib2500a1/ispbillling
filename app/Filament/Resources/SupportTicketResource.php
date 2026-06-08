@@ -55,6 +55,25 @@ class SupportTicketResource extends Resource
                     ))
                     ->columnSpanFull()
                     ->visibleOn('edit'),
+                Forms\Components\Section::make('Assignment')
+                    ->description('Who owns this ticket in the queue.')
+                    ->schema([
+                        Forms\Components\Select::make('assigned_to')
+                            ->label('Assigned technician')
+                            ->relationship(
+                                name: 'assignee',
+                                titleAttribute: 'name',
+                                modifyQueryUsing: fn ($query) => SupportPanelAccess::assignableStaffQuery()
+                                    ->orderBy('name'),
+                            )
+                            ->searchable(['name', 'email'])
+                            ->preload()
+                            ->nullable()
+                            ->placeholder('Unassigned')
+                            ->helperText('Search by staff name or email.'),
+                    ])
+                    ->columns(1)
+                    ->visibleOn('edit'),
                 Forms\Components\Select::make('channel')
                     ->options(SupportTicket::CHANNELS)
                     ->required()
@@ -83,11 +102,18 @@ class SupportTicketResource extends Resource
                     ->rows(4)
                     ->columnSpanFull(),
                 Forms\Components\Select::make('assigned_to')
-                    ->label('Assigned to')
-                    ->options(fn (): array => User::query()->orderBy('name')->pluck('name', 'id')->all())
-                    ->searchable()
+                    ->label('Assigned technician')
+                    ->relationship(
+                        name: 'assignee',
+                        titleAttribute: 'name',
+                        modifyQueryUsing: fn ($query) => SupportPanelAccess::assignableStaffQuery()
+                            ->orderBy('name'),
+                    )
+                    ->searchable(['name', 'email'])
                     ->preload()
-                    ->nullable(),
+                    ->nullable()
+                    ->placeholder('Unassigned')
+                    ->hiddenOn('edit'),
                 Forms\Components\DateTimePicker::make('sla_resolve_due_at')
                     ->label('SLA resolve due'),
                 Forms\Components\DateTimePicker::make('resolved_at'),
