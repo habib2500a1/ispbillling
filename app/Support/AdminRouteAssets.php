@@ -17,8 +17,12 @@ final class AdminRouteAssets
             'filament.admin.pages.subscriber-lists-hub' => ['subscriber-lists-hub-pro.css'],
             'filament.admin.pages.resellers-hub' => ['resellers-hub-pro.css'],
             'filament.admin.pages.inventory-hub' => ['inventory-hub-pro.css'],
-            'filament.admin.pages.olt-hub' => ['olt-hub-pro.css'],
-            'filament.admin.pages.optical-monitoring-hub' => ['optical-noc.css'],
+            'filament.admin.pages.olt-hub' => ['olt-pro.css'],
+            'filament.admin.pages.optical-monitoring-hub' => ['olt-pro.css'],
+            'filament.admin.pages.olt-vpn' => ['olt-pro.css'],
+            'filament.admin.pages.olt-mac-table' => ['olt-pro.css'],
+            'filament.admin.pages.optical-laser-settings' => ['olt-pro.css'],
+            'filament.admin.pages.gpon-dashboard' => ['olt-pro.css'],
             'filament.admin.pages.subscriber-traffic' => ['subscriber-live-traffic-pro.css'],
             'filament.admin.pages.network-intelligence-hub' => ['network-pro.css'],
             'filament.admin.pages.mikrotik-dashboard' => ['network-pro.css'],
@@ -32,6 +36,9 @@ final class AdminRouteAssets
             'filament.admin.pages.accounting-hub' => ['billing-hub-pro.css'],
             'filament.admin.pages.accounts-hub' => ['billing-hub-pro.css'],
             'filament.admin.pages.collection-desk-report' => ['collection-desk-report-pro.css'],
+            'filament.admin.pages.isp-os-hub' => ['isp-os-pro.css'],
+            'filament.admin.pages.fault-management-hub' => ['isp-os-pro.css'],
+            'filament.admin.pages.field-technician-center' => ['isp-os-pro.css'],
         ];
     }
 
@@ -65,6 +72,26 @@ final class AdminRouteAssets
             'filament.admin.resources.mikrotik-servers.*',
         ])) {
             $html .= NetworkStyles::html();
+        }
+
+        if (request()->routeIs([
+            'filament.admin.pages.olt-hub',
+            'filament.admin.pages.optical-monitoring-hub',
+            'filament.admin.pages.olt-vpn',
+            'filament.admin.pages.olt-mac-table',
+            'filament.admin.pages.optical-laser-settings',
+            'filament.admin.pages.gpon-dashboard',
+            'filament.admin.resources.olts.*',
+        ])) {
+            $html .= OltStyles::html();
+        }
+
+        if (request()->routeIs([
+            'filament.admin.pages.isp-os-hub',
+            'filament.admin.pages.fault-management-hub',
+            'filament.admin.pages.field-technician-center',
+        ])) {
+            $html .= IspOsStyles::html();
         }
 
         if (request()->routeIs('filament.admin.resources.products.*')
@@ -158,6 +185,30 @@ final class AdminRouteAssets
             ];
         }
 
+        $oltAssets = self::stylesheetAssetList(
+            OltStyles::modules(),
+            OltStyles::BUNDLE_FILE,
+            'olt',
+        );
+        if ($oltAssets !== []) {
+            $rules[] = [
+                'match' => 'olt-module',
+                'assets' => $oltAssets,
+            ];
+        }
+
+        $ispOsAssets = self::stylesheetAssetList(
+            IspOsStyles::modules(),
+            IspOsStyles::BUNDLE_FILE,
+            'isp-os',
+        );
+        if ($ispOsAssets !== []) {
+            $rules[] = [
+                'match' => 'isp-os-module',
+                'assets' => $ispOsAssets,
+            ];
+        }
+
         foreach (self::stylesheetMap() as $pattern => $files) {
             $pathPrefix = self::pathPrefixForRoutePattern($pattern);
             if ($pathPrefix === null) {
@@ -247,6 +298,14 @@ final class AdminRouteAssets
 
         if (rule.match === 'network-module') {
             return /\\/admin\\/(network-intelligence-hub|mikrotik-dashboard|network-settings|mikrotik-servers|online-clients|bandwidth-monitor|import-from-mikrotik)/.test(path);
+        }
+
+        if (rule.match === 'olt-module') {
+            return /\\/admin\\/(olt-hub|optical-noc|olt-vpn|olt-mac-table|optical-laser-settings|gpon-dashboard|olts)/.test(path);
+        }
+
+        if (rule.match === 'isp-os-module') {
+            return /\\/admin\\/(isp-os|fault-center|field-technicians)/.test(path);
         }
 
         if (rule.match === 'path-prefix') {

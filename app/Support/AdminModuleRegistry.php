@@ -23,7 +23,11 @@ use App\Filament\Pages\ManageAppSettings;
 use App\Filament\Pages\ManagePlatformBackups;
 use App\Filament\Pages\ManagePortalSettings;
 use App\Filament\Pages\MobileAppsHub;
+use App\Filament\Pages\FaultManagementHub;
+use App\Filament\Pages\FieldTechnicianCenter;
 use App\Filament\Pages\FiberPlantMap;
+use App\Filament\Pages\IspOsHub;
+use App\Filament\Pages\NocWall;
 use App\Filament\Pages\NetflowAnalysis;
 use App\Filament\Pages\NetworkIntelligenceHub;
 use App\Filament\Pages\NetworkTopology;
@@ -75,6 +79,12 @@ class AdminModuleRegistry
     public static function all(): array
     {
         return [
+            // ── ISP OS ──
+            ['group' => 'ISP OS', 'section' => 'Command', 'label' => 'ISP OS center', 'description' => 'Unified operations — billing, network, GIS, faults', 'url' => IspOsHub::getUrl(), 'accent' => 'text-indigo-600', 'icon' => 'heroicon-o-command-line'],
+            ['group' => 'ISP OS', 'section' => 'NOC', 'label' => 'Fault management', 'description' => 'Active faults, RCA, severity', 'url' => FaultManagementHub::getUrl(), 'accent' => 'text-rose-600', 'icon' => 'heroicon-o-exclamation-triangle'],
+            ['group' => 'ISP OS', 'section' => 'Field', 'label' => 'Field technicians', 'description' => 'Visits, tasks, mobile tools', 'url' => FieldTechnicianCenter::getUrl(), 'accent' => 'text-amber-600', 'icon' => 'heroicon-o-wrench-screwdriver'],
+            ['group' => 'ISP OS', 'section' => 'NOC', 'label' => 'NOC wall', 'description' => '24/7 large-screen monitoring', 'url' => NocWall::getUrl(), 'accent' => 'text-slate-600', 'icon' => 'heroicon-o-tv'],
+
             // ── Subscribers ──
             ['group' => 'Subscribers', 'section' => 'Main', 'label' => 'All subscribers', 'description' => 'Search, edit, PPPoE & billing', 'url' => CustomerResource::getUrl('index'), 'accent' => 'text-teal-600', 'icon' => 'heroicon-o-users'],
             ['group' => 'Subscribers', 'section' => 'Lists', 'label' => 'Subscriber lists', 'description' => 'Free · VIP · expired · suspended', 'url' => SubscriberListsHub::getUrl(), 'accent' => 'text-teal-600', 'icon' => 'heroicon-o-queue-list'],

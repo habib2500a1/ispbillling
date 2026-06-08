@@ -1,0 +1,39 @@
+/** Light / dark polish for OLT operations */
+
+.dark .olt-oc-hero,
+[data-theme='dark'] .olt-oc-hero {
+    box-shadow: 0 24px 56px rgba(0, 0, 0, 0.55);
+}
+
+.dark .olt-badge--excellent,
+[data-theme='dark'] .olt-badge--excellent { color: #6ee7b7; }
+.dark .olt-badge--weak,
+[data-theme='dark'] .olt-badge--weak { color: #fcd34d; }
+.dark .olt-badge--critical,
+[data-theme='dark'] .olt-badge--critical { color: #fda4af; }
+
+.dark .isp-optical-db-toolbar,
+[data-theme='dark'] .isp-optical-db-toolbar {
+    background: var(--olt-card) !important;
+    border-color: var(--olt-border) !important;
+}
+
+.dark .olt-list-hero,
+[data-theme='dark'] .olt-list-hero {
+    background: linear-gradient(135deg, #1e1b4b 0%, #0e7490 100%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .olt-skeleton { animation: none; }
+    .olt-oc-kpi:hover, .olt-hub-tile:hover { transform: none; }
+}
+
+.olt-oc-pro-loading .olt-oc-panel,
+.olt-oc-pro-loading .olt-signal-grid {
+    opacity: 0.7;
+}
+
+.olt-oc-pro-loading .olt-skeleton {
+    display: block;
+    min-height: 4rem;
+}

@@ -1,0 +1,108 @@
+/** OLT list & profile pages */
+
+.isp-olt-list-page .fi-header,
+.isp-olt-profile-page .fi-header { display: none !important; }
+
+.olt-list-hero {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1.25rem 1.4rem;
+    border-radius: var(--olt-radius);
+    background: var(--olt-grad--health, linear-gradient(135deg, #2563eb 0%, #4f46e5 100%));
+    color: #fff;
+    box-shadow: var(--olt-shadow-lg);
+}
+
+.olt-list-hero__title {
+    margin: 0.35rem 0 0;
+    font-size: 1.45rem;
+    font-weight: 800;
+}
+
+.olt-list-hero__sub {
+    margin: 0.35rem 0 0;
+    font-size: 0.85rem;
+    opacity: 0.9;
+    max-width: 36rem;
+}
+
+.olt-profile-hero {
+    display: grid;
+    gap: 1rem;
+    padding: 1.25rem 1.4rem;
+    border-radius: var(--olt-radius);
+    border: 1px solid var(--olt-border);
+    background: var(--olt-card);
+    box-shadow: var(--olt-shadow-lg);
+}
+
+@media (min-width: 768px) {
+    .olt-profile-hero {
+        grid-template-columns: 1fr auto;
+        align-items: center;
+    }
+}
+
+.olt-profile-pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin-top: 0.65rem;
+}
+
+.olt-profile-pill {
+    padding: 0.25rem 0.6rem;
+    border-radius: 999px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    border: 1px solid var(--olt-border);
+    background: var(--olt-glass);
+    color: var(--olt-muted);
+}
+
+.olt-profile-metrics {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.65rem;
+}
+
+.olt-profile-metric {
+    min-width: 5rem;
+    padding: 0.6rem 0.8rem;
+    border-radius: var(--olt-radius-sm);
+    border: 1px solid var(--olt-border);
+    background: var(--olt-glass);
+    text-align: center;
+}
+
+.olt-profile-metric strong {
+    display: block;
+    font-size: 1.1rem;
+    color: var(--olt-text);
+}
+
+.olt-profile-metric span {
+    font-size: 0.62rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--olt-muted);
+}
+
+.olt-profile-form {
+    border-radius: var(--olt-radius);
+    border: 1px solid var(--olt-border);
+    background: var(--olt-card);
+    padding: 1.15rem;
+    box-shadow: var(--olt-shadow);
+}
+
+.olt-list-table-card {
+    border-radius: var(--olt-radius);
+    border: 1px solid var(--olt-border);
+    background: var(--olt-card);
+    overflow: hidden;
+    box-shadow: var(--olt-shadow);
+}

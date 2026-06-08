@@ -1,0 +1,80 @@
+/** OLT Operations Center — extended KPI grid */
+
+.isp-olt-hub-page .fi-header { display: none !important; }
+
+.olt-oc-grid {
+    display: grid;
+    gap: 0.65rem;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+@media (min-width: 768px) {
+    .olt-oc-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+@media (min-width: 1200px) {
+    .olt-oc-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+.olt-oc-kpi {
+    display: block;
+    padding: 0.85rem 0.95rem;
+    border-radius: var(--olt-radius-sm);
+    background: var(--olt-card);
+    border: 1px solid var(--olt-border);
+    box-shadow: var(--olt-shadow);
+    text-decoration: none;
+    color: inherit;
+    transition: transform var(--olt-dur) var(--olt-ease), box-shadow var(--olt-dur) var(--olt-ease);
+}
+
+.olt-oc-kpi:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--olt-shadow-lg);
+}
+
+.olt-oc-kpi__label {
+    display: block;
+    font-size: 0.62rem;
+    font-weight: 700;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--olt-muted);
+}
+
+.olt-oc-kpi__value {
+    display: block;
+    margin-top: 0.25rem;
+    font-size: 1.35rem;
+    font-weight: 800;
+    color: var(--olt-text);
+    line-height: 1.1;
+}
+
+.olt-oc-kpi__hint {
+    display: block;
+    margin-top: 0.2rem;
+    font-size: 0.68rem;
+    color: var(--olt-muted);
+}
+
+.olt-oc-kpi--cyan { border-top: 3px solid var(--olt-cyan); }
+.olt-oc-kpi--emerald { border-top: 3px solid var(--olt-emerald); }
+.olt-oc-kpi--rose { border-top: 3px solid var(--olt-rose); }
+.olt-oc-kpi--indigo { border-top: 3px solid var(--olt-indigo); }
+.olt-oc-kpi--violet { border-top: 3px solid var(--olt-violet); }
+.olt-oc-kpi--amber { border-top: 3px solid var(--olt-amber); }
+.olt-oc-kpi--slate { border-top: 3px solid var(--olt-slate); }
+
+.olt-oc-section {
+    margin-top: 0.25rem;
+}
+
+.olt-oc-section__title {
+    margin: 0;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--olt-muted);
+}

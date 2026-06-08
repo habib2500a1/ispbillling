@@ -1,0 +1,123 @@
+/** Signal quality center — health bands & trend rings */
+
+.olt-signal-grid {
+    display: grid;
+    gap: 0.75rem;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+@media (min-width: 900px) {
+    .olt-signal-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+
+.olt-signal-card {
+    padding: 1rem;
+    border-radius: var(--olt-radius-sm);
+    background: var(--olt-glass);
+    border: 1px solid var(--olt-border);
+    backdrop-filter: blur(8px);
+    text-align: center;
+}
+
+.olt-signal-card__ring {
+    width: 3.5rem;
+    height: 3.5rem;
+    margin: 0 auto 0.5rem;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    font-size: 0.95rem;
+    font-weight: 800;
+    border: 3px solid currentColor;
+}
+
+.olt-signal-card--excellent .olt-signal-card__ring { color: var(--olt-signal-excellent); }
+.olt-signal-card--good .olt-signal-card__ring { color: var(--olt-signal-good); }
+.olt-signal-card--weak .olt-signal-card__ring { color: var(--olt-signal-weak); }
+.olt-signal-card--critical .olt-signal-card__ring { color: var(--olt-signal-critical); }
+
+.olt-signal-card__label {
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--olt-muted);
+}
+
+.olt-signal-card__value {
+    margin-top: 0.2rem;
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: var(--olt-text);
+}
+
+.olt-rx-bar {
+    height: 6px;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--olt-muted) 15%, transparent);
+    overflow: hidden;
+    margin-top: 0.5rem;
+}
+
+.olt-rx-bar__fill {
+    height: 100%;
+    border-radius: inherit;
+    transition: width 0.4s var(--olt-ease);
+}
+
+.olt-rx-bar__fill--excellent { background: var(--olt-signal-excellent); }
+.olt-rx-bar__fill--good { background: var(--olt-signal-good); }
+.olt-rx-bar__fill--weak { background: var(--olt-signal-weak); }
+.olt-rx-bar__fill--critical { background: var(--olt-signal-critical); }
+
+/* ONU table signal cells */
+.isp-optical-power-table .olt-signal-cell {
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+}
+
+.isp-optical-power-table .olt-signal-cell--excellent { color: var(--olt-signal-excellent); }
+.isp-optical-power-table .olt-signal-cell--good { color: var(--olt-signal-good); }
+.isp-optical-power-table .olt-signal-cell--weak { color: var(--olt-signal-weak); }
+.isp-optical-power-table .olt-signal-cell--critical { color: var(--olt-signal-critical); }
+
+/* ONU status center — health badges */
+.olt-health-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.2rem 0.55rem;
+    border-radius: 6px;
+    font-size: 0.68rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.olt-health-badge::before {
+    content: '';
+    width: 0.45rem;
+    height: 0.45rem;
+    border-radius: 50%;
+    background: currentColor;
+}
+
+.olt-health-badge--healthy {
+    background: rgba(16, 185, 129, 0.12);
+    color: #047857;
+}
+
+.olt-health-badge--warning {
+    background: rgba(245, 158, 11, 0.14);
+    color: #b45309;
+}
+
+.olt-health-badge--critical {
+    background: rgba(244, 63, 94, 0.14);
+    color: #be123c;
+}
+
+.olt-onu-status-center .isp-optical-power-table tbody tr {
+    content-visibility: auto;
+    contain-intrinsic-size: auto 2.75rem;
+}

@@ -1,0 +1,1877 @@
+/** OLT / GPON operations — bundled */
+
+/* --- 01-tokens.css --- */
+/** OLT / GPON operations design tokens */
+
+.olt-oc-pro,
+.olt-pro {
+    --olt-emerald: #059669;
+    --olt-amber: #d97706;
+    --olt-rose: #e11d48;
+    --olt-cyan: #0891b2;
+    --olt-indigo: #4f46e5;
+    --olt-violet: #7c3aed;
+    --olt-slate: #64748b;
+    --olt-surface: #f1f5f9;
+    --olt-card: rgba(255, 255, 255, 0.92);
+    --olt-glass: rgba(255, 255, 255, 0.55);
+    --olt-text: #0f172a;
+    --olt-muted: #64748b;
+    --olt-border: rgba(148, 163, 184, 0.28);
+    --olt-shadow: 0 1px 3px rgba(15, 23, 42, 0.06), 0 10px 28px rgba(15, 23, 42, 0.07);
+    --olt-shadow-lg: 0 4px 6px rgba(15, 23, 42, 0.04), 0 24px 48px rgba(8, 145, 178, 0.12);
+    --olt-radius: 16px;
+    --olt-radius-sm: 12px;
+    --olt-ease: cubic-bezier(0.4, 0, 0.2, 1);
+    --olt-dur: 0.18s;
+    --olt-signal-excellent: #10b981;
+    --olt-signal-good: #22d3ee;
+    --olt-signal-weak: #f59e0b;
+    --olt-signal-critical: #f43f5e;
+}
+
+.dark .olt-oc-pro,
+.dark .olt-pro,
+[data-theme='dark'] .olt-oc-pro,
+[data-theme='dark'] .olt-pro {
+    --olt-surface: #070b14;
+    --olt-card: rgba(12, 18, 32, 0.96);
+    --olt-glass: rgba(15, 23, 42, 0.72);
+    --olt-text: #f1f5f9;
+    --olt-muted: #94a3b8;
+    --olt-border: rgba(71, 85, 105, 0.35);
+    --olt-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+    --olt-shadow-lg: 0 24px 56px rgba(0, 0, 0, 0.55);
+}
+
+.olt-signal--excellent { color: var(--olt-signal-excellent); }
+.olt-signal--good { color: var(--olt-signal-good); }
+.olt-signal--weak { color: var(--olt-signal-weak); }
+.olt-signal--critical { color: var(--olt-signal-critical); }
+
+.olt-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.2rem 0.55rem;
+    border-radius: 999px;
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.olt-badge--excellent { background: rgba(16, 185, 129, 0.14); color: #047857; }
+.olt-badge--good { background: rgba(34, 211, 238, 0.14); color: #0e7490; }
+.olt-badge--weak { background: rgba(245, 158, 11, 0.14); color: #b45309; }
+.olt-badge--critical { background: rgba(244, 63, 94, 0.14); color: #be123c; }
+
+@keyframes olt-shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+}
+
+.olt-skeleton {
+    background: linear-gradient(90deg, color-mix(in srgb, var(--olt-muted) 10%, transparent) 25%, color-mix(in srgb, var(--olt-muted) 18%, transparent) 50%, color-mix(in srgb, var(--olt-muted) 10%, transparent) 75%);
+    background-size: 200% 100%;
+    animation: olt-shimmer 1.4s ease-in-out infinite;
+    border-radius: 8px;
+    min-height: 1rem;
+}
+
+/* --- 02-hub-operations.css --- */
+/** OLT Operations Center — extended KPI grid */
+
+.isp-olt-hub-page .fi-header { display: none !important; }
+
+.olt-oc-grid {
+    display: grid;
+    gap: 0.65rem;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+@media (min-width: 768px) {
+    .olt-oc-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+@media (min-width: 1200px) {
+    .olt-oc-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+.olt-oc-kpi {
+    display: block;
+    padding: 0.85rem 0.95rem;
+    border-radius: var(--olt-radius-sm);
+    background: var(--olt-card);
+    border: 1px solid var(--olt-border);
+    box-shadow: var(--olt-shadow);
+    text-decoration: none;
+    color: inherit;
+    transition: transform var(--olt-dur) var(--olt-ease), box-shadow var(--olt-dur) var(--olt-ease);
+}
+
+.olt-oc-kpi:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--olt-shadow-lg);
+}
+
+.olt-oc-kpi__label {
+    display: block;
+    font-size: 0.62rem;
+    font-weight: 700;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--olt-muted);
+}
+
+.olt-oc-kpi__value {
+    display: block;
+    margin-top: 0.25rem;
+    font-size: 1.35rem;
+    font-weight: 800;
+    color: var(--olt-text);
+    line-height: 1.1;
+}
+
+.olt-oc-kpi__hint {
+    display: block;
+    margin-top: 0.2rem;
+    font-size: 0.68rem;
+    color: var(--olt-muted);
+}
+
+.olt-oc-kpi--cyan { border-top: 3px solid var(--olt-cyan); }
+.olt-oc-kpi--emerald { border-top: 3px solid var(--olt-emerald); }
+.olt-oc-kpi--rose { border-top: 3px solid var(--olt-rose); }
+.olt-oc-kpi--indigo { border-top: 3px solid var(--olt-indigo); }
+.olt-oc-kpi--violet { border-top: 3px solid var(--olt-violet); }
+.olt-oc-kpi--amber { border-top: 3px solid var(--olt-amber); }
+.olt-oc-kpi--slate { border-top: 3px solid var(--olt-slate); }
+
+.olt-oc-section {
+    margin-top: 0.25rem;
+}
+
+.olt-oc-section__title {
+    margin: 0;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--olt-muted);
+}
+
+/* --- 03-optical-noc-shell.css --- */
+/** Optical NOC — premium command center shell */
+
+.isp-optical-noc-page .fi-header { display: none !important; }
+
+.isp-optical-noc-page .fi-page,
+.isp-optical-noc-page .fi-main {
+    background: var(--olt-surface, #f1f5f9) !important;
+}
+
+.dark .isp-optical-noc-page .fi-page,
+.dark .isp-optical-noc-page .fi-main,
+[data-theme='dark'] .isp-optical-noc-page .fi-page,
+[data-theme='dark'] .isp-optical-noc-page .fi-main {
+    background: #070b14 !important;
+}
+
+.olt-oc-pro {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    max-width: 1600px;
+    padding-bottom: 2rem;
+}
+
+.olt-oc-hero {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1.35rem 1.5rem;
+    border-radius: var(--olt-radius);
+    background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 42%, #0e7490 100%);
+    color: #fff;
+    box-shadow: var(--olt-shadow-lg);
+}
+
+.olt-oc-hero__title {
+    margin: 0.35rem 0 0;
+    font-size: clamp(1.35rem, 2.5vw, 1.75rem);
+    font-weight: 800;
+    letter-spacing: -0.02em;
+}
+
+.olt-oc-hero__sub {
+    margin: 0.4rem 0 0;
+    font-size: 0.88rem;
+    opacity: 0.88;
+    max-width: 36rem;
+    line-height: 1.5;
+}
+
+.olt-oc-hero__badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin-top: 0.75rem;
+}
+
+.olt-oc-hero__badge {
+    padding: 0.28rem 0.65rem;
+    border-radius: 999px;
+    font-size: 0.68rem;
+    font-weight: 700;
+    background: rgba(255, 255, 255, 0.12);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.olt-oc-hero__badge--ok { background: rgba(16, 185, 129, 0.22); border-color: rgba(52, 211, 153, 0.4); }
+.olt-oc-hero__badge--warn { background: rgba(251, 191, 36, 0.2); border-color: rgba(251, 191, 36, 0.4); }
+.olt-oc-hero__badge--crit { background: rgba(244, 63, 94, 0.22); border-color: rgba(251, 113, 133, 0.4); }
+
+.olt-oc-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    padding: 0.35rem;
+    border-radius: var(--olt-radius-sm);
+    background: var(--olt-glass);
+    border: 1px solid var(--olt-border);
+    backdrop-filter: blur(10px);
+}
+
+.olt-oc-tab {
+    padding: 0.45rem 0.85rem;
+    border-radius: 8px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--olt-muted);
+    text-decoration: none;
+    transition: background var(--olt-dur) var(--olt-ease), color var(--olt-dur) var(--olt-ease);
+}
+
+.olt-oc-tab:hover,
+.olt-oc-tab--active {
+    background: color-mix(in srgb, var(--olt-cyan) 14%, transparent);
+    color: var(--olt-cyan);
+}
+
+.olt-oc-panel {
+    border-radius: var(--olt-radius);
+    border: 1px solid var(--olt-border);
+    background: var(--olt-card);
+    box-shadow: var(--olt-shadow);
+    overflow: hidden;
+}
+
+.olt-oc-panel__head {
+    padding: 0.85rem 1.1rem;
+    border-bottom: 1px solid var(--olt-border);
+    font-weight: 700;
+    color: var(--olt-text);
+}
+
+.olt-oc-loading .olt-oc-panel {
+    opacity: 0.65;
+    pointer-events: none;
+}
+
+/* --- 04-signal-quality.css --- */
+/** Signal quality center — health bands & trend rings */
+
+.olt-signal-grid {
+    display: grid;
+    gap: 0.75rem;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+@media (min-width: 900px) {
+    .olt-signal-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+
+.olt-signal-card {
+    padding: 1rem;
+    border-radius: var(--olt-radius-sm);
+    background: var(--olt-glass);
+    border: 1px solid var(--olt-border);
+    backdrop-filter: blur(8px);
+    text-align: center;
+}
+
+.olt-signal-card__ring {
+    width: 3.5rem;
+    height: 3.5rem;
+    margin: 0 auto 0.5rem;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    font-size: 0.95rem;
+    font-weight: 800;
+    border: 3px solid currentColor;
+}
+
+.olt-signal-card--excellent .olt-signal-card__ring { color: var(--olt-signal-excellent); }
+.olt-signal-card--good .olt-signal-card__ring { color: var(--olt-signal-good); }
+.olt-signal-card--weak .olt-signal-card__ring { color: var(--olt-signal-weak); }
+.olt-signal-card--critical .olt-signal-card__ring { color: var(--olt-signal-critical); }
+
+.olt-signal-card__label {
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--olt-muted);
+}
+
+.olt-signal-card__value {
+    margin-top: 0.2rem;
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: var(--olt-text);
+}
+
+.olt-rx-bar {
+    height: 6px;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--olt-muted) 15%, transparent);
+    overflow: hidden;
+    margin-top: 0.5rem;
+}
+
+.olt-rx-bar__fill {
+    height: 100%;
+    border-radius: inherit;
+    transition: width 0.4s var(--olt-ease);
+}
+
+.olt-rx-bar__fill--excellent { background: var(--olt-signal-excellent); }
+.olt-rx-bar__fill--good { background: var(--olt-signal-good); }
+.olt-rx-bar__fill--weak { background: var(--olt-signal-weak); }
+.olt-rx-bar__fill--critical { background: var(--olt-signal-critical); }
+
+/* ONU table signal cells */
+.isp-optical-power-table .olt-signal-cell {
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+}
+
+.isp-optical-power-table .olt-signal-cell--excellent { color: var(--olt-signal-excellent); }
+.isp-optical-power-table .olt-signal-cell--good { color: var(--olt-signal-good); }
+.isp-optical-power-table .olt-signal-cell--weak { color: var(--olt-signal-weak); }
+.isp-optical-power-table .olt-signal-cell--critical { color: var(--olt-signal-critical); }
+
+/* ONU status center — health badges */
+.olt-health-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.2rem 0.55rem;
+    border-radius: 6px;
+    font-size: 0.68rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.olt-health-badge::before {
+    content: '';
+    width: 0.45rem;
+    height: 0.45rem;
+    border-radius: 50%;
+    background: currentColor;
+}
+
+.olt-health-badge--healthy {
+    background: rgba(16, 185, 129, 0.12);
+    color: #047857;
+}
+
+.olt-health-badge--warning {
+    background: rgba(245, 158, 11, 0.14);
+    color: #b45309;
+}
+
+.olt-health-badge--critical {
+    background: rgba(244, 63, 94, 0.14);
+    color: #be123c;
+}
+
+.olt-onu-status-center .isp-optical-power-table tbody tr {
+    content-visibility: auto;
+    contain-intrinsic-size: auto 2.75rem;
+}
+
+/* --- 05-pon-faults.css --- */
+/** PON monitoring & fault management center */
+
+.olt-fault-grid {
+    display: grid;
+    gap: 0.75rem;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+@media (min-width: 768px) {
+    .olt-fault-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+@media (min-width: 1100px) {
+    .olt-fault-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+}
+
+.olt-fault-card {
+    padding: 0.9rem 1rem;
+    border-radius: var(--olt-radius-sm);
+    background: var(--olt-card);
+    border: 1px solid var(--olt-border);
+    border-left: 3px solid var(--olt-muted);
+}
+
+.olt-fault-card--critical { border-left-color: var(--olt-rose); }
+.olt-fault-card--warning { border-left-color: var(--olt-amber); }
+.olt-fault-card--info { border-left-color: var(--olt-cyan); }
+
+.olt-fault-card__label {
+    font-size: 0.65rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--olt-muted);
+}
+
+.olt-fault-card__value {
+    margin-top: 0.25rem;
+    font-size: 1.35rem;
+    font-weight: 800;
+    color: var(--olt-text);
+}
+
+.olt-severity {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.18rem 0.5rem;
+    border-radius: 6px;
+    font-size: 0.65rem;
+    font-weight: 800;
+    text-transform: uppercase;
+}
+
+.olt-severity--critical { background: rgba(244, 63, 94, 0.14); color: #be123c; }
+.olt-severity--warning { background: rgba(245, 158, 11, 0.14); color: #b45309; }
+.olt-severity--info { background: rgba(8, 145, 178, 0.12); color: #0e7490; }
+
+.olt-ai-insight {
+    display: flex;
+    gap: 0.75rem;
+    padding: 0.85rem 1rem;
+    border-radius: var(--olt-radius-sm);
+    border: 1px solid var(--olt-border);
+    background: var(--olt-glass);
+    backdrop-filter: blur(8px);
+}
+
+.olt-ai-insight__icon {
+    width: 2rem;
+    height: 2rem;
+    border-radius: 10px;
+    display: grid;
+    place-items: center;
+    background: color-mix(in srgb, var(--olt-violet) 14%, transparent);
+    color: var(--olt-violet);
+    flex-shrink: 0;
+}
+
+.olt-ai-insight__text {
+    margin: 0;
+    font-size: 0.82rem;
+    line-height: 1.5;
+    color: var(--olt-text);
+}
+
+.olt-pon-util {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.olt-pon-util__bar {
+    flex: 1;
+    height: 6px;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--olt-muted) 12%, transparent);
+    overflow: hidden;
+}
+
+.olt-pon-util__fill {
+    height: 100%;
+    border-radius: inherit;
+    background: linear-gradient(90deg, var(--olt-cyan), var(--olt-indigo));
+}
+
+/* --- 06-olt-list-profile.css --- */
+/** OLT list & profile pages */
+
+.isp-olt-list-page .fi-header,
+.isp-olt-profile-page .fi-header { display: none !important; }
+
+.olt-list-hero {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1.25rem 1.4rem;
+    border-radius: var(--olt-radius);
+    background: var(--olt-grad--health, linear-gradient(135deg, #2563eb 0%, #4f46e5 100%));
+    color: #fff;
+    box-shadow: var(--olt-shadow-lg);
+}
+
+.olt-list-hero__title {
+    margin: 0.35rem 0 0;
+    font-size: 1.45rem;
+    font-weight: 800;
+}
+
+.olt-list-hero__sub {
+    margin: 0.35rem 0 0;
+    font-size: 0.85rem;
+    opacity: 0.9;
+    max-width: 36rem;
+}
+
+.olt-profile-hero {
+    display: grid;
+    gap: 1rem;
+    padding: 1.25rem 1.4rem;
+    border-radius: var(--olt-radius);
+    border: 1px solid var(--olt-border);
+    background: var(--olt-card);
+    box-shadow: var(--olt-shadow-lg);
+}
+
+@media (min-width: 768px) {
+    .olt-profile-hero {
+        grid-template-columns: 1fr auto;
+        align-items: center;
+    }
+}
+
+.olt-profile-pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin-top: 0.65rem;
+}
+
+.olt-profile-pill {
+    padding: 0.25rem 0.6rem;
+    border-radius: 999px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    border: 1px solid var(--olt-border);
+    background: var(--olt-glass);
+    color: var(--olt-muted);
+}
+
+.olt-profile-metrics {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.65rem;
+}
+
+.olt-profile-metric {
+    min-width: 5rem;
+    padding: 0.6rem 0.8rem;
+    border-radius: var(--olt-radius-sm);
+    border: 1px solid var(--olt-border);
+    background: var(--olt-glass);
+    text-align: center;
+}
+
+.olt-profile-metric strong {
+    display: block;
+    font-size: 1.1rem;
+    color: var(--olt-text);
+}
+
+.olt-profile-metric span {
+    font-size: 0.62rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--olt-muted);
+}
+
+.olt-profile-form {
+    border-radius: var(--olt-radius);
+    border: 1px solid var(--olt-border);
+    background: var(--olt-card);
+    padding: 1.15rem;
+    box-shadow: var(--olt-shadow);
+}
+
+.olt-list-table-card {
+    border-radius: var(--olt-radius);
+    border: 1px solid var(--olt-border);
+    background: var(--olt-card);
+    overflow: hidden;
+    box-shadow: var(--olt-shadow);
+}
+
+/* --- 07-topology-insights.css --- */
+/** Visual topology tree (display only) */
+
+.olt-topo-tree {
+    padding: 1.25rem;
+    border-radius: var(--olt-radius);
+    border: 1px solid var(--olt-border);
+    background: var(--olt-card);
+}
+
+.olt-topo-node {
+    position: relative;
+    padding-left: 1.5rem;
+    margin-bottom: 0.75rem;
+}
+
+.olt-topo-node::before {
+    content: '';
+    position: absolute;
+    left: 0.45rem;
+    top: 0;
+    bottom: -0.75rem;
+    width: 2px;
+    background: color-mix(in srgb, var(--olt-cyan) 35%, var(--olt-border));
+}
+
+.olt-topo-node:last-child::before {
+    bottom: 50%;
+}
+
+.olt-topo-node__label {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.4rem 0.7rem;
+    border-radius: 8px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    background: var(--olt-glass);
+    border: 1px solid var(--olt-border);
+    color: var(--olt-text);
+}
+
+.olt-topo-node--olt .olt-topo-node__label {
+    border-color: color-mix(in srgb, var(--olt-indigo) 40%, var(--olt-border));
+    background: color-mix(in srgb, var(--olt-indigo) 8%, var(--olt-card));
+}
+
+.olt-topo-node--pon .olt-topo-node__label {
+    border-color: color-mix(in srgb, var(--olt-cyan) 40%, var(--olt-border));
+}
+
+.olt-topo-node--onu .olt-topo-node__label {
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+.olt-topo-children {
+    margin-left: 1.25rem;
+    margin-top: 0.5rem;
+    padding-left: 0.75rem;
+    border-left: 2px dashed var(--olt-border);
+}
+
+.olt-topo-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+    font-size: 0.72rem;
+    color: var(--olt-muted);
+}
+
+.olt-topo-legend span {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.olt-topo-legend i {
+    width: 10px;
+    height: 10px;
+    border-radius: 3px;
+    display: inline-block;
+}
+
+/* --- 08-mobile.css --- */
+/** Mobile OLT operations — cards, dock, sheets */
+
+@media (max-width: 767px) {
+    .olt-oc-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .olt-signal-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .olt-oc-tabs { overflow-x: auto; flex-wrap: nowrap; -webkit-overflow-scrolling: touch; }
+    .olt-oc-tab { white-space: nowrap; flex-shrink: 0; }
+
+    .isp-optical-power-wrap {
+        border-radius: var(--olt-radius-sm);
+    }
+
+    .isp-optical-power-table thead {
+        display: none;
+    }
+
+    .isp-optical-power-table tr {
+        display: block;
+        margin-bottom: 0.65rem;
+        padding: 0.75rem;
+        border-radius: var(--olt-radius-sm);
+        border: 1px solid var(--olt-border);
+        background: var(--olt-card);
+    }
+
+    .isp-optical-power-table td {
+        display: flex;
+        justify-content: space-between;
+        gap: 0.5rem;
+        padding: 0.25rem 0 !important;
+        border: 0 !important;
+    }
+
+    .isp-optical-power-table td::before {
+        content: attr(data-label);
+        font-size: 0.65rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        color: var(--olt-muted);
+    }
+
+    .olt-dock--mobile {
+        display: flex !important;
+    }
+
+    .isp-olt-hub-page .fi-main,
+    .isp-optical-noc-page .fi-main {
+        padding-bottom: 4.5rem !important;
+    }
+}
+
+.olt-dock--mobile {
+    display: none;
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 40;
+    padding: 0.35rem 0.5rem calc(0.35rem + env(safe-area-inset-bottom));
+    background: var(--olt-card);
+    border-top: 1px solid var(--olt-border);
+    backdrop-filter: blur(14px);
+}
+
+.olt-dock--mobile .olt-dock__inner {
+    display: flex;
+    justify-content: space-around;
+    gap: 0.25rem;
+}
+
+.olt-dock--mobile .olt-dock__link {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.15rem;
+    padding: 0.35rem 0.5rem;
+    min-width: 3.25rem;
+    font-size: 0.6rem;
+    font-weight: 600;
+    color: var(--olt-muted);
+    text-decoration: none;
+    border-radius: 10px;
+}
+
+.olt-dock--mobile .olt-dock__link--active {
+    color: var(--olt-cyan);
+    background: color-mix(in srgb, var(--olt-cyan) 12%, transparent);
+}
+
+/* --- 09-light-dark.css --- */
+/** Light / dark polish for OLT operations */
+
+.dark .olt-oc-hero,
+[data-theme='dark'] .olt-oc-hero {
+    box-shadow: 0 24px 56px rgba(0, 0, 0, 0.55);
+}
+
+.dark .olt-badge--excellent,
+[data-theme='dark'] .olt-badge--excellent { color: #6ee7b7; }
+.dark .olt-badge--weak,
+[data-theme='dark'] .olt-badge--weak { color: #fcd34d; }
+.dark .olt-badge--critical,
+[data-theme='dark'] .olt-badge--critical { color: #fda4af; }
+
+.dark .isp-optical-db-toolbar,
+[data-theme='dark'] .isp-optical-db-toolbar {
+    background: var(--olt-card) !important;
+    border-color: var(--olt-border) !important;
+}
+
+.dark .olt-list-hero,
+[data-theme='dark'] .olt-list-hero {
+    background: linear-gradient(135deg, #1e1b4b 0%, #0e7490 100%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .olt-skeleton { animation: none; }
+    .olt-oc-kpi:hover, .olt-hub-tile:hover { transform: none; }
+}
+
+.olt-oc-pro-loading .olt-oc-panel,
+.olt-oc-pro-loading .olt-signal-grid {
+    opacity: 0.7;
+}
+
+.olt-oc-pro-loading .olt-skeleton {
+    display: block;
+    min-height: 4rem;
+}
+
+/* --- olt-hub-pro.css (legacy) --- */
+/* OLT & Tools — premium hub (scoped, dark-mode safe) */
+.isp-olt-hub-page .fi-header,
+.isp-olt-hub-page .fi-page-header,
+.isp-olt-hub-page .fi-header-heading {
+    display: none !important;
+}
+
+.isp-olt-hub-page .fi-page,
+.isp-olt-hub-page .fi-main {
+    background: var(--olt-surface, #f1f5f9) !important;
+}
+
+.dark .isp-olt-hub-page .fi-page,
+.dark .isp-olt-hub-page .fi-main,
+[data-theme='dark'] .isp-olt-hub-page .fi-page,
+[data-theme='dark'] .isp-olt-hub-page .fi-main {
+    background: #0b1220 !important;
+}
+
+.isp-olt-hub-page .fi-page > section {
+    gap: 0 !important;
+}
+
+.olt-pro {
+    --olt-cyan: #06b6d4;
+    --olt-violet: #7c3aed;
+    --olt-dark: #0e7490;
+    --olt-surface: #f8fafc;
+    --olt-card: #ffffff;
+    --olt-text: #0f172a;
+    --olt-muted: #64748b;
+    --olt-border: rgba(148, 163, 184, 0.22);
+    --olt-shadow: 0 1px 3px rgba(15, 23, 42, 0.06), 0 8px 24px rgba(15, 23, 42, 0.06);
+    --olt-shadow-lg: 0 4px 6px rgba(15, 23, 42, 0.04), 0 20px 40px rgba(6, 182, 212, 0.14);
+    --olt-radius: 16px;
+    --olt-radius-sm: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    padding-bottom: 2rem;
+    max-width: 1400px;
+}
+
+.dark .olt-pro,
+[data-theme='dark'] .olt-pro {
+    --olt-surface: #0b1220;
+    --olt-card: #111827;
+    --olt-text: #f1f5f9;
+    --olt-muted: #94a3b8;
+    --olt-border: rgba(148, 163, 184, 0.12);
+    --olt-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+    --olt-shadow-lg: 0 20px 50px rgba(0, 0, 0, 0.45);
+}
+
+.olt-hero {
+    position: relative;
+    overflow: hidden;
+    border-radius: calc(var(--olt-radius) + 4px);
+    padding: 1.75rem 1.5rem 1.5rem;
+    background: linear-gradient(135deg, #1e1b4b 0%, #0891b2 42%, #06b6d4 100%);
+    color: #fff;
+    box-shadow: var(--olt-shadow-lg);
+}
+
+@media (min-width: 768px) {
+    .olt-hero {
+        padding: 2.25rem 2rem 2rem;
+        display: grid;
+        grid-template-columns: 1fr auto;
+        align-items: end;
+        gap: 1.5rem 2rem;
+    }
+}
+
+.olt-hero::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+        radial-gradient(ellipse 70% 55% at 100% 0%, rgba(255, 255, 255, 0.16) 0%, transparent 55%),
+        radial-gradient(ellipse 45% 40% at 0% 100%, rgba(167, 139, 250, 0.35) 0%, transparent 50%);
+    pointer-events: none;
+}
+
+.olt-hero__grid { position: relative; z-index: 1; }
+
+.olt-hero__badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.3rem 0.75rem;
+    border-radius: 999px;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    background: rgba(255, 255, 255, 0.14);
+    border: 1px solid rgba(255, 255, 255, 0.22);
+}
+
+.olt-hero__badge-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #4ade80;
+    box-shadow: 0 0 0 3px rgba(74, 222, 128, 0.35);
+    animation: olt-pulse 2s ease-in-out infinite;
+}
+
+@keyframes olt-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.65; }
+}
+
+.olt-hero__title {
+    margin: 0.85rem 0 0;
+    font-size: clamp(1.65rem, 4vw, 2.35rem);
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    line-height: 1.15;
+}
+
+.olt-hero__sub {
+    margin: 0.65rem 0 0;
+    max-width: 38rem;
+    font-size: 0.9375rem;
+    line-height: 1.55;
+    color: rgba(255, 255, 255, 0.88);
+}
+
+.olt-hero__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.55rem;
+    margin-top: 1.25rem;
+}
+
+.olt-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.6rem 1.1rem;
+    border-radius: 10px;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    text-decoration: none;
+    border: 1px solid transparent;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.olt-btn:hover { transform: translateY(-2px); text-decoration: none; }
+
+.olt-btn--white {
+    background: #fff;
+    color: var(--olt-dark);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
+}
+
+.olt-btn--glass {
+    background: rgba(255, 255, 255, 0.12);
+    border-color: rgba(255, 255, 255, 0.28);
+    color: #fff;
+    backdrop-filter: blur(6px);
+}
+
+.olt-hero__live {
+    position: relative;
+    z-index: 1;
+}
+
+.olt-hero__live-card {
+    padding: 1rem 1.15rem;
+    border-radius: var(--olt-radius-sm);
+    background: rgba(0, 0, 0, 0.22);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(10px);
+}
+
+@media (min-width: 768px) {
+    .olt-hero__live-card { text-align: right; min-width: 200px; }
+}
+
+.olt-hero__live-label {
+    font-size: 0.65rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: rgba(255, 255, 255, 0.65);
+}
+
+.olt-hero__live-value {
+    display: block;
+    margin-top: 0.2rem;
+    font-size: 1.65rem;
+    font-weight: 800;
+    color: #fff;
+}
+
+.olt-hero__live-hint {
+    margin-top: 0.35rem;
+    font-size: 0.72rem;
+    color: rgba(255, 255, 255, 0.55);
+}
+
+.olt-stats {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.65rem;
+}
+
+@media (min-width: 1024px) {
+    .olt-stats { grid-template-columns: repeat(4, 1fr); }
+}
+
+.olt-stat {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    padding: 1rem;
+    border-radius: var(--olt-radius-sm);
+    background: var(--olt-card);
+    border: 1px solid var(--olt-border);
+    box-shadow: var(--olt-shadow);
+    text-decoration: none;
+    color: inherit;
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+
+.olt-stat::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    background: var(--olt-accent, var(--olt-cyan));
+}
+
+.olt-stat:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--olt-shadow-lg);
+    text-decoration: none;
+    color: inherit;
+}
+
+.olt-stat__row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.olt-stat__icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.25rem;
+    height: 2.25rem;
+    border-radius: 10px;
+    background: color-mix(in srgb, var(--olt-accent) 14%, transparent);
+    color: var(--olt-accent);
+}
+
+.olt-stat__label {
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--olt-muted);
+}
+
+.olt-stat__value {
+    font-size: 1.45rem;
+    font-weight: 800;
+    color: var(--olt-text);
+    letter-spacing: -0.02em;
+}
+
+.olt-stat__hint {
+    font-size: 0.7rem;
+    color: var(--olt-muted);
+}
+
+.olt-stat--cyan { --olt-accent: #06b6d4; }
+.olt-stat--violet { --olt-accent: #7c3aed; }
+.olt-stat--emerald { --olt-accent: #10b981; }
+.olt-stat--sky { --olt-accent: #0ea5e9; }
+
+.olt-section__head {
+    margin-bottom: 0.85rem;
+}
+
+.olt-section__title {
+    margin: 0;
+    font-size: 1.05rem;
+    font-weight: 800;
+    color: var(--olt-text);
+}
+
+.olt-section__sub {
+    margin: 0.2rem 0 0;
+    font-size: 0.8125rem;
+    color: var(--olt-muted);
+}
+
+.olt-bento {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+}
+
+@media (min-width: 640px) { .olt-bento { grid-template-columns: repeat(2, 1fr); } }
+@media (min-width: 1024px) { .olt-bento { grid-template-columns: repeat(3, 1fr); } }
+
+.olt-tile {
+    display: flex;
+    flex-direction: column;
+    min-height: 8rem;
+    padding: 1.15rem 1.2rem;
+    border-radius: var(--olt-radius);
+    background: var(--olt-card);
+    border: 1px solid var(--olt-border);
+    box-shadow: var(--olt-shadow);
+    text-decoration: none;
+    color: inherit;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.olt-tile:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--olt-shadow-lg);
+    border-color: color-mix(in srgb, var(--olt-accent) 35%, var(--olt-border));
+    text-decoration: none;
+    color: inherit;
+}
+
+.olt-tile--featured {
+    border-color: color-mix(in srgb, #06b6d4 45%, var(--olt-border));
+    background: linear-gradient(145deg, color-mix(in srgb, #06b6d4 8%, var(--olt-card)) 0%, var(--olt-card) 55%);
+}
+
+@media (min-width: 1024px) {
+    .olt-tile--featured {
+        grid-column: span 2;
+        flex-direction: row;
+        align-items: center;
+        gap: 1.25rem;
+        min-height: 9rem;
+    }
+}
+
+.olt-tile__head {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 0.65rem;
+}
+
+.olt-tile--featured .olt-tile__head { margin-bottom: 0; }
+
+.olt-tile__icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.75rem;
+    height: 2.75rem;
+    border-radius: 14px;
+    background: color-mix(in srgb, var(--olt-accent) 15%, transparent);
+    color: var(--olt-accent);
+}
+
+.olt-tile__go {
+    width: 1.1rem;
+    height: 1.1rem;
+    color: var(--olt-muted);
+    opacity: 0;
+    transition: opacity 0.15s, transform 0.15s;
+}
+
+.olt-tile:hover .olt-tile__go {
+    opacity: 1;
+    transform: translate(2px, -2px);
+    color: var(--olt-accent);
+}
+
+.olt-tile__title {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--olt-text);
+}
+
+.olt-tile__desc {
+    margin: 0.35rem 0 0;
+    font-size: 0.8125rem;
+    line-height: 1.45;
+    color: var(--olt-muted);
+}
+
+.olt-tile--cyan { --olt-accent: #06b6d4; }
+.olt-tile--violet { --olt-accent: #7c3aed; }
+.olt-tile--indigo { --olt-accent: #4f46e5; }
+.olt-tile--emerald { --olt-accent: #10b981; }
+.olt-tile--amber { --olt-accent: #f59e0b; }
+.olt-tile--slate { --olt-accent: #64748b; }
+
+.olt-dock {
+    position: sticky;
+    bottom: 0;
+    z-index: 20;
+    padding: 0.65rem;
+    border-radius: var(--olt-radius);
+    background: color-mix(in srgb, var(--olt-card) 92%, transparent);
+    border: 1px solid var(--olt-border);
+    backdrop-filter: blur(12px);
+    box-shadow: 0 -4px 24px rgba(15, 23, 42, 0.08);
+}
+
+.olt-dock__inner {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 0.35rem;
+}
+
+.olt-dock__link {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.2rem;
+    padding: 0.5rem;
+    border-radius: 10px;
+    font-size: 0.65rem;
+    font-weight: 600;
+    color: var(--olt-muted);
+    text-decoration: none;
+}
+
+.olt-dock__link:hover,
+.olt-dock__link--active {
+    background: color-mix(in srgb, var(--olt-cyan) 12%, transparent);
+    color: var(--olt-cyan);
+    text-decoration: none;
+}
+
+.olt-dock__link svg { width: 1.25rem; height: 1.25rem; }
+
+.olt-noc-panel__grid {
+    display: grid;
+    gap: 1rem;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+}
+
+.olt-noc-panel__card {
+    background: var(--olt-card);
+    border: 1px solid var(--olt-border);
+    border-radius: var(--olt-radius-sm);
+    padding: 1rem 1.1rem;
+    box-shadow: var(--olt-shadow);
+}
+
+.dark .olt-noc-panel__card {
+    background: #111827;
+    border-color: rgba(71, 85, 105, 0.45);
+}
+
+/* --- optical-noc.css (legacy) --- */
+/* Optical NOC — enterprise monitoring UI */
+.isp-optical-page-shell {
+    min-height: 12rem;
+    padding: 0.25rem 0;
+    color: #0f172a;
+}
+
+.dark .isp-optical-page-shell {
+    color: #f1f5f9;
+}
+
+.isp-optical-noc {
+    --isp-noc-glass: rgba(15, 23, 42, 0.72);
+    --isp-noc-accent: #22d3ee;
+    --isp-noc-warn: #fbbf24;
+    --isp-noc-crit: #fb7185;
+}
+
+.isp-optical-noc__hero {
+    border-radius: 1rem;
+    padding: 1.5rem;
+    background: linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(30, 27, 75, 0.9) 50%, rgba(6, 78, 99, 0.85) 100%);
+    border: 1px solid rgba(34, 211, 238, 0.25);
+    box-shadow: 0 20px 50px -20px rgba(0, 0, 0, 0.5);
+    color: #f8fafc;
+}
+
+.isp-optical-noc__health-ring {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 5.5rem;
+    height: 5.5rem;
+    border-radius: 50%;
+    border: 4px solid var(--isp-noc-accent);
+    font-size: 1.25rem;
+    font-weight: 800;
+    background: rgba(0, 0, 0, 0.25);
+}
+
+.isp-optical-noc__kpi {
+    border-radius: 0.75rem;
+    padding: 1rem;
+    background: rgba(255, 255, 255, 0.06);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.isp-optical-noc__kpi-value {
+    font-size: 1.75rem;
+    font-weight: 800;
+    line-height: 1.1;
+}
+
+.isp-optical-noc__chart-card {
+    border-radius: 1rem;
+    padding: 1rem;
+    background: white;
+    border: 1px solid #e2e8f0;
+}
+
+.dark .isp-optical-noc__chart-card {
+    background: rgb(17 24 39);
+    border-color: rgb(55 65 81);
+}
+
+.isp-optical-olt-health-wrap {
+    overflow: auto;
+}
+
+.isp-optical-olt-health-table {
+    border-collapse: collapse;
+}
+
+.isp-optical-olt-health-table thead tr {
+    background: linear-gradient(180deg, #f8fafc 0%, #eef2f7 100%);
+}
+
+.dark .isp-optical-olt-health-table thead tr {
+    background: linear-gradient(180deg, rgb(31 41 55) 0%, rgb(17 24 39) 100%);
+}
+
+.isp-optical-olt-health-table th,
+.isp-optical-olt-health-table td {
+    white-space: nowrap;
+    vertical-align: middle;
+}
+
+.isp-optical-olt-health-table th {
+    padding: 0.6rem 0.7rem;
+    font-size: 0.68rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.isp-optical-olt-health-table td {
+    padding: 0.55rem 0.7rem;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.dark .isp-optical-olt-health-table td {
+    border-color: #374151;
+}
+
+.isp-optical-olt-health-table tbody tr:hover {
+    background: rgba(59, 130, 246, 0.06);
+}
+
+.dark .isp-optical-olt-health-table tbody tr:hover {
+    background: rgba(59, 130, 246, 0.12);
+}
+
+.isp-optical-noc__ai-row {
+    border-left: 3px solid var(--isp-noc-warn);
+    padding: 0.75rem 1rem;
+    border-radius: 0 0.5rem 0.5rem 0;
+    background: rgba(251, 191, 36, 0.08);
+}
+
+.isp-optical-noc__ai-row--critical {
+    border-left-color: var(--isp-noc-crit);
+    background: rgba(251, 113, 133, 0.1);
+}
+
+.isp-optical-noc__olt-row--warn td {
+    background: rgba(251, 191, 36, 0.06);
+}
+
+.isp-optical-noc__olt-cpu-bar {
+    display: inline-block;
+    height: 4px;
+    border-radius: 2px;
+    background: linear-gradient(90deg, #22d3ee, #a78bfa);
+    max-width: 4rem;
+}
+
+.isp-topology-node {
+    border-radius: 0.5rem;
+    padding: 0.35rem 0.75rem;
+    font-size: 0.65rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.isp-topology-node--olt {
+    background: linear-gradient(135deg, #7c3aed, #22d3ee);
+    color: #fff;
+}
+
+.isp-topology-vline {
+    width: 2px;
+    height: 1.25rem;
+    background: linear-gradient(180deg, #a78bfa, #22d3ee);
+}
+
+.isp-topology-port--ok {
+    border-color: rgba(16, 185, 129, 0.35);
+    background: rgba(16, 185, 129, 0.06);
+}
+
+.isp-topology-port--warn {
+    border-color: rgba(251, 191, 36, 0.45);
+    background: rgba(251, 191, 36, 0.08);
+}
+
+.isp-topology-port--crit {
+    border-color: rgba(251, 113, 133, 0.45);
+    background: rgba(251, 113, 133, 0.08);
+}
+
+/* Optical database banner */
+.isp-optical-db-banner {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1rem 1.25rem;
+    border-radius: 0.75rem;
+    background: linear-gradient(135deg, #1e40af 0%, #1e3a8a 50%, #172554 100%);
+    border: 1px solid #3b82f6;
+    box-shadow: 0 8px 24px rgba(30, 64, 175, 0.35);
+}
+
+.isp-optical-db-panel {
+    container-type: inline-size;
+}
+
+.isp-optical-db-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem 1rem;
+}
+
+.isp-optical-db-toolbar__stats {
+    flex: 1 1 22rem;
+}
+
+.isp-optical-db-toolbar__controls {
+    flex: 1 1 20rem;
+    justify-content: flex-end;
+}
+
+.isp-optical-db-toolbar__control {
+    white-space: nowrap;
+}
+
+.isp-optical-db-pagination__meta {
+    margin: 0;
+}
+
+/* PON stats — MikroTik / VLAN visible without wide horizontal scroll */
+.isp-pon-stats-panel {
+    border: 1px solid rgba(59, 130, 246, 0.35);
+    box-shadow: 0 4px 24px rgba(30, 64, 175, 0.12);
+}
+
+.isp-pon-stats-scroll-hint {
+    margin: 0;
+    padding: 0.35rem 0.65rem;
+    border-radius: 0.375rem;
+    background: rgba(251, 191, 36, 0.12);
+}
+
+.isp-pon-stats-table thead tr {
+    background: linear-gradient(180deg, #1e3a5f 0%, #152a45 100%);
+}
+
+.isp-pon-stats-table__sticky {
+    position: sticky;
+    left: 0;
+    z-index: 2;
+    background: inherit;
+    box-shadow: 2px 0 4px rgba(0, 0, 0, 0.06);
+}
+
+.isp-pon-stats-table__sticky:nth-child(2) {
+    left: 5.5rem;
+}
+
+.isp-pon-stats-table__sticky:nth-child(3) {
+    left: 11rem;
+}
+
+.dark .isp-pon-stats-table tbody tr .isp-pon-stats-table__sticky {
+    background: rgb(17 24 39);
+}
+
+.isp-pon-stats-table tbody tr:nth-child(even) .isp-pon-stats-table__sticky {
+    background: #f8fafc;
+}
+
+.dark .isp-pon-stats-table tbody tr:nth-child(even) .isp-pon-stats-table__sticky {
+    background: rgba(255, 255, 255, 0.03);
+}
+
+/* Legacy OLT panel table (must load on optical-noc — not only admin-saas.css) */
+.isp-optical-power-wrap {
+    background: #fff;
+    border-radius: 0.5rem;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+}
+
+.dark .isp-optical-power-wrap {
+    background: rgb(17 24 39);
+}
+
+.isp-optical-power-table {
+    border-collapse: collapse;
+    font-size: 0.8125rem;
+    width: 100%;
+}
+
+.isp-optical-power-table thead tr {
+    background: linear-gradient(180deg, #1e3a5f 0%, #152a45 100%);
+    color: #fff;
+}
+
+.isp-optical-power-table th {
+    padding: 0.55rem 0.65rem;
+    font-weight: 600;
+    font-size: 0.7rem;
+    white-space: nowrap;
+    border-right: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.isp-optical-power-table th:last-child {
+    border-right: none;
+}
+
+.isp-optical-power-table td {
+    padding: 0.45rem 0.65rem;
+    border-bottom: 1px solid #e5e7eb;
+    vertical-align: middle;
+}
+
+.dark .isp-optical-power-table td {
+    border-color: #374151;
+    color: #e5e7eb;
+}
+
+.isp-optical-power-table tbody tr:nth-child(even) {
+    background: #f8fafc;
+}
+
+.dark .isp-optical-power-table tbody tr:nth-child(even) {
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.isp-optical-power-table tbody tr:hover {
+    background: #eff6ff;
+}
+
+.isp-optical-power-col {
+    font-weight: 700;
+    min-width: 7.5rem;
+}
+
+.isp-optical-power-col--sticky {
+    position: sticky;
+    left: 0;
+    z-index: 2;
+    background: #fff;
+    box-shadow: 2px 0 6px rgba(0, 0, 0, 0.06);
+}
+
+.dark .isp-optical-power-col--sticky {
+    background: rgb(17 24 39);
+    color: #e5e7eb;
+}
+
+/*
+ * Desktop: disable sticky column offset for the legacy optical database table.
+ * Some browsers/scroll containers can visually misalign header/body when the table is scrolled horizontally.
+ * (We already have mobile card layout for <=640px.)
+ */
+@media (min-width: 641px) {
+    .isp-optical-power-table .isp-optical-power-col--sticky {
+        position: static;
+        left: auto;
+        z-index: auto;
+        box-shadow: none;
+        background: inherit;
+    }
+}
+
+.isp-optical-power-table thead .isp-optical-power-col--sticky {
+    background: linear-gradient(180deg, #1e3a5f 0%, #152a45 100%);
+    color: #fff;
+}
+
+.isp-optical-power-table tbody tr:nth-child(even) .isp-optical-power-col--sticky {
+    background: #f8fafc;
+}
+
+.dark .isp-optical-power-table tbody tr:nth-child(even) .isp-optical-power-col--sticky {
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.isp-optical-power-value {
+    font-family: ui-monospace, monospace;
+    font-weight: 700;
+}
+
+.isp-optical-power-value--success { color: #059669; }
+.isp-optical-power-value--warning { color: #d97706; }
+.isp-optical-power-value--danger { color: #dc2626; }
+.isp-optical-power-value--gray { color: #6b7280; }
+
+.isp-optical-power-row--high {
+    background: #fffbeb !important;
+}
+
+.isp-optical-status {
+    display: inline-block;
+    padding: 0.15rem 0.5rem;
+    border-radius: 0.25rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.isp-optical-status--online {
+    background: #d1fae5;
+    color: #065f46;
+}
+
+.isp-optical-status--offline {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+@media (max-width: 900px) {
+    .isp-optical-db-banner {
+        padding: 0.9rem 1rem;
+        gap: 0.75rem;
+    }
+
+    .isp-optical-db-toolbar {
+        padding: 0.75rem 0.85rem;
+    }
+
+    .isp-optical-db-toolbar__controls {
+        justify-content: flex-start;
+    }
+
+    .isp-optical-db-toolbar__control {
+        flex: 1 1 100%;
+    }
+
+    .isp-optical-db-toolbar__control input,
+    .isp-optical-db-toolbar__control select {
+        width: 100%;
+    }
+}
+
+@media (max-width: 640px) {
+    .isp-optical-db-banner h2 {
+        font-size: 1rem;
+    }
+
+    .isp-optical-db-banner p {
+        font-size: 0.74rem;
+    }
+
+    .isp-optical-power-wrap {
+        border-radius: 0.75rem;
+    }
+
+    .isp-optical-power-table thead {
+        display: none;
+    }
+
+    .isp-optical-power-table tbody {
+        display: block;
+        padding: 0.5rem;
+    }
+
+    .isp-optical-power-table tbody tr {
+        display: block;
+        margin-bottom: 0.55rem;
+        border: 1px solid #dbe3ee;
+        border-radius: 0.6rem;
+        overflow: hidden;
+        background: #fff;
+    }
+
+    .dark .isp-optical-power-table tbody tr {
+        border-color: #334155;
+        background: rgb(17 24 39);
+    }
+
+    .isp-optical-power-table td {
+        display: grid;
+        grid-template-columns: minmax(7.4rem, 45%) 1fr;
+        gap: 0.4rem;
+        padding: 0.45rem 0.55rem;
+        border-bottom: 1px solid #e5e7eb;
+        white-space: normal;
+    }
+
+    .dark .isp-optical-power-table td {
+        border-color: #334155;
+    }
+
+    .isp-optical-power-table td::before {
+        content: attr(data-label);
+        font-size: 0.62rem;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: #64748b;
+    }
+
+    .dark .isp-optical-power-table td::before {
+        color: #94a3b8;
+    }
+
+    .isp-optical-power-col--sticky {
+        position: static;
+        left: auto;
+        z-index: auto;
+        box-shadow: none;
+    }
+
+    .isp-optical-power-table td:first-child {
+        padding-top: 0.6rem;
+    }
+
+    .isp-optical-power-table td:last-child {
+        border-bottom: 0;
+        padding-bottom: 0.6rem;
+    }
+
+    .isp-optical-db-pagination {
+        gap: 0.5rem;
+    }
+
+    .isp-optical-db-pagination__meta {
+        font-size: 0.73rem;
+        line-height: 1.35;
+    }
+
+    .isp-optical-olt-health-wrap {
+        border-radius: 0.75rem;
+        padding: 0.35rem;
+    }
+
+    .isp-optical-olt-health-table thead {
+        display: none;
+    }
+
+    .isp-optical-olt-health-table tbody {
+        display: block;
+    }
+
+    .isp-optical-olt-health-table tbody tr {
+        display: block;
+        margin-bottom: 0.55rem;
+        border: 1px solid #dbe3ee;
+        border-radius: 0.6rem;
+        overflow: hidden;
+        background: #fff;
+    }
+
+    .dark .isp-optical-olt-health-table tbody tr {
+        border-color: #334155;
+        background: rgb(17 24 39);
+    }
+
+    .isp-optical-olt-health-table td {
+        display: grid;
+        grid-template-columns: minmax(6.6rem, 42%) 1fr;
+        gap: 0.4rem;
+        align-items: start;
+        padding: 0.48rem 0.58rem;
+        border-bottom: 1px solid #e5e7eb;
+        white-space: normal;
+    }
+
+    .dark .isp-optical-olt-health-table td {
+        border-color: #334155;
+    }
+
+    .isp-optical-olt-health-table td::before {
+        content: attr(data-label);
+        font-size: 0.62rem;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: #64748b;
+    }
+
+    .dark .isp-optical-olt-health-table td::before {
+        color: #94a3b8;
+    }
+
+    .isp-optical-olt-health-table td:first-child {
+        padding-top: 0.62rem;
+    }
+
+    .isp-optical-olt-health-table td:last-child {
+        border-bottom: 0;
+        padding-bottom: 0.62rem;
+    }
+}

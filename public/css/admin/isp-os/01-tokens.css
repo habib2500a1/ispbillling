@@ -1,0 +1,38 @@
+/** ISP OS design tokens */
+.isp-os-module {
+    --ios-bg: #0b0f1a;
+    --ios-card: rgba(15, 23, 42, 0.72);
+    --ios-glass: rgba(255, 255, 255, 0.05);
+    --ios-border: rgba(148, 163, 184, 0.14);
+    --ios-text: #f1f5f9;
+    --ios-muted: #94a3b8;
+    --ios-cyan: #22d3ee;
+    --ios-emerald: #34d399;
+    --ios-rose: #fb7185;
+    --ios-amber: #fbbf24;
+    --ios-violet: #a78bfa;
+    --ios-indigo: #818cf8;
+    --ios-radius: 14px;
+    --ios-ease: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+html:not(.dark) .isp-os-module {
+    --ios-card: rgba(255, 255, 255, 0.92);
+    --ios-glass: rgba(255, 255, 255, 0.7);
+    --ios-border: rgba(15, 23, 42, 0.1);
+    --ios-text: #0f172a;
+    --ios-muted: #64748b;
+}
+
+.isp-status-dot {
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 50%;
+    display: inline-block;
+}
+
+.isp-status-dot--online { background: #10b981; box-shadow: 0 0 8px rgba(16, 185, 129, 0.5); }
+.isp-status-dot--warning { background: #f59e0b; }
+.isp-status-dot--offline { background: #f43f5e; }
+.isp-status-dot--maintenance { background: #3b82f6; }
+.isp-status-dot--unknown { background: #94a3b8; }

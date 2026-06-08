@@ -8,7 +8,7 @@
     $withMk = collect($ponPorts)->filter(fn (array $p): bool => ($p['mikrotik'] ?? '—') !== '—')->count();
 @endphp
 
-<section id="isp-pon-stats" class="isp-optical-noc__chart-card isp-pon-stats-panel space-y-3 text-sm">
+<section id="isp-pon-stats" class="isp-optical-noc__chart-card isp-pon-stats-panel space-y-3 text-sm" x-data="{ ponFilter: 'all' }">
     <div class="flex flex-wrap items-start justify-between gap-3">
         <div>
             <h3 class="text-base font-bold text-gray-900 dark:text-white">PON ports — MikroTik &amp; VLAN</h3>
@@ -22,6 +22,12 @@
             <span class="rounded-full bg-emerald-500/15 px-2.5 py-1 text-emerald-800 dark:text-emerald-200">{{ $withVlan }} VLAN</span>
         </div>
     </div>
+
+    <nav class="olt-oc-tabs" aria-label="PON filters" style="margin:0;">
+        @foreach (['all' => 'All ports', 'online' => 'Active', 'partial' => 'Degraded', 'offline' => 'Offline', 'weak' => 'Weak signal'] as $key => $label)
+            <button type="button" @click="ponFilter = '{{ $key }}'" @class(['olt-oc-tab', 'olt-oc-tab--active' => false]) :class="ponFilter === '{{ $key }}' ? 'olt-oc-tab olt-oc-tab--active' : 'olt-oc-tab'">{{ $label }}</button>
+        @endforeach
+    </nav>
 
     <p class="isp-pon-stats-scroll-hint text-xs font-medium text-amber-700 dark:text-amber-300">
         টেবিলে MikroTik ও VLAN বাম দিকে — ছোট স্ক্রিনে নিচের দিকে স্ক্রল করুন।
@@ -58,8 +64,16 @@
                             'partial' => 'bg-amber-500/20 text-amber-900 dark:text-amber-200',
                             default => 'bg-emerald-500/15 text-emerald-800 dark:text-emerald-200',
                         };
+                        $weakCount = ($pon['onu_warning'] ?? 0) + ($pon['onu_critical'] ?? 0);
                     @endphp
-                    <tr @class(['border-b border-gray-100 dark:border-gray-800', $rowClass]) title="{{ $pon['mikrotik_detail'] ?? '' }} · {{ $pon['vlan_detail'] ?? '' }}">
+                    <tr
+                        @class(['border-b border-gray-100 dark:border-gray-800', $rowClass])
+                        title="{{ $pon['mikrotik_detail'] ?? '' }} · {{ $pon['vlan_detail'] ?? '' }}"
+                        x-show="ponFilter === 'all'
+                            || (ponFilter === '{{ $lineStatus }}' && ponFilter !== 'weak')
+                            || (ponFilter === 'weak' && {{ $weakCount }} > 0)"
+                        x-cloak
+                    >
                         <td class="isp-pon-stats-table__sticky px-3 py-2 font-medium">{{ $pon['olt_name'] }}</td>
                         <td class="px-3 py-2">
                             <span class="whitespace-nowrap rounded px-1.5 py-0.5 text-[10px] font-bold uppercase {{ $statusClass }}">

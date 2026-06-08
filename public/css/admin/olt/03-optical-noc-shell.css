@@ -1,0 +1,118 @@
+/** Optical NOC — premium command center shell */
+
+.isp-optical-noc-page .fi-header { display: none !important; }
+
+.isp-optical-noc-page .fi-page,
+.isp-optical-noc-page .fi-main {
+    background: var(--olt-surface, #f1f5f9) !important;
+}
+
+.dark .isp-optical-noc-page .fi-page,
+.dark .isp-optical-noc-page .fi-main,
+[data-theme='dark'] .isp-optical-noc-page .fi-page,
+[data-theme='dark'] .isp-optical-noc-page .fi-main {
+    background: #070b14 !important;
+}
+
+.olt-oc-pro {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    max-width: 1600px;
+    padding-bottom: 2rem;
+}
+
+.olt-oc-hero {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1.35rem 1.5rem;
+    border-radius: var(--olt-radius);
+    background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 42%, #0e7490 100%);
+    color: #fff;
+    box-shadow: var(--olt-shadow-lg);
+}
+
+.olt-oc-hero__title {
+    margin: 0.35rem 0 0;
+    font-size: clamp(1.35rem, 2.5vw, 1.75rem);
+    font-weight: 800;
+    letter-spacing: -0.02em;
+}
+
+.olt-oc-hero__sub {
+    margin: 0.4rem 0 0;
+    font-size: 0.88rem;
+    opacity: 0.88;
+    max-width: 36rem;
+    line-height: 1.5;
+}
+
+.olt-oc-hero__badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin-top: 0.75rem;
+}
+
+.olt-oc-hero__badge {
+    padding: 0.28rem 0.65rem;
+    border-radius: 999px;
+    font-size: 0.68rem;
+    font-weight: 700;
+    background: rgba(255, 255, 255, 0.12);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.olt-oc-hero__badge--ok { background: rgba(16, 185, 129, 0.22); border-color: rgba(52, 211, 153, 0.4); }
+.olt-oc-hero__badge--warn { background: rgba(251, 191, 36, 0.2); border-color: rgba(251, 191, 36, 0.4); }
+.olt-oc-hero__badge--crit { background: rgba(244, 63, 94, 0.22); border-color: rgba(251, 113, 133, 0.4); }
+
+.olt-oc-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    padding: 0.35rem;
+    border-radius: var(--olt-radius-sm);
+    background: var(--olt-glass);
+    border: 1px solid var(--olt-border);
+    backdrop-filter: blur(10px);
+}
+
+.olt-oc-tab {
+    padding: 0.45rem 0.85rem;
+    border-radius: 8px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--olt-muted);
+    text-decoration: none;
+    transition: background var(--olt-dur) var(--olt-ease), color var(--olt-dur) var(--olt-ease);
+}
+
+.olt-oc-tab:hover,
+.olt-oc-tab--active {
+    background: color-mix(in srgb, var(--olt-cyan) 14%, transparent);
+    color: var(--olt-cyan);
+}
+
+.olt-oc-panel {
+    border-radius: var(--olt-radius);
+    border: 1px solid var(--olt-border);
+    background: var(--olt-card);
+    box-shadow: var(--olt-shadow);
+    overflow: hidden;
+}
+
+.olt-oc-panel__head {
+    padding: 0.85rem 1.1rem;
+    border-bottom: 1px solid var(--olt-border);
+    font-weight: 700;
+    color: var(--olt-text);
+}
+
+.olt-oc-loading .olt-oc-panel {
+    opacity: 0.65;
+    pointer-events: none;
+}

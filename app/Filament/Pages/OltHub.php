@@ -4,6 +4,7 @@ namespace App\Filament\Pages;
 
 use App\Filament\Pages\Concerns\CachesHubStats;
 use App\Filament\Pages\Concerns\HidesHubNavigation;
+use App\Filament\Pages\Concerns\PresentsOltOperationsKpis;
 use App\Filament\Resources\OltResource;
 use App\Models\Device;
 use App\Services\Olt\GponNocHubService;
@@ -15,6 +16,7 @@ class OltHub extends Page
 {
     use CachesHubStats;
     use HidesHubNavigation;
+    use PresentsOltOperationsKpis;
 
     protected static ?string $navigationIcon = 'heroicon-o-server-stack';
 
@@ -27,6 +29,13 @@ class OltHub extends Page
     public function getTitle(): string
     {
         return '';
+    }
+
+    public function getExtraBodyAttributes(): array
+    {
+        return [
+            'class' => 'isp-olt-module',
+        ];
     }
 
     /**

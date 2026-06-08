@@ -1,0 +1,88 @@
+/** Mobile OLT operations — cards, dock, sheets */
+
+@media (max-width: 767px) {
+    .olt-oc-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .olt-signal-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .olt-oc-tabs { overflow-x: auto; flex-wrap: nowrap; -webkit-overflow-scrolling: touch; }
+    .olt-oc-tab { white-space: nowrap; flex-shrink: 0; }
+
+    .isp-optical-power-wrap {
+        border-radius: var(--olt-radius-sm);
+    }
+
+    .isp-optical-power-table thead {
+        display: none;
+    }
+
+    .isp-optical-power-table tr {
+        display: block;
+        margin-bottom: 0.65rem;
+        padding: 0.75rem;
+        border-radius: var(--olt-radius-sm);
+        border: 1px solid var(--olt-border);
+        background: var(--olt-card);
+    }
+
+    .isp-optical-power-table td {
+        display: flex;
+        justify-content: space-between;
+        gap: 0.5rem;
+        padding: 0.25rem 0 !important;
+        border: 0 !important;
+    }
+
+    .isp-optical-power-table td::before {
+        content: attr(data-label);
+        font-size: 0.65rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        color: var(--olt-muted);
+    }
+
+    .olt-dock--mobile {
+        display: flex !important;
+    }
+
+    .isp-olt-hub-page .fi-main,
+    .isp-optical-noc-page .fi-main {
+        padding-bottom: 4.5rem !important;
+    }
+}
+
+.olt-dock--mobile {
+    display: none;
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 40;
+    padding: 0.35rem 0.5rem calc(0.35rem + env(safe-area-inset-bottom));
+    background: var(--olt-card);
+    border-top: 1px solid var(--olt-border);
+    backdrop-filter: blur(14px);
+}
+
+.olt-dock--mobile .olt-dock__inner {
+    display: flex;
+    justify-content: space-around;
+    gap: 0.25rem;
+}
+
+.olt-dock--mobile .olt-dock__link {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.15rem;
+    padding: 0.35rem 0.5rem;
+    min-width: 3.25rem;
+    font-size: 0.6rem;
+    font-weight: 600;
+    color: var(--olt-muted);
+    text-decoration: none;
+    border-radius: 10px;
+}
+
+.olt-dock--mobile .olt-dock__link--active {
+    color: var(--olt-cyan);
+    background: color-mix(in srgb, var(--olt-cyan) 12%, transparent);
+}

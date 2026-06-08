@@ -38,9 +38,21 @@
                 @endif
             </div>
 
-            <div class="mt-4 flex flex-col items-center">
-                <div class="isp-topology-node isp-topology-node--olt">OLT</div>
-                <div class="isp-topology-vline"></div>
+            <div class="olt-topo-tree mt-4">
+                <div class="olt-topo-node olt-topo-node--olt">
+                    <span class="olt-topo-node__label">OLT · {{ $olt['label'] }}</span>
+                </div>
+                <div class="olt-topo-children">
+                    <div class="olt-topo-node olt-topo-node--pon">
+                        <span class="olt-topo-node__label">PON ports ({{ count($olt['ports'] ?? []) }})</span>
+                    </div>
+                    <div class="olt-topo-node">
+                        <span class="olt-topo-node__label">Splitter (visual)</span>
+                    </div>
+                    <div class="olt-topo-node olt-topo-node--onu">
+                        <span class="olt-topo-node__label">ONU · {{ $olt['onu_online'] }}/{{ $olt['onu_total'] }} online</span>
+                    </div>
+                </div>
             </div>
 
             @if(count($olt['ports'] ?? []) === 0)

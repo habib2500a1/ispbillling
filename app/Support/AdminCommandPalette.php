@@ -31,7 +31,10 @@ use App\Filament\Pages\ManageOpticalLaserSettings;
 use App\Filament\Pages\ManagePersonalMfsSettings;
 use App\Filament\Pages\ManageCompanySetup;
 use App\Filament\Pages\ManageMovieServerList;
+use App\Filament\Pages\FaultManagementHub;
+use App\Filament\Pages\FieldTechnicianCenter;
 use App\Filament\Pages\FiberPlantMap;
+use App\Filament\Pages\IspOsHub;
 use App\Filament\Pages\NetworkIntelligenceHub;
 use App\Filament\Pages\NetworkTopology;
 use App\Filament\Pages\NotificationsHub;
@@ -67,6 +70,9 @@ class AdminCommandPalette
     private static function buildItems(): array
     {
         return [
+            ['group' => 'Overview', 'label' => 'ISP OS center', 'url' => IspOsHub::getUrl(), 'keywords' => ['isp', 'os', 'operations', 'noc', 'intelligence']],
+            ['group' => 'Overview', 'label' => 'Fault management', 'url' => FaultManagementHub::getUrl(), 'keywords' => ['fault', 'fiber', 'alert', 'rca']],
+            ['group' => 'Overview', 'label' => 'Field technicians', 'url' => FieldTechnicianCenter::getUrl(), 'keywords' => ['technician', 'field', 'visit']],
             ['group' => 'Overview', 'label' => 'All modules', 'url' => OperationsHub::getUrl()],
             ['group' => 'Overview', 'label' => 'Dashboard hub (NOC / Billing / Support)', 'url' => DashboardHub::getUrl()],
             ['group' => 'OLT & ONU', 'label' => 'ONU — optical database & RX signals', 'url' => OpticalMonitoringHub::getUrl(), 'keywords' => ['onu', 'optical', 'gpon', 'rx', 'signal', 'laser']],

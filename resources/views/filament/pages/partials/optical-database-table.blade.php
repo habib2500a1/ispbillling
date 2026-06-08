@@ -5,7 +5,7 @@
     $rows = $paginator->items();
 @endphp
 
-<div class="space-y-3 isp-optical-db-panel">
+<div class="space-y-3 isp-optical-db-panel olt-onu-status-center">
     <div class="isp-optical-db-toolbar rounded-xl border border-slate-200 bg-white px-4 py-3 dark:border-slate-700 dark:bg-slate-900">
         <div class="isp-optical-db-toolbar__stats flex flex-wrap gap-4 text-sm">
             <span><strong>{{ number_format($summary['total']) }}</strong> ONU</span>
@@ -28,7 +28,7 @@
             <label class="isp-optical-db-toolbar__control flex items-center gap-2 text-xs font-semibold uppercase text-gray-500">
                 Search
                 <input type="search" wire:model.live.debounce.400ms="opticalDbSearch"
-                    placeholder="OLT, ONU07/05, C1/P7, MAC, client…"
+                    placeholder="Serial, MAC, customer, ID, OLT, PON, zone…"
                     class="w-48 rounded border-gray-300 text-sm dark:border-gray-600 dark:bg-gray-800 sm:w-64" />
             </label>
         </div>
@@ -106,10 +106,16 @@
                         <td data-label="OnuMacaddress" class="font-mono text-xs whitespace-nowrap">{{ $row['onu_mac'] }}</td>
                         <td data-label="PON port" class="font-mono text-xs whitespace-nowrap">{{ $row['olt_port'] }}</td>
                         <td data-label="OnuStatus">
+                            @php
+                                $statusTone = match ($row['optical_color'] ?? 'gray') {
+                                    'red', 'rose' => 'critical',
+                                    'amber', 'yellow', 'orange' => 'warning',
+                                    default => strtolower($row['onu_status']) === 'online' ? 'healthy' : 'critical',
+                                };
+                            @endphp
                             <span @class([
-                                'isp-optical-status',
-                                'isp-optical-status--online' => strtolower($row['onu_status']) === 'online',
-                                'isp-optical-status--offline' => strtolower($row['onu_status']) !== 'online',
+                                'olt-health-badge',
+                                'olt-health-badge--'.$statusTone,
                             ])>{{ $row['onu_status'] }}</span>
                         </td>
                         <td data-label="Description" class="max-w-[10rem] truncate" title="{{ $row['description'] }}">{{ $row['description'] }}</td>

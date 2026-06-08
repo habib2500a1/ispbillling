@@ -3,6 +3,7 @@
 namespace App\Filament\Pages;
 
 use App\Filament\Pages\Concerns\CachesHubStats;
+use App\Filament\Pages\Concerns\PresentsOltOperationsKpis;
 use App\Support\Rbac\StaffCapability;
 use App\Filament\Resources\OltResource;
 use App\Models\Device;
@@ -27,6 +28,80 @@ class OpticalMonitoringHub extends Page implements HasForms
 {
     use CachesHubStats;
     use InteractsWithForms;
+    use PresentsOltOperationsKpis;
+
+    public function getExtraBodyAttributes(): array
+    {
+        return [
+            'class' => 'isp-olt-module',
+        ];
+    }
+
+    /**
+     * @return list<array{label: string, value: string, tone: string, pct?: int}>
+     */
+    public function getSignalQualityCards(): array
+    {
+        $s = $this->getOpticalStatsSafe();
+        $total = max(1, (int) ($s['total_onus'] ?? 0));
+        $excellent = (int) ($s['excellent_onus'] ?? 0);
+        $good = max(0, (int) ($s['online_onus'] ?? 0) - $excellent - (int) ($s['warning_onus'] ?? 0) - (int) ($s['critical_onus'] ?? 0));
+        $weak = (int) ($s['warning_onus'] ?? 0);
+        $critical = (int) ($s['critical_onus'] ?? 0);
+
+        return [
+            ['label' => 'Excellent', 'value' => number_format($excellent), 'tone' => 'excellent', 'pct' => (int) round(100 * $excellent / $total)],
+            ['label' => 'Good', 'value' => number_format(max(0, $good)), 'tone' => 'good', 'pct' => (int) round(100 * max(0, $good) / $total)],
+            ['label' => 'Weak', 'value' => number_format($weak), 'tone' => 'weak', 'pct' => (int) round(100 * $weak / $total)],
+            ['label' => 'Critical', 'value' => number_format($critical), 'tone' => 'critical', 'pct' => (int) round(100 * $critical / $total)],
+        ];
+    }
+
+    /**
+     * @return list<array{label: string, value: string, tone: string}>
+     */
+    public function getFaultCenterCards(): array
+    {
+        $s = $this->getOpticalStatsSafe();
+
+        return [
+            ['label' => 'Critical alerts', 'value' => number_format($s['critical_onus'] ?? 0), 'tone' => 'critical'],
+            ['label' => 'Signal failures', 'value' => number_format($s['warning_onus'] ?? 0), 'tone' => 'warning'],
+            ['label' => 'Offline ONUs', 'value' => number_format($s['offline_onus'] ?? 0), 'tone' => 'warning'],
+            ['label' => 'Fiber faults', 'value' => number_format($s['fiber_faults'] ?? 0), 'tone' => 'critical'],
+            ['label' => 'Open tickets', 'value' => number_format($s['open_alerts'] ?? 0), 'tone' => 'info'],
+        ];
+    }
+
+    /**
+     * @return list<array{message: string}>
+     */
+    public function getVisualInsights(): array
+    {
+        $insights = [];
+        $s = $this->getOpticalStatsSafe();
+
+        if (($s['warning_onus'] ?? 0) > 0) {
+            $insights[] = ['message' => 'ONU signal weak — '.number_format($s['warning_onus']).' subscribers may experience intermittent connectivity.'];
+        }
+        if (($s['critical_onus'] ?? 0) > 0) {
+            $insights[] = ['message' => 'Critical optical levels detected on '.number_format($s['critical_onus']).' ONUs — prioritize field checks.'];
+        }
+        if (($s['offline_onus'] ?? 0) > 5) {
+            $insights[] = ['message' => number_format($s['offline_onus']).' ONUs offline — review PON port health and power budgets.'];
+        }
+        if (($s['open_alerts'] ?? 0) > 0) {
+            $insights[] = ['message' => number_format($s['open_alerts']).' open signal alerts require NOC attention.'];
+        }
+
+        foreach ($this->getAiWarningsPayload() as $warn) {
+            if (! empty($warn['summary'])) {
+                $insights[] = ['message' => (string) $warn['summary']];
+            }
+        }
+
+        return array_slice($insights, 0, 8);
+    }
 
     protected static ?string $navigationIcon = 'heroicon-o-light-bulb';
 

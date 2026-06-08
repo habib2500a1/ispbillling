@@ -1,5 +1,8 @@
+{!! \App\Support\OltStyles::navigatedScript() !!}
+
 @php
     $stats = $this->getStats();
+    $operationsKpis = $this->getOltOperationsKpis();
     $onlinePct = ($stats['onus'] ?? 0) > 0
         ? round(100 * ($stats['onus_online'] ?? 0) / max(1, $stats['onus']))
         : 0;
@@ -13,7 +16,7 @@
             <div class="olt-hero__grid">
                 <span class="olt-hero__badge">
                     <span class="olt-hero__badge-dot" aria-hidden="true"></span>
-                    GPON · optical NOC
+                    Advanced OLT Operations Center
                 </span>
                 <h1 class="olt-hero__title">OLT &amp; Optical Fiber</h1>
                 <p class="olt-hero__sub">
@@ -43,20 +46,24 @@
             </div>
         </header>
 
-        <div class="olt-stats">
-            @foreach ($this->getKpiCards() as $kpi)
-                <a href="{{ $kpi['url'] }}" class="olt-stat olt-stat--{{ $kpi['tone'] }}">
-                    <div class="olt-stat__row">
-                        <span class="olt-stat__icon">
-                            <x-filament::icon :icon="$kpi['icon']" class="h-5 w-5" />
-                        </span>
-                    </div>
-                    <span class="olt-stat__label">{{ $kpi['label'] }}</span>
-                    <strong class="olt-stat__value">{{ $kpi['value'] }}</strong>
-                    <span class="olt-stat__hint">{{ $kpi['hint'] }}</span>
-                </a>
-            @endforeach
-        </div>
+        <section class="olt-oc-section" aria-label="Fleet operations">
+            <p class="olt-oc-section__title">Operations snapshot</p>
+            <div class="olt-oc-grid" style="margin-top:0.65rem;">
+                @foreach ($operationsKpis as $kpi)
+                    @php $tag = ! empty($kpi['url']) ? 'a' : 'article'; @endphp
+                    <{{ $tag }}
+                        @if (! empty($kpi['url'])) href="{{ $kpi['url'] }}" @endif
+                        @class(['olt-oc-kpi', 'olt-oc-kpi--'.$kpi['tone']])
+                    >
+                        <span class="olt-oc-kpi__label">{{ $kpi['label'] }}</span>
+                        <strong class="olt-oc-kpi__value">{{ $kpi['value'] }}</strong>
+                        @if (! empty($kpi['hint']))
+                            <span class="olt-oc-kpi__hint">{{ $kpi['hint'] }}</span>
+                        @endif
+                    </{{ $tag }}>
+                @endforeach
+            </div>
+        </section>
 
         @if ($topPon !== [] || $vendors !== [])
             <section class="olt-noc-panel">

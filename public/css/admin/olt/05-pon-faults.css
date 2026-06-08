@@ -1,0 +1,105 @@
+/** PON monitoring & fault management center */
+
+.olt-fault-grid {
+    display: grid;
+    gap: 0.75rem;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+@media (min-width: 768px) {
+    .olt-fault-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+@media (min-width: 1100px) {
+    .olt-fault-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+}
+
+.olt-fault-card {
+    padding: 0.9rem 1rem;
+    border-radius: var(--olt-radius-sm);
+    background: var(--olt-card);
+    border: 1px solid var(--olt-border);
+    border-left: 3px solid var(--olt-muted);
+}
+
+.olt-fault-card--critical { border-left-color: var(--olt-rose); }
+.olt-fault-card--warning { border-left-color: var(--olt-amber); }
+.olt-fault-card--info { border-left-color: var(--olt-cyan); }
+
+.olt-fault-card__label {
+    font-size: 0.65rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--olt-muted);
+}
+
+.olt-fault-card__value {
+    margin-top: 0.25rem;
+    font-size: 1.35rem;
+    font-weight: 800;
+    color: var(--olt-text);
+}
+
+.olt-severity {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.18rem 0.5rem;
+    border-radius: 6px;
+    font-size: 0.65rem;
+    font-weight: 800;
+    text-transform: uppercase;
+}
+
+.olt-severity--critical { background: rgba(244, 63, 94, 0.14); color: #be123c; }
+.olt-severity--warning { background: rgba(245, 158, 11, 0.14); color: #b45309; }
+.olt-severity--info { background: rgba(8, 145, 178, 0.12); color: #0e7490; }
+
+.olt-ai-insight {
+    display: flex;
+    gap: 0.75rem;
+    padding: 0.85rem 1rem;
+    border-radius: var(--olt-radius-sm);
+    border: 1px solid var(--olt-border);
+    background: var(--olt-glass);
+    backdrop-filter: blur(8px);
+}
+
+.olt-ai-insight__icon {
+    width: 2rem;
+    height: 2rem;
+    border-radius: 10px;
+    display: grid;
+    place-items: center;
+    background: color-mix(in srgb, var(--olt-violet) 14%, transparent);
+    color: var(--olt-violet);
+    flex-shrink: 0;
+}
+
+.olt-ai-insight__text {
+    margin: 0;
+    font-size: 0.82rem;
+    line-height: 1.5;
+    color: var(--olt-text);
+}
+
+.olt-pon-util {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.olt-pon-util__bar {
+    flex: 1;
+    height: 6px;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--olt-muted) 12%, transparent);
+    overflow: hidden;
+}
+
+.olt-pon-util__fill {
+    height: 100%;
+    border-radius: inherit;
+    background: linear-gradient(90deg, var(--olt-cyan), var(--olt-indigo));
+}

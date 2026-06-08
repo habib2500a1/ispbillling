@@ -1,0 +1,84 @@
+/** Visual topology tree (display only) */
+
+.olt-topo-tree {
+    padding: 1.25rem;
+    border-radius: var(--olt-radius);
+    border: 1px solid var(--olt-border);
+    background: var(--olt-card);
+}
+
+.olt-topo-node {
+    position: relative;
+    padding-left: 1.5rem;
+    margin-bottom: 0.75rem;
+}
+
+.olt-topo-node::before {
+    content: '';
+    position: absolute;
+    left: 0.45rem;
+    top: 0;
+    bottom: -0.75rem;
+    width: 2px;
+    background: color-mix(in srgb, var(--olt-cyan) 35%, var(--olt-border));
+}
+
+.olt-topo-node:last-child::before {
+    bottom: 50%;
+}
+
+.olt-topo-node__label {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.4rem 0.7rem;
+    border-radius: 8px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    background: var(--olt-glass);
+    border: 1px solid var(--olt-border);
+    color: var(--olt-text);
+}
+
+.olt-topo-node--olt .olt-topo-node__label {
+    border-color: color-mix(in srgb, var(--olt-indigo) 40%, var(--olt-border));
+    background: color-mix(in srgb, var(--olt-indigo) 8%, var(--olt-card));
+}
+
+.olt-topo-node--pon .olt-topo-node__label {
+    border-color: color-mix(in srgb, var(--olt-cyan) 40%, var(--olt-border));
+}
+
+.olt-topo-node--onu .olt-topo-node__label {
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+.olt-topo-children {
+    margin-left: 1.25rem;
+    margin-top: 0.5rem;
+    padding-left: 0.75rem;
+    border-left: 2px dashed var(--olt-border);
+}
+
+.olt-topo-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+    font-size: 0.72rem;
+    color: var(--olt-muted);
+}
+
+.olt-topo-legend span {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.olt-topo-legend i {
+    width: 10px;
+    height: 10px;
+    border-radius: 3px;
+    display: inline-block;
+}

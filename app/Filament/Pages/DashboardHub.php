@@ -40,6 +40,14 @@ class DashboardHub extends Page
     {
         return [
             [
+                'title' => 'ISP OS',
+                'description' => 'Unified ISP operating system — network, GIS, faults, revenue',
+                'url' => IspOsHub::getUrl(),
+                'tone' => 'indigo',
+                'icon' => 'heroicon-o-command-line',
+                'visible' => IspOsHub::canAccess(),
+            ],
+            [
                 'title' => 'Command center',
                 'description' => 'Executive KPI wall, revenue & lifecycle',
                 'url' => Dashboard::getUrl(),

@@ -28,6 +28,15 @@ class EditOlt extends EditRecord
 
     protected static string $resource = OltResource::class;
 
+    protected static string $view = 'filament.resources.olt-resource.pages.edit-olt';
+
+    public function getExtraBodyAttributes(): array
+    {
+        return [
+            'class' => 'isp-olt-module isp-olt-profile-page',
+        ];
+    }
+
     protected function getHeaderActions(): array
     {
         return [
