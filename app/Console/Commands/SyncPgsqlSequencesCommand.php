@@ -21,8 +21,9 @@ final class SyncPgsqlSequencesCommand extends Command
 
         $rows = DB::select(<<<'SQL'
             SELECT
-                quote_ident(c.relname) AS table_name,
-                quote_ident(a.attname) AS column_name
+                n.nspname AS schema_name,
+                c.relname AS table_name,
+                a.attname AS column_name
             FROM pg_class c
             JOIN pg_namespace n ON n.oid = c.relnamespace
             JOIN pg_attribute a ON a.attrelid = c.oid
@@ -36,13 +37,17 @@ final class SyncPgsqlSequencesCommand extends Command
         $fixed = 0;
 
         foreach ($rows as $row) {
-            DB::statement(sprintf(
-                'SELECT setval(pg_get_serial_sequence(%s, %s), COALESCE((SELECT MAX(%s) FROM %s), 1))',
-                $row->table_name,
-                $row->column_name,
-                $row->column_name,
-                $row->table_name,
-            ));
+            $qualifiedTable = $row->schema_name.'.'.$row->table_name;
+            $quotedTable = '"'.$row->schema_name.'"."'.$row->table_name.'"';
+            $quotedColumn = '"'.$row->column_name.'"';
+
+            DB::statement(
+                "SELECT setval(
+                    pg_get_serial_sequence(?, ?),
+                    COALESCE((SELECT MAX({$quotedColumn}) FROM {$quotedTable}), 1)
+                )",
+                [$qualifiedTable, $row->column_name],
+            );
             $fixed++;
         }
 
