@@ -47,7 +47,7 @@ final class InventorySidebarRegistry
         return [
             [
                 'key' => 'hub',
-                'label' => 'Inventory center',
+                'label' => 'Asset intelligence',
                 'icon' => 'heroicon-o-cube',
                 'sort' => 0,
                 'url' => InventoryHub::getUrl(),

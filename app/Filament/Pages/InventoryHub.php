@@ -8,15 +8,17 @@ use App\Filament\Pages\InventoryLoansOverdueReport;
 use App\Filament\Pages\InventorySupportDevicesOutReport;
 use App\Filament\Pages\InventoryWarrantyManagement;
 use App\Filament\Resources\DeviceResource;
+use App\Filament\Resources\FixedAssetResource;
 use App\Filament\Resources\InventorySaleResource;
-use App\Filament\Resources\StoreDeviceLoanResource;
-use App\Filament\Resources\InvoiceResource;
+use App\Filament\Resources\PopBoxResource;
 use App\Filament\Resources\ProductResource;
 use App\Filament\Resources\PurchaseOrderResource;
 use App\Filament\Resources\StockMovementResource;
+use App\Filament\Resources\StoreDeviceLoanResource;
+use App\Filament\Resources\InvoiceResource;
 use App\Filament\Resources\VendorResource;
 use App\Filament\Resources\WarehouseResource;
-use App\Services\Inventory\InventoryDashboardService;
+use App\Services\Inventory\InventoryAssetIntelligenceService;
 use App\Support\Rbac\StaffCapability;
 use Filament\Pages\Page;
 
@@ -28,7 +30,7 @@ class InventoryHub extends Page
 
     protected static string $view = 'filament.pages.inventory-hub';
 
-    protected static ?string $navigationLabel = 'Inventory center';
+    protected static ?string $navigationLabel = 'Asset intelligence';
 
     protected static ?string $title = '';
 
@@ -42,11 +44,21 @@ class InventoryHub extends Page
     protected static ?int $navigationSort = 0;
 
     /** @var array<string, mixed> */
-    public array $summary = [];
+    public array $metrics = [];
 
     public function mount(): void
     {
-        $this->summary = app(InventoryDashboardService::class)->summary();
+        $this->metrics = app(InventoryAssetIntelligenceService::class)->metrics();
+    }
+
+    /**
+     * @return array<string, string|bool>
+     */
+    public function getExtraBodyAttributes(): array
+    {
+        return [
+            'class' => 'isp-inventory-module isp-inventory-hub-page',
+        ];
     }
 
     public static function canAccess(): bool
@@ -62,81 +74,156 @@ class InventoryHub extends Page
     /**
      * @return list<array{label: string, value: string, hint: string, url: string, tone: string, icon: string, alert?: bool, external?: bool}>
      */
+    public function getAssetDashboardCards(): array
+    {
+        $m = $this->metrics;
+        $fmt = static fn (float|int $n): string => number_format((float) $n, 0);
+
+        return [
+            [
+                'label' => 'Total assets',
+                'value' => $fmt($m['total_assets'] ?? 0),
+                'hint' => $fmt($m['total_devices'] ?? 0).' CPE · '.$fmt($m['total_fixed_assets'] ?? 0).' fixed',
+                'url' => DeviceResource::getUrl(),
+                'tone' => 'slate',
+                'icon' => 'heroicon-o-squares-2x2',
+            ],
+            [
+                'label' => 'Active assets',
+                'value' => $fmt($m['active_assets'] ?? 0),
+                'hint' => 'In service · in stock',
+                'url' => DeviceResource::getUrl(),
+                'tone' => 'emerald',
+                'icon' => 'heroicon-o-check-badge',
+            ],
+            [
+                'label' => 'Assigned',
+                'value' => $fmt($m['assigned_assets'] ?? 0),
+                'hint' => 'Subscribers · loans · staff',
+                'url' => StoreDeviceLoanResource::getUrl(),
+                'tone' => 'violet',
+                'icon' => 'heroicon-o-user-group',
+            ],
+            [
+                'label' => 'Unassigned',
+                'value' => $fmt($m['unassigned_assets'] ?? 0),
+                'hint' => 'Available in warehouse',
+                'url' => DeviceResource::getUrl(),
+                'tone' => 'sky',
+                'icon' => 'heroicon-o-archive-box',
+            ],
+            [
+                'label' => 'Damaged',
+                'value' => $fmt($m['damaged_assets'] ?? 0),
+                'hint' => 'Faulty CPE · write-offs',
+                'url' => InventoryDamagedMissingReport::getUrl(),
+                'tone' => 'rose',
+                'icon' => 'heroicon-o-exclamation-triangle',
+                'alert' => ($m['damaged_assets'] ?? 0) > 0,
+            ],
+            [
+                'label' => 'Low stock',
+                'value' => $fmt($m['low_stock_count'] ?? 0),
+                'hint' => 'At or below reorder level',
+                'url' => ProductResource::getUrl(),
+                'tone' => 'amber',
+                'icon' => 'heroicon-o-arrow-trending-down',
+                'alert' => ($m['low_stock_count'] ?? 0) > 0,
+            ],
+            [
+                'label' => 'Pending purchases',
+                'value' => $fmt($m['pending_purchases'] ?? 0),
+                'hint' => 'Draft or ordered POs',
+                'url' => PurchaseOrderResource::getUrl(),
+                'tone' => 'orange',
+                'icon' => 'heroicon-o-clipboard-document-check',
+            ],
+            [
+                'label' => 'Warranty expiring',
+                'value' => $fmt($m['warranty_expiring'] ?? 0),
+                'hint' => 'Next 30 days',
+                'url' => InventoryWarrantyManagement::getUrl(),
+                'tone' => 'red',
+                'icon' => 'heroicon-o-shield-exclamation',
+                'alert' => ($m['warranty_expiring'] ?? 0) > 0,
+            ],
+        ];
+    }
+
+    /**
+     * @return list<array{label: string, value: string, hint: string, url: string, tone: string, icon: string, alert?: bool, external?: bool}>
+     */
     public function getKpiCards(): array
     {
-        $s = $this->summary;
+        $m = $this->metrics;
         $fmt = static fn (float $n): string => number_format($n, 0);
 
         return [
             [
                 'label' => 'Stock value',
-                'value' => $fmt((float) ($s['stock_value'] ?? 0)).' BDT',
-                'hint' => $fmt((float) ($s['stock_units'] ?? 0)).' units · '.($s['product_count'] ?? 0).' products',
+                'value' => $fmt((float) ($m['stock_value'] ?? 0)).' BDT',
+                'hint' => $fmt((float) ($m['stock_units'] ?? 0)).' units · '.($m['product_count'] ?? 0).' SKUs',
                 'url' => ProductResource::getUrl(),
                 'tone' => 'teal',
                 'icon' => 'heroicon-o-cube',
             ],
             [
                 'label' => 'Month sales',
-                'value' => $fmt((float) ($s['month_sales'] ?? 0)).' BDT',
-                'hint' => 'Profit '.$fmt((float) ($s['month_profit'] ?? 0)).' BDT',
+                'value' => $fmt((float) ($m['month_sales'] ?? 0)).' BDT',
+                'hint' => 'Profit '.$fmt((float) ($m['month_profit'] ?? 0)).' BDT',
                 'url' => InventorySaleResource::getUrl(),
                 'tone' => 'emerald',
                 'icon' => 'heroicon-o-banknotes',
             ],
             [
-                'label' => 'Low stock',
-                'value' => (string) ($s['low_stock_count'] ?? 0),
-                'hint' => 'At or below reorder level',
-                'url' => ProductResource::getUrl(),
-                'tone' => 'amber',
-                'icon' => 'heroicon-o-exclamation-triangle',
-                'alert' => ($s['low_stock_count'] ?? 0) > 0,
-            ],
-            [
-                'label' => 'Open POs',
-                'value' => (string) ($s['open_po_count'] ?? 0),
-                'hint' => 'Draft or ordered',
-                'url' => PurchaseOrderResource::getUrl(),
-                'tone' => 'orange',
-                'icon' => 'heroicon-o-clipboard-document-check',
-            ],
-            [
-                'label' => 'Public shop',
-                'value' => (string) ($s['shop_products'] ?? 0).' items',
-                'hint' => 'Live on storefront',
-                'url' => $this->getShopUrl(),
-                'tone' => 'sky',
-                'icon' => 'heroicon-o-globe-alt',
-                'external' => true,
+                'label' => 'Warehouses',
+                'value' => (string) ($m['warehouse_count'] ?? 0),
+                'hint' => 'Active locations',
+                'url' => WarehouseResource::getUrl(),
+                'tone' => 'cyan',
+                'icon' => 'heroicon-o-building-library',
             ],
             [
                 'label' => 'Support out',
-                'value' => (string) ($s['support_out_count'] ?? 0),
-                'hint' => 'Overdue '.($s['loans_overdue'] ?? 0).' · due today '.($s['loans_due_today'] ?? 0),
+                'value' => (string) ($m['support_out_count'] ?? 0),
+                'hint' => 'Overdue '.($m['loans_overdue'] ?? 0).' · due today '.($m['loans_due_today'] ?? 0),
                 'url' => InventorySupportDevicesOutReport::getUrl(),
                 'tone' => 'violet',
                 'icon' => 'heroicon-o-arrow-up-tray',
             ],
-            [
-                'label' => 'Damaged / missing',
-                'value' => (string) ($s['damaged_missing_count'] ?? 0),
-                'hint' => 'Products with write-offs',
-                'url' => InventoryDamagedMissingReport::getUrl(),
-                'tone' => 'rose',
-                'icon' => 'heroicon-o-exclamation-triangle',
-                'alert' => ($s['damaged_missing_count'] ?? 0) > 0,
-            ],
-            [
-                'label' => 'Overdue loans',
-                'value' => (string) ($s['loans_overdue'] ?? 0),
-                'hint' => 'Past due return date',
-                'url' => InventoryLoansOverdueReport::getUrl(),
-                'tone' => 'red',
-                'icon' => 'heroicon-o-clock',
-                'alert' => ($s['loans_overdue'] ?? 0) > 0,
-            ],
         ];
+    }
+
+    /**
+     * @return list<array{key: string, label: string, count: int, icon: string}>
+     */
+    public function getAssetTypes(): array
+    {
+        return $this->metrics['asset_types'] ?? [];
+    }
+
+    /**
+     * @return list<array{key: string, label: string, count: int, desc: string}>
+     */
+    public function getLifecycleStages(): array
+    {
+        return $this->metrics['lifecycle'] ?? [];
+    }
+
+    /**
+     * @return list<array{label: string, count: int, tone: string, url: string}>
+     */
+    public function getSmartAlerts(): array
+    {
+        return $this->metrics['alerts'] ?? [];
+    }
+
+    /**
+     * @return list<array{label: string, value: string, hint: string}>
+     */
+    public function getAnalyticsCards(): array
+    {
+        return $this->metrics['analytics'] ?? [];
     }
 
     /**
@@ -146,8 +233,8 @@ class InventoryHub extends Page
     {
         return [
             [
-                'title' => 'New sale (POS)',
-                'desc' => 'Barcode scan · warehouse · staff wallet · instant receipt.',
+                'title' => 'QR / Barcode POS',
+                'desc' => 'Scan · sell · warehouse · instant receipt.',
                 'url' => InventorySaleResource::getUrl('create'),
                 'icon' => 'heroicon-o-qr-code',
                 'tone' => 'orange',
@@ -155,35 +242,21 @@ class InventoryHub extends Page
             ],
             [
                 'title' => 'Warehouses',
-                'desc' => 'Multi-location stock · transfer between sites.',
+                'desc' => 'Multi-site stock · transfers · monitoring.',
                 'url' => WarehouseResource::getUrl(),
                 'icon' => 'heroicon-o-building-library',
                 'tone' => 'amber',
             ],
             [
-                'title' => 'New product',
-                'desc' => 'Barcode · SKU · buy/sell · opening warehouse stock.',
-                'url' => ProductResource::getUrl('create'),
-                'icon' => 'heroicon-o-plus-circle',
-                'tone' => 'teal',
-            ],
-            [
-                'title' => 'All products',
-                'desc' => 'Search · adjust stock · low-stock alerts.',
+                'title' => 'Products & SKUs',
+                'desc' => 'Barcode labels · reorder · shop catalog.',
                 'url' => ProductResource::getUrl(),
                 'icon' => 'heroicon-o-shopping-bag',
                 'tone' => 'teal',
             ],
             [
-                'title' => 'Retail sales',
-                'desc' => 'POS history · reprint · profit per sale.',
-                'url' => InventorySaleResource::getUrl(),
-                'icon' => 'heroicon-o-banknotes',
-                'tone' => 'emerald',
-            ],
-            [
                 'title' => 'Purchase orders',
-                'desc' => 'Receive into warehouse · accounts payable.',
+                'desc' => 'Vendor PO · receive · accounts payable.',
                 'url' => PurchaseOrderResource::getUrl(),
                 'icon' => 'heroicon-o-clipboard-document-check',
                 'tone' => 'violet',
@@ -196,75 +269,128 @@ class InventoryHub extends Page
                 'tone' => 'cyan',
             ],
             [
-                'title' => 'Invoices · hardware',
-                'desc' => 'Add CPE line · link device · issue stock.',
-                'url' => InvoiceResource::getUrl(),
-                'icon' => 'heroicon-o-cpu-chip',
-                'tone' => 'sky',
-            ],
-            [
-                'title' => 'Devices / ONU',
-                'desc' => 'CPE & network equipment inventory.',
-                'url' => DeviceResource::getUrl(),
-                'icon' => 'heroicon-o-wifi',
-                'tone' => 'slate',
-            ],
-            [
-                'title' => 'Support device loans',
-                'desc' => 'Issue / return CPE for support visits.',
-                'url' => StoreDeviceLoanResource::getUrl(),
-                'icon' => 'heroicon-o-arrow-path-rounded-square',
-                'tone' => 'violet',
-            ],
-            [
-                'title' => 'Warranty management',
-                'desc' => 'Expiry dates · vendor · claims.',
-                'url' => InventoryWarrantyManagement::getUrl(),
-                'icon' => 'heroicon-o-shield-check',
-                'tone' => 'sky',
-            ],
-            [
-                'title' => 'Overdue returns',
-                'desc' => 'Support devices past due date.',
-                'url' => InventoryLoansOverdueReport::getUrl(),
-                'icon' => 'heroicon-o-clock',
-                'tone' => 'red',
-            ],
-            [
-                'title' => 'Damaged / missing',
-                'desc' => 'Stock write-offs and loss tracking.',
-                'url' => InventoryDamagedMissingReport::getUrl(),
-                'icon' => 'heroicon-o-exclamation-triangle',
-                'tone' => 'rose',
-            ],
-            [
                 'title' => 'Vendors',
-                'desc' => 'Suppliers · pay bills · purchase history.',
+                'desc' => 'Supplier profile · purchase history · warranty.',
                 'url' => VendorResource::getUrl(),
                 'icon' => 'heroicon-o-building-storefront',
                 'tone' => 'rose',
             ],
             [
-                'title' => 'Collector settlement',
-                'desc' => 'Transfer field staff cash to admin.',
-                'url' => CollectorCashHub::getUrl(),
-                'icon' => 'heroicon-o-wallet',
+                'title' => 'Devices / ONU / OLT',
+                'desc' => 'CPE registry · GIS link · NOC integration.',
+                'url' => DeviceResource::getUrl(),
+                'icon' => 'heroicon-o-wifi',
+                'tone' => 'slate',
+            ],
+            [
+                'title' => 'Technician loans',
+                'desc' => 'Issue · return · responsibility chain.',
+                'url' => StoreDeviceLoanResource::getUrl(),
+                'icon' => 'heroicon-o-arrow-path-rounded-square',
+                'tone' => 'violet',
+            ],
+            [
+                'title' => 'Fixed assets',
+                'desc' => 'Capital equipment · depreciation notes.',
+                'url' => FixedAssetResource::getUrl(),
+                'icon' => 'heroicon-o-building-office-2',
+                'tone' => 'sky',
+            ],
+            [
+                'title' => 'Warranty center',
+                'desc' => 'Expiry alerts · vendor claims.',
+                'url' => InventoryWarrantyManagement::getUrl(),
+                'icon' => 'heroicon-o-shield-check',
+                'tone' => 'sky',
+            ],
+            [
+                'title' => 'GIS / Fiber plant',
+                'desc' => 'POP boxes · junction · map assets.',
+                'url' => FiberPlantMap::getUrl(),
+                'icon' => 'heroicon-o-map',
                 'tone' => 'emerald',
             ],
             [
-                'title' => 'Public shop',
-                'desc' => 'Customer-facing product catalog (new tab).',
-                'url' => $this->getShopUrl(),
-                'icon' => 'heroicon-o-globe-alt',
-                'tone' => 'orange',
-                'external' => true,
+                'title' => 'POP / junction boxes',
+                'desc' => 'Lat/lng · fiber plant nodes.',
+                'url' => PopBoxResource::getUrl(),
+                'icon' => 'heroicon-o-map-pin',
+                'tone' => 'emerald',
             ],
             [
-                'title' => 'Accounting · COGS',
-                'desc' => 'P&L includes COGS 5050 + retail 4050.',
-                'url' => AccountingHub::getUrl(),
-                'icon' => 'heroicon-o-calculator',
-                'tone' => 'violet',
+                'title' => 'Invoice hardware',
+                'desc' => 'CPE line · issue stock on bill.',
+                'url' => InvoiceResource::getUrl(),
+                'icon' => 'heroicon-o-cpu-chip',
+                'tone' => 'orange',
+            ],
+            [
+                'title' => 'Public shop',
+                'desc' => 'Customer-facing catalog (new tab).',
+                'url' => $this->getShopUrl(),
+                'icon' => 'heroicon-o-globe-alt',
+                'tone' => 'amber',
+                'external' => true,
+            ],
+        ];
+    }
+
+    /**
+     * @return list<array{title: string, desc: string, url: string, icon: string}>
+     */
+    public function getGisIntegrationLinks(): array
+    {
+        return [
+            [
+                'title' => 'Fiber plant map',
+                'desc' => 'OLT · splitter · cable topology',
+                'url' => FiberPlantMap::getUrl(),
+                'icon' => 'heroicon-o-map',
+            ],
+            [
+                'title' => 'Customer subscribers',
+                'desc' => 'ONU · GPS · service address',
+                'url' => \App\Filament\Resources\CustomerResource::getUrl(),
+                'icon' => 'heroicon-o-users',
+            ],
+            [
+                'title' => 'Network devices',
+                'desc' => 'OLT · ONU · router registry',
+                'url' => DeviceResource::getUrl(),
+                'icon' => 'heroicon-o-server-stack',
+            ],
+            [
+                'title' => 'NOC wall',
+                'desc' => 'Live outages · zone impact',
+                'url' => NocWall::getUrl(),
+                'icon' => 'heroicon-o-signal',
+            ],
+        ];
+    }
+
+    /**
+     * @return list<array{title: string, desc: string, url: string, icon: string}>
+     */
+    public function getQrBarcodeLinks(): array
+    {
+        return [
+            [
+                'title' => 'POS barcode scan',
+                'desc' => 'Retail sale · warehouse pick',
+                'url' => InventorySaleResource::getUrl('create'),
+                'icon' => 'heroicon-o-qr-code',
+            ],
+            [
+                'title' => 'Product labels',
+                'desc' => 'SKU · barcode on catalog',
+                'url' => ProductResource::getUrl(),
+                'icon' => 'heroicon-o-tag',
+            ],
+            [
+                'title' => 'Mobile field POS',
+                'desc' => 'Technician smartphone scanning',
+                'url' => InventorySaleResource::getUrl('create'),
+                'icon' => 'heroicon-o-device-phone-mobile',
             ],
         ];
     }

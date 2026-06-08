@@ -108,8 +108,18 @@ final class AdminRouteAssets
             $html .= IspOsStyles::html();
         }
 
-        if (request()->routeIs('filament.admin.resources.products.*')
-            || request()->routeIs('filament.admin.resources.inventory-sales.*')) {
+        if (request()->routeIs([
+            'filament.admin.pages.inventory-hub',
+            'filament.admin.resources.products.*',
+            'filament.admin.resources.inventory-sales.*',
+            'filament.admin.resources.warehouses.*',
+            'filament.admin.resources.vendors.*',
+            'filament.admin.resources.purchase-orders.*',
+            'filament.admin.resources.stock-movements.*',
+            'filament.admin.resources.fixed-assets.*',
+            'filament.admin.resources.store-device-loans.*',
+            'filament.admin.pages.inventory-*',
+        ])) {
             $html .= self::linkTag('inventory-hub-pro.css');
         }
 
