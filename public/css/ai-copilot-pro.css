@@ -323,6 +323,9 @@ html:not(.dark) .ai-theme-icon--dark,
 .ai-voice-btn { background: var(--ai-surface); border: 1px solid var(--ai-border); color: var(--ai-muted); }
 .ai-send-btn { background: linear-gradient(135deg, #4f46e5, #0ea5e9); color: #fff; }
 
+.ai-send-btn:disabled,
+.ai-send-btn--busy { opacity: 0.55; cursor: wait; }
+
 .ai-disclaimer { margin: 0; padding: 0.35rem 0.85rem 0.65rem; font-size: 0.62rem; color: var(--ai-muted); text-align: center; }
 
 .ai-alerts-drawer {

@@ -141,6 +141,8 @@ Route::middleware(['web', 'auth'])->prefix('admin')->group(function (): void {
     Route::get('/smart-search', \App\Http\Controllers\Admin\SmartSearchController::class)->name('admin.smart-search');
     Route::get('/command-palette-items', \App\Http\Controllers\Admin\CommandPaletteItemsController::class)->name('admin.command-palette.items');
     Route::get('/dashboard-stream', \App\Http\Controllers\Admin\DashboardStreamController::class)->name('admin.dashboard-stream');
+    Route::get('/ai-copilot/dashboard', [\App\Http\Controllers\Admin\AiCopilotController::class, 'dashboard'])->name('admin.ai-copilot.dashboard');
+    Route::post('/ai-copilot/ask', [\App\Http\Controllers\Admin\AiCopilotController::class, 'ask'])->name('admin.ai-copilot.ask');
 });
 
 Route::middleware('auth')->get('/admin/reseller-commissions/{commission}/statement', [\App\Http\Controllers\ResellerCommissionStatementController::class, 'show'])
