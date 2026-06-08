@@ -6,6 +6,7 @@ use App\Filament\Resources\PlatformInvoiceResource\Pages;
 use App\Models\PlatformInvoice;
 use App\Models\Tenant;
 use App\Services\Tenant\PlatformInvoiceBillingService;
+use App\Services\Tenant\PlatformInvoicePaymentService;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Infolists;
@@ -65,6 +66,12 @@ class PlatformInvoiceResource extends Resource
                 Infolists\Components\TextEntry::make('due_date')->date(),
                 Infolists\Components\TextEntry::make('paid_at')->dateTime()->placeholder('—'),
                 Infolists\Components\TextEntry::make('payment_reference')->placeholder('—'),
+                Infolists\Components\TextEntry::make('gateway')->label('Gateway')->placeholder('—'),
+                Infolists\Components\TextEntry::make('payment_url')
+                    ->label('Pay link')
+                    ->state(fn (PlatformInvoice $record): string => app(PlatformInvoicePaymentService::class)->paymentUrl($record))
+                    ->copyable()
+                    ->visible(fn (PlatformInvoice $record): bool => ! $record->isPaid() && $record->status !== PlatformInvoice::STATUS_VOID),
                 Infolists\Components\TextEntry::make('notes')->columnSpanFull(),
             ])->columns(2),
         ]);
@@ -112,6 +119,27 @@ class PlatformInvoiceResource extends Resource
                     ]),
             ])
             ->actions([
+                Tables\Actions\Action::make('pay_online')
+                    ->label('Pay online')
+                    ->icon('heroicon-o-credit-card')
+                    ->color('primary')
+                    ->url(fn (PlatformInvoice $record): string => app(PlatformInvoicePaymentService::class)->paymentUrl($record))
+                    ->openUrlInNewTab()
+                    ->visible(fn (PlatformInvoice $record): bool => ! $record->isPaid() && $record->status !== PlatformInvoice::STATUS_VOID),
+                Tables\Actions\Action::make('copy_payment_link')
+                    ->label('Copy pay link')
+                    ->icon('heroicon-o-link')
+                    ->visible(fn (PlatformInvoice $record): bool => ! $record->isPaid() && $record->status !== PlatformInvoice::STATUS_VOID)
+                    ->action(function (PlatformInvoice $record): void {
+                        $url = app(PlatformInvoicePaymentService::class)->paymentUrl($record);
+
+                        Notification::make()
+                            ->title('Platform payment link')
+                            ->body($url)
+                            ->success()
+                            ->persistent()
+                            ->send();
+                    }),
                 Tables\Actions\Action::make('mark_paid')
                     ->label('Mark paid')
                     ->icon('heroicon-o-check-circle')

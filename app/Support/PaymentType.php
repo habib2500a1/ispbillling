@@ -18,6 +18,8 @@ final class PaymentType
 
     public const RESELLER_WALLET_RECHARGE = 'reseller_wallet_recharge';
 
+    public const PLATFORM_SUBSCRIPTION = 'platform_subscription';
+
     /** @return array<string, string> */
     public static function options(): array
     {
@@ -29,6 +31,7 @@ final class PaymentType
             self::WALLET_APPLY => 'Pay from wallet',
             self::PREPAY => 'Advance months',
             self::RESELLER_WALLET_RECHARGE => 'Partner wallet top-up',
+            self::PLATFORM_SUBSCRIPTION => 'ISP platform subscription',
         ];
     }
 

@@ -115,12 +115,13 @@ final class PlatformInvoiceBillingService
         });
     }
 
-    public function markPaid(PlatformInvoice $invoice, ?string $reference = null): PlatformInvoice
+    public function markPaid(PlatformInvoice $invoice, ?string $reference = null, ?string $gateway = null): PlatformInvoice
     {
         $invoice->forceFill([
             'status' => PlatformInvoice::STATUS_PAID,
             'paid_at' => now(),
             'payment_reference' => $reference,
+            'gateway' => $gateway ?? $invoice->gateway,
         ])->save();
 
         return $invoice->fresh();
@@ -164,6 +165,7 @@ final class PlatformInvoiceBillingService
             'url' => \App\Filament\Resources\PlatformInvoiceResource::getUrl('index', [
                 'tableSearch' => $invoice->invoice_number,
             ]),
+            'payment_url' => app(PlatformInvoicePaymentService::class)->paymentUrl($invoice),
         ];
     }
 }

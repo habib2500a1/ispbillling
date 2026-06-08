@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Invoice;
+use App\Models\PlatformInvoice;
 use App\Models\Payment;
 use App\Models\PendingGatewayPayment;
 use App\Models\ResellerWalletRechargeRequest;
@@ -10,6 +11,7 @@ use App\Services\Payments\PipraPayCheckoutService;
 use App\Services\Payments\PipraPayCheckoutStore;
 use App\Services\Payments\PublicCheckoutSession;
 use App\Services\Resellers\ResellerWalletRechargeService;
+use App\Services\Tenant\PlatformInvoicePaymentService;
 use App\Support\PaymentGateway;
 use App\Support\PaymentType;
 use Illuminate\Http\JsonResponse;
@@ -227,6 +229,10 @@ class PipraPayPaymentController extends Controller
             return $this->completeResellerWalletRecharge($ppId, $pending, $verified, $paidAmount, $orderId, $context, $source, $jsonResponse);
         }
 
+        if ($paymentType === PaymentType::PLATFORM_SUBSCRIPTION) {
+            return $this->completePlatformSubscription($ppId, $pending, $paidAmount, $orderId, $jsonResponse);
+        }
+
         $payment = DB::transaction(function () use ($pending, $invoice, $ppId, $paidAmount, $verified, $paymentType, $orderId, $context, $source): Payment {
             return Payment::createTrusted([
                 'customer_id' => (int) $pending['customer_id'],
@@ -283,6 +289,15 @@ class PipraPayPaymentController extends Controller
             return redirect()->route('reseller.wallet.index')->with('status', $message);
         }
 
+        if ($returnTo === 'platform_invoice') {
+            $invoiceId = (int) ($pending['platform_invoice_id'] ?? 0);
+            $platformInvoice = $invoiceId > 0 ? PlatformInvoice::query()->find($invoiceId) : null;
+            if ($platformInvoice?->payment_token) {
+                return redirect()->route('platform-invoice.pay', ['token' => $platformInvoice->payment_token])
+                    ->with('status', $message);
+            }
+        }
+
         if ($returnTo === 'bill_payment') {
             return redirect()->route('bill-payment.receipt', $payment)->with('status', $message);
         }
@@ -307,11 +322,86 @@ class PipraPayPaymentController extends Controller
             return redirect()->route('reseller.wallet.index')->with('danger', $message);
         }
 
+        if ($returnTo === 'platform_invoice') {
+            $platformId = (int) ($pending['platform_invoice_id'] ?? 0);
+            $platformInvoice = $platformId > 0 ? PlatformInvoice::query()->find($platformId) : null;
+            if ($platformInvoice?->payment_token) {
+                return redirect()->route('platform-invoice.pay', ['token' => $platformInvoice->payment_token])
+                    ->with('danger', $message);
+            }
+        }
+
         if ($returnTo === 'portal' && $invoice) {
             return redirect()->route('portal.invoices.show', $invoice)->with('danger', $message);
         }
 
         return redirect()->route('bill-payment.invoice')->with('danger', $message);
+    }
+
+    /**
+     * @param  array<string, mixed>  $pending
+     */
+    private function completePlatformSubscription(
+        string $ppId,
+        array $pending,
+        string $paidAmount,
+        ?string $orderId,
+        bool $jsonResponse,
+    ): RedirectResponse|JsonResponse {
+        $invoiceId = (int) ($pending['platform_invoice_id'] ?? 0);
+        $platformInvoice = $invoiceId > 0 ? PlatformInvoice::query()->find($invoiceId) : null;
+
+        if ($platformInvoice === null) {
+            if ($jsonResponse) {
+                return response()->json(['status' => false, 'message' => 'Platform invoice not found'], 422);
+            }
+
+            return redirect()->route('bill-payment.index')->with('danger', 'Platform bill session expired.');
+        }
+
+        if ($platformInvoice->isPaid()) {
+            if (is_string($orderId) && $orderId !== '') {
+                PublicCheckoutSession::forget($orderId);
+            }
+
+            $message = 'Platform bill was already paid.';
+
+            if ($jsonResponse) {
+                return response()->json(['status' => true, 'message' => $message]);
+            }
+
+            return redirect()->route('platform-invoice.pay', ['token' => $platformInvoice->payment_token])
+                ->with('status', $message);
+        }
+
+        if (abs((float) $paidAmount - (float) $platformInvoice->amount) > 0.05) {
+            if ($jsonResponse) {
+                return response()->json(['status' => false, 'message' => 'Amount mismatch'], 422);
+            }
+
+            return redirect()->route('platform-invoice.pay', ['token' => $platformInvoice->payment_token])
+                ->with('danger', 'Paid amount mismatch. Contact support.');
+        }
+
+        app(PlatformInvoicePaymentService::class)->completePayment(
+            $platformInvoice,
+            PaymentGateway::PIPRAPAY,
+            $ppId,
+            $orderId,
+        );
+
+        if (is_string($orderId) && $orderId !== '') {
+            PublicCheckoutSession::forget($orderId);
+        }
+
+        $message = 'Platform subscription payment recorded successfully.';
+
+        if ($jsonResponse) {
+            return response()->json(['status' => true, 'message' => $message]);
+        }
+
+        return redirect()->route('platform-invoice.pay', ['token' => $platformInvoice->payment_token])
+            ->with('status', $message);
     }
 
     /**

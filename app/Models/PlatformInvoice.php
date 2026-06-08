@@ -28,7 +28,9 @@ class PlatformInvoice extends Model
         'issue_date',
         'due_date',
         'paid_at',
+        'payment_token',
         'payment_reference',
+        'gateway',
         'notes',
     ];
 
@@ -47,6 +49,9 @@ class PlatformInvoice extends Model
         static::creating(function (PlatformInvoice $invoice): void {
             if (blank($invoice->invoice_number)) {
                 $invoice->invoice_number = static::generateInvoiceNumber();
+            }
+            if (blank($invoice->payment_token)) {
+                $invoice->payment_token = strtolower(\Illuminate\Support\Str::random(48));
             }
         });
     }

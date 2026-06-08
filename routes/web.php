@@ -505,6 +505,14 @@ Route::get('/sslcommerz/cancel', [SslCommerzPaymentController::class, 'cancel'])
 
 Route::get('/nagad/callback', [NagadPaymentController::class, 'callback'])->name('nagad.callback');
 
+Route::middleware('throttle:30,1')->prefix('platform-pay')->name('platform-invoice.')->group(function (): void {
+    Route::get('/{token}', [\App\Http\Controllers\PlatformInvoicePaymentController::class, 'show'])->name('pay');
+    Route::post('/{token}/piprapay', [\App\Http\Controllers\PlatformInvoicePaymentController::class, 'pipraPay'])->name('piprapay');
+    Route::post('/{token}/mfs', [\App\Http\Controllers\PlatformInvoicePaymentController::class, 'startMfs'])->name('start-mfs');
+    Route::get('/{token}/mfs/{gateway}', [\App\Http\Controllers\PlatformInvoicePaymentController::class, 'personalMfs'])->name('mfs');
+    Route::post('/{token}/confirm-mfs', [\App\Http\Controllers\PlatformInvoicePaymentController::class, 'confirmMfs'])->name('confirm-mfs');
+});
+
 Route::middleware('throttle:60,1')->prefix('piprapay')->name('piprapay.')->group(function (): void {
     Route::get('/success', [PipraPayPaymentController::class, 'success'])->name('success');
     Route::get('/cancel', [PipraPayPaymentController::class, 'cancel'])->name('cancel');

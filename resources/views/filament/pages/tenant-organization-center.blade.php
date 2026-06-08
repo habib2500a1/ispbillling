@@ -127,6 +127,9 @@
                             <p class="text-xs opacity-60 mt-3">No platform invoice yet — auto-generated on bill day.</p>
                         @endif
                         <div class="flex flex-wrap gap-2 mt-3">
+                            @if ($pi && ($pi['status'] ?? '') !== 'paid' && ! empty($pi['payment_url']))
+                                <a href="{{ $pi['payment_url'] }}" target="_blank" rel="noopener noreferrer" class="torg-link-btn">Pay now</a>
+                            @endif
                             @if ($access['tenants'] ?? false)
                                 <a href="{{ \App\Filament\Resources\TenantResource::getUrl('edit', ['record' => $tenant['id'] ?? 1]) }}" class="torg-link-btn">Edit package</a>
                                 <a href="{{ \App\Filament\Resources\PlatformInvoiceResource::getUrl('index') }}" class="torg-link-btn">All platform bills</a>
