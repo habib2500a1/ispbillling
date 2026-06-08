@@ -6,7 +6,6 @@ use App\Http\Controllers\Controller;
 use App\Services\Staff\ActivityLogger;
 use App\Services\Staff\StaffLoginService;
 use Filament\Facades\Filament;
-use Filament\Http\Responses\Auth\Contracts\LoginResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 
@@ -45,6 +44,6 @@ class AdminSessionLoginController extends Controller
 
         app(ActivityLogger::class)->log('login', 'Staff signed in', Filament::auth()->user());
 
-        return app(LoginResponse::class)->toResponse($request);
+        return redirect()->route('admin.login.complete', status: 303);
     }
 }

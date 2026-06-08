@@ -160,6 +160,19 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Legacy Session Cookie Domain
+    |--------------------------------------------------------------------------
+    |
+    | After SESSION_DOMAIN is cleared, browsers may still send old domain-scoped
+    | cookies. Set this to the previous SESSION_DOMAIN value so they are expired
+    | once on GET /admin/login without bloating every response header.
+    |
+    */
+
+    'legacy_domain' => env('SESSION_LEGACY_DOMAIN'),
+
+    /*
+    |--------------------------------------------------------------------------
     | HTTPS Only Cookies
     |--------------------------------------------------------------------------
     |

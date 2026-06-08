@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\AdminLoginCompleteController;
 use App\Http\Controllers\Admin\AdminLoginPageController;
 use App\Http\Controllers\Admin\AdminSessionLoginController;
 use App\Http\Controllers\Admin\GoogleDriveOAuthController;
@@ -105,6 +106,10 @@ Route::get('/admin/login', AdminLoginPageController::class)
 Route::post('/admin/login', AdminSessionLoginController::class)
     ->middleware(['web', 'throttle:20,1'])
     ->name('admin.login.session');
+
+Route::get('/admin/login/complete', AdminLoginCompleteController::class)
+    ->middleware(['web', 'throttle:60,1'])
+    ->name('admin.login.complete');
 
 // Legacy admin URLs (old portal bookmarks)
 Route::redirect('/AutomaticProcess', '/admin/automatic-processes', 302);
