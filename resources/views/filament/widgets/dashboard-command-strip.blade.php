@@ -8,9 +8,9 @@
             <x-filament::icon icon="heroicon-o-share" class="h-4 w-4" />
             Fiber topology
         </a>
-        <a href="{{ \App\Filament\Pages\AiAnalyticsDashboard::getUrl() }}" class="isp-dash-strip__btn">
+        <a href="{{ \App\Filament\Pages\AiOperationsCopilotHub::getUrl() }}" class="isp-dash-strip__btn">
             <x-filament::icon icon="heroicon-o-sparkles" class="h-4 w-4" />
-            AI analytics
+            AI Copilot
         </a>
         <a href="{{ \App\Filament\Pages\SecurityDashboard::getUrl() }}" class="isp-dash-strip__btn">
             <x-filament::icon icon="heroicon-o-shield-check" class="h-4 w-4" />

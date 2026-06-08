@@ -1,0 +1,12 @@
+{
+    "name": "ISP AI Operations Copilot",
+    "short_name": "AI Copilot",
+    "description": "AI-powered ISP operations intelligence",
+    "start_url": "/admin/ai-copilot",
+    "scope": "/admin/ai-copilot",
+    "display": "standalone",
+    "orientation": "any",
+    "background_color": "#0c0c0e",
+    "theme_color": "#4f46e5",
+    "icons": [{"src": "/favicon.ico", "sizes": "64x64", "type": "image/x-icon"}]
+}

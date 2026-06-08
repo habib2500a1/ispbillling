@@ -3,9 +3,11 @@
 namespace App\Filament\Pages;
 
 use App\Filament\Pages\Concerns\HasRoleDashboard;
-use App\Services\Dashboard\AiAnalyticsService;
 use Filament\Pages\Page;
 
+/**
+ * Legacy route — unified into AI Operations Copilot.
+ */
 class AiAnalyticsDashboard extends Page
 {
     use HasRoleDashboard;
@@ -18,16 +20,13 @@ class AiAnalyticsDashboard extends Page
 
     protected static bool $shouldRegisterNavigation = false;
 
+    public function mount(): void
+    {
+        $this->redirect(AiOperationsCopilotHub::getUrl(), navigate: true);
+    }
+
     public static function canAccess(): bool
     {
         return static::staff()->canReports();
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    public function getInsights(): array
-    {
-        return app(AiAnalyticsService::class)->insights();
     }
 }

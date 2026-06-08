@@ -75,6 +75,7 @@ class MobileConfigService
                 'realtime_ws' => $broadcast !== 'log',
                 'offline_sync' => true,
                 'ai_assistant' => true,
+                'ai_operations_copilot' => true,
                 'anomaly_detection' => true,
                 'network_control' => true,
                 'mfs_sms_staff' => (bool) config('mfs_personal.sms_ingest.enabled', false),
@@ -101,7 +102,7 @@ class MobileConfigService
                 ],
                 'admin' => [
                     'status' => 'live',
-                    'modules' => ['dashboard', 'tickets', 'tasks', 'billing_kpi', 'network_control'],
+                    'modules' => ['dashboard', 'tickets', 'tasks', 'billing_kpi', 'network_control', 'ai_copilot'],
                 ],
             ],
             'ticket' => [

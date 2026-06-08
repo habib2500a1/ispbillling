@@ -42,6 +42,7 @@ final class AdminRouteAssets
             'filament.admin.pages.print-reports' => ['reports-intelligence-pro.css'],
             'filament.admin.pages.churn-zone-reports' => ['reports-intelligence-pro.css'],
             'filament.admin.pages.ai-analytics-dashboard' => ['reports-intelligence-pro.css'],
+            'filament.admin.pages.ai-copilot' => ['ai-copilot-pro.css'],
             'filament.admin.pages.payments-report' => ['reports-intelligence-pro.css'],
             'filament.admin.pages.due-report' => ['reports-intelligence-pro.css'],
             'filament.admin.pages.due-report-pro' => ['reports-intelligence-pro.css'],
@@ -106,6 +107,7 @@ final class AdminRouteAssets
             'filament.admin.pages.fault-center',
             'filament.admin.pages.field-technicians',
             'filament.admin.pages.technician-dashboard',
+            'filament.admin.pages.ai-copilot',
         ])) {
             $html .= IspOsStyles::html();
         }
@@ -333,7 +335,7 @@ final class AdminRouteAssets
         }
 
         if (rule.match === 'isp-os-module') {
-            return /\\/admin\\/(isp-os|fault-center|field-technicians|technician-dashboard)/.test(path);
+            return /\\/admin\\/(isp-os|fault-center|field-technicians|technician-dashboard|ai-copilot)/.test(path);
         }
 
         if (rule.match === 'path-prefix') {
@@ -434,6 +436,7 @@ JS;
             'filament.admin.pages.accounting-hub' => '/admin/accounting-hub',
             'filament.admin.pages.accounts-hub' => '/admin/accounts-hub',
             'filament.admin.pages.collection-desk-report' => '/admin/collection-desk-report',
+            'filament.admin.pages.ai-copilot' => '/admin/ai-copilot',
         ];
 
         return $map[$pattern] ?? null;

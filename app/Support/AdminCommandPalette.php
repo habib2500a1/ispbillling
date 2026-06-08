@@ -5,6 +5,7 @@ namespace App\Support;
 use App\Filament\Pages\AccountsHub;
 use App\Filament\Pages\AccountsWalletHubPage;
 use App\Filament\Pages\AccountingHub;
+use App\Filament\Pages\AiOperationsCopilotHub;
 use App\Filament\Pages\AnalyticsReports;
 use App\Filament\Pages\BandwidthMonitor;
 use App\Filament\Pages\BillCollectionDesk;
@@ -117,6 +118,7 @@ class AdminCommandPalette
             ['group' => 'Reports', 'label' => 'Zone churn & collection', 'url' => ChurnZoneReports::getUrl()],
             ['group' => 'Reports', 'label' => 'BTRC DIS export', 'url' => BtrcReport::getUrl()],
             ['group' => 'Reports', 'label' => 'Analytics', 'url' => AnalyticsReports::getUrl()],
+            ['group' => 'AI', 'label' => 'AI Operations Copilot', 'url' => AiOperationsCopilotHub::getUrl()],
             ['group' => 'Finance', 'label' => 'Finance operations', 'url' => AccountingHub::getUrl()],
             ['group' => 'Resellers', 'label' => 'Reseller hub', 'url' => ResellersHub::getUrl()],
             ['group' => 'Admin', 'label' => 'My account & password', 'url' => EditAdminProfile::getUrl()],
