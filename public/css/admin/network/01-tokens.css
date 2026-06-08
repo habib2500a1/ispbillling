@@ -2,7 +2,8 @@
 
 .nh-pro,
 .nr-pro,
-.noc-pro {
+.noc-pro,
+.net-noc-pro {
     --nr-emerald: #059669;
     --nr-teal: #14b8a6;
     --nr-orange: #ea580c;
@@ -13,7 +14,7 @@
     --nr-indigo: #4f46e5;
     --nr-cyan: #0891b2;
     --nr-surface: #f1f5f9;
-    --nr-card: rgba(255, 255, 255, 0.84);
+    --nr-card: rgba(255, 255, 255, 0.92);
     --nr-glass: rgba(255, 255, 255, 0.58);
     --nr-text: #0f172a;
     --nr-muted: #64748b;
@@ -24,16 +25,44 @@
     --nr-radius-sm: 12px;
     --nr-ease: cubic-bezier(0.4, 0, 0.2, 1);
     --nr-dur: 0.18s;
+
+    /* aliases used by hub / monitoring modules */
+    --net-emerald: var(--nr-emerald);
+    --net-teal: var(--nr-teal);
+    --net-amber: var(--nr-amber);
+    --net-rose: var(--nr-rose);
+    --net-blue: var(--nr-blue);
+    --net-indigo: var(--nr-indigo);
+    --net-cyan: var(--nr-cyan);
+    --net-surface: var(--nr-surface);
+    --net-card: var(--nr-card);
+    --net-glass: var(--nr-glass);
+    --net-text: var(--nr-text);
+    --net-muted: var(--nr-muted);
+    --net-border: var(--nr-border);
+    --net-shadow: var(--nr-shadow);
+    --net-shadow-lg: var(--nr-shadow-lg);
+    --net-radius: var(--nr-radius);
+    --net-radius-sm: var(--nr-radius-sm);
+    --net-ease: var(--nr-ease);
+    --net-dur: var(--nr-dur);
+    --olt-card: var(--nr-card);
+    --olt-text: var(--nr-text);
+    --olt-muted: var(--nr-muted);
+    --olt-border: var(--nr-border);
+    --olt-shadow: var(--nr-shadow);
 }
 
 .dark .nh-pro,
 .dark .nr-pro,
 .dark .noc-pro,
+.dark .net-noc-pro,
 [data-theme='dark'] .nh-pro,
 [data-theme='dark'] .nr-pro,
-[data-theme='dark'] .noc-pro {
+[data-theme='dark'] .noc-pro,
+[data-theme='dark'] .net-noc-pro {
     --nr-surface: #070b14;
-    --nr-card: rgba(12, 18, 32, 0.92);
+    --nr-card: rgba(12, 18, 32, 0.96);
     --nr-glass: rgba(15, 23, 42, 0.72);
     --nr-text: #f1f5f9;
     --nr-muted: #94a3b8;
@@ -42,13 +71,19 @@
     --nr-shadow-lg: 0 24px 56px rgba(0, 0, 0, 0.55);
 }
 
-.nr-grad--online { background: linear-gradient(135deg, #059669 0%, #14b8a6 100%); }
-.nr-grad--warn { background: linear-gradient(135deg, #ea580c 0%, #f59e0b 100%); }
-.nr-grad--offline { background: linear-gradient(135deg, #dc2626 0%, #f43f5e 100%); }
-.nr-grad--health { background: linear-gradient(135deg, #2563eb 0%, #4f46e5 100%); }
-.nr-grad--bandwidth { background: linear-gradient(135deg, #0891b2 0%, #2563eb 100%); }
+.nr-grad--online,
+.net-grad--online { background: linear-gradient(135deg, #059669 0%, #14b8a6 100%); }
+.nr-grad--warn,
+.net-grad--warn { background: linear-gradient(135deg, #ea580c 0%, #f59e0b 100%); }
+.nr-grad--offline,
+.net-grad--offline { background: linear-gradient(135deg, #dc2626 0%, #f43f5e 100%); }
+.nr-grad--health,
+.net-grad--health { background: linear-gradient(135deg, #2563eb 0%, #4f46e5 100%); }
+.nr-grad--bandwidth,
+.net-grad--bandwidth { background: linear-gradient(135deg, #0891b2 0%, #2563eb 100%); }
 
-.nr-glass {
+.nr-glass,
+.net-glass {
     background: var(--nr-glass);
     border: 1px solid var(--nr-border);
     backdrop-filter: blur(12px);
@@ -61,14 +96,11 @@
     100% { background-position: 200% 0; }
 }
 
-.nr-skeleton {
-    background: linear-gradient(90deg, color-mix(in srgb, var(--nr-muted) 12%, transparent) 25%, color-mix(in srgb, var(--nr-muted) 20%, transparent) 50%, color-mix(in srgb, var(--nr-muted) 12%, transparent) 75%);
-    background-size: 200% 100%;
-    animation: nr-shimmer 1.4s ease-in-out infinite;
-    border-radius: 8px;
+@keyframes net-pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.55; transform: scale(0.92); }
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .nr-skeleton { animation: none; }
-    .nr-stat, .nr-router-card, .nh-tile { transition: none !important; }
+    .nr-stat, .nr-router-card, .net-hub-tile, .net-hub-stat { transition: none !important; }
 }
