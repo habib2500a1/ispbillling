@@ -59,32 +59,37 @@ class SupportTicketResource extends Resource
     {
         return $form
             ->schema([
-                Forms\Components\Select::make('customer_id')
-                    ->relationship(
-                        'customer',
-                        'name',
-                        modifyQueryUsing: fn ($query) => $query->orderBy('name'),
-                    )
-                    ->getOptionLabelFromRecordUsing(
-                        fn (Customer $record): string => $record->name.' (#'.($record->customer_code ?? $record->id).')'
-                    )
-                    ->searchable(['name', 'customer_code', 'phone', 'mikrotik_secret_name', 'radius_username', 'email'])
-                    ->preload()
-                    ->required(),
-                Forms\Components\Placeholder::make('live_service_status')
-                    ->label('Live subscriber status')
-                    ->content(fn (Get $get, SupportTicket $record): HtmlString => app(SupportTicketWorkspaceService::class)->liveStatusHtml(
-                        $get('customer_id') ?? $record->customer_id
-                    ))
-                    ->columnSpanFull()
-                    ->visibleOn('edit'),
+                Forms\Components\Section::make('Subscriber')
+                    ->schema([
+                        Forms\Components\Select::make('customer_id')
+                            ->relationship(
+                                'customer',
+                                'name',
+                                modifyQueryUsing: fn ($query) => $query->orderBy('name'),
+                            )
+                            ->getOptionLabelFromRecordUsing(
+                                fn (Customer $record): string => $record->name.' (#'.($record->customer_code ?? $record->id).')'
+                            )
+                            ->searchable(['name', 'customer_code', 'phone', 'mikrotik_secret_name', 'radius_username', 'email'])
+                            ->preload()
+                            ->required()
+                            ->columnSpanFull(),
+                        Forms\Components\Placeholder::make('live_service_status')
+                            ->label('Live subscriber status')
+                            ->content(function (Get $get, ?SupportTicket $record = null): HtmlString {
+                                $customerId = $get('customer_id') ?? $record?->customer_id;
+
+                                return app(SupportTicketWorkspaceService::class)->liveStatusHtml($customerId);
+                            })
+                            ->columnSpanFull(),
+                    ])
+                    ->columns(1),
                 Forms\Components\Section::make('Assignment')
                     ->description('Who owns this ticket in the queue.')
                     ->schema([
                         static::assigneeSelectField(),
                     ])
-                    ->columns(1)
-                    ->visibleOn('edit'),
+                    ->columns(1),
                 Forms\Components\Select::make('channel')
                     ->options(SupportTicket::CHANNELS)
                     ->required()
@@ -112,11 +117,12 @@ class SupportTicketResource extends Resource
                     ->required()
                     ->rows(4)
                     ->columnSpanFull(),
-                static::assigneeSelectField()->hiddenOn('edit'),
                 Forms\Components\DateTimePicker::make('sla_resolve_due_at')
                     ->label('SLA resolve due'),
-                Forms\Components\DateTimePicker::make('resolved_at'),
-                Forms\Components\DateTimePicker::make('closed_at'),
+                Forms\Components\DateTimePicker::make('resolved_at')
+                    ->visibleOn('edit'),
+                Forms\Components\DateTimePicker::make('closed_at')
+                    ->visibleOn('edit'),
                 Forms\Components\Section::make('RADIUS / network snapshot')
                     ->description('Subscriber line, PPP, and OLT tools live under Billing → Subscribers and Network.')
                     ->schema([
