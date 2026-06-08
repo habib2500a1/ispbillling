@@ -8,7 +8,7 @@ return [
     'poll_interval_minutes' => (int) env('BANDWIDTH_POLL_INTERVAL', 5),
 
     /** Auto-sync MikroTik while Online clients page is open (seconds). 0 = off. */
-    'live_page_poll_seconds' => (int) env('BANDWIDTH_LIVE_PAGE_POLL_SECONDS', 60),
+    'live_page_poll_seconds' => (int) env('BANDWIDTH_LIVE_PAGE_POLL_SECONDS', 90),
 
     /**
      * Per-row RouterOS /ppp/active check on Online clients (heavy — uses short cache).

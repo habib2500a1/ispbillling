@@ -11,6 +11,7 @@ use App\Models\PayrollRun;
 use App\Models\SupportTicket;
 use App\Models\User;
 use App\Support\InternalTaskStatus;
+use App\Support\PerformanceSettings;
 use App\Support\SafeCache;
 use App\Support\TenantResolver;
 use Carbon\Carbon;
@@ -27,9 +28,9 @@ final class WorkforceHubDashboardService
     public function snapshot(?int $tenantId = null): array
     {
         $tenantId = $tenantId ?? TenantResolver::currentTenantId() ?? 1;
-        $cacheKey = 'workforce_hub:snapshot:'.$tenantId.':'.now()->format('Y-m-d-H-i');
+        $cacheKey = 'workforce_hub:snapshot:'.$tenantId;
 
-        return SafeCache::remember($cacheKey, 90, fn () => $this->build($tenantId));
+        return SafeCache::remember($cacheKey, PerformanceSettings::hubCacheSeconds(), fn () => $this->build($tenantId));
     }
 
     /**

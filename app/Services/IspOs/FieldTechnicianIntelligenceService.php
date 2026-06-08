@@ -13,6 +13,7 @@ use App\Models\StoreDeviceLoan;
 use App\Models\SupportTicket;
 use App\Models\User;
 use App\Services\Support\SupportTicketWorkspaceService;
+use App\Support\PerformanceSettings;
 use App\Support\SafeCache;
 use App\Support\TenantResolver;
 use Illuminate\Support\Str;
@@ -37,7 +38,7 @@ final class FieldTechnicianIntelligenceService
 
         return SafeCache::remember(
             'field_tech_intel:'.$tenantId.':'.$userId,
-            now()->addSeconds(60),
+            now()->addSeconds(PerformanceSettings::hubCacheSeconds()),
             fn (): array => $this->build($userId, $tenantId),
         );
     }

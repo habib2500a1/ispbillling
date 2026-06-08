@@ -4,7 +4,7 @@
 @endphp
 
 <x-filament-widgets::widget>
-    <section class="isp-kpi-wall" wire:poll.30s>
+    <section class="isp-kpi-wall" wire:poll.visible.{{ \App\Support\PerformanceSettings::widgetPollSeconds() }}s>
         <header class="isp-kpi-wall__head">
             <div>
                 <h2 class="isp-kpi-wall__title">Live operations wall</h2>

@@ -16,6 +16,7 @@ use App\Services\Accounts\AccountsDashboardService;
 use App\Services\Billing\BillingOpsMetricsService;
 use App\Services\Dashboard\BillingDashboardMetricsService;
 use App\Services\Reports\AnalyticsReportService;
+use App\Support\PerformanceSettings;
 use App\Support\SafeCache;
 use App\Support\TenantResolver;
 use Carbon\Carbon;
@@ -31,9 +32,9 @@ final class FinanceHubDashboardService
     public function snapshot(): array
     {
         $tenantId = TenantResolver::currentTenantId() ?? 1;
-        $cacheKey = 'finance_hub:snapshot:'.$tenantId.':'.now()->format('Y-m-d-H-i');
+        $cacheKey = 'finance_hub:snapshot:'.$tenantId;
 
-        return SafeCache::remember($cacheKey, 90, fn () => $this->build($tenantId));
+        return SafeCache::remember($cacheKey, PerformanceSettings::hubCacheSeconds(), fn () => $this->build($tenantId));
     }
 
     /**

@@ -6,7 +6,7 @@
 @endphp
 
 <x-filament-widgets::widget>
-    <section class="isp-ops-center" wire:poll.60s>
+    <section class="isp-ops-center" wire:poll.visible.{{ \App\Support\PerformanceSettings::widgetPollSeconds() }}s>
         <header class="isp-ops-center__head">
             <div>
                 <h2 class="isp-ops-center__title">Smart ops command center</h2>

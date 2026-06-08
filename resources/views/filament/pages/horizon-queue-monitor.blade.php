@@ -30,7 +30,7 @@
 @endphp
 
 <x-filament-panels::page>
-    <div class="isp-hub-page space-y-6" wire:poll.15s>
+    <div class="isp-hub-page space-y-6" wire:poll.visible.{{ \App\Support\PerformanceSettings::queueMonitorPollSeconds() }}s>
         <x-isp.hub-hero
             eyebrow="Background jobs"
             title="Queue monitor"

@@ -8,6 +8,6 @@ trait EnablesLivePolling
     {
         $seconds = (int) config('bandwidth.live_page_poll_seconds', 60);
 
-        return $seconds > 0 ? "{$seconds}s" : null;
+        return $seconds > 0 ? "visible.{$seconds}s" : null;
     }
 }

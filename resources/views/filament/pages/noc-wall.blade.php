@@ -124,7 +124,7 @@
     $pollSeconds = (int) config('dashboard.noc_wall_poll_seconds', 60);
 @endphp
 
-<div class="isp-noc-wall" wire:poll.{{ $pollSeconds }}s="refreshWallData" id="isp-noc-wall">
+<div class="isp-noc-wall" wire:poll.visible.{{ $pollSeconds }}s="refreshWallData" id="isp-noc-wall">
     <header class="isp-noc-wall__header isp-noc-wall__header--hero" wire:key="noc-brand-{{ md5($companyName.'|'.($companyLogo ?? '')) }}">
         <div class="isp-noc-wall__brand">
             @if ($companyLogo)

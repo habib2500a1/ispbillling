@@ -15,6 +15,7 @@ use App\Filament\Pages\ReportsHub;
 use App\Filament\Pages\ResellersHub;
 use App\Services\Finance\FinanceHubDashboardService;
 use App\Services\Hr\WorkforceHubDashboardService;
+use App\Support\PerformanceSettings;
 use App\Support\SafeCache;
 use App\Support\TenantResolver;
 
@@ -29,9 +30,9 @@ final class IspOsExecutiveDashboardService
     public function snapshot(?int $tenantId = null): array
     {
         $tenantId = $tenantId ?? TenantResolver::currentTenantId() ?? 1;
-        $cacheKey = 'isp_os:executive:'.$tenantId.':'.now()->format('Y-m-d-H-i');
+        $cacheKey = 'isp_os:executive:'.$tenantId;
 
-        return SafeCache::remember($cacheKey, 90, fn () => $this->build($tenantId));
+        return SafeCache::remember($cacheKey, PerformanceSettings::hubCacheSeconds(), fn () => $this->build($tenantId));
     }
 
     /**

@@ -8,6 +8,7 @@ use App\Models\PushNotificationLog;
 use App\Models\SmsCampaign;
 use App\Models\SmsTemplate;
 use App\Models\VoiceSmsCampaign;
+use App\Support\PerformanceSettings;
 use App\Support\SafeCache;
 use App\Support\TenantResolver;
 use Illuminate\Support\Collection;
@@ -25,7 +26,7 @@ final class CommsHubDashboardService
         $tenantId = TenantResolver::currentTenantId();
         $cacheKey = 'comms_hub:snapshot:'.($tenantId ?? 'global');
 
-        return SafeCache::remember($cacheKey, 60, fn () => $this->buildSnapshot($tenantId));
+        return SafeCache::remember($cacheKey, PerformanceSettings::hubCacheSeconds(), fn () => $this->buildSnapshot($tenantId));
     }
 
     /**

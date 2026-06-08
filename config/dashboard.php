@@ -3,10 +3,10 @@
 return [
 
     /** Cache dashboard SSE snapshot payload (seconds). */
-    'snapshot_cache_seconds' => (int) env('DASHBOARD_SNAPSHOT_CACHE_SECONDS', 45),
+    'snapshot_cache_seconds' => (int) env('DASHBOARD_SNAPSHOT_CACHE_SECONDS', 90),
 
     /** Server-sent events interval on dashboard (seconds). */
-    'stream_interval_seconds' => (int) env('DASHBOARD_STREAM_INTERVAL_SECONDS', 30),
+    'stream_interval_seconds' => (int) env('DASHBOARD_STREAM_INTERVAL_SECONDS', 60),
 
     /** Max SSE payloads per HTTP request (avoids holding PHP-FPM workers for hours). */
     'stream_max_iterations' => (int) env('DASHBOARD_STREAM_MAX_ITERATIONS', 6),
@@ -24,6 +24,6 @@ return [
     'noc_wall_cache_seconds' => (int) env('DASHBOARD_NOC_WALL_CACHE_SECONDS', 60),
 
     /** NOC wall Livewire poll interval (seconds). */
-    'noc_wall_poll_seconds' => (int) env('DASHBOARD_NOC_WALL_POLL_SECONDS', 60),
+    'noc_wall_poll_seconds' => (int) env('DASHBOARD_NOC_WALL_POLL_SECONDS', 90),
 
 ];

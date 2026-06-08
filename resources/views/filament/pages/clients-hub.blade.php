@@ -10,7 +10,7 @@
 
 <x-filament-panels::page class="isp-clients-hub-page">
     @if ($pollSeconds > 0)
-        <div wire:poll.{{ $pollSeconds }}s="refreshLiveData">
+        <div wire:poll.visible.{{ $pollSeconds }}s="refreshLiveData">
     @else
         <div>
     @endif

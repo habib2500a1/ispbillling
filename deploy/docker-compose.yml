@@ -94,8 +94,8 @@ services:
       context: .
       dockerfile: deploy/Dockerfile
     restart: unless-stopped
-    mem_limit: 768m
-    memswap_limit: 768m
+    mem_limit: 512m
+    memswap_limit: 512m
     command: php artisan horizon
     env_file:
       - .env
@@ -117,8 +117,8 @@ services:
       context: .
       dockerfile: deploy/Dockerfile
     restart: unless-stopped
-    mem_limit: 1536m
-    memswap_limit: 1536m
+    mem_limit: 768m
+    memswap_limit: 768m
     command: sh -c "while true; do php artisan schedule:run --no-interaction; sleep 60; done"
     env_file:
       - .env

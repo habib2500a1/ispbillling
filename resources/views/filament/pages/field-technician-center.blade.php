@@ -18,7 +18,7 @@
 <script src="{{ asset('js/field-ops.js') }}?v={{ @filemtime(public_path('js/field-ops.js')) ?: 1 }}" defer data-cfasync="false"></script>
 
 <x-filament-panels::page class="field-ops-page">
-    <div class="field-shell" data-field-ops wire:poll.60s="refreshIntel">
+    <div class="field-shell" data-field-ops wire:poll.visible.{{ \App\Support\PerformanceSettings::hubPollSeconds() }}s="refreshIntel">
         {{-- Offline banner --}}
         <div class="field-offline-banner" data-field-offline hidden role="status">
             <x-filament::icon icon="heroicon-o-signal-slash" class="h-4 w-4" />

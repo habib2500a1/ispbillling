@@ -8,7 +8,7 @@
 @endphp
 
 <x-filament-panels::page>
-    <div class="isp-hub-page space-y-6" wire:poll.30s>
+    <div class="isp-hub-page space-y-6" wire:poll.visible.{{ \App\Support\PerformanceSettings::hubPollSeconds() }}s>
         <x-isp.hub-hero
             eyebrow="Network operations"
             title="NOC dashboard"

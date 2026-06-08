@@ -10,7 +10,7 @@
 {!! \App\Support\NetworkStyles::navigatedScript() !!}
 
 <x-filament-panels::page class="isp-network-noc-page">
-    <div class="net-noc-pro space-y-5" wire:poll.30s>
+    <div class="net-noc-pro space-y-5" wire:poll.visible.{{ \App\Support\PerformanceSettings::hubPollSeconds() }}s>
         <header class="net-hub-hero">
             <div>
                 <span class="net-hub-hero__badge">

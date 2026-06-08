@@ -6,7 +6,7 @@
 @endphp
 
 <x-filament-widgets::widget>
-    <section class="isp-unified-dash" wire:poll.30s>
+    <section class="isp-unified-dash" wire:poll.visible.{{ \App\Support\PerformanceSettings::widgetPollSeconds() }}s>
         <header class="isp-unified-dash__intro">
             <h2 class="isp-unified-dash__title">All operations — one screen</h2>
             <p class="isp-unified-dash__sub">Billing · Network · GPON · MikroTik · Support — live data, auto-refresh every 30s</p>

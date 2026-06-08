@@ -135,7 +135,7 @@
     }
 
     /** Keep admin session warm on long forms (OLT edit, collection desk, etc.). */
-    const KEEPALIVE_MS = 8 * 60 * 1000;
+    const KEEPALIVE_MS = 12 * 60 * 1000;
     const KEEPALIVE_URL = '/admin/session-keepalive';
 
     function pingSession() {

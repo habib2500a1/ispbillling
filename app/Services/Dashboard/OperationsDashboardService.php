@@ -29,9 +29,10 @@ use App\Support\CompanyBranding;
 use App\Support\CustomerStatus;
 use App\Support\PaymentType;
 use App\Support\Rbac\StaffCapability;
+use App\Support\PerformanceSettings;
+use App\Support\SafeCache;
 use App\Support\TenantResolver;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -53,9 +54,9 @@ final class OperationsDashboardService
         $tenantId = $tenantId ?? TenantResolver::requiredTenantId();
         $userKey = (int) ($user?->id ?? 0);
 
-        return Cache::remember(
-            "ops_dashboard:{$tenantId}:{$userKey}:".now()->format('Y-m-d-H-i'),
-            60,
+        return SafeCache::remember(
+            "ops_dashboard:{$tenantId}:{$userKey}",
+            PerformanceSettings::opsDashboardCacheSeconds(),
             fn (): array => $this->build($tenantId, StaffCapability::for($user)),
         );
     }
