@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/network/api_result.dart';
 import '../../../core/network/providers.dart';
 import '../../../services/api_service.dart';
+import '../../../services/offline_cache_service.dart';
 import '../domain/customer_dashboard.dart';
 
 /// Repository for the customer dashboard. Wraps the proven [ApiService]
@@ -13,15 +14,22 @@ class CustomerDashboardRepository {
   final ApiService _api;
 
   Future<Result<CustomerDashboard>> load() => guard(() async {
-        final data = await _api.customerDashboard();
-        final dash = CustomerDashboard.fromJson(data);
-        // Best-effort live traffic enrichment; never fail the whole load on it.
+        final cache = OfflineCacheService();
         try {
-          final live = await _api.customerUsageLive();
-          final usage = live['usage'] as Map<String, dynamic>?;
-          if (usage != null) return dash.withTraffic(TrafficSnapshot.fromLive(usage));
-        } catch (_) {}
-        return dash;
+          final data = await _api.customerDashboard();
+          await cache.saveDashboard(data);
+          final dash = CustomerDashboard.fromJson(data);
+          try {
+            final live = await _api.customerUsageLive();
+            final usage = live['usage'] as Map<String, dynamic>?;
+            if (usage != null) return dash.withTraffic(TrafficSnapshot.fromLive(usage));
+          } catch (_) {}
+          return dash;
+        } catch (e) {
+          final cached = await cache.loadDashboard();
+          if (cached != null) return CustomerDashboard.fromJson(cached);
+          rethrow;
+        }
       });
 
   /// Live polling slice (2s) — returns just the traffic snapshot.

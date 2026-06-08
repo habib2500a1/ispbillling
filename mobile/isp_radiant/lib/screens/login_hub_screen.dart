@@ -35,7 +35,7 @@ class _LoginHubScreenState extends State<LoginHubScreen> {
   }
 
   void _openRole(LoginRoleConfig role) {
-    if (role.isWeb) {
+    if (role.isWeb && role.id != 'reseller') {
       final url = role.webUrl ?? RemoteConfig.resellerLoginUrl;
       if (url == null || url.isEmpty) return;
       Navigator.of(context).push(
@@ -46,7 +46,7 @@ class _LoginHubScreenState extends State<LoginHubScreen> {
       return;
     }
 
-    if (role.id == 'customer' || role.id == 'staff') {
+    if (role.id == 'customer' || role.id == 'staff' || role.id == 'reseller') {
       Navigator.of(context).push(
         MaterialPageRoute(
           builder: (_) => LoginScreen(api: widget.api, roleId: role.id),

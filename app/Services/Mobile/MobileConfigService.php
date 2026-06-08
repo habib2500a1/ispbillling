@@ -28,7 +28,7 @@ class MobileConfigService
         return [
             'app_name' => CompanyBranding::name(),
             'api_version' => 'v1',
-            'app_version' => '2.6.7',
+            'app_version' => '2.8.0',
             'server' => [
                 'app_url' => $base,
                 'api_base_url' => $base.'/api/v1',

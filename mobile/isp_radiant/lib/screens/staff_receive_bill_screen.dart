@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+import '../config/remote_config.dart';
 import '../core/theme/design_tokens.dart';
 import '../services/api_service.dart';
+import '../services/offline_sync_service.dart';
+import '../theme/app_theme.dart';
 import '../theme/app_theme.dart';
 import '../utils/app_nav.dart';
 import '../widgets/payment_success_sheet.dart';
@@ -97,6 +100,15 @@ class _StaffReceiveBillScreenState extends State<StaffReceiveBillScreen> {
     return parts.isEmpty ? null : parts.join(' | ');
   }
 
+  bool _shouldQueueOffline(ApiException e) {
+    if (e.statusCode == null || e.statusCode! >= 500) return true;
+    final msg = e.message.toLowerCase();
+    return msg.contains('network') ||
+        msg.contains('connection') ||
+        msg.contains('timeout') ||
+        msg.contains('internet');
+  }
+
   Future<void> _submit() async {
     final amount = double.tryParse(_receivedCtrl.text.trim()) ?? 0;
     if (amount <= 0) {
@@ -131,7 +143,23 @@ class _StaffReceiveBillScreenState extends State<StaffReceiveBillScreen> {
       }
       if (mounted) Navigator.pop(context, true);
     } on ApiException catch (e) {
-      if (mounted) showSnack(context, e.message, isError: true);
+      if (RemoteConfig.offlineSync && _shouldQueueOffline(e)) {
+        final offline = OfflineSyncService(widget.api);
+        await offline.enqueueCollection(
+          customerId: (widget.customer['id'] as num).toInt(),
+          amount: amount,
+          invoiceId: _invoiceId,
+          method: _method,
+          reference: _receiptCtrl.text.trim().isNotEmpty ? _receiptCtrl.text.trim() : null,
+          notes: _buildNotes(),
+        );
+        if (mounted) {
+          showSnack(context, 'Offline — payment queued for sync');
+          Navigator.pop(context, true);
+        }
+      } else if (mounted) {
+        showSnack(context, e.message, isError: true);
+      }
     } finally {
       if (mounted) setState(() => _saving = false);
     }

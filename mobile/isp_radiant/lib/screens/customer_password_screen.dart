@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../config/remote_config.dart';
+import '../services/biometric_auth_service.dart';
 import '../core/widgets/theme_toggle_tile.dart';
 import '../services/api_service.dart';
 import '../theme/app_theme.dart';
@@ -82,6 +84,7 @@ class _CustomerPasswordScreenState extends State<CustomerPasswordScreen> {
           ),
           const SizedBox(height: 16),
           const ThemeToggleTile(),
+          if (RemoteConfig.biometricLogin) const BiometricToggleTile(),
         ],
       ),
     );

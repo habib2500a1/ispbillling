@@ -1,16 +1,31 @@
 import 'package:flutter/material.dart';
 
+import '../config/remote_config.dart';
+import '../core/roles/role_resolver.dart';
+import '../core/roles/staff_interface.dart';
+import '../services/biometric_auth_service.dart';
 import '../core/widgets/theme_toggle_tile.dart';
 import '../services/api_service.dart';
 import '../utils/app_nav.dart';
 import '../widgets/page_scaffold.dart';
+import '../widgets/role_switcher_sheet.dart';
 import 'login_hub_screen.dart';
 
 class StaffProfileScreen extends StatefulWidget {
-  const StaffProfileScreen({super.key, required this.api, this.user});
+  const StaffProfileScreen({
+    super.key,
+    required this.api,
+    this.user,
+    this.staffMode,
+    this.roleCapabilities,
+    this.loginPayload = const {},
+  });
 
   final ApiService api;
   final Map<String, dynamic>? user;
+  final String? staffMode;
+  final RoleCapabilities? roleCapabilities;
+  final Map<String, dynamic> loginPayload;
 
   @override
   State<StaffProfileScreen> createState() => _StaffProfileScreenState();
@@ -55,9 +70,25 @@ class _StaffProfileScreenState extends State<StaffProfileScreen> {
     );
   }
 
+  void _openRoleSwitcher() {
+    final caps = widget.roleCapabilities;
+    final mode = widget.staffMode ?? StaffInterface.admin;
+    if (caps == null || !caps.hasMultipleInterfaces) return;
+    showRoleSwitcherSheet(
+      context,
+      api: widget.api,
+      capabilities: caps,
+      currentMode: mode,
+      loginPayload: widget.loginPayload,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final u = widget.user ?? {};
+    final mode = widget.staffMode;
+    final caps = widget.roleCapabilities;
+
     return PageScaffold(
       title: 'Profile',
       useGradientBody: true,
@@ -72,8 +103,21 @@ class _StaffProfileScreenState extends State<StaffProfileScreen> {
               isThreeLine: true,
             ),
           ),
+          if (mode != null) ...[
+            const SizedBox(height: 12),
+            Card(
+              child: ListTile(
+                leading: const Icon(Icons.workspaces_outline),
+                title: const Text('Active workspace'),
+                subtitle: Text(StaffInterface.labelFor(mode)),
+                trailing: caps?.hasMultipleInterfaces == true ? const Icon(Icons.chevron_right) : null,
+                onTap: caps?.hasMultipleInterfaces == true ? _openRoleSwitcher : null,
+              ),
+            ),
+          ],
           const SizedBox(height: 16),
           const ThemeToggleTile(),
+          if (RemoteConfig.biometricLogin) const BiometricToggleTile(),
           const SizedBox(height: 20),
           const Text('Change password', style: TextStyle(fontWeight: FontWeight.bold)),
           const SizedBox(height: 8),

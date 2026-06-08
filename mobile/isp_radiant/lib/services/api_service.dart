@@ -58,6 +58,8 @@ class ApiService {
     try {
       if (r == 'customer') {
         await _get('/customer/me', skipRefresh: quick).timeout(limit);
+      } else if (r == 'reseller') {
+        await _get('/reseller/me', skipRefresh: quick).timeout(limit);
       } else {
         await _get('/me', skipRefresh: quick).timeout(limit);
       }
@@ -660,6 +662,66 @@ class ApiService {
 
   Future<Map<String, dynamic>> customerAiAsk(String question) =>
       _post('/customer/ai/ask', {'question': question});
+
+  Future<Map<String, dynamic>> staffMe() => _get('/me');
+
+  Future<Map<String, dynamic>> staffAiAsk(String query, {List<Map<String, dynamic>>? session}) =>
+      _post('/staff/ai/ask', {
+        'query': query,
+        if (session != null) 'session': session,
+      });
+
+  Future<List<Map<String, dynamic>>> staffGisSearch(String q) async {
+    if (q.trim().length < 2) return [];
+    final encoded = Uri.encodeQueryComponent(q.trim());
+    final body = await _get('/staff/gis/search?q=$encoded');
+    return _listFrom(body['results']);
+  }
+
+  Future<Map<String, dynamic>> staffGisMap({int? customerId}) async {
+    final suffix = customerId != null ? '?customer=$customerId' : '';
+    return _get('/staff/gis/map$suffix');
+  }
+
+  Future<List<Map<String, dynamic>>> technicianFieldVisits({bool todayOnly = false, String? status}) async {
+    final params = <String>[];
+    if (todayOnly) params.add('today_only=1');
+    if (status != null && status.isNotEmpty) params.add('status=${Uri.encodeQueryComponent(status)}');
+    final q = params.isEmpty ? '' : '?${params.join('&')}';
+    final body = await _get('/technician/field-visits$q');
+    return _listFrom(body['data']);
+  }
+
+  Future<Map<String, dynamic>> technicianUpdateFieldVisit(
+    int id, {
+    String? status,
+    double? latitude,
+    double? longitude,
+    String? locationText,
+    String? report,
+  }) =>
+      _patch('/technician/field-visits/$id', {
+        if (status != null) 'status': status,
+        if (latitude != null) 'latitude': latitude,
+        if (longitude != null) 'longitude': longitude,
+        if (locationText != null) 'location_text': locationText,
+        if (report != null) 'report': report,
+      });
+
+  Future<Map<String, dynamic>> resellerDashboard() => _get('/reseller/dashboard');
+
+  Future<Map<String, dynamic>> resellerDueAccount() => _get('/reseller/due-account');
+
+  Future<List<Map<String, dynamic>>> resellerCustomers({String? q}) async {
+    final qs = q != null && q.isNotEmpty ? '?q=${Uri.encodeQueryComponent(q)}' : '';
+    final body = await _get('/reseller/customers$qs');
+    return _listFrom(body['data']);
+  }
+
+  Future<List<Map<String, dynamic>>> resellerCommissions() async {
+    final body = await _get('/reseller/commissions');
+    return _listFrom(body['data']);
+  }
 
   Future<bool> refreshToken() async {
     final r = await role;

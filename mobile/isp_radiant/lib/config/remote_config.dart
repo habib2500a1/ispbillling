@@ -87,6 +87,8 @@ class RemoteConfig {
   static String get speedTestUploadUrl => speedTest['upload_url']?.toString() ?? '';
 
   static bool get mfsSmsStaff => (_raw?['features'] as Map?)?['mfs_sms_staff'] == true;
+  static bool get pushFcm => (_raw?['features'] as Map?)?['push_fcm'] == true;
+  static bool get biometricLogin => (_raw?['features'] as Map?)?['biometric_login'] == true;
 
   static String get mfsVerifyApkUrl {
     final links = _raw?['links'] as Map?;

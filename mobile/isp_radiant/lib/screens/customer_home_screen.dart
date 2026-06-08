@@ -21,6 +21,7 @@ import 'customer_ai_screen.dart';
 import 'customer_bills_screen.dart';
 import 'customer_onu_screen.dart';
 import 'customer_packages_screen.dart';
+import 'customer_referral_screen.dart';
 import 'customer_password_screen.dart';
 import 'customer_pay_screen.dart';
 import 'customer_tickets_screen.dart';
@@ -105,6 +106,14 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
             onUsage: () => _push(CustomerUsageScreen(api: widget.api)),
             onOnu: () => _push(CustomerOnuScreen(api: widget.api)),
             onAi: () => _push(CustomerAiScreen(api: widget.api)),
+            onReferral: () {
+              final dash = ref.read(customerDashboardProvider).valueOrNull;
+              _push(CustomerReferralScreen(
+                api: widget.api,
+                customerCode: dash?.code,
+                customerName: dash?.name,
+              ));
+            },
           ),
           CustomerPayScreen(api: widget.api, active: _tab == 1, embedded: true),
           CustomerTicketsScreen(api: widget.api, active: _tab == 2, embedded: true),
@@ -155,6 +164,7 @@ class _HomeTab extends ConsumerWidget {
     required this.onUsage,
     required this.onOnu,
     required this.onAi,
+    required this.onReferral,
   });
 
   final ApiService api;
@@ -168,6 +178,7 @@ class _HomeTab extends ConsumerWidget {
   final VoidCallback onUsage;
   final VoidCallback onOnu;
   final VoidCallback onAi;
+  final VoidCallback onReferral;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -382,6 +393,7 @@ class _HomeTab extends ConsumerWidget {
     if (RemoteConfig.aiAssistant) {
       tiles.add(_serviceTile(context, 'AI assistant', Icons.smart_toy_rounded, DesignTokens.pink, onAi));
     }
+    tiles.add(_serviceTile(context, 'Refer a friend', Icons.card_giftcard_rounded, DesignTokens.teal, onReferral));
     return Wrap(spacing: 12, runSpacing: 12, children: [
       for (final t in tiles) SizedBox(width: (MediaQuery.sizeOf(context).width - 32 - 12) / 2, child: t),
     ]);

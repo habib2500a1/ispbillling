@@ -8,6 +8,7 @@ import '../utils/layout.dart';
 import '../widgets/staff_blue_app_bar.dart';
 import '../widgets/state_views.dart';
 import '../widgets/support_ticket_ui.dart';
+import '../widgets/ticket_csat_sheet.dart';
 
 class TicketThreadScreen extends StatefulWidget {
   const TicketThreadScreen({
@@ -82,6 +83,16 @@ class _TicketThreadScreenState extends State<TicketThreadScreen> {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (_scrollCtrl.hasClients) {
           _scrollCtrl.jumpTo(_scrollCtrl.position.maxScrollExtent);
+        }
+        if (!widget.isStaff) {
+          final status = _ticket?['status']?.toString() ?? '';
+          if (status == 'resolved' || status == 'closed') {
+            TicketCsatSheet.maybeShow(
+              context,
+              ticketId: widget.ticketId,
+              ticketSubject: _ticket?['subject']?.toString() ?? 'Support ticket',
+            );
+          }
         }
       });
     } on ApiException catch (e) {

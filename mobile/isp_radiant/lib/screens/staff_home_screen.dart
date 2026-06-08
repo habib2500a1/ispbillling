@@ -5,7 +5,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
-import '../config/remote_config.dart';
+import '../core/navigation/super_app_navigator.dart';
+import '../core/roles/role_resolver.dart';
+import '../core/roles/staff_interface.dart';
 import '../core/network/api_result.dart';
 import '../core/network/connectivity.dart';
 import '../core/theme/design_tokens.dart';
@@ -43,6 +45,10 @@ import 'staff_profile_screen.dart';
 import 'staff_team_discount_screen.dart';
 import 'staff_inventory_pos_screen.dart';
 import 'staff_mfs_sms_screen.dart';
+import 'staff_gis_map_screen.dart';
+import 'staff_ai_screen.dart';
+import 'staff_global_search_screen.dart';
+import '../widgets/role_switcher_sheet.dart';
 import '../services/mfs_sms_listener.dart';
 import '../widgets/isp_ui_kit.dart';
 import '../widgets/module_tile.dart';
@@ -70,6 +76,7 @@ class _StaffHomeScreenState extends ConsumerState<StaffHomeScreen> {
   late final RealtimeService _realtime = RealtimeService(widget.api);
   int _pendingSync = 0;
   String _mode = 'admin';
+  RoleCapabilities? _roleCaps;
 
   @override
   void initState() {
@@ -81,6 +88,22 @@ class _StaffHomeScreenState extends ConsumerState<StaffHomeScreen> {
   Future<void> _boot() async {
     final saved = await widget.api.staffMode;
     if (saved != null && saved.isNotEmpty) _mode = saved;
+    try {
+      final me = await widget.api.staffMe();
+      _roleCaps = RoleCapabilities.fromMe(me, savedMode: _mode);
+    } catch (_) {
+      _roleCaps = RoleCapabilities.fromMe(const {}, savedMode: _mode);
+    }
+    if (StaffInterface.isTechnicianShell(_mode)) {
+      if (!mounted) return;
+      await SuperAppNavigator.switchStaffInterface(
+        context,
+        widget.api,
+        newMode: _mode,
+        loginPayload: widget.loginPayload,
+      );
+      return;
+    }
     _realtime.onTick = () => _load(silent: true);
     await _realtime.start();
     await _flushOffline();
@@ -151,6 +174,18 @@ class _StaffHomeScreenState extends ConsumerState<StaffHomeScreen> {
 
   void _push(Widget screen) => Navigator.push(context, MaterialPageRoute(builder: (_) => screen));
 
+  void _openRoleSwitcher() {
+    final caps = _roleCaps;
+    if (caps == null || !caps.hasMultipleInterfaces) return;
+    showRoleSwitcherSheet(
+      context,
+      api: widget.api,
+      capabilities: caps,
+      currentMode: _mode,
+      loginPayload: widget.loginPayload,
+    );
+  }
+
   void _onQuickAction(String key) {
     switch (key) {
       case 'collect':
@@ -199,7 +234,13 @@ class _StaffHomeScreenState extends ConsumerState<StaffHomeScreen> {
       case 'inventory':
         _push(StaffInventoryPosScreen(api: widget.api));
       case 'profile':
-        _push(StaffProfileScreen(api: widget.api, user: _user));
+        _push(StaffProfileScreen(
+          api: widget.api,
+          user: _user,
+          staffMode: _mode,
+          roleCapabilities: _roleCaps,
+          loginPayload: widget.loginPayload,
+        ));
       case 'staff_discounts':
         _push(StaffTeamDiscountScreen(api: widget.api));
       case 'mfs_sms':
@@ -283,9 +324,22 @@ class _StaffHomeScreenState extends ConsumerState<StaffHomeScreen> {
             title: 'Home',
             subtitle: '${_user?['name'] ?? 'Staff'} · ${RemoteConfig.appName}',
             trailing: [
+              if (_roleCaps?.hasMultipleInterfaces == true)
+                IconButton(
+                  icon: const Icon(Icons.swap_horiz_rounded, color: Colors.white),
+                  onPressed: _openRoleSwitcher,
+                ),
+              IconButton(
+                icon: const Icon(Icons.map_outlined, color: Colors.white),
+                onPressed: () => _push(StaffGisMapScreen(api: widget.api)),
+              ),
               IconButton(
                 icon: const Icon(Icons.search, color: Colors.white),
-                onPressed: () => _push(StaffClientsScreen(api: widget.api)),
+                onPressed: () => _push(StaffGlobalSearchScreen(api: widget.api)),
+              ),
+              IconButton(
+                icon: const Icon(Icons.smart_toy_outlined, color: Colors.white),
+                onPressed: () => _push(StaffAiScreen(api: widget.api)),
               ),
               IconButton(
                 icon: const Icon(Icons.refresh, color: Colors.white),

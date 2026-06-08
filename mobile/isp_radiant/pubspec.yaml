@@ -1,7 +1,7 @@
 name: isp_radiant
 description: Radiant ISP — one app for Admin/Staff and Clients (same APK).
 publish_to: 'none'
-version: 2.6.7+37
+version: 2.8.0+39
 
 environment:
   sdk: ^3.12.0
@@ -26,6 +26,10 @@ dependencies:
   url_launcher: ^6.3.1
   share_plus: ^10.1.4
   path_provider: ^2.1.5
+  flutter_map: ^7.0.2
+  latlong2: ^0.9.1
+  local_auth: ^2.3.0
+  device_info_plus: ^11.2.0
 
 dev_dependencies:
   flutter_test:

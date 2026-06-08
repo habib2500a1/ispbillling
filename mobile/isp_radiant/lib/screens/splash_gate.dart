@@ -5,9 +5,12 @@ import 'package:flutter/material.dart';
 import '../config/remote_config.dart';
 import '../core/theme/design_tokens.dart';
 import '../services/api_service.dart';
+import '../core/navigation/super_app_navigator.dart';
+import '../core/roles/staff_interface.dart';
+import '../config/remote_config.dart';
+import '../services/biometric_auth_service.dart';
 import 'login_hub_screen.dart';
 import 'customer_home_screen.dart';
-import 'staff_home_screen.dart';
 
 /// Boots the app: loads remote config, validates the stored session, and
 /// redirects to the right home by role (staff / customer) or to login.
@@ -58,24 +61,36 @@ class _SplashGateState extends State<SplashGate> {
         return;
       }
 
+      if (RemoteConfig.biometricLogin) {
+        final bio = BiometricAuthService();
+        if (await bio.isEnabled) {
+          final ok = await bio.authenticate(reason: 'Unlock ${RemoteConfig.appName}');
+          if (!ok) {
+            _goLogin();
+            return;
+          }
+        }
+      }
+
       final role = await _api.role;
       if (!mounted) return;
 
       if (role == 'staff') {
-        final mode = await _api.staffMode ?? 'admin';
+        final mode = await _api.staffMode ?? StaffInterface.admin;
         if (!mounted) return;
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(
-            builder: (_) => StaffHomeScreen(api: _api, loginPayload: const {}, staffMode: mode),
-          ),
-        );
+        await SuperAppNavigator.goStaffHome(context, _api, loginPayload: const {}, staffMode: mode);
+        return;
+      }
+
+      if (role == 'reseller') {
+        if (!mounted) return;
+        await SuperAppNavigator.goResellerHome(context, _api, loginPayload: const {});
         return;
       }
 
       if (role == 'customer') {
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (_) => CustomerHomeScreen(api: _api, loginPayload: const {})),
-        );
+        if (!mounted) return;
+        await SuperAppNavigator.goCustomerHome(context, _api, loginPayload: const {});
         return;
       }
 

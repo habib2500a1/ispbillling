@@ -5,15 +5,15 @@ import '../config/remote_config.dart';
 import '../services/api_service.dart';
 import '../services/push_service.dart';
 import '../theme/app_theme.dart';
+import '../core/navigation/super_app_navigator.dart';
 import 'customer_home_screen.dart';
-import 'staff_home_screen.dart';
 
 /// Native sign-in for customer or staff — role chosen on [LoginHubScreen].
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key, required this.api, required this.roleId});
 
   final ApiService api;
-  /// `customer` or `staff` (from server login.roles)
+  /// `customer`, `staff`, or `reseller` (from server login.roles)
   final String roleId;
 
   @override
@@ -33,10 +33,15 @@ class _LoginScreenState extends State<LoginScreen> {
   static const _pageBg = Color(0xFFE8EEF5);
 
   bool get _isStaff => widget.roleId == 'staff';
+  bool get _isReseller => widget.roleId == 'reseller';
 
-  String get _apiRole => _isStaff ? 'staff' : 'customer';
+  String get _apiRole => _isStaff ? 'staff' : (_isReseller ? 'reseller' : 'customer');
 
-  String get _title => _isStaff ? 'Admin / staff' : 'Customer portal';
+  String get _title {
+    if (_isStaff) return 'Admin / staff';
+    if (_isReseller) return 'Reseller / partner';
+    return 'Customer portal';
+  }
 
   @override
   void dispose() {
@@ -61,27 +66,19 @@ class _LoginScreenState extends State<LoginScreen> {
 
       if (!mounted) return;
 
-      await PushService(widget.api).registerAfterLogin(
-        role: _apiRole,
-        staffMode: _apiRole == 'staff' ? 'admin' : null,
-      );
-
-      if (!mounted) return;
-
       if (_apiRole == 'customer') {
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(
-            builder: (_) => CustomerHomeScreen(api: widget.api, loginPayload: body),
-          ),
-        );
-      } else {
-        await widget.api.saveStaffMode('admin');
+        await PushService(widget.api).registerAfterLogin(role: _apiRole);
         if (!mounted) return;
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(
-            builder: (_) => StaffHomeScreen(api: widget.api, loginPayload: body, staffMode: 'admin'),
-          ),
-        );
+        await SuperAppNavigator.goCustomerHome(context, widget.api, loginPayload: body);
+      } else if (_apiRole == 'reseller') {
+        await PushService(widget.api).registerAfterLogin(role: _apiRole);
+        if (!mounted) return;
+        await SuperAppNavigator.goResellerHome(context, widget.api, loginPayload: body);
+      } else {
+        await SuperAppNavigator.applyStaffLogin(context, widget.api, loginBody: body);
+        if (!mounted) return;
+        final mode = await widget.api.staffMode ?? 'admin';
+        await PushService(widget.api).registerAfterLogin(role: _apiRole, staffMode: mode);
       }
     } on ApiException catch (e) {
       setState(() => _error = e.message);
