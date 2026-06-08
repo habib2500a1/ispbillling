@@ -32,6 +32,53 @@ class SupportTicketResource extends Resource
 
     protected static bool $shouldRegisterNavigation = false;
 
+    public static function customerSelectField(): Forms\Components\Select
+    {
+        return Forms\Components\Select::make('customer_id')
+            ->label('Customer')
+            ->searchable()
+            ->searchingMessage('Searching subscribers…')
+            ->noSearchResultsMessage('No subscriber found — try name, code, or phone.')
+            ->searchDebounce(400)
+            ->getSearchResultsUsing(function (string $search): array {
+                $search = trim($search);
+                if (strlen($search) < 2) {
+                    return [];
+                }
+
+                return Customer::query()
+                    ->where(function ($query) use ($search): void {
+                        $query->where('name', 'like', "%{$search}%")
+                            ->orWhere('customer_code', 'like', "%{$search}%")
+                            ->orWhere('phone', 'like', "%{$search}%")
+                            ->orWhere('mikrotik_secret_name', 'like', "%{$search}%")
+                            ->orWhere('radius_username', 'like', "%{$search}%")
+                            ->orWhere('email', 'like', "%{$search}%");
+                    })
+                    ->orderBy('name')
+                    ->limit(50)
+                    ->get()
+                    ->mapWithKeys(fn (Customer $customer): array => [
+                        $customer->id => $customer->name.' (#'.($customer->customer_code ?? $customer->id).')',
+                    ])
+                    ->all();
+            })
+            ->getOptionLabelUsing(function ($value): ?string {
+                if (! filled($value)) {
+                    return null;
+                }
+
+                $customer = Customer::query()->find($value);
+                if ($customer === null) {
+                    return null;
+                }
+
+                return $customer->name.' (#'.($customer->customer_code ?? $customer->id).')';
+            })
+            ->required()
+            ->helperText('Type at least 2 characters — name, customer code, phone, or PPP username.');
+    }
+
     public static function assigneeSelectField(): Forms\Components\Select
     {
         return Forms\Components\Select::make('assigned_to')
@@ -61,19 +108,7 @@ class SupportTicketResource extends Resource
             ->schema([
                 Forms\Components\Section::make('Subscriber')
                     ->schema([
-                        Forms\Components\Select::make('customer_id')
-                            ->relationship(
-                                'customer',
-                                'name',
-                                modifyQueryUsing: fn ($query) => $query->orderBy('name'),
-                            )
-                            ->getOptionLabelFromRecordUsing(
-                                fn (Customer $record): string => $record->name.' (#'.($record->customer_code ?? $record->id).')'
-                            )
-                            ->searchable(['name', 'customer_code', 'phone', 'mikrotik_secret_name', 'radius_username', 'email'])
-                            ->preload()
-                            ->required()
-                            ->columnSpanFull(),
+                        static::customerSelectField()->columnSpanFull(),
                         Forms\Components\Placeholder::make('live_service_status')
                             ->label('Live subscriber status')
                             ->content(function (Get $get, ?SupportTicket $record = null): HtmlString {
