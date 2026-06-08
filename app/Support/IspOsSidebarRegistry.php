@@ -4,7 +4,6 @@ namespace App\Support;
 
 use App\Filament\Pages\FaultManagementHub;
 use App\Filament\Pages\FieldTechnicianCenter;
-use App\Filament\Pages\FiberPlantMap;
 use App\Filament\Pages\IspOsHub;
 use App\Filament\Pages\NocWall;
 use Filament\Facades\Filament;
@@ -45,18 +44,10 @@ final class IspOsSidebarRegistry
                 'active_routes' => ['filament.admin.pages.field-technicians'],
             ],
             [
-                'key' => 'fiber_map',
-                'label' => 'Fiber GIS map',
-                'icon' => 'heroicon-o-map',
-                'sort' => 3,
-                'url' => FiberPlantMap::getUrl(),
-                'active_routes' => ['filament.admin.pages.fiber-plant-map'],
-            ],
-            [
                 'key' => 'noc_wall',
                 'label' => 'NOC wall',
                 'icon' => 'heroicon-o-tv',
-                'sort' => 4,
+                'sort' => 3,
                 'url' => NocWall::getUrl(),
                 'active_routes' => ['filament.admin.pages.noc-wall'],
             ],
@@ -115,7 +106,6 @@ final class IspOsSidebarRegistry
             'isp_os_hub' => IspOsHub::canAccess(),
             'fault_center' => FaultManagementHub::canAccess(),
             'field_technicians' => FieldTechnicianCenter::canAccess(),
-            'fiber_map' => FiberPlantMap::canAccess(),
             'noc_wall' => NocWall::canAccess(),
             default => false,
         };

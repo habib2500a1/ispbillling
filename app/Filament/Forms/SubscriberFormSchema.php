@@ -1050,6 +1050,16 @@ final class SubscriberFormSchema
                 ->numeric()
                 ->minValue(0)
                 ->default(0),
+            Forms\Components\Select::make('meta.drop_direction')
+                ->label('Drop cable direction')
+                ->options(config('fiber_plant.directions', []))
+                ->placeholder('Auto from map'),
+            Forms\Components\Select::make('meta.drop_cable_color')
+                ->label('Drop fiber color')
+                ->options(collect(config('fiber_plant.cable_colors', []))->mapWithKeys(
+                    fn (array $c, string $k) => [$k => $c['label'] ?? ucfirst($k)]
+                )->all())
+                ->placeholder('Blue (default)'),
         ];
     }
 

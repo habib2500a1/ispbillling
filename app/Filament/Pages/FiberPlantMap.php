@@ -4,6 +4,8 @@ namespace App\Filament\Pages;
 
 use App\Services\Network\FiberPlantMapService;
 use App\Support\Rbac\StaffCapability;
+use App\Support\SafeCache;
+use App\Support\TenantResolver;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 
@@ -13,9 +15,9 @@ class FiberPlantMap extends Page
 
     protected static string $view = 'filament.pages.fiber-plant-map';
 
-    protected static ?string $navigationLabel = 'Fiber plant map';
+    protected static ?string $navigationLabel = 'Network operations map';
 
-    protected static ?string $title = 'Fiber plant map';
+    protected static ?string $title = 'Network operations map';
 
     protected static ?string $navigationGroup = 'Network';
 
@@ -41,6 +43,7 @@ class FiberPlantMap extends Page
     public function saveNode(?int $id, array $data): array
     {
         $this->authorizeMap();
+        SafeCache::forget('network_ops_map:'.TenantResolver::requiredTenantId());
 
         try {
             $node = app(FiberPlantMapService::class)->upsertNode($id, $data);
@@ -61,6 +64,7 @@ class FiberPlantMap extends Page
     public function saveEdge(?int $id, array $data): array
     {
         $this->authorizeMap();
+        SafeCache::forget('network_ops_map:'.TenantResolver::requiredTenantId());
 
         try {
             app(FiberPlantMapService::class)->upsertEdge($id, $data);
@@ -99,9 +103,24 @@ class FiberPlantMap extends Page
         ];
     }
 
+    public function refreshLiveStatus(): array
+    {
+        $this->authorizeMap();
+        SafeCache::forget('network_ops_map:'.TenantResolver::requiredTenantId());
+
+        $payload = app(FiberPlantMapService::class)->buildPayload(
+            request()->integer('customer') > 0 ? request()->integer('customer') : null,
+        );
+
+        $this->dispatch('isp-fiber-map-refresh', payload: $payload);
+
+        return ['ok' => true, 'payload' => $payload];
+    }
+
     public function importInfrastructure(): array
     {
         $this->authorizeMap();
+        SafeCache::forget('network_ops_map:'.TenantResolver::requiredTenantId());
 
         try {
             $service = app(FiberPlantMapService::class);

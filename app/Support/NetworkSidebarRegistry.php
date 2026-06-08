@@ -4,14 +4,20 @@ namespace App\Support;
 
 use App\Filament\Pages\BandwidthMonitor;
 use App\Filament\Pages\ManageNetworkSettings;
-use App\Filament\Pages\FiberPlantMap;
 use App\Filament\Pages\ImportFromMikrotikPage;
+use App\Filament\Pages\ManageOpticalLaserSettings;
 use App\Filament\Pages\NetflowAnalysis;
+use App\Filament\Pages\FiberPlantMap;
 use App\Filament\Pages\NetworkIntelligenceHub;
 use App\Filament\Pages\NetworkTopology;
+use App\Filament\Pages\OltHub;
+use App\Filament\Pages\OltMacTable;
+use App\Filament\Pages\OltVpnManagementPage;
+use App\Filament\Pages\OpticalMonitoringHub;
 use App\Filament\Pages\RadiusUserAdmin;
 use App\Filament\Pages\SnmpMonitor;
 use App\Filament\Pages\SubscriberTrafficMonitor;
+use App\Filament\Resources\OltResource;
 use App\Filament\Resources\AreaResource;
 use App\Filament\Resources\HotspotVoucherResource;
 use App\Filament\Resources\IpPoolResource;
@@ -131,26 +137,78 @@ final class NetworkSidebarRegistry
                 'active_routes' => ['filament.admin.pages.bandwidth-monitor'],
             ],
             [
-                'key' => 'topology',
-                'label' => 'Topology map',
-                'icon' => 'heroicon-o-share',
-                'sort' => 12,
-                'url' => NetworkTopology::getUrl(),
-                'active_routes' => ['filament.admin.pages.network-topology'],
-            ],
-            [
                 'key' => 'fiber_map',
-                'label' => 'Fiber plant map',
+                'label' => 'Network map',
                 'icon' => 'heroicon-o-map',
                 'sort' => 11,
                 'url' => FiberPlantMap::getUrl(),
                 'active_routes' => ['filament.admin.pages.fiber-plant-map'],
             ],
             [
+                'key' => 'olt_hub',
+                'label' => 'OLT',
+                'icon' => 'heroicon-o-server-stack',
+                'sort' => 12,
+                'url' => OltHub::getUrl(),
+                'active_routes' => ['filament.admin.pages.olt-hub'],
+            ],
+            [
+                'key' => 'olt_list',
+                'label' => 'OLT list',
+                'icon' => 'heroicon-o-list-bullet',
+                'sort' => 13,
+                'url' => OltResource::getUrl(),
+                'active_routes' => [
+                    'filament.admin.resources.olts.index',
+                    'filament.admin.resources.olts.create',
+                    'filament.admin.resources.olts.edit',
+                ],
+            ],
+            [
+                'key' => 'optical_database',
+                'label' => 'Optical database',
+                'icon' => 'heroicon-o-light-bulb',
+                'sort' => 14,
+                'url' => OpticalMonitoringHub::getUrl(),
+                'active_routes' => ['filament.admin.pages.optical-noc'],
+            ],
+            [
+                'key' => 'olt_vpn',
+                'label' => 'OLT VPN / PPTP',
+                'icon' => 'heroicon-o-shield-check',
+                'sort' => 15,
+                'url' => OltVpnManagementPage::getUrl(),
+                'active_routes' => ['filament.admin.pages.olt-vpn'],
+            ],
+            [
+                'key' => 'pon_mac',
+                'label' => 'PON MAC table',
+                'icon' => 'heroicon-o-table-cells',
+                'sort' => 16,
+                'url' => OltMacTable::getUrl(),
+                'active_routes' => ['filament.admin.pages.olt-mac-table'],
+            ],
+            [
+                'key' => 'laser_thresholds',
+                'label' => 'Laser thresholds',
+                'icon' => 'heroicon-o-adjustments-vertical',
+                'sort' => 17,
+                'url' => ManageOpticalLaserSettings::getUrl(),
+                'active_routes' => ['filament.admin.pages.optical-laser-settings'],
+            ],
+            [
+                'key' => 'topology',
+                'label' => 'Topology map',
+                'icon' => 'heroicon-o-share',
+                'sort' => 18,
+                'url' => NetworkTopology::getUrl(),
+                'active_routes' => ['filament.admin.pages.network-topology'],
+            ],
+            [
                 'key' => 'radius',
                 'label' => 'RADIUS users',
                 'icon' => 'heroicon-o-circle-stack',
-                'sort' => 13,
+                'sort' => 19,
                 'url' => RadiusUserAdmin::getUrl(),
                 'active_routes' => ['filament.admin.pages.radius-user-admin'],
             ],
@@ -158,7 +216,7 @@ final class NetworkSidebarRegistry
                 'key' => 'traffic',
                 'label' => 'Subscriber traffic',
                 'icon' => 'heroicon-o-arrow-trending-up',
-                'sort' => 14,
+                'sort' => 20,
                 'url' => SubscriberTrafficMonitor::getUrl(),
                 'active_routes' => ['filament.admin.pages.subscriber-traffic-monitor'],
             ],
@@ -166,7 +224,7 @@ final class NetworkSidebarRegistry
                 'key' => 'snmp',
                 'label' => 'SNMP monitor',
                 'icon' => 'heroicon-o-bolt',
-                'sort' => 15,
+                'sort' => 21,
                 'url' => SnmpMonitor::getUrl(),
                 'active_routes' => ['filament.admin.pages.snmp-monitor'],
             ],
@@ -174,7 +232,7 @@ final class NetworkSidebarRegistry
                 'key' => 'netflow',
                 'label' => 'NetFlow analysis',
                 'icon' => 'heroicon-o-arrows-right-left',
-                'sort' => 16,
+                'sort' => 22,
                 'url' => NetflowAnalysis::getUrl(),
                 'active_routes' => ['filament.admin.pages.netflow-analysis'],
             ],
@@ -182,7 +240,7 @@ final class NetworkSidebarRegistry
                 'key' => 'ip_pools',
                 'label' => 'IP pools',
                 'icon' => 'heroicon-o-globe-alt',
-                'sort' => 17,
+                'sort' => 23,
                 'url' => IpPoolResource::getUrl(),
                 'active_routes' => [
                     'filament.admin.resources.ip-pools.index',
@@ -194,7 +252,7 @@ final class NetworkSidebarRegistry
                 'key' => 'pop',
                 'label' => 'POP / boxes',
                 'icon' => 'heroicon-o-building-office-2',
-                'sort' => 18,
+                'sort' => 24,
                 'url' => PopBoxResource::getUrl(),
                 'active_routes' => [
                     'filament.admin.resources.pop-boxes.index',
@@ -206,7 +264,7 @@ final class NetworkSidebarRegistry
                 'key' => 'hotspot',
                 'label' => 'Hotspot vouchers',
                 'icon' => 'heroicon-o-ticket',
-                'sort' => 19,
+                'sort' => 25,
                 'url' => HotspotVoucherResource::getUrl(),
                 'active_routes' => [
                     'filament.admin.resources.hotspot-vouchers.index',
@@ -264,8 +322,14 @@ final class NetworkSidebarRegistry
             'subzones' => SubzoneResource::canViewAny(),
             'packages' => PackageResource::canViewAny(),
             'bandwidth' => BandwidthMonitor::canAccess(),
-            'topology' => NetworkTopology::canAccess(),
             'fiber_map' => FiberPlantMap::canAccess(),
+            'olt_hub' => OltHub::canAccess(),
+            'olt_list' => OltResource::canViewAny(),
+            'optical_database' => OpticalMonitoringHub::canAccess(),
+            'olt_vpn' => OltVpnManagementPage::canAccess(),
+            'pon_mac' => OltMacTable::canAccess(),
+            'laser_thresholds' => ManageOpticalLaserSettings::canAccess(),
+            'topology' => NetworkTopology::canAccess(),
             'radius' => RadiusUserAdmin::canAccess(),
             'traffic' => SubscriberTrafficMonitor::canAccess(),
             'snmp' => SnmpMonitor::canAccess(),

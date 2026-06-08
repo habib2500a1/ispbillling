@@ -47,7 +47,7 @@ final class FiberPlantMapService
             return $data;
         })->values()->all();
 
-        return [
+        $payload = [
             'nodes' => $nodePayload,
             'edges' => $edgePayload,
             'stats' => $this->stats($nodes, $edges),
@@ -60,6 +60,24 @@ final class FiberPlantMapService
             ],
             'center' => $this->resolveCenter($nodes),
         ];
+
+        try {
+            return app(NetworkOperationsMapService::class)->enrich($payload);
+        } catch (\Throwable $e) {
+            report($e);
+            $payload['ops'] = [
+                'kpis' => [],
+                'search_index' => [],
+                'drop_lines' => [],
+                'olts' => [],
+                'coordinate_problems' => ['missing_gps' => [], 'missing_coords' => []],
+                'refreshed_at' => now()->toIso8601String(),
+                'status_legend' => [],
+                'error' => 'Live map data temporarily unavailable.',
+            ];
+
+            return $payload;
+        }
     }
 
     /**
@@ -102,6 +120,13 @@ final class FiberPlantMapService
             $data['code'] = $this->suggestCode((string) ($data['type'] ?? 'other'));
         }
 
+        $meta = is_array($node->meta) ? $node->meta : [];
+        foreach (['pon_label', 'olt_label'] as $metaKey) {
+            if (array_key_exists($metaKey, $data)) {
+                $meta[$metaKey] = filled($data[$metaKey]) ? trim((string) $data[$metaKey]) : null;
+            }
+        }
+
         $node->fill([
             'code' => $data['code'] ?? $node->code,
             'name' => $data['name'] ?? $node->name ?? 'Node',
@@ -115,6 +140,7 @@ final class FiberPlantMapService
             'splitter_ratio' => $data['splitter_ratio'] ?? $node->splitter_ratio,
             'splitter_direction' => $data['splitter_direction'] ?? $node->splitter_direction,
             'bearing_deg' => $data['bearing_deg'] ?? $node->bearing_deg,
+            'meta' => $meta,
             'notes' => $data['notes'] ?? $node->notes,
             'is_active' => $data['is_active'] ?? $node->is_active ?? true,
         ]);
@@ -261,7 +287,7 @@ final class FiberPlantMapService
                         continue;
                     }
 
-                    FiberPlantNode::query()->create([
+                    $node = FiberPlantNode::query()->create([
                         'code' => 'SUB-'.$customer->id,
                         'name' => $customer->name,
                         'type' => 'customer',
@@ -270,6 +296,8 @@ final class FiberPlantMapService
                         'address' => $customer->address,
                         'customer_id' => $customer->id,
                     ]);
+
+                    $this->ensureCustomerDropEdge($node);
 
                     $count++;
                 }
@@ -308,7 +336,99 @@ final class FiberPlantMapService
         ]);
         $node->save();
 
+        if ($node->type === 'customer' && $node->customer_id) {
+            $this->ensureCustomerDropEdge($node);
+        }
+
         return $node;
+    }
+
+    /**
+     * Auto-link customer pin to nearest splitter/POP when no drop cable exists yet.
+     */
+    public function ensureCustomerDropEdge(FiberPlantNode $customerNode): ?FiberPlantEdge
+    {
+        if ($customerNode->type !== 'customer' || ! $customerNode->hasCoordinates()) {
+            return null;
+        }
+
+        $hasDrop = FiberPlantEdge::query()
+            ->where('is_active', true)
+            ->where('to_node_id', $customerNode->id)
+            ->exists();
+
+        if ($hasDrop) {
+            return null;
+        }
+
+        $customer = $customerNode->customer_id
+            ? Customer::query()->find($customerNode->customer_id)
+            : null;
+
+        $upstreamId = data_get($customer?->meta, 'upstream_splitter_node_id');
+        $parent = null;
+
+        if (is_numeric($upstreamId)) {
+            $parent = FiberPlantNode::query()
+                ->where('is_active', true)
+                ->whereKey((int) $upstreamId)
+                ->first();
+        }
+
+        if ($parent === null || ! $parent->hasCoordinates()) {
+            $parent = $this->nearestInfraNode(
+                (float) $customerNode->latitude,
+                (float) $customerNode->longitude,
+            );
+        }
+
+        if ($parent === null) {
+            return null;
+        }
+
+        $lengthM = data_get($customer?->meta, 'cable_length_m');
+        if (! is_numeric($lengthM) || (float) $lengthM <= 0) {
+            $lengthM = $this->haversineM(
+                (float) $parent->latitude,
+                (float) $parent->longitude,
+                (float) $customerNode->latitude,
+                (float) $customerNode->longitude,
+            );
+        }
+
+        return $this->upsertEdge(null, [
+            'from_node_id' => $parent->id,
+            'to_node_id' => $customerNode->id,
+            'cable_type' => 'drop',
+            'length_m' => (float) $lengthM,
+            'cable_color' => data_get($customer?->meta, 'drop_cable_color', 'blue'),
+            'direction_label' => data_get($customer?->meta, 'drop_direction'),
+            'notes' => 'Auto-linked from subscriber GPS',
+        ]);
+    }
+
+    /**
+     * @return FiberPlantNode|null
+     */
+    private function nearestInfraNode(float $lat, float $lng): ?FiberPlantNode
+    {
+        $best = null;
+        $bestDist = PHP_FLOAT_MAX;
+
+        FiberPlantNode::query()
+            ->where('is_active', true)
+            ->whereIn('type', ['splitter', 'pop', 'olt', 'closure', 'junction'])
+            ->whereNotNull('latitude')
+            ->whereNotNull('longitude')
+            ->each(function (FiberPlantNode $node) use ($lat, $lng, &$best, &$bestDist): void {
+                $d = $this->haversineM($lat, $lng, (float) $node->latitude, (float) $node->longitude);
+                if ($d < $bestDist) {
+                    $bestDist = $d;
+                    $best = $node;
+                }
+            });
+
+        return $best;
     }
 
     public function suggestCode(string $type): string
@@ -345,6 +465,8 @@ final class FiberPlantMapService
     {
         $typeConfig = config('fiber_plant.node_types.'.$node->type, []);
 
+        $directionKey = $node->splitter_direction;
+
         return [
             'id' => $node->id,
             'code' => $node->code,
@@ -357,6 +479,11 @@ final class FiberPlantMapService
             'address' => $node->address,
             'splitter_ratio' => $node->splitter_ratio,
             'splitter_direction' => $node->splitter_direction,
+            'splitter_direction_label' => $directionKey
+                ? (config('fiber_plant.directions.'.$directionKey) ?? $directionKey)
+                : null,
+            'pon_label' => data_get($node->meta, 'pon_label'),
+            'olt_label' => data_get($node->meta, 'olt_label'),
             'bearing_deg' => $node->bearing_deg,
             'customer_id' => $node->customer_id,
             'phone' => $node->customer?->phone,
@@ -372,10 +499,19 @@ final class FiberPlantMapService
      */
     private function serializeEdge(FiberPlantEdge $edge): array
     {
+        $directionKey = $edge->direction_label;
+        $directionDisplay = $directionKey
+            ? (config('fiber_plant.directions.'.$directionKey) ?? $directionKey)
+            : null;
+
         return [
             'id' => $edge->id,
             'from_node_id' => $edge->from_node_id,
             'to_node_id' => $edge->to_node_id,
+            'from_name' => $edge->fromNode?->name,
+            'to_name' => $edge->toNode?->name,
+            'from_type' => $edge->fromNode?->type,
+            'to_type' => $edge->toNode?->type,
             'from' => $edge->fromNode ? [(float) $edge->fromNode->latitude, (float) $edge->fromNode->longitude] : null,
             'to' => $edge->toNode ? [(float) $edge->toNode->latitude, (float) $edge->toNode->longitude] : null,
             'cable_type' => $edge->cable_type,
@@ -386,13 +522,15 @@ final class FiberPlantMapService
             'tube_color' => $edge->tube_color,
             'length_m' => (float) $edge->length_m,
             'direction_label' => $edge->direction_label,
+            'direction_display' => $directionDisplay,
             'bearing_deg' => $edge->bearing_deg,
             'notes' => $edge->notes,
+            'auto_linked' => str_contains((string) $edge->notes, 'Auto-linked'),
             'label' => trim(sprintf(
                 '%s · %sm%s',
                 $edge->cableTypeLabel(),
                 number_format((float) $edge->length_m, 0),
-                $edge->direction_label ? ' · '.$edge->direction_label : ''
+                $directionDisplay ? ' · '.$directionDisplay : ''
             )),
         ];
     }
@@ -424,15 +562,26 @@ final class FiberPlantMapService
             }
 
             $total += (float) $edge->length_m;
+            $fromNode = $edge->fromNode;
             $segments[] = [
                 'edge_id' => $edge->id,
-                'from' => $edge->fromNode?->name,
+                'from' => $fromNode?->name,
                 'to' => $current->name,
+                'from_type' => $fromNode?->type,
+                'to_type' => $current->type,
+                'from_lat' => $fromNode?->latitude !== null ? (float) $fromNode->latitude : null,
+                'from_lng' => $fromNode?->longitude !== null ? (float) $fromNode->longitude : null,
+                'to_lat' => $current->latitude !== null ? (float) $current->latitude : null,
+                'to_lng' => $current->longitude !== null ? (float) $current->longitude : null,
                 'length_m' => (float) $edge->length_m,
                 'cable_color' => $edge->cable_color,
                 'cable_color_hex' => $edge->cableColorHex(),
                 'direction' => $edge->direction_label,
+                'direction_display' => $edge->direction_label
+                    ? (config('fiber_plant.directions.'.$edge->direction_label) ?? $edge->direction_label)
+                    : null,
                 'cable_type' => $edge->cableTypeLabel(),
+                'pon_label' => data_get($fromNode?->meta, 'pon_label'),
             ];
 
             $current = $edge->fromNode;

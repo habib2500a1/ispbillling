@@ -2,7 +2,6 @@
 
 namespace App\Support;
 
-use App\Filament\Pages\FiberPlantMap;
 use App\Filament\Pages\ManageOpticalLaserSettings;
 use App\Filament\Pages\OltHub;
 use App\Filament\Pages\OltVpnManagementPage;
@@ -67,14 +66,6 @@ final class OltSidebarRegistry
                 'sort' => 4,
                 'url' => NetworkTopology::getUrl(),
                 'active_routes' => ['filament.admin.pages.network-topology'],
-            ],
-            [
-                'key' => 'fiber_map',
-                'label' => 'Fiber map',
-                'icon' => 'heroicon-o-map',
-                'sort' => 5,
-                'url' => FiberPlantMap::getUrl(),
-                'active_routes' => ['filament.admin.pages.fiber-plant-map'],
             ],
             [
                 'key' => 'mac_table',
@@ -150,7 +141,6 @@ final class OltSidebarRegistry
             'olt_vpn' => OltVpnManagementPage::canAccess(),
             'optical_noc' => OpticalMonitoringHub::canAccess(),
             'topology' => NetworkTopology::canAccess(),
-            'fiber_map' => FiberPlantMap::canAccess(),
             'laser_thresholds' => ManageOpticalLaserSettings::canAccess(),
             default => false,
         };

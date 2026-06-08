@@ -9,7 +9,6 @@ use App\Filament\Clients\ClientsSidebarNavigation;
 use App\Filament\Hrm\HrmSidebarNavigation;
 use App\Filament\IspOs\IspOsSidebarNavigation;
 use App\Filament\Network\NetworkSidebarNavigation;
-use App\Filament\Olt\OltSidebarNavigation;
 use App\Filament\Reports\ReportsSidebarNavigation;
 use App\Filament\Resellers\ResellerSidebarNavigation;
 use App\Filament\Settings\SettingsSidebarNavigation;
@@ -139,7 +138,8 @@ final class IspSidebarNavigation
             || str_contains($path, 'optical-noc')
             || str_contains($path, 'olt-mac-table')
             || str_contains($path, 'optical-laser-settings')
-            || str_contains($path, 'network-topology');
+            || str_contains($path, 'network-topology')
+            || str_contains($path, 'fiber-plant-map');
     }
 
     /**
@@ -168,45 +168,7 @@ final class IspSidebarNavigation
             $processed[] = $group;
         }
 
-        return static::ensureOltToolsNavigationGroup($processed);
-    }
-
-    /**
-     * @param  array<NavigationGroup>  $groups
-     * @return array<NavigationGroup>
-     */
-    public static function ensureOltToolsNavigationGroup(array $groups): array
-    {
-        if (! OltSidebarNavigation::userCanSee()) {
-            return $groups;
-        }
-
-        $oltLabel = OltSidebarRegistry::GROUP_LABEL;
-        $hasOltGroup = false;
-
-        foreach ($groups as $group) {
-            if ((string) ($group->getLabel() ?? '') === $oltLabel) {
-                $hasOltGroup = true;
-
-                break;
-            }
-        }
-
-        if ($hasOltGroup) {
-            return $groups;
-        }
-
-        $items = OltSidebarRegistry::navigationItems();
-
-        if ($items === []) {
-            return $groups;
-        }
-
-        $groups[] = NavigationGroup::make($oltLabel)
-            ->items($items)
-            ->collapsible(false);
-
-        return $groups;
+        return $processed;
     }
 
     /**
@@ -222,7 +184,15 @@ final class IspSidebarNavigation
 
         $urls = [];
 
-        foreach (OltSidebarRegistry::definitions() as $entry) {
+        $oltKeys = [
+            'fiber_map', 'olt_hub', 'olt_list', 'optical_database', 'topology',
+            'olt_vpn', 'pon_mac', 'laser_thresholds',
+        ];
+
+        foreach (NetworkSidebarRegistry::definitions() as $entry) {
+            if (! in_array($entry['key'], $oltKeys, true)) {
+                continue;
+            }
             $urls[] = $entry['url'];
         }
 
@@ -234,8 +204,8 @@ final class IspSidebarNavigation
         $items = static::panelNavigationItems($panel);
 
         foreach ($items as $item) {
-            if ((string) ($item->getGroup() ?? '') === 'OLT') {
-                $item->group(OltSidebarRegistry::GROUP_LABEL);
+            if (in_array((string) ($item->getGroup() ?? ''), ['OLT', 'OLT & Tools'], true)) {
+                $item->group('Network');
             }
         }
 
@@ -267,29 +237,7 @@ final class IspSidebarNavigation
 
     public static function ensureOltNavigationOnPanel(Panel $panel): void
     {
-        if (! OltSidebarNavigation::userCanSee()) {
-            return;
-        }
-
-        $existingUrls = [];
-        foreach (static::panelNavigationItems($panel) as $item) {
-            $group = (string) ($item->getGroup() ?? '');
-            if ($group === OltSidebarRegistry::GROUP_LABEL) {
-                $existingUrls[(string) $item->getUrl()] = true;
-            }
-        }
-
-        $toAdd = [];
-        foreach (OltSidebarRegistry::navigationItems() as $item) {
-            $url = (string) $item->getUrl();
-            if ($url !== '' && ! isset($existingUrls[$url])) {
-                $toAdd[] = $item;
-            }
-        }
-
-        if ($toAdd !== []) {
-            $panel->navigationItems($toAdd);
-        }
+        // OLT links are registered under Network via NetworkSidebarRegistry.
     }
 
     /**
@@ -330,7 +278,6 @@ final class IspSidebarNavigation
         static::appendIf($merged, ClientsSidebarNavigation::userCanSee(), ClientsSidebarRegistry::navigationItems());
         static::appendIf($merged, BillingSidebarNavigation::userCanSee(), BillingSidebarRegistry::navigationItems());
         static::appendIf($merged, InventorySidebarRegistry::hasVisibleEntries(), InventorySidebarRegistry::navigationItems());
-        static::appendIf($merged, OltSidebarNavigation::userCanSee(), OltSidebarRegistry::navigationItems());
         static::appendIf($merged, PaymentsSidebarRegistry::hasVisibleEntries(), PaymentsSidebarRegistry::navigationItems());
         static::appendIf($merged, NetworkSidebarNavigation::userCanSee(), NetworkSidebarRegistry::navigationItems());
         static::appendIf($merged, SmsSidebarNavigation::userCanSee(), SmsSidebarRegistry::navigationItems());

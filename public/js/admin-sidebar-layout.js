@@ -11,6 +11,7 @@
     /** Must match AdminPanelProvider::navigationGroups() order */
     const SIDEBAR_GROUP_ORDER = [
         'Overview',
+        'ISP OS',
         'Clients',
         'Billing',
         'Payments',
@@ -29,8 +30,8 @@
         'System',
     ];
 
-    /** Groups always expanded (Filament collapsed(false)) — not part of accordion toggling. */
-    const NON_COLLAPSIBLE_GROUPS = ['Overview'];
+    /** Groups always expanded — none; all modules use accordion (one open at a time). */
+    const NON_COLLAPSIBLE_GROUPS = [];
 
     function groupsRoot() {
         return document.querySelector('.fi-sidebar .fi-sidebar-nav-groups, .fi-main-sidebar .fi-sidebar-nav-groups');
@@ -329,7 +330,7 @@
         );
     }
 
-    function pathSuggestsOltGroup() {
+    function pathSuggestsNetworkGroup() {
         const path = window.location.pathname || '';
 
         return (
@@ -340,6 +341,20 @@
             || path.includes('optical-laser-settings')
             || path.includes('network-topology')
             || path.includes('fiber-plant-map')
+            || path.includes('network-intelligence-hub')
+            || path.includes('bandwidth-monitor')
+        );
+    }
+
+    function pathSuggestsIspOsGroup() {
+        const path = window.location.pathname || '';
+
+        return (
+            path.includes('isp-os')
+            || path.includes('noc-wall')
+            || path.includes('field-technicians')
+            || path.includes('fault-center')
+            || path.includes('fault-management')
         );
     }
 
@@ -381,12 +396,16 @@
             return null;
         }
 
-        // OLT pages: always open «OLT & Tools», never Inventory Pro (legacy OLTs link cache).
-        if (pathSuggestsOltGroup()) {
+        // OLT / fiber map pages live under Network (not ISP OS).
+        if (pathSuggestsNetworkGroup()) {
             try {
-                sessionStorage.setItem(OPEN_GROUP_KEY, 'OLT & Tools');
+                sessionStorage.setItem(OPEN_GROUP_KEY, 'Network');
             } catch (e) {
                 /* ignore */
+            }
+
+            if (labels.includes('Network')) {
+                return 'Network';
             }
 
             if (labels.includes('OLT & Tools')) {
@@ -398,10 +417,14 @@
             }
         }
 
+        if (pathSuggestsIspOsGroup() && labels.includes('ISP OS')) {
+            return 'ISP OS';
+        }
+
         const active = activeGroupLabel();
 
-        if (active === 'Inventory Pro' && pathSuggestsOltGroup() && labels.includes('OLT & Tools')) {
-            return 'OLT & Tools';
+        if (active === 'Inventory Pro' && pathSuggestsNetworkGroup() && labels.includes('Network')) {
+            return 'Network';
         }
 
         if (active) {

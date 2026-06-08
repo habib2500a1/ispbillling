@@ -606,6 +606,10 @@ body.isp-sidebar-desktop-collapsed .isp-sidebar-footer__toggle--expand {
     order: 10;
 }
 
+.fi-sidebar-group[data-group-label='ISP OS'] {
+    order: 15;
+}
+
 .fi-sidebar-group[data-group-label='Clients'] {
     order: 20;
 }
@@ -636,7 +640,19 @@ body.isp-sidebar-desktop-collapsed .isp-sidebar-footer__toggle--expand {
 .fi-sidebar-group[data-group-label='Inventory Pro'] .fi-sidebar-item:has(a[href*='optical-noc']),
 .fi-sidebar-group[data-group-label='Inventory Pro'] .fi-sidebar-item:has(a[href*='olt-mac-table']),
 .fi-sidebar-group[data-group-label='Inventory Pro'] .fi-sidebar-item:has(a[href*='optical-laser-settings']),
-.fi-sidebar-group[data-group-label='Inventory Pro'] .fi-sidebar-item:has(a[href*='network-topology']) {
+.fi-sidebar-group[data-group-label='Inventory Pro'] .fi-sidebar-item:has(a[href*='network-topology']),
+.fi-sidebar-group[data-group-label='Inventory Pro'] .fi-sidebar-item:has(a[href*='fiber-plant-map']) {
+    display: none !important;
+}
+
+/* OLT + fiber map belong under Network only (not ISP OS / Inventory). */
+.fi-sidebar-group[data-group-label='ISP OS'] .fi-sidebar-item:has(a[href*='/olts']),
+.fi-sidebar-group[data-group-label='ISP OS'] .fi-sidebar-item:has(a[href*='olt-hub']),
+.fi-sidebar-group[data-group-label='ISP OS'] .fi-sidebar-item:has(a[href*='optical-noc']),
+.fi-sidebar-group[data-group-label='ISP OS'] .fi-sidebar-item:has(a[href*='olt-mac-table']),
+.fi-sidebar-group[data-group-label='ISP OS'] .fi-sidebar-item:has(a[href*='optical-laser-settings']),
+.fi-sidebar-group[data-group-label='ISP OS'] .fi-sidebar-item:has(a[href*='network-topology']),
+.fi-sidebar-group[data-group-label='ISP OS'] .fi-sidebar-item:has(a[href*='fiber-plant-map']) {
     display: none !important;
 }
 
@@ -697,12 +713,6 @@ body.isp-sidebar-desktop-collapsed .isp-sidebar-footer__toggle--expand {
 /* Accordion: only the open module shows child links (see admin-sidebar-layout.js) */
 .fi-main-sidebar .fi-sidebar-group:not(.isp-sidebar-accordion-open) > .fi-sidebar-group-items {
     display: none !important;
-}
-
-/* Overview stays expanded (Filament collapsed(false)) */
-.fi-main-sidebar .fi-sidebar-group[data-group-label='Overview'] > .fi-sidebar-group-items {
-    display: flex !important;
-    flex-direction: column;
 }
 
 .fi-main-sidebar .fi-sidebar-group.isp-sidebar-accordion-open > .fi-sidebar-group-items {
