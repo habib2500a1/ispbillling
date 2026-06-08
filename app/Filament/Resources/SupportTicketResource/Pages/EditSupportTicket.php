@@ -38,7 +38,11 @@ class EditSupportTicket extends EditRecord
     public function getTicketWorkspaceViewData(): array
     {
         $c360 = $this->getCustomer360();
-        $live = $c360['live'] ?? ['linked' => false];
+        $linked = ! empty($c360['linked']);
+        $live = array_merge(
+            ['linked' => $linked],
+            is_array($c360['live'] ?? null) ? $c360['live'] : []
+        );
 
         return [
             'c360' => $c360,
@@ -47,8 +51,7 @@ class EditSupportTicket extends EditRecord
             'gis' => $this->getGisPreview(),
             'network' => $this->getNetworkRail(),
             'live' => $live,
-            'close_blocked' => ! $this->canCloseTicket(),
-            'close_block_reason' => $this->getCloseBlockReason(),
+            'close_offline_notice' => $this->getCloseOfflineNotice(),
         ];
     }
 
@@ -76,21 +79,9 @@ class EditSupportTicket extends EditRecord
                 ->label('Mark resolved')
                 ->color('success')
                 ->visible(fn (): bool => ! in_array($this->record->status, ['resolved', 'closed'], true))
-                ->disabled(fn (): bool => ! $this->canCloseTicket())
-                ->tooltip(fn (): ?string => $this->getCloseBlockReason())
                 ->requiresConfirmation()
-                ->modalDescription(fn (): ?string => $this->getCloseBlockReason() ?? 'Subscriber is online. Mark this ticket as resolved?')
+                ->modalDescription(fn (): string => $this->getCloseOfflineNotice() ?? 'Mark this ticket as resolved?')
                 ->action(function (): void {
-                    if (! $this->canCloseTicket()) {
-                        Notification::make()
-                            ->title('Cannot resolve yet')
-                            ->body($this->getCloseBlockReason() ?? 'Subscriber must be online.')
-                            ->danger()
-                            ->send();
-
-                        return;
-                    }
-
                     /** @var SupportTicket $record */
                     $record = $this->record;
                     $record->update([
@@ -104,21 +95,9 @@ class EditSupportTicket extends EditRecord
                 ->label('Close')
                 ->color('gray')
                 ->visible(fn (): bool => $this->record->status !== 'closed')
-                ->disabled(fn (): bool => ! $this->canCloseTicket())
-                ->tooltip(fn (): ?string => $this->getCloseBlockReason())
                 ->requiresConfirmation()
-                ->modalDescription(fn (): ?string => $this->getCloseBlockReason() ?? 'Subscriber is online. Close this ticket?')
+                ->modalDescription(fn (): string => $this->getCloseOfflineNotice() ?? 'Close this ticket?')
                 ->action(function (): void {
-                    if (! $this->canCloseTicket()) {
-                        Notification::make()
-                            ->title('Cannot close yet')
-                            ->body($this->getCloseBlockReason() ?? 'Subscriber must be online.')
-                            ->danger()
-                            ->send();
-
-                        return;
-                    }
-
                     /** @var SupportTicket $record */
                     $record = $this->record;
                     $record->update([

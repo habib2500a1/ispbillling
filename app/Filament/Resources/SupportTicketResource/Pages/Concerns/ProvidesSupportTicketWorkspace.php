@@ -31,21 +31,28 @@ trait ProvidesSupportTicketWorkspace
 
     protected function workspaceCustomer(): ?Customer
     {
+        $ticket = $this->workspaceTicket();
         $customerId = null;
 
         if (property_exists($this, 'data') && is_array($this->data ?? null)) {
             $customerId = $this->data['customer_id'] ?? null;
         }
 
-        if ($customerId) {
-            return Customer::query()
-                ->with(['package', 'area', 'zone', 'mikrotikServer', 'onuDevice.olt', 'lastEndedPppSession'])
-                ->find($customerId);
+        $customerId = $customerId ?: $ticket->customer_id;
+
+        if (! $customerId) {
+            return null;
         }
 
-        $ticket = $this->workspaceTicket();
+        if ($ticket->customer && (int) $ticket->customer->id === (int) $customerId) {
+            $ticket->customer->loadMissing(['package', 'area', 'zone', 'mikrotikServer', 'onuDevice.olt', 'lastEndedPppSession']);
 
-        return $ticket->customer;
+            return $ticket->customer;
+        }
+
+        return Customer::query()
+            ->with(['package', 'area', 'zone', 'mikrotikServer', 'onuDevice.olt', 'lastEndedPppSession'])
+            ->find($customerId);
     }
 
     /**
@@ -89,7 +96,7 @@ trait ProvidesSupportTicketWorkspace
             'last_logout_ago' => $live['last_logout_ago'],
             'onu_online' => $live['onu_online'],
             'network_access' => (string) ($customer->network_access_state ?? '—'),
-            'live' => $live,
+            'live' => array_merge(['linked' => true], $live),
             'billing_due' => $due,
             'billing_due_fmt' => number_format($due, 0).' BDT',
             'ticket_count' => $ticketCount,
@@ -194,41 +201,20 @@ trait ProvidesSupportTicketWorkspace
         };
     }
 
-    public function canCloseTicket(): bool
+    public function getCloseOfflineNotice(): ?string
     {
-        $ticket = $this->workspaceTicket();
+        $live = $this->getLiveServiceStatus();
 
-        if (in_array($ticket->status, ['resolved', 'closed'], true)) {
-            return true;
-        }
-
-        $issueType = $this->data['issue_type'] ?? $ticket->issue_type;
-
-        if (! in_array($issueType, ['connection', 'speed', 'outage', 'equipment'], true)) {
-            return true;
-        }
-
-        $customer = $this->workspaceCustomer();
-        if ($customer === null) {
-            return true;
-        }
-
-        return $customer->isPppOnline();
-    }
-
-    public function getCloseBlockReason(): ?string
-    {
-        if ($this->canCloseTicket()) {
+        if (empty($live['linked']) || ($live['ppp_online'] ?? true)) {
             return null;
         }
 
-        $live = $this->getLiveServiceStatus();
         $parts = array_filter([
             $live['ppp_offline_reason'] ?? 'Subscriber PPP is offline',
             isset($live['last_logout_at']) ? 'Last logout: '.$live['last_logout_at'].' ('.$live['last_logout_ago'].')' : null,
         ]);
 
-        return 'Connection tickets can only be resolved/closed when the subscriber is online. '.implode(' · ', $parts);
+        return 'Subscriber is offline. You can still close after documenting the fix. '.implode(' · ', $parts);
     }
 
     /**

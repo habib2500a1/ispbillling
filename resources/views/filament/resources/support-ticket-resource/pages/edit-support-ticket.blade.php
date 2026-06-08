@@ -8,8 +8,7 @@
     $gis = $workspace['gis'];
     $network = $workspace['network'];
     $live = $workspace['live'];
-    $closeBlocked = $workspace['close_blocked'];
-    $closeBlockReason = $workspace['close_block_reason'];
+    $closeOfflineNotice = $workspace['close_offline_notice'] ?? null;
     $hubUrl = \App\Filament\Pages\SupportHub::getUrl();
     $listUrl = \App\Filament\Resources\SupportTicketResource::getUrl('index');
 @endphp
@@ -41,7 +40,7 @@
             </div>
         </header>
 
-        @if (! empty($live['linked']))
+        @if (! empty($c360['linked']))
             <section
                 wire:key="sp-live-status-{{ $c360['id'] ?? 'none' }}"
                 @class([
@@ -85,8 +84,8 @@
                         <span class="sp-live-status__meta">{{ $live['last_logout_ago'] ?? '' }}</span>
                     </div>
                 </div>
-                @if ($closeBlocked && filled($closeBlockReason))
-                    <p class="sp-live-status__block">{{ $closeBlockReason }}</p>
+                @if (filled($closeOfflineNotice))
+                    <p class="sp-live-status__block sp-live-status__block--info">{{ $closeOfflineNotice }}</p>
                 @endif
             </section>
         @endif
