@@ -3,8 +3,15 @@
 namespace App\Filament\Pages;
 
 use App\Filament\Pages\Concerns\HidesHubNavigation;
-use App\Models\FieldVisit;
-use App\Models\SupportTicket;
+use App\Filament\Pages\FiberPlantMap;
+use App\Filament\Pages\FaultManagementHub;
+use App\Filament\Pages\IspOsHub;
+use App\Filament\Pages\OpticalMonitoringHub;
+use App\Filament\Pages\OltHub;
+use App\Filament\Pages\SupportHub;
+use App\Filament\Resources\StoreDeviceLoanResource;
+use App\Filament\Resources\SupportTicketResource;
+use App\Services\IspOs\FieldTechnicianIntelligenceService;
 use App\Support\Rbac\StaffCapability;
 use Filament\Pages\Page;
 
@@ -18,7 +25,7 @@ class FieldTechnicianCenter extends Page
 
     protected static ?string $navigationLabel = 'Field technicians';
 
-    protected static ?string $title = 'Field technician center';
+    protected static ?string $title = '';
 
     protected static ?string $navigationGroup = 'Support';
 
@@ -26,47 +33,71 @@ class FieldTechnicianCenter extends Page
 
     protected static bool $shouldRegisterNavigation = false;
 
+    public string $searchQuery = '';
+
+    public string $activeTaskTab = 'assigned';
+
+    /** @var array<string, mixed> */
+    public array $fieldIntel = [];
+
+    /** @var list<array<string, mixed>> */
+    public array $searchResults = [];
+
+    public function mount(): void
+    {
+        $this->refreshIntel();
+    }
+
+    public function getTitle(): string
+    {
+        return '';
+    }
+
+    public function getHeading(): string
+    {
+        return '';
+    }
+
     public function getExtraBodyAttributes(): array
     {
-        return ['class' => 'isp-os-module'];
+        return ['class' => 'isp-os-module field-ops-module'];
     }
 
-    /**
-     * @return list<array<string, mixed>>
-     */
-    public function getAssignedVisits(): array
+    public function refreshIntel(): void
     {
-        return FieldVisit::query()
-            ->with(['supportTicket:id,subject,priority,status,customer_id', 'supportTicket.customer:id,name,customer_code,phone'])
-            ->whereIn('status', ['scheduled', 'in_progress'])
-            ->orderBy('scheduled_at')
-            ->limit(25)
-            ->get()
-            ->map(fn (FieldVisit $v): array => [
-                'id' => $v->id,
-                'status' => $v->status,
-                'scheduled' => $v->scheduled_at?->format('M j, H:i') ?? '—',
-                'customer' => $v->supportTicket?->customer?->name ?? '—',
-                'code' => $v->supportTicket?->customer?->customer_code ?? '—',
-                'ticket' => '#'.($v->support_ticket_id ?? '—'),
-                'subject' => $v->supportTicket?->subject ?? '—',
-                'priority' => $v->supportTicket?->priority ?? 'normal',
-                'url' => $v->support_ticket_id
-                    ? \App\Filament\Resources\SupportTicketResource::getUrl('edit', ['record' => $v->support_ticket_id])
-                    : SupportHub::getUrl(),
-            ])
-            ->all();
+        $this->fieldIntel = app(FieldTechnicianIntelligenceService::class)->metrics();
+    }
+
+    public function updatedSearchQuery(): void
+    {
+        $this->searchResults = app(FieldTechnicianIntelligenceService::class)
+            ->search($this->searchQuery, (int) auth()->id());
+    }
+
+    public function setTaskTab(string $tab): void
+    {
+        $this->activeTaskTab = $tab;
     }
 
     /**
-     * @return array{open: int, urgent: int, visits_today: int}
+     * @return array<string, mixed>
      */
-    public function getFieldStats(): array
+    public function loadCustomer360(int $ticketId): array
+    {
+        return app(FieldTechnicianIntelligenceService::class)->customerBundle($ticketId) ?? [];
+    }
+
+    public function hubLinks(): array
     {
         return [
-            'open' => SupportTicket::query()->whereIn('status', ['open', 'in_progress', 'waiting'])->count(),
-            'urgent' => SupportTicket::query()->whereIn('status', ['open', 'in_progress'])->where('priority', 'urgent')->count(),
-            'visits_today' => FieldVisit::query()->whereDate('scheduled_at', today())->count(),
+            ['label' => 'GIS map', 'desc' => 'Customers · fiber · splitters', 'url' => FiberPlantMap::getUrl(), 'icon' => 'heroicon-o-map'],
+            ['label' => 'Fault center', 'desc' => 'Outages · signal alerts', 'url' => FaultManagementHub::getUrl(), 'icon' => 'heroicon-o-bolt'],
+            ['label' => 'ONU lookup', 'desc' => 'Signal & registration', 'url' => OpticalMonitoringHub::getUrl(), 'icon' => 'heroicon-o-signal'],
+            ['label' => 'OLT lookup', 'desc' => 'PON & chassis health', 'url' => OltHub::getUrl(), 'icon' => 'heroicon-o-server'],
+            ['label' => 'Support hub', 'desc' => 'Ticket desk', 'url' => SupportHub::getUrl(), 'icon' => 'heroicon-o-lifebuoy'],
+            ['label' => 'Device loans', 'desc' => 'Assigned equipment', 'url' => StoreDeviceLoanResource::getUrl(), 'icon' => 'heroicon-o-cpu-chip'],
+            ['label' => 'ISP OS', 'desc' => 'Operations center', 'url' => IspOsHub::getUrl(), 'icon' => 'heroicon-o-squares-2x2'],
+            ['label' => 'New ticket', 'desc' => 'Create support ticket', 'url' => SupportTicketResource::getUrl('create'), 'icon' => 'heroicon-o-plus-circle'],
         ];
     }
 

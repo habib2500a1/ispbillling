@@ -105,6 +105,7 @@ final class AdminRouteAssets
             'filament.admin.pages.isp-os',
             'filament.admin.pages.fault-center',
             'filament.admin.pages.field-technicians',
+            'filament.admin.pages.technician-dashboard',
         ])) {
             $html .= IspOsStyles::html();
         }
@@ -332,7 +333,7 @@ final class AdminRouteAssets
         }
 
         if (rule.match === 'isp-os-module') {
-            return /\\/admin\\/(isp-os|fault-center|field-technicians)/.test(path);
+            return /\\/admin\\/(isp-os|fault-center|field-technicians|technician-dashboard)/.test(path);
         }
 
         if (rule.match === 'path-prefix') {

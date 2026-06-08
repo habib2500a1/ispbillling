@@ -17,6 +17,7 @@ final class IspOsStyles
             'admin/isp-os/03-fault-timeline.css',
             'admin/isp-os/04-dependency-search.css',
             'admin/isp-os/05-mobile.css',
+            'admin/isp-os/06-field-ops.css',
         ];
     }
 
