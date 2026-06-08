@@ -33,10 +33,20 @@ php artisan isp:recover-site --no-ansi 2>/dev/null || {
 }
 
 echo "[fix] Redis ping..."
-if php artisan tinker --execute="echo Illuminate\Support\Facades\Redis::ping();" 2>/dev/null | grep -q PONG; then
-  echo "[fix] Redis: OK (PONG)"
+if php -r "
+require 'vendor/autoload.php';
+\$app = require 'bootstrap/app.php';
+\$app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap();
+try {
+    \$p = Illuminate\Support\Facades\Redis::connection()->ping();
+    exit((\$p === true || \$p === 'PONG') ? 0 : 1);
+} catch (Throwable \$e) {
+    exit(1);
+}
+" 2>/dev/null; then
+  echo "[fix] Redis: OK"
 else
-  echo "[fix] Redis: FAIL — set REDIS_HOST=redis in Environment, not 127.0.0.1"
+  echo "[fix] Redis: FAIL — set REDIS_HOST=redis in Environment (Docker), not 127.0.0.1"
 fi
 
 echo "[fix] Database..."

@@ -32,7 +32,13 @@ fi
 set_env_default QUEUE_CONNECTION redis
 set_env_default CACHE_STORE redis
 set_env_default QUEUE_HEAVY_JOBS_ENABLED true
-set_env_default REDIS_HOST 127.0.0.1
+
+# Docker compose uses service hostname `redis`; bare VPS uses 127.0.0.1
+REDIS_DEFAULT=127.0.0.1
+if grep -qE '^DB_HOST=postgres' "$ENV_FILE" 2>/dev/null; then
+  REDIS_DEFAULT=redis
+fi
+set_env_default REDIS_HOST "$REDIS_DEFAULT"
 set_env_default REDIS_PORT 6379
 
 UNIT_SRC="$APP_ROOT/deploy/laravel-horizon.service.example"

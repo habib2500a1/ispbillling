@@ -6,35 +6,43 @@ if [ -z "$APP_KEY" ]; then
   exit 0
 fi
 
+run_artisan() {
+  if id www-data >/dev/null 2>&1 && command -v runuser >/dev/null 2>&1; then
+    runuser -u www-data -- php artisan "$@"
+  else
+    php artisan "$@"
+  fi
+}
+
 rm -f storage/framework/deploy-ready 2>/dev/null || true
 touch storage/framework/deploy-bootstrapping 2>/dev/null || true
 chown www-data:www-data storage/framework/deploy-bootstrapping 2>/dev/null || true
 
 attempt=0
 while [ $attempt -lt 12 ]; do
-  if php artisan migrate:status --no-ansi >/dev/null 2>&1; then
+  if run_artisan migrate:status --no-ansi >/dev/null 2>&1; then
     break
   fi
   attempt=$((attempt + 1))
   sleep 1
 done
 
-if ! php artisan migrate:status --no-ansi >/dev/null 2>&1; then
+if ! run_artisan migrate:status --no-ansi >/dev/null 2>&1; then
   echo "[bootstrap] WARNING: database not reachable"
   exit 0
 fi
 
 echo "[bootstrap] Running migrations..."
-php artisan migrate --force --no-interaction || {
+run_artisan migrate --force --no-interaction || {
   echo "[bootstrap] WARNING: migrate failed"
   exit 0
 }
 
 echo "[bootstrap] Fast post-deploy (admin, .env defaults, SMS templates)..."
-php artisan isp:post-deploy --skip-migrate --fast --no-interaction || true
+run_artisan isp:post-deploy --skip-migrate --fast --no-interaction || true
 
 echo "[bootstrap] Automatic processes sync (background)..."
-php artisan isp:post-deploy --processes-only --no-interaction >>storage/logs/post-deploy-processes.log 2>&1 &
+run_artisan isp:post-deploy --processes-only --no-interaction >>storage/logs/post-deploy-processes.log 2>&1 &
 
 if [ -f /usr/local/bin/ensure-permissions.sh ]; then
   /usr/local/bin/ensure-permissions.sh || true
@@ -44,7 +52,7 @@ if [ -L public/storage ] && [ ! -e public/storage ]; then
   rm -f public/storage
 fi
 if [ ! -e public/storage ]; then
-  php artisan storage:link --no-interaction 2>/dev/null || true
+  run_artisan storage:link --no-interaction 2>/dev/null || true
 fi
 
 BRANDING_DIR="storage/app/public/company-branding"
@@ -65,7 +73,7 @@ fi
 
 if [ -f .env ] && ! grep -q '^ISP_SUPPORT_WEBHOOK_SECRET=.' .env 2>/dev/null; then
   echo "[bootstrap] Generating webhook secrets in .env (first run)..."
-  php artisan isp:generate-webhook-secrets --write --no-interaction 2>/dev/null || true
+  run_artisan isp:generate-webhook-secrets --write --no-interaction 2>/dev/null || true
 fi
 
 if [ -f /usr/local/bin/optimize-app.sh ]; then
@@ -77,8 +85,10 @@ if [ -x /var/www/html/scripts/auto-mobile-after-deploy.sh ]; then
   nohup /var/www/html/scripts/auto-mobile-after-deploy.sh >>/var/www/html/storage/logs/auto-mobile-deploy.log 2>&1 &
 fi
 
-php artisan isp:mark-deploy-ready --no-interaction 2>/dev/null || touch storage/framework/deploy-ready
-php artisan isp:warm-dashboard-caches --no-interaction 2>/dev/null || true
+run_artisan isp:mark-deploy-ready --no-interaction 2>/dev/null || touch storage/framework/deploy-ready
+run_artisan isp:warm-dashboard-caches --no-interaction 2>/dev/null || true
 rm -f storage/framework/deploy-bootstrapping 2>/dev/null || true
-chown www-data:www-data storage/framework/deploy-ready 2>/dev/null || true
+if [ -f /usr/local/bin/ensure-permissions.sh ]; then
+  /usr/local/bin/ensure-permissions.sh || true
+fi
 echo "[bootstrap] Deploy ready."

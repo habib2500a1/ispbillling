@@ -21,5 +21,8 @@ chmod -R a+rX public/css 2>/dev/null || true
 chmod 755 public/downloads 2>/dev/null || true
 chmod 644 public/downloads/*.apk public/downloads/*.json 2>/dev/null || true
 
-# Root-owned compiled views break Blade with "Permission denied".
+# Root-owned compiled views/cache break Blade with "Permission denied".
 find storage/framework/views -type f ! -user www-data -delete 2>/dev/null || true
+find storage/framework/cache -type f ! -user www-data -exec chown www-data:www-data {} \; 2>/dev/null || true
+find storage/framework/sessions -type f ! -user www-data -exec chown www-data:www-data {} \; 2>/dev/null || true
+find storage/logs -type f ! -user www-data -exec chown www-data:www-data {} \; 2>/dev/null || true

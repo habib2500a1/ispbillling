@@ -24,6 +24,8 @@ sudo -u www-data php artisan route:cache
 sudo -u www-data php artisan event:cache
 sudo -u www-data php artisan filament:optimize
 
+bash ./scripts/fix-storage-perms.sh 2>/dev/null || true
+
 # Zero-touch: mobile APK sync/build + website download links (reads .env on server)
 nohup bash ./scripts/auto-mobile-after-deploy.sh >> storage/logs/auto-mobile-deploy.log 2>&1 &
 

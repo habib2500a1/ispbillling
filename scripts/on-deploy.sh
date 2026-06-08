@@ -7,16 +7,28 @@ cd "$APP_ROOT"
 
 echo "==> on-deploy $(date -u +%Y-%m-%dT%H:%M:%SZ)"
 
+run_artisan() {
+  if id www-data >/dev/null 2>&1 && command -v runuser >/dev/null 2>&1; then
+    runuser -u www-data -- php artisan "$@"
+  elif command -v sudo >/dev/null 2>&1 && id www-data >/dev/null 2>&1; then
+    sudo -u www-data php artisan "$@"
+  else
+    php artisan "$@"
+  fi
+}
+
 if [[ -f vendor/autoload.php ]]; then
-  php artisan migrate --force --no-interaction 2>/dev/null || true
-  php artisan isp:post-deploy --fast --no-interaction 2>/dev/null || true
-  php artisan config:clear --no-interaction 2>/dev/null || true
-  php artisan route:clear --no-interaction 2>/dev/null || true
-  php artisan config:cache --no-interaction 2>/dev/null || true
-  php artisan route:cache --no-interaction 2>/dev/null || true
-  php artisan event:cache --no-interaction 2>/dev/null || true
-  php artisan filament:optimize --no-interaction 2>/dev/null || true
+  run_artisan migrate --force --no-interaction 2>/dev/null || true
+  run_artisan isp:post-deploy --fast --no-interaction 2>/dev/null || true
+  run_artisan config:clear --no-interaction 2>/dev/null || true
+  run_artisan route:clear --no-interaction 2>/dev/null || true
+  run_artisan config:cache --no-interaction 2>/dev/null || true
+  run_artisan route:cache --no-interaction 2>/dev/null || true
+  run_artisan event:cache --no-interaction 2>/dev/null || true
+  run_artisan filament:optimize --no-interaction 2>/dev/null || true
 fi
+
+bash "$APP_ROOT/scripts/fix-storage-perms.sh" 2>/dev/null || true
 
 # Mobile APK — background (reads APP_URL from .env or deploy/production.url)
 if [[ -f scripts/auto-mobile-after-deploy.sh ]]; then
