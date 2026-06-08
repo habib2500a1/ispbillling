@@ -137,7 +137,7 @@ final class AccountsSidebarRegistry
             ],
             [
                 'key' => 'ledger',
-                'label' => 'Full accounting',
+                'label' => 'Finance operations center',
                 'icon' => 'heroicon-o-calculator',
                 'sort' => 20,
                 'url' => AccountingHub::getUrl(),

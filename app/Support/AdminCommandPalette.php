@@ -117,7 +117,7 @@ class AdminCommandPalette
             ['group' => 'Reports', 'label' => 'Zone churn & collection', 'url' => ChurnZoneReports::getUrl()],
             ['group' => 'Reports', 'label' => 'BTRC DIS export', 'url' => BtrcReport::getUrl()],
             ['group' => 'Reports', 'label' => 'Analytics', 'url' => AnalyticsReports::getUrl()],
-            ['group' => 'Finance', 'label' => 'Accounting', 'url' => AccountingHub::getUrl()],
+            ['group' => 'Finance', 'label' => 'Finance operations', 'url' => AccountingHub::getUrl()],
             ['group' => 'Resellers', 'label' => 'Reseller hub', 'url' => ResellersHub::getUrl()],
             ['group' => 'Admin', 'label' => 'My account & password', 'url' => EditAdminProfile::getUrl()],
             ['group' => 'Admin', 'label' => 'Staff control', 'url' => StaffControlHub::getUrl()],

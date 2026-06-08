@@ -44,7 +44,7 @@ class AdminPanelSmokeTest extends TestCase
             'payments' => ['/admin/payments', 'Payment'],
             'resellers hub' => ['/admin/resellers-hub', 'Reseller'],
             'resellers create' => ['/admin/resellers/create', 'Add reseller'],
-            'accounting hub' => ['/admin/accounting-hub', 'Accounting'],
+            'accounting hub' => ['/admin/accounting-hub', 'Finance Operations'],
             'financial reports' => ['/admin/financial-reports', 'Profit'],
             'reports hub' => ['/admin/reports-hub', 'Reporting'],
             'analytics reports' => ['/admin/analytics-reports', 'Collection'],

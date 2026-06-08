@@ -33,7 +33,7 @@ final class AdminRouteAssets
             'filament.admin.pages.billing-dashboard' => ['billing-hub-pro.css', 'billing-pro.css'],
             'filament.admin.pages.billing-overview' => ['billing-hub-pro.css', 'billing-pro.css'],
             'filament.admin.pages.billing-notices' => ['billing-pro.css'],
-            'filament.admin.pages.accounting-hub' => ['billing-hub-pro.css'],
+            'filament.admin.pages.accounting-hub' => ['finance-hub.css'],
             'filament.admin.pages.accounts-hub' => ['billing-hub-pro.css'],
             'filament.admin.pages.collection-desk-report' => ['collection-desk-report-pro.css'],
             'filament.admin.pages.reports-hub' => ['reports-intelligence-pro.css'],

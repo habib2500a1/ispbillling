@@ -2,18 +2,10 @@
 
 namespace App\Filament\Pages;
 
-use App\Models\BankAccount;
-use App\Models\CashbookEntry;
-use App\Models\ChartOfAccount;
-use App\Models\Employee;
-use App\Models\JournalEntry;
-use App\Models\PayrollRun;
-use App\Models\Vendor;
-use App\Models\VendorPayment;
-use App\Services\Accounting\AccountingReportService;
-use App\Services\Accounting\CashbookService;
 use App\Services\Accounting\ChartOfAccountSeeder;
-use Carbon\Carbon;
+use App\Services\Finance\FinanceHubDashboardService;
+use App\Support\AccountsSidebarRegistry;
+use App\Support\TenantResolver;
 use Filament\Actions\Action;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
@@ -26,48 +18,86 @@ class AccountingHub extends Page
 
     protected static string $view = 'filament.pages.accounting-hub';
 
-    protected static ?string $navigationLabel = 'Accounting & finance';
+    protected static ?string $navigationLabel = 'Finance operations';
 
-    protected static ?string $title = 'Accounting & finance';
+    protected static ?string $title = 'Finance Operations Center';
 
     protected static ?string $navigationGroup = 'Accounting';
 
     protected static ?int $navigationSort = 1;
 
+    /** @var array<string, mixed> */
+    public array $finance = [];
+
+    public string $searchQuery = '';
+
+    /** @var list<array<string, mixed>> */
+    public array $searchResults = [];
+
+    public string $activeTab = 'dashboard';
+
+    public function mount(): void
+    {
+        abort_unless(static::canAccess(), 403);
+        $this->refreshFinance();
+    }
+
+    public function refreshFinance(): void
+    {
+        $this->finance = app(FinanceHubDashboardService::class)->snapshot();
+    }
+
+    public function updatedSearchQuery(): void
+    {
+        $this->searchResults = app(FinanceHubDashboardService::class)->search($this->searchQuery);
+    }
+
+    public function setTab(string $tab): void
+    {
+        $this->activeTab = $tab;
+    }
+
     /**
      * @return array<string, mixed>
      */
-    public function getStats(): array
+    public function getViewData(): array
     {
-        $from = now()->startOfMonth();
-        $to = now()->endOfMonth();
-        $reports = app(AccountingReportService::class);
-        $pl = $reports->profitAndLoss($from, $to);
-        $snap = $reports->incomeExpenseSnapshot($from, $to);
-        $cash = app(CashbookService::class)->runningBalance();
+        $finance = $this->finance;
+        $kpis = $finance['kpis'] ?? [];
+        $accounts = $finance['accounts'] ?? [];
+        $tenantId = TenantResolver::currentTenantId() ?? 1;
+        $gl = app(FinanceHubDashboardService::class)->glCounts($tenantId);
+        $profitPositive = ($kpis['net_profit'] ?? 0) >= 0;
 
-        $income = (float) $pl['income'];
-        $expenses = (float) $pl['expenses'];
-        $profit = (float) $pl['net_profit'];
-        $margin = $income > 0 ? round(($profit / $income) * 100, 1) : 0.0;
+        $kpiCards = [
+            ['key' => 'total_revenue', 'label' => 'Total revenue', 'class' => 'isp-fin-kpi--revenue'],
+            ['key' => 'today_collection', 'label' => "Today's collection", 'class' => 'isp-fin-kpi--today'],
+            ['key' => 'monthly_collection', 'label' => 'Monthly collection', 'class' => 'isp-fin-kpi--month'],
+            ['key' => 'due_collection', 'label' => 'Due collection', 'class' => 'isp-fin-kpi--due'],
+            ['key' => 'overdue_collection', 'label' => 'Overdue', 'class' => 'isp-fin-kpi--overdue'],
+            ['key' => 'total_expenses', 'label' => 'Total expenses', 'class' => 'isp-fin-kpi--expense'],
+            ['key' => 'net_profit', 'label' => 'Net profit', 'class' => $profitPositive ? 'isp-fin-kpi--profit' : 'isp-fin-kpi--loss'],
+            ['key' => 'cash_flow', 'label' => 'Cash flow', 'class' => 'isp-fin-kpi--flow'],
+            ['key' => 'bank_balance', 'label' => 'Bank balance', 'class' => 'isp-fin-kpi--bank'],
+            ['key' => 'mobile_banking', 'label' => 'Mobile / field cash', 'class' => 'isp-fin-kpi--mfs'],
+        ];
 
         return [
-            'period_label' => $from->format('F Y'),
-            'accounts' => ChartOfAccount::query()->count(),
-            'journals' => JournalEntry::query()->whereMonth('entry_date', now()->month)->count(),
-            'banks' => BankAccount::query()->where('is_active', true)->count(),
-            'bank_balance' => (float) BankAccount::query()->sum('current_balance'),
-            'vendors' => Vendor::query()->where('is_active', true)->count(),
-            'employees' => Employee::query()->where('is_active', true)->count(),
-            'cash_balance' => $cash,
-            'month_income' => $income,
-            'month_expenses' => $expenses,
-            'month_profit' => $profit,
-            'profit_margin' => $margin,
-            'collections' => $snap['collections'],
-            'cashbook_in' => $snap['cashbook_in'],
-            'cashbook_out' => $snap['cashbook_out'],
-            'income_pct' => $income + $expenses > 0 ? round(($income / ($income + $expenses)) * 100) : 50,
+            'finance' => $finance,
+            'kpis' => $kpis,
+            'accounts' => $accounts,
+            'gl' => $gl,
+            'profitPositive' => $profitPositive,
+            'kpiCards' => $kpiCards,
+            'quickActions' => $this->getQuickActions(),
+            'moduleGroups' => $this->getModuleGroups($gl, $accounts),
+            'navLinks' => AccountsSidebarRegistry::definitions(),
+            'footerLinks' => [
+                ['url' => BillingOverview::getUrl(), 'label' => 'Billing', 'icon' => 'heroicon-o-banknotes'],
+                ['url' => BillCollectionDesk::getUrl(), 'label' => 'Collect', 'icon' => 'heroicon-o-currency-bangladeshi'],
+                ['url' => AccountsHub::getUrl(), 'label' => 'Accounts', 'icon' => 'heroicon-o-squares-2x2'],
+                ['url' => FinancialReports::getUrl(), 'label' => 'Reports', 'icon' => 'heroicon-o-chart-bar'],
+            ],
         ];
     }
 
@@ -77,196 +107,88 @@ class AccountingHub extends Page
     public function getQuickActions(): array
     {
         return [
-            [
-                'label' => 'Cash in',
-                'url' => \App\Filament\Resources\CashbookEntryResource::getUrl('create'),
-                'icon' => 'arrow-down-tray',
-                'tone' => 'emerald',
-            ],
-            [
-                'label' => 'Cash out',
-                'url' => \App\Filament\Resources\CashbookEntryResource::getUrl('create'),
-                'icon' => 'arrow-up-tray',
-                'tone' => 'rose',
-            ],
-            [
-                'label' => 'Journal',
-                'url' => \App\Filament\Resources\JournalEntryResource::getUrl('create'),
-                'icon' => 'book-open',
-                'tone' => 'violet',
-            ],
-            [
-                'label' => 'Vendor pay',
-                'url' => \App\Filament\Resources\VendorPaymentResource::getUrl('create'),
-                'icon' => 'banknotes',
-                'tone' => 'amber',
-            ],
-            [
-                'label' => 'Reports',
-                'url' => FinancialReports::getUrl(),
-                'icon' => 'chart-bar',
-                'tone' => 'cyan',
-            ],
-            [
-                'label' => 'GL auto-post',
-                'url' => ManageAccountingIntegration::getUrl(),
-                'icon' => 'cog-6-tooth',
-                'tone' => 'slate',
-            ],
-            [
-                'label' => 'Cashbook',
-                'url' => \App\Filament\Resources\CashbookEntryResource::getUrl('index'),
-                'icon' => 'wallet',
-                'tone' => 'indigo',
-            ],
+            ['label' => 'Collect payment', 'url' => BillCollectionDesk::getUrl(), 'icon' => 'currency-bangladeshi', 'tone' => 'emerald'],
+            ['label' => 'Cash in', 'url' => \App\Filament\Resources\CashbookEntryResource::getUrl('create'), 'icon' => 'arrow-down-tray', 'tone' => 'teal'],
+            ['label' => 'Cash out', 'url' => \App\Filament\Resources\CashbookEntryResource::getUrl('create'), 'icon' => 'arrow-up-tray', 'tone' => 'rose'],
+            ['label' => 'Journal', 'url' => \App\Filament\Resources\JournalEntryResource::getUrl('create'), 'icon' => 'book-open', 'tone' => 'violet'],
+            ['label' => 'Vendor pay', 'url' => \App\Filament\Resources\VendorPaymentResource::getUrl('create'), 'icon' => 'banknotes', 'tone' => 'amber'],
+            ['label' => 'Approve expense', 'url' => \App\Filament\Resources\StaffExpenseResource::getUrl('index'), 'icon' => 'check-badge', 'tone' => 'cyan'],
+            ['label' => 'P&L report', 'url' => FinancialReports::getUrl(), 'icon' => 'chart-bar', 'tone' => 'indigo'],
+            ['label' => 'GL settings', 'url' => ManageAccountingIntegration::getUrl(), 'icon' => 'cog-6-tooth', 'tone' => 'slate'],
         ];
     }
 
     /**
-     * @return list<array{title: string, subtitle: string, tone: string, icon: string, items: list<array{title: string, description: string, url: string, badge: ?string, icon: string}>}>
+     * @param  array<string, int>  $gl
+     * @param  array<string, mixed>  $accounts
+     * @return list<array<string, mixed>>
      */
-    public function getModuleGroups(): array
+    public function getModuleGroups(array $gl, array $accounts): array
     {
-        $stats = $this->getStats();
-
         return [
             [
-                'title' => 'Daily cash',
-                'subtitle' => 'Receipts, payments & running balance',
+                'title' => 'Income & collection',
+                'subtitle' => 'Subscriber payments & billing',
                 'tone' => 'emerald',
+                'icon' => 'banknotes',
+                'items' => [
+                    ['title' => 'Bill collection desk', 'description' => 'Cashier — collect & receipt', 'url' => BillCollectionDesk::getUrl(), 'badge' => 'Live', 'icon' => 'currency-bangladeshi'],
+                    ['title' => 'Billing center', 'description' => 'Invoices, due, analytics', 'url' => BillingOverview::getUrl(), 'badge' => null, 'icon' => 'receipt-percent'],
+                    ['title' => 'Payments ledger', 'description' => 'All completed payments', 'url' => \App\Filament\Resources\PaymentResource::getUrl('index'), 'badge' => null, 'icon' => 'credit-card'],
+                ],
+            ],
+            [
+                'title' => 'Daily cash',
+                'subtitle' => 'Cashbook & liquidity',
+                'tone' => 'cyan',
                 'icon' => 'wallet',
                 'items' => [
-                    [
-                        'title' => 'Cashbook',
-                        'description' => number_format($stats['cashbook_in'], 0).' in · '.number_format($stats['cashbook_out'], 0).' out this month',
-                        'url' => \App\Filament\Resources\CashbookEntryResource::getUrl('index'),
-                        'badge' => 'Live',
-                        'icon' => 'book-open',
-                    ],
-                    [
-                        'title' => 'Record cash in',
-                        'description' => 'Walk-in collection, petty cash receipt',
-                        'url' => \App\Filament\Resources\CashbookEntryResource::getUrl('create'),
-                        'badge' => null,
-                        'icon' => 'arrow-down-tray',
-                    ],
-                    [
-                        'title' => 'Record cash out',
-                        'description' => 'Petty expense, office disbursement',
-                        'url' => \App\Filament\Resources\CashbookEntryResource::getUrl('create'),
-                        'badge' => null,
-                        'icon' => 'arrow-up-tray',
-                    ],
+                    ['title' => 'Cashbook', 'description' => number_format($accounts['cashbook_in'] ?? 0, 0).' in · '.number_format($accounts['cashbook_out'] ?? 0, 0).' out', 'url' => \App\Filament\Resources\CashbookEntryResource::getUrl('index'), 'badge' => 'Live', 'icon' => 'book-open'],
+                    ['title' => 'Wallet hub', 'description' => 'Cash, bank, collector wallets', 'url' => AccountsWalletHubPage::getUrl(), 'badge' => null, 'icon' => 'building-library'],
                 ],
             ],
             [
                 'title' => 'Ledger & GL',
-                'subtitle' => 'Double-entry journals & chart',
+                'subtitle' => 'Double-entry accounting',
                 'tone' => 'violet',
                 'icon' => 'book-open',
                 'items' => [
-                    [
-                        'title' => 'General ledger',
-                        'description' => 'Posted journals & debit/credit lines',
-                        'url' => \App\Filament\Resources\JournalEntryResource::getUrl('index'),
-                        'badge' => (string) $stats['journals'].' MTD',
-                        'icon' => 'document-text',
-                    ],
-                    [
-                        'title' => 'New journal entry',
-                        'description' => 'Manual GL posting',
-                        'url' => \App\Filament\Resources\JournalEntryResource::getUrl('create'),
-                        'badge' => null,
-                        'icon' => 'plus-circle',
-                    ],
-                    [
-                        'title' => 'Chart of accounts',
-                        'description' => $stats['accounts'].' GL accounts · assets, income, expenses',
-                        'url' => \App\Filament\Resources\ChartOfAccountResource::getUrl('index'),
-                        'badge' => null,
-                        'icon' => 'table-cells',
-                    ],
+                    ['title' => 'General ledger', 'description' => 'Posted journal entries', 'url' => \App\Filament\Resources\JournalEntryResource::getUrl('index'), 'badge' => (string) ($gl['journals'] ?? 0).' MTD', 'icon' => 'document-text'],
+                    ['title' => 'Chart of accounts', 'description' => ($gl['accounts'] ?? 0).' GL accounts', 'url' => \App\Filament\Resources\ChartOfAccountResource::getUrl('index'), 'badge' => null, 'icon' => 'table-cells'],
+                    ['title' => 'Income ledger', 'description' => 'Subscriber & other income', 'url' => AccountsIncomePage::getUrl(), 'badge' => null, 'icon' => 'arrow-trending-up'],
                 ],
             ],
             [
-                'title' => 'Banking',
-                'subtitle' => 'Accounts & balances',
-                'tone' => 'cyan',
+                'title' => 'Bank & cash',
+                'subtitle' => 'Liquidity accounts',
+                'tone' => 'blue',
                 'icon' => 'building-library',
                 'items' => [
-                    [
-                        'title' => 'Bank accounts',
-                        'description' => number_format($stats['bank_balance'], 0).' BDT across '.$stats['banks'].' accounts',
-                        'url' => \App\Filament\Resources\BankAccountResource::getUrl('index'),
-                        'badge' => null,
-                        'icon' => 'building-library',
-                    ],
+                    ['title' => 'Bank accounts', 'description' => ($gl['banks'] ?? 0).' active · '.number_format($accounts['bank_balance'] ?? 0, 0).' BDT', 'url' => \App\Filament\Resources\BankAccountResource::getUrl('index'), 'badge' => null, 'icon' => 'building-library'],
+                    ['title' => 'Cash accounts', 'description' => 'Cashbook · '.number_format($accounts['cash_balance'] ?? 0, 0).' BDT on hand', 'url' => \App\Filament\Resources\CashbookEntryResource::getUrl('index'), 'badge' => 'Live', 'icon' => 'wallet'],
+                    ['title' => 'Wallet hub', 'description' => 'Collector & mobile wallets', 'url' => AccountsWalletHubPage::getUrl(), 'badge' => null, 'icon' => 'credit-card'],
                 ],
             ],
             [
-                'title' => 'Payables',
-                'subtitle' => 'Vendors & supplier payments',
+                'title' => 'Expenses & payables',
+                'subtitle' => 'Vendors, staff, collectors',
                 'tone' => 'amber',
                 'icon' => 'truck',
                 'items' => [
-                    [
-                        'title' => 'Vendors',
-                        'description' => $stats['vendors'].' active suppliers',
-                        'url' => \App\Filament\Resources\VendorResource::getUrl('index'),
-                        'badge' => null,
-                        'icon' => 'building-storefront',
-                    ],
-                    [
-                        'title' => 'Vendor payments',
-                        'description' => 'Bills, VAT & ledger posting',
-                        'url' => \App\Filament\Resources\VendorPaymentResource::getUrl('index'),
-                        'badge' => null,
-                        'icon' => 'banknotes',
-                    ],
-                    [
-                        'title' => 'New vendor payment',
-                        'description' => 'Pay supplier with VAT split',
-                        'url' => \App\Filament\Resources\VendorPaymentResource::getUrl('create'),
-                        'badge' => null,
-                        'icon' => 'plus-circle',
-                    ],
-                ],
-            ],
-            [
-                'title' => 'Payroll',
-                'subtitle' => 'Staff salaries',
-                'tone' => 'fuchsia',
-                'icon' => 'user-group',
-                'items' => [
-                    [
-                        'title' => 'Employees',
-                        'description' => $stats['employees'].' active staff',
-                        'url' => \App\Filament\Resources\EmployeeResource::getUrl('index'),
-                        'badge' => null,
-                        'icon' => 'users',
-                    ],
-                    [
-                        'title' => 'Payroll runs',
-                        'description' => 'Monthly salary processing',
-                        'url' => \App\Filament\Resources\PayrollRunResource::getUrl('index'),
-                        'badge' => null,
-                        'icon' => 'calendar-days',
-                    ],
+                    ['title' => 'Staff expenses', 'description' => 'Submit & approve expenses', 'url' => \App\Filament\Resources\StaffExpenseResource::getUrl('index'), 'badge' => null, 'icon' => 'clipboard-document-check'],
+                    ['title' => 'Vendor payments', 'description' => ($gl['vendors'] ?? 0).' active vendors', 'url' => \App\Filament\Resources\VendorPaymentResource::getUrl('index'), 'badge' => null, 'icon' => 'banknotes'],
+                    ['title' => 'Accounts expenses', 'description' => 'Combined expense view', 'url' => AccountsExpensesPage::getUrl(), 'badge' => null, 'icon' => 'arrow-trending-down'],
                 ],
             ],
             [
                 'title' => 'Reports',
-                'subtitle' => 'P&L, VAT & period filters',
+                'subtitle' => 'P&L, collections, analytics',
                 'tone' => 'indigo',
                 'icon' => 'chart-bar',
                 'items' => [
-                    [
-                        'title' => 'P&L & VAT reports',
-                        'description' => 'Profit/loss, VAT summary, custom dates',
-                        'url' => FinancialReports::getUrl(),
-                        'badge' => 'Open',
-                        'icon' => 'chart-pie',
-                    ],
+                    ['title' => 'Financial reports', 'description' => 'P&L · VAT · cashbook', 'url' => FinancialReports::getUrl(), 'badge' => 'Open', 'icon' => 'chart-pie'],
+                    ['title' => 'Analytics reports', 'description' => 'Zone · package · churn', 'url' => AnalyticsReports::getUrl(), 'badge' => null, 'icon' => 'presentation-chart-line'],
+                    ['title' => 'Fund flow', 'description' => 'Where collections went', 'url' => BillingFundFlowReport::getUrl(), 'badge' => null, 'icon' => 'arrow-path'],
                 ],
             ],
         ];

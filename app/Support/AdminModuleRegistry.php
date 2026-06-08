@@ -156,7 +156,7 @@ class AdminModuleRegistry
             ['group' => 'Inventory', 'section' => 'Purchasing', 'label' => 'Vendors', 'description' => 'Suppliers', 'url' => VendorResource::getUrl('index'), 'accent' => 'text-orange-600', 'icon' => 'heroicon-o-building-storefront'],
 
             // ── Finance ──
-            ['group' => 'Finance', 'section' => 'Hub', 'label' => 'Accounting', 'description' => 'Ledger · cashbook · P&L', 'url' => AccountingHub::getUrl(), 'accent' => 'text-fuchsia-600', 'icon' => 'heroicon-o-calculator'],
+            ['group' => 'Finance', 'section' => 'Hub', 'label' => 'Finance operations', 'description' => 'Revenue · collections · GL · P&L', 'url' => AccountingHub::getUrl(), 'accent' => 'text-fuchsia-600', 'icon' => 'heroicon-o-calculator'],
             ['group' => 'Finance', 'section' => 'Reports', 'label' => 'Financial reports', 'description' => 'VAT & profit/loss', 'url' => FinancialReports::getUrl(), 'accent' => 'text-fuchsia-600', 'icon' => 'heroicon-o-document-chart-bar'],
 
             // ── Resellers ──
