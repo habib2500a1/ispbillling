@@ -13,7 +13,7 @@
 
 <x-filament-panels::page class="isp-bandwidth-monitor-page">
     <div
-        class="noc-pro space-y-4"
+        class="net-noc-pro space-y-4"
         @if ($activeTab === 'graphs' && $wanCollect > 0)
             wire:poll.{{ $wanCollect }}s="refreshLiveData"
         @endif
