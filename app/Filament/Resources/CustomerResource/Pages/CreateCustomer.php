@@ -14,6 +14,8 @@ use App\Services\Billing\CustomerActivationBillingService;
 use App\Services\Subscribers\CustomerLineActivationService;
 use App\Support\BillingDefaults;
 use App\Support\SubscriberGpsMeta;
+use App\Support\TenantResolver;
+use App\Services\Tenant\TenantSubscriptionService;
 use App\Models\CustomerContact;
 use App\Support\CustomerStatus;
 use Illuminate\Support\Facades\Hash;
@@ -51,6 +53,8 @@ class CreateCustomer extends CreateRecord
      */
     protected function mutateFormDataBeforeCreate(array $data): array
     {
+        app(TenantSubscriptionService::class)->assertCanAddCustomer(TenantResolver::requiredTenantId());
+
         $data['joined_at'] = $data['joined_at'] ?? now()->toDateString();
         $data['kyc_status'] = $data['kyc_status'] ?? 'pending';
         $data['status'] = $data['status'] ?? CustomerStatus::ACTIVE;

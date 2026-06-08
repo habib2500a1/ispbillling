@@ -4,6 +4,7 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\TenantResource\Pages;
 use App\Models\Tenant;
+use App\Support\TenantSubscriptionCatalog;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -71,6 +72,61 @@ class TenantResource extends Resource
                         ->email()
                         ->maxLength(255),
                 ])->columns(2),
+                Forms\Components\Section::make('SaaS package (sell plan)')
+                    ->description('Set customer cap, your monthly platform fee (BDT), and bill date when onboarding a new ISP.')
+                    ->schema([
+                        Forms\Components\Select::make('settings.subscription.plan_key')
+                            ->label('Package')
+                            ->options(TenantSubscriptionCatalog::selectOptions())
+                            ->default(TenantSubscriptionCatalog::PLAN_STARTER_100)
+                            ->required()
+                            ->live()
+                            ->afterStateUpdated(function (Forms\Set $set, ?string $state): void {
+                                $plan = TenantSubscriptionCatalog::plans()[$state ?? ''] ?? null;
+                                if ($plan === null) {
+                                    return;
+                                }
+                                $set('settings.subscription.plan_name', $plan['label']);
+                                $set('settings.subscription.max_customers', $plan['max_customers']);
+                                $set('settings.subscription.monthly_fee_bdt', $plan['monthly_fee_bdt']);
+                            }),
+                        Forms\Components\TextInput::make('settings.subscription.max_customers')
+                            ->label('Max customers')
+                            ->numeric()
+                            ->minValue(1)
+                            ->placeholder('Unlimited')
+                            ->helperText('Leave empty for unlimited (Enterprise / Custom).')
+                            ->visible(fn (Forms\Get $get): bool => $get('settings.subscription.plan_key') === TenantSubscriptionCatalog::PLAN_CUSTOM),
+                        Forms\Components\TextInput::make('settings.subscription.monthly_fee_bdt')
+                            ->label('Platform fee (BDT / month)')
+                            ->numeric()
+                            ->minValue(0)
+                            ->required()
+                            ->suffix('BDT'),
+                        Forms\Components\TextInput::make('settings.subscription.billing_day')
+                            ->label('Platform bill day')
+                            ->numeric()
+                            ->minValue(1)
+                            ->maxValue(28)
+                            ->default(1)
+                            ->required()
+                            ->helperText('Day of month you invoice this ISP for the software (1–28).'),
+                        Forms\Components\Select::make('settings.subscription.status')
+                            ->label('Subscription status')
+                            ->options([
+                                'active' => 'Active',
+                                'trial' => 'Trial',
+                                'suspended' => 'Suspended',
+                                'cancelled' => 'Cancelled',
+                            ])
+                            ->default('active')
+                            ->required(),
+                        Forms\Components\Textarea::make('settings.subscription.notes')
+                            ->label('Internal notes')
+                            ->rows(2)
+                            ->columnSpanFull(),
+                    ])
+                    ->columns(2),
                 Forms\Components\Section::make('Branding')->schema([
                     Forms\Components\TextInput::make('branding.app_name')
                         ->label('App name')
@@ -105,6 +161,31 @@ class TenantResource extends Resource
                         'franchise' => 'Franchise',
                         'reseller_isp' => 'Reseller ISP',
                         default => 'Single ISP',
+                    }),
+                Tables\Columns\TextColumn::make('subscription_plan')
+                    ->label('Package')
+                    ->state(function (Tenant $record): string {
+                        $sub = is_array($record->settings['subscription'] ?? null) ? $record->settings['subscription'] : [];
+
+                        return (string) ($sub['plan_name'] ?? 'Starter');
+                    }),
+                Tables\Columns\TextColumn::make('subscription_usage')
+                    ->label('Customers')
+                    ->state(function (Tenant $record): string {
+                        $sub = app(\App\Services\Tenant\TenantSubscriptionService::class)->forTenant($record->id);
+                        $max = $sub['max_customers'];
+
+                        return $max === null
+                            ? $sub['customers_used'].' / ∞'
+                            : $sub['customers_used'].' / '.$max;
+                    }),
+                Tables\Columns\TextColumn::make('subscription_fee')
+                    ->label('Fee/mo')
+                    ->state(function (Tenant $record): string {
+                        $sub = is_array($record->settings['subscription'] ?? null) ? $record->settings['subscription'] : [];
+                        $fee = (float) ($sub['monthly_fee_bdt'] ?? 0);
+
+                        return $fee > 0 ? number_format($fee, 0).' BDT' : '—';
                     }),
                 Tables\Columns\TextColumn::make('domain')
                     ->toggleable(),

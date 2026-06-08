@@ -12,6 +12,7 @@ use App\Models\Reseller;
 use App\Models\SupportTicket;
 use App\Models\Tenant;
 use App\Models\User;
+use App\Services\Tenant\TenantSubscriptionService;
 use App\Support\CompanyBranding;
 use App\Support\Rbac\IspPermissionCatalog;
 use App\Support\Rbac\StaffCapability;
@@ -42,6 +43,7 @@ final class TenantOrganizationIntelligenceService
                 'activity' => $this->recentActivity($tenantId),
                 'roles' => $this->roleSummary(),
                 'white_label' => $this->whiteLabel($tenantId),
+                'subscription' => app(TenantSubscriptionService::class)->forTenant($tenantId),
             ],
         );
     }

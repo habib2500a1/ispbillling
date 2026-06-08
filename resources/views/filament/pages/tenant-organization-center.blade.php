@@ -102,6 +102,23 @@
                 @endif
 
                 @if ($activeTab === 'dashboard')
+                    @php $sub = $org['subscription'] ?? []; @endphp
+                    <section class="torg-glass p-4 mb-4">
+                        <h2 class="text-sm font-semibold mb-3">SaaS package</h2>
+                        <dl class="torg-dl">
+                            <div><dt>Plan</dt><dd>{{ $sub['plan_name'] ?? '—' }}</dd></div>
+                            <div><dt>Customers</dt><dd>
+                                {{ $sub['customers_used'] ?? 0 }}
+                                / {{ ($sub['max_customers'] ?? null) === null ? '∞' : $sub['max_customers'] }}
+                            </dd></div>
+                            <div><dt>Platform fee</dt><dd>{{ number_format($sub['monthly_fee_bdt'] ?? 0, 0) }} BDT / month</dd></div>
+                            <div><dt>Bill day</dt><dd>{{ $sub['billing_day'] ?? 1 }} of month</dd></div>
+                            <div><dt>Status</dt><dd>{{ ucfirst($sub['status'] ?? 'active') }}</dd></div>
+                        </dl>
+                        @if ($access['tenants'] ?? false)
+                            <a href="{{ \App\Filament\Resources\TenantResource::getUrl('edit', ['record' => $tenant['id'] ?? 1]) }}" class="torg-link-btn mt-3 inline-block">Edit package →</a>
+                        @endif
+                    </section>
                     <div class="grid gap-4 lg:grid-cols-2">
                         <section class="torg-glass p-4">
                             <h2 class="text-sm font-semibold mb-3">Organization profile</h2>

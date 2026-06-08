@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1\Staff;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Services\Mobile\StaffCustomerFormService;
+use App\Services\Tenant\TenantSubscriptionService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -24,6 +25,7 @@ class StaffCustomerStoreController extends Controller
         /** @var User $user */
         $user = $request->user();
         $this->authorizeCreate($user);
+        app(TenantSubscriptionService::class)->assertCanAddCustomer($user->tenant_id);
 
         $result = $forms->create($user, $request);
         $customer = $result['customer'];
