@@ -8,6 +8,9 @@
     var session = {};
     var busy = false;
     var pollTimer = null;
+    var pollIntervalMs = 180000;
+    var maxMessages = 24;
+    var dashboardRefreshing = false;
 
     function csrfToken() {
         var meta = document.querySelector('meta[name="csrf-token"]');
@@ -106,6 +109,9 @@
         }
 
         box.insertAdjacentHTML('beforeend', renderMessage(msg));
+        while (box.children.length > maxMessages) {
+            box.removeChild(box.firstElementChild);
+        }
         scrollMessages();
     }
 
@@ -193,8 +199,6 @@
                 table: data.table || null,
                 links: data.links || [],
             });
-
-            refreshDashboard({ quiet: true });
         } catch (err) {
             appendMessage({
                 role: 'assistant',
@@ -263,7 +267,11 @@
 
     async function refreshDashboard(opts) {
         var root = shell();
-        if (!root) {
+        if (!root || dashboardRefreshing) {
+            return;
+        }
+
+        if (document.hidden && (!opts || !opts.force)) {
             return;
         }
 
@@ -272,6 +280,7 @@
             return;
         }
 
+        dashboardRefreshing = true;
         try {
             var data = await fetchJson(dashboardUrl, { method: 'GET' });
             updateKpis(data.summary || {});
@@ -280,6 +289,26 @@
             if (!opts || !opts.quiet) {
                 console.warn('AI dashboard refresh failed', err);
             }
+        } finally {
+            dashboardRefreshing = false;
+        }
+    }
+
+    function startPoll() {
+        if (pollTimer) {
+            clearInterval(pollTimer);
+        }
+        pollTimer = setInterval(function () {
+            if (!document.hidden) {
+                refreshDashboard({ quiet: true });
+            }
+        }, pollIntervalMs);
+    }
+
+    function stopPoll() {
+        if (pollTimer) {
+            clearInterval(pollTimer);
+            pollTimer = null;
         }
     }
 
@@ -331,9 +360,17 @@
         if (pollTimer) {
             clearInterval(pollTimer);
         }
-        pollTimer = setInterval(function () {
-            refreshDashboard({ quiet: true });
-        }, 90000);
+        startPoll();
+        document.addEventListener('visibilitychange', function () {
+            if (document.hidden) {
+                stopPoll();
+            } else {
+                refreshDashboard({ quiet: true, force: true });
+                startPoll();
+            }
+        }, { passive: true });
+
+        refreshDashboard({ quiet: true, force: true });
     }
 
     function initTheme() {

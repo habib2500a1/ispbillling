@@ -54,7 +54,7 @@ final class AiOperationsOrchestrator
 
         return SafeCache::remember(
             'ai_copilot:dashboard:'.$tenantId,
-            now()->addSeconds(60),
+            now()->addSeconds(120),
             fn (): array => [
                 'summary' => $this->executiveSummary($tenantId),
                 'alerts' => $this->alerts->alerts($tenantId),
@@ -104,7 +104,7 @@ final class AiOperationsOrchestrator
             ];
         }
 
-        $payload = $this->runTool($tool, $context->filters(), $tenantId);
+        $payload = $this->runToolCached($tool, $context->filters(), $tenantId);
         $composed = $this->composer->compose($tool, $payload);
 
         $context->addMessage('user', $query);
@@ -113,6 +113,21 @@ final class AiOperationsOrchestrator
         return array_merge($composed, [
             'session' => array_merge($context->toArray(), ['last_tool' => $tool]),
         ]);
+    }
+
+    /**
+     * @param  array<string, mixed>  $filters
+     * @return array<string, mixed>
+     */
+    private function runToolCached(string $tool, array $filters, int $tenantId): array
+    {
+        $filterKey = md5(json_encode($filters) ?: '');
+
+        return SafeCache::remember(
+            'ai_copilot:tool:'.$tenantId.':'.$tool.':'.$filterKey,
+            now()->addSeconds(90),
+            fn (): array => $this->runTool($tool, $filters, $tenantId),
+        );
     }
 
     /**
@@ -155,6 +170,18 @@ final class AiOperationsOrchestrator
      * @return array<string, mixed>
      */
     private function executiveSummary(int $tenantId): array
+    {
+        return SafeCache::remember(
+            'ai_copilot:exec_summary:'.$tenantId,
+            now()->addSeconds(120),
+            fn (): array => $this->buildExecutiveSummary($tenantId),
+        );
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function buildExecutiveSummary(int $tenantId): array
     {
         $isp = app(IspOsIntelligenceService::class)->payload($tenantId);
         $ai = app(AiAnalyticsService::class)->insights($tenantId);

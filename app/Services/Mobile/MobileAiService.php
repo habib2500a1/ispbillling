@@ -5,6 +5,7 @@ namespace App\Services\Mobile;
 use App\Models\Customer;
 use App\Services\Portal\CustomerBandwidthService;
 use App\Services\Portal\CustomerOnuOpticalService;
+use App\Support\SafeCache;
 
 final class MobileAiService
 {
@@ -20,8 +21,16 @@ final class MobileAiService
     {
         $q = strtolower(trim($question));
         $customer->loadMissing('package');
-        $onu = $this->onu->snapshot($customer);
-        $live = $this->bandwidth->liveStats($customer);
+        $onu = SafeCache::remember(
+            'mobile_ai:onu:'.$customer->id,
+            now()->addSeconds(45),
+            fn (): array => $this->onu->snapshot($customer),
+        );
+        $live = SafeCache::remember(
+            'mobile_ai:bandwidth:'.$customer->id,
+            now()->addSeconds(30),
+            fn (): array => $this->bandwidth->liveStats($customer),
+        );
         $hints = [];
 
         if (str_contains($q, 'slow') || str_contains($q, 'speed')) {

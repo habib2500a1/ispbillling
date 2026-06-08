@@ -3,7 +3,7 @@
 namespace App\Filament\Pages;
 
 use App\Filament\Pages\Concerns\HidesHubNavigation;
-use App\Services\Ai\AiOperationsOrchestrator;
+use App\Services\Ai\AiIntentCatalog;
 use App\Support\Rbac\StaffCapability;
 use Filament\Pages\Page;
 
@@ -30,7 +30,20 @@ class AiOperationsCopilotHub extends Page
 
     public function mount(): void
     {
-        $this->refreshDashboard();
+        // Lightweight shell — KPIs/alerts load once via JS (avoids duplicate heavy queries on Livewire mount).
+        $this->dashboard = [
+            'summary' => [
+                'collected_today' => 0,
+                'open_tickets' => 0,
+                'customers_offline' => 0,
+                'active_faults' => 0,
+                'network_health' => 0,
+                'revenue_trend_pct' => 0,
+            ],
+            'alerts' => [],
+            'recommendations' => [],
+            'chips' => array_slice(app(AiIntentCatalog::class)->quickChips(), 0, 12),
+        ];
     }
 
     public function getTitle(): string
@@ -46,11 +59,6 @@ class AiOperationsCopilotHub extends Page
     public function getExtraBodyAttributes(): array
     {
         return ['class' => 'ai-copilot-module'];
-    }
-
-    public function refreshDashboard(): void
-    {
-        $this->dashboard = app(AiOperationsOrchestrator::class)->dashboard();
     }
 
     public function toggleAlerts(): void

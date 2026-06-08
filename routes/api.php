@@ -161,8 +161,10 @@ Route::prefix('v1')->group(function (): void {
         Route::get('/staff/reports/expiring', [StaffReportsController::class, 'expiring']);
         Route::get('/staff/reports/collections', [StaffReportsController::class, 'collections']);
         Route::get('/staff/reports/due', [StaffReportsController::class, 'due']);
-        Route::get('/staff/ai/dashboard', [\App\Http\Controllers\Api\V1\Staff\StaffAiController::class, 'dashboard']);
-        Route::post('/staff/ai/ask', [\App\Http\Controllers\Api\V1\Staff\StaffAiController::class, 'ask']);
+        Route::middleware('throttle:30,1')->group(function (): void {
+            Route::get('/staff/ai/dashboard', [\App\Http\Controllers\Api\V1\Staff\StaffAiController::class, 'dashboard']);
+            Route::post('/staff/ai/ask', [\App\Http\Controllers\Api\V1\Staff\StaffAiController::class, 'ask']);
+        });
         Route::post('/staff/customers/{customer}/sms-reminder', [StaffCommsController::class, 'smsReminder'])->whereNumber('customer');
         Route::post('/staff/sms/bulk-due', [StaffCommsController::class, 'smsBulkDue']);
         Route::post('/staff/notices/broadcast', [StaffCommsController::class, 'broadcastNotice']);
@@ -357,7 +359,7 @@ Route::prefix('v1')->group(function (): void {
             Route::get('/usage/live', [CustomerUsageController::class, 'live']);
             Route::get('/onu/status', [CustomerOnuController::class, 'status']);
             Route::post('/onu/reboot', [CustomerOnuController::class, 'reboot']);
-            Route::post('/ai/ask', [CustomerAiController::class, 'ask']);
+            Route::post('/ai/ask', [CustomerAiController::class, 'ask'])->middleware('throttle:20,1');
             Route::post('/profile/password', [CustomerProfileController::class, 'updatePassword']);
             Route::get('/packages', [CustomerPackageController::class, 'index']);
             Route::post('/packages/change', [CustomerPackageController::class, 'requestChange']);

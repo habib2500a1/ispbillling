@@ -24,7 +24,7 @@ final class AiAlertAggregator
 
         return SafeCache::remember(
             'ai_copilot:alerts:'.$tenantId,
-            now()->addSeconds(60),
+            now()->addSeconds(120),
             fn (): array => $this->build($tenantId),
         );
     }

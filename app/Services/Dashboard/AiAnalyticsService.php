@@ -9,6 +9,7 @@ use App\Models\SupportTicket;
 use App\Services\Optical\OpticalDashboardService;
 use App\Support\CustomerStatus;
 use App\Support\PaymentType;
+use App\Support\SafeCache;
 use App\Support\TenantResolver;
 use Carbon\Carbon;
 
@@ -20,6 +21,19 @@ final class AiAnalyticsService
     public function insights(?int $tenantId = null): array
     {
         $tenantId = $tenantId ?? TenantResolver::requiredTenantId();
+
+        return SafeCache::remember(
+            'ai_analytics:insights:'.$tenantId,
+            now()->addSeconds(120),
+            fn (): array => $this->computeInsights($tenantId),
+        );
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function computeInsights(int $tenantId): array
+    {
         $optical = app(OpticalDashboardService::class)->snapshot($tenantId);
 
         $churnRisk = Customer::withoutGlobalScopes()
