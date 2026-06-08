@@ -29,49 +29,62 @@ class AutomaticProcessSeeder extends Seeder
      */
     private function applyDefaults(bool $fullRestore): array
     {
-        $tenantId = (int) (Tenant::query()->value('id') ?? 1);
         $scheduler = app(AutomaticProcessScheduler::class);
         $stats = ['created' => 0, 'updated' => 0];
 
-        foreach ($this->defaultRows() as $row) {
-            $enabled = (bool) ($row['enabled'] ?? true);
-            unset($row['enabled']);
+        $tenantIds = Tenant::query()
+            ->where('is_active', true)
+            ->orderBy('id')
+            ->pluck('id');
 
-            $existing = AutomaticProcess::query()->withoutGlobalScopes()
-                ->where('slug', $row['slug'])
-                ->first();
+        if ($tenantIds->isEmpty()) {
+            $tenantIds = collect([1]);
+        }
 
-            if ($existing === null) {
-                $process = AutomaticProcess::query()->withoutGlobalScopes()->create(
-                    array_merge($row, ['tenant_id' => $tenantId, 'enabled' => $enabled]),
-                );
-                $process->forceFill([
-                    'next_run_at' => $scheduler->computeNextRunAt($process),
-                ])->save();
-                $stats['created']++;
+        foreach ($tenantIds as $tenantId) {
+            $tenantId = (int) $tenantId;
 
-                continue;
-            }
+            foreach ($this->defaultRows() as $row) {
+                $enabled = (bool) ($row['enabled'] ?? true);
+                unset($row['enabled']);
 
-            if ($fullRestore) {
-                $existing->forceFill(array_merge($row, ['tenant_id' => $tenantId, 'enabled' => $enabled]))->save();
-            } else {
-                $existing->forceFill([
-                    'name' => $row['name'],
-                    'description' => $row['description'] ?? $existing->description,
-                    'artisan_command' => $row['artisan_command'],
-                    'command_options' => $row['command_options'],
-                    'when_config_key' => $row['when_config_key'] ?? null,
-                    'without_overlapping_minutes' => $row['without_overlapping_minutes'] ?? $existing->without_overlapping_minutes,
-                    'sort_order' => $row['sort_order'],
-                ])->save();
-                $stats['updated']++;
-            }
+                $existing = AutomaticProcess::query()->withoutGlobalScopes()
+                    ->where('tenant_id', $tenantId)
+                    ->where('slug', $row['slug'])
+                    ->first();
 
-            if ($existing->fresh()->next_run_at === null) {
-                $existing->forceFill([
-                    'next_run_at' => $scheduler->computeNextRunAt($existing),
-                ])->save();
+                if ($existing === null) {
+                    $process = AutomaticProcess::query()->withoutGlobalScopes()->create(
+                        array_merge($row, ['tenant_id' => $tenantId, 'enabled' => $enabled]),
+                    );
+                    $process->forceFill([
+                        'next_run_at' => $scheduler->computeNextRunAt($process),
+                    ])->save();
+                    $stats['created']++;
+
+                    continue;
+                }
+
+                if ($fullRestore) {
+                    $existing->forceFill(array_merge($row, ['tenant_id' => $tenantId, 'enabled' => $enabled]))->save();
+                } else {
+                    $existing->forceFill([
+                        'name' => $row['name'],
+                        'description' => $row['description'] ?? $existing->description,
+                        'artisan_command' => $row['artisan_command'],
+                        'command_options' => $row['command_options'],
+                        'when_config_key' => $row['when_config_key'] ?? null,
+                        'without_overlapping_minutes' => $row['without_overlapping_minutes'] ?? $existing->without_overlapping_minutes,
+                        'sort_order' => $row['sort_order'],
+                    ])->save();
+                    $stats['updated']++;
+                }
+
+                if ($existing->fresh()->next_run_at === null) {
+                    $existing->forceFill([
+                        'next_run_at' => $scheduler->computeNextRunAt($existing),
+                    ])->save();
+                }
             }
         }
 

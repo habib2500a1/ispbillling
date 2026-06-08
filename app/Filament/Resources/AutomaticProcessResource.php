@@ -248,7 +248,7 @@ class AutomaticProcessResource extends Resource
                     ->icon('heroicon-o-arrow-down-tray')
                     ->color('gray')
                     ->requiresConfirmation()
-                    ->modalDescription('Re-imports built-in process definitions (does not delete custom rows).')
+                    ->modalDescription('Re-imports built-in process definitions for every active tenant (does not delete custom rows).')
                     ->visible(fn (): bool => auth()->user()?->hasRole(['super-admin', 'isp-admin', 'admin']) ?? false)
                     ->action(function (): void {
                         Artisan::call('db:seed', ['--class' => 'Database\\Seeders\\AutomaticProcessSeeder', '--force' => true]);
