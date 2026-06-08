@@ -139,6 +139,16 @@ class AutomaticProcessSeeder extends Seeder
                 'sort_order' => 20,
             ],
             [
+                'slug' => 'generate-platform-invoices',
+                'name' => 'Generate platform SaaS invoices',
+                'description' => 'Monthly software bill for each ISP tenant on their subscription bill day.',
+                'artisan_command' => 'isp:generate-platform-invoices',
+                'command_options' => [],
+                'execute_at' => '06:00',
+                'interval' => 'daily',
+                'sort_order' => 22,
+            ],
+            [
                 'slug' => 'generate-bills-hourly',
                 'name' => 'Generate bills (hourly cycle)',
                 'artisan_command' => 'isp:generate-bills',

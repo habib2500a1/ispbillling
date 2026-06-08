@@ -125,6 +125,10 @@ class TenantResource extends Resource
                             ->label('Internal notes')
                             ->rows(2)
                             ->columnSpanFull(),
+                        Forms\Components\Placeholder::make('subscription_auto_bill')
+                            ->label('Auto invoice')
+                            ->content('Software bill auto-generates at 06:00 on bill day via Automatic process → Generate platform SaaS invoices.')
+                            ->columnSpanFull(),
                     ])
                     ->columns(2),
                 Forms\Components\Section::make('Branding')->schema([

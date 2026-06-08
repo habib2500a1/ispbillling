@@ -115,9 +115,23 @@
                             <div><dt>Bill day</dt><dd>{{ $sub['billing_day'] ?? 1 }} of month</dd></div>
                             <div><dt>Status</dt><dd>{{ ucfirst($sub['status'] ?? 'active') }}</dd></div>
                         </dl>
-                        @if ($access['tenants'] ?? false)
-                            <a href="{{ \App\Filament\Resources\TenantResource::getUrl('edit', ['record' => $tenant['id'] ?? 1]) }}" class="torg-link-btn mt-3 inline-block">Edit package →</a>
+                        @php $pi = $org['platform_invoice'] ?? null; @endphp
+                        @if ($pi)
+                            <p class="text-xs opacity-75 mt-3">
+                                Latest bill: <strong>{{ $pi['invoice_number'] }}</strong>
+                                · {{ number_format($pi['amount'] ?? 0, 0) }} BDT
+                                · {{ ucfirst($pi['status'] ?? 'issued') }}
+                                @if (! empty($pi['due_date'])) · due {{ $pi['due_date'] }} @endif
+                            </p>
+                        @else
+                            <p class="text-xs opacity-60 mt-3">No platform invoice yet — auto-generated on bill day.</p>
                         @endif
+                        <div class="flex flex-wrap gap-2 mt-3">
+                            @if ($access['tenants'] ?? false)
+                                <a href="{{ \App\Filament\Resources\TenantResource::getUrl('edit', ['record' => $tenant['id'] ?? 1]) }}" class="torg-link-btn">Edit package</a>
+                                <a href="{{ \App\Filament\Resources\PlatformInvoiceResource::getUrl('index') }}" class="torg-link-btn">All platform bills</a>
+                            @endif
+                        </div>
                     </section>
                     <div class="grid gap-4 lg:grid-cols-2">
                         <section class="torg-glass p-4">

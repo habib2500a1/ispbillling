@@ -174,6 +174,7 @@ class AdminModuleRegistry
 
             // ── System ──
             ['group' => 'System', 'section' => 'Admin', 'label' => 'Organization center', 'description' => 'Tenant · staff · roles · security', 'url' => TenantOrganizationCenter::getUrl(), 'accent' => 'text-slate-600', 'icon' => 'heroicon-o-building-library'],
+            ['group' => 'System', 'section' => 'Admin', 'label' => 'Platform invoices', 'description' => 'Monthly SaaS software bills per ISP tenant', 'url' => \App\Filament\Resources\PlatformInvoiceResource::getUrl(), 'accent' => 'text-emerald-600', 'icon' => 'heroicon-o-document-currency-bangladeshi'],
             ['group' => 'System', 'section' => 'Safety', 'label' => 'Backup & restore', 'description' => 'Download ZIP · upload restore', 'url' => ManagePlatformBackups::getUrl(), 'accent' => 'text-emerald-600', 'icon' => 'heroicon-o-archive-box-arrow-down'],
             ['group' => 'System', 'section' => 'Integrations', 'label' => 'API configuration', 'description' => 'Tenant host · HMAC · REST tokens', 'url' => \App\Filament\Pages\ManageApiConfiguration::getUrl(), 'accent' => 'text-violet-600', 'icon' => 'heroicon-o-key'],
             ['group' => 'System', 'section' => 'Integrations', 'label' => 'Deployment & license', 'description' => 'Rent SaaS vs sell on-premise', 'url' => \App\Filament\Pages\ManagePlatformDeployment::getUrl(), 'accent' => 'text-violet-600', 'icon' => 'heroicon-o-shield-check'],

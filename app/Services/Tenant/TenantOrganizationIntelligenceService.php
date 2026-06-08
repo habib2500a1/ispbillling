@@ -12,6 +12,7 @@ use App\Models\Reseller;
 use App\Models\SupportTicket;
 use App\Models\Tenant;
 use App\Models\User;
+use App\Services\Tenant\PlatformInvoiceBillingService;
 use App\Services\Tenant\TenantSubscriptionService;
 use App\Support\CompanyBranding;
 use App\Support\Rbac\IspPermissionCatalog;
@@ -44,6 +45,7 @@ final class TenantOrganizationIntelligenceService
                 'roles' => $this->roleSummary(),
                 'white_label' => $this->whiteLabel($tenantId),
                 'subscription' => app(TenantSubscriptionService::class)->forTenant($tenantId),
+                'platform_invoice' => app(PlatformInvoiceBillingService::class)->latestForTenant($tenantId),
             ],
         );
     }

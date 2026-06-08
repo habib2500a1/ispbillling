@@ -126,6 +126,7 @@ class TenantOrganizationCenter extends Page
             ['label' => 'Security dashboard', 'url' => SecurityDashboard::getUrl()],
             ['label' => 'Two-factor setup', 'url' => TwoFactorSetup::getUrl()],
             ['label' => 'Tenants (super-admin)', 'url' => \App\Filament\Resources\TenantResource::getUrl('index'), 'super' => true],
+            ['label' => 'Platform invoices', 'url' => \App\Filament\Resources\PlatformInvoiceResource::getUrl('index'), 'super' => true],
         ];
     }
 
