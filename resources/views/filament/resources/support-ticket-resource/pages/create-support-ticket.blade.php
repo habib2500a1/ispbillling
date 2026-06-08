@@ -7,6 +7,8 @@
         'isp-support-ticket-create',
     ])
 >
+    @include('filament.resources.support-ticket-resource.partials.subscriber-search')
+
     <x-filament-panels::form
         id="form"
         :wire:key="$this->getId() . '.forms.' . $this->getFormStatePath()"

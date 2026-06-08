@@ -7,6 +7,7 @@ use App\Filament\Resources\SupportTicketResource\RelationManagers;
 use App\Models\Customer;
 use App\Models\SupportTicket;
 use App\Models\User;
+use App\Services\Billing\BillCollectionSearchService;
 use App\Services\Support\SupportTicketWorkspaceService;
 use App\Support\SupportPanelAccess;
 use Filament\Forms;
@@ -39,30 +40,8 @@ class SupportTicketResource extends Resource
             ->searchable()
             ->searchingMessage('Searching subscribers…')
             ->noSearchResultsMessage('No subscriber found — try name, code, or phone.')
-            ->searchDebounce(400)
-            ->getSearchResultsUsing(function (string $search): array {
-                $search = trim($search);
-                if (strlen($search) < 2) {
-                    return [];
-                }
-
-                return Customer::query()
-                    ->where(function ($query) use ($search): void {
-                        $query->where('name', 'like', "%{$search}%")
-                            ->orWhere('customer_code', 'like', "%{$search}%")
-                            ->orWhere('phone', 'like', "%{$search}%")
-                            ->orWhere('mikrotik_secret_name', 'like', "%{$search}%")
-                            ->orWhere('radius_username', 'like', "%{$search}%")
-                            ->orWhere('email', 'like', "%{$search}%");
-                    })
-                    ->orderBy('name')
-                    ->limit(50)
-                    ->get()
-                    ->mapWithKeys(fn (Customer $customer): array => [
-                        $customer->id => $customer->name.' (#'.($customer->customer_code ?? $customer->id).')',
-                    ])
-                    ->all();
-            })
+            ->searchDebounce(350)
+            ->getSearchResultsUsing(fn (string $search): array => static::customerSearchOptions($search))
             ->getOptionLabelUsing(function ($value): ?string {
                 if (! filled($value)) {
                     return null;
@@ -77,6 +56,31 @@ class SupportTicketResource extends Resource
             })
             ->required()
             ->helperText('Type at least 2 characters — name, customer code, phone, or PPP username.');
+    }
+
+    /**
+     * @return array<int|string, string>
+     */
+    public static function customerSearchOptions(string $search): array
+    {
+        return app(BillCollectionSearchService::class)
+            ->search($search, 50)
+            ->mapWithKeys(fn (array $row): array => [
+                $row['id'] => $row['customer_code'].' — '.$row['name']
+                    .($row['phone'] ? ' · '.$row['phone'] : ''),
+            ])
+            ->all();
+    }
+
+    public static function customerIdField(bool $useHiddenPicker = false): Forms\Components\Component
+    {
+        if ($useHiddenPicker) {
+            return Forms\Components\Hidden::make('customer_id')
+                ->required()
+                ->dehydrated();
+        }
+
+        return static::customerSelectField();
     }
 
     public static function assigneeSelectField(): Forms\Components\Select
@@ -97,13 +101,13 @@ class SupportTicketResource extends Resource
             ->helperText('Pick technician — or use Assign staff in the page header on edit.');
     }
 
-    public static function form(Form $form): Form
+    public static function form(Form $form, bool $useSubscriberSearchPicker = false): Form
     {
         return $form
             ->schema([
                 Forms\Components\Section::make('Subscriber')
                     ->schema([
-                        static::customerSelectField()->columnSpanFull(),
+                        static::customerIdField($useSubscriberSearchPicker)->columnSpanFull(),
                         Forms\Components\Placeholder::make('live_service_status')
                             ->label('Live subscriber status')
                             ->content(function (Get $get, ?SupportTicket $record = null): HtmlString {
