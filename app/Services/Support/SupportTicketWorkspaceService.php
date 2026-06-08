@@ -12,7 +12,6 @@ use App\Models\Device;
 use App\Models\FieldVisit;
 use App\Models\Payment;
 use App\Models\SupportTicket;
-use App\Services\Network\FiberPlantMapService;
 use App\Support\CustomerStatus;
 use Illuminate\Support\HtmlString;
 use Illuminate\Support\Str;
@@ -429,12 +428,7 @@ class SupportTicketWorkspaceService
             $lng = $visit->longitude;
         }
 
-        $trace = [];
-        try {
-            $trace = app(FiberPlantMapService::class)->traceForCustomerId((int) $customer->id);
-        } catch (\Throwable $e) {
-            report($e);
-        }
+        $trace = ['found' => false, 'total_length_m' => 0];
 
         $mapUrl = FiberPlantMap::getUrl();
         if (is_numeric($lat) && is_numeric($lng)) {

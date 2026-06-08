@@ -37,11 +37,17 @@ class SupportTicketResource extends Resource
         return $form
             ->schema([
                 Forms\Components\Select::make('customer_id')
-                    ->relationship('customer', 'name')
-                    ->searchable()
+                    ->relationship(
+                        'customer',
+                        'name',
+                        modifyQueryUsing: fn ($query) => $query->orderBy('name'),
+                    )
+                    ->getOptionLabelFromRecordUsing(
+                        fn (Customer $record): string => $record->name.' (#'.($record->customer_code ?? $record->id).')'
+                    )
+                    ->searchable(['name', 'customer_code', 'phone', 'mikrotik_secret_name', 'radius_username', 'email'])
                     ->preload()
-                    ->required()
-                    ->live(),
+                    ->required(),
                 Forms\Components\Placeholder::make('live_service_status')
                     ->label('Live subscriber status')
                     ->content(fn (Get $get, SupportTicket $record): HtmlString => app(SupportTicketWorkspaceService::class)->liveStatusHtml(
@@ -78,7 +84,7 @@ class SupportTicketResource extends Resource
                     ->columnSpanFull(),
                 Forms\Components\Select::make('assigned_to')
                     ->label('Assigned to')
-                    ->relationship('assignee', 'name', modifyQueryUsing: fn ($query) => $query->orderBy('name'))
+                    ->options(fn (): array => User::query()->orderBy('name')->pluck('name', 'id')->all())
                     ->searchable()
                     ->preload()
                     ->nullable(),

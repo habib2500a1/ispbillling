@@ -14,6 +14,9 @@ class EditSupportTicket extends EditRecord
 {
     use ProvidesSupportTicketWorkspace;
 
+    /** @var array<string, mixed>|null */
+    public ?array $ticketWorkspace = null;
+
     protected static string $resource = SupportTicketResource::class;
 
     protected static string $view = 'filament.resources.support-ticket-resource.pages.edit-support-ticket';
@@ -39,11 +42,13 @@ class EditSupportTicket extends EditRecord
     protected function getViewData(): array
     {
         return array_merge(parent::getViewData(), [
-            'workspace' => $this->workspaceService()->buildViewBundle(
-                $this->record,
-                $this->data['customer_id'] ?? null,
-            ),
+            'workspace' => $this->resolveTicketWorkspace(),
         ]);
+    }
+
+    public function updatedDataCustomerId(): void
+    {
+        $this->ticketWorkspace = null;
     }
 
     public function mount(int | string $record): void
@@ -116,6 +121,29 @@ class EditSupportTicket extends EditRecord
         ];
     }
 
+    /**
+     * @return array<string, mixed>
+     */
+    private function resolveTicketWorkspace(): array
+    {
+        $customerId = $this->data['customer_id'] ?? $this->record->customer_id;
+        $cacheKey = $this->record->getKey().':'.(string) $customerId;
+
+        if (
+            $this->ticketWorkspace !== null
+            && ($this->ticketWorkspace['_cache_key'] ?? null) === $cacheKey
+        ) {
+            return $this->ticketWorkspace;
+        }
+
+        $this->ticketWorkspace = array_merge(
+            $this->workspaceService()->buildViewBundle($this->record, $customerId),
+            ['_cache_key' => $cacheKey],
+        );
+
+        return $this->ticketWorkspace;
+    }
+
     private function workspaceService(): SupportTicketWorkspaceService
     {
         return app(SupportTicketWorkspaceService::class);
@@ -123,10 +151,7 @@ class EditSupportTicket extends EditRecord
 
     private function closeConfirmMessage(string $default): string
     {
-        $live = $this->workspaceService()->buildViewBundle(
-            $this->record,
-            $this->data['customer_id'] ?? null,
-        )['live'];
+        $live = $this->resolveTicketWorkspace()['live'];
 
         return $this->workspaceService()->closeOfflineNotice($live) ?? $default;
     }
