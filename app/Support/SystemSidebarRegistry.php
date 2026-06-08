@@ -8,7 +8,7 @@ use App\Filament\Pages\ManagePlatformBackups;
 use App\Filament\Pages\ManageStaffSecurity;
 use App\Filament\Pages\PermissionMatrix;
 use App\Filament\Pages\SecurityDashboard;
-use App\Filament\Pages\StaffControlHub;
+use App\Filament\Pages\TenantOrganizationCenter;
 use App\Filament\Pages\SystemErrorLogsPage;
 use App\Filament\Pages\TwoFactorSetup;
 use App\Filament\Pages\MobileAppsHub;
@@ -29,11 +29,14 @@ final class SystemSidebarRegistry
         return [
             [
                 'key' => 'staff_control',
-                'label' => 'Staff control',
-                'icon' => 'heroicon-o-users',
+                'label' => 'Organization',
+                'icon' => 'heroicon-o-building-library',
                 'sort' => 0,
-                'url' => StaffControlHub::getUrl(),
-                'active_routes' => ['filament.admin.pages.staff-control-hub'],
+                'url' => TenantOrganizationCenter::getUrl(),
+                'active_routes' => [
+                    'filament.admin.pages.tenant-organization',
+                    'filament.admin.pages.staff-control-hub',
+                ],
             ],
             [
                 'key' => 'users',
@@ -210,7 +213,7 @@ final class SystemSidebarRegistry
     public static function canSeeEntry(string $key): bool
     {
         return match ($key) {
-            'staff_control' => StaffControlHub::canAccess(),
+            'staff_control' => TenantOrganizationCenter::canAccess(),
             'users' => UserResource::canViewAny(),
             'roles' => RoleResource::canViewAny(),
             'permissions' => PermissionMatrix::canAccess(),

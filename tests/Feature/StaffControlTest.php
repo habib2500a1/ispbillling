@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Filament\Pages\StaffControlHub;
+use App\Filament\Pages\TenantOrganizationCenter;
 use App\Models\Branch;
 use App\Models\User;
 use App\Services\Staff\ActivityLogger;
@@ -76,8 +77,19 @@ class StaffControlTest extends TestCase
 
         Livewire::actingAs($user)
             ->test(StaffControlHub::class)
+            ->assertRedirect(TenantOrganizationCenter::getUrl());
+    }
+
+    public function test_isp_admin_can_open_organization_center(): void
+    {
+        Role::findOrCreate('isp-admin');
+        $user = User::factory()->create(['tenant_id' => 1]);
+        $user->assignRole('isp-admin');
+
+        Livewire::actingAs($user)
+            ->test(TenantOrganizationCenter::class)
             ->assertSuccessful()
-            ->assertSee('Admin & staff control');
+            ->assertSee('ISP Tenant & Organization');
     }
 
     public function test_branch_can_be_created(): void

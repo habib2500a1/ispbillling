@@ -43,7 +43,7 @@ use App\Filament\Pages\ReportsHub;
 use App\Filament\Pages\WhatsAppBotHub;
 use App\Filament\Pages\ResellersHub;
 use App\Filament\Pages\SalesLeadPipeline;
-use App\Filament\Pages\StaffControlHub;
+use App\Filament\Pages\TenantOrganizationCenter;
 use App\Filament\Pages\SubscriberListsHub;
 use App\Filament\Pages\SupportHub;
 use App\Filament\Pages\TaskKanbanBoard;
@@ -173,7 +173,7 @@ class AdminModuleRegistry
             ['group' => 'Reports', 'section' => 'Billing', 'label' => 'Monthly billing', 'description' => 'Period reports', 'url' => BillingReports::getUrl(), 'accent' => 'text-sky-600', 'icon' => 'heroicon-o-calendar'],
 
             // ── System ──
-            ['group' => 'System', 'section' => 'Admin', 'label' => 'Staff & security', 'description' => 'Users · roles · 2FA', 'url' => StaffControlHub::getUrl(), 'accent' => 'text-slate-600', 'icon' => 'heroicon-o-shield-check'],
+            ['group' => 'System', 'section' => 'Admin', 'label' => 'Organization center', 'description' => 'Tenant · staff · roles · security', 'url' => TenantOrganizationCenter::getUrl(), 'accent' => 'text-slate-600', 'icon' => 'heroicon-o-building-library'],
             ['group' => 'System', 'section' => 'Safety', 'label' => 'Backup & restore', 'description' => 'Download ZIP · upload restore', 'url' => ManagePlatformBackups::getUrl(), 'accent' => 'text-emerald-600', 'icon' => 'heroicon-o-archive-box-arrow-down'],
             ['group' => 'System', 'section' => 'Integrations', 'label' => 'API configuration', 'description' => 'Tenant host · HMAC · REST tokens', 'url' => \App\Filament\Pages\ManageApiConfiguration::getUrl(), 'accent' => 'text-violet-600', 'icon' => 'heroicon-o-key'],
             ['group' => 'System', 'section' => 'Integrations', 'label' => 'Deployment & license', 'description' => 'Rent SaaS vs sell on-premise', 'url' => \App\Filament\Pages\ManagePlatformDeployment::getUrl(), 'accent' => 'text-violet-600', 'icon' => 'heroicon-o-shield-check'],

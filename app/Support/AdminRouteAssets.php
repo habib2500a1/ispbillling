@@ -35,6 +35,7 @@ final class AdminRouteAssets
             'filament.admin.pages.billing-notices' => ['billing-pro.css'],
             'filament.admin.pages.accounting-hub' => ['finance-hub.css'],
             'filament.admin.pages.hr-payroll-hub' => ['workforce-hub.css'],
+            'filament.admin.pages.tenant-organization' => ['tenant-org-hub.css'],
             'filament.admin.pages.accounts-hub' => ['billing-hub-pro.css'],
             'filament.admin.pages.collection-desk-report' => ['collection-desk-report-pro.css'],
             'filament.admin.pages.reports-hub' => ['reports-intelligence-pro.css'],
@@ -437,6 +438,7 @@ JS;
             'filament.admin.pages.accounts-hub' => '/admin/accounts-hub',
             'filament.admin.pages.collection-desk-report' => '/admin/collection-desk-report',
             'filament.admin.pages.ai-copilot' => '/admin/ai-copilot',
+            'filament.admin.pages.tenant-organization' => '/admin/tenant-organization',
         ];
 
         return $map[$pattern] ?? null;

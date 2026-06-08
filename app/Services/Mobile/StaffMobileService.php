@@ -272,6 +272,19 @@ final class StaffMobileService
             ];
         }
 
+        $cap = StaffCapability::for($user);
+        if ($cap->canStaffModule()
+            || $cap->canAny(['security.manage', 'security.roles', 'audit.view', 'branches.view', 'branches.manage'])
+            || $user->hasRole('super-admin')) {
+            $modules[] = [
+                'key' => 'organization_admin',
+                'title' => 'Organization',
+                'subtitle' => 'Staff · roles · branches',
+                'icon' => 'admin_panel_settings',
+                'color' => 'indigo',
+            ];
+        }
+
         if (StaffCapability::for($user)->canPayments()
             && (bool) config('mfs_personal.sms_ingest.enabled', false)) {
             $modules[] = [

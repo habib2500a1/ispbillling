@@ -11,13 +11,34 @@ class Tenant extends Model
         'name',
         'slug',
         'is_active',
+        'organization_type',
+        'domain',
+        'address',
+        'contact_phone',
+        'contact_email',
+        'logo_path',
+        'branding',
+        'settings',
     ];
 
     protected function casts(): array
     {
         return [
             'is_active' => 'boolean',
+            'branding' => 'array',
+            'settings' => 'array',
         ];
+    }
+
+    public function organizationTypeLabel(): string
+    {
+        return match ($this->organization_type) {
+            'multi_isp' => 'Multi ISP',
+            'multi_branch' => 'Multi Branch',
+            'franchise' => 'Franchise ISP',
+            'reseller_isp' => 'Reseller ISP',
+            default => 'Single ISP',
+        };
     }
 
     public function users(): HasMany

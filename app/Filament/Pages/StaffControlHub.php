@@ -25,6 +25,12 @@ class StaffControlHub extends Page
 
     protected static ?int $navigationSort = 1;
 
+    public function mount(): void
+    {
+        abort_unless(static::canAccess(), 403);
+        $this->redirect(TenantOrganizationCenter::getUrl(), navigate: true);
+    }
+
     /**
      * @return array<string, mixed>
      */

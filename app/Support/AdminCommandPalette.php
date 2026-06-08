@@ -44,7 +44,7 @@ use App\Filament\Pages\PaymentsOverview;
 use App\Filament\Pages\PaymentsReport;
 use App\Filament\Pages\ReportsHub;
 use App\Filament\Pages\ResellersHub;
-use App\Filament\Pages\StaffControlHub;
+use App\Filament\Pages\TenantOrganizationCenter;
 use App\Filament\Pages\SupportHub;
 use App\Filament\Resources\CustomerResource;
 use App\Filament\Resources\InvoiceResource;
@@ -122,7 +122,7 @@ class AdminCommandPalette
             ['group' => 'Finance', 'label' => 'Finance operations', 'url' => AccountingHub::getUrl()],
             ['group' => 'Resellers', 'label' => 'Reseller hub', 'url' => ResellersHub::getUrl()],
             ['group' => 'Admin', 'label' => 'My account & password', 'url' => EditAdminProfile::getUrl()],
-            ['group' => 'Admin', 'label' => 'Staff control', 'url' => StaffControlHub::getUrl()],
+            ['group' => 'Admin', 'label' => 'Organization center', 'url' => TenantOrganizationCenter::getUrl()],
             ['group' => 'System', 'label' => 'Backup & restore', 'url' => ManagePlatformBackups::getUrl()],
             ['group' => 'Admin', 'label' => 'Notifications', 'url' => NotificationsHub::getUrl()],
             ['group' => 'System', 'label' => 'Company setup', 'url' => ManageCompanySetup::getUrl()],

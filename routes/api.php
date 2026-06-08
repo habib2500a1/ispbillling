@@ -117,6 +117,15 @@ Route::prefix('v1')->group(function (): void {
         Route::get('/staff/billing/invoices', [StaffBillingController::class, 'invoices']);
         Route::get('/staff/billing/collections', [StaffBillingController::class, 'collections']);
         Route::get('/staff/billing/collection-options', [\App\Http\Controllers\Api\V1\Staff\StaffCollectionOptionsController::class, 'show']);
+        Route::get('/staff/admin/overview', [\App\Http\Controllers\Api\V1\Staff\StaffAdminController::class, 'overview']);
+        Route::get('/staff/admin/search', [\App\Http\Controllers\Api\V1\Staff\StaffAdminController::class, 'search']);
+        Route::get('/staff/admin/staff', [\App\Http\Controllers\Api\V1\Staff\StaffAdminController::class, 'staff']);
+        Route::get('/staff/admin/staff/{user}', [\App\Http\Controllers\Api\V1\Staff\StaffAdminController::class, 'showStaff'])->whereNumber('user');
+        Route::get('/staff/admin/roles', [\App\Http\Controllers\Api\V1\Staff\StaffAdminController::class, 'roles']);
+        Route::get('/staff/admin/roles/{role}', [\App\Http\Controllers\Api\V1\Staff\StaffAdminController::class, 'showRole'])->whereNumber('role');
+        Route::get('/staff/admin/permissions', [\App\Http\Controllers\Api\V1\Staff\StaffAdminController::class, 'permissions']);
+        Route::get('/staff/admin/branches', [\App\Http\Controllers\Api\V1\Staff\StaffAdminController::class, 'branches']);
+        Route::get('/staff/admin/branches/{branch}', [\App\Http\Controllers\Api\V1\Staff\StaffAdminController::class, 'showBranch'])->whereNumber('branch');
         Route::get('/staff/team/discounts', [\App\Http\Controllers\Api\V1\Staff\StaffTeamDiscountController::class, 'index']);
         Route::patch('/staff/team/{user}/discount', [\App\Http\Controllers\Api\V1\Staff\StaffTeamDiscountController::class, 'update'])->whereNumber('user');
         Route::get('/staff/customers/search', [CustomerSearchController::class, 'search']);
