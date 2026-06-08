@@ -99,6 +99,10 @@ Route::prefix('v1')->group(function (): void {
         Route::get('/staff/dashboard', [StaffDashboardController::class, 'show']);
         Route::post('/staff/mfs/sms/ingest', [\App\Http\Controllers\Api\V1\MfsSmsIngestController::class, 'ingestStaff']);
         Route::get('/staff/noc/dashboard', [NocController::class, 'dashboard']);
+        Route::get('/staff/gis/map', [\App\Http\Controllers\Api\V1\Staff\GisMapController::class, 'map']);
+        Route::get('/staff/gis/search', [\App\Http\Controllers\Api\V1\Staff\GisMapController::class, 'search']);
+        Route::get('/staff/gis/customers/{customer}/dependency', [\App\Http\Controllers\Api\V1\Staff\GisMapController::class, 'dependency'])->whereNumber('customer');
+        Route::get('/staff/gis/customers/{customer}/rca', [\App\Http\Controllers\Api\V1\Staff\GisMapController::class, 'rca'])->whereNumber('customer');
         Route::get('/staff/optical/noc', [\App\Http\Controllers\Api\V1\Staff\StaffOpticalNocController::class, 'dashboard']);
         Route::get('/staff/optical/onu/{device}/signals', [\App\Http\Controllers\Api\V1\Staff\StaffOpticalNocController::class, 'signalHistory'])->whereNumber('device');
         Route::get('/staff/optical/predictions', [\App\Http\Controllers\Api\V1\Staff\StaffOpticalNocController::class, 'predictions']);

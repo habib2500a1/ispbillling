@@ -159,6 +159,13 @@ class FiberPlantMap extends Page
         }
     }
 
+    public function getCustomerRca(int $customerId): array
+    {
+        $this->authorizeMap();
+
+        return app(\App\Services\Network\GisIntelligenceOpsService::class)->rcaForCustomer($customerId);
+    }
+
     public static function canAccess(): bool
     {
         return StaffCapability::for(auth()->user())->canMikrotik();

@@ -120,6 +120,7 @@
     $companyName = $this->companyName();
     $companyLogo = $this->companyLogoUrl();
     $companyInitial = $this->companyInitial();
+    $fiberMapUrl = \App\Filament\Pages\FiberPlantMap::getUrl();
     $pollSeconds = (int) config('dashboard.noc_wall_poll_seconds', 60);
 @endphp
 
@@ -183,6 +184,14 @@
             @endforeach
         </div>
     @endif
+
+    <details class="gis-noc-map-embed" id="noc-map-mode">
+        <summary style="cursor:pointer;padding:.75rem 1rem;background:#0f172a;color:#e2e8f0;font-weight:600;">
+            🗺 NOC Map mode — live GIS fault overlay
+            <a href="{{ $fiberMapUrl }}" style="float:right;color:#38bdf8;font-size:.85rem;">Full screen →</a>
+        </summary>
+        <iframe src="{{ $fiberMapUrl }}" title="Network operations map" loading="lazy"></iframe>
+    </details>
 
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1rem;margin-bottom:1rem;">
         @foreach ($topCards as $card)

@@ -1,0 +1,15 @@
+{
+    "name": "ISP Network Map",
+    "short_name": "NetMap",
+    "start_url": "/admin/fiber-plant-map",
+    "display": "standalone",
+    "background_color": "#0f172a",
+    "theme_color": "#0ea5e9",
+    "icons": [
+        {
+            "src": "/favicon.ico",
+            "sizes": "64x64",
+            "type": "image/x-icon"
+        }
+    ]
+}

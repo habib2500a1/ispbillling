@@ -31,6 +31,8 @@
     let searchHighlightId = null;
     let pathLayers = [];
     let labelLayers = [];
+    let customerCluster = null;
+    let clusteringEnabled = true;
 
     function init(options) {
         wire = options.wire;
@@ -55,9 +57,13 @@
             pathLayers = [];
             labelLayers = [];
             baseLayers = {};
+            if (customerCluster) {
+                customerCluster.clearLayers();
+                customerCluster = null;
+            }
         }
 
-        activeBase = 'street';
+        clusteringEnabled = payload.ops?.intelligence?.config?.clustering?.enabled !== false;
         const center = payload.center || { lat: 23.8103, lng: 90.4125, zoom: 12 };
         map = L.map(el, { zoomControl: true }).setView([center.lat, center.lng], center.zoom);
         baseLayers.street = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -70,14 +76,35 @@
         );
         baseLayers.street.addTo(map);
 
+        if (clusteringEnabled && typeof L.markerClusterGroup === 'function') {
+            const clusterCfg = payload.ops?.intelligence?.config?.clustering || {};
+            customerCluster = L.markerClusterGroup({
+                maxClusterRadius: clusterCfg.radius || 50,
+                disableClusteringAtZoom: clusterCfg.max_zoom || 16,
+                spiderfyOnMaxZoom: true,
+                showCoverageOnHover: false,
+            });
+            map.addLayer(customerCluster);
+        }
+
         renderAll();
         bindUi();
         renderSearchResults();
         fitBounds();
+        applyUrlParams();
     }
 
     function renderAll() {
-        Object.values(nodeMarkers).forEach((m) => map.removeLayer(m));
+        Object.values(nodeMarkers).forEach((m) => {
+            if (customerCluster && customerCluster.hasLayer(m)) {
+                customerCluster.removeLayer(m);
+            } else if (map.hasLayer(m)) {
+                map.removeLayer(m);
+            }
+        });
+        if (customerCluster) {
+            customerCluster.clearLayers();
+        }
         Object.values(edgeLayers).forEach((l) => map.removeLayer(l));
         dropLayers.forEach((l) => map.removeLayer(l));
         pathLayers.forEach((l) => map.removeLayer(l));
@@ -263,12 +290,17 @@
 
             const canDrag = mode === 'view' && !node.unmapped && typeof node.id === 'number';
             const marker = L.marker([node.lat, node.lng], { icon, draggable: canDrag })
-                .addTo(map)
                 .bindPopup(buildNodePopup(node), { maxWidth: 320, className: 'fpm-popup' });
 
             marker.on('click', () => onNodeClick(node));
             if (canDrag) {
                 marker.on('dragend', () => onNodeDrag(node, marker));
+            }
+
+            if (isCustomer && customerCluster) {
+                customerCluster.addLayer(marker);
+            } else {
+                marker.addTo(map);
             }
 
             nodeMarkers[node.id] = marker;
@@ -531,13 +563,21 @@
             }
 
             document.getElementById('fpm-search-results')?.addEventListener('click', (ev) => {
+                const nodeBtn = ev.target.closest('[data-search-node]');
+                if (nodeBtn) {
+                    pickSearchNode(nodeBtn.dataset.nodeId);
+
+                    return;
+                }
                 const btn = ev.target.closest('[data-search-pick]');
                 if (!btn) {
                     return;
                 }
                 const customerId = parseInt(btn.dataset.customerId, 10);
                 const nodeId = btn.dataset.nodeId || null;
-                pickSearchResult(customerId, nodeId);
+                const lat = btn.dataset.lat ? parseFloat(btn.dataset.lat) : null;
+                const lng = btn.dataset.lng ? parseFloat(btn.dataset.lng) : null;
+                pickSearchResult(customerId, nodeId, lat, lng);
             });
 
             uiBound = true;
@@ -641,6 +681,7 @@
             <div class="fpm-form__actions">
                 ${o.customer_url ? `<a class="fpm-btn fpm-btn--primary" href="${escapeHtml(o.customer_url)}">Subscriber</a>` : ''}
                 ${o.olt_url ? `<a class="fpm-btn fpm-btn--ghost" href="${escapeHtml(o.olt_url)}">OLT</a>` : ''}
+                <button type="button" class="fpm-btn fpm-btn--ghost" data-gis-rca-customer="${node.customer_id || ''}">RCA</button>
                 <button type="button" class="fpm-btn fpm-btn--ghost" id="fpm-edit-node-btn">Edit pin</button>
             </div>
         `;
@@ -648,6 +689,9 @@
         el.querySelector('#fpm-edit-node-btn')?.addEventListener('click', () => {
             fillNodeForm(node);
             showForm('node');
+        });
+        el.querySelector('[data-gis-rca-customer]')?.addEventListener('click', () => {
+            window.IspGisIntelligence?.loadRca?.(node.customer_id);
         });
     }
 
@@ -756,6 +800,7 @@
             ${edge.cable_color ? `<br>Color: ${escapeHtml(edge.cable_color)}` : ''}
             ${edge.fiber_count ? `<br>Fibers: ${edge.fiber_count}` : ''}
             ${edge.notes ? `<br><small>${escapeHtml(edge.notes)}</small>` : ''}
+            <br><button type="button" class="fpm-btn fpm-btn--ghost" data-gis-core-map="${edge.id}">Core map</button>
         </div>`;
     }
 
@@ -913,23 +958,36 @@
         }
 
         const q = searchQuery.toLowerCase();
-        const matches = (payload.ops?.search_index || [])
+        const customerMatches = (payload.ops?.search_index || [])
             .filter((row) => {
                 const hay = [row.label, row.login, row.code, row.phone].filter(Boolean).join(' ').toLowerCase();
 
                 return hay.includes(q);
             })
-            .slice(0, 15);
+            .slice(0, 12);
 
-        if (matches.length === 0) {
+        const nodeMatches = (payload.nodes || [])
+            .filter((node) => {
+                if (node.type === 'customer') {
+                    return false;
+                }
+                const hay = [node.name, node.code, node.pon_label, node.type].filter(Boolean).join(' ').toLowerCase();
+
+                return hay.includes(q);
+            })
+            .slice(0, 8);
+
+        const matches = customerMatches.length + nodeMatches.length;
+
+        if (matches === 0) {
             el.hidden = false;
-            el.innerHTML = '<p class="fpm-search-results__empty">কোনো user পাওয়া যায়নি</p>';
+            el.innerHTML = '<p class="fpm-search-results__empty">কোনো match পাওয়া যায়নি</p>';
 
             return;
         }
 
         el.hidden = false;
-        el.innerHTML = matches
+        const customerHtml = customerMatches
             .map((row) => {
                 const onu =
                     row.onu_online === null
@@ -943,20 +1001,38 @@
                 const rx =
                     row.rx_dbm != null ? `${Number(row.rx_dbm).toFixed(1)} dBm` : '—';
 
-                return `<button type="button" class="fpm-search-results__item" data-search-pick data-customer-id="${row.id}" data-node-id="${escapeHtml(String(row.node_id || ''))}">
+                return `<button type="button" class="fpm-search-results__item" data-search-pick data-customer-id="${row.id}" data-node-id="${escapeHtml(String(row.node_id || ''))}" data-lat="${row.lat ?? ''}" data-lng="${row.lng ?? ''}">
                     <span class="fpm-search-results__name">${escapeHtml(row.label)}</span>
                     <span class="fpm-search-results__meta"><code>${escapeHtml(row.login || '')}</code> · ${escapeHtml(row.code || '')}</span>
                     <span class="fpm-search-results__tags">${mapNote} · ${escapeHtml(onu)} · RX ${escapeHtml(rx)}</span>
                 </button>`;
             })
             .join('');
+
+        const nodeHtml = nodeMatches
+            .map((node) => {
+                return `<button type="button" class="fpm-search-results__item" data-search-node data-node-id="${escapeHtml(String(node.id))}">
+                    <span class="fpm-search-results__name">${escapeHtml(node.name || node.code || 'Node')}</span>
+                    <span class="fpm-search-results__meta">${escapeHtml(node.type || '')} · ${escapeHtml(node.code || '')}</span>
+                    <span class="fpm-search-results__tags"><span class="fpm-search-results__map">Infrastructure</span></span>
+                </button>`;
+            })
+            .join('');
+
+        el.innerHTML = customerHtml + nodeHtml;
     }
 
-    function pickSearchResult(customerId, nodeId) {
+    function pickSearchResult(customerId, nodeId, lat, lng) {
         searchHighlightId = customerId;
         const node = findNodeForCustomer(customerId, nodeId);
 
         if (!node || node.lat == null) {
+            if (lat != null && lng != null && map) {
+                map.setView([lat, lng], 18);
+                renderSearchResults();
+
+                return;
+            }
             const row = (payload.ops?.search_index || []).find((r) => r.id === customerId);
             if (row?.edit_url) {
                 window.location.href = row.edit_url;
@@ -973,6 +1049,36 @@
         }
         selectNode(node);
         renderSearchResults();
+    }
+
+    function pickSearchNode(nodeId) {
+        const node = (payload.nodes || []).find((n) => String(n.id) === String(nodeId));
+        if (!node || node.lat == null || !map) {
+            return;
+        }
+        map.setView([node.lat, node.lng], 17);
+        const marker = nodeMarkers[node.id];
+        if (marker) {
+            marker.openPopup();
+        }
+        selectNode(node);
+        renderSearchResults();
+    }
+
+    function applyUrlParams() {
+        if (!map) {
+            return;
+        }
+        const params = new URLSearchParams(window.location.search);
+        const customerId = parseInt(params.get('customer') || params.get('focus') || '', 10);
+        const lat = parseFloat(params.get('lat') || '');
+        const lng = parseFloat(params.get('lng') || '');
+
+        if (customerId > 0) {
+            pickSearchResult(customerId, null);
+        } else if (!Number.isNaN(lat) && !Number.isNaN(lng)) {
+            map.setView([lat, lng], parseInt(params.get('zoom') || '16', 10));
+        }
     }
 
     function findNodeForCustomer(customerId, nodeId) {
@@ -1029,5 +1135,14 @@
             .replace(/"/g, '&quot;');
     }
 
-    window.IspFiberPlantMap = { init, refreshPayload };
+    window.IspFiberPlantMap = {
+        init,
+        refreshPayload,
+        getMap: () => map,
+        getPayload: () => payload,
+        pickSearchResult,
+        pickSearchNode,
+        renderAll,
+        fitBounds,
+    };
 })();

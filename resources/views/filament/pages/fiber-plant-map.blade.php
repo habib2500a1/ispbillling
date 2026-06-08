@@ -11,7 +11,11 @@
 
 <x-filament-panels::page class="isp-fiber-plant-page">
     <link rel="stylesheet" href="{{ asset('css/fiber-plant-map.css') }}?v={{ @filemtime(public_path('css/fiber-plant-map.css')) ?: 1 }}">
+    <link rel="stylesheet" href="{{ asset('css/gis-intelligence.css') }}?v={{ @filemtime(public_path('css/gis-intelligence.css')) ?: 1 }}">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" crossorigin="">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" crossorigin="">
+    <link rel="manifest" href="{{ asset('manifest-gis.json') }}">
 
     <section class="fpm-hero">
         <div>
@@ -288,13 +292,60 @@
             <div class="fpm-map-tools">
                 <button type="button" class="fpm-map-tool fpm-map-tool--active" data-basemap="street">Street</button>
                 <button type="button" class="fpm-map-tool" data-basemap="satellite">Satellite</button>
+                <button type="button" class="fpm-map-tool" id="gis-basemap-dark" hidden>Dark</button>
             </div>
             <div id="fiber-plant-map" class="fpm-map"></div>
         </div>
     </div>
 
+    <button type="button" class="gis-drawer-toggle" id="gis-drawer-toggle" aria-label="Intelligence panel">Intelligence</button>
+
+    <aside class="gis-drawer" id="gis-drawer" aria-label="GIS Intelligence">
+        <div class="gis-drawer__head">
+            <strong>Network Intelligence</strong>
+            <button type="button" id="gis-drawer-close" aria-label="Close">✕</button>
+        </div>
+        <div class="gis-drawer__tabs">
+            <button type="button" class="gis-tab gis-tab--active" data-gis-tab="faults">Faults (<span id="gis-fault-count">0</span>)</button>
+            <button type="button" class="gis-tab" data-gis-tab="rca">RCA</button>
+            <button type="button" class="gis-tab" data-gis-tab="layers">Layers</button>
+            <button type="button" class="gis-tab" data-gis-tab="timeline">Timeline</button>
+        </div>
+        <div class="gis-drawer__body">
+            <div data-gis-panel="faults" id="gis-fault-list"></div>
+            <div data-gis-panel="rca" id="gis-rca-cards" hidden><p class="gis-empty">Select a customer or fault for RCA.</p></div>
+            <div data-gis-panel="layers" hidden>
+                <label class="gis-layer-row"><input type="checkbox" id="gis-layer-offline"> Offline heatmap</label>
+                <label class="gis-layer-row"><input type="checkbox" id="gis-layer-weak"> Weak RX heatmap</label>
+                <label class="gis-layer-row"><input type="checkbox" id="gis-layer-faults" checked> Fault markers</label>
+                <label class="gis-layer-row"><input type="checkbox" id="gis-layer-techs"> Technicians</label>
+            </div>
+            <div data-gis-panel="timeline" hidden>
+                <p id="gis-timeline-label" class="gis-empty">Playback network events</p>
+                <input type="range" id="gis-timeline-slider" min="0" max="0" value="0" style="width:100%">
+                <button type="button" class="fpm-btn fpm-btn--ghost" id="gis-timeline-play">▶ Play</button>
+                <div id="gis-timeline-list"></div>
+            </div>
+        </div>
+    </aside>
+
+    <div class="gis-mobile-fab">
+        <button type="button" id="gis-mobile-search">Search</button>
+        <button type="button" id="gis-mobile-layers">Layers</button>
+    </div>
+
+    <div class="gis-core-modal" id="gis-core-modal" hidden>
+        <div class="gis-core-modal__inner">
+            <div id="gis-core-modal-body"></div>
+            <button type="button" class="fpm-btn fpm-btn--ghost" data-gis-core-close>Close</button>
+        </div>
+    </div>
+
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+    <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js" crossorigin=""></script>
+    <script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js" crossorigin=""></script>
     <script src="{{ asset('js/fiber-plant-map.js') }}?v={{ @filemtime(public_path('js/fiber-plant-map.js')) ?: 1 }}" data-cfasync="false"></script>
+    <script src="{{ asset('js/gis-intelligence.js') }}?v={{ @filemtime(public_path('js/gis-intelligence.js')) ?: 1 }}" data-cfasync="false"></script>
     <script data-cfasync="false">
         function ispInitFiberPlantMap() {
             if (typeof window.IspFiberPlantMap === 'undefined') {
@@ -312,6 +363,7 @@
                 payload: @json($payload),
                 wire: @this,
             });
+            window.__gisWire = @this;
         }
 
         document.addEventListener('livewire:init', function () {
@@ -319,6 +371,7 @@
                 const next = data?.payload ?? data?.[0]?.payload ?? null;
                 if (window.IspFiberPlantMap?.refreshPayload) {
                     window.IspFiberPlantMap.refreshPayload(next);
+                    window.IspGisIntelligence?.refresh?.();
                 } else {
                     ispInitFiberPlantMap();
                 }

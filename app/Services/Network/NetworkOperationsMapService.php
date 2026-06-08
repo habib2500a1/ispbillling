@@ -112,6 +112,20 @@ final class NetworkOperationsMapService
             ],
         ];
 
+        try {
+            $payload['ops']['intelligence'] = app(GisIntelligenceOpsService::class)->build($payload);
+        } catch (\Throwable $e) {
+            report($e);
+            $payload['ops']['intelligence'] = [
+                'config' => ['clustering' => config('gis.clustering', [])],
+                'faults' => [],
+                'technicians' => [],
+                'timeline' => [],
+                'heatmaps' => ['offline' => [], 'weak_rx' => []],
+                'core_maps' => [],
+            ];
+        }
+
         return $payload;
     }
 
