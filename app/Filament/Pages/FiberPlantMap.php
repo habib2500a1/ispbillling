@@ -168,7 +168,7 @@ class FiberPlantMap extends Page
 
     public static function canAccess(): bool
     {
-        return StaffCapability::for(auth()->user())->canMikrotik();
+        return StaffCapability::for(auth()->user())->canMaps();
     }
 
     private function authorizeMap(): void

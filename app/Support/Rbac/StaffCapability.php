@@ -94,9 +94,14 @@ final class StaffCapability
         return $this->canAny(['olts.view', 'olts.manage', 'onu.signal', 'devices.view']);
     }
 
+    public function canMaps(): bool
+    {
+        return $this->can('network.maps') || $this->canOlt() || $this->canMikrotik();
+    }
+
     public function canNetwork(): bool
     {
-        return $this->canMikrotik() || $this->canOlt();
+        return $this->canMikrotik() || $this->canOlt() || $this->canMaps();
     }
 
     public function canSupport(): bool

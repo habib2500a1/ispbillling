@@ -3,9 +3,13 @@
 namespace App\Filament\Pages;
 
 use App\Filament\Pages\Concerns\HidesHubNavigation;
+use App\Services\Rbac\ModulePermissionService;
 use App\Services\Tenant\TenantOrganizationIntelligenceService;
+use App\Support\Rbac\IspModuleCatalog;
 use App\Support\Rbac\StaffCapability;
+use Filament\Notifications\Notification;
 use Filament\Pages\Page;
+use Spatie\Permission\Models\Role;
 
 class TenantOrganizationCenter extends Page
 {
@@ -33,10 +37,17 @@ class TenantOrganizationCenter extends Page
 
     public string $activeTab = 'dashboard';
 
+    public ?int $moduleRoleId = null;
+
     public function mount(): void
     {
         abort_unless(static::canAccess(), 403);
+        $tab = request()->query('tab');
+        if (is_string($tab) && $tab !== '') {
+            $this->activeTab = $tab;
+        }
         $this->refreshOrg();
+        $this->moduleRoleId = $this->defaultModuleRoleId();
     }
 
     public function refreshOrg(): void
@@ -52,6 +63,99 @@ class TenantOrganizationCenter extends Page
     public function setTab(string $tab): void
     {
         $this->activeTab = $tab;
+    }
+
+    public function updatedModuleRoleId(): void
+    {
+        $this->moduleRoleId = (int) $this->moduleRoleId;
+    }
+
+    public function toggleModule(string $moduleKey): void
+    {
+        abort_unless($this->canManageModules(), 403);
+
+        $role = Role::query()->findOrFail((int) $this->moduleRoleId);
+        if (! $this->canEditModuleRole($role)) {
+            Notification::make()
+                ->title('This role is protected')
+                ->body('super-admin and isp-admin module access cannot be changed here.')
+                ->warning()
+                ->send();
+
+            return;
+        }
+
+        $enabled = app(ModulePermissionService::class)->toggleModule($role, $moduleKey);
+        $label = IspModuleCatalog::get($moduleKey)['label'] ?? $moduleKey;
+
+        Notification::make()
+            ->title($label.' '.($enabled ? 'enabled' : 'disabled'))
+            ->body("Updated for role: {$role->name}")
+            ->success()
+            ->send();
+
+        $this->refreshOrg();
+    }
+
+    public function canManageModules(): bool
+    {
+        $user = auth()->user();
+        if ($user === null) {
+            return false;
+        }
+
+        return StaffCapability::for($user)->isTenantAdmin()
+            || $user->can('security.roles')
+            || $user->can('security.manage');
+    }
+
+    public function canEditModuleRole(Role $role): bool
+    {
+        $user = auth()->user();
+        if ($user === null) {
+            return false;
+        }
+
+        if ($role->name === 'super-admin') {
+            return false;
+        }
+
+        if ($role->name === 'isp-admin' && ! $user->hasRole('super-admin')) {
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * @return array<string, array{label: string, hint: string, enabled: bool}>
+     */
+    public function moduleToggleStates(): array
+    {
+        $role = Role::query()->find((int) $this->moduleRoleId);
+        if ($role === null) {
+            return [];
+        }
+
+        $service = app(ModulePermissionService::class);
+        $states = [];
+        foreach (IspModuleCatalog::modules() as $key => $meta) {
+            $states[$key] = [
+                'label' => $meta['label'],
+                'hint' => $meta['hint'],
+                'enabled' => $service->isModuleEnabled($role, $key),
+            ];
+        }
+
+        return $states;
+    }
+
+    private function defaultModuleRoleId(): ?int
+    {
+        return Role::query()
+            ->whereNotIn('name', ['super-admin', 'isp-admin', 'customer'])
+            ->orderBy('name')
+            ->value('id');
     }
 
     public function getTitle(): string
@@ -93,6 +197,18 @@ class TenantOrganizationCenter extends Page
             'quickActions' => $this->quickActions(),
             'navLinks' => $this->navLinks(),
             'access' => $this->accessFlags(),
+            'moduleRoleId' => $this->moduleRoleId,
+            'moduleRoles' => Role::query()
+                ->whereNotIn('name', ['customer'])
+                ->orderBy('name')
+                ->get(['id', 'name'])
+                ->map(fn (Role $role): array => [
+                    'id' => $role->id,
+                    'label' => \App\Support\Rbac\IspRoleTemplates::get($role->name)['label'] ?? $role->name,
+                ])
+                ->all(),
+            'moduleToggles' => $this->moduleToggleStates(),
+            'canManageModules' => $this->canManageModules(),
         ];
     }
 
@@ -105,6 +221,7 @@ class TenantOrganizationCenter extends Page
             ['label' => 'Add staff', 'url' => \App\Filament\Resources\UserResource::getUrl('create'), 'icon' => 'user-plus', 'tone' => 'violet'],
             ['label' => 'Roles', 'url' => \App\Filament\Resources\RoleResource::getUrl('index'), 'icon' => 'shield-check', 'tone' => 'indigo'],
             ['label' => 'Permission matrix', 'url' => PermissionMatrix::getUrl(), 'icon' => 'table-cells', 'tone' => 'sky'],
+            ['label' => 'Module on/off', 'url' => static::getUrl().'?tab=roles#module-access', 'icon' => 'adjustments-horizontal', 'tone' => 'teal'],
             ['label' => 'Branches', 'url' => \App\Filament\Resources\BranchResource::getUrl('index'), 'icon' => 'building-office-2', 'tone' => 'cyan'],
             ['label' => 'Activity log', 'url' => \App\Filament\Resources\ActivityLogResource::getUrl('index'), 'icon' => 'clipboard-document-list', 'tone' => 'rose'],
             ['label' => 'Security', 'url' => ManageStaffSecurity::getUrl(), 'icon' => 'lock-closed', 'tone' => 'amber'],
@@ -139,6 +256,7 @@ class TenantOrganizationCenter extends Page
 
         return [
             'staff' => $cap->canStaffModule(),
+            'roles' => $this->canManageModules(),
             'security' => $cap->canAny(['security.manage', 'audit.view']),
             'resellers' => $cap->canResellers(),
             'tenants' => auth()->user()?->hasRole('super-admin') ?? false,

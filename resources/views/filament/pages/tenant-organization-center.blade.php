@@ -7,6 +7,10 @@
     $quickActions = $data['quickActions'];
     $navLinks = $data['navLinks'];
     $access = $data['access'];
+    $moduleRoleId = $data['moduleRoleId'] ?? null;
+    $moduleRoles = $data['moduleRoles'] ?? [];
+    $moduleToggles = $data['moduleToggles'] ?? [];
+    $canManageModules = $data['canManageModules'] ?? false;
 @endphp
 
 <x-filament-panels::page class="torg-page isp-hub-page">
@@ -180,6 +184,43 @@
                 @endif
 
                 @if ($activeTab === 'roles')
+                    @if ($canManageModules)
+                        <section class="torg-glass p-4" id="module-access">
+                            <div class="flex flex-wrap items-center justify-between gap-3 mb-3">
+                                <div>
+                                    <h2 class="text-sm font-semibold">Module on / off (per role)</h2>
+                                    <p class="text-xs opacity-70 mt-1">Main admin can hide Billing, OLT, Map, Inventory buy, etc. for each staff role.</p>
+                                </div>
+                                <label class="text-xs font-semibold opacity-80">
+                                    Role
+                                    <select wire:model.live="moduleRoleId" class="torg-select ml-2">
+                                        @foreach ($moduleRoles as $role)
+                                            <option value="{{ $role['id'] }}">{{ $role['label'] }}</option>
+                                        @endforeach
+                                    </select>
+                                </label>
+                            </div>
+                            <div class="torg-module-grid">
+                                @foreach ($moduleToggles as $key => $module)
+                                    <button
+                                        type="button"
+                                        wire:click="toggleModule('{{ $key }}')"
+                                        wire:loading.attr="disabled"
+                                        @class(['torg-module', 'torg-module--on' => $module['enabled'], 'torg-module--off' => ! $module['enabled']])
+                                    >
+                                        <span class="torg-module__state">{{ $module['enabled'] ? 'ON' : 'OFF' }}</span>
+                                        <strong>{{ $module['label'] }}</strong>
+                                        <span>{{ $module['hint'] }}</span>
+                                    </button>
+                                @endforeach
+                            </div>
+                            <p class="text-xs opacity-60 mt-3">
+                                Fine-tune individual permissions in
+                                <a href="{{ \App\Filament\Pages\PermissionMatrix::getUrl() }}" class="underline">Permission matrix</a>.
+                            </p>
+                        </section>
+                    @endif
+
                     <section class="torg-glass p-4">
                         <h2 class="text-sm font-semibold mb-3">Role management</h2>
                         <div class="torg-table-wrap">
