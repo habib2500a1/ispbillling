@@ -3,15 +3,18 @@
 namespace App\Filament\Pages;
 
 use App\Models\SmsCampaign;
+use App\Services\Notifications\Channels\WhatsAppNotificationChannel;
 use App\Services\Notifications\NotificationDispatcher;
 use App\Support\NotificationChannel;
 use App\Support\TenantResolver;
 use Filament\Actions\Action;
+use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Form;
+use Filament\Forms\Get;
 use Filament\Notifications\Notification;
 use Filament\Pages\Concerns\InteractsWithFormActions;
 use Filament\Pages\Page;
@@ -32,9 +35,9 @@ class BulkSmsCampaign extends Page implements HasTable
 
     protected static string $view = 'filament.pages.bulk-sms-campaign';
 
-    protected static ?string $navigationLabel = 'Bulk SMS / email';
+    protected static ?string $navigationLabel = 'Bulk SMS / WhatsApp';
 
-    protected static ?string $title = 'Bulk SMS & email';
+    protected static ?string $title = 'Bulk SMS, WhatsApp & email';
 
     protected static ?string $navigationGroup = 'SMS Service';
 
@@ -78,12 +81,16 @@ class BulkSmsCampaign extends Page implements HasTable
                             ->schema([
                                 TextInput::make('name')->required()->maxLength(120),
                                 Select::make('channel')
-                                    ->options([
-                                        NotificationChannel::SMS => 'SMS',
-                                        NotificationChannel::EMAIL => 'Email',
-                                    ])
+                                    ->options(fn (): array => self::channelOptions())
                                     ->required()
+                                    ->live()
                                     ->native(false),
+                                Placeholder::make('whatsapp_setup_hint')
+                                    ->label('')
+                                    ->content(fn (): string => self::whatsAppConfigured()
+                                        ? 'WhatsApp Cloud API is connected — bulk messages go to each subscriber’s WhatsApp number (primary phone or WhatsApp contact).'
+                                        : 'WhatsApp is not configured. Set Phone Number ID + Access Token under Notifications settings to enable bulk WhatsApp.')
+                                    ->visible(fn (Get $get): bool => $get('channel') === NotificationChannel::WHATSAPP),
                                 Select::make('target')
                                     ->options([
                                         'active' => 'Active subscribers',
@@ -97,7 +104,11 @@ class BulkSmsCampaign extends Page implements HasTable
                                     ->required()
                                     ->rows(4)
                                     ->maxLength(500)
-                                    ->helperText('Plain text message sent to each matching subscriber.'),
+                                    ->helperText(fn (Get $get): string => match ((string) $get('channel')) {
+                                        NotificationChannel::WHATSAPP => 'Plain text via WhatsApp Cloud API. Subscribers without a valid number are skipped. Marketing blasts may need Meta-approved templates.',
+                                        NotificationChannel::EMAIL => 'Email body sent to each subscriber with a valid email address.',
+                                        default => 'Plain text SMS sent to each matching subscriber phone number.',
+                                    }),
                             ]),
                     ])
                     ->statePath('data'),
@@ -145,8 +156,18 @@ class BulkSmsCampaign extends Page implements HasTable
         }
 
         $tenantId = TenantResolver::requiredTenantId();
-        $channel = (string) ($state['channel'] ?? NotificationChannel::SMS);
+        $channel = (string) ($state['channel'] ?? NotificationNotificationChannel::SMS);
         $target = (string) ($state['target'] ?? 'active');
+
+        if ($channel === NotificationChannel::WHATSAPP && ! self::whatsAppConfigured()) {
+            Notification::make()
+                ->title('WhatsApp not configured')
+                ->body('Enable WhatsApp Cloud API in Notifications settings (Phone Number ID + Access Token).')
+                ->warning()
+                ->send();
+
+            return;
+        }
 
         $count = $dispatcher->broadcastCustom($tenantId, $message, $target, $channel);
 
@@ -162,8 +183,13 @@ class BulkSmsCampaign extends Page implements HasTable
             'sent_at' => now(),
         ]);
 
+        $channelLabel = NotificationChannel::labels()[$channel] ?? $channel;
+
         Notification::make()
-            ->title("Campaign sent to {$count} recipient(s)")
+            ->title("{$channelLabel} campaign queued for {$count} recipient(s)")
+            ->body($count === 0
+                ? 'No matching subscribers had a valid number/address for this channel.'
+                : 'Delivery status appears in campaign history and notification logs.')
             ->success()
             ->send();
 
@@ -173,5 +199,27 @@ class BulkSmsCampaign extends Page implements HasTable
             'target' => $target,
             'message' => '',
         ]);
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private static function channelOptions(): array
+    {
+        $options = [
+            NotificationChannel::SMS => 'SMS',
+            NotificationChannel::EMAIL => 'Email',
+        ];
+
+        if (self::whatsAppConfigured()) {
+            $options[NotificationChannel::WHATSAPP] = 'WhatsApp';
+        }
+
+        return $options;
+    }
+
+    private static function whatsAppConfigured(): bool
+    {
+        return (new WhatsAppNotificationChannel)->isEnabled();
     }
 }
