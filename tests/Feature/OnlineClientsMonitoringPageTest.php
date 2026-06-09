@@ -46,4 +46,37 @@ class OnlineClientsMonitoringPageTest extends TestCase
             ->assertSee('Online now')
             ->assertSee('Offline User');
     }
+
+    public function test_search_filters_subscribers_by_name(): void
+    {
+        Role::findOrCreate('isp-admin');
+        $user = User::factory()->create(['tenant_id' => 1]);
+        $user->assignRole('isp-admin');
+
+        Customer::query()->create([
+            'tenant_id' => 1,
+            'customer_code' => 'find-me',
+            'mikrotik_secret_name' => 'ppp-find',
+            'name' => 'Searchable Alpha',
+            'phone' => '01710000011',
+            'status' => 'active',
+            'is_ppp_online' => true,
+        ]);
+
+        Customer::query()->create([
+            'tenant_id' => 1,
+            'customer_code' => 'hide-me',
+            'mikrotik_secret_name' => 'ppp-hide',
+            'name' => 'Other Beta',
+            'phone' => '01710000022',
+            'status' => 'active',
+            'is_ppp_online' => false,
+        ]);
+
+        $this->actingAs($user)
+            ->get('/admin/online-clients?tableSearch=Searchable')
+            ->assertOk()
+            ->assertSee('Searchable Alpha')
+            ->assertDontSee('Other Beta');
+    }
 }

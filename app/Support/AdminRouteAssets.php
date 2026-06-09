@@ -26,7 +26,7 @@ final class AdminRouteAssets
             'filament.admin.pages.subscriber-traffic' => ['subscriber-live-traffic-pro.css'],
             'filament.admin.pages.network-intelligence-hub' => ['network-pro.css'],
             'filament.admin.pages.mikrotik-dashboard' => ['network-pro.css'],
-            'filament.admin.pages.online-clients' => ['network-pro.css'],
+            'filament.admin.pages.online-clients' => ['network-pro.css', 'online-clients-pro.css'],
             'filament.admin.pages.bandwidth-monitor' => ['network-pro.css'],
             'filament.admin.pages.import-from-mikrotik' => ['network-pro.css'],
             'filament.admin.pages.network-settings' => ['network-pro.css'],

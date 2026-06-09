@@ -2,6 +2,7 @@
 
 namespace App\Filament\Pages;
 
+use App\Filament\Pages\Concerns\AppliesOnlineClientsTableSearch;
 use App\Support\Rbac\StaffCapability;
 
 use App\Filament\Pages\SubscriberTrafficMonitor;
@@ -28,8 +29,11 @@ use Illuminate\Database\Eloquent\Builder;
 
 class OnlineClientsMonitoring extends Page implements HasForms, HasTable
 {
+    use AppliesOnlineClientsTableSearch;
     use InteractsWithForms;
-    use InteractsWithTable;
+    use InteractsWithTable {
+        AppliesOnlineClientsTableSearch::applySearchToTableQuery insteadof InteractsWithTable;
+    }
 
     protected static ?string $navigationIcon = 'heroicon-o-signal';
 
@@ -82,7 +86,17 @@ class OnlineClientsMonitoring extends Page implements HasForms, HasTable
             }
         }
 
-        $this->resetTable();
+        $this->flushCachedTableRecords();
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    protected function queryString(): array
+    {
+        return [
+            'tableSearch' => ['except' => ''],
+        ];
     }
 
     /**
@@ -174,6 +188,8 @@ class OnlineClientsMonitoring extends Page implements HasForms, HasTable
                     ])
             )
             ->defaultSort('is_ppp_online', 'desc')
+            ->persistSearchInSession()
+            ->searchDebounce('400ms')
             ->searchPlaceholder('Search code, name, phone, PPP user, IP…')
             ->columns([
                 Tables\Columns\IconColumn::make('live_session')
@@ -192,37 +208,23 @@ class OnlineClientsMonitoring extends Page implements HasForms, HasTable
                         : 'heroicon-o-signal-slash'),
                 Tables\Columns\TextColumn::make('customer_code')
                     ->label('ID')
-                    ->searchable()
                     ->sortable()
                     ->copyable()
                     ->fontFamily('mono'),
                 Tables\Columns\TextColumn::make('ppp_login')
                     ->label('PPP user')
                     ->state(fn (Customer $record): string => $record->pppLoginName())
-                    ->fontFamily('mono')
-                    ->searchable(query: function (Builder $query, string $search): Builder {
-                        return $query->where(function (Builder $q) use ($search): void {
-                            $q->where('mikrotik_secret_name', 'like', "%{$search}%")
-                                ->orWhere('radius_username', 'like', "%{$search}%")
-                                ->orWhere('customer_code', 'like', "%{$search}%");
-                        });
-                    }),
+                    ->fontFamily('mono'),
                 Tables\Columns\TextColumn::make('name')
-                    ->searchable()
                     ->sortable()
                     ->wrap(),
                 Tables\Columns\TextColumn::make('phone')
                     ->label('Mobile')
-                    ->searchable()
                     ->copyable(),
                 Tables\Columns\TextColumn::make('activePppSession.framed_ip')
                     ->label('Client IP')
                     ->fontFamily('mono')
-                    ->placeholder('—')
-                    ->searchable(query: function (Builder $query, string $search): Builder {
-                        return $query->whereHas('activePppSession', fn (Builder $q) => $q
-                            ->where('framed_ip', 'like', "%{$search}%"));
-                    }),
+                    ->placeholder('—'),
                 Tables\Columns\TextColumn::make('activePppSession.caller_id')
                     ->label('MAC / Caller ID')
                     ->fontFamily('mono')

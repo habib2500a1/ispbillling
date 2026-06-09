@@ -14,8 +14,6 @@
 
 {!! \App\Support\NetworkStyles::navigatedScript() !!}
 
-{!! \App\Support\NetworkStyles::navigatedScript() !!}
-
 <x-filament-panels::page class="isp-online-clients-page oc-pro">
     <div
         class="net-noc-pro oc-pro-layout space-y-4"
