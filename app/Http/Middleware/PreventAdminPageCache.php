@@ -7,7 +7,7 @@ use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
- * Prevent CDN/browser from caching authenticated admin HTML (Livewire pages).
+ * Prevent CDN/browser from caching dynamic HTML (admin + public pay portal).
  */
 final class PreventAdminPageCache
 {
@@ -16,7 +16,10 @@ final class PreventAdminPageCache
         /** @var Response $response */
         $response = $next($request);
 
-        if ($request->is('admin', 'admin/*') && auth()->check()) {
+        $noStore = ($request->is('admin', 'admin/*') && auth()->check())
+            || $request->is('pay', 'pay/*');
+
+        if ($noStore) {
             $response->headers->set('Cache-Control', 'private, no-store, no-cache, must-revalidate, max-age=0');
             $response->headers->set('Pragma', 'no-cache');
             $response->headers->set('CDN-Cache-Control', 'no-store');

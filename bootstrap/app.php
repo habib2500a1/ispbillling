@@ -123,6 +123,7 @@ $app = Application::configure(basePath: $basePath)
         $middleware->appendToGroup('web', \App\Http\Middleware\EnsurePlatformLicense::class);
         $middleware->appendToGroup('web', SetAppLocale::class);
         $middleware->appendToGroup('web', DisconnectIdleDatabase::class);
+        $middleware->appendToGroup('web', \App\Http\Middleware\PreventAdminPageCache::class);
         $middleware->prependToGroup('api', EnsureDeployReady::class);
         $middleware->prependToGroup('api', IdentifyTenantFromSubdomain::class);
         $middleware->appendToGroup('api', \App\Http\Middleware\EnsurePlatformLicense::class);
