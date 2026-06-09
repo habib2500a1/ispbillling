@@ -67,7 +67,7 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin="" data-cfasync="false"></script>
     <script src="{{ asset('js/subscriber-view-location-map.js') }}?v={{ @filemtime(public_path('js/subscriber-view-location-map.js')) ?: 1 }}" data-cfasync="false" defer></script>
 
-    <div class="sub-pro olt-pro" wire:key="client-view-{{ $record->getKey() }}" x-data="{ tab: 'overview' }">
+    <div class="sub-pro olt-pro" wire:key="client-view-{{ $record->getKey() }}-{{ \App\Support\SubscriberViewStyles::version() }}" x-data="{ tab: 'overview' }">
         <header class="olt-hero sub-hero">
             <div class="olt-hero__grid">
                 <span class="olt-hero__badge">
