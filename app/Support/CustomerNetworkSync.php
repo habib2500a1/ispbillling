@@ -72,7 +72,7 @@ final class CustomerNetworkSync
     }
 
     /**
-     * New subscriber: create PPP secret on MikroTik when API is configured (meta.auto_pppoe).
+     * New subscriber: queue PPP secret on MikroTik (never block the register form on router timeouts).
      */
     public static function provisionOnCreate(Customer $customer): void
     {
@@ -81,7 +81,11 @@ final class CustomerNetworkSync
         }
 
         $customer = static::ensurePppCredentials($customer);
-        static::runNow($customer);
+
+        SyncCustomerNetworkAccessJob::dispatch(
+            (int) $customer->tenant_id,
+            (int) $customer->id,
+        )->afterResponse();
     }
 
     /**

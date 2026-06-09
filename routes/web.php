@@ -96,15 +96,15 @@ Route::middleware(['web', 'auth'])->prefix('admin')->group(function (): void {
 Route::redirect('/admin/customers', '/admin/subscribers', 308);
 Route::redirect('/admin/customers/{path}', '/admin/subscribers/{path}', 308)->where('path', '.+');
 
-// Admin login GET → unified sign-in page (POST stays on /admin/login).
-Route::redirect('/admin/login', '/login', 302)
-    ->middleware(['web', 'throttle:60,1'])
-    ->name('filament.admin.auth.login');
-
-// Primary admin login POST (HTML form — does not depend on Livewire / Rocket Loader).
+// Admin login POST must be registered before GET redirect (Route::redirect matches all verbs).
 Route::post('/admin/login', AdminSessionLoginController::class)
     ->middleware(['web', 'throttle:20,1'])
     ->name('admin.login.session');
+
+// Admin login GET → unified sign-in page (GET only — POST handled above).
+Route::get('/admin/login', fn () => redirect('/login', 302))
+    ->middleware(['web', 'throttle:60,1'])
+    ->name('filament.admin.auth.login');
 
 Route::get('/admin/login/complete', AdminLoginCompleteController::class)
     ->middleware(['web', 'throttle:60,1'])

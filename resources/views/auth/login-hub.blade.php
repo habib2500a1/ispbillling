@@ -78,6 +78,18 @@
 
             @include('partials.demo-credentials-hint')
 
+            @if (session('session_expired'))
+                <div class="lh-alert lh-alert--error" role="alert">
+                    Your session expired. Please sign in again.
+                </div>
+            @endif
+
+            @if ($errors->any())
+                <div class="lh-alert lh-alert--error" role="alert">
+                    {{ $errors->first() }}
+                </div>
+            @endif
+
             <div class="lh-alert lh-alert--error" id="lh-error" role="alert" hidden></div>
 
             <form class="lh-form" id="lh-form" novalidate>
@@ -93,7 +105,7 @@
                         autocapitalize="off"
                         autocorrect="off"
                         spellcheck="false"
-                        placeholder="demo@anetbd.com, 01XXXXXXXXX, CUST-001"
+                        placeholder="habib@radiantbd.com, 01XXXXXXXXX, CUST-001"
                     >
                 </div>
 
@@ -183,7 +195,17 @@
             };
 
             function getCsrf() {
-                return csrfMeta ? csrfMeta.getAttribute('content') : '';
+                var fromMeta = csrfMeta ? csrfMeta.getAttribute('content') : '';
+                if (fromMeta) {
+                    return fromMeta;
+                }
+                var match = document.cookie.match(/(?:^|;\s*)XSRF-TOKEN=([^;]+)/);
+                return match ? decodeURIComponent(match[1]) : '';
+            }
+
+            function xsrfHeader() {
+                var match = document.cookie.match(/(?:^|;\s*)XSRF-TOKEN=([^;]+)/);
+                return match ? decodeURIComponent(match[1]) : getCsrf();
             }
 
             function refreshCsrfFromFrame() {
@@ -226,9 +248,21 @@
             }
 
             function showError(msg) {
+                if (!msg) {
+                    errorBox.textContent = '';
+                    errorBox.hidden = true;
+                    return;
+                }
                 errorBox.textContent = msg;
-                errorBox.hidden = !msg;
+                errorBox.hidden = false;
             }
+
+            // Surface server-side validation / session errors from redirect.
+            @if ($errors->any())
+                showError(@json($errors->first()));
+            @elseif (session('session_expired'))
+                showError('Your session expired. Please sign in again.');
+            @endif
 
             function isLoginSuccess(url) {
                 if (!url) return false;
@@ -277,6 +311,43 @@
                 temp.submit();
                 document.body.removeChild(temp);
                 return true;
+            }
+
+            async function submitStaffLoginFetch(login, password, remember) {
+                var ep = endpoints.staff;
+                if (!ep || !ep.enabled) return false;
+
+                var body = new URLSearchParams({
+                    _token: getCsrf(),
+                    email: login,
+                    password: password,
+                    remember: remember ? '1' : '0',
+                });
+
+                try {
+                    var res = await fetch(ep.url, {
+                        method: 'POST',
+                        credentials: 'same-origin',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded',
+                            'Accept': 'text/html,application/json',
+                            'X-XSRF-TOKEN': xsrfHeader(),
+                            'X-Requested-With': 'XMLHttpRequest',
+                        },
+                        body: body.toString(),
+                        redirect: 'manual',
+                    });
+
+                    if (res.status >= 300 && res.status < 400) {
+                        var loc = res.headers.get('Location') || '';
+                        if (isLoginSuccess(loc)) {
+                            window.location.href = loc;
+                            return true;
+                        }
+                    }
+                } catch (err) { /* ignore */ }
+
+                return false;
             }
 
             function tryIframeLogin(role, login, password, remember) {
@@ -377,6 +448,10 @@
                 setLoading(true);
 
                 var role = await resolveRoleViaApi(login, password);
+                if (role === 'staff' && endpoints.staff.enabled) {
+                    var staffOk = await submitStaffLoginFetch(login, password, remember);
+                    if (staffOk) return;
+                }
                 if (role && endpoints[role] && endpoints[role].enabled) {
                     submitWebLogin(role, login, password, remember);
                     return;

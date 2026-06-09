@@ -5,6 +5,7 @@ namespace App\Services\Staff;
 use App\Models\User;
 use Filament\Facades\Filament;
 use Filament\Models\Contracts\FilamentUser;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\RateLimiter;
 
 class StaffLoginService
@@ -28,9 +29,12 @@ class StaffLoginService
             ];
         }
 
+        $panel = Filament::getPanel('admin');
+        Filament::setCurrentPanel($panel);
+
         $credentials = $this->resolveCredentials($login, $password);
 
-        if (! Filament::auth()->attempt($credentials, $remember)) {
+        if (! Auth::guard('web')->attempt($credentials, $remember)) {
             RateLimiter::hit($throttleKey, 60);
 
             return [
@@ -39,10 +43,10 @@ class StaffLoginService
             ];
         }
 
-        $user = Filament::auth()->user();
+        $user = Auth::guard('web')->user();
 
-        if (! $user instanceof FilamentUser || ! $user->canAccessPanel(Filament::getCurrentPanel())) {
-            Filament::auth()->logout();
+        if (! $user instanceof FilamentUser || ! $user->canAccessPanel($panel)) {
+            Auth::guard('web')->logout();
             RateLimiter::hit($throttleKey, 60);
 
             return [
@@ -52,7 +56,7 @@ class StaffLoginService
         }
 
         if ($user->is_active === false) {
-            Filament::auth()->logout();
+            Auth::guard('web')->logout();
             RateLimiter::hit($throttleKey, 60);
 
             return [
@@ -62,7 +66,7 @@ class StaffLoginService
         }
 
         if (! app(IpAccessGuard::class)->allows($user, $ip)) {
-            Filament::auth()->logout();
+            Auth::guard('web')->logout();
             RateLimiter::hit($throttleKey, 60);
 
             return [

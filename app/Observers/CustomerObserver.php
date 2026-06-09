@@ -59,6 +59,11 @@ class CustomerObserver
         }
 
         try {
+            // Initial create already queues MikroTik work — avoid duplicate syncNow() (~30s timeout each).
+            if ($customer->wasRecentlyCreated) {
+                return;
+            }
+
             $status = CustomerStatus::normalize((string) $customer->status);
             $shouldSyncNow = $customer->wasChanged([
                 'status',

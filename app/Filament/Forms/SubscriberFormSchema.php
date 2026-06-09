@@ -301,11 +301,13 @@ final class SubscriberFormSchema
                 Forms\Components\Section::make('Package selection')
                     ->schema([
                         Forms\Components\Select::make('package_id')
-                            ->relationship('package', 'name', fn ($query) => $query->where('is_active', true))
-                            ->searchable()
-                            ->preload()
+                            ->label('Package')
+                            ->options(fn ($record): array => self::packageSelectOptions(
+                                $record instanceof Customer ? $record : null
+                            ))
+                            ->placeholder('Select package')
+                            ->required()
                             ->live()
-                            ->native(false)
                             ->columnSpan(['default' => 'full', 'lg' => 2]),
                         Forms\Components\Select::make('pending_package_id')
                             ->label('Scheduled package change')
@@ -782,8 +784,42 @@ final class SubscriberFormSchema
     }
 
     /**
-     * Async package search — no preload (avoids full-form Livewire refresh on open).
-     *
+     * @return array<string, string>
+     */
+    private static function packageSelectOptions(?Customer $record = null): array
+    {
+        $tenantId = TenantResolver::currentTenantId() ?? TenantResolver::requiredTenantId();
+
+        $options = Package::withoutGlobalScopes()
+            ->where('tenant_id', $tenantId)
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->get()
+            ->mapWithKeys(fn (Package $package): array => [
+                (string) $package->id => $package->adminSelectLabel(),
+            ]);
+
+        if ($options->isEmpty()) {
+            $options = Package::withoutGlobalScopes()
+                ->where('tenant_id', $tenantId)
+                ->orderBy('name')
+                ->get()
+                ->mapWithKeys(fn (Package $package): array => [
+                    (string) $package->id => $package->adminSelectLabel().($package->is_active ? '' : ' (inactive)'),
+                ]);
+        }
+
+        if ($record?->package_id && ! $options->has((string) $record->package_id)) {
+            $extra = Package::withoutGlobalScopes()->find($record->package_id);
+            if ($extra) {
+                $options->put((string) $extra->id, $extra->adminSelectLabel().' (inactive)');
+            }
+        }
+
+        return $options->all();
+    }
+
+    /**
      * @return array<int, Forms\Components\Select>
      */
     private static function packageSelectField(): array
@@ -791,12 +827,13 @@ final class SubscriberFormSchema
         return [
             Forms\Components\Select::make('package_id')
                 ->label('Package')
-                ->relationship('package', 'name', fn ($query) => $query->where('is_active', true))
-                ->searchable()
-                ->optionsLimit(50)
+                ->options(fn ($record): array => self::packageSelectOptions(
+                    $record instanceof Customer ? $record : null
+                ))
+                ->placeholder('Select package')
                 ->required()
+                ->native(true)
                 ->live(onBlur: true)
-                ->native(false)
                 ->afterStateUpdated(function ($state, Forms\Set $set): void {
                     if (! $state) {
                         return;
@@ -804,6 +841,11 @@ final class SubscriberFormSchema
                     $day = BillingDefaults::defaultExpireDay();
                     $set('expire_day', $day);
                     $set('service_expires_at', BillingDefaults::dateFromExpireDay($day));
+                })
+                ->default(function ($record): ?string {
+                    $options = self::packageSelectOptions($record instanceof Customer ? $record : null);
+
+                    return count($options) === 1 ? (string) array_key_first($options) : null;
                 }),
         ];
     }
