@@ -362,7 +362,7 @@ class Customer extends Model implements AuthenticatableContract, AuthorizableCon
     public function onuDevice(): HasOne
     {
         return $this->hasOne(Device::class)
-            ->where('type', 'onu')
+            ->where('devices.type', 'onu')
             ->latestOfMany('id');
     }
 

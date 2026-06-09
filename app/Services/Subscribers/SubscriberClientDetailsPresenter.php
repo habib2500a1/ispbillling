@@ -64,7 +64,7 @@ final class SubscriberClientDetailsPresenter
             'pendingPackage:id,name',
             'activePppSession',
             'contacts',
-            'onuDevice:id,customer_id,type,serial_number,display_name,model,lease_status',
+            'onuDevice',
         ]);
 
         $meta = is_array($customer->meta) ? $customer->meta : [];

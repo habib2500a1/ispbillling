@@ -399,14 +399,38 @@ class ViewCustomer extends ViewRecord
                 ->color('gray')
                 ->visible(fn (Customer $record): bool => filled($record->getAttributes()['mikrotik_ppp_password'] ?? null))
                 ->requiresConfirmation()
+                ->modalHeading('PPPoE password')
                 ->modalDescription('PPPoE secret password (decrypted). Only share with the subscriber securely.')
+                ->modalSubmitActionLabel('Show password')
                 ->action(function (): void {
                     /** @var Customer $record */
                     $record = $this->record;
-                    $pwd = $record->mikrotik_ppp_password;
+
+                    try {
+                        $pwd = $record->mikrotik_ppp_password;
+                    } catch (\Throwable $e) {
+                        Notification::make()
+                            ->title('Could not read PPPoE password')
+                            ->body('Password is stored but could not be decrypted. Reset it from Edit profile.')
+                            ->warning()
+                            ->send();
+
+                        return;
+                    }
+
+                    if (! filled($pwd)) {
+                        Notification::make()
+                            ->title('PPPoE password not set')
+                            ->body('Set a password from Edit profile → PPPoE tab.')
+                            ->warning()
+                            ->send();
+
+                        return;
+                    }
+
                     Notification::make()
                         ->title('PPPoE / RADIUS password')
-                        ->body($pwd ? (string) $pwd : 'Not set')
+                        ->body((string) $pwd)
                         ->success()
                         ->persistent()
                         ->send();

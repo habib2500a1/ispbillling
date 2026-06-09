@@ -22,7 +22,7 @@ final class NetworkDependencyTreeService
     public function forCustomer(int $customerId): array
     {
         $customer = Customer::query()
-            ->with(['zone:id,name', 'mikrotikServer:id,name', 'onuDevice:id,customer_id,olt_id,serial_number,mac_address,rx_power_dbm,onu_oper_status,display_name,card_no,pon_no'])
+            ->with(['zone:id,name', 'mikrotikServer:id,name', 'onuDevice'])
             ->find($customerId);
 
         if ($customer === null) {
