@@ -121,7 +121,7 @@ final class UnifiedWebLoginController extends Controller
             app(ActivityLogger::class)->log('login', 'Staff signed in', auth('web')->user());
             $request->session()->save();
 
-            return redirect()->to('/admin', status: 303);
+            return redirect()->route('admin.login.complete', status: 303);
         }
 
         $email = $staffLogin->resolveCredentials($login, $password)['email'];

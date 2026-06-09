@@ -155,6 +155,17 @@
         </div>
     </main>
 
+    <div class="lh-overlay" id="lh-overlay" hidden aria-hidden="true">
+        <div class="lh-overlay__panel" role="status" aria-live="polite">
+            <div class="lh-overlay__spinner" aria-hidden="true">
+                <span class="lh-overlay__ring"></span>
+                <span class="lh-overlay__ring lh-overlay__ring--delay"></span>
+            </div>
+            <p class="lh-overlay__title">Signing you in<span class="lh-overlay__dots" aria-hidden="true"></span></p>
+            <p class="lh-overlay__text">Verifying your credentials securely</p>
+        </div>
+    </div>
+
     <script data-cfasync="false">
         (function () {
             var passwordInput = document.getElementById('lh-password');
@@ -162,6 +173,14 @@
             var themeBtn = document.getElementById('lh-theme-btn');
             var submitBtn = document.getElementById('lh-submit');
             var form = document.getElementById('lh-form');
+            var overlay = document.getElementById('lh-overlay');
+
+            function showLoader() {
+                if (!overlay) return;
+                overlay.hidden = false;
+                overlay.classList.add('is-visible');
+                overlay.setAttribute('aria-hidden', 'false');
+            }
 
             pwToggle.addEventListener('click', function () {
                 var show = passwordInput.type === 'password';
@@ -178,9 +197,17 @@
                 });
             }
 
-            form.addEventListener('submit', function () {
+            form.addEventListener('submit', function (e) {
+                var login = document.getElementById('lh-login').value.trim();
+                var password = passwordInput.value;
+
+                if (!login || !password) {
+                    return;
+                }
+
                 submitBtn.disabled = true;
                 submitBtn.classList.add('is-loading');
+                showLoader();
             });
         })();
     </script>

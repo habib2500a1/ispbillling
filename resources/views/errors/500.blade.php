@@ -3,22 +3,68 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Something went wrong</title>
-    <meta http-equiv="refresh" content="8">
+    <title>Please try again</title>
+    <meta http-equiv="refresh" content="6;url={{ url('/login') }}">
     <style>
-        body { font-family: system-ui, sans-serif; background: #0f172a; color: #e2e8f0; display: flex; min-height: 100vh; align-items: center; justify-content: center; margin: 0; padding: 1.5rem; }
-        .box { max-width: 28rem; background: #1e293b; border: 1px solid #334155; border-radius: 1rem; padding: 1.5rem; text-align: center; }
-        h1 { font-size: 1.25rem; margin: 0 0 0.75rem; }
-        p { margin: 0.5rem 0; font-size: 0.95rem; color: #94a3b8; line-height: 1.55; }
-        a { color: #a5b4fc; text-decoration: none; }
+        :root {
+            color-scheme: dark;
+            --bg: #09090b;
+            --surface: #18181b;
+            --border: rgba(255,255,255,.1);
+            --text: #fafafa;
+            --muted: #a1a1aa;
+            --accent: #818cf8;
+        }
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            min-height: 100vh;
+            display: grid;
+            place-items: center;
+            padding: 1.5rem;
+            font-family: Outfit, system-ui, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+        }
+        .box {
+            max-width: 24rem;
+            width: 100%;
+            padding: 2rem 1.5rem;
+            text-align: center;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 1.125rem;
+            box-shadow: 0 12px 40px rgba(0,0,0,.45);
+        }
+        .icon {
+            width: 3rem;
+            height: 3rem;
+            margin: 0 auto 1rem;
+            border-radius: 50%;
+            display: grid;
+            place-items: center;
+            background: rgba(248,113,113,.12);
+            color: #f87171;
+            font-size: 1.35rem;
+            font-weight: 700;
+        }
+        h1 { margin: 0 0 .5rem; font-size: 1.15rem; font-weight: 800; }
+        p { margin: .35rem 0; font-size: .9375rem; color: var(--muted); line-height: 1.55; }
+        .links { margin-top: 1.25rem; font-size: .875rem; }
+        a { color: var(--accent); text-decoration: none; font-weight: 600; }
         a:hover { text-decoration: underline; }
     </style>
 </head>
 <body>
     <div class="box">
-        <h1>Something went wrong</h1>
-        <p>We hit a temporary error. The page will retry automatically, or you can go back to the home page.</p>
-        <p><a href="{{ url('/') }}">Home</a> · <a href="{{ url('/admin/login') }}">Admin login</a></p>
+        <div class="icon" aria-hidden="true">!</div>
+        <h1>Could not sign you in</h1>
+        <p>We hit a temporary error. You will be redirected to the login page shortly.</p>
+        <p class="links">
+            <a href="{{ url('/login') }}">Back to sign in</a>
+            ·
+            <a href="{{ url('/') }}">Home</a>
+        </p>
     </div>
 </body>
 </html>

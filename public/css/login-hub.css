@@ -534,6 +534,212 @@ body.isp-login-hub-page .isp-demo-credentials {
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .lh-card, .lh-submit__spinner { animation: none !important; }
+    .lh-card, .lh-submit__spinner, .lh-overlay, .lh-signing__ring, .lh-signing__bar-fill { animation: none !important; }
     .lh-submit:hover:not(:disabled), .lh-portal:hover { transform: none; }
+}
+
+/* ── Login submit overlay ──────────────────────────────────────── */
+
+.lh-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1.5rem;
+    background: rgba(9, 9, 11, 0.55);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.25s ease, visibility 0.25s ease;
+}
+
+html.portal-dark .lh-overlay {
+    background: rgba(0, 0, 0, 0.72);
+}
+
+.lh-overlay.is-visible {
+    opacity: 1;
+    visibility: visible;
+}
+
+.lh-overlay__panel {
+    width: min(20rem, 100%);
+    padding: 1.75rem 1.5rem;
+    text-align: center;
+    background: var(--lh-surface);
+    border: 1px solid var(--lh-border);
+    border-radius: 1.125rem;
+    box-shadow: var(--lh-shadow);
+    animation: lh-in 0.35s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.lh-overlay__spinner {
+    position: relative;
+    width: 3.25rem;
+    height: 3.25rem;
+    margin: 0 auto 1.125rem;
+}
+
+.lh-overlay__ring {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    border: 3px solid var(--lh-accent-subtle);
+    border-top-color: var(--lh-accent);
+    animation: lh-spin 0.85s cubic-bezier(0.5, 0.1, 0.3, 0.9) infinite;
+}
+
+.lh-overlay__ring--delay {
+    inset: 0.45rem;
+    border-width: 2px;
+    border-top-color: var(--lh-accent-hover);
+    animation-duration: 1.1s;
+    animation-direction: reverse;
+    opacity: 0.85;
+}
+
+.lh-overlay__title {
+    margin: 0;
+    font-size: 1.0625rem;
+    font-weight: 700;
+    color: var(--lh-text);
+}
+
+.lh-overlay__text {
+    margin: 0.45rem 0 0;
+    font-size: 0.875rem;
+    color: var(--lh-text-muted);
+}
+
+.lh-overlay__dots::after {
+    content: '';
+    animation: lh-dots 1.4s steps(4, end) infinite;
+}
+
+@keyframes lh-dots {
+    0% { content: ''; }
+    25% { content: '.'; }
+    50% { content: '..'; }
+    75% { content: '...'; }
+}
+
+/* ── Post-login signing page (/admin/login/complete) ───────────── */
+
+body.lh-signing-page {
+    overflow: hidden;
+}
+
+.lh-signing {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    min-height: 100dvh;
+    padding: max(1rem, env(safe-area-inset-top)) 1rem max(1.5rem, env(safe-area-inset-bottom));
+}
+
+.lh-signing__glow {
+    position: absolute;
+    inset: 0;
+    background:
+        radial-gradient(ellipse 60% 50% at 50% 0%, var(--lh-orb-1), transparent 70%),
+        radial-gradient(ellipse 50% 40% at 80% 100%, var(--lh-orb-2), transparent 65%),
+        radial-gradient(ellipse 40% 35% at 10% 80%, var(--lh-orb-3), transparent 60%);
+    pointer-events: none;
+}
+
+.lh-signing__card {
+    position: relative;
+    z-index: 1;
+    width: min(22rem, 100%);
+    padding: 2rem 1.5rem 1.75rem;
+    text-align: center;
+    background: var(--lh-surface);
+    border: 1px solid var(--lh-border);
+    border-radius: 1.25rem;
+    box-shadow: var(--lh-shadow);
+    animation: lh-in 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.lh-signing__brand {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 1.25rem;
+}
+
+.lh-signing__mark {
+    width: 4rem;
+    height: 4rem;
+    font-size: 1.75rem;
+}
+
+.lh-signing__spinner {
+    position: relative;
+    width: 4rem;
+    height: 4rem;
+    margin: 0 auto 1.25rem;
+}
+
+.lh-signing__ring {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    border: 3px solid var(--lh-accent-subtle);
+    border-top-color: var(--lh-accent);
+    animation: lh-spin 0.9s cubic-bezier(0.5, 0.1, 0.3, 0.9) infinite;
+}
+
+.lh-signing__ring--delay {
+    inset: 0.55rem;
+    border-width: 2px;
+    border-top-color: var(--lh-accent-hover);
+    animation-duration: 1.25s;
+    animation-direction: reverse;
+    opacity: 0.8;
+}
+
+.lh-signing__title {
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    color: var(--lh-text);
+}
+
+.lh-signing__lead {
+    margin: 0.5rem 0 0;
+    font-size: 0.9375rem;
+    color: var(--lh-text-muted);
+}
+
+.lh-signing__bar {
+    height: 4px;
+    margin: 1.35rem 0 0.75rem;
+    overflow: hidden;
+    background: var(--lh-accent-subtle);
+    border-radius: 999px;
+}
+
+.lh-signing__bar-fill {
+    display: block;
+    width: 35%;
+    height: 100%;
+    background: linear-gradient(90deg, var(--lh-accent), var(--lh-accent-hover));
+    border-radius: inherit;
+    animation: lh-bar-slide 1.2s ease-in-out infinite;
+}
+
+@keyframes lh-bar-slide {
+    0% { transform: translateX(-120%); }
+    100% { transform: translateX(320%); }
+}
+
+.lh-signing__hint {
+    margin: 0;
+    font-size: 0.8125rem;
+    color: var(--lh-text-muted);
 }

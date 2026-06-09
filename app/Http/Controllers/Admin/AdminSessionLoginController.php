@@ -54,6 +54,6 @@ class AdminSessionLoginController extends Controller
 
         $request->session()->save();
 
-        return redirect()->to('/admin', status: 303);
+        return redirect()->route('admin.login.complete', status: 303);
     }
 }

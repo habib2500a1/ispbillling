@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use Filament\Facades\Filament;
+use App\Support\CompanyBranding;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -16,18 +16,14 @@ final class AdminLoginCompleteController extends Controller
     public function __invoke(Request $request): View|RedirectResponse
     {
         if ($request->user('web') === null) {
-            return redirect()->route('filament.admin.auth.login')
-                ->withErrors(['email' => __('Your session could not be started. Clear site cookies and try again.')]);
+            return redirect()->route('login.hub')
+                ->withErrors(['login' => __('Your session could not be started. Please try again.')]);
         }
 
-        $panel = Filament::getPanel('admin');
-        Filament::setCurrentPanel($panel);
-        Filament::bootCurrentPanel();
-
-        $target = Filament::getUrl();
-
         return view('admin.login-complete', [
-            'target' => $target,
+            'target' => url('/admin'),
+            'companyName' => CompanyBranding::name(),
+            'logo' => CompanyBranding::logoUrl(),
         ]);
     }
 }
