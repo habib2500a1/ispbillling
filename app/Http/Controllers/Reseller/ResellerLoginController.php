@@ -16,11 +16,12 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Http\Response;
 use Illuminate\View\View;
 
 class ResellerLoginController extends Controller
 {
-    public function create(Request $request): View|RedirectResponse
+    public function create(Request $request): Response|RedirectResponse
     {
         if (! config('reseller_portal.enabled', true)) {
             abort(404);
@@ -30,7 +31,11 @@ class ResellerLoginController extends Controller
             return redirect()->route('reseller.dashboard');
         }
 
-        return view('reseller.login');
+        return response()
+            ->view('reseller.login')
+            ->header('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0')
+            ->header('Pragma', 'no-cache')
+            ->header('Expires', '0');
     }
 
     public function store(

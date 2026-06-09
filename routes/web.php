@@ -1,7 +1,6 @@
 <?php
 
 use App\Http\Controllers\Admin\AdminLoginCompleteController;
-use App\Http\Controllers\Admin\AdminLoginPageController;
 use App\Http\Controllers\Admin\AdminSessionLoginController;
 use App\Http\Controllers\Admin\GoogleDriveOAuthController;
 use App\Http\Controllers\Admin\WebSipCallLogController;
@@ -97,8 +96,8 @@ Route::middleware(['web', 'auth'])->prefix('admin')->group(function (): void {
 Route::redirect('/admin/customers', '/admin/subscribers', 308);
 Route::redirect('/admin/customers/{path}', '/admin/subscribers/{path}', 308)->where('path', '.+');
 
-// Fast admin login GET — same CSS as Filament auth, no Livewire.
-Route::get('/admin/login', AdminLoginPageController::class)
+// Admin login GET → unified sign-in page (POST stays on /admin/login).
+Route::redirect('/admin/login', '/login', 302)
     ->middleware(['web', 'throttle:60,1'])
     ->name('filament.admin.auth.login');
 
@@ -170,7 +169,7 @@ Route::middleware('auth')->get('/collector', function () {
 })->name('collector.pwa');
 
 Route::middleware(['guest:reseller', 'throttle:15,1'])->group(function () {
-    Route::get('/reseller/login', [ResellerLoginController::class, 'create'])->name('reseller.login');
+    Route::redirect('/reseller/login', '/login', 302)->name('reseller.login');
     Route::post('/reseller/login', [ResellerLoginController::class, 'store'])->name('reseller.login.store');
     Route::get('/reseller/access/{token}', [ResellerLoginController::class, 'accessToken'])
         ->where('token', '[0-9]+-[a-zA-Z0-9]+')
@@ -432,7 +431,7 @@ Route::middleware(['guest:customer', 'throttle:15,1'])->group(function () {
 Route::get('/login', LoginHubController::class)->name('login.hub');
 
 Route::middleware(['portal.enabled', 'guest:customer', 'throttle:15,1'])->prefix('login')->group(function () {
-    Route::get('/customer', [PortalLoginController::class, 'create'])->name('portal.login');
+    Route::redirect('/customer', '/login', 302)->name('portal.login');
     Route::post('/customer', [PortalLoginController::class, 'store'])->name('portal.login.store');
     Route::get('/customer/otp', [PortalLoginController::class, 'otpForm'])->name('portal.login.otp');
     Route::post('/customer/otp', [PortalLoginController::class, 'otpVerify'])->name('portal.login.otp.verify');
@@ -440,7 +439,7 @@ Route::middleware(['portal.enabled', 'guest:customer', 'throttle:15,1'])->prefix
         ->where('token', '[0-9]+-[a-zA-Z0-9]+')
         ->name('portal.access.token');
 });
-Route::redirect('/portal/login', '/login/customer', 301);
+Route::redirect('/portal/login', '/login', 301);
 Route::redirect('/portal/login/otp', '/login/customer/otp', 301);
 Route::redirect('/login/otp', '/login/customer/otp', 301);
 
@@ -547,9 +546,11 @@ if (filled($landingDomain)) {
 }
 
 if (filled($adminDomain)) {
-    Route::domain($adminDomain)->group(function (): void {
+    $unifiedLoginUrl = rtrim((string) config('app.url'), '/').'/login';
+    Route::domain($adminDomain)->group(function () use ($unifiedLoginUrl): void {
         Route::get('/', fn () => redirect('/admin'));
-        Route::permanentRedirect('/login', '/admin/login');
+        Route::permanentRedirect('/login', $unifiedLoginUrl);
+        Route::permanentRedirect('/admin/login', $unifiedLoginUrl);
     });
 }
 

@@ -1,114 +1,75 @@
-<!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-    <title>Reseller login — {{ config('app.name') }}</title>
-    @include('partials.site-favicon')
-    @include('partials.reseller-theme-head')
-    @php
-        $rslPortalBuild = '2026.06.04-pro-qa5';
-        $loginCssVer = (@filemtime(public_path('css/reseller-portal-pro.css')) ?: time()).'-'.$rslPortalBuild;
-        $loginCompatVer = (@filemtime(public_path('css/reseller-portal-compat.css')) ?: time()).'-'.$rslPortalBuild;
-        $loginCssHref = '/css/reseller-portal-pro.css?v='.$loginCssVer;
-        $loginCompatHref = '/css/reseller-portal-compat.css?v='.$loginCompatVer;
-        $wl = app()->bound('reseller.white_label') ? app('reseller.white_label') : null;
-        $companyName = $wl?->brand_name ?: config('app.name');
-        $logoUrl = $wl?->logoUrl() ?: \App\Support\CompanyBranding::logoUrl();
-        $initial = $wl?->brandInitial() ?: \App\Support\CompanyBranding::brandInitial();
-    @endphp
-    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-    <link rel="preload" href="{{ $loginCssHref }}" as="style">
-    <link rel="stylesheet" href="{{ $loginCssHref }}" data-rsl-build="{{ $rslPortalBuild }}">
-    <link rel="stylesheet" href="{{ $loginCompatHref }}" data-rsl-build="{{ $rslPortalBuild }}">
-    @include('reseller.partials.critical-css')
-    <script src="{{ asset('js/portal-theme.js') }}?v={{ $loginCssVer }}"></script>
-</head>
-<body class="rsl-page rsl-login-page">
-    @include('partials.demo-banner')
-    <div class="rsl-login-shell">
-        <aside class="rsl-login-brand-panel" aria-hidden="true">
-            <div class="rsl-login-brand-inner">
-                @if ($logoUrl)
-                    <img src="{{ $logoUrl }}" alt="" class="rsl-login-brand-logo">
-                @else
-                    <span class="rsl-login-brand-mark">{{ $initial }}</span>
-                @endif
-                <h2 class="rsl-login-brand-title">{{ $companyName }}</h2>
-                <p class="rsl-login-brand-tagline">Enterprise partner portal</p>
-                <ul class="rsl-login-features">
-                    <li><span class="rsl-login-feature-dot"></span> Due collection & live reports</li>
-                    <li><span class="rsl-login-feature-dot"></span> Mobile-friendly dashboard</li>
-                    <li><span class="rsl-login-feature-dot"></span> Secure partner login</li>
-                </ul>
+@php
+    $wl = app()->bound('reseller.white_label') ? app('reseller.white_label') : null;
+    $companyName = $wl?->brand_name ?: \App\Support\CompanyBranding::name();
+    $logoUrl = $wl?->logoUrl() ?: \App\Support\CompanyBranding::logoUrl();
+@endphp
+
+<x-auth.login-shell
+    :companyName="$companyName"
+    :logo="$logoUrl"
+    eyebrow="Partner portal"
+    lead="Sign in with partner ID, email, or phone"
+    roleAccent="reseller"
+    :portalEnabled="(bool) config('portal.enabled', true)"
+    :resellerEnabled="true"
+>
+    @include('partials.demo-credentials-hint', ['demoHint' => 'reseller'])
+
+    @if ($wl && filled($wl->portal_login_message))
+        <div class="lh-note" role="status">{{ $wl->portal_login_message }}</div>
+    @endif
+
+    @if ($errors->any())
+        <div class="lh-alert lh-alert--error" role="alert">
+            {{ $errors->first() }}
+        </div>
+    @endif
+
+    <form method="post" action="{{ route('reseller.login.store') }}" class="lh-form">
+        @csrf
+        <div class="lh-field">
+            <label for="login">Partner ID, email, or phone</label>
+            <input
+                id="login"
+                name="login"
+                type="text"
+                value="{{ old('login') }}"
+                required
+                autofocus
+                autocomplete="username"
+                autocapitalize="off"
+                autocorrect="off"
+                spellcheck="false"
+                placeholder="RSL-0001 or email"
+            >
+        </div>
+        <div class="lh-field">
+            <label for="password">Password</label>
+            <div class="lh-password-wrap">
+                <input
+                    id="password"
+                    name="password"
+                    type="password"
+                    required
+                    autocomplete="current-password"
+                    placeholder="Enter your password"
+                >
+                <button type="button" class="lh-password-toggle" aria-label="Show password" tabindex="-1">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true">
+                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+                    </svg>
+                </button>
             </div>
-        </aside>
-
-        <main class="rsl-login-main">
-            <div class="rsl-login-hero-mobile">
-                @if ($logoUrl)
-                    <img src="{{ $logoUrl }}" alt="" class="rsl-login-mobile-logo">
-                @else
-                    <span class="rsl-login-brand-mark">{{ $initial }}</span>
-                @endif
-                <h2 class="rsl-login-hero-title">{{ $companyName }}</h2>
-                <p>Enterprise partner portal</p>
-            </div>
-
-            <div class="rsl-login-glass">
-                <div class="rsl-login-card-head">
-                    <button type="button" class="rsl-login-theme" onclick="portalCycleTheme()" id="rsl-login-theme" aria-label="Theme">◐</button>
-                </div>
-                <div class="rsl-login-card-body">
-                    <h1 class="rsl-login-title">Partner login</h1>
-                    <p class="rsl-login-sub">Sign in with partner ID, email, or phone</p>
-
-                    @include('partials.demo-credentials-hint', ['demoHint' => 'reseller'])
-
-                    @if ($wl && filled($wl->portal_login_message))
-                        <p class="rsl-login-wl-msg">{{ $wl->portal_login_message }}</p>
-                    @endif
-                    @if ($errors->any())
-                        <div class="rsl-login-error" role="alert">{{ $errors->first() }}</div>
-                    @endif
-
-                    <form method="post" action="{{ route('reseller.login.store') }}" class="rsl-login-form">
-                        @csrf
-                        <label class="rsl-login-label" for="login">Partner ID</label>
-                        <input id="login" name="login" type="text" value="{{ old('login') }}" required autofocus class="rsl-input rsl-login-input" placeholder="RSL-0001 or email" autocomplete="username">
-
-                        <label class="rsl-login-label" for="password">Password</label>
-                        <input id="password" name="password" type="password" required class="rsl-input rsl-login-input" autocomplete="current-password">
-
-                        <label class="rsl-login-remember">
-                            <input type="checkbox" name="remember" value="1" {{ (old('remember') !== null ? old('remember') : config('reseller_portal.session.remember_default', true)) ? 'checked' : '' }}>
-                            <span>Remember me</span>
-                        </label>
-
-                        <button type="submit" class="rsl-btn rsl-login-submit">Sign in</button>
-                    </form>
-                </div>
-            </div>
-
-            <p class="rsl-login-hub-link"><a href="{{ route('login.hub') }}">← All sign-in options</a></p>
-            <p class="rsl-login-foot">&copy; {{ date('Y') }} {{ $companyName }} · <span class="rsl-login-build">{{ $rslPortalBuild }}</span></p>
-        </main>
-    </div>
-    <script>
-        function portalApplyTheme(theme) {
-            const dark = theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
-            document.documentElement.classList.toggle('rsl-dark', dark);
-            const btn = document.getElementById('rsl-login-theme');
-            if (btn) btn.textContent = { light: '☀️', dark: '🌙', system: '◐' }[theme] || '◐';
-        }
-        function portalCycleTheme() {
-            const order = ['light', 'dark', 'system'];
-            const cur = window.portalGetTheme?.() || 'system';
-            const next = order[(order.indexOf(cur) + 1) % order.length];
-            window.portalSetTheme?.(next);
-            portalApplyTheme(next);
-        }
-        portalApplyTheme(window.portalGetTheme?.() || 'system');
-    </script>
-</body>
-</html>
+        </div>
+        <label class="lh-remember">
+            <input
+                type="checkbox"
+                name="remember"
+                value="1"
+                {{ (old('remember') !== null ? old('remember') : config('reseller_portal.session.remember_default', true)) ? 'checked' : '' }}
+            >
+            <span>Remember this device</span>
+        </label>
+        <button type="submit" class="lh-submit">Sign in</button>
+    </form>
+</x-auth.login-shell>

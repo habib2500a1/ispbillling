@@ -3,103 +3,395 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-    <meta name="theme-color" content="#312e81">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <meta name="color-scheme" content="light dark">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <title>Sign in — {{ $companyName }}</title>
     @if (! empty($logo))
         <link rel="icon" href="{{ $logo }}" />
     @else
         @include('partials.site-favicon')
     @endif
-    <link rel="stylesheet" href="{{ asset('css/portal.css') }}?v={{ @filemtime(public_path('css/portal.css')) ?: 1 }}">
-    @include('partials.isp-premium-theme', ['tailwind' => false])
-    <link rel="stylesheet" href="{{ asset('css/login-hub.css') }}?v={{ @filemtime(public_path('css/login-hub.css')) ?: 1 }}">
-    <script src="{{ asset('js/portal-theme.js') }}?v=1"></script>
+    <script data-cfasync="false">
+        (function () {
+            var key = 'isp-portal-theme';
+            var stored = localStorage.getItem(key);
+            var theme = stored === 'dark' ? 'dark' : 'light';
+            document.documentElement.classList.toggle('portal-dark', theme === 'dark');
+        })();
+    </script>
+    <style>
+        html, body.isp-login-hub-page { margin: 0; min-height: 100vh; background: #f4f4f5; color: #09090b; font-family: Outfit, system-ui, sans-serif; }
+        html.portal-dark, html.portal-dark body.isp-login-hub-page { background: #09090b; color: #fafafa; }
+        .lh-shell { display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 1rem; box-sizing: border-box; }
+        .lh-card { width: 100%; max-width: 26rem; background: #fff; border: 1px solid #e4e4e7; border-radius: 1rem; padding: 1.5rem; box-shadow: 0 8px 30px rgba(0,0,0,.08); box-sizing: border-box; }
+        html.portal-dark .lh-card { background: #18181b; border-color: #3f3f46; }
+        .lh-head { text-align: center; margin-bottom: 1rem; }
+        .lh-head__title { margin: 0; font-size: 1.35rem; font-weight: 800; }
+        .lh-head__lead { margin: .5rem 0 0; font-size: .875rem; color: #71717a; }
+        .lh-field { margin-bottom: .875rem; }
+        .lh-field label { display: block; margin-bottom: .35rem; font-size: .8125rem; font-weight: 600; }
+        .lh-field input { width: 100%; padding: .75rem; border: 1px solid #d4d4d8; border-radius: .5rem; font: inherit; box-sizing: border-box; background: #fafafa; color: inherit; }
+        html.portal-dark .lh-field input { background: #27272a; border-color: #52525b; }
+        .lh-submit { width: 100%; padding: .75rem; border: 0; border-radius: .5rem; background: #4f46e5; color: #fff; font: inherit; font-weight: 700; cursor: pointer; }
+        .lh-orbs { display: none !important; }
+    </style>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    @include('partials.isp-premium-theme', ['tailwind' => false, 'glass' => false, 'motion' => false])
+    <link rel="stylesheet" href="{{ asset('css/login-hub.css') }}?v={{ @filemtime(public_path('css/login-hub.css')) ?: time() }}">
 </head>
-<body class="portal-body antialiased isp-login-hub-page isp-premium-theme">
+<body class="isp-login-hub-page">
     @include('partials.demo-banner')
-    <div class="portal-premium-orbs isp-premium-orbs" aria-hidden="true">
-        <span></span><span></span><span></span>
-    </div>
 
-    <main class="isp-login-hub">
-        <div class="isp-login-hub__panel isp-gradient-border">
-            <div class="isp-gradient-border__inner isp-login-hub__panel-inner">
-                @include('partials.demo-credentials-hint')
-                <header class="isp-login-hub__head">
-                    <div class="isp-login-hub__brand">
-                        @if ($logo)
-                            <img src="{{ $logo }}" alt="" class="isp-login-hub__logo" width="64" height="64">
-                        @else
-                            <span class="isp-login-hub__mark" aria-hidden="true">{{ mb_substr($companyName, 0, 1) }}</span>
-                        @endif
-                    </div>
-                    <p class="isp-login-hub__eyebrow">Secure access</p>
-                    <h1 class="isp-login-hub__title">{{ $companyName }}</h1>
-                    <p class="isp-login-hub__lead">Choose your portal — customer, staff, or partner</p>
-                </header>
+    <main class="lh-shell">
+        <div class="lh-card">
+            <div class="lh-card__top">
+                <button
+                    type="button"
+                    class="lh-theme-btn"
+                    id="lh-theme-btn"
+                    aria-label="Toggle light or dark mode"
+                    title="Toggle theme"
+                >
+                    <svg class="lh-theme-btn__sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                        <circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/>
+                    </svg>
+                    <svg class="lh-theme-btn__moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+                    </svg>
+                </button>
+            </div>
 
-                <div class="isp-login-hub__grid" role="list">
-                    @if ($portalEnabled)
-                        <a href="{{ $customerLoginUrl }}" class="isp-login-hub__card isp-login-hub__card--customer" role="listitem">
-                            <span class="isp-login-hub__card-icon" aria-hidden="true">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                            </span>
-                            <span class="isp-login-hub__card-body">
-                                <span class="isp-login-hub__card-badge">Customer</span>
-                                <span class="isp-login-hub__card-title">Customer portal</span>
-                                <span class="isp-login-hub__card-desc">Bills, usage, speed test, tickets &amp; connection</span>
-                            </span>
-                            <span class="isp-login-hub__card-arrow" aria-hidden="true">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
-                            </span>
-                        </a>
-                    @endif
-
-                    <a href="{{ $adminLoginUrl }}" class="isp-login-hub__card isp-login-hub__card--admin" role="listitem">
-                        <span class="isp-login-hub__card-icon" aria-hidden="true">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-                        </span>
-                        <span class="isp-login-hub__card-body">
-                            <span class="isp-login-hub__card-badge">Staff</span>
-                            <span class="isp-login-hub__card-title">Admin / operations</span>
-                            <span class="isp-login-hub__card-desc">Billing desk, subscribers, network &amp; reports</span>
-                        </span>
-                        <span class="isp-login-hub__card-arrow" aria-hidden="true">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
-                        </span>
-                    </a>
-
-                    @if ($resellerEnabled)
-                        <a href="{{ $resellerLoginUrl }}" class="isp-login-hub__card isp-login-hub__card--reseller" role="listitem">
-                            <span class="isp-login-hub__card-icon" aria-hidden="true">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-                            </span>
-                            <span class="isp-login-hub__card-body">
-                                <span class="isp-login-hub__card-badge">Partner</span>
-                                <span class="isp-login-hub__card-title">Reseller portal</span>
-                                <span class="isp-login-hub__card-desc">Collections, due reports &amp; partner dashboard</span>
-                            </span>
-                            <span class="isp-login-hub__card-arrow" aria-hidden="true">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
-                            </span>
-                        </a>
+            <header class="lh-head">
+                <div class="lh-brand">
+                    @if ($logo)
+                        <img src="{{ $logo }}" alt="" class="lh-brand__logo" width="56" height="56">
+                    @else
+                        <span class="lh-brand__mark" aria-hidden="true">{{ mb_substr($companyName, 0, 1) }}</span>
                     @endif
                 </div>
+                <p class="lh-head__eyebrow">Secure access</p>
+                <h1 class="lh-head__title">{{ $companyName }}</h1>
+                <p class="lh-head__lead">Sign in with your email, phone, or account ID</p>
+            </header>
 
-                <footer class="isp-login-hub__foot">
-                    <a href="{{ $payUrl }}" class="isp-login-hub__chip">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>
-                        Pay bill without login
+            @include('partials.demo-credentials-hint')
+
+            <div class="lh-alert lh-alert--error" id="lh-error" role="alert" hidden></div>
+
+            <form class="lh-form" id="lh-form" novalidate>
+                <div class="lh-field">
+                    <label for="lh-login">Email, phone, or account ID</label>
+                    <input
+                        id="lh-login"
+                        name="login"
+                        type="text"
+                        required
+                        autofocus
+                        autocomplete="username"
+                        autocapitalize="off"
+                        autocorrect="off"
+                        spellcheck="false"
+                        placeholder="demo@anetbd.com, 01XXXXXXXXX, CUST-001"
+                    >
+                </div>
+
+                <div class="lh-field">
+                    <label for="lh-password">Password</label>
+                    <div class="lh-password-wrap">
+                        <input
+                            id="lh-password"
+                            name="password"
+                            type="password"
+                            required
+                            autocomplete="current-password"
+                            placeholder="Enter your password"
+                        >
+                        <button type="button" class="lh-password-toggle" id="lh-password-toggle" aria-label="Show password" tabindex="-1">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true">
+                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+
+                <label class="lh-remember">
+                    <input type="checkbox" name="remember" value="1" id="lh-remember" checked>
+                    <span>Remember this device</span>
+                </label>
+
+                <button type="submit" class="lh-submit" id="lh-submit">
+                    <span class="lh-submit__label">Sign in</span>
+                    <span class="lh-submit__spinner" aria-hidden="true"></span>
+                </button>
+            </form>
+
+            <footer class="lh-foot">
+                <a href="{{ $payUrl }}" class="lh-chip">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>
+                    Pay bill without login
+                </a>
+                @if (config('portal.signup.enabled', true) && $portalEnabled)
+                    <a href="{{ route('portal.signup') }}" class="lh-chip lh-chip--muted">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+                        New connection
                     </a>
-                    @if (config('portal.signup.enabled', true) && $portalEnabled)
-                        <a href="{{ route('portal.signup') }}" class="isp-login-hub__chip isp-login-hub__chip--muted">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
-                            New connection
-                        </a>
-                    @endif
-                </footer>
-            </div>
+                @endif
+            </footer>
         </div>
     </main>
+
+    <iframe id="lh-auth-frame" name="lh-auth-frame" hidden title=""></iframe>
+    <script data-cfasync="false">
+        (function () {
+            var csrfMeta = document.querySelector('meta[name="csrf-token"]');
+            var form = document.getElementById('lh-form');
+            var loginInput = document.getElementById('lh-login');
+            var passwordInput = document.getElementById('lh-password');
+            var rememberInput = document.getElementById('lh-remember');
+            var submitBtn = document.getElementById('lh-submit');
+            var errorBox = document.getElementById('lh-error');
+            var pwToggle = document.getElementById('lh-password-toggle');
+            var themeBtn = document.getElementById('lh-theme-btn');
+            var authFrame = document.getElementById('lh-auth-frame');
+
+            var apiLoginUrl = @json(url('/api/v1/mobile/login'));
+
+            var endpoints = {
+                staff: {
+                    url: @json(route('admin.login.session')),
+                    fields: function (login, password, remember) {
+                        return { email: login, password: password, remember: remember ? '1' : '0' };
+                    },
+                    enabled: true
+                },
+                customer: {
+                    url: @json(route('portal.login.store')),
+                    fields: function (login, password, remember) {
+                        return { login: login, password: password, remember: remember ? '1' : '0' };
+                    },
+                    enabled: @json($portalEnabled)
+                },
+                reseller: {
+                    url: @json(route('reseller.login.store')),
+                    fields: function (login, password, remember) {
+                        return { login: login, password: password, remember: remember ? '1' : '0' };
+                    },
+                    enabled: @json((bool) config('reseller_portal.enabled', true))
+                }
+            };
+
+            function getCsrf() {
+                return csrfMeta ? csrfMeta.getAttribute('content') : '';
+            }
+
+            function refreshCsrfFromFrame() {
+                try {
+                    var doc = authFrame.contentDocument;
+                    if (!doc) return;
+                    var meta = doc.querySelector('meta[name="csrf-token"]');
+                    if (meta && meta.getAttribute('content')) {
+                        csrfMeta.setAttribute('content', meta.getAttribute('content'));
+                        return;
+                    }
+                    var input = doc.querySelector('input[name="_token"]');
+                    if (input && input.value) {
+                        csrfMeta.setAttribute('content', input.value);
+                    }
+                } catch (err) { /* ignore */ }
+            }
+
+            function detectHint(login) {
+                var v = (login || '').trim();
+                if (!v) return 'auto';
+                if (/^rsl[-_]/i.test(v)) return 'reseller';
+                if (/^(cust|demo)[-_]/i.test(v)) return 'customer';
+                if (/^01[0-9]{9}$/.test(v.replace(/[\s\-+]/g, '').replace(/^88/, ''))) return 'customer';
+                if (v.indexOf('@') !== -1) return 'email';
+                if (/^[0-9]{6,}$/.test(v.replace(/\D/g, ''))) return 'customer';
+                return 'auto';
+            }
+
+            function attemptOrder(hint) {
+                if (hint === 'reseller') return ['reseller', 'customer', 'staff'];
+                if (hint === 'customer') return ['customer', 'reseller', 'staff'];
+                if (hint === 'email') return ['staff', 'customer', 'reseller'];
+                return ['customer', 'staff', 'reseller'];
+            }
+
+            function setLoading(on) {
+                submitBtn.disabled = on;
+                submitBtn.classList.toggle('is-loading', on);
+            }
+
+            function showError(msg) {
+                errorBox.textContent = msg;
+                errorBox.hidden = !msg;
+            }
+
+            function isLoginSuccess(url) {
+                if (!url) return false;
+                try {
+                    var path = new URL(url, window.location.origin).pathname;
+                    if (path === '/login' || path === '/admin/login' || path === '/login/customer' || path === '/reseller/login') {
+                        return false;
+                    }
+                    if (path.indexOf('/login') !== -1
+                        && path.indexOf('/complete') === -1
+                        && path.indexOf('/otp') === -1) {
+                        return false;
+                    }
+                    return true;
+                } catch (err) {
+                    return false;
+                }
+            }
+
+            function submitWebLogin(role, login, password, remember, target) {
+                var ep = endpoints[role];
+                if (!ep || !ep.enabled) return false;
+
+                var temp = document.createElement('form');
+                temp.method = 'POST';
+                temp.action = ep.url;
+                temp.target = target || '_self';
+                temp.style.display = 'none';
+
+                var token = document.createElement('input');
+                token.type = 'hidden';
+                token.name = '_token';
+                token.value = getCsrf();
+                temp.appendChild(token);
+
+                var fields = ep.fields(login, password, remember);
+                Object.keys(fields).forEach(function (key) {
+                    var input = document.createElement('input');
+                    input.type = 'hidden';
+                    input.name = key;
+                    input.value = fields[key];
+                    temp.appendChild(input);
+                });
+
+                document.body.appendChild(temp);
+                temp.submit();
+                document.body.removeChild(temp);
+                return true;
+            }
+
+            function tryIframeLogin(role, login, password, remember) {
+                return new Promise(function (resolve) {
+                    var ep = endpoints[role];
+                    if (!ep || !ep.enabled) {
+                        resolve(false);
+                        return;
+                    }
+
+                    var done = false;
+                    var timer = setTimeout(function () {
+                        if (!done) {
+                            done = true;
+                            resolve(false);
+                        }
+                    }, 12000);
+
+                    authFrame.onload = function () {
+                        if (done) return;
+                        refreshCsrfFromFrame();
+                        try {
+                            var href = authFrame.contentWindow.location.href;
+                            if (isLoginSuccess(href)) {
+                                done = true;
+                                clearTimeout(timer);
+                                window.location.href = href;
+                                resolve(true);
+                                return;
+                            }
+                        } catch (err) { /* ignore */ }
+                        done = true;
+                        clearTimeout(timer);
+                        resolve(false);
+                    };
+
+                    submitWebLogin(role, login, password, remember, 'lh-auth-frame');
+                });
+            }
+
+            async function resolveRoleViaApi(login, password) {
+                try {
+                    var res = await fetch(apiLoginUrl, {
+                        method: 'POST',
+                        credentials: 'same-origin',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Accept': 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest'
+                        },
+                        body: JSON.stringify({ login: login, password: password, role: 'auto' })
+                    });
+
+                    if (res.ok) {
+                        var data = await res.json();
+                        return data.role || null;
+                    }
+
+                    if (res.status === 422) {
+                        var payload = await res.json();
+                        if (payload && payload.requires_2fa) {
+                            return payload.role || 'reseller';
+                        }
+                    }
+                } catch (err) { /* ignore */ }
+
+                return null;
+            }
+
+            pwToggle.addEventListener('click', function () {
+                var show = passwordInput.type === 'password';
+                passwordInput.type = show ? 'text' : 'password';
+                pwToggle.setAttribute('aria-label', show ? 'Hide password' : 'Show password');
+            });
+
+            if (themeBtn) {
+                themeBtn.addEventListener('click', function () {
+                    var root = document.documentElement;
+                    var next = root.classList.contains('portal-dark') ? 'light' : 'dark';
+                    root.classList.toggle('portal-dark', next === 'dark');
+                    localStorage.setItem('isp-portal-theme', next);
+                });
+            }
+
+            form.addEventListener('submit', async function (e) {
+                e.preventDefault();
+                showError('');
+
+                var login = loginInput.value.trim();
+                var password = passwordInput.value;
+                var remember = rememberInput.checked;
+
+                if (!login || !password) {
+                    showError('Please enter your account and password.');
+                    return;
+                }
+
+                setLoading(true);
+
+                var role = await resolveRoleViaApi(login, password);
+                if (role && endpoints[role] && endpoints[role].enabled) {
+                    submitWebLogin(role, login, password, remember);
+                    return;
+                }
+
+                var order = attemptOrder(detectHint(login));
+                for (var i = 0; i < order.length; i++) {
+                    var ok = await tryIframeLogin(order[i], login, password, remember);
+                    if (ok) return;
+                }
+
+                setLoading(false);
+                showError('Invalid credentials. Check your account ID and password.');
+            });
+        })();
+    </script>
 </body>
 </html>

@@ -10,12 +10,12 @@ use App\Support\MobileAppLinks;
 use App\Support\PublicTenantContext;
 use App\Support\SafeCache;
 use Illuminate\Support\Facades\Schema;
-use Illuminate\View\View;
+use Illuminate\Http\Response;
 use Throwable;
 
 class LandingPageController extends Controller
 {
-    public function __invoke(): View
+    public function __invoke(): Response
     {
         try {
             $tenantId = PublicTenantContext::tenantId();
@@ -29,7 +29,11 @@ class LandingPageController extends Controller
             $payload = $this->buildLandingPayload(PublicTenantContext::tenantId());
         }
 
-        return view('landing.index', $payload);
+        return response()
+            ->view('landing.index', $payload)
+            ->header('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0')
+            ->header('Pragma', 'no-cache')
+            ->header('Expires', '0');
     }
 
     /**

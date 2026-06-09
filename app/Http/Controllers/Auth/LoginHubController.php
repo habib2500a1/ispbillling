@@ -4,21 +4,21 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Support\CompanyBranding;
-use Illuminate\View\View;
+use Illuminate\Http\Response;
 
 class LoginHubController extends Controller
 {
-    public function __invoke(): View
+    public function __invoke(): Response
     {
-        return view('auth.login-hub', [
-            'companyName' => CompanyBranding::name(),
-            'logo' => CompanyBranding::logoUrl(),
-            'portalEnabled' => (bool) config('portal.enabled', true),
-            'resellerEnabled' => (bool) config('reseller_portal.enabled', true),
-            'customerLoginUrl' => route('portal.login'),
-            'adminLoginUrl' => route('filament.admin.auth.login'),
-            'resellerLoginUrl' => route('reseller.login'),
-            'payUrl' => url('/pay'),
-        ]);
+        return response()
+            ->view('auth.login-hub', [
+                'companyName' => CompanyBranding::name(),
+                'logo' => CompanyBranding::logoUrl(),
+                'portalEnabled' => (bool) config('portal.enabled', true),
+                'payUrl' => url('/pay'),
+            ])
+            ->header('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0')
+            ->header('Pragma', 'no-cache')
+            ->header('Expires', '0');
     }
 }
