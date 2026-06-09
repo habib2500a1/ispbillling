@@ -9,6 +9,20 @@ use Illuminate\Database\Eloquent\Builder;
  */
 trait AppliesOnlineClientsTableSearch
 {
+    public function updatedTableSearch(): void
+    {
+        if ($this->getTable()->persistsSearchInSession()) {
+            session()->put($this->getTableSearchSessionKey(), $this->tableSearch);
+        }
+
+        if ($this->getTable()->shouldDeselectAllRecordsWhenFiltered()) {
+            $this->deselectAllTableRecords();
+        }
+
+        $this->resetPage();
+        $this->flushCachedTableRecords();
+    }
+
     protected function applySearchToTableQuery(Builder $query): Builder
     {
         $search = trim((string) ($this->getTableSearch() ?? ''));

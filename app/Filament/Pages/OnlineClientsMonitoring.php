@@ -33,6 +33,7 @@ class OnlineClientsMonitoring extends Page implements HasForms, HasTable
     use InteractsWithForms;
     use InteractsWithTable {
         AppliesOnlineClientsTableSearch::applySearchToTableQuery insteadof InteractsWithTable;
+        AppliesOnlineClientsTableSearch::updatedTableSearch insteadof InteractsWithTable;
     }
 
     protected static ?string $navigationIcon = 'heroicon-o-signal';
@@ -188,6 +189,7 @@ class OnlineClientsMonitoring extends Page implements HasForms, HasTable
                     ])
             )
             ->defaultSort('is_ppp_online', 'desc')
+            ->searchable()
             ->persistSearchInSession()
             ->searchDebounce('400ms')
             ->searchPlaceholder('Search code, name, phone, PPP user, IP…')
