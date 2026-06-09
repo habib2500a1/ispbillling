@@ -62,6 +62,7 @@ use App\Http\Controllers\PipraPayPaymentController;
 use App\Http\Controllers\RocketPaymentController;
 use App\Http\Controllers\InventoryShopController;
 use App\Http\Controllers\Auth\LoginHubController;
+use App\Http\Controllers\Auth\UnifiedWebLoginController;
 use App\Http\Controllers\LandingPageController;
 use App\Http\Controllers\Webhooks\KhudeBartaDlrController;
 use Illuminate\Support\Facades\Auth;
@@ -429,6 +430,9 @@ Route::middleware(['guest:customer', 'throttle:15,1'])->group(function () {
 });
 
 Route::get('/login', LoginHubController::class)->name('login.hub');
+Route::post('/login', UnifiedWebLoginController::class)
+    ->middleware('throttle:15,1')
+    ->name('login.hub.store');
 
 Route::middleware(['portal.enabled', 'guest:customer', 'throttle:15,1'])->prefix('login')->group(function () {
     Route::redirect('/customer', '/login', 302)->name('portal.login');

@@ -173,6 +173,18 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Legacy Cookie Cleanup
+    |--------------------------------------------------------------------------
+    |
+    | When true, GET /login and GET /admin/login expire old domain-scoped session
+    | cookies. Disabled automatically when SESSION_LEGACY_DOMAIN is empty.
+    |
+    */
+
+    'legacy_cleanup' => filter_var(env('SESSION_LEGACY_CLEANUP', true), FILTER_VALIDATE_BOOLEAN),
+
+    /*
+    |--------------------------------------------------------------------------
     | HTTPS Only Cookies
     |--------------------------------------------------------------------------
     |

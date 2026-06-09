@@ -14,21 +14,24 @@ use Illuminate\Http\Request;
  */
 class AdminSessionLoginController extends Controller
 {
-    public function __invoke(Request $request, StaffLoginService $login): RedirectResponse
+    public function __invoke(Request $request, StaffLoginService $staffLogin): RedirectResponse
     {
         $panel = Filament::getPanel('admin');
         Filament::setCurrentPanel($panel);
 
         $validated = $request->validate([
-            'email' => ['required', 'string', 'max:255'],
+            'email' => ['nullable', 'string', 'max:255', 'required_without:login'],
+            'login' => ['nullable', 'string', 'max:255', 'required_without:email'],
             'password' => ['required', 'string'],
             'remember' => ['nullable', 'in:0,1,true,false,on,off,yes,no'],
         ]);
 
         $remember = filter_var($validated['remember'] ?? false, FILTER_VALIDATE_BOOLEAN);
 
-        $result = $login->attempt(
-            $validated['email'],
+        $identifier = trim((string) ($validated['email'] ?? $validated['login'] ?? ''));
+
+        $result = $staffLogin->attempt(
+            $identifier,
             $validated['password'],
             $remember,
             $request->ip(),
@@ -39,16 +42,18 @@ class AdminSessionLoginController extends Controller
                 'login.failed',
                 'Failed staff login attempt',
                 null,
-                ['login' => $validated['email']],
+                ['login' => $identifier],
             );
 
             return back()
-                ->withInput($request->only('email', 'remember'))
+                ->withInput($request->only('email', 'login', 'remember'))
                 ->withErrors(['email' => $result['error']]);
         }
 
         app(ActivityLogger::class)->log('login', 'Staff signed in', auth('web')->user());
 
-        return redirect()->route('admin.login.complete', status: 303);
+        $request->session()->save();
+
+        return redirect()->to('/admin', status: 303);
     }
 }

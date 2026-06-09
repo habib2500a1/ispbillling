@@ -90,9 +90,9 @@
                 </div>
             @endif
 
-            <div class="lh-alert lh-alert--error" id="lh-error" role="alert" hidden></div>
+            <form class="lh-form" id="lh-form" method="POST" action="{{ route('login.hub.store') }}" novalidate>
+                @csrf
 
-            <form class="lh-form" id="lh-form" novalidate>
                 <div class="lh-field">
                     <label for="lh-login">Email, phone, or account ID</label>
                     <input
@@ -105,6 +105,7 @@
                         autocapitalize="off"
                         autocorrect="off"
                         spellcheck="false"
+                        value="{{ old('login') }}"
                         placeholder="habib@radiantbd.com, 01XXXXXXXXX, CUST-001"
                     >
                 </div>
@@ -129,7 +130,7 @@
                 </div>
 
                 <label class="lh-remember">
-                    <input type="checkbox" name="remember" value="1" id="lh-remember" checked>
+                    <input type="checkbox" name="remember" value="1" id="lh-remember" @checked(old('remember', '1') !== '0')>
                     <span>Remember this device</span>
                 </label>
 
@@ -154,268 +155,13 @@
         </div>
     </main>
 
-    <iframe id="lh-auth-frame" name="lh-auth-frame" hidden title=""></iframe>
     <script data-cfasync="false">
         (function () {
-            var csrfMeta = document.querySelector('meta[name="csrf-token"]');
-            var form = document.getElementById('lh-form');
-            var loginInput = document.getElementById('lh-login');
             var passwordInput = document.getElementById('lh-password');
-            var rememberInput = document.getElementById('lh-remember');
-            var submitBtn = document.getElementById('lh-submit');
-            var errorBox = document.getElementById('lh-error');
             var pwToggle = document.getElementById('lh-password-toggle');
             var themeBtn = document.getElementById('lh-theme-btn');
-            var authFrame = document.getElementById('lh-auth-frame');
-
-            var apiLoginUrl = @json(url('/api/v1/mobile/login'));
-
-            var endpoints = {
-                staff: {
-                    url: @json(route('admin.login.session')),
-                    fields: function (login, password, remember) {
-                        return { email: login, password: password, remember: remember ? '1' : '0' };
-                    },
-                    enabled: true
-                },
-                customer: {
-                    url: @json(route('portal.login.store')),
-                    fields: function (login, password, remember) {
-                        return { login: login, password: password, remember: remember ? '1' : '0' };
-                    },
-                    enabled: @json($portalEnabled)
-                },
-                reseller: {
-                    url: @json(route('reseller.login.store')),
-                    fields: function (login, password, remember) {
-                        return { login: login, password: password, remember: remember ? '1' : '0' };
-                    },
-                    enabled: @json((bool) config('reseller_portal.enabled', true))
-                }
-            };
-
-            function getCsrf() {
-                var fromMeta = csrfMeta ? csrfMeta.getAttribute('content') : '';
-                if (fromMeta) {
-                    return fromMeta;
-                }
-                var match = document.cookie.match(/(?:^|;\s*)XSRF-TOKEN=([^;]+)/);
-                return match ? decodeURIComponent(match[1]) : '';
-            }
-
-            function xsrfHeader() {
-                var match = document.cookie.match(/(?:^|;\s*)XSRF-TOKEN=([^;]+)/);
-                return match ? decodeURIComponent(match[1]) : getCsrf();
-            }
-
-            function refreshCsrfFromFrame() {
-                try {
-                    var doc = authFrame.contentDocument;
-                    if (!doc) return;
-                    var meta = doc.querySelector('meta[name="csrf-token"]');
-                    if (meta && meta.getAttribute('content')) {
-                        csrfMeta.setAttribute('content', meta.getAttribute('content'));
-                        return;
-                    }
-                    var input = doc.querySelector('input[name="_token"]');
-                    if (input && input.value) {
-                        csrfMeta.setAttribute('content', input.value);
-                    }
-                } catch (err) { /* ignore */ }
-            }
-
-            function detectHint(login) {
-                var v = (login || '').trim();
-                if (!v) return 'auto';
-                if (/^rsl[-_]/i.test(v)) return 'reseller';
-                if (/^(cust|demo)[-_]/i.test(v)) return 'customer';
-                if (/^01[0-9]{9}$/.test(v.replace(/[\s\-+]/g, '').replace(/^88/, ''))) return 'customer';
-                if (v.indexOf('@') !== -1) return 'email';
-                if (/^[0-9]{6,}$/.test(v.replace(/\D/g, ''))) return 'customer';
-                return 'auto';
-            }
-
-            function attemptOrder(hint) {
-                if (hint === 'reseller') return ['reseller', 'customer', 'staff'];
-                if (hint === 'customer') return ['customer', 'reseller', 'staff'];
-                if (hint === 'email') return ['staff', 'customer', 'reseller'];
-                return ['customer', 'staff', 'reseller'];
-            }
-
-            function setLoading(on) {
-                submitBtn.disabled = on;
-                submitBtn.classList.toggle('is-loading', on);
-            }
-
-            function showError(msg) {
-                if (!msg) {
-                    errorBox.textContent = '';
-                    errorBox.hidden = true;
-                    return;
-                }
-                errorBox.textContent = msg;
-                errorBox.hidden = false;
-            }
-
-            // Surface server-side validation / session errors from redirect.
-            @if ($errors->any())
-                showError(@json($errors->first()));
-            @elseif (session('session_expired'))
-                showError('Your session expired. Please sign in again.');
-            @endif
-
-            function isLoginSuccess(url) {
-                if (!url) return false;
-                try {
-                    var path = new URL(url, window.location.origin).pathname;
-                    if (path === '/login' || path === '/admin/login' || path === '/login/customer' || path === '/reseller/login') {
-                        return false;
-                    }
-                    if (path.indexOf('/login') !== -1
-                        && path.indexOf('/complete') === -1
-                        && path.indexOf('/otp') === -1) {
-                        return false;
-                    }
-                    return true;
-                } catch (err) {
-                    return false;
-                }
-            }
-
-            function submitWebLogin(role, login, password, remember, target) {
-                var ep = endpoints[role];
-                if (!ep || !ep.enabled) return false;
-
-                var temp = document.createElement('form');
-                temp.method = 'POST';
-                temp.action = ep.url;
-                temp.target = target || '_self';
-                temp.style.display = 'none';
-
-                var token = document.createElement('input');
-                token.type = 'hidden';
-                token.name = '_token';
-                token.value = getCsrf();
-                temp.appendChild(token);
-
-                var fields = ep.fields(login, password, remember);
-                Object.keys(fields).forEach(function (key) {
-                    var input = document.createElement('input');
-                    input.type = 'hidden';
-                    input.name = key;
-                    input.value = fields[key];
-                    temp.appendChild(input);
-                });
-
-                document.body.appendChild(temp);
-                temp.submit();
-                document.body.removeChild(temp);
-                return true;
-            }
-
-            async function submitStaffLoginFetch(login, password, remember) {
-                var ep = endpoints.staff;
-                if (!ep || !ep.enabled) return false;
-
-                var body = new URLSearchParams({
-                    _token: getCsrf(),
-                    email: login,
-                    password: password,
-                    remember: remember ? '1' : '0',
-                });
-
-                try {
-                    var res = await fetch(ep.url, {
-                        method: 'POST',
-                        credentials: 'same-origin',
-                        headers: {
-                            'Content-Type': 'application/x-www-form-urlencoded',
-                            'Accept': 'text/html,application/json',
-                            'X-XSRF-TOKEN': xsrfHeader(),
-                            'X-Requested-With': 'XMLHttpRequest',
-                        },
-                        body: body.toString(),
-                        redirect: 'manual',
-                    });
-
-                    if (res.status >= 300 && res.status < 400) {
-                        var loc = res.headers.get('Location') || '';
-                        if (isLoginSuccess(loc)) {
-                            window.location.href = loc;
-                            return true;
-                        }
-                    }
-                } catch (err) { /* ignore */ }
-
-                return false;
-            }
-
-            function tryIframeLogin(role, login, password, remember) {
-                return new Promise(function (resolve) {
-                    var ep = endpoints[role];
-                    if (!ep || !ep.enabled) {
-                        resolve(false);
-                        return;
-                    }
-
-                    var done = false;
-                    var timer = setTimeout(function () {
-                        if (!done) {
-                            done = true;
-                            resolve(false);
-                        }
-                    }, 12000);
-
-                    authFrame.onload = function () {
-                        if (done) return;
-                        refreshCsrfFromFrame();
-                        try {
-                            var href = authFrame.contentWindow.location.href;
-                            if (isLoginSuccess(href)) {
-                                done = true;
-                                clearTimeout(timer);
-                                window.location.href = href;
-                                resolve(true);
-                                return;
-                            }
-                        } catch (err) { /* ignore */ }
-                        done = true;
-                        clearTimeout(timer);
-                        resolve(false);
-                    };
-
-                    submitWebLogin(role, login, password, remember, 'lh-auth-frame');
-                });
-            }
-
-            async function resolveRoleViaApi(login, password) {
-                try {
-                    var res = await fetch(apiLoginUrl, {
-                        method: 'POST',
-                        credentials: 'same-origin',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Accept': 'application/json',
-                            'X-Requested-With': 'XMLHttpRequest'
-                        },
-                        body: JSON.stringify({ login: login, password: password, role: 'auto' })
-                    });
-
-                    if (res.ok) {
-                        var data = await res.json();
-                        return data.role || null;
-                    }
-
-                    if (res.status === 422) {
-                        var payload = await res.json();
-                        if (payload && payload.requires_2fa) {
-                            return payload.role || 'reseller';
-                        }
-                    }
-                } catch (err) { /* ignore */ }
-
-                return null;
-            }
+            var submitBtn = document.getElementById('lh-submit');
+            var form = document.getElementById('lh-form');
 
             pwToggle.addEventListener('click', function () {
                 var show = passwordInput.type === 'password';
@@ -432,40 +178,9 @@
                 });
             }
 
-            form.addEventListener('submit', async function (e) {
-                e.preventDefault();
-                showError('');
-
-                var login = loginInput.value.trim();
-                var password = passwordInput.value;
-                var remember = rememberInput.checked;
-
-                if (!login || !password) {
-                    showError('Please enter your account and password.');
-                    return;
-                }
-
-                setLoading(true);
-
-                var role = await resolveRoleViaApi(login, password);
-                if (role === 'staff' && endpoints.staff.enabled) {
-                    // Full form POST — reliable session cookie commit (fetch can drop Set-Cookie in some browsers).
-                    submitWebLogin('staff', login, password, remember);
-                    return;
-                }
-                if (role && endpoints[role] && endpoints[role].enabled) {
-                    submitWebLogin(role, login, password, remember);
-                    return;
-                }
-
-                var order = attemptOrder(detectHint(login));
-                for (var i = 0; i < order.length; i++) {
-                    var ok = await tryIframeLogin(order[i], login, password, remember);
-                    if (ok) return;
-                }
-
-                setLoading(false);
-                showError('Invalid credentials. Check your account ID and password.');
+            form.addEventListener('submit', function () {
+                submitBtn.disabled = true;
+                submitBtn.classList.add('is-loading');
             });
         })();
     </script>

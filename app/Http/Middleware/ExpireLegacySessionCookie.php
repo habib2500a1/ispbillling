@@ -13,10 +13,15 @@ class ExpireLegacySessionCookie
     {
         $response = $next($request);
 
+        if (! config('session.legacy_cleanup', true)
+            || trim((string) config('session.legacy_domain', '')) === '') {
+            return $response;
+        }
+
+        // Only on login form GET — never on /admin/login/complete (session must persist).
         if ($request->isMethod('GET') && (
             $request->is('login')
             || $request->is('admin/login')
-            || $request->is('admin/login/complete')
         )) {
             return ClearLegacySessionCookies::apply($response);
         }

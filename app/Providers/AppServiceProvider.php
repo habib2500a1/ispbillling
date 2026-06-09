@@ -32,6 +32,7 @@ use App\Services\Network\MikrotikNetworkProvisioner;
 use App\Services\Network\NetworkAccessCoordinator;
 use App\Services\Network\NullNetworkProvisioner;
 use App\Services\Network\RadiusNetworkProvisioner;
+use App\Support\AppInstalled;
 use App\Support\DemoMode;
 use App\Support\EnsureStorageWritable;
 use App\Support\MobileAppLinks;
@@ -71,6 +72,17 @@ class AppServiceProvider extends ServiceProvider
         // Laravel 11 has no cache "failover" driver — cached config with CACHE_STORE=failover bricks the site.
         if ((string) config('cache.default') === 'failover') {
             config(['cache.default' => 'redis']);
+        }
+
+        // NextDeploy panel may inject SESSION_DRIVER=file — prefer redis when available.
+        $redisHost = (string) env('REDIS_HOST', '');
+        if ($redisHost !== '' && $redisHost !== 'null') {
+            if (in_array((string) env('SESSION_DRIVER', ''), ['', 'file'], true)) {
+                config(['session.driver' => 'redis']);
+            }
+            if (in_array((string) env('CACHE_STORE', ''), ['', 'file'], true)) {
+                config(['cache.default' => 'redis']);
+            }
         }
 
         if (PHP_SAPI === 'cli') {
@@ -137,6 +149,16 @@ class AppServiceProvider extends ServiceProvider
             }
         }
 
+        if (! $this->app->runningInConsole() && AppInstalled::isInstalled() && ! is_file(AppInstalled::flagPath())) {
+            try {
+                AppInstalled::markInstalled();
+            } catch (\Throwable $e) {
+                Log::channel('single')->warning('bootstrap.app_installed_flag_skipped', [
+                    'message' => $e->getMessage(),
+                ]);
+            }
+        }
+
         if (! self::$storageBootstrapped) {
             self::$storageBootstrapped = true;
 
@@ -180,7 +202,13 @@ class AppServiceProvider extends ServiceProvider
 
         try {
             $isAuthRoute = ! $this->app->runningInConsole()
-                && request()->routeIs('filament.admin.auth.*', 'admin.login.session');
+                && request()->routeIs(
+                    'filament.admin.auth.*',
+                    'admin.login.session',
+                    'admin.login.complete',
+                    'login.hub',
+                    'login.hub.store',
+                );
 
             if (! $isAuthRoute) {
                 if (SafeCache::remember('bootstrap.app_settings_table', 300, fn (): bool => Schema::hasTable('app_settings'))) {
