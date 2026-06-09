@@ -32,17 +32,6 @@ final class ClearLegacySessionCookies
         ]);
 
         foreach (self::LEGACY_NAMES as $name) {
-            // Host-only cookies from older SESSION_DOMAIN=null deploys.
-            $response->headers->clearCookie(
-                $name,
-                '/',
-                null,
-                true,
-                true,
-                false,
-                'lax',
-            );
-
             foreach ($legacyDomains as $domain) {
                 $response->headers->clearCookie(
                     $name,

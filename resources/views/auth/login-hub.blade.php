@@ -449,8 +449,9 @@
 
                 var role = await resolveRoleViaApi(login, password);
                 if (role === 'staff' && endpoints.staff.enabled) {
-                    var staffOk = await submitStaffLoginFetch(login, password, remember);
-                    if (staffOk) return;
+                    // Full form POST — reliable session cookie commit (fetch can drop Set-Cookie in some browsers).
+                    submitWebLogin('staff', login, password, remember);
+                    return;
                 }
                 if (role && endpoints[role] && endpoints[role].enabled) {
                     submitWebLogin(role, login, password, remember);

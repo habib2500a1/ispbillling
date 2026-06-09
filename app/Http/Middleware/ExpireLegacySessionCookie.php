@@ -13,7 +13,11 @@ class ExpireLegacySessionCookie
     {
         $response = $next($request);
 
-        if ($request->isMethod('GET') && ($request->is('admin/login') || $request->is('login'))) {
+        if ($request->isMethod('GET') && (
+            $request->is('login')
+            || $request->is('admin/login')
+            || $request->is('admin/login/complete')
+        )) {
             return ClearLegacySessionCookies::apply($response);
         }
 

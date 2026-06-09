@@ -24,6 +24,8 @@ services:
       DB_HOST: postgres
       REDIS_HOST: redis
       QUEUE_CONNECTION: redis
+      SESSION_DRIVER: redis
+      CACHE_STORE: redis
     healthcheck:
       test: ["CMD-SHELL", "php artisan --version >/dev/null 2>&1 || exit 1"]
       interval: 30s
