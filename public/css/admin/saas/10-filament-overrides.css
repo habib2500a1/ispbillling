@@ -1959,8 +1959,25 @@ button.isp-rbac-check { padding: 0; }
     width: min(100%, 2.75rem);
     border-radius: .5rem .5rem .2rem .2rem;
     display: block;
-    min-height: 1.25rem;
+    min-height: 0;
     transition: height .35s ease;
+}
+
+.isp-billing-dash__bar--zero {
+    height: 3px !important;
+    min-height: 3px;
+    max-height: 3px;
+    width: min(100%, 1.35rem);
+    opacity: .28;
+    border-radius: 999px;
+    box-shadow: none;
+}
+
+.isp-billing-dash__bar-col--zero .isp-billing-dash__bar-val,
+.isp-billing-dash__bar-val--zero {
+    color: var(--isp-muted);
+    font-weight: 700;
+    opacity: .75;
 }
 
 .isp-billing-dash__bar-val {

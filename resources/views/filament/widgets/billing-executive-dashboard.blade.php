@@ -75,18 +75,35 @@
                         @foreach ($growth['labels'] as $i => $label)
                             @php
                                 $value = (float) ($growth['values'][$i] ?? 0);
-                                $height = $max > 0 ? max(8, ($value / $max) * 100) : 8;
+                                $isZero = $value <= 0;
+                                $height = ! $isZero && $max > 0
+                                    ? max(6, ($value / $max) * 100)
+                                    : 0;
                                 $color = $barColors[$i % count($barColors)];
                                 $isLatest = $i === count($growth['labels']) - 1;
                             @endphp
-                            <div @class(['isp-billing-dash__bar-col', 'isp-billing-dash__bar-col--latest' => $isLatest])>
-                                <span class="isp-billing-dash__bar-val" title="{{ number_format($value, 0) }} BDT">
+                            <div @class([
+                                'isp-billing-dash__bar-col',
+                                'isp-billing-dash__bar-col--latest' => $isLatest && ! $isZero,
+                                'isp-billing-dash__bar-col--zero' => $isZero,
+                            ])>
+                                <span @class([
+                                    'isp-billing-dash__bar-val',
+                                    'isp-billing-dash__bar-val--zero' => $isZero,
+                                ]) title="{{ number_format($value, 0) }} BDT">
                                     {{ $formatBarValue($value) }}
                                 </span>
                                 <div class="isp-billing-dash__bar-wrap">
                                     <div
-                                        class="isp-billing-dash__bar"
-                                        style="height: {{ $height }}%; background: {{ $color }};"
+                                        @class([
+                                            'isp-billing-dash__bar',
+                                            'isp-billing-dash__bar--zero' => $isZero,
+                                        ])
+                                        @if (! $isZero)
+                                            style="height: {{ $height }}%; background: {{ $color }};"
+                                        @else
+                                            style="background: {{ $color }};"
+                                        @endif
                                     ></div>
                                 </div>
                                 <span class="isp-billing-dash__bar-label">{{ $label }}</span>

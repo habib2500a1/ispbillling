@@ -1264,10 +1264,16 @@
         width: 100%;
     }
 
-    .isp-billing-dash__bar {
+    .isp-billing-dash__bar:not(.isp-billing-dash__bar--zero) {
         width: min(100%, 1.65rem);
         min-height: 0.75rem;
         border-radius: 0.4rem 0.4rem 0.15rem 0.15rem;
+    }
+
+    .isp-billing-dash__bar--zero {
+        width: min(100%, 1.1rem);
+        height: 3px !important;
+        min-height: 3px;
     }
 
     .isp-billing-dash__bar-val {
@@ -1304,5 +1310,62 @@
 
     .isp-billing-dash__kpi-hint {
         display: none;
+    }
+}
+
+/* ── PC: Monthly bill growth chart (desktop polish) ── */
+@media (min-width: 1024px) {
+    .isp-billing-dash__chart-card {
+        padding: 1.15rem 1.25rem 1.05rem;
+    }
+
+    .isp-billing-dash__chart {
+        min-height: 228px;
+        gap: 0.75rem;
+        padding: 0.45rem 0.35rem 0;
+        border-radius: var(--isp-radius-md);
+        background:
+            linear-gradient(to top, color-mix(in srgb, var(--isp-card-border) 55%, transparent) 1px, transparent 1px) 0 100% / 100% 25%,
+            linear-gradient(to top, color-mix(in srgb, var(--isp-card-border) 35%, transparent) 1px, transparent 1px) 0 100% / 100% 50%,
+            linear-gradient(to top, color-mix(in srgb, var(--isp-card-border) 35%, transparent) 1px, transparent 1px) 0 100% / 100% 75%;
+        background-repeat: no-repeat;
+    }
+
+    .isp-billing-dash__chart--six {
+        gap: 0.85rem;
+    }
+
+    .isp-billing-dash__bar-wrap {
+        height: 176px;
+    }
+
+    .isp-billing-dash__bar {
+        width: min(100%, 3.1rem);
+        border-radius: 0.55rem 0.55rem 0.2rem 0.2rem;
+    }
+
+    .isp-billing-dash__bar--zero {
+        width: min(100%, 1.5rem);
+        height: 3px !important;
+    }
+
+    .isp-billing-dash__bar-val {
+        font-size: 0.72rem;
+        min-height: 1rem;
+    }
+
+    .isp-billing-dash__bar-col--latest .isp-billing-dash__bar-val {
+        font-size: 0.78rem;
+    }
+
+    .isp-billing-dash__bar-label {
+        font-size: 0.72rem;
+        letter-spacing: 0.04em;
+    }
+
+    .isp-billing-dash__bar-col--latest .isp-billing-dash__bar {
+        box-shadow:
+            0 0 0 2px color-mix(in srgb, #10b981 40%, transparent),
+            0 -6px 18px -6px color-mix(in srgb, #10b981 35%, transparent);
     }
 }

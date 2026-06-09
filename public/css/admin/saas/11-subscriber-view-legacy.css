@@ -40,9 +40,13 @@
     box-shadow: 0 16px 36px -14px rgba(0, 0, 0, 0.45);
 }
 
-.isp-billing-dash--pro .isp-billing-dash__bar {
+.isp-billing-dash--pro .isp-billing-dash__bar:not(.isp-billing-dash__bar--zero) {
     border-radius: 0.5rem 0.5rem 0.15rem 0.15rem;
     box-shadow: 0 -4px 12px -4px rgba(0, 0, 0, 0.2);
+}
+
+.isp-billing-dash--pro .isp-billing-dash__bar--zero {
+    box-shadow: none;
 }
 
 /* Subscriber view — lightweight professional layout */

@@ -627,11 +627,7 @@ body.isp-sidebar-desktop-collapsed .isp-sidebar-footer__toggle--expand {
 }
 
 .fi-sidebar-group[data-group-label='OLT & Tools'] {
-    order: 72;
-}
-
-.fi-sidebar-group[data-group-label='Network map'] {
-    order: 74;
+    order: 60;
 }
 
 /* Legacy: OLT must not appear under Inventory Pro (stale HTML / cache). */
@@ -640,24 +636,12 @@ body.isp-sidebar-desktop-collapsed .isp-sidebar-footer__toggle--expand {
 .fi-sidebar-group[data-group-label='Inventory Pro'] .fi-sidebar-item:has(a[href*='optical-noc']),
 .fi-sidebar-group[data-group-label='Inventory Pro'] .fi-sidebar-item:has(a[href*='olt-mac-table']),
 .fi-sidebar-group[data-group-label='Inventory Pro'] .fi-sidebar-item:has(a[href*='optical-laser-settings']),
-.fi-sidebar-group[data-group-label='Inventory Pro'] .fi-sidebar-item:has(a[href*='network-topology']),
-.fi-sidebar-group[data-group-label='Inventory Pro'] .fi-sidebar-item:has(a[href*='fiber-plant-map']) {
+.fi-sidebar-group[data-group-label='Inventory Pro'] .fi-sidebar-item:has(a[href*='network-topology']) {
     display: none !important;
 }
 
 .fi-sidebar-group[data-group-label='Network'] {
     order: 70;
-}
-
-/* OLT + GIS map have their own sidebar groups — hide strays under Network. */
-.fi-sidebar-group[data-group-label='Network'] .fi-sidebar-item:has(a[href*='/olts']),
-.fi-sidebar-group[data-group-label='Network'] .fi-sidebar-item:has(a[href*='olt-hub']),
-.fi-sidebar-group[data-group-label='Network'] .fi-sidebar-item:has(a[href*='optical-noc']),
-.fi-sidebar-group[data-group-label='Network'] .fi-sidebar-item:has(a[href*='olt-mac-table']),
-.fi-sidebar-group[data-group-label='Network'] .fi-sidebar-item:has(a[href*='optical-laser-settings']),
-.fi-sidebar-group[data-group-label='Network'] .fi-sidebar-item:has(a[href*='network-topology']),
-.fi-sidebar-group[data-group-label='Network'] .fi-sidebar-item:has(a[href*='fiber-plant-map']) {
-    display: none !important;
 }
 
 .fi-sidebar-group[data-group-label='SMS Service'] {
@@ -713,6 +697,12 @@ body.isp-sidebar-desktop-collapsed .isp-sidebar-footer__toggle--expand {
 /* Accordion: only the open module shows child links (see admin-sidebar-layout.js) */
 .fi-main-sidebar .fi-sidebar-group:not(.isp-sidebar-accordion-open) > .fi-sidebar-group-items {
     display: none !important;
+}
+
+/* Overview stays expanded (Filament collapsed(false)) */
+.fi-main-sidebar .fi-sidebar-group[data-group-label='Overview'] > .fi-sidebar-group-items {
+    display: flex !important;
+    flex-direction: column;
 }
 
 .fi-main-sidebar .fi-sidebar-group.isp-sidebar-accordion-open > .fi-sidebar-group-items {
@@ -10365,8 +10355,25 @@ button.isp-rbac-check { padding: 0; }
     width: min(100%, 2.75rem);
     border-radius: .5rem .5rem .2rem .2rem;
     display: block;
-    min-height: 1.25rem;
+    min-height: 0;
     transition: height .35s ease;
+}
+
+.isp-billing-dash__bar--zero {
+    height: 3px !important;
+    min-height: 3px;
+    max-height: 3px;
+    width: min(100%, 1.35rem);
+    opacity: .28;
+    border-radius: 999px;
+    box-shadow: none;
+}
+
+.isp-billing-dash__bar-col--zero .isp-billing-dash__bar-val,
+.isp-billing-dash__bar-val--zero {
+    color: var(--isp-muted);
+    font-weight: 700;
+    opacity: .75;
 }
 
 .isp-billing-dash__bar-val {
@@ -10643,9 +10650,13 @@ button.isp-rbac-check { padding: 0; }
     box-shadow: 0 16px 36px -14px rgba(0, 0, 0, 0.45);
 }
 
-.isp-billing-dash--pro .isp-billing-dash__bar {
+.isp-billing-dash--pro .isp-billing-dash__bar:not(.isp-billing-dash__bar--zero) {
     border-radius: 0.5rem 0.5rem 0.15rem 0.15rem;
     box-shadow: 0 -4px 12px -4px rgba(0, 0, 0, 0.2);
+}
+
+.isp-billing-dash--pro .isp-billing-dash__bar--zero {
+    box-shadow: none;
 }
 
 /* Subscriber view — lightweight professional layout */
