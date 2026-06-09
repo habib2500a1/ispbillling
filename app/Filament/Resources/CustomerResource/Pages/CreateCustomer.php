@@ -77,6 +77,13 @@ class CreateCustomer extends CreateRecord
         }
 
         $meta = is_array($data['meta'] ?? null) ? $data['meta'] : [];
+        $staffId = auth()->id();
+        if ($staffId && blank($meta['technician_id'] ?? null)) {
+            $meta['technician_id'] = $staffId;
+        }
+        if ($staffId && blank($meta['registered_by_id'] ?? null)) {
+            $meta['registered_by_id'] = $staffId;
+        }
         $data['meta'] = array_merge([
             'notify_sms' => true,
             'auto_invoice' => true,

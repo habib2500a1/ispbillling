@@ -251,6 +251,9 @@
                                             <td>{{ $inv->issue_date?->format('d M Y') }}</td>
                                             <td class="text-right font-mono">{{ number_format((float) $inv->total, 2) }}</td>
                                             <td><span class="isp-cv-pill isp-cv-pill--muted text-xs">{{ ucfirst((string) $inv->status) }}</span></td>
+                                            <td class="text-right">
+                                                @include('filament.resources.customer-resource.partials.client-invoice-actions', ['invoice' => $inv])
+                                            </td>
                                         </tr>
                                     @endforeach
                                 </tbody>
@@ -306,6 +309,7 @@
                                         <th>Due</th>
                                         <th class="text-right">Total</th>
                                         <th>Status</th>
+                                        <th class="text-right">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -316,6 +320,9 @@
                                             <td>{{ $inv->due_date?->format('d M Y') }}</td>
                                             <td class="text-right font-mono">{{ number_format((float) $inv->total, 2) }}</td>
                                             <td>{{ ucfirst((string) $inv->status) }}</td>
+                                            <td class="text-right">
+                                                @include('filament.resources.customer-resource.partials.client-invoice-actions', ['invoice' => $inv])
+                                            </td>
                                         </tr>
                                     @endforeach
                                 </tbody>

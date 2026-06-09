@@ -123,3 +123,33 @@
     color: #7c3aed;
     background: rgba(139, 92, 246, 0.12);
 }
+
+.isp-cv-password {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.isp-cv-password__toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.65rem;
+    height: 1.65rem;
+    border-radius: 0.4rem;
+    border: 1px solid rgba(148, 163, 184, 0.35);
+    background: rgba(255, 255, 255, 0.85);
+    color: #475569;
+    cursor: pointer;
+}
+
+.isp-cv-password__toggle:hover {
+    color: #1d4ed8;
+    border-color: rgba(59, 130, 246, 0.35);
+}
+
+.dark .isp-cv-password__toggle,
+[data-theme='dark'] .isp-cv-password__toggle {
+    background: rgba(30, 41, 59, 0.9);
+    color: #cbd5e1;
+}

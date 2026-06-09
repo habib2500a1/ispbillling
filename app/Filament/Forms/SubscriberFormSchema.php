@@ -438,8 +438,10 @@ final class SubscriberFormSchema
                             ->preload()
                             ->native(false),
                         Forms\Components\Select::make('meta.technician_id')
-                            ->label('Technician')
+                            ->label('Connected by (staff)')
+                            ->helperText('যে স্টাফ কানেকশন করেছে বা অ্যাকাউন্ট খুলেছে — নতুন ক্লায়েন্টে অটো সেট হয়।')
                             ->options(fn (): array => self::tenantStaffOptions())
+                            ->default(fn (): ?int => auth()->id())
                             ->searchable()
                             ->preload()
                             ->native(false),

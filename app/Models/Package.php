@@ -127,4 +127,51 @@ class Package extends Model
         return $profile !== '' ? $profile : null;
     }
 
+    public function effectiveUploadMbps(): ?int
+    {
+        $upload = $this->upload_mbps;
+        if ($upload !== null && $upload !== '' && (float) $upload > 0) {
+            return (int) round((float) $upload);
+        }
+
+        $download = $this->download_mbps;
+        if ($download !== null && $download !== '' && (float) $download > 0) {
+            return (int) round((float) $download);
+        }
+
+        $btrc = trim((string) ($this->btrc_bandwidth ?? ''));
+        if ($btrc !== '' && preg_match('/(\d+(?:\.\d+)?)\s*\/\s*(\d+(?:\.\d+)?)/i', $btrc, $m)) {
+            return (int) round((float) $m[2]);
+        }
+
+        return null;
+    }
+
+    public function effectiveDownloadMbps(): ?int
+    {
+        $download = $this->download_mbps;
+        if ($download !== null && $download !== '' && (float) $download > 0) {
+            return (int) round((float) $download);
+        }
+
+        $btrc = trim((string) ($this->btrc_bandwidth ?? ''));
+        if ($btrc !== '' && preg_match('/(\d+(?:\.\d+)?)/', $btrc, $m)) {
+            return (int) round((float) $m[1]);
+        }
+
+        return null;
+    }
+
+    public function speedLabel(): string
+    {
+        $down = $this->effectiveDownloadMbps();
+        $up = $this->effectiveUploadMbps();
+
+        if ($down === null && $up === null) {
+            return '—';
+        }
+
+        return ($down ?? '?').' / '.($up ?? '?').' Mbps';
+    }
+
 }

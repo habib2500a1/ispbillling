@@ -1566,6 +1566,107 @@
 /* --- 04-contact-location.css --- */
 /** Subscriber 360 — contact + location map */
 
+.isp-cv-contact {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.45rem;
+}
+
+.isp-cv-contact--compact {
+    gap: 0.35rem;
+}
+
+.isp-cv-contact__phone {
+    font-weight: 600;
+}
+
+.isp-cv-contact__actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+}
+
+.isp-cv-contact__action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.75rem;
+    height: 1.75rem;
+    border-radius: 999px;
+    border: 1px solid rgba(148, 163, 184, 0.35);
+    background: rgba(255, 255, 255, 0.9);
+    color: #334155;
+    transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+
+.isp-cv-contact__action:hover {
+    transform: scale(1.06);
+    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.12);
+}
+
+.isp-cv-contact__action--call {
+    color: #15803d;
+    border-color: rgba(34, 197, 94, 0.35);
+    background: rgba(220, 252, 231, 0.9);
+}
+
+.isp-cv-contact__action--sms {
+    color: #1d4ed8;
+    border-color: rgba(59, 130, 246, 0.35);
+    background: rgba(219, 234, 254, 0.9);
+}
+
+.isp-cv-contact__action--wa {
+    color: #15803d;
+    border-color: rgba(34, 197, 94, 0.35);
+    background: rgba(220, 252, 231, 0.9);
+}
+
+.isp-cv-contact__action--live {
+    color: #0f766e;
+    border-color: rgba(20, 184, 166, 0.35);
+    background: rgba(204, 251, 241, 0.9);
+    cursor: pointer;
+}
+
+.dark .isp-cv-contact__action,
+[data-theme='dark'] .isp-cv-contact__action {
+    background: rgba(30, 41, 59, 0.9);
+    color: #e2e8f0;
+    border-color: rgba(100, 116, 139, 0.45);
+}
+
+.isp-cv-contact__bill {
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: #0f766e;
+}
+
+.isp-cv-invoice-actions {
+    display: inline-flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.35rem;
+}
+
+.isp-cv-invoice-actions__btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.2rem;
+    padding: 0.2rem 0.45rem;
+    border-radius: 0.45rem;
+    font-size: 0.68rem;
+    font-weight: 700;
+    color: #1d4ed8;
+    background: rgba(59, 130, 246, 0.1);
+    border: 1px solid rgba(59, 130, 246, 0.22);
+}
+
+.isp-cv-invoice-actions__btn:hover {
+    background: rgba(59, 130, 246, 0.18);
+}
+
 .sub-pro button.olt-dock__link {
     cursor: pointer;
     font: inherit;
@@ -2600,4 +2701,34 @@ body.isp-cv-map-modal-open {
 .cl-dir-onu-badge--customer {
     color: #7c3aed;
     background: rgba(139, 92, 246, 0.12);
+}
+
+.isp-cv-password {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.isp-cv-password__toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.65rem;
+    height: 1.65rem;
+    border-radius: 0.4rem;
+    border: 1px solid rgba(148, 163, 184, 0.35);
+    background: rgba(255, 255, 255, 0.85);
+    color: #475569;
+    cursor: pointer;
+}
+
+.isp-cv-password__toggle:hover {
+    color: #1d4ed8;
+    border-color: rgba(59, 130, 246, 0.35);
+}
+
+.dark .isp-cv-password__toggle,
+[data-theme='dark'] .isp-cv-password__toggle {
+    background: rgba(30, 41, 59, 0.9);
+    color: #cbd5e1;
 }

@@ -9,7 +9,8 @@
     $length = $link['length_distance'] ?? '—';
     $connectedBy = $link['connected_by'] ?? '—';
     $routerUser = $link['router_username'] ?? '—';
-    $routerPass = $link['router_password_display'] ?? '—';
+    $routerPassPlain = $link['router_password_plain'] ?? null;
+    $routerPassMask = $link['router_password_display'] ?? '—';
 @endphp
 
 <section class="isp-cv-card isp-cv-card--connection-link">
@@ -60,7 +61,28 @@
         </div>
         <div class="isp-cv-field">
             <dt>Password</dt>
-            <dd class="font-mono tracking-widest">{{ $routerPass }}</dd>
+            <dd>
+                @if ($routerPassPlain)
+                    <span
+                        class="isp-cv-password"
+                        x-data="{ show: false }"
+                    >
+                        <span class="font-mono text-sm" x-text="show ? @js($routerPassPlain) : @js($routerPassMask)"></span>
+                        <button
+                            type="button"
+                            class="isp-cv-password__toggle"
+                            @click="show = !show"
+                            :aria-label="show ? 'Hide password' : 'Show password'"
+                            :title="show ? 'Hide' : 'Show'"
+                        >
+                            <x-filament::icon icon="heroicon-o-eye" class="h-4 w-4" x-show="!show" />
+                            <x-filament::icon icon="heroicon-o-eye-slash" class="h-4 w-4" x-show="show" x-cloak />
+                        </button>
+                    </span>
+                @else
+                    <span class="isp-cv-muted text-sm">{{ $routerPassMask }}</span>
+                @endif
+            </dd>
         </div>
     </dl>
 </section>

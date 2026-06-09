@@ -1,4 +1,4 @@
-@props(['sections' => [], 'keys' => [], 'compact' => false])
+@props(['sections' => [], 'keys' => [], 'compact' => false, 'contact' => []])
 
 @php
     $titles = [
@@ -63,7 +63,17 @@
                     @foreach ($fields as $label => $value)
                         <div class="isp-cv-field">
                             <dt>{{ $label }}</dt>
-                            <dd>{{ $value }}</dd>
+                            <dd>
+                                @if ($label === 'Phone' && filled($value))
+                                    @include('filament.resources.customer-resource.partials.client-contact-links', [
+                                        'phone' => $value,
+                                        'contact' => $contact,
+                                        'compact' => true,
+                                    ])
+                                @else
+                                    {{ $value }}
+                                @endif
+                            </dd>
                         </div>
                     @endforeach
                 </dl>

@@ -3,7 +3,7 @@
 @php
     $accountSection = $sections['account'] ?? [];
 
-    foreach (['Collector', 'Technician', 'Branch'] as $staffLabel) {
+    foreach (['Collector', 'Connected by', 'Branch'] as $staffLabel) {
         $value = $sections['staff'][$staffLabel] ?? null;
 
         if (filled($value) && $value !== '—') {
@@ -24,6 +24,7 @@
             'sections' => $overviewSections,
             'keys' => ['billing'],
             'compact' => true,
+            'contact' => $contact ?? [],
         ])
     </div>
 
@@ -32,6 +33,7 @@
             'sections' => $overviewSections,
             'keys' => ['account'],
             'compact' => true,
+            'contact' => $contact ?? [],
         ])
 
         <section class="isp-cv-card isp-cv-card--optical">

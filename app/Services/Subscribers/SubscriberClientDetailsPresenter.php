@@ -32,7 +32,7 @@ final class SubscriberClientDetailsPresenter
     private const META_KNOWN_KEYS = [
         'static_ip', 'mac_binding', 'vlan', 'epon_port', 'onu_mac',
         'onu_rent', 'onu_installment', 'onu_deposit', 'router_rent',
-        'gps_lat', 'gps_lng', 'collector_id', 'technician_id', 'branch_id',
+        'gps_lat', 'gps_lng', 'collector_id', 'technician_id', 'registered_by_id', 'branch_id',
         'installation_date', 'installation_charge', 'cable_length_m', 'installation_status',
         'portal_otp_login', 'portal_2fa',
         'notify_sms', 'notify_whatsapp', 'notify_email', 'notify_push',
@@ -153,9 +153,7 @@ final class SubscriberClientDetailsPresenter
                 'balance' => (float) $customer->account_balance,
                 'open_balance' => round($openBalance, 2),
                 'package' => $customer->package?->name ?? '—',
-                'speed' => $customer->package
-                    ? ($customer->package->download_mbps ?? '?').' / '.($customer->package->upload_mbps ?? '?').' Mbps'
-                    : '—',
+                'speed' => $customer->package?->speedLabel() ?? '—',
                 'monthly_bill' => ($monthly = app(CustomerPrepayService::class)->monthlyRate($customer)) !== null
                     ? number_format($monthly, 2).' BDT'
                     : '—',
@@ -256,9 +254,7 @@ final class SubscriberClientDetailsPresenter
             ], fn ($v) => filled($v)),
             'billing' => array_filter([
                 'Package' => $pkg?->name,
-                'Speed' => $pkg
-                    ? ($pkg->download_mbps ?? '?').' / '.($pkg->upload_mbps ?? '?').' Mbps'
-                    : null,
+                'Speed' => $pkg?->speedLabel(),
                 'Monthly bill' => $pkg?->price_monthly
                     ? number_format((float) $pkg->price_monthly, 2).' BDT'
                     : null,
@@ -384,9 +380,7 @@ final class SubscriberClientDetailsPresenter
 
         return [
             'Package Name' => $pkg?->name ?? '—',
-            'Download / Upload' => $pkg
-                ? ($pkg->download_mbps ?? '?').' / '.($pkg->upload_mbps ?? '?').' Mbps'
-                : '—',
+            'Download / Upload' => $pkg?->speedLabel() ?? '—',
             'Monthly Bill' => $pkg?->price_monthly
                 ? number_format((float) $pkg->price_monthly, 2).' BDT'
                 : '—',
@@ -462,7 +456,7 @@ final class SubscriberClientDetailsPresenter
     {
         return [
             'Collector' => $this->staffName($meta['collector_id'] ?? null),
-            'Technician' => $this->staffName($meta['technician_id'] ?? null),
+            'Connected by' => $this->connectedByName($meta),
             'Branch' => $this->branchName($meta['branch_id'] ?? null),
             'Reseller' => $customer->reseller?->name ?? '—',
         ];
@@ -627,9 +621,11 @@ final class SubscriberClientDetailsPresenter
             ? number_format((float) $meta['cable_length_m'], 2).'m'
             : '—';
 
-        $technician = $this->staffName($meta['technician_id'] ?? null);
+        $connectedBy = $this->connectedByName($meta);
         $routerUser = $username !== '' ? $username : '—';
-        $hasPassword = filled($customer->getAttributes()['mikrotik_ppp_password'] ?? null);
+        $plainPassword = filled($customer->mikrotik_ppp_password)
+            ? (string) $customer->mikrotik_ppp_password
+            : null;
 
         return [
             'conn_type' => $connType !== '' ? $connType : '—',
@@ -639,11 +635,27 @@ final class SubscriberClientDetailsPresenter
             'onu_ownership_label' => OnuOwnership::label($ownership),
             'onu_ownership_tone' => OnuOwnership::badgeTone($ownership),
             'length_distance' => $lengthM,
-            'connected_by' => $technician,
+            'connected_by' => $connectedBy,
             'router_username' => $routerUser,
-            'router_password_set' => $hasPassword,
-            'router_password_display' => $hasPassword ? '••••••' : 'Not set',
+            'router_password_set' => $plainPassword !== null,
+            'router_password_plain' => $plainPassword,
+            'router_password_display' => $plainPassword !== null ? '••••••' : 'Not set',
         ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $meta
+     */
+    private function connectedByName(array $meta): string
+    {
+        foreach (['technician_id', 'registered_by_id'] as $key) {
+            $name = $this->staffName($meta[$key] ?? null);
+            if ($name !== '—') {
+                return $name;
+            }
+        }
+
+        return '—';
     }
 
     private function staffName(mixed $id): string
