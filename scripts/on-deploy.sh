@@ -26,6 +26,7 @@ if [[ -f vendor/autoload.php ]]; then
   run_artisan route:cache --no-interaction 2>/dev/null || true
   run_artisan event:cache --no-interaction 2>/dev/null || true
   run_artisan filament:optimize --no-interaction 2>/dev/null || true
+  bash "$APP_ROOT/scripts/reload-php-fpm.sh" 2>/dev/null || true
 fi
 
 bash "$APP_ROOT/scripts/fix-storage-perms.sh" 2>/dev/null || true

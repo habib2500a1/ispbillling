@@ -36,6 +36,7 @@ final class AdminRouteAssets
             'filament.admin.pages.accounting-hub' => ['finance-hub.css'],
             'filament.admin.pages.hr-payroll-hub' => ['workforce-hub.css'],
             'filament.admin.pages.tenant-organization' => ['tenant-org-hub.css'],
+            'filament.admin.pages.isp-setup' => ['tenant-org-hub.css'],
             'filament.admin.pages.accounts-hub' => ['billing-hub-pro.css'],
             'filament.admin.pages.collection-desk-report' => ['collection-desk-report-pro.css'],
             'filament.admin.pages.reports-hub' => ['reports-intelligence-pro.css'],

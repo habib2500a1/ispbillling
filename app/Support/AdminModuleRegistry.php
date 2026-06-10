@@ -28,6 +28,7 @@ use App\Filament\Pages\FaultManagementHub;
 use App\Filament\Pages\FieldTechnicianCenter;
 use App\Filament\Pages\FiberPlantMap;
 use App\Filament\Pages\IspOsHub;
+use App\Filament\Pages\IspSetupCenter;
 use App\Filament\Pages\NocWall;
 use App\Filament\Pages\NetflowAnalysis;
 use App\Filament\Pages\NetworkIntelligenceHub;
@@ -178,6 +179,7 @@ class AdminModuleRegistry
             ['group' => 'System', 'section' => 'Safety', 'label' => 'Backup & restore', 'description' => 'Download ZIP · upload restore', 'url' => ManagePlatformBackups::getUrl(), 'accent' => 'text-emerald-600', 'icon' => 'heroicon-o-archive-box-arrow-down'],
             ['group' => 'System', 'section' => 'Integrations', 'label' => 'API configuration', 'description' => 'Tenant host · HMAC · REST tokens', 'url' => \App\Filament\Pages\ManageApiConfiguration::getUrl(), 'accent' => 'text-violet-600', 'icon' => 'heroicon-o-key'],
             ['group' => 'System', 'section' => 'Integrations', 'label' => 'Deployment & license', 'description' => 'Rent SaaS vs sell on-premise', 'url' => \App\Filament\Pages\ManagePlatformDeployment::getUrl(), 'accent' => 'text-violet-600', 'icon' => 'heroicon-o-shield-check'],
+            ['group' => 'System', 'section' => 'Setup', 'label' => 'ISP setup center', 'description' => 'Areas · packages · MikroTik · districts · import', 'url' => IspSetupCenter::getUrl(), 'accent' => 'text-sky-600', 'icon' => 'heroicon-o-wrench-screwdriver'],
             ['group' => 'System', 'section' => 'Integrations', 'label' => 'Integrations', 'description' => 'Gateways & API keys', 'url' => ManageAppSettings::getUrl(), 'accent' => 'text-slate-600', 'icon' => 'heroicon-o-puzzle-piece'],
             ['group' => 'System', 'section' => 'Automation', 'label' => 'Automatic process', 'description' => 'Scheduled billing · sync · suspend', 'url' => AutomaticProcessResource::getUrl('index'), 'accent' => 'text-amber-600', 'icon' => 'heroicon-o-clock'],
             ['group' => 'System', 'section' => 'Automation', 'label' => 'Queue monitor', 'description' => 'Horizon workers · failed jobs', 'url' => HorizonQueueMonitor::getUrl(), 'accent' => 'text-violet-600', 'icon' => 'heroicon-o-server-stack'],

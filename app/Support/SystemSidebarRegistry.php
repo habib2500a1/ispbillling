@@ -8,6 +8,7 @@ use App\Filament\Pages\ManagePlatformBackups;
 use App\Filament\Pages\ManageStaffSecurity;
 use App\Filament\Pages\PermissionMatrix;
 use App\Filament\Pages\SecurityDashboard;
+use App\Filament\Pages\IspSetupCenter;
 use App\Filament\Pages\TenantOrganizationCenter;
 use App\Filament\Pages\SystemErrorLogsPage;
 use App\Filament\Pages\TwoFactorSetup;
@@ -39,10 +40,18 @@ final class SystemSidebarRegistry
                 ],
             ],
             [
+                'key' => 'isp_setup',
+                'label' => 'ISP setup',
+                'icon' => 'heroicon-o-wrench-screwdriver',
+                'sort' => 1,
+                'url' => IspSetupCenter::getUrl(),
+                'active_routes' => ['filament.admin.pages.isp-setup'],
+            ],
+            [
                 'key' => 'users',
                 'label' => 'Users',
                 'icon' => 'heroicon-o-user-group',
-                'sort' => 1,
+                'sort' => 2,
                 'url' => UserResource::getUrl(),
                 'active_routes' => [
                     'filament.admin.resources.users.index',
@@ -214,6 +223,7 @@ final class SystemSidebarRegistry
     {
         return match ($key) {
             'staff_control' => TenantOrganizationCenter::canAccess(),
+            'isp_setup' => IspSetupCenter::canAccess(), // same rules as page
             'users' => UserResource::canViewAny(),
             'roles' => RoleResource::canViewAny(),
             'permissions' => PermissionMatrix::canAccess(),

@@ -48,6 +48,19 @@ class Customer extends Model implements AuthenticatableContract, AuthorizableCon
             app(\App\Services\Subscribers\CustomerDeletionService::class)->prepareDelete($customer);
         });
 
+        static::saving(function (Customer $customer): void {
+            if ($customer->isDirty(['district_id', 'upazila_id'])) {
+                $meta = is_array($customer->meta) ? $customer->meta : [];
+                if ($customer->district_id) {
+                    $meta['district'] = District::query()->whereKey($customer->district_id)->value('name');
+                }
+                if ($customer->upazila_id) {
+                    $meta['thana'] = Upazila::query()->whereKey($customer->upazila_id)->value('name');
+                }
+                $customer->meta = $meta;
+            }
+        });
+
         static::saved(function (Customer $customer): void {
             if ($customer->wasChanged([
                 'mikrotik_secret_name',
@@ -158,6 +171,8 @@ class Customer extends Model implements AuthenticatableContract, AuthorizableCon
         'kyc_notes',
         'segment',
         'address',
+        'district_id',
+        'upazila_id',
         'billing_mode',
         'grace_period_days',
         'late_fee_fixed',
@@ -240,6 +255,16 @@ class Customer extends Model implements AuthenticatableContract, AuthorizableCon
     public function getAuthPassword(): string
     {
         return (string) ($this->portal_password ?? '');
+    }
+
+    public function district(): BelongsTo
+    {
+        return $this->belongsTo(District::class);
+    }
+
+    public function upazila(): BelongsTo
+    {
+        return $this->belongsTo(Upazila::class);
     }
 
     public function area(): BelongsTo

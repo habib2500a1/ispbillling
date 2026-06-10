@@ -940,12 +940,36 @@ final class SubscriberFormSchema
     private static function addressMetaFields(): array
     {
         return [
-            Forms\Components\TextInput::make('meta.district')
+            Forms\Components\Select::make('district_id')
                 ->label('District')
-                ->maxLength(120),
-            Forms\Components\TextInput::make('meta.thana')
+                ->options(fn (): array => \App\Models\District::query()
+                    ->where('is_active', true)
+                    ->orderBy('name')
+                    ->pluck('name', 'id')
+                    ->all())
+                ->searchable()
+                ->preload()
+                ->live()
+                ->afterStateUpdated(fn (Forms\Set $set) => $set('upazila_id', null))
+                ->native(false),
+            Forms\Components\Select::make('upazila_id')
                 ->label('Thana / upazila')
-                ->maxLength(120),
+                ->options(function (Forms\Get $get): array {
+                    $districtId = (int) $get('district_id');
+                    if ($districtId <= 0) {
+                        return [];
+                    }
+
+                    return \App\Models\Upazila::query()
+                        ->where('district_id', $districtId)
+                        ->where('is_active', true)
+                        ->orderBy('name')
+                        ->pluck('name', 'id')
+                        ->all();
+                })
+                ->searchable()
+                ->preload()
+                ->native(false),
             Forms\Components\TextInput::make('meta.house_no')
                 ->label('House no')
                 ->maxLength(64),

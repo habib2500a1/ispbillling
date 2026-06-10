@@ -106,8 +106,10 @@ final class SubscriberContactLinks
             'gps_lng' => $lng,
             'gps_display' => self::formatCoordinates($lat, $lng),
             'has_gps' => $lat !== null && $lng !== null,
-            'district' => filled($meta['district'] ?? null) ? (string) $meta['district'] : null,
-            'thana' => filled($meta['thana'] ?? null) ? (string) $meta['thana'] : null,
+            'district' => $customer->district?->name
+                ?? (filled($meta['district'] ?? null) ? (string) $meta['district'] : null),
+            'thana' => $customer->upazila?->name
+                ?? (filled($meta['thana'] ?? null) ? (string) $meta['thana'] : null),
         ];
     }
 
