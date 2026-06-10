@@ -14,15 +14,13 @@ trait AssignsCollectorOnPayment
 
         if ($resolver->canPickCollector()) {
             $options = $resolver->collectableStaffOptions();
-            $this->collectorUserId = null;
-            foreach (array_keys($options) as $id) {
-                if ((int) $id !== (int) auth()->id()) {
-                    $this->collectorUserId = (int) $id;
-                    break;
-                }
-            }
-            if ($this->collectorUserId === null && $options !== []) {
+            $selfId = (int) auth()->id();
+            if ($selfId > 0 && array_key_exists($selfId, $options)) {
+                $this->collectorUserId = $selfId;
+            } elseif ($options !== []) {
                 $this->collectorUserId = (int) array_key_first($options);
+            } else {
+                $this->collectorUserId = null;
             }
         } else {
             $this->collectorUserId = $resolver->defaultCollectorId();
@@ -65,6 +63,13 @@ trait AssignsCollectorOnPayment
             $options = $resolver->collectableStaffOptions();
             if ($options === []) {
                 $this->collectorUserId = $resolver->defaultCollectorId() ?: null;
+
+                return;
+            }
+
+            $selfId = (int) auth()->id();
+            if ($selfId > 0 && array_key_exists($selfId, $options)) {
+                $this->collectorUserId = $selfId;
 
                 return;
             }

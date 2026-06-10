@@ -944,7 +944,27 @@ class BillCollectionDesk extends Page
             $invoice = $invoice->fresh();
             if ($invoice->balanceDue() > 0) {
                 $body .= ' · Remaining due '.number_format($invoice->balanceDue(), 2).' BDT';
+            } else {
+                $body .= ' · Bill '.$invoice->invoice_number.' paid';
             }
+        } elseif ($payment !== null && ($payment->meta['wallet_credit'] ?? 0) > 0.009) {
+            $body .= ' · Credited to wallet '.number_format((float) $payment->meta['wallet_credit'], 2).' BDT';
+        } elseif ($advanceFifoMeta !== [] && ($advanceFifoMeta['wallet_surplus'] ?? 0) > 0.009) {
+            $body .= ' · Credited to wallet '.number_format((float) $advanceFifoMeta['wallet_surplus'], 2).' BDT';
+        }
+
+        $this->resetCollectionDiscountFields();
+        $this->refreshDueAfterPayment($customer);
+        $this->refreshDeskStats();
+
+        if ($isAdvance) {
+            $this->collectionHistoryFilter = 'all';
+            $this->activeTab = 'history';
+        }
+
+        $walletBalance = (float) ($this->selectedCustomer['account_balance'] ?? 0);
+        if ($walletBalance > 0.009) {
+            $body .= ' · Wallet balance '.number_format($walletBalance, 2).' BDT';
         }
 
         $notification = Notification::make()
@@ -960,29 +980,11 @@ class BillCollectionDesk extends Page
             ]);
         }
 
-        $this->resetCollectionDiscountFields();
-        $this->refreshDueAfterPayment($customer);
-        $this->refreshDeskStats();
-
-        if ($isAdvance) {
-            $this->collectionHistoryFilter = 'all';
-            $this->activeTab = 'history';
-            $walletBalance = (float) ($this->selectedCustomer['account_balance'] ?? 0);
-            if ($walletBalance > 0.009) {
-                $body .= ' · Wallet balance '.number_format($walletBalance, 2).' BDT';
-            }
-            if (($this->selectedCustomer['balance_due'] ?? 0) <= 0.009) {
-                $this->enterRechargeMode();
-            }
-        } elseif ($advanceFifoMeta !== [] && ($advanceFifoMeta['wallet_surplus'] ?? 0) > 0.009) {
-            $walletBalance = (float) ($this->selectedCustomer['account_balance'] ?? 0);
-            $body .= ' · Wallet credited '.number_format((float) $advanceFifoMeta['wallet_surplus'], 2).' BDT';
-            if ($walletBalance > 0.009) {
-                $body .= ' (balance '.number_format($walletBalance, 2).' BDT)';
-            }
-        }
-
         $notification->send();
+
+        if ($isAdvance && ($this->selectedCustomer['balance_due'] ?? 0) <= 0.009) {
+            $this->enterRechargeMode();
+        }
     }
 
     /**

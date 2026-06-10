@@ -2,11 +2,11 @@
 
 namespace App\Services\Payments;
 
-use App\Support\CustomerNetworkSync;
 use App\Models\Customer;
 use App\Models\Invoice;
 use App\Models\Payment;
 use App\Services\Billing\InvoiceCalculator;
+use App\Jobs\SyncCustomerNetworkAccessJob;
 use App\Support\PaymentGateway;
 use App\Support\PaymentType;
 use Illuminate\Support\Facades\DB;
@@ -282,6 +282,13 @@ final class PaymentProcessor
             return;
         }
 
-        CustomerNetworkSync::runAfterPayment($payment);
+        $tenantId = (int) ($payment->tenant_id ?? $payment->customer?->tenant_id ?? 0);
+        if ($tenantId < 1) {
+            return;
+        }
+
+        // Never block collection desk / gateway saves on MikroTik API timeouts.
+        SyncCustomerNetworkAccessJob::dispatch($tenantId, (int) $payment->customer_id)
+            ->afterResponse();
     }
 }
