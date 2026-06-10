@@ -342,7 +342,7 @@
                             <label class="isp-collection-field isp-collection-field--span">
                                 <span class="isp-collection-field__label">Received by *</span>
                                 @if ($this->canPickCollector() && count($this->getCollectorStaffOptions()) > 0)
-                                    <select wire:model.live="collectorUserId" class="isp-collection-field__input" required>
+                                    <select wire:model.live="collectorUserId" class="isp-collection-field__input">
                                         @foreach ($this->getCollectorStaffOptions() as $id => $label)
                                             <option value="{{ $id }}">{{ $label }}</option>
                                         @endforeach
@@ -368,8 +368,11 @@
                             <div class="isp-collection-sheet__invoice">
                                 <label class="isp-collection-field isp-collection-field--full">
                                     <span class="isp-collection-field__label">Apply to invoice</span>
-                                    <select wire:model.live="invoiceId" class="isp-collection-field__input">
-                                        <option value="">— General payment (wallet) —</option>
+                                    <select wire:model.live="paymentApplyTarget" class="isp-collection-field__input">
+                                        <option value="wallet">— Wallet / advance (no bill) —</option>
+                                        @if (count($selectedCustomer['invoices']) > 1)
+                                            <option value="auto">— Auto apply to open bills (oldest first) —</option>
+                                        @endif
                                         @foreach ($selectedCustomer['invoices'] as $inv)
                                             <option value="{{ $inv['id'] }}">
                                                 {{ $inv['invoice_number'] }} · due {{ $inv['due_date'] }} · {{ number_format($inv['balance_due'], 2) }} BDT

@@ -18,6 +18,7 @@ use App\Services\Billing\InvoiceCalculator;
 use App\Services\Billing\PaymentAllocationCorrectionService;
 use App\Services\Billing\PaymentVoidService;
 use App\Services\Mobile\StaffBillingKpiResolver;
+use App\Services\Resellers\ResellerPaymentAllocationService;
 use App\Support\CustomerBalanceDue;
 use App\Support\PaymentGateway;
 use App\Support\PaymentRenewalPolicy;
@@ -77,7 +78,7 @@ class BillCollectionDesk extends Page
     public string $activeTab = 'collect';
 
     /** all | legacy_portal — match pay.anetbd.com history for imported subscribers */
-    public string $collectionHistoryFilter = 'legacy_portal';
+    public string $collectionHistoryFilter = 'all';
 
     public ?int $editingPaymentId = null;
 
@@ -105,6 +106,9 @@ class BillCollectionDesk extends Page
 
     /** bill | advance (recharge) */
     public string $collectionMode = 'bill';
+
+    /** auto | wallet | specific invoice id as string */
+    public string $paymentApplyTarget = 'auto';
 
     public ?int $advancePrepayMonths = null;
 
@@ -258,6 +262,7 @@ class BillCollectionDesk extends Page
         $this->activeTab = 'collect';
         $this->cancelEditPayment();
         $this->resetCollectionDiscountFields();
+        $this->ensureCollectorSelected();
 
         if ($this->selectedCustomer === null) {
             $this->clearSelection();
@@ -274,10 +279,13 @@ class BillCollectionDesk extends Page
             $this->collectionMode = 'bill';
             $this->advancePrepayMonths = null;
             $this->invoiceId = (int) $invoices[0]['id'];
+            $this->paymentApplyTarget = (string) $this->invoiceId;
             $this->fillAmountFromSelectedInvoiceDue();
         } else {
             $this->collectionMode = 'bill';
             $this->advancePrepayMonths = null;
+            $this->invoiceId = null;
+            $this->paymentApplyTarget = 'auto';
             $this->amount = (string) round((float) $this->selectedCustomer['balance_due'], 2);
         }
     }
@@ -296,10 +304,12 @@ class BillCollectionDesk extends Page
 
         $this->collectionMode = 'bill';
         $this->advancePrepayMonths = null;
+        $this->paymentApplyTarget = 'auto';
 
         $invoices = $this->selectedCustomer['invoices'] ?? [];
         if (count($invoices) === 1) {
             $this->invoiceId = (int) $invoices[0]['id'];
+            $this->paymentApplyTarget = (string) $this->invoiceId;
             $this->fillAmountFromSelectedInvoiceDue();
         } elseif (($this->selectedCustomer['balance_due'] ?? 0) > 0.009) {
             $this->invoiceId = null;
@@ -307,6 +317,27 @@ class BillCollectionDesk extends Page
         } else {
             $this->invoiceId = null;
             $this->amount = '';
+        }
+    }
+
+    public function updatedPaymentApplyTarget(string $value): void
+    {
+        if ($value === 'wallet') {
+            $this->invoiceId = null;
+
+            return;
+        }
+
+        if ($value === 'auto') {
+            $this->invoiceId = null;
+
+            return;
+        }
+
+        $invoiceId = (int) $value;
+        if ($invoiceId > 0) {
+            $this->invoiceId = $invoiceId;
+            $this->fillAmountFromSelectedInvoiceDue();
         }
     }
 
@@ -378,6 +409,7 @@ class BillCollectionDesk extends Page
     {
         $this->collectionMode = 'advance';
         $this->invoiceId = null;
+        $this->paymentApplyTarget = 'wallet';
         $this->resetCollectionDiscountFields();
         $this->setNextBillingDate = true;
 
@@ -439,6 +471,7 @@ class BillCollectionDesk extends Page
         $this->sendSms = true;
         $this->setNextBillingDate = true;
         $this->collectionMode = 'bill';
+        $this->paymentApplyTarget = 'auto';
         $this->advancePrepayMonths = null;
         $this->resetCollectionDiscountFields();
         $this->activeTab = 'collect';
@@ -641,7 +674,7 @@ class BillCollectionDesk extends Page
 
     private function refreshDueAfterPayment(\App\Models\Customer $customer): void
     {
-        $due = BillingDueRealtimeSync::afterPayment($customer, queueNetwork: false);
+        $due = BillingDueRealtimeSync::afterPayment($customer, queueNetwork: true);
         $this->search = $customer->customer_code;
         $this->runSearch();
         $this->reloadCustomer();
@@ -690,20 +723,55 @@ class BillCollectionDesk extends Page
             'collectorUserId' => 'nullable|integer|exists:users,id',
         ]);
 
+        $this->ensureCollectorSelected();
+
         $customer = \App\Models\Customer::query()->findOrFail($this->selectedCustomerId);
 
         $payAmount = round((float) $this->amount, 2);
-        $invoice = OpenInvoiceResolver::forCustomer($customer, $this->invoiceId);
-        if ($invoice !== null) {
-            $this->invoiceId = $invoice->id;
-        } elseif ($payAmount > 0.009) {
-            if (! CollectionPaymentClassifier::isAdvanceCollection($customer, null, $payAmount, 0)) {
-                throw ValidationException::withMessages([
-                    'amount' => 'No open bill with balance due. Switch to Recharge for advance payment.',
-                ]);
+        $advanceFifoMeta = [];
+
+        if ($this->isRechargeMode()) {
+            $this->invoiceId = null;
+            $invoice = null;
+            $advanceFifoMeta = $this->buildAdvanceFifoMeta($customer, $payAmount);
+            $this->invoiceId = $advanceFifoMeta['primary_invoice_id'];
+        } else {
+            $invoice = null;
+            $advanceFifoMeta = [];
+
+            if ($this->paymentApplyTarget === 'wallet') {
+                $this->invoiceId = null;
+                if ($payAmount > 0.009) {
+                    $advanceFifoMeta = [
+                        'primary_invoice_id' => null,
+                        'fifo_allocations' => [],
+                        'wallet_surplus' => $payAmount,
+                    ];
+                }
+            } elseif ($this->paymentApplyTarget === 'auto') {
+                $this->invoiceId = null;
+                if ($payAmount > 0.009) {
+                    $advanceFifoMeta = $this->buildAdvanceFifoMeta($customer, $payAmount);
+                    $this->invoiceId = $advanceFifoMeta['primary_invoice_id'];
+                }
+            } elseif (is_numeric($this->paymentApplyTarget) && (int) $this->paymentApplyTarget > 0) {
+                $this->invoiceId = (int) $this->paymentApplyTarget;
+                $invoice = OpenInvoiceResolver::forCustomer($customer, $this->invoiceId);
+            } elseif ($this->invoiceId !== null && $this->invoiceId > 0) {
+                $invoice = OpenInvoiceResolver::forCustomer($customer, $this->invoiceId);
+            } else {
+                $this->invoiceId = null;
             }
 
-            $this->invoiceId = null;
+            if (
+                $invoice === null
+                && $advanceFifoMeta === []
+                && $payAmount > 0.009
+            ) {
+                throw ValidationException::withMessages([
+                    'amount' => 'No open bill with balance due. Choose wallet / recharge for advance payment.',
+                ]);
+            }
         }
 
         $collectorId = $this->resolveCollectorIdForPayment();
@@ -738,7 +806,13 @@ class BillCollectionDesk extends Page
             }
         }
 
-        $discountBdt = $this->validateCollectionPayment($invoice, $payAmount, $this->notes);
+        $discountBdt = $this->validateCollectionPayment(
+            ($this->isRechargeMode() || in_array($this->paymentApplyTarget, ['wallet', 'auto'], true))
+                ? null
+                : $invoice,
+            $payAmount,
+            $this->notes,
+        );
 
         if ($payAmount <= 0 && $walletApplied <= 0 && $discountBdt <= 0) {
             throw ValidationException::withMessages([
@@ -748,6 +822,44 @@ class BillCollectionDesk extends Page
 
         $payment = null;
         if ($payAmount > 0) {
+            $paymentMeta = array_merge(
+                $this->collectorPaymentMeta($collectorId),
+                $this->collectionDiscountMeta($discountBdt),
+                $this->renewalPolicyMeta(),
+            );
+
+            if ($this->isRechargeMode()) {
+                $paymentMeta = array_merge($paymentMeta, [
+                    'collection_type' => 'advance',
+                    'allocation_mode' => ResellerPaymentAllocationService::MODE_ADVANCE,
+                ]);
+
+                if ($advanceFifoMeta['fifo_allocations'] !== []) {
+                    $paymentMeta['fifo_allocations'] = $advanceFifoMeta['fifo_allocations'];
+                    $paymentMeta['wallet_surplus'] = $advanceFifoMeta['wallet_surplus'];
+                    $paymentMeta['fifo_multi_invoice'] = true;
+                    $paymentMeta['allocation_mode'] = ResellerPaymentAllocationService::MODE_FIFO;
+                }
+            } elseif ($this->paymentApplyTarget === 'wallet') {
+                $paymentMeta = array_merge($paymentMeta, [
+                    'collection_type' => 'advance',
+                    'allocation_mode' => ResellerPaymentAllocationService::MODE_ADVANCE,
+                ]);
+            } elseif ($advanceFifoMeta !== []) {
+                $paymentMeta['fifo_allocations'] = $advanceFifoMeta['fifo_allocations'];
+                $paymentMeta['wallet_surplus'] = $advanceFifoMeta['wallet_surplus'];
+                $paymentMeta['fifo_multi_invoice'] = true;
+                $paymentMeta['allocation_mode'] = ResellerPaymentAllocationService::MODE_FIFO;
+            } else {
+                $paymentMeta = CollectionPaymentClassifier::paymentMeta(
+                    $customer,
+                    $invoice,
+                    $payAmount,
+                    $discountBdt,
+                    $paymentMeta,
+                );
+            }
+
             $payment = Payment::createTrusted([
                 'tenant_id' => $customer->tenant_id,
                 'customer_id' => $customer->id,
@@ -760,17 +872,7 @@ class BillCollectionDesk extends Page
                 'status' => 'completed',
                 'paid_at' => now(),
                 'recorded_by' => $collectorId,
-                'meta' => CollectionPaymentClassifier::paymentMeta(
-                    $customer,
-                    $invoice,
-                    $payAmount,
-                    $discountBdt,
-                    array_merge(
-                        $this->collectorPaymentMeta($collectorId),
-                        $this->collectionDiscountMeta($discountBdt),
-                        $this->renewalPolicyMeta(),
-                    ),
-                ),
+                'meta' => $paymentMeta,
             ]);
 
             $this->applyCollectionDiscountIfNeeded($invoice, $discountBdt, $payment);
@@ -862,7 +964,61 @@ class BillCollectionDesk extends Page
         $this->refreshDueAfterPayment($customer);
         $this->refreshDeskStats();
 
+        if ($isAdvance) {
+            $this->collectionHistoryFilter = 'all';
+            $this->activeTab = 'history';
+            $walletBalance = (float) ($this->selectedCustomer['account_balance'] ?? 0);
+            if ($walletBalance > 0.009) {
+                $body .= ' · Wallet balance '.number_format($walletBalance, 2).' BDT';
+            }
+            if (($this->selectedCustomer['balance_due'] ?? 0) <= 0.009) {
+                $this->enterRechargeMode();
+            }
+        } elseif ($advanceFifoMeta !== [] && ($advanceFifoMeta['wallet_surplus'] ?? 0) > 0.009) {
+            $walletBalance = (float) ($this->selectedCustomer['account_balance'] ?? 0);
+            $body .= ' · Wallet credited '.number_format((float) $advanceFifoMeta['wallet_surplus'], 2).' BDT';
+            if ($walletBalance > 0.009) {
+                $body .= ' (balance '.number_format($walletBalance, 2).' BDT)';
+            }
+        }
+
         $notification->send();
+    }
+
+    /**
+     * Recharge/advance: clear open bills first (FIFO), then credit the remainder to wallet.
+     *
+     * @return array{primary_invoice_id: ?int, fifo_allocations: list<array<string, mixed>>, wallet_surplus: float}
+     */
+    private function buildAdvanceFifoMeta(\App\Models\Customer $customer, float $payAmount): array
+    {
+        $remaining = round($payAmount, 2);
+        $allocations = [];
+
+        foreach (OpenInvoiceResolver::openInvoicesWithBalance($customer) as $openInvoice) {
+            if ($remaining <= 0.009) {
+                break;
+            }
+
+            $due = $openInvoice->balanceDue();
+            $apply = round(min($remaining, $due), 2);
+            if ($apply <= 0) {
+                continue;
+            }
+
+            $allocations[] = [
+                'invoice_id' => $openInvoice->id,
+                'invoice_number' => (string) $openInvoice->invoice_number,
+                'amount' => $apply,
+            ];
+            $remaining = round($remaining - $apply, 2);
+        }
+
+        return [
+            'primary_invoice_id' => $allocations[0]['invoice_id'] ?? null,
+            'fifo_allocations' => $allocations,
+            'wallet_surplus' => max(0.0, $remaining),
+        ];
     }
 
     /**

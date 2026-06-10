@@ -253,6 +253,112 @@ class BillCollectionDeskTest extends TestCase
         $this->assertSame(200.0, $row['bill_history'][0]['balance_due']);
     }
 
+    public function test_advance_recharge_credits_wallet_for_paid_up_customer(): void
+    {
+        $package = Package::query()->create([
+            'name' => '10M',
+            'type' => 'residential',
+            'download_mbps' => 10,
+            'price_monthly' => 500,
+            'setup_fee' => 0,
+            'vat_percent' => 0,
+            'billing_cycle_days' => 30,
+            'is_active' => true,
+        ]);
+
+        $customer = Customer::query()->create([
+            'tenant_id' => 1,
+            'name' => 'Advance Pay Test',
+            'phone' => '01730000091',
+            'status' => 'active',
+            'billing_day' => 1,
+            'package_id' => $package->id,
+            'account_balance' => 0,
+        ]);
+
+        Role::findOrCreate('isp-admin');
+        $user = User::factory()->create();
+        $user->assignRole('isp-admin');
+
+        Livewire::actingAs($user)
+            ->test(BillCollectionDesk::class)
+            ->call('selectCustomer', $customer->id)
+            ->set('collectionMode', 'advance')
+            ->set('amount', '500')
+            ->set('method', 'cash')
+            ->call('collectPayment')
+            ->assertHasNoErrors()
+            ->assertSet('activeTab', 'history')
+            ->assertSet('collectionHistoryFilter', 'all');
+
+        $this->assertDatabaseHas('payments', [
+            'customer_id' => $customer->id,
+            'invoice_id' => null,
+            'amount' => 500,
+            'status' => 'completed',
+        ]);
+
+        $this->assertSame(500.0, (float) $customer->fresh()->account_balance);
+    }
+
+    public function test_advance_recharge_clears_due_then_credits_wallet_surplus(): void
+    {
+        $package = Package::query()->create([
+            'name' => '10M',
+            'type' => 'residential',
+            'download_mbps' => 10,
+            'price_monthly' => 500,
+            'setup_fee' => 0,
+            'vat_percent' => 0,
+            'billing_cycle_days' => 30,
+            'is_active' => true,
+        ]);
+
+        $customer = Customer::query()->create([
+            'tenant_id' => 1,
+            'name' => 'Advance With Due',
+            'phone' => '01730000092',
+            'status' => 'active',
+            'billing_day' => 1,
+            'package_id' => $package->id,
+            'account_balance' => 0,
+        ]);
+
+        $invoice = Invoice::query()->create([
+            'tenant_id' => 1,
+            'customer_id' => $customer->id,
+            'issue_date' => now()->toDateString(),
+            'due_date' => now()->addDays(7)->toDateString(),
+            'period_start' => now()->toDateString(),
+            'period_end' => now()->toDateString(),
+            'subtotal' => 300,
+            'tax_amount' => 0,
+            'discount_amount' => 0,
+            'total' => 300,
+            'amount_paid' => 0,
+            'status' => 'open',
+        ]);
+
+        Role::findOrCreate('isp-admin');
+        $user = User::factory()->create();
+        $user->assignRole('isp-admin');
+
+        Livewire::actingAs($user)
+            ->test(BillCollectionDesk::class)
+            ->call('selectCustomer', $customer->id)
+            ->call('setCollectionMode', 'advance')
+            ->set('advancePrepayMonths', 1)
+            ->set('amount', '800')
+            ->set('method', 'cash')
+            ->call('collectPayment')
+            ->assertHasNoErrors()
+            ->assertSet('selectedCustomer.balance_due', 0.0);
+
+        $invoice->refresh();
+        $this->assertSame('paid', $invoice->status);
+        $this->assertSame(500.0, (float) $customer->fresh()->account_balance);
+    }
+
     public function test_payment_can_be_reassigned_to_correct_invoice(): void
     {
         $customer = Customer::query()->create([
