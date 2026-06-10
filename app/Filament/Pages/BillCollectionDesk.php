@@ -6,8 +6,10 @@ use App\Filament\Pages\Concerns\AssignsCollectorOnPayment;
 use App\Filament\Pages\Concerns\HandlesCollectionDiscountAndNotes;
 use App\Models\Invoice;
 use App\Models\Payment;
+use App\Services\Billing\AdvanceInvoiceSyncService;
 use App\Services\Billing\BillCollectionSearchService;
 use App\Services\Billing\BillingDueRealtimeSync;
+use App\Services\Billing\CustomerPrepayService;
 use App\Services\Billing\OpenInvoiceResolver;
 use App\Services\Billing\CollectionPaymentClassifier;
 use App\Services\Collector\CollectorStaffResolver;
@@ -15,9 +17,12 @@ use App\Services\Collector\CollectorVisitService;
 use App\Services\Billing\InvoiceCalculator;
 use App\Services\Billing\PaymentAllocationCorrectionService;
 use App\Services\Billing\PaymentVoidService;
+use App\Services\Mobile\StaffBillingKpiResolver;
+use App\Support\CustomerBalanceDue;
 use App\Support\PaymentGateway;
 use App\Support\PaymentRenewalPolicy;
 use App\Support\PaymentType;
+use App\Support\TenantResolver;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Illuminate\Support\Collection;
@@ -45,6 +50,9 @@ class BillCollectionDesk extends Page
     protected static ?string $slug = 'bill-collection';
 
     public string $search = '';
+
+    /** all | due | paid */
+    public string $searchFilter = 'all';
 
     /** @var Collection<int, array<string, mixed>> */
     public Collection $results;
@@ -89,10 +97,39 @@ class BillCollectionDesk extends Page
 
     public string $renewalPolicy = PaymentRenewalPolicy::DEFAULT;
 
+    public string $receiveFrom = '';
+
+    public bool $sendSms = true;
+
+    public bool $setNextBillingDate = true;
+
+    /** bill | advance (recharge) */
+    public string $collectionMode = 'bill';
+
+    public ?int $advancePrepayMonths = null;
+
+    /** @var array{due_clients: int, paid_clients: int, total_due: float} */
+    public array $deskStats = [
+        'due_clients' => 0,
+        'paid_clients' => 0,
+        'total_due' => 0.0,
+    ];
+
     public function mount(): void
     {
         $this->results = collect();
         $this->mountCollectorAssignment();
+        $this->refreshDeskStats();
+
+        $legacySearch = trim((string) request()->query('q', ''));
+        if ($legacySearch !== '') {
+            $this->search = $legacySearch;
+        }
+
+        $filter = (string) request()->query('filter', 'all');
+        if (in_array($filter, ['all', 'due', 'paid'], true)) {
+            $this->searchFilter = $filter;
+        }
 
         $customerId = request()->integer('customer');
         if ($customerId > 0) {
@@ -107,6 +144,44 @@ class BillCollectionDesk extends Page
                     $this->startEditPayment($editPaymentId);
                 }
             }
+        } elseif ($this->search !== '') {
+            $this->runSearch();
+        }
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    protected function queryString(): array
+    {
+        return [
+            'search' => ['except' => '', 'as' => 'q'],
+            'searchFilter' => ['except' => 'all', 'as' => 'filter'],
+        ];
+    }
+
+    protected function refreshDeskStats(): void
+    {
+        $tenantId = TenantResolver::requiredTenantId();
+        $billingKpis = app(StaffBillingKpiResolver::class);
+
+        $this->deskStats = [
+            'due_clients' => $billingKpis->dueClientsCount($tenantId),
+            'paid_clients' => $billingKpis->paidClientsCount($tenantId),
+            'total_due' => CustomerBalanceDue::tenantOpenInvoiceDueSum($tenantId),
+        ];
+    }
+
+    public function setSearchFilter(string $filter): void
+    {
+        if (! in_array($filter, ['all', 'due', 'paid'], true)) {
+            return;
+        }
+
+        $this->searchFilter = $filter;
+
+        if (filled($this->search)) {
+            $this->runSearch();
         }
     }
 
@@ -144,11 +219,26 @@ class BillCollectionDesk extends Page
         $this->runSearch();
     }
 
+    public function updatedSearchFilter(): void
+    {
+        if (filled($this->search)) {
+            $this->runSearch();
+        }
+    }
+
     public function runSearch(): void
     {
-        $this->results = app(BillCollectionSearchService::class)->search($this->search);
+        $this->results = app(BillCollectionSearchService::class)->search(
+            $this->search,
+            filter: $this->searchFilter,
+        );
+
         if ($this->selectedCustomerId !== null && $this->results->where('id', $this->selectedCustomerId)->isEmpty()) {
             $this->clearSelection();
+        }
+
+        if ($this->selectedCustomerId === null && $this->results->count() === 1) {
+            $this->selectCustomer((int) $this->results->first()['id']);
         }
     }
 
@@ -167,11 +257,134 @@ class BillCollectionDesk extends Page
         }
 
         $invoices = $this->selectedCustomer['invoices'] ?? [];
+        $this->receiveFrom = (string) ($this->selectedCustomer['name'] ?? '');
+
+        if (($this->selectedCustomer['balance_due'] ?? 0) <= 0.009) {
+            $this->enterRechargeMode();
+        } elseif (count($invoices) === 1) {
+            $this->collectionMode = 'bill';
+            $this->advancePrepayMonths = null;
+            $this->invoiceId = (int) $invoices[0]['id'];
+            $this->fillAmountFromSelectedInvoiceDue();
+        } else {
+            $this->collectionMode = 'bill';
+            $this->advancePrepayMonths = null;
+            $this->amount = (string) round((float) $this->selectedCustomer['balance_due'], 2);
+        }
+    }
+
+    public function setCollectionMode(string $mode): void
+    {
+        if (! in_array($mode, ['bill', 'advance'], true)) {
+            return;
+        }
+
+        if ($mode === 'advance') {
+            $this->enterRechargeMode();
+
+            return;
+        }
+
+        $this->collectionMode = 'bill';
+        $this->advancePrepayMonths = null;
+
+        $invoices = $this->selectedCustomer['invoices'] ?? [];
         if (count($invoices) === 1) {
             $this->invoiceId = (int) $invoices[0]['id'];
             $this->fillAmountFromSelectedInvoiceDue();
-        } elseif (($this->selectedCustomer['balance_due'] ?? 0) > 0) {
+        } elseif (($this->selectedCustomer['balance_due'] ?? 0) > 0.009) {
+            $this->invoiceId = null;
             $this->amount = (string) round((float) $this->selectedCustomer['balance_due'], 2);
+        } else {
+            $this->invoiceId = null;
+            $this->amount = '';
+        }
+    }
+
+    public function applyRechargeMonths(int $months): void
+    {
+        if ($this->selectedCustomerId === null) {
+            return;
+        }
+
+        $customer = \App\Models\Customer::query()->find($this->selectedCustomerId);
+        if ($customer === null) {
+            return;
+        }
+
+        $hasDue = ($this->selectedCustomer['balance_due'] ?? 0) > 0.009;
+        $quote = app(CustomerPrepayService::class)->quote($customer, $months, includeCurrentDue: $hasDue);
+        if ($quote === null) {
+            return;
+        }
+
+        $this->collectionMode = 'advance';
+        $this->advancePrepayMonths = $months;
+        $this->invoiceId = null;
+        $this->resetCollectionDiscountFields();
+        $this->amount = (string) round(
+            $hasDue ? (float) $quote['total_amount'] : (float) $quote['prepay_amount'],
+            2,
+        );
+    }
+
+    public function isRechargeMode(): bool
+    {
+        return $this->collectionMode === 'advance';
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    public function getPrepayQuickOptions(): array
+    {
+        if ($this->selectedCustomerId === null) {
+            return [];
+        }
+
+        $customer = \App\Models\Customer::query()->find($this->selectedCustomerId);
+        if ($customer === null) {
+            return [];
+        }
+
+        $prepay = app(CustomerPrepayService::class);
+        if (! $prepay->isEnabled()) {
+            return [];
+        }
+
+        $hasDue = ($this->selectedCustomer['balance_due'] ?? 0) > 0.009;
+        $options = [];
+
+        foreach ($prepay->quickMonthOptions() as $months) {
+            $quote = $prepay->quote($customer, $months, includeCurrentDue: $hasDue);
+            if ($quote !== null) {
+                $options[] = $quote;
+            }
+        }
+
+        return $options;
+    }
+
+    protected function enterRechargeMode(): void
+    {
+        $this->collectionMode = 'advance';
+        $this->invoiceId = null;
+        $this->resetCollectionDiscountFields();
+        $this->setNextBillingDate = true;
+
+        $monthly = (float) ($this->selectedCustomer['monthly_bill'] ?? 0);
+        if ($monthly <= 0 && $this->selectedCustomerId !== null) {
+            $customer = \App\Models\Customer::query()->find($this->selectedCustomerId);
+            $rate = $customer !== null ? app(CustomerPrepayService::class)->monthlyRate($customer) : null;
+            $monthly = $rate !== null ? (float) $rate : 0.0;
+        }
+
+        if ($monthly > 0) {
+            $this->advancePrepayMonths = 1;
+            $this->amount = (string) round($monthly, 2);
+        } else {
+            $this->advancePrepayMonths = null;
+            $this->amount = '';
         }
     }
 
@@ -213,9 +426,53 @@ class BillCollectionDesk extends Page
         $this->reference = '';
         $this->notes = '';
         $this->renewalPolicy = PaymentRenewalPolicy::DEFAULT;
+        $this->receiveFrom = '';
+        $this->sendSms = true;
+        $this->setNextBillingDate = true;
+        $this->collectionMode = 'bill';
+        $this->advancePrepayMonths = null;
         $this->resetCollectionDiscountFields();
         $this->activeTab = 'collect';
         $this->cancelEditPayment();
+    }
+
+    public function payableAmount(): float
+    {
+        if ($this->isRechargeMode()) {
+            return $this->receivedAmountNumeric();
+        }
+
+        $invoiceDue = $this->selectedInvoiceBalanceDue();
+
+        if ($invoiceDue !== null) {
+            return round($invoiceDue, 2);
+        }
+
+        return round((float) ($this->selectedCustomer['balance_due'] ?? 0), 2);
+    }
+
+    public function receivedAmountNumeric(): float
+    {
+        return is_numeric($this->amount) ? round((float) $this->amount, 2) : 0.0;
+    }
+
+    public function balanceDueAfterCollection(): float
+    {
+        if ($this->isRechargeMode()) {
+            return 0.0;
+        }
+
+        $remaining = $this->partialPaymentRemaining();
+
+        if ($remaining !== null) {
+            return $remaining;
+        }
+
+        $payable = $this->payableAmount();
+        $received = $this->receivedAmountNumeric();
+        $discount = $this->previewCollectionDiscountBdt();
+
+        return max(0.0, round($payable - $received - $discount, 2));
     }
 
     public function recalculateInvoice(int $invoiceId): void
@@ -431,9 +688,13 @@ class BillCollectionDesk extends Page
         if ($invoice !== null) {
             $this->invoiceId = $invoice->id;
         } elseif ($payAmount > 0.009) {
-            throw ValidationException::withMessages([
-                'amount' => 'No open bill with balance due for this customer.',
-            ]);
+            if (! CollectionPaymentClassifier::isAdvanceCollection($customer, null, $payAmount, 0)) {
+                throw ValidationException::withMessages([
+                    'amount' => 'No open bill with balance due. Switch to Recharge for advance payment.',
+                ]);
+            }
+
+            $this->invoiceId = null;
         }
 
         $collectorId = $this->resolveCollectorIdForPayment();
@@ -486,7 +747,7 @@ class BillCollectionDesk extends Page
                 'amount' => $payAmount,
                 'method' => $this->method,
                 'reference' => $this->reference ?: null,
-                'notes' => $this->notes ?: null,
+                'notes' => $this->collectionNotesForStorage() ?: null,
                 'status' => 'completed',
                 'paid_at' => now(),
                 'recorded_by' => $collectorId,
@@ -504,6 +765,19 @@ class BillCollectionDesk extends Page
             ]);
 
             $this->applyCollectionDiscountIfNeeded($invoice, $discountBdt, $payment);
+
+            if (
+                $payment !== null
+                && $this->advancePrepayMonths !== null
+                && $this->advancePrepayMonths > 0
+                && CollectionPaymentClassifier::isAdvancePayment($payment->fresh())
+            ) {
+                app(AdvanceInvoiceSyncService::class)->syncForwardInvoices(
+                    $customer->fresh(),
+                    $this->advancePrepayMonths,
+                    $payment->fresh(),
+                );
+            }
         } elseif ($discountBdt > 0 && $invoice !== null) {
             $payment = Payment::createTrusted([
                 'tenant_id' => $customer->tenant_id,
@@ -513,7 +787,7 @@ class BillCollectionDesk extends Page
                 'amount' => 0.01,
                 'method' => $this->method,
                 'reference' => $this->reference ?: null,
-                'notes' => $this->notes ?: null,
+                'notes' => $this->collectionNotesForStorage() ?: null,
                 'status' => 'completed',
                 'paid_at' => now(),
                 'recorded_by' => $collectorId,
@@ -535,9 +809,16 @@ class BillCollectionDesk extends Page
             ]);
         }
 
-        $body = $payment !== null
-            ? 'Receipt '.$payment->receipt_number.' — '.number_format((float) $payment->amount, 2).' BDT'
-            : 'Collection recorded';
+        $isAdvance = false;
+
+        if ($payment !== null) {
+            $payment = $payment->fresh();
+            $isAdvance = CollectionPaymentClassifier::isAdvancePayment($payment);
+            $body = 'Receipt '.$payment->receipt_number.' — '.number_format((float) $payment->amount, 2).' BDT';
+        } else {
+            $body = 'Collection recorded';
+        }
+
         $body .= ' · Credited to '.$collector->name;
         if ((int) auth()->id() !== $collectorId) {
             $body .= ' (entered by '.auth()->user()?->name.')';
@@ -556,8 +837,8 @@ class BillCollectionDesk extends Page
         }
 
         $notification = Notification::make()
-            ->title('Payment collected')
-            ->body($body)
+            ->title($isAdvance ? 'Recharge recorded' : 'Payment collected')
+            ->body($isAdvance ? 'Advance payment · '.$body : $body)
             ->success();
 
         if ($payment !== null) {
@@ -570,6 +851,7 @@ class BillCollectionDesk extends Page
 
         $this->resetCollectionDiscountFields();
         $this->refreshDueAfterPayment($customer);
+        $this->refreshDeskStats();
 
         $notification->send();
     }
@@ -594,7 +876,39 @@ class BillCollectionDesk extends Page
      */
     private function renewalPolicyMeta(): array
     {
-        return ['renewal_policy' => $this->renewalPolicy];
+        $meta = ['renewal_policy' => $this->renewalPolicy];
+
+        if (! $this->setNextBillingDate) {
+            $meta['skip_billing_date_update'] = true;
+        }
+
+        if (! $this->sendSms) {
+            $meta['skip_customer_sms'] = true;
+        }
+
+        if (filled($this->receiveFrom)) {
+            $meta['receive_from'] = trim($this->receiveFrom);
+        }
+
+        if ($this->advancePrepayMonths !== null && $this->advancePrepayMonths > 0) {
+            $meta['prepay_months'] = $this->advancePrepayMonths;
+        }
+
+        return $meta;
+    }
+
+    private function collectionNotesForStorage(): ?string
+    {
+        $notes = trim($this->notes);
+        $receiveFrom = trim($this->receiveFrom);
+
+        if ($receiveFrom !== '' && $receiveFrom !== trim((string) ($this->selectedCustomer['name'] ?? ''))) {
+            $prefix = 'Receive from: '.$receiveFrom;
+
+            return $notes !== '' ? $prefix.' — '.$notes : $prefix;
+        }
+
+        return $notes !== '' ? $notes : null;
     }
 
     protected function assertCanManagePayment(Payment $payment): void

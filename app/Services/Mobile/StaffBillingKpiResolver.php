@@ -191,6 +191,23 @@ final class StaffBillingKpiResolver
         );
     }
 
+    public function paidClientsCount(int $tenantId): int
+    {
+        return (int) Cache::remember(
+            'staff_billing_paid_clients:'.$tenantId,
+            120,
+            fn (): int => $this->paidClientsCountUncached($tenantId),
+        );
+    }
+
+    private function paidClientsCountUncached(int $tenantId): int
+    {
+        return (int) \App\Support\CustomerAccountScopes::applyPaidUp(
+            \App\Models\Customer::withoutGlobalScopes()->where('tenant_id', $tenantId),
+            $tenantId,
+        )->count();
+    }
+
     private function dueClientsCountUncached(int $tenantId): int
     {
         if (app(LegacyPortalDashboardSummaryProvider::class)->tenantUsesLegacyPortal($tenantId)) {

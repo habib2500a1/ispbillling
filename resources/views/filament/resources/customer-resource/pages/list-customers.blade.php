@@ -34,6 +34,13 @@
     $heroTitle = $this->getDirectoryHeroTitle();
     $heroSubtitle = $this->getDirectoryHeroSubtitle();
     $variant = $this->getDirectoryPageVariant();
+    $listUrl = match ($variant) {
+        'due' => \App\Filament\Resources\CustomerResource::getUrl('due'),
+        'paid' => \App\Filament\Resources\CustomerResource::getUrl('paid'),
+        'vip' => \App\Filament\Resources\CustomerResource::getUrl('vip'),
+        default => $indexUrl,
+    };
+    $billingNavTabs = $this->getDirectoryBillingNavTabs();
     $activePreset = ($preset ?? 'all') !== 'all' ? ($preset ?? 'all') : null;
     $listQuery = [];
     if ($activePreset) {
@@ -48,10 +55,10 @@
     if (filled($this->tableSearch)) {
         $listQuery['tableSearch'] = $this->tableSearch;
     }
-    $resetUrl = $indexUrl.($activePreset ? '?preset='.$activePreset : '');
+    $resetUrl = $listUrl.($activePreset ? '?preset='.$activePreset : '');
     $clearSearchQuery = $listQuery;
     unset($clearSearchQuery['tableSearch']);
-    $clearSearchUrl = $indexUrl.(filled($clearSearchQuery) ? '?'.http_build_query($clearSearchQuery) : '');
+    $clearSearchUrl = $listUrl.(filled($clearSearchQuery) ? '?'.http_build_query($clearSearchQuery) : '');
 @endphp
 
 {!! \App\Support\ClientsDirectoryStyles::navigatedScript() !!}
@@ -93,6 +100,20 @@
             </div>
         </header>
 
+        @if (filled($billingNavTabs))
+            <nav class="cl-dir-billing-nav" aria-label="Bill status">
+                @foreach ($billingNavTabs as $tab)
+                    <a
+                        href="{{ $tab['url'] }}"
+                        @class(['cl-dir-billing-nav__link', 'cl-dir-billing-nav__link--active' => $tab['active']])
+                    >
+                        {{ $tab['label'] }}
+                        <span class="cl-dir-billing-nav__count">{{ number_format($tab['count']) }}</span>
+                    </a>
+                @endforeach
+            </nav>
+        @endif
+
         <section class="cl-dir-quick" aria-label="Quick links">
             @foreach ($quickLinks as $link)
                 <a href="{{ $link['url'] }}" class="cl-dir-quick__item cl-dir-quick__item--{{ $link['tone'] }}">
@@ -126,7 +147,7 @@
         </div>
 
         <section class="cl-dir-command cl-dir-toolbar" aria-label="Search and filters">
-            <form method="GET" action="{{ $indexUrl }}" id="cl-dir-toolbar-form" class="cl-dir-command__row cl-dir-command__row--search">
+            <form method="GET" action="{{ $listUrl }}" id="cl-dir-toolbar-form" class="cl-dir-command__row cl-dir-command__row--search">
                 @if ($activePreset)
                     <input type="hidden" name="preset" value="{{ $activePreset }}">
                 @endif

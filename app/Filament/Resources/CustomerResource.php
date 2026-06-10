@@ -1157,7 +1157,7 @@ class CustomerResource extends Resource
      */
     public static function clientsDirectoryEloquentQuery(?string $variant = null): Builder
     {
-        $billingList = in_array($variant, ['due', 'vip'], true);
+        $billingList = in_array($variant, ['due', 'vip', 'paid'], true);
 
         $query = parent::getEloquentQuery()
             ->with([
@@ -1175,12 +1175,15 @@ class CustomerResource extends Resource
 
     public static function clientsDirectoryTable(Table $table, ?string $variant = null): Table
     {
-        $billingList = in_array($variant, ['due', 'vip'], true);
+        $billingList = in_array($variant, ['due', 'vip', 'paid'], true);
         $duePage = $variant === 'due';
 
         return $table
             ->columns(static::clientsDirectoryColumns($billingList))
-            ->actions($billingList ? static::clientsDirectoryDueActions() : static::clientsDirectoryActions())
+            ->actions(match ($variant) {
+                'due', 'vip' => static::clientsDirectoryDueActions(),
+                default => static::clientsDirectoryActions(),
+            })
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     static::bulkMoveResellerAction(),
@@ -1205,11 +1208,13 @@ class CustomerResource extends Resource
             ->paginationPageOptions([25, 50, 100])
             ->emptyStateHeading(match ($variant) {
                 'due' => 'No due clients',
+                'paid' => 'No paid clients',
                 'vip' => 'No VIP clients',
                 default => 'No clients found',
             })
             ->emptyStateDescription(match ($variant) {
                 'due' => 'All clients are paid up — or adjust filters above.',
+                'paid' => 'Every client currently has an outstanding balance.',
                 'vip' => 'Mark subscribers as VIP in profile — they keep line on with optional billing.',
                 default => 'Add a client, change the tab preset, or clear filters.',
             })
@@ -1330,7 +1335,7 @@ class CustomerResource extends Resource
     {
         return [
             Tables\Columns\TextColumn::make('resolved_balance_due')
-                ->label('Balance due')
+                ->label('Current due')
                 ->formatStateUsing(fn ($state, Customer $record): float => CustomerBalanceDue::displayAmount($record))
                 ->money('BDT')
                 ->sortable()
@@ -1339,6 +1344,23 @@ class CustomerResource extends Resource
                 ->color(fn ($state, Customer $record): ?string => CustomerBalanceDue::displayAmount($record) > 0.009 ? 'danger' : 'success')
                 ->extraHeaderAttributes(['class' => 'cl-dir-col-due'])
                 ->extraCellAttributes(['class' => 'cl-dir-col-due']),
+            Tables\Columns\TextColumn::make('billing_payment_state')
+                ->label('Bill status')
+                ->badge()
+                ->state(function (Customer $record): string {
+                    return match (CustomerBalanceDue::resolve($record)['payment_state']) {
+                        'paid' => 'Paid',
+                        'partial' => 'Partial',
+                        default => 'Due',
+                    };
+                })
+                ->color(fn (string $state): string => match ($state) {
+                    'Paid' => 'success',
+                    'Partial' => 'warning',
+                    default => 'danger',
+                })
+                ->extraHeaderAttributes(['class' => 'cl-dir-col-bill-status'])
+                ->extraCellAttributes(['class' => 'cl-dir-col-bill-status']),
             Tables\Columns\IconColumn::make('is_ppp_online')
                 ->label('Online')
                 ->boolean()
@@ -1359,7 +1381,7 @@ class CustomerResource extends Resource
     {
         return [
             Tables\Actions\Action::make('pay_due')
-                ->label('Pay')
+                ->label('Pay due')
                 ->icon('heroicon-o-banknotes')
                 ->color('success')
                 ->button()
@@ -1763,6 +1785,7 @@ class CustomerResource extends Resource
             'pending' => Pages\ListPendingCustomers::route('/pending'),
             'free' => Pages\ListFreeCustomers::route('/free'),
             'due' => Pages\ListDueCustomers::route('/due'),
+            'paid' => Pages\ListPaidCustomers::route('/paid'),
             'vip' => Pages\ListVipCustomers::route('/vip'),
             'expired' => Pages\ListExpiredCustomers::route('/expired'),
             'suspended' => Pages\ListSuspendedCustomers::route('/suspended'),

@@ -571,7 +571,7 @@ trait UsesClientsDirectoryLayout
     }
 
     /**
-     * @return array{total: int, active: int, inactive: int, due_clients: int, total_due: float}
+     * @return array{total: int, active: int, inactive: int, due_clients: int, paid_clients: int, total_due: float}
      */
     public function getDirectoryStats(): array
     {
@@ -586,16 +586,49 @@ trait UsesClientsDirectoryLayout
             120,
             function () use ($tenantId): array {
                 $stats = $this->getClientStats();
+                $billingKpis = app(StaffBillingKpiResolver::class);
 
                 return [
                     'total' => (int) ($stats['total'] ?? 0),
                     'active' => (int) ($stats['active'] ?? 0),
                     'inactive' => max(0, (int) ($stats['total'] ?? 0) - (int) ($stats['active'] ?? 0)),
-                    'due_clients' => app(StaffBillingKpiResolver::class)->dueClientsCount($tenantId),
+                    'due_clients' => $billingKpis->dueClientsCount($tenantId),
+                    'paid_clients' => $billingKpis->paidClientsCount($tenantId),
                     'total_due' => CustomerBalanceDue::tenantOpenInvoiceDueSum($tenantId),
                 ];
             },
         );
+    }
+
+    /**
+     * @return list<array{key: string, label: string, count: int, url: string, active: bool}>
+     */
+    public function getDirectoryBillingNavTabs(): array
+    {
+        $variant = $this->getDirectoryPageVariant();
+
+        if (! in_array($variant, ['due', 'paid'], true)) {
+            return [];
+        }
+
+        $stats = $this->getDirectoryStats();
+
+        return [
+            [
+                'key' => 'due',
+                'label' => 'Current due',
+                'count' => (int) ($stats['due_clients'] ?? 0),
+                'url' => CustomerResource::getUrl('due'),
+                'active' => $variant === 'due',
+            ],
+            [
+                'key' => 'paid',
+                'label' => 'Paid',
+                'count' => (int) ($stats['paid_clients'] ?? 0),
+                'url' => CustomerResource::getUrl('paid'),
+                'active' => $variant === 'paid',
+            ],
+        ];
     }
 
     /**

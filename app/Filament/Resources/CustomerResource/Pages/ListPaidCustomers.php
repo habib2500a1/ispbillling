@@ -7,72 +7,72 @@ use App\Support\CustomerAccountScopes;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 
-class ListDueCustomers extends ListFilteredCustomers
+class ListPaidCustomers extends ListFilteredCustomers
 {
-    protected static ?string $navigationLabel = 'Due clients';
+    protected static ?string $navigationLabel = 'Paid clients';
 
-    protected static ?string $title = 'Clients with due balance';
+    protected static ?string $title = 'Paid clients';
 
     public static function getNavigationLabel(): string
     {
-        return 'Due clients';
+        return 'Paid clients';
     }
 
     public function getSubheading(): ?string
     {
-        return 'Clients with outstanding balance — collect payment, extend line, or open profile.';
+        return 'Clients with no outstanding bill — current due is zero.';
     }
 
     public function getDirectoryPageVariant(): ?string
     {
-        return 'due';
+        return 'paid';
     }
 
     public function table(Table $table): Table
     {
-        return CustomerResource::clientsDirectoryTable($table, 'due');
+        return CustomerResource::clientsDirectoryTable($table, 'paid');
     }
 
     /**
-     * @return list<array{label: string, value: string, hint: string, tone: string, icon: string}>
+     * @return list<array{label: string, value: string, hint: string, tone: string, icon: string, url?: string}>
      */
     public function getStatCards(): array
     {
         $stats = $this->getDirectoryStats();
+        $paidCount = max(0, (int) ($stats['paid_clients'] ?? 0));
         $dueCount = max(0, (int) ($stats['due_clients'] ?? 0));
-        $totalDue = max(0, (float) ($stats['total_due'] ?? 0));
-        $avgDue = $dueCount > 0 ? $totalDue / $dueCount : 0.0;
 
         return [
             [
+                'label' => 'Paid clients',
+                'value' => number_format($paidCount),
+                'hint' => 'No current due',
+                'tone' => 'emerald',
+                'icon' => 'heroicon-o-check-badge',
+                'url' => CustomerResource::getUrl('paid'),
+            ],
+            [
                 'label' => 'Current due',
                 'value' => number_format($dueCount),
-                'hint' => 'Outstanding balance',
+                'hint' => 'Need collection',
                 'tone' => 'rose',
                 'icon' => 'heroicon-o-exclamation-circle',
                 'url' => CustomerResource::getUrl('due'),
             ],
             [
                 'label' => 'Total due',
-                'value' => 'BDT '.number_format($totalDue, 2),
-                'hint' => 'Collectible now',
-                'tone' => 'rose',
+                'value' => 'BDT '.number_format((float) ($stats['total_due'] ?? 0), 2),
+                'hint' => 'Outstanding balance',
+                'tone' => 'amber',
                 'icon' => 'heroicon-o-banknotes',
                 'url' => \App\Filament\Pages\BillCollectionDesk::getUrl(),
-            ],
-            [
-                'label' => 'Average due',
-                'value' => 'BDT '.number_format($avgDue, 2),
-                'hint' => 'Per due client',
-                'tone' => 'amber',
-                'icon' => 'heroicon-o-calculator',
             ],
             [
                 'label' => 'Active clients',
                 'value' => number_format((int) ($stats['active'] ?? 0)),
                 'hint' => 'In good standing',
-                'tone' => 'emerald',
-                'icon' => 'heroicon-o-check-circle',
+                'tone' => 'sky',
+                'icon' => 'heroicon-o-user-group',
                 'url' => CustomerResource::getUrl('active'),
             ],
         ];
@@ -80,6 +80,6 @@ class ListDueCustomers extends ListFilteredCustomers
 
     protected function applyFilter(Builder $query): Builder
     {
-        return CustomerAccountScopes::applyWithBalanceDue($query);
+        return CustomerAccountScopes::applyPaidUp($query);
     }
 }

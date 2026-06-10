@@ -27,12 +27,15 @@ final class PaymentNotificationService
 
         $event = CollectionPaymentClassifier::notificationEvent($payment);
         $vars = CollectionPaymentClassifier::notificationVariables($payment);
+        $meta = is_array($payment->meta) ? $payment->meta : [];
 
-        $this->dispatcher->notifyCustomer($customer, $event, $vars, [
-            'subject' => ($event === \App\Support\NotificationEvent::PAYMENT_ADVANCE
-                ? 'Advance received'
-                : 'Payment received').' — '.$customer->name,
-        ]);
+        if (! ($meta['skip_customer_sms'] ?? false)) {
+            $this->dispatcher->notifyCustomer($customer, $event, $vars, [
+                'subject' => ($event === \App\Support\NotificationEvent::PAYMENT_ADVANCE
+                    ? 'Advance received'
+                    : 'Payment received').' — '.$customer->name,
+            ]);
+        }
 
         $this->ops->onPaymentCompleted($payment);
     }

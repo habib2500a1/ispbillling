@@ -1,1 +1,58 @@
-/** Clients directory — Due clients variant */
+/** Clients directory — Due / Paid billing tabs */
+
+.cl-dir-billing-nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    padding: 0.35rem 0;
+}
+
+.cl-dir-billing-nav__link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.45rem 0.85rem;
+    border-radius: 999px;
+    border: 1px solid var(--cl-border, rgba(148, 163, 184, 0.35));
+    background: var(--cl-card, #fff);
+    color: var(--cl-text, #0f172a);
+    font-size: 0.8125rem;
+    font-weight: 600;
+    text-decoration: none;
+    transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.cl-dir-billing-nav__link:hover {
+    border-color: rgba(37, 99, 235, 0.35);
+    color: #2563eb;
+}
+
+.cl-dir-billing-nav__link--active {
+    background: rgba(37, 99, 235, 0.1);
+    border-color: rgba(37, 99, 235, 0.45);
+    color: #1d4ed8;
+}
+
+.cl-dir-billing-nav__count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 1.35rem;
+    padding: 0.1rem 0.4rem;
+    border-radius: 999px;
+    background: rgba(15, 23, 42, 0.06);
+    font-size: 0.72rem;
+    font-weight: 700;
+}
+
+.cl-dir-billing-nav__link--active .cl-dir-billing-nav__count {
+    background: rgba(37, 99, 235, 0.15);
+}
+
+.cl-dir-col-bill-status {
+    min-width: 4.5rem;
+}
+
+.cl-dir-pay-btn {
+    white-space: nowrap;
+}

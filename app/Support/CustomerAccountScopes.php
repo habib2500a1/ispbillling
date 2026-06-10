@@ -53,6 +53,26 @@ final class CustomerAccountScopes
             });
     }
 
+    /**
+     * Subscribers with no collectible balance (invoices + legacy portal snapshot).
+     */
+    public static function applyPaidUp(Builder $query, ?int $tenantId = null): Builder
+    {
+        $tenantId ??= \App\Support\TenantResolver::currentTenantId();
+
+        if ($tenantId !== null) {
+            $query->where($query->getModel()->getTable().'.tenant_id', $tenantId);
+        }
+
+        $table = $query->getModel()->getTable();
+        $driver = $query->getConnection()->getDriverName();
+        $resolvedSql = CustomerBalanceDue::resolvedBalanceDueExpression($table, $driver);
+
+        return $query
+            ->where('status', '!=', CustomerStatus::TERMINATED)
+            ->whereRaw("({$resolvedSql}) <= 0.009");
+    }
+
     public static function applyLeft(Builder $query): Builder
     {
         return $query->where(function (Builder $q): void {

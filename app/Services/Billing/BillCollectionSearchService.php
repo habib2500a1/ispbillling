@@ -2,17 +2,17 @@
 
 namespace App\Services\Billing;
 
-use App\Filament\Resources\InvoiceResource;
 use App\Filament\Resources\PaymentResource;
 use App\Models\Customer;
-use App\Support\BillingDefaults;
-use App\Support\CustomerBalanceDue;
 use App\Models\Invoice;
 use App\Models\Payment;
 use App\Services\Network\CustomerConnectionStatusService;
+use App\Support\BillingDefaults;
+use App\Support\CustomerBalanceDue;
 use App\Support\CustomerSearchPresenter;
 use App\Support\PaymentCollectionSource;
 use App\Support\PaymentType;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 
 final class BillCollectionSearchService
@@ -22,68 +22,54 @@ final class BillCollectionSearchService
         private readonly CustomerSearchPresenter $searchPresenter,
         private readonly SubscriberBillingStatementService $statements,
     ) {}
+
     /**
      * @return Collection<int, array<string, mixed>>
      */
-    public function search(string $query, int $limit = 25): Collection
+    public function search(string $query, int $limit = 25, string $filter = 'all'): Collection
     {
         $query = trim($query);
+
         if (mb_strlen($query) < 2) {
             return collect();
         }
 
+        $filter = in_array($filter, ['all', 'due', 'paid'], true) ? $filter : 'all';
+        $words = $this->extractSearchWords($query);
         $digits = preg_replace('/\D+/', '', $query) ?? '';
-        $like = '%'.$query.'%';
         $numericId = ctype_digit($query) ? (int) $query : 0;
+        $driver = Customer::query()->getConnection()->getDriverName();
 
         $customers = Customer::query()
             ->with(['area', 'zone', 'subzone', 'package'])
-            ->where(function ($w) use ($query, $like, $digits, $numericId): void {
+            ->where(function (Builder $w) use ($query, $words, $digits, $numericId, $driver): void {
                 if ($numericId > 0) {
                     $w->where('id', $numericId);
                 }
 
-                $w->orWhere('customer_code', 'like', $like)
-                    ->orWhere('name', 'like', $like)
-                    ->orWhere('email', 'like', $like)
-                    ->orWhere('address', 'like', $like)
-                    ->orWhere('mikrotik_secret_name', 'like', $like)
-                    ->orWhere('radius_username', 'like', $like)
-                    ->orWhere('nid_number', 'like', $like);
+                $w->orWhere(function (Builder $match) use ($query, $words, $digits, $driver): void {
+                    if ($words !== []) {
+                        foreach ($words as $word) {
+                            $match->where(function (Builder $wordQuery) use ($word, $driver): void {
+                                $this->applyWordSearch($wordQuery, $word, $driver);
+                            });
+                        }
 
-                if ($digits !== '') {
-                    $w->orWhere('phone', 'like', '%'.$digits.'%')
-                        ->orWhere('customer_code', 'like', '%'.$digits.'%');
-                } else {
-                    $w->orWhere('phone', 'like', $like);
-                }
+                        return;
+                    }
 
-                $w->orWhereHas('invoices', function ($iq) use ($like): void {
-                    $iq->where('invoice_number', 'like', $like);
-                })
-                    ->orWhereHas('area', fn ($aq) => $aq->where('name', 'like', $like))
-                    ->orWhereHas('zone', fn ($zq) => $zq->where('name', 'like', $like))
-                    ->orWhereHas('subzone', fn ($sq) => $sq->where('name', 'like', $like));
+                    $this->applyWordSearch($match, $query, $driver);
+
+                    if ($digits !== '') {
+                        $digitLike = '%'.$digits.'%';
+                        $op = $driver === 'pgsql' ? 'ilike' : 'like';
+                        $match->orWhere('phone', $op, $digitLike)
+                            ->orWhere('customer_code', $op, $digitLike);
+                    }
+                });
             })
-            ->limit($limit * 2)
-            ->get()
-            ->sortBy(function (Customer $customer) use ($query, $numericId): int {
-                if ($numericId > 0 && (int) $customer->id === $numericId) {
-                    return 0;
-                }
-                if (strcasecmp((string) $customer->customer_code, $query) === 0) {
-                    return 1;
-                }
-                if (str_starts_with(strtolower((string) $customer->customer_code), strtolower($query))) {
-                    return 2;
-                }
-                if (str_contains(strtolower((string) $customer->name), strtolower($query))) {
-                    return 3;
-                }
-
-                return 4;
-            })
-            ->take($limit);
+            ->limit($limit * 3)
+            ->get();
 
         if ($customers->isEmpty()) {
             return collect();
@@ -97,7 +83,27 @@ final class BillCollectionSearchService
 
         $rows = $customers
             ->map(fn (Customer $customer): Customer => $customersWithDue->get($customer->id) ?? $customer)
-            ->map(fn (Customer $customer): array => $this->present($customer));
+            ->map(fn (Customer $customer): array => $this->present($customer))
+            ->filter(function (array $row) use ($filter): bool {
+                $due = (float) ($row['balance_due'] ?? 0);
+
+                return match ($filter) {
+                    'due' => $due > 0.009,
+                    'paid' => $due <= 0.009,
+                    default => true,
+                };
+            })
+            ->sortBy(function (array $row) use ($query, $numericId): array {
+                $dueRank = (float) ($row['balance_due'] ?? 0) > 0.009 ? 0 : 1;
+
+                return [
+                    $dueRank,
+                    $this->relevanceRank($row, $query, $numericId),
+                    strtolower((string) ($row['name'] ?? '')),
+                ];
+            })
+            ->take($limit)
+            ->values();
 
         return $this->searchPresenter->annotateDuplicateNames($rows)->values();
     }
@@ -122,6 +128,91 @@ final class BillCollectionSearchService
         $customer->refresh();
 
         return $this->present($customer, detailed: true);
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function extractSearchWords(string $search): array
+    {
+        return array_values(array_filter(
+            str_getcsv(preg_replace('/\s+/', ' ', $search), separator: ' ', escape: '\\'),
+            fn (string $word): bool => mb_strlen(trim($word)) >= 2,
+        ));
+    }
+
+    private function applyWordSearch(Builder $query, string $word, string $driver): void
+    {
+        $like = '%'.$word.'%';
+        $op = $driver === 'pgsql' ? 'ilike' : 'like';
+
+        $query->where(function (Builder $searchQuery) use ($like, $op, $driver): void {
+            if ($driver === 'pgsql') {
+                $searchQuery
+                    ->where('customer_code', $op, $like)
+                    ->orWhere('name', $op, $like)
+                    ->orWhere('email', $op, $like)
+                    ->orWhere('address', $op, $like)
+                    ->orWhere('mikrotik_secret_name', $op, $like)
+                    ->orWhere('radius_username', $op, $like)
+                    ->orWhere('nid_number', $op, $like)
+                    ->orWhere('phone', $op, $like)
+                    ->orWhereHas('invoices', fn (Builder $iq): Builder => $iq->where('invoice_number', $op, $like))
+                    ->orWhereHas('area', fn (Builder $aq): Builder => $aq->where('name', $op, $like))
+                    ->orWhereHas('zone', fn (Builder $zq): Builder => $zq->where('name', $op, $like))
+                    ->orWhereHas('subzone', fn (Builder $sq): Builder => $sq->where('name', $op, $like))
+                    ->orWhereHas('package', fn (Builder $pq): Builder => $pq->where('name', $op, $like));
+
+                return;
+            }
+
+            $searchQuery
+                ->whereRaw('LOWER(customer_code) LIKE LOWER(?)', [$like])
+                ->orWhereRaw('LOWER(name) LIKE LOWER(?)', [$like])
+                ->orWhereRaw('LOWER(email) LIKE LOWER(?)', [$like])
+                ->orWhereRaw('LOWER(address) LIKE LOWER(?)', [$like])
+                ->orWhereRaw('LOWER(mikrotik_secret_name) LIKE LOWER(?)', [$like])
+                ->orWhereRaw('LOWER(radius_username) LIKE LOWER(?)', [$like])
+                ->orWhereRaw('LOWER(nid_number) LIKE LOWER(?)', [$like])
+                ->orWhereRaw('LOWER(phone) LIKE LOWER(?)', [$like])
+                ->orWhereHas('invoices', fn (Builder $iq): Builder => $iq->whereRaw('LOWER(invoice_number) LIKE LOWER(?)', [$like]))
+                ->orWhereHas('area', fn (Builder $aq): Builder => $aq->whereRaw('LOWER(name) LIKE LOWER(?)', [$like]))
+                ->orWhereHas('zone', fn (Builder $zq): Builder => $zq->whereRaw('LOWER(name) LIKE LOWER(?)', [$like]))
+                ->orWhereHas('subzone', fn (Builder $sq): Builder => $sq->whereRaw('LOWER(name) LIKE LOWER(?)', [$like]))
+                ->orWhereHas('package', fn (Builder $pq): Builder => $pq->whereRaw('LOWER(name) LIKE LOWER(?)', [$like]));
+        });
+    }
+
+    /**
+     * @param  array<string, mixed>  $row
+     */
+    private function relevanceRank(array $row, string $query, int $numericId): int
+    {
+        if ($numericId > 0 && (int) ($row['id'] ?? 0) === $numericId) {
+            return 0;
+        }
+
+        $code = (string) ($row['customer_code'] ?? '');
+        $name = strtolower((string) ($row['name'] ?? ''));
+        $needle = strtolower($query);
+
+        if (strcasecmp($code, $query) === 0) {
+            return 1;
+        }
+
+        if (str_starts_with(strtolower($code), $needle)) {
+            return 2;
+        }
+
+        if (str_starts_with($name, $needle)) {
+            return 3;
+        }
+
+        if (str_contains($name, $needle)) {
+            return 4;
+        }
+
+        return 5;
     }
 
     /**
