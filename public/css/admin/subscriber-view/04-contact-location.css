@@ -971,31 +971,51 @@ body.isp-cv-map-modal-open {
 }
 
 @media (max-width: 640px) {
+    .isp-subscriber-record-page .isp-cv-card--location,
     .isp-sub-view-page .sub-pro .isp-cv-card--location {
         padding: 0.95rem;
     }
 
+    .isp-subscriber-record-page .isp-cv-location__head,
     .isp-sub-view-page .sub-pro .isp-cv-location__head {
         gap: 0.65rem;
     }
 
+    .isp-subscriber-record-page .isp-cv-location__head-actions,
     .isp-sub-view-page .sub-pro .isp-cv-location__head-actions {
+        display: grid !important;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.45rem;
         width: 100%;
-        justify-content: flex-start;
-        margin: 0 -0.15rem;
-        padding: 0 0.15rem 0.1rem;
+        overflow: visible;
+        margin: 0;
+        padding: 0;
     }
 
+    .isp-subscriber-record-page .isp-cv-location__action,
+    .isp-sub-view-page .sub-pro .isp-cv-location__action {
+        width: 100%;
+        min-width: 0;
+        white-space: normal;
+        text-align: center;
+        padding: 0.5rem 0.55rem;
+        font-size: 0.7rem;
+    }
+
+    .isp-subscriber-record-page .isp-cv-location__map,
     .isp-sub-view-page .sub-pro .isp-cv-location__map {
         min-height: 240px;
         height: clamp(240px, 56vw, 320px);
     }
 
+    .isp-subscriber-record-page .isp-cv-location__empty-actions,
     .isp-sub-view-page .sub-pro .isp-cv-location__empty-actions {
-        flex-direction: column;
-        align-items: stretch;
+        display: grid !important;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.45rem;
     }
 
+    .isp-subscriber-record-page .isp-cv-location__empty-actions .isp-cv-location__action,
     .isp-sub-view-page .sub-pro .isp-cv-location__empty-actions .isp-cv-location__action {
         width: 100%;
     }

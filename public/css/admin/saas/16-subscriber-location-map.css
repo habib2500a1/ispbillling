@@ -1,0 +1,237 @@
+/**
+ * Subscriber 360 — live location map (always via admin-saas bundle).
+ * @module admin/saas/16-subscriber-location-map.css
+ */
+
+.isp-subscriber-record-page .isp-cv-card--location,
+.isp-sub-view-page .isp-cv-card--location {
+    margin-top: 0.85rem;
+    overflow: hidden;
+}
+
+.isp-subscriber-record-page .isp-cv-card--location .isp-cv-card__title,
+.isp-sub-view-page .sub-pro .isp-cv-card--location .isp-cv-card__title {
+    text-transform: none;
+    letter-spacing: -0.01em;
+    font-size: 0.98rem;
+    color: var(--olt-text, var(--isp-text, #0f172a));
+}
+
+.isp-subscriber-record-page .isp-cv-location__head,
+.isp-sub-view-page .isp-cv-location__head {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem;
+}
+
+.isp-subscriber-record-page .isp-cv-location__head-main,
+.isp-sub-view-page .isp-cv-location__head-main {
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    min-width: 0;
+}
+
+.isp-subscriber-record-page .isp-cv-location__badge,
+.isp-sub-view-page .isp-cv-location__badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.35rem;
+    height: 2.35rem;
+    border-radius: 0.85rem;
+    color: #6366f1;
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.16), rgba(124, 58, 237, 0.12));
+    border: 1px solid rgba(99, 102, 241, 0.22);
+    flex: 0 0 auto;
+}
+
+.dark .isp-subscriber-record-page .isp-cv-location__badge,
+.dark .isp-sub-view-page .isp-cv-location__badge,
+[data-theme='dark'] .isp-subscriber-record-page .isp-cv-location__badge,
+[data-theme='dark'] .isp-sub-view-page .isp-cv-location__badge {
+    color: #c4b5fd;
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.22), rgba(124, 58, 237, 0.16));
+    border-color: rgba(129, 140, 248, 0.28);
+}
+
+.isp-subscriber-record-page .isp-cv-location__head-copy,
+.isp-sub-view-page .isp-cv-location__head-copy {
+    min-width: 0;
+}
+
+.isp-subscriber-record-page .isp-cv-location__subtitle,
+.isp-sub-view-page .isp-cv-location__subtitle {
+    margin: 0.12rem 0 0;
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--olt-muted, #64748b);
+}
+
+.isp-subscriber-record-page .isp-cv-location__head-actions,
+.isp-sub-view-page .isp-cv-location__head-actions {
+    display: flex !important;
+    flex-flow: row nowrap !important;
+    align-items: center !important;
+    gap: 0.45rem;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    padding-bottom: 0.1rem;
+}
+
+.isp-subscriber-record-page .isp-cv-location__head-actions::-webkit-scrollbar,
+.isp-sub-view-page .isp-cv-location__head-actions::-webkit-scrollbar {
+    display: none;
+}
+
+.isp-subscriber-record-page .isp-cv-location__action,
+.isp-sub-view-page .isp-cv-location__action,
+.isp-subscriber-record-page button.isp-cv-location__action,
+.isp-sub-view-page button.isp-cv-location__action {
+    display: inline-flex !important;
+    flex-direction: row !important;
+    flex: 0 0 auto;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 0.35rem !important;
+    min-height: 2.35rem;
+    padding: 0.45rem 0.85rem;
+    border-radius: 999px;
+    border: 1px solid rgba(148, 163, 184, 0.35);
+    background: rgba(255, 255, 255, 0.92);
+    color: var(--olt-text, #0f172a);
+    font-size: 0.74rem;
+    font-weight: 700;
+    line-height: 1.2;
+    text-decoration: none;
+    white-space: nowrap;
+    cursor: pointer;
+    appearance: none;
+    font-family: inherit;
+}
+
+.isp-subscriber-record-page .isp-cv-location__action svg,
+.isp-sub-view-page .isp-cv-location__action svg {
+    display: block !important;
+    width: 1rem !important;
+    height: 1rem !important;
+    flex: 0 0 auto !important;
+}
+
+.isp-subscriber-record-page .isp-cv-location__action span,
+.isp-sub-view-page .isp-cv-location__action span {
+    display: inline !important;
+}
+
+.dark .isp-subscriber-record-page .isp-cv-location__action,
+.dark .isp-sub-view-page .isp-cv-location__action,
+[data-theme='dark'] .isp-subscriber-record-page .isp-cv-location__action,
+[data-theme='dark'] .isp-sub-view-page .isp-cv-location__action {
+    background: rgba(30, 41, 59, 0.92);
+    color: #e2e8f0;
+    border-color: rgba(100, 116, 139, 0.45);
+}
+
+.isp-subscriber-record-page .isp-cv-location__action--primary,
+.isp-sub-view-page .isp-cv-location__action--primary {
+    color: #fff !important;
+    border-color: rgba(99, 102, 241, 0.45);
+    background: linear-gradient(135deg, #6366f1, #7c3aed);
+}
+
+.isp-subscriber-record-page .isp-cv-location__address-bar,
+.isp-sub-view-page .isp-cv-location__address-bar {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: flex-start !important;
+    gap: 0.55rem;
+    margin: 0 0 0.65rem;
+    padding: 0.7rem 0.85rem;
+    border-radius: 14px;
+    border: 1px solid rgba(148, 163, 184, 0.22);
+    background: rgba(248, 250, 252, 0.82);
+}
+
+.dark .isp-subscriber-record-page .isp-cv-location__address-bar,
+.dark .isp-sub-view-page .isp-cv-location__address-bar,
+[data-theme='dark'] .isp-subscriber-record-page .isp-cv-location__address-bar,
+[data-theme='dark'] .isp-sub-view-page .isp-cv-location__address-bar {
+    background: rgba(15, 23, 42, 0.55);
+    border-color: rgba(100, 116, 139, 0.28);
+}
+
+.isp-subscriber-record-page .isp-cv-location__address-bar svg,
+.isp-sub-view-page .isp-cv-location__address-bar svg {
+    margin-top: 0.15rem;
+    color: #6366f1;
+    flex: 0 0 auto;
+}
+
+.isp-subscriber-record-page .isp-cv-location__address,
+.isp-sub-view-page .isp-cv-location__address {
+    margin: 0;
+    font-size: 0.88rem;
+    line-height: 1.45;
+    color: var(--olt-text, #0f172a);
+}
+
+.isp-subscriber-record-page .isp-cv-location__coords,
+.isp-sub-view-page .isp-cv-location__coords {
+    display: inline-flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    gap: 0.35rem;
+    margin: 0 0 0.65rem;
+    padding: 0.35rem 0.65rem;
+    border-radius: 999px;
+    background: rgba(99, 102, 241, 0.08);
+    border: 1px solid rgba(99, 102, 241, 0.16);
+}
+
+.isp-subscriber-record-page .isp-cv-location__map,
+.isp-sub-view-page .isp-cv-location__map {
+    width: 100%;
+    min-height: 220px;
+    height: clamp(220px, 38vw, 320px);
+    border-radius: 14px;
+    border: 1px solid rgba(148, 163, 184, 0.35);
+    overflow: hidden;
+    background: #e2e8f0;
+    z-index: 1;
+}
+
+@media (max-width: 640px) {
+    .isp-subscriber-record-page .isp-cv-card--location,
+    .isp-sub-view-page .isp-cv-card--location {
+        padding: 0.95rem;
+    }
+
+    .isp-subscriber-record-page .isp-cv-location__head-actions,
+    .isp-sub-view-page .isp-cv-location__head-actions {
+        display: grid !important;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.45rem;
+        overflow: visible;
+        width: 100%;
+        margin: 0;
+        padding: 0;
+    }
+
+    .isp-subscriber-record-page .isp-cv-location__action,
+    .isp-sub-view-page .isp-cv-location__action {
+        width: 100%;
+        min-width: 0;
+        white-space: normal;
+        text-align: center;
+        padding: 0.5rem 0.55rem;
+        font-size: 0.7rem;
+    }
+
+    .isp-subscriber-record-page .isp-cv-location__map,
+    .isp-sub-view-page .isp-cv-location__map {
+        min-height: 240px;
+        height: clamp(240px, 56vw, 320px);
+    }
+}

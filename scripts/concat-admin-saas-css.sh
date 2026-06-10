@@ -18,6 +18,8 @@ MODULES=(
   12-dashboard-home
   13-dashboard-insights
   14-light-mode-global
+  15-dashboard-v2-zones
+  16-subscriber-location-map
 )
 
 {
