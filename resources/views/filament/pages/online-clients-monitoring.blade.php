@@ -52,11 +52,8 @@
         <div
             class="isp-online-clients-stats oc-pro-stats"
             wire:key="online-stats-{{ $stats['online'] }}-{{ $stats['active_sessions'] }}"
-            @if ($pollSeconds > 0)
+            @if ($pollSeconds > 0 && blank($this->tableSearch))
                 wire:poll.{{ $pollSeconds }}s="refreshLiveData"
-            @endif
-            @if ($livePollSeconds > 0)
-                wire:poll.{{ $livePollSeconds }}s="$refresh"
             @endif
         >
             <div class="isp-online-clients-stat isp-online-clients-stat--blue">
@@ -91,14 +88,9 @@
             </div>
         @endif
 
-        @if ($pollSeconds > 0 || $livePollSeconds > 0)
+        @if ($pollSeconds > 0 && blank($this->tableSearch))
             <p class="text-xs text-gray-500 dark:text-gray-400">
-                @if ($pollSeconds > 0)
-                    Session sync every {{ $pollSeconds }}s.
-                @endif
-                @if ($livePollSeconds > 0)
-                    Live RouterOS check every {{ $livePollSeconds }}s (set <code>BANDWIDTH_LIVE_ONLINE_CHECK=true</code>).
-                @endif
+                Session sync every {{ $pollSeconds }}s.
                 Use filter <strong>Online only</strong> to hide offline users.
             </p>
         @endif

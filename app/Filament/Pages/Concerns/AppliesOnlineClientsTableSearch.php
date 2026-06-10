@@ -9,12 +9,8 @@ use Illuminate\Database\Eloquent\Builder;
  */
 trait AppliesOnlineClientsTableSearch
 {
-    public function updatedTableSearch(): void
+    protected function syncOnlineClientsTableSearchState(): void
     {
-        if ($this->getTable()->persistsSearchInSession()) {
-            session()->put($this->getTableSearchSessionKey(), $this->tableSearch);
-        }
-
         if ($this->getTable()->shouldDeselectAllRecordsWhenFiltered()) {
             $this->deselectAllTableRecords();
         }

@@ -33,7 +33,6 @@ class OnlineClientsMonitoring extends Page implements HasForms, HasTable
     use InteractsWithForms;
     use InteractsWithTable {
         AppliesOnlineClientsTableSearch::applySearchToTableQuery insteadof InteractsWithTable;
-        AppliesOnlineClientsTableSearch::updatedTableSearch insteadof InteractsWithTable;
         updatedTableFilters as protected baseUpdatedTableFilters;
     }
 
@@ -71,10 +70,31 @@ class OnlineClientsMonitoring extends Page implements HasForms, HasTable
         // router probes are stale while real PPP sessions are still active.
     }
 
+    public function updatedTableSearch(): void
+    {
+        $this->syncOnlineClientsTableSearchState();
+        $this->redirect(static::getUrl($this->onlineClientsTableQueryParams()));
+    }
+
     public function updatedTableFilters(): void
     {
         $this->baseUpdatedTableFilters();
         $this->tableResultsEpoch++;
+        $this->redirect(static::getUrl($this->onlineClientsTableQueryParams()));
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    protected function onlineClientsTableQueryParams(): array
+    {
+        $params = [];
+
+        if (filled($this->tableSearch)) {
+            $params['tableSearch'] = $this->tableSearch;
+        }
+
+        return $params;
     }
 
     public function refreshLiveData(): void
@@ -204,7 +224,7 @@ class OnlineClientsMonitoring extends Page implements HasForms, HasTable
             )
             ->defaultSort('is_ppp_online', 'desc')
             ->searchable()
-            ->searchDebounce('250ms')
+            ->searchDebounce('300ms')
             ->searchPlaceholder('Search code, name, phone, PPP user, IP…')
             ->columns([
                 Tables\Columns\IconColumn::make('live_session')
