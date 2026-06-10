@@ -21,6 +21,7 @@ trait AppliesOnlineClientsTableSearch
 
         $this->resetPage();
         $this->flushCachedTableRecords();
+        $this->tableResultsEpoch++;
     }
 
     protected function applySearchToTableQuery(Builder $query): Builder

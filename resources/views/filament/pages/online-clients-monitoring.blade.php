@@ -103,7 +103,10 @@
             </p>
         @endif
 
-        <div class="isp-online-clients-table-wrap oc-pro-table">
+        <div
+            class="isp-online-clients-table-wrap oc-pro-table"
+            wire:key="oc-clients-table-{{ $this->tableResultsEpoch }}-{{ md5(($this->tableSearch ?? '').json_encode($this->tableFilters ?? [])) }}"
+        >
             {{ $this->table }}
         </div>
     </div>
