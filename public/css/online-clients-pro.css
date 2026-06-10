@@ -80,6 +80,86 @@
     box-shadow: var(--oc-shadow);
 }
 
+/* GET search (full page reload — avoids Livewire table morph bugs) */
+.oc-pro-search-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    padding: 0.65rem 0.85rem;
+    background: var(--oc-card);
+    border: 1px solid var(--oc-border);
+    border-radius: var(--oc-radius);
+    box-shadow: var(--oc-shadow);
+}
+
+.oc-pro-search-field {
+    position: relative;
+    flex: 1 1 16rem;
+    min-width: min(100%, 16rem);
+}
+
+.oc-pro-search-field__icon {
+    position: absolute;
+    left: 0.75rem;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 1rem;
+    height: 1rem;
+    color: var(--oc-muted);
+    pointer-events: none;
+}
+
+.oc-pro-search-field input {
+    width: 100%;
+    padding: 0.55rem 0.85rem 0.55rem 2.35rem;
+    border-radius: 0.5rem;
+    border: 1px solid var(--oc-border);
+    background: var(--oc-card-2);
+    color: var(--oc-text);
+    font-size: 0.875rem;
+}
+
+.oc-pro-search-field input:focus {
+    outline: 2px solid rgba(37, 99, 235, 0.35);
+    outline-offset: 1px;
+}
+
+.oc-pro-search-clear {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--oc-link);
+    text-decoration: none;
+    white-space: nowrap;
+}
+
+.oc-pro-search-clear:hover {
+    text-decoration: underline;
+}
+
+.oc-pro-search-submit {
+    padding: 0.55rem 1rem;
+    border-radius: 0.5rem;
+    border: 1px solid rgba(37, 99, 235, 0.35);
+    background: #2563eb;
+    color: #fff;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+.oc-pro-search-submit:hover {
+    background: #1d4ed8;
+}
+
+.oc-pro-search-active {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--oc-link);
+    white-space: nowrap;
+}
+
 /* Table shell */
 .oc-pro-table.isp-online-clients-table-wrap {
     background: var(--oc-card);

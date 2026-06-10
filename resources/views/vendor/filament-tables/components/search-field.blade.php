@@ -38,8 +38,7 @@
                     'wire:key' => $this->getId() . '.table.' . $wireModel . '.field.input',
                     $wireModelAttribute => $wireModel,
                     'x-bind:id' => '$id(\'input\')',
-                    'x-on:keydown.enter.prevent' => '$wire.set(\'tableSearch\', $el.value).then(() => $wire.call(\'updatedTableSearch\'))',
-                    'x-on:search' => '$wire.set(\'tableSearch\', $el.value).then(() => $wire.call(\'updatedTableSearch\'))',
+                    'x-on:keyup' => 'if ($event.key === \'Enter\') { $wire.$refresh() }',
                 ])
             "
         />

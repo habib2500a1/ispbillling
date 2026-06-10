@@ -62,6 +62,14 @@ class OnlineClientsMonitoring extends Page implements HasForms, HasTable
     public function mount(): void
     {
         $this->mountInteractsWithTable();
+
+        $search = trim((string) request()->query('tableSearch', ''));
+
+        if ($search !== '') {
+            $this->tableSearch = $search;
+            $this->tableResultsEpoch++;
+        }
+
         $this->tableFilters = [
             'online_status' => ['value' => 'all'],
         ];
@@ -70,31 +78,15 @@ class OnlineClientsMonitoring extends Page implements HasForms, HasTable
         // router probes are stale while real PPP sessions are still active.
     }
 
-    public function updatedTableSearch(): void
+    public function getActiveTableSearch(): string
     {
-        $this->syncOnlineClientsTableSearchState();
-        $this->redirect(static::getUrl($this->onlineClientsTableQueryParams()));
+        return trim((string) request()->query('tableSearch', $this->tableSearch ?? ''));
     }
 
     public function updatedTableFilters(): void
     {
         $this->baseUpdatedTableFilters();
         $this->tableResultsEpoch++;
-        $this->redirect(static::getUrl($this->onlineClientsTableQueryParams()));
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    protected function onlineClientsTableQueryParams(): array
-    {
-        $params = [];
-
-        if (filled($this->tableSearch)) {
-            $params['tableSearch'] = $this->tableSearch;
-        }
-
-        return $params;
     }
 
     public function refreshLiveData(): void
@@ -223,9 +215,8 @@ class OnlineClientsMonitoring extends Page implements HasForms, HasTable
                     ])
             )
             ->defaultSort('is_ppp_online', 'desc')
-            ->searchable()
-            ->searchDebounce('300ms')
-            ->searchPlaceholder('Search code, name, phone, PPP user, IP…')
+            ->searchable(false)
+            ->persistSearchInSession(false)
             ->columns([
                 Tables\Columns\IconColumn::make('live_session')
                     ->label('')
