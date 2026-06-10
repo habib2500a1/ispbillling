@@ -119,7 +119,7 @@
                 ] as $key => $label)
                     <button type="button" wire:click="$set('kindFilter', '{{ $key }}')" @class([
                         'cdr-source-btn',
-                        'cdr-source-btn--active' => $kindFilter === $key,
+                        'cdr-source-btn--active' => $this->kindFilter === $key,
                     ])>{{ $label }}</button>
                 @endforeach
             </div>
