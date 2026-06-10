@@ -30,11 +30,20 @@
 
         @php
             $collectionDeskUrl = \App\Filament\Pages\BillCollectionDesk::getUrl();
-            $collectionSearchQuery = static function (string $term, string $filter = 'all') use ($collectionDeskUrl): string {
-                $params = array_filter([
-                    'q' => trim($term) !== '' ? trim($term) : null,
-                    'filter' => $filter !== 'all' ? $filter : null,
-                ]);
+            $collectionSearchQuery = static function (string $term, string $filter = 'all', ?int $customerId = null) use ($collectionDeskUrl): string {
+                $params = [];
+
+                if (trim($term) !== '') {
+                    $params['q'] = trim($term);
+                }
+
+                if ($filter !== 'all') {
+                    $params['filter'] = $filter;
+                }
+
+                if ($customerId !== null && $customerId > 0) {
+                    $params['customer'] = $customerId;
+                }
 
                 return $params === []
                     ? $collectionDeskUrl
@@ -150,10 +159,10 @@
                             };
                         @endphp
                         <li>
-                            <button
-                                type="button"
-                                wire:click="selectCustomer({{ $row['id'] }})"
-                                class="isp-collection-result-card w-full text-left {{ (int) $selectedCustomerId === (int) $row['id'] ? 'ring-2 ring-primary-500 dark:ring-primary-400' : '' }}"
+                            <a
+                                href="{{ $collectionSearchQuery($search, $searchFilter, (int) $row['id']) }}#isp-collection-panel"
+                                data-navigate="false"
+                                class="isp-collection-result-card block w-full text-left no-underline {{ (int) $selectedCustomerId === (int) $row['id'] ? 'ring-2 ring-primary-500 dark:ring-primary-400' : '' }}"
                             >
                                 <div class="flex flex-wrap items-start justify-between gap-2">
                                     <div class="min-w-0 flex-1">
@@ -195,7 +204,7 @@
                                         @endif
                                     </div>
                                 </div>
-                            </button>
+                            </a>
                         </li>
                     @endforeach
                 </ul>
@@ -210,7 +219,7 @@
                 $discountPreview = $this->previewCollectionDiscountBdt();
                 $balanceAfter = $this->balanceDueAfterCollection();
             @endphp
-            <div class="isp-collection-panel">
+            <div class="isp-collection-panel" id="isp-collection-panel">
                 <nav class="isp-collection-tabs" aria-label="Subscriber tabs">
                     <button type="button" wire:click="setTab('collect')" @class(['isp-collection-tabs__btn', 'isp-collection-tabs__btn--active' => $activeTab === 'collect'])>Collect payment</button>
                     <button type="button" wire:click="setTab('bills')" @class(['isp-collection-tabs__btn', 'isp-collection-tabs__btn--active' => $activeTab === 'bills'])>Bills ({{ count($selectedCustomer['bill_history'] ?? []) }})</button>
@@ -229,7 +238,7 @@
                                     · <span @class(['font-semibold', 'text-emerald-600' => ($conn['online'] ?? false), 'text-gray-500' => ! ($conn['online'] ?? false)])>{{ ($conn['online'] ?? false) ? 'Online' : 'Offline' }}</span>
                                 </p>
                             </div>
-                            <button type="button" wire:click="clearSelection" class="isp-collection-sheet__change">Change subscriber</button>
+                            <a href="{{ $collectionSearchQuery($search, $searchFilter) }}" data-navigate="false" class="isp-collection-sheet__change">Change subscriber</a>
                         </header>
 
                         <div class="isp-collection-mode-nav" role="group" aria-label="Collection mode">
@@ -491,7 +500,7 @@
                                 </button>
                             </div>
                             <div class="isp-collection-sheet__actions">
-                                <button type="button" wire:click="clearSelection" class="isp-collection-sheet__cancel">Cancel</button>
+                                <a href="{{ $collectionSearchQuery($search, $searchFilter) }}" data-navigate="false" class="isp-collection-sheet__cancel">Cancel</a>
                                 <button type="submit" class="isp-collection-sheet__submit" wire:loading.attr="disabled" wire:target="collectPayment">
                                     <span wire:loading.remove wire:target="collectPayment">{{ $this->isRechargeMode() ? 'Submit recharge' : 'Submit collection' }}</span>
                                     <span wire:loading wire:target="collectPayment">Saving…</span>

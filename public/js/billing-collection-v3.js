@@ -189,4 +189,26 @@
     }
 
     document.addEventListener('livewire:navigated', bindCollectionSearch);
+
+    function scrollToCollectionPanel() {
+        if (!window.location.search.includes('customer=')) {
+            return;
+        }
+
+        const panel = document.getElementById('isp-collection-panel');
+
+        if (panel) {
+            window.requestAnimationFrame(() => {
+                panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            });
+        }
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', scrollToCollectionPanel);
+    } else {
+        scrollToCollectionPanel();
+    }
+
+    document.addEventListener('livewire:navigated', scrollToCollectionPanel);
 })();

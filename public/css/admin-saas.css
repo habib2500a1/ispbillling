@@ -4339,6 +4339,8 @@ a.isp-lifecycle-card:hover {
     border: 1px solid rgba(148, 163, 184, 0.18);
     box-shadow: var(--isp-shadow);
     transition: border-color 0.15s, transform 0.12s;
+    color: inherit;
+    cursor: pointer;
 }
 
 .isp-collection-result-card:hover {
@@ -4586,6 +4588,8 @@ a.isp-lifecycle-card:hover {
 }
 
 .isp-collection-sheet__change {
+    display: inline-flex;
+    align-items: center;
     border: 1px solid rgba(148, 163, 184, 0.35);
     border-radius: 999px;
     padding: 0.35rem 0.75rem;
@@ -4594,6 +4598,7 @@ a.isp-lifecycle-card:hover {
     color: #334155;
     background: #fff;
     cursor: pointer;
+    text-decoration: none;
 }
 
 .isp-collection-sheet__grid {
@@ -4824,6 +4829,9 @@ a.isp-lifecycle-card:hover {
 }
 
 .isp-collection-sheet__cancel {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     border-radius: 0.55rem;
     border: 1px solid #f87171;
     background: #fff;
@@ -4832,6 +4840,7 @@ a.isp-lifecycle-card:hover {
     font-size: 0.875rem;
     font-weight: 700;
     cursor: pointer;
+    text-decoration: none;
 }
 
 .isp-collection-sheet__submit {
