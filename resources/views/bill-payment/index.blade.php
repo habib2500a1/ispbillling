@@ -69,6 +69,6 @@
             </p>
         </div>
 
-        <x-mobile-app-promo variant="compact" class="mt-6" />
+        <x-mobile-app-promo variant="compact" class="bp-mt-6" />
     </div>
 @endsection
