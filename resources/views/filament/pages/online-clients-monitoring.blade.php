@@ -15,15 +15,7 @@
 {!! \App\Support\NetworkStyles::navigatedScript() !!}
 
 <x-filament-panels::page class="isp-online-clients-page oc-pro">
-    <div
-        class="net-noc-pro oc-pro-layout space-y-4"
-        @if ($pollSeconds > 0)
-            wire:poll.{{ $pollSeconds }}s="refreshLiveData"
-        @endif
-        @if ($livePollSeconds > 0)
-            wire:poll.{{ $livePollSeconds }}s="$refresh"
-        @endif
-    >
+    <div class="net-noc-pro oc-pro-layout space-y-4">
         <section class="net-mon-hero">
             <div>
                 <p style="margin:0;font-size:0.68rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;opacity:0.9;">Network operations</p>
@@ -57,7 +49,16 @@
             @endif
         </section>
 
-        <div class="isp-online-clients-stats oc-pro-stats" wire:key="online-stats-{{ $stats['online'] }}-{{ $stats['active_sessions'] }}">
+        <div
+            class="isp-online-clients-stats oc-pro-stats"
+            wire:key="online-stats-{{ $stats['online'] }}-{{ $stats['active_sessions'] }}"
+            @if ($pollSeconds > 0)
+                wire:poll.{{ $pollSeconds }}s="refreshLiveData"
+            @endif
+            @if ($livePollSeconds > 0)
+                wire:poll.{{ $livePollSeconds }}s="$refresh"
+            @endif
+        >
             <div class="isp-online-clients-stat isp-online-clients-stat--blue">
                 <span class="isp-online-clients-stat__label">PPP subscribers</span>
                 <strong>{{ number_format($stats['total']) }}</strong>
