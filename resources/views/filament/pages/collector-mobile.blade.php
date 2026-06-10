@@ -17,6 +17,52 @@
             </p>
         </div>
 
+        @if ($lastPaymentSuccess)
+            <div class="rounded-xl border-2 border-emerald-500 bg-emerald-50 p-4 dark:border-emerald-600 dark:bg-emerald-950/40">
+                <div class="flex items-start gap-3">
+                    <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-600 text-lg font-bold text-white" aria-hidden="true">✓</span>
+                    <div class="min-w-0 flex-1">
+                        <p class="text-lg font-bold text-emerald-900 dark:text-emerald-100">
+                            {{ ($lastPaymentSuccess['is_advance'] ?? false) ? 'Recharge done' : 'Payment done' }}
+                        </p>
+                        <p class="mt-0.5 text-sm text-emerald-800 dark:text-emerald-200">
+                            <strong>{{ $lastPaymentSuccess['customer_name'] }}</strong>
+                            · #{{ $lastPaymentSuccess['customer_code'] }}
+                        </p>
+                        <p class="mt-2 text-2xl font-bold tabular-nums text-emerald-700 dark:text-emerald-300">
+                            {{ number_format((float) $lastPaymentSuccess['amount'], 2) }} <span class="text-sm font-semibold">BDT</span>
+                        </p>
+                        <p class="mt-1 text-xs text-emerald-800/80 dark:text-emerald-200/80">
+                            Receipt <span class="font-mono font-semibold">{{ $lastPaymentSuccess['receipt_number'] }}</span>
+                            @if (! empty($lastPaymentSuccess['invoice_number']))
+                                · Invoice {{ $lastPaymentSuccess['invoice_number'] }}
+                            @endif
+                            · {{ $lastPaymentSuccess['paid_at'] }}
+                        </p>
+                        <p class="mt-1 text-xs font-semibold {{ ($lastPaymentSuccess['remaining_due'] ?? 0) > 0.009 ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-700 dark:text-emerald-300' }}">
+                            Remaining due: {{ number_format((float) ($lastPaymentSuccess['remaining_due'] ?? 0), 2) }} BDT
+                        </p>
+                    </div>
+                </div>
+                <div class="mt-4 flex flex-wrap gap-2">
+                    <a href="{{ $lastPaymentSuccess['receipt_url'] }}" target="_blank" rel="noopener" class="inline-flex rounded-lg bg-emerald-600 px-4 py-2 text-sm font-bold text-white hover:bg-emerald-700">
+                        View receipt
+                    </a>
+                    @if (! empty($lastPaymentSuccess['invoice_url']))
+                        <a href="{{ $lastPaymentSuccess['invoice_url'] }}" class="inline-flex rounded-lg border border-emerald-600 px-4 py-2 text-sm font-bold text-emerald-700 hover:bg-emerald-100 dark:text-emerald-300 dark:hover:bg-emerald-900/30">
+                            View invoice
+                        </a>
+                    @endif
+                    <button type="button" wire:click="collectAnother" class="inline-flex rounded-lg border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-800">
+                        Collect another
+                    </button>
+                    <button type="button" wire:click="$set('panelTab', 'activity')" class="inline-flex rounded-lg border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-800">
+                        Today's activity
+                    </button>
+                </div>
+            </div>
+        @endif
+
         <div class="grid grid-cols-2 gap-2">
             <button type="button" wire:click="$set('panelTab', 'collect')"
                 class="rounded-lg px-3 py-2 text-sm font-semibold {{ $panelTab === 'collect' ? 'bg-teal-600 text-white' : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300' }}">
@@ -66,6 +112,9 @@
                             </p>
                             <p class="text-xs text-gray-400">
                                 {{ $item['collected_at'] }} · {{ $item['receipt'] ?? '—' }} · {{ strtoupper($item['method'] ?? '') }}
+                                @if (! empty($item['receipt_url']))
+                                    · <a href="{{ $item['receipt_url'] }}" target="_blank" rel="noopener" class="font-semibold text-teal-600 hover:underline">Receipt</a>
+                                @endif
                             </p>
                         </li>
                     @empty

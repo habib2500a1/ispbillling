@@ -88,6 +88,10 @@ final class CollectorCollectionReportService
                 'method' => $row->payment_method,
                 'receipt' => $row->payment?->receipt_number
                     ?? $row->inventorySale?->sale_number,
+                'payment_id' => $row->payment?->id,
+                'receipt_url' => $row->payment?->id
+                    ? route('payments.receipt', $row->payment->id)
+                    : null,
                 'status' => $row->status,
             ];
         });

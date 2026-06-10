@@ -7,8 +7,11 @@ use App\Filament\Pages\Concerns\HandlesCollectionDiscountAndNotes;
 use App\Models\Customer;
 use App\Models\Invoice;
 use App\Models\Payment;
+use App\Filament\Resources\InvoiceResource;
 use App\Services\Billing\BillCollectionSearchService;
 use App\Services\Billing\BillingDueRealtimeSync;
+use App\Services\Billing\CollectionPaymentClassifier;
+use App\Support\CustomerBalanceDue;
 use App\Services\Collector\CollectorCollectionReportService;
 use App\Services\Collector\CollectorStaffResolver;
 use App\Services\Collector\CollectorVisitService;
@@ -64,6 +67,9 @@ class CollectorMobile extends Page
     public ?float $longitude = null;
 
     public ?int $accuracyMeters = null;
+
+    /** @var array<string, mixed>|null */
+    public ?array $lastPaymentSuccess = null;
 
     public function mount(): void
     {
@@ -230,25 +236,64 @@ class CollectorMobile extends Page
             $body .= ' · Credited to '.$collector->name;
         }
 
+        $payment = $payment->fresh(['invoice']);
+        $due = BillingDueRealtimeSync::afterPayment($customer, queueNetwork: false);
+        $customer = $customer->fresh() ?? $customer;
+        $isAdvance = CollectionPaymentClassifier::isAdvancePayment($payment);
+
+        $this->lastPaymentSuccess = [
+            'receipt_number' => $payment->receipt_number,
+            'amount' => (float) $payment->amount,
+            'customer_name' => $customer->name,
+            'customer_code' => $customer->customer_code,
+            'receipt_url' => route('payments.receipt', $payment),
+            'invoice_number' => $payment->invoice?->invoice_number,
+            'invoice_url' => $payment->invoice_id
+                ? InvoiceResource::getUrl('edit', ['record' => $payment->invoice_id])
+                : null,
+            'remaining_due' => CustomerBalanceDue::displayAmount($customer),
+            'is_advance' => $isAdvance,
+            'paid_at' => $payment->paid_at?->format('d M Y, h:i A'),
+        ];
+
         Notification::make()
-            ->title('Collected')
+            ->title($isAdvance ? 'Recharge recorded' : 'Payment done')
             ->body($body)
             ->success()
+            ->actions([
+                \Filament\Notifications\Actions\Action::make('receipt')
+                    ->label('View receipt')
+                    ->url(route('payments.receipt', $payment), shouldOpenInNewTab: true),
+            ])
             ->send();
 
-        $due = BillingDueRealtimeSync::afterPayment($customer, queueNetwork: false);
-        $this->selectedCustomer = app(BillCollectionSearchService::class)->find((int) $customer->id);
-        $this->runSearch();
-        $this->resetCollectionDiscountFields();
-
-        if ($due <= 0.009) {
-            $this->amount = '';
-            $this->invoiceId = null;
-        } elseif ($this->selectedCustomer !== null) {
-            $this->amount = (string) round((float) ($this->selectedCustomer['balance_due'] ?? $due), 2);
-        }
+        $this->selectedCustomerId = null;
+        $this->selectedCustomer = null;
+        $this->amount = '';
+        $this->invoiceId = null;
+        $this->notes = '';
+        $this->search = '';
         $this->results = collect();
-        $this->panelTab = 'activity';
+        $this->resetCollectionDiscountFields();
+        $this->panelTab = 'collect';
+    }
+
+    public function clearPaymentSuccess(): void
+    {
+        $this->lastPaymentSuccess = null;
+    }
+
+    public function collectAnother(): void
+    {
+        $this->clearPaymentSuccess();
+        $this->selectedCustomerId = null;
+        $this->selectedCustomer = null;
+        $this->search = '';
+        $this->results = collect();
+        $this->amount = '';
+        $this->invoiceId = null;
+        $this->notes = '';
+        $this->panelTab = 'collect';
     }
 
     /**
