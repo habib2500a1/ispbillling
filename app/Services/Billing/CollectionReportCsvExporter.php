@@ -19,8 +19,9 @@ final class CollectionReportCsvExporter
         ?int $customerId = null,
         ?string $sourceFilter = null,
         ?string $methodFilter = null,
+        ?string $kindFilter = null,
     ): StreamedResponse {
-        $data = $this->report->report($from, $to, $collectorId, $search, null, $customerId, $sourceFilter, $methodFilter);
+        $data = $this->report->report($from, $to, $collectorId, $search, null, $customerId, $sourceFilter, $methodFilter, $kindFilter);
         $filename = 'collection-report-'.$data['from'].'_to_'.$data['to'].'.csv';
 
         return response()->streamDownload(function () use ($data): void {
@@ -65,7 +66,7 @@ final class CollectionReportCsvExporter
                     $row['bill_number'] ?? '',
                     $row['receipt_number'],
                     $row['username'] ?? '',
-                    $row['collection_label'] ?? '',
+                    $row['payment_kind'] ?? ($row['collection_label'] ?? ''),
                     $row['source_label'] ?? '',
                     $row['received_by'] ?? '',
                     $row['approved_by'] ?? '',

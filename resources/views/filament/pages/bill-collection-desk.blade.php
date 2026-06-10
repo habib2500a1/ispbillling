@@ -30,7 +30,12 @@
 
         @php
             $collectionDeskUrl = \App\Filament\Pages\BillCollectionDesk::getUrl();
-            $collectionSearchQuery = static function (string $term, string $filter = 'all', ?int $customerId = null) use ($collectionDeskUrl): string {
+            $collectionSearchQuery = static function (
+                string $term,
+                string $filter = 'all',
+                ?int $customerId = null,
+                ?string $mode = null,
+            ) use ($collectionDeskUrl): string {
                 $params = [];
 
                 if (trim($term) !== '') {
@@ -43,6 +48,10 @@
 
                 if ($customerId !== null && $customerId > 0) {
                     $params['customer'] = $customerId;
+                }
+
+                if ($mode === 'advance') {
+                    $params['mode'] = 'advance';
                 }
 
                 return $params === []
@@ -160,7 +169,7 @@
                         @endphp
                         <li>
                             <a
-                                href="{{ $collectionSearchQuery($search, $searchFilter, (int) $row['id']) }}#isp-collection-panel"
+                                href="{{ $collectionSearchQuery($search, $searchFilter, (int) $row['id'], $hasDue ? null : 'advance') }}#isp-collection-panel"
                                 data-navigate="false"
                                 class="isp-collection-result-card block w-full text-left no-underline {{ (int) $selectedCustomerId === (int) $row['id'] ? 'ring-2 ring-primary-500 dark:ring-primary-400' : '' }}"
                             >
@@ -200,7 +209,9 @@
                                         @if ($row['open_invoices'] > 0)
                                             <p class="text-xs text-gray-500">{{ $row['open_invoices'] }} open bill(s)</p>
                                         @elseif (! $hasDue)
-                                            <p class="text-xs font-semibold text-sky-600 dark:text-sky-400">Tap to recharge</p>
+                                            <span class="isp-collection-result-card__recharge">Recharge</span>
+                                        @else
+                                            <span class="isp-collection-result-card__collect">Collect</span>
                                         @endif
                                     </div>
                                 </div>

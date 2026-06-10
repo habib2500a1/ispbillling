@@ -47,6 +47,9 @@ class CollectionDeskReport extends Page
     /** all | cash | bkash | bank | … */
     public string $methodFilter = 'all';
 
+    /** all | bill | advance */
+    public string $kindFilter = 'all';
+
     public function mount(): void
     {
         $preset = request()->string('preset')->toString();
@@ -165,6 +168,7 @@ class CollectionDeskReport extends Page
             $this->customerId ?: null,
             $this->sourceFilter ?: null,
             $this->methodFilter !== 'all' ? $this->methodFilter : null,
+            $this->kindFilter !== 'all' ? $this->kindFilter : null,
         );
     }
 
@@ -190,6 +194,7 @@ class CollectionDeskReport extends Page
             $this->customerId ?: null,
             $this->sourceFilter ?: null,
             $this->methodFilter !== 'all' ? $this->methodFilter : null,
+            $this->kindFilter !== 'all' ? $this->kindFilter : null,
         );
     }
 }

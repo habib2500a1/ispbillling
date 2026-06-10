@@ -27,6 +27,14 @@
                         <strong>{{ number_format($r['online_total'], 0) }}</strong>
                         bKash / online
                     </span>
+                    <span class="cdr-hero__stat">
+                        <strong>{{ number_format($r['bill_collected'] ?? 0, 0) }}</strong>
+                        Bill collection
+                    </span>
+                    <span class="cdr-hero__stat">
+                        <strong>{{ number_format($r['advance_collected'] ?? 0, 0) }}</strong>
+                        Advance / recharge
+                    </span>
                 </div>
             </div>
             <div class="cdr-hero__actions">
@@ -102,6 +110,19 @@
                     ])>{{ $label }}</button>
                 @endforeach
             </div>
+            <div class="mt-3 flex flex-wrap items-center gap-2 border-t border-gray-200 pt-3 dark:border-gray-700">
+                <span class="text-xs font-bold uppercase text-gray-500">Type:</span>
+                @foreach ([
+                    'all' => 'All',
+                    'bill' => 'Bill payment',
+                    'advance' => 'Advance (recharge)',
+                ] as $key => $label)
+                    <button type="button" wire:click="$set('kindFilter', '{{ $key }}')" @class([
+                        'cdr-source-btn',
+                        'cdr-source-btn--active' => $kindFilter === $key,
+                    ])>{{ $label }}</button>
+                @endforeach
+            </div>
         </section>
 
         <section class="cdr-grid-wrap">
@@ -110,6 +131,7 @@
                     <thead>
                         <tr>
                             <th>Date &amp; time</th>
+                            <th>Type</th>
                             <th>Bill #</th>
                             <th>User name</th>
                             <th>Full name</th>
@@ -133,6 +155,12 @@
                                 <td class="whitespace-nowrap">
                                     <span class="font-semibold">{{ $row['date'] }}</span>
                                     <span class="block text-xs opacity-70">{{ $row['time'] }}</span>
+                                </td>
+                                <td>
+                                    <span @class([
+                                        'cdr-kind',
+                                        'cdr-kind--advance' => $row['is_advance'] ?? false,
+                                    ])>{{ $row['payment_kind'] ?? 'Bill payment' }}</span>
                                 </td>
                                 <td class="font-mono text-xs">{{ $row['bill_number'] }}</td>
                                 <td class="font-mono text-xs">{{ $row['username'] }}</td>
@@ -160,7 +188,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="16" class="py-12 text-center text-gray-500">
+                                <td colspan="17" class="py-12 text-center text-gray-500">
                                     No collections — select <strong>All combined</strong> or widen dates.
                                 </td>
                             </tr>
@@ -169,7 +197,7 @@
                     @if (($r['count'] ?? 0) > 0)
                         <tfoot>
                             <tr>
-                                <td colspan="6" class="text-right">Total</td>
+                                <td colspan="7" class="text-right">Total</td>
                                 <td class="text-right">{{ number_format($r['row_totals']['bill_total'] ?? 0, 0) }}</td>
                                 <td class="text-right">{{ number_format($r['row_totals']['received'] ?? 0, 0) }}</td>
                                 <td class="text-right">0</td>

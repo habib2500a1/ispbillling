@@ -4348,6 +4348,26 @@ a.isp-lifecycle-card:hover {
     transform: translateY(-1px);
 }
 
+.isp-collection-result-card__recharge,
+.isp-collection-result-card__collect {
+    display: inline-flex;
+    margin-top: 0.35rem;
+    border-radius: 999px;
+    padding: 0.2rem 0.65rem;
+    font-size: 0.72rem;
+    font-weight: 700;
+}
+
+.isp-collection-result-card__recharge {
+    background: rgba(14, 165, 233, 0.15);
+    color: #0369a1;
+}
+
+.isp-collection-result-card__collect {
+    background: rgba(5, 150, 105, 0.14);
+    color: #047857;
+}
+
 .dark .isp-collection-result-card,
 [data-theme='dark'] .isp-collection-result-card {
     background: rgb(17 24 39);

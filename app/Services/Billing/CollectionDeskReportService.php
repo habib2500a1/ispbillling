@@ -10,6 +10,7 @@ use App\Services\Mobile\StaffBillingKpiResolver;
 use App\Support\PaymentCollectionSource;
 use App\Support\PaymentGateway;
 use App\Support\PaymentType;
+use App\Services\Billing\CollectionPaymentClassifier;
 use App\Support\TenantResolver;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
@@ -45,6 +46,7 @@ final class CollectionDeskReportService
         ?int $customerId = null,
         ?string $sourceFilter = null,
         ?string $methodFilter = null,
+        ?string $kindFilter = null,
     ): array {
         $tenantId = $tenantId ?? TenantResolver::requiredTenantId();
         $from = ($from ?? now())->copy()->startOfDay();
@@ -88,6 +90,19 @@ final class CollectionDeskReportService
             'legacy_portal' => $ispPayments->values(),
             default => $payments,
         };
+
+        $kindFilter = $kindFilter ?? 'all';
+        if (! in_array($kindFilter, ['all', 'bill', 'advance'], true)) {
+            $kindFilter = 'all';
+        }
+
+        if ($kindFilter !== 'all') {
+            $payments = $payments->filter(function (Payment $payment) use ($kindFilter): bool {
+                $isAdvance = CollectionPaymentClassifier::isAdvancePayment($payment);
+
+                return $kindFilter === 'advance' ? $isAdvance : ! $isAdvance;
+            })->values();
+        }
 
         if ($methodFilter !== null && $methodFilter !== '' && $methodFilter !== 'all') {
             $payments = $payments->filter(function (Payment $payment) use ($methodFilter): bool {
@@ -148,8 +163,13 @@ final class CollectionDeskReportService
         $sumReceived = 0.0;
         $sumDiscount = 0.0;
         $sumBalance = 0.0;
+        $billTotalAmount = 0.0;
+        $advanceTotalAmount = 0.0;
+        $billCount = 0;
+        $advanceCount = 0;
 
         foreach ($payments as $payment) {
+            $isAdvance = CollectionPaymentClassifier::isAdvancePayment($payment);
             $method = (string) ($payment->method ?? PaymentGateway::OTHER);
             $amount = (float) $payment->amount;
             $visit = $visitByPayment->get($payment->id);
@@ -183,6 +203,14 @@ final class CollectionDeskReportService
             $sumReceived += $amount;
             $sumDiscount += $discount;
             $sumBalance += $balanceDue;
+
+            if ($isAdvance) {
+                $advanceTotalAmount += $amount;
+                $advanceCount++;
+            } else {
+                $billTotalAmount += $amount;
+                $billCount++;
+            }
             $collectorKey = (string) ($collectorIdRow ?? 'online');
             $byCollector[$collectorKey] ??= [
                 'collector_id' => $collectorIdRow,
@@ -214,6 +242,8 @@ final class CollectionDeskReportService
 
             $rows[] = [
                 'id' => $payment->id,
+                'is_advance' => $isAdvance,
+                'payment_kind' => $isAdvance ? 'Advance (অগ্রিম)' : 'Bill payment',
                 'source_label' => PaymentCollectionSource::label($payment),
                 'collection_label' => PaymentCollectionSource::label($payment),
                 'is_legacy_portal_import' => PaymentCollectionSource::isLegacyPortalImport($payment),
@@ -259,9 +289,11 @@ final class CollectionDeskReportService
                 'days_until_off' => $customer?->daysUntilServiceExpiry(),
                 'customer_status' => $customer?->status,
                 'network_state' => $customer?->network_access_state,
-                'edit_url' => \App\Filament\Pages\BillCollectionDesk::getUrl([
+                'edit_url' => \App\Filament\Pages\BillCollectionDesk::getUrl().'?'.http_build_query(array_filter([
                     'customer' => $payment->customer_id,
-                ]).'&edit_payment='.$payment->id,
+                    'mode' => $isAdvance ? 'advance' : null,
+                    'edit_payment' => $payment->id,
+                ])),
                 'subscriber_edit_url' => $customer
                     ? \App\Filament\Resources\CustomerResource::getUrl('edit', ['record' => $customer->id])
                     : null,
@@ -293,6 +325,11 @@ final class CollectionDeskReportService
             'isp_grid_collected_mtd' => $ispGridMtd,
             'total' => round((float) $payments->sum('amount'), 2),
             'count' => $payments->count(),
+            'bill_collected' => round($billTotalAmount, 2),
+            'bill_count' => $billCount,
+            'advance_collected' => round($advanceTotalAmount, 2),
+            'advance_count' => $advanceCount,
+            'kind_filter' => $kindFilter,
             'cash_total' => round($cashTotal, 2),
             'online_total' => round($onlineTotal, 2),
             'with_gps' => $withGps,

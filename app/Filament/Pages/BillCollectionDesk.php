@@ -131,6 +131,11 @@ class BillCollectionDesk extends Page
             $this->searchFilter = $filter;
         }
 
+        $openMode = (string) request()->query('mode', '');
+        if ($openMode === 'advance') {
+            $this->collectionMode = 'advance';
+        }
+
         $customerId = request()->integer('customer');
         if ($customerId > 0) {
             $customer = \App\Models\Customer::withoutGlobalScopes()->find($customerId);
@@ -138,6 +143,10 @@ class BillCollectionDesk extends Page
                 $this->search = $customer->customer_code ?: (string) $customer->id;
                 $this->runSearch();
                 $this->selectCustomer($customerId);
+
+                if ($openMode === 'advance' && ($this->selectedCustomer['balance_due'] ?? 0) <= 0.009) {
+                    $this->enterRechargeMode();
+                }
 
                 $editPaymentId = request()->integer('edit_payment');
                 if ($editPaymentId > 0) {
