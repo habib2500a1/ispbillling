@@ -8,7 +8,7 @@ use Filament\Navigation\NavigationItem;
 
 final class NetworkMapSidebarRegistry
 {
-    public const GROUP_LABEL = 'Network map';
+    public const GROUP_LABEL = 'Network';
 
     /**
      * @return list<array{key: string, label: string, icon: string, sort: int, url: string, active_routes: list<string>}>
@@ -20,7 +20,7 @@ final class NetworkMapSidebarRegistry
                 'key' => 'fiber_map',
                 'label' => 'Network operations map',
                 'icon' => 'heroicon-o-map',
-                'sort' => 0,
+                'sort' => 8,
                 'url' => FiberPlantMap::getUrl(),
                 'active_routes' => ['filament.admin.pages.fiber-plant-map'],
             ],

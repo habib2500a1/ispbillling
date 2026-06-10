@@ -17,7 +17,6 @@
         'Inventory Pro',
         'Network',
         'OLT & Tools',
-        'Network map',
         'SMS Service',
         'Support',
         'Reports',
@@ -43,6 +42,7 @@
 
         mergeLegacyOltSidebarGroup(root);
         mergeLegacyHrmSidebarGroup(root);
+        mergeLegacyNetworkMapSidebarGroup(root);
         mergeLegacyIspOsSidebarGroup(root);
         moveOltLinksOutOfInventoryPro(root);
     }
@@ -142,10 +142,10 @@
         });
     }
 
-    /** Collapse legacy «ISP OS» group into «Network map». */
-    function mergeLegacyIspOsSidebarGroup(root) {
-        const legacy = root.querySelector(':scope > .fi-sidebar-group[data-group-label="ISP OS"]');
-        const target = root.querySelector(':scope > .fi-sidebar-group[data-group-label="Network map"]');
+    /** Collapse legacy «Network map» group into «Network». */
+    function mergeLegacyNetworkMapSidebarGroup(root) {
+        const legacy = root.querySelector(':scope > .fi-sidebar-group[data-group-label="Network map"]');
+        const target = root.querySelector(':scope > .fi-sidebar-group[data-group-label="Network"]');
 
         if (!legacy) {
             return;
@@ -164,11 +164,41 @@
             return;
         }
 
-        legacy.dataset.groupLabel = 'Network map';
+        legacy.dataset.groupLabel = 'Network';
         const labelEl = legacy.querySelector('.fi-sidebar-group-label');
 
         if (labelEl) {
-            labelEl.textContent = 'Network map';
+            labelEl.textContent = 'Network';
+        }
+    }
+
+    /** Collapse legacy «ISP OS» group into «Network». */
+    function mergeLegacyIspOsSidebarGroup(root) {
+        const legacy = root.querySelector(':scope > .fi-sidebar-group[data-group-label="ISP OS"]');
+        const target = root.querySelector(':scope > .fi-sidebar-group[data-group-label="Network"]');
+
+        if (!legacy) {
+            return;
+        }
+
+        if (target) {
+            const legacyList = legacy.querySelector('.fi-sidebar-group-items');
+            const targetList = target.querySelector('.fi-sidebar-group-items');
+
+            if (legacyList && targetList) {
+                [...legacyList.children].forEach((node) => targetList.appendChild(node));
+            }
+
+            legacy.remove();
+
+            return;
+        }
+
+        legacy.dataset.groupLabel = 'Network';
+        const labelEl = legacy.querySelector('.fi-sidebar-group-label');
+
+        if (labelEl) {
+            labelEl.textContent = 'Network';
         }
     }
 
@@ -361,20 +391,6 @@
         );
     }
 
-    function pathSuggestsNetworkMapGroup() {
-        const path = window.location.pathname || '';
-
-        return (
-            path.includes('fiber-plant-map')
-            ||             path.includes('isp-os')
-            || path.includes('ai-copilot')
-            || path.includes('noc-wall')
-            || path.includes('field-technicians')
-            || path.includes('fault-center')
-            || path.includes('fault-management')
-        );
-    }
-
     function pathSuggestsOltGroup() {
         const path = window.location.pathname || '';
 
@@ -402,6 +418,13 @@
             || path.includes('snmp-monitor')
             || path.includes('netflow-analysis')
             || path.includes('pop-boxes')
+            || path.includes('fiber-plant-map')
+            || path.includes('isp-os')
+            || path.includes('ai-copilot')
+            || path.includes('noc-wall')
+            || path.includes('field-technicians')
+            || path.includes('fault-center')
+            || path.includes('fault-management')
         );
     }
 
@@ -441,10 +464,6 @@
         const labels = groupLabels();
         if (!labels.length) {
             return null;
-        }
-
-        if (pathSuggestsNetworkMapGroup() && labels.includes('Network map')) {
-            return 'Network map';
         }
 
         if (pathSuggestsOltGroup()) {

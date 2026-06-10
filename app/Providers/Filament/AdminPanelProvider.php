@@ -86,7 +86,6 @@ class AdminPanelProvider extends PanelProvider
                 NavigationGroup::make('Inventory Pro')->collapsed(true),
                 NavigationGroup::make('Network')->collapsed(true),
                 NavigationGroup::make('OLT & Tools')->collapsed(true),
-                NavigationGroup::make('Network map')->collapsed(true),
                 NavigationGroup::make('SMS Service')->collapsed(true),
                 NavigationGroup::make('Support')->collapsed(true),
                 NavigationGroup::make('Reports')->collapsed(true),

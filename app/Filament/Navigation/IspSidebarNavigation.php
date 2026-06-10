@@ -280,15 +280,21 @@ final class IspSidebarNavigation
             return;
         }
 
-        $groupsToStrip = [
-            NetworkMapSidebarRegistry::GROUP_LABEL,
-            'ISP OS',
-        ];
-
         $filtered = array_values(array_filter(
             static::panelNavigationItems($panel),
-            static function (NavigationItem $item) use ($groupsToStrip): bool {
-                return ! in_array((string) ($item->getGroup() ?? ''), $groupsToStrip, true);
+            static function (NavigationItem $item): bool {
+                $group = (string) ($item->getGroup() ?? '');
+                $url = (string) $item->getUrl();
+
+                if (in_array($group, ['Network map', 'ISP OS'], true)) {
+                    return false;
+                }
+
+                if ($url !== '' && static::isNetworkMapAdminPath($url)) {
+                    return false;
+                }
+
+                return true;
             },
         ));
 
@@ -415,7 +421,6 @@ final class IspSidebarNavigation
     {
         return match ($group) {
             OltSidebarRegistry::GROUP_LABEL, 'OLT' => 100,
-            NetworkMapSidebarRegistry::GROUP_LABEL => 95,
             'Network' => 90,
             InventorySidebarRegistry::GROUP_LABEL => 40,
             default => 50,
