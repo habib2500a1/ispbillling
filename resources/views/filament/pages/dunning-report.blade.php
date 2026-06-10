@@ -11,20 +11,20 @@
                 <p class="mt-1 text-lg font-semibold {{ ($report['enabled'] ?? false) ? 'text-emerald-600' : 'text-rose-600' }}">
                     {{ ($report['enabled'] ?? false) ? 'Enabled' : 'Disabled' }}
                 </p>
-            </motion.div>
+            </div>
             <div class="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-900">
                 <p class="text-xs font-medium uppercase text-gray-500">Eligible today (all stages)</p>
                 <p class="mt-1 text-2xl font-bold">{{ $report['total_eligible'] ?? 0 }}</p>
-            </motion.div>
+            </div>
             <div class="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-900">
                 <p class="text-xs font-medium uppercase text-gray-500">Sent (24h)</p>
                 <p class="mt-1 text-2xl font-bold">{{ $report['total_sent_24h'] ?? 0 }}</p>
                 <p class="mt-1 text-xs text-gray-500">Payment links: {{ ($report['payment_links'] ?? false) ? 'Yes' : 'No' }}</p>
-            </motion.div>
-        </motion.div>
+            </div>
+        </div>
 
-        <div class="overflow-hidden rounded-xl border border-gray-200 dark:border-gray-700">
-            <table class="w-full text-sm">
+        <div class="overflow-x-auto rounded-xl border border-gray-200 dark:border-gray-700">
+            <table class="w-full min-w-full text-sm">
                 <thead class="bg-gray-50 text-left text-xs uppercase text-gray-500 dark:bg-gray-800">
                     <tr>
                         <th class="px-4 py-3">Stage</th>
@@ -54,10 +54,10 @@
                     @endforelse
                 </tbody>
             </table>
-        </motion.div>
+        </div>
 
         <p class="text-xs text-gray-500">
             Cron: <code>isp:send-invoice-due-reminders</code> (Automatic process). Configure stages in <code>config/billing.php</code> and event toggles in Notification settings.
         </p>
-    </motion.div>
+    </div>
 </x-filament-panels::page>

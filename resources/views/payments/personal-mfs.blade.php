@@ -20,7 +20,9 @@
         .num { font-size: 1.125rem; font-weight: 600; letter-spacing: .05em; }
         label { display: block; font-size: .875rem; margin-top: 1rem; color: #475569; }
         input[type=text] { width: 100%; padding: .625rem .75rem; border: 1px solid #cbd5e1; border-radius: .5rem; margin-top: .25rem; box-sizing: border-box; }
-        button { width: 100%; margin-top: 1.25rem; padding: .75rem; background: linear-gradient(135deg,{{ $accent[0] }},{{ $accent[1] }}); color: #fff; border: 0; border-radius: .5rem; font-weight: 600; cursor: pointer; }
+        button[type=submit] { width: 100%; margin-top: 1.25rem; padding: .75rem; background: linear-gradient(135deg,{{ $accent[0] }},{{ $accent[1] }}); color: #fff; border: 0; border-radius: .5rem; font-weight: 600; cursor: pointer; }
+        .copy-btn { display: inline-block; width: auto; margin: 0 0 0 .35rem; padding: .2rem .5rem; font-size: .75rem; font-weight: 600; border: 1px solid #cbd5e1; border-radius: .35rem; background: #f8fafc; color: #334155; cursor: pointer; vertical-align: middle; }
+        .copy-btn:hover { background: #e2e8f0; }
         .steps { font-size: .85rem; color: #475569; margin-top: 1rem; padding-left: 1.1rem; }
         .ref { background: #f1f5f9; padding: .75rem; border-radius: .5rem; margin-top: 1rem; font-size: .875rem; }
         .err { color: #b91c1c; font-size: .875rem; margin-top: .5rem; }
@@ -50,7 +52,9 @@
         @endif
         <ol class="steps">
             <li>{{ $gatewayLabel }} অ্যাপে <strong>Send Money</strong> খুলুন</li>
-            <li>নম্বর: <strong class="num">{{ $merchantNumber }}</strong> ({{ $merchantName }})</li>
+            <li>নম্বর: <strong class="num">{{ $merchantNumber }}</strong>
+                <button type="button" class="copy-btn" data-copy-text="{{ $merchantNumber }}" title="নম্বর কপি করুন">📋 Copy</button>
+                ({{ $merchantName }})</li>
             <li>পরিমাণ: <strong>{{ number_format($amount, 2) }} BDT</strong></li>
             <li>পেমেন্টের পর TrxID নিচে লিখে Verify করুন</li>
         </ol>
@@ -91,5 +95,25 @@
             @endif
         </p>
     </div>
+    <script>
+        document.querySelectorAll('[data-copy-text]').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                var text = btn.getAttribute('data-copy-text');
+                if (!text) return;
+                var done = function () {
+                    var prev = btn.textContent;
+                    btn.textContent = '✓ Copied';
+                    setTimeout(function () { btn.textContent = prev; }, 1500);
+                };
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    navigator.clipboard.writeText(text).then(done).catch(function () {
+                        window.prompt('নম্বর কপি করুন:', text);
+                    });
+                } else {
+                    window.prompt('নম্বর কপি করুন:', text);
+                }
+            });
+        });
+    </script>
 </body>
 </html>
