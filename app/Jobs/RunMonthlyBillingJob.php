@@ -22,6 +22,42 @@ class RunMonthlyBillingJob implements ShouldQueue
 
     public function handle(): void
     {
-        Artisan::call('isp:generate-bills', $this->options);
+        Artisan::call('isp:generate-bills', self::artisanParameters($this->options));
+    }
+
+    /**
+     * @param  array<string, mixed>  $options
+     * @return array<string, mixed>
+     */
+    public static function artisanParameters(array $options): array
+    {
+        $allowed = [
+            'date',
+            'customer',
+            'force',
+            'no-prorate',
+            'coupon',
+            'cycle',
+            'dry-run',
+            'queued',
+        ];
+
+        $parameters = ['--queued' => true];
+
+        foreach ($options as $key => $value) {
+            $name = str_starts_with((string) $key, '--') ? substr((string) $key, 2) : (string) $key;
+
+            if (! in_array($name, $allowed, true)) {
+                continue;
+            }
+
+            if ($value === null || $value === false || $value === '') {
+                continue;
+            }
+
+            $parameters['--'.$name] = $value === true ? true : $value;
+        }
+
+        return $parameters;
     }
 }

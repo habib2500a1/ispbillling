@@ -29,9 +29,26 @@ class GenerateMonthlyBillsCommand extends Command
     public function handle(ScheduledPackageChangeService $scheduledChanges): int
     {
         if (config('queue_ops.heavy_jobs_enabled', false) && ! $this->option('dry-run') && ! $this->option('queued')) {
-            $opts = $this->options();
-            $opts['--queued'] = true;
-            QueueJobDispatcher::run(new RunMonthlyBillingJob($opts), fn () => $this->runBilling($scheduledChanges));
+            $jobOpts = ['--queued' => true];
+            if ($this->option('date')) {
+                $jobOpts['--date'] = $this->option('date');
+            }
+            if ($this->option('customer')) {
+                $jobOpts['--customer'] = $this->option('customer');
+            }
+            if ($this->option('force')) {
+                $jobOpts['--force'] = true;
+            }
+            if ($this->option('no-prorate')) {
+                $jobOpts['--no-prorate'] = true;
+            }
+            if ($this->option('coupon')) {
+                $jobOpts['--coupon'] = $this->option('coupon');
+            }
+            if ($this->option('cycle')) {
+                $jobOpts['--cycle'] = $this->option('cycle');
+            }
+            QueueJobDispatcher::run(new RunMonthlyBillingJob($jobOpts), fn () => $this->runBilling($scheduledChanges));
             $this->info('Bill generation queued.');
 
             return self::SUCCESS;
