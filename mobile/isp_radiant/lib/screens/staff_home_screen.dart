@@ -1,9 +1,7 @@
 import 'dart:async';
 
-import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:intl/intl.dart';
 
 import '../config/remote_config.dart';
 import '../core/navigation/super_app_navigator.dart';
@@ -13,11 +11,7 @@ import '../core/network/api_result.dart';
 import '../core/network/connectivity.dart';
 import '../core/theme/design_tokens.dart';
 import '../design_system/components/radiant_glass_card.dart';
-import '../design_system/components/radiant_kpi_tile.dart';
-import '../design_system/components/radiant_screen_header.dart';
-import '../design_system/components/radiant_section.dart';
 import '../design_system/components/radiant_skeleton.dart';
-import '../design_system/components/radiant_quick_action_grid.dart';
 import '../design_system/navigation/radiant_super_shell.dart';
 import '../design_system/radiant_tokens.dart';
 import '../core/widgets/states.dart';
@@ -27,8 +21,9 @@ import '../services/api_service.dart';
 import '../services/offline_sync_service.dart';
 import '../services/realtime_service.dart';
 import '../utils/app_nav.dart';
-import '../utils/layout.dart';
-import '../widgets/profile_banner.dart';
+import '../widgets/radiant_legacy_dashboard_cards.dart';
+import '../widgets/radiant_legacy_dashboard_header.dart';
+import '../widgets/radiant_legacy_quick_actions.dart';
 import 'login_hub_screen.dart';
 import 'staff_menu_tab.dart';
 import 'staff_clients_screen.dart';
@@ -48,11 +43,8 @@ import 'staff_packages_screen.dart';
 import 'staff_reports_screen.dart';
 import 'staff_comms_screen.dart';
 import 'staff_profile_screen.dart';
-import 'staff_team_discount_screen.dart';
 import 'staff_inventory_pos_screen.dart';
 import 'staff_mfs_sms_screen.dart';
-import 'staff_gis_map_screen.dart';
-import 'staff_ai_screen.dart';
 import 'staff_global_search_screen.dart';
 import '../widgets/role_switcher_sheet.dart';
 import '../services/mfs_sms_listener.dart';
@@ -69,12 +61,12 @@ class StaffHomeScreen extends ConsumerStatefulWidget {
 }
 
 class _StaffHomeScreenState extends ConsumerState<StaffHomeScreen> {
+  final _scaffoldKey = GlobalKey<ScaffoldState>();
   int _tab = 0;
   StaffReceiptRequest? _receiptOverlay;
   StaffDashboard? _dash;
   bool _loading = true;
   Failure? _error;
-  final _fmt = NumberFormat('#,##0.00');
   late final StaffDashboardRepository _repo = StaffDashboardRepository(widget.api);
   late final OfflineSyncService _offline = OfflineSyncService(widget.api);
   late final RealtimeService _realtime = RealtimeService(widget.api);
@@ -259,9 +251,57 @@ class _StaffHomeScreenState extends ConsumerState<StaffHomeScreen> {
   Map<String, dynamic>? get _user =>
       (_dash?.user ?? widget.loginPayload['user']) as Map<String, dynamic>?;
 
+  bool _hasModule(StaffDashboard d, String key) =>
+      d.modules.any((m) => m['key']?.toString() == key);
+
+  bool _showBilling(StaffDashboard? d) => d == null || _hasModule(d, 'billing');
+  bool _showCollection(StaffDashboard? d) => d == null || _hasModule(d, 'collect');
+  bool _showSupport(StaffDashboard? d) => d == null || _hasModule(d, 'support');
+  bool _showFinance(StaffDashboard d) =>
+      (_user?['user_type']?.toString() == 'Admin') || d.finance.hasExtended;
+
+  List<_StaffTab> _tabsFor(StaffDashboard? d) {
+    final tabs = <_StaffTab>[const _StaffTab(label: 'Home', icon: Icons.grid_view_rounded)];
+    if (_showBilling(d)) {
+      tabs.add(const _StaffTab(label: 'Billing', icon: Icons.receipt_long_outlined, selectedIcon: Icons.receipt_long_rounded));
+    }
+    if (_showCollection(d)) {
+      tabs.add(const _StaffTab(label: 'Collection', icon: Icons.savings_outlined, selectedIcon: Icons.savings_rounded));
+    }
+    if (_showSupport(d)) {
+      tabs.add(const _StaffTab(label: 'Support', icon: Icons.confirmation_number_outlined, selectedIcon: Icons.confirmation_number_rounded));
+    }
+    tabs.add(const _StaffTab(label: 'Task', icon: Icons.list_alt_outlined, selectedIcon: Icons.list_alt_rounded));
+    return tabs;
+  }
+
+  Widget _pageForTab(String label, int index, int activeIndex) {
+    switch (label) {
+      case 'Home':
+        return _buildHomeTab(ref.watch(isOnlineProvider));
+      case 'Billing':
+        return StaffBillingHubScreen(api: widget.api, embedded: true);
+      case 'Collection':
+        return StaffCollectionScreen(api: widget.api, active: activeIndex == index);
+      case 'Support':
+        return StaffTicketsScreen(api: widget.api, active: activeIndex == index, staffUserId: _user?['id'] as int?);
+      case 'Task':
+        return StaffTasksScreen(api: widget.api, active: activeIndex == index);
+      default:
+        return const SizedBox.shrink();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final online = ref.watch(isOnlineProvider);
+    final tabs = _tabsFor(_dash);
+    final safeTab = _tab.clamp(0, tabs.length - 1);
+    if (safeTab != _tab) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) setState(() => _tab = safeTab);
+      });
+    }
 
     return StaffReceiptLauncher(
       api: widget.api,
@@ -270,48 +310,41 @@ class _StaffHomeScreenState extends ConsumerState<StaffHomeScreen> {
         fit: StackFit.expand,
         children: [
           RadiantSuperShell(
-            tabIndex: _tab,
+            scaffoldKey: _scaffoldKey,
+            legacyBottomBar: true,
+            tabIndex: safeTab,
             onTab: _go,
-            centerAction: _openCollect,
-            centerActionIcon: Icons.payments_rounded,
-            centerActionLabel: 'Collect',
-            destinations: const [
-              RadiantNavDestination(
-                icon: Icon(Icons.grid_view_rounded),
-                selectedIcon: Icon(Icons.grid_view_rounded),
-                label: 'Home',
-              ),
-              RadiantNavDestination(
-                icon: Icon(Icons.receipt_long_outlined),
-                selectedIcon: Icon(Icons.receipt_long_rounded),
-                label: 'Billing',
-              ),
-              RadiantNavDestination(
-                icon: Icon(Icons.forum_outlined),
-                selectedIcon: Icon(Icons.forum_rounded),
-                label: 'Support',
-              ),
-              RadiantNavDestination(
-                icon: Icon(Icons.apps_rounded),
-                selectedIcon: Icon(Icons.apps_rounded),
-                label: 'Menu',
-              ),
-            ],
-            pages: [
-              _buildHomeTab(online),
-              StaffBillingHubScreen(api: widget.api, embedded: true),
-              StaffTicketsScreen(api: widget.api, active: _tab == 2, staffUserId: _user?['id'] as int?),
-              StaffMenuTab(
+            drawer: Drawer(
+              child: StaffMenuTab(
                 api: widget.api,
                 modules: _dash?.modules ?? const [],
                 user: _user,
                 staffMode: _mode,
                 roleCapabilities: _roleCaps,
                 loginPayload: widget.loginPayload,
-                onModule: _openModule,
-                onTasks: () => _push(StaffTasksScreen(api: widget.api, active: true)),
-                active: _tab == 3,
+                onModule: (key) {
+                  Navigator.pop(context);
+                  _openModule(key);
+                },
+                onTasks: () {
+                  Navigator.pop(context);
+                  final taskIndex = tabs.indexWhere((t) => t.label == 'Task');
+                  if (taskIndex >= 0) _go(taskIndex);
+                },
+                active: false,
               ),
+            ),
+            destinations: [
+              for (final t in tabs)
+                RadiantNavDestination(
+                  icon: Icon(t.icon),
+                  selectedIcon: Icon(t.selectedIcon ?? t.icon),
+                  label: t.label,
+                ),
+            ],
+            pages: [
+              for (var i = 0; i < tabs.length; i++)
+                _pageForTab(tabs[i].label, i, safeTab),
             ],
           ),
           if (_receiptOverlay != null)
@@ -348,38 +381,27 @@ class _StaffHomeScreenState extends ConsumerState<StaffHomeScreen> {
 
     return RefreshIndicator(
       onRefresh: _load,
-      color: RadiantTokens.brand,
+      color: RadiantLegacyDashboardHeader.primaryBlue,
       child: ListView(
         padding: EdgeInsets.zero,
         children: [
           if (!online) const OfflineBanner(),
-          RadiantScreenHeader(
-            title: 'Operations',
-            subtitle: '${_user?['name'] ?? 'Staff'} · ${RemoteConfig.appName}',
-            trailing: [
-              if (_roleCaps?.hasMultipleInterfaces == true)
-                RadiantHeaderIcon(icon: Icons.swap_horiz_rounded, onPressed: _openRoleSwitcher, tooltip: 'Switch role'),
-              RadiantHeaderIcon(icon: Icons.map_outlined, onPressed: () => _push(StaffGisMapScreen(api: widget.api)), tooltip: 'Map'),
-              RadiantHeaderIcon(icon: Icons.search_rounded, onPressed: () => _push(StaffGlobalSearchScreen(api: widget.api)), tooltip: 'Search'),
-              RadiantHeaderIcon(icon: Icons.auto_awesome_rounded, onPressed: () => _push(StaffAiScreen(api: widget.api)), tooltip: 'AI'),
-              RadiantHeaderIcon(icon: Icons.refresh_rounded, onPressed: _load, tooltip: 'Refresh'),
-              RadiantHeaderIcon(icon: Icons.logout_rounded, onPressed: _logout, tooltip: 'Sign out'),
-            ],
+          RadiantLegacyDashboardHeader(
+            name: _user?['name']?.toString() ?? 'Staff',
+            userType: _user?['user_type']?.toString() ?? 'Staff',
+            status: _user?['status']?.toString() ?? 'Active',
+            onSearch: () => _push(StaffGlobalSearchScreen(api: widget.api)),
+            onNotifications: () {
+              if (_showSupport(d)) _go(tabsIndexForLabel('Support'));
+            },
+            onMenu: () => _scaffoldKey.currentState?.openDrawer(),
           ),
-          Padding(
-            padding: pagePadding(context),
+          Container(
+            color: const Color(0xFFF5F7FA),
+            padding: const EdgeInsets.fromLTRB(12, 12, 12, 88),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                if (_mode != 'admin')
-                  ProfileBanner(
-                    name: _user?['name']?.toString() ?? 'Staff',
-                    subtitle: '${_user?['user_type'] ?? 'Staff'} · Mode ${_mode.toUpperCase()}',
-                    status: 'Status: ${_user?['status'] ?? 'Active'}',
-                    statusColor: DesignTokens.warning,
-                  ),
-                const SizedBox(height: 12),
-                ...RemoteConfig.notices.map(_noticeCard),
                 if (_pendingSync > 0)
                   Padding(
                     padding: const EdgeInsets.only(bottom: 10),
@@ -394,65 +416,30 @@ class _StaffHomeScreenState extends ConsumerState<StaffHomeScreen> {
                       ),
                     ),
                   ),
-                if (_mode == 'admin')
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 12),
-                    child: RadiantGlassCard(
-                      onTap: () => _push(StaffTeamDiscountScreen(api: widget.api)),
-                      child: Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(9),
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                colors: [RadiantTokens.brandDeep, RadiantTokens.accentCyan],
-                              ),
-                              borderRadius: BorderRadius.circular(RadiantTokens.radiusSm),
-                            ),
-                            child: const Icon(Icons.percent_rounded, color: Colors.white, size: 20),
-                          ),
-                          const SizedBox(width: 12),
-                          const Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text('Collection discounts', style: TextStyle(fontWeight: FontWeight.w700)),
-                                Text('Set max discount per collector / staff', style: TextStyle(fontSize: 12)),
-                              ],
-                            ),
-                          ),
-                          Icon(Icons.chevron_right_rounded, color: context.radiant.muted),
-                        ],
-                      ),
-                    ),
-                  ),
                 if (d.quickActions.isNotEmpty) ...[
-                  const RadiantSectionHeader(title: 'Quick actions'),
-                  RadiantQuickActionGrid(actions: d.quickActions, onAction: _onQuickAction),
-                  const SizedBox(height: 16),
+                  RadiantLegacyQuickActions(actions: d.quickActions, onAction: _onQuickAction),
+                  const SizedBox(height: 14),
                 ],
-                const RadiantSectionHeader(title: 'Today'),
-                _kpiRow(d.kpis),
-                const SizedBox(height: 16),
-                const RadiantSectionHeader(title: 'Collection overview'),
-                _financeOverview(d.billing, d.finance),
-                if (d.finance.hasExtended) ...[
-                  const SizedBox(height: 16),
-                  const RadiantSectionHeader(title: 'Finance & reseller'),
-                  _resellerFinanceCard(d.finance),
+                if (_showBilling(d)) ...[
+                  RadiantLegacyDashboardCards.billingSummary(d.billing),
+                  const SizedBox(height: 12),
                 ],
-                const SizedBox(height: 16),
-                _revenueChart7d(d.revenue7d),
-                const SizedBox(height: 16),
-                Row(
-                  children: [
-                    Expanded(child: _statusCard('Tickets', d.tickets)),
-                    const SizedBox(width: 12),
-                    Expanded(child: _statusCard('Tasks', d.tasks)),
-                  ],
+                RadiantLegacyDashboardCards.ticketTaskRow(
+                  tickets: d.tickets,
+                  tasks: d.tasks,
+                  showTickets: _showSupport(d),
                 ),
-                if (d.zoneChart.isNotEmpty) ...[const SizedBox(height: 16), _zoneChart(d.zoneChart)],
-                const SizedBox(height: 88),
+                const SizedBox(height: 12),
+                if (_hasModule(d, 'reports') && d.zoneChart.isNotEmpty) ...[
+                  RadiantLegacyDashboardCards.zoneChart(d.zoneChart),
+                  const SizedBox(height: 12),
+                ],
+                if (_showFinance(d)) ...[
+                  RadiantLegacyDashboardCards.resellerFinance(d.finance, d.billing),
+                  const SizedBox(height: 12),
+                ],
+                if (_showCollection(d))
+                  RadiantLegacyDashboardCards.cashOnHand(d.kpis.cashOnHand),
               ],
             ),
           ),
@@ -461,294 +448,21 @@ class _StaffHomeScreenState extends ConsumerState<StaffHomeScreen> {
     );
   }
 
-  Widget _noticeCard(Map<String, dynamic> n) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
-      child: RadiantGlassCard(
-        child: Row(
-          children: [
-            Icon(Icons.campaign_rounded, color: RadiantTokens.brand),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(n['title']?.toString() ?? 'Notice',
-                      style: const TextStyle(fontWeight: FontWeight.w700)),
-                  if ((n['body']?.toString() ?? '').isNotEmpty)
-                    Text(n['body'].toString(),
-                        style: TextStyle(fontSize: 12, color: context.brand.textMuted)),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
+  int tabsIndexForLabel(String label) {
+    final tabs = _tabsFor(_dash);
+    final idx = tabs.indexWhere((t) => t.label == label);
+    return idx >= 0 ? idx : 0;
   }
+}
 
-  Widget _financeOverview(StaffBilling b, FinanceSummary f) {
-    final target = b.monthlyBill <= 0 ? 1.0 : b.monthlyBill;
-    final rate = (b.collected / target).clamp(0.0, 1.0);
-    return RadiantGlassCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Text('This month', style: context.text.titleSmall?.copyWith(fontWeight: FontWeight.w700)),
-              const Spacer(),
-              Text('${(rate * 100).toStringAsFixed(0)}% collected',
-                  style: const TextStyle(color: DesignTokens.success, fontWeight: FontWeight.w700, fontSize: 12)),
-            ],
-          ),
-          const SizedBox(height: 10),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(8),
-            child: LinearProgressIndicator(
-              value: rate,
-              minHeight: 10,
-              backgroundColor: context.brand.surfaceAlt,
-              valueColor: const AlwaysStoppedAnimation(DesignTokens.success),
-            ),
-          ),
-          const SizedBox(height: 14),
-          Row(
-            children: [
-              Expanded(child: _financeStat('Monthly', b.monthlyBill, DesignTokens.primary)),
-              Expanded(child: _financeStat('Collected', b.collected, DesignTokens.success)),
-              Expanded(child: _financeStat('Due', b.due, DesignTokens.warning)),
-              Expanded(child: _financeStat('Discount', b.discount, DesignTokens.pink)),
-            ],
-          ),
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 12),
-            child: Divider(height: 1, color: context.brand.border),
-          ),
-          Row(
-            children: [
-              Expanded(child: _financeStat('Expense', f.expenseMonth, DesignTokens.danger)),
-              Expanded(
-                child: _financeStat(
-                  f.netMonth >= 0 ? 'Net profit' : 'Net loss',
-                  f.netMonth,
-                  f.netMonth >= 0 ? DesignTokens.success : DesignTokens.danger,
-                ),
-              ),
-              const Spacer(),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
+class _StaffTab {
+  const _StaffTab({
+    required this.label,
+    required this.icon,
+    this.selectedIcon,
+  });
 
-  Widget _resellerFinanceCard(FinanceSummary f) {
-    return GridView.count(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      crossAxisCount: 2,
-      mainAxisSpacing: 12,
-      crossAxisSpacing: 12,
-      childAspectRatio: 1.5,
-      children: [
-        RadiantKpiTile(icon: Icons.account_balance_wallet_rounded, label: 'Reseller wallet', value: '৳${_fmt.format(f.resellerWallet)}', color: RadiantTokens.brand, compact: true),
-        RadiantKpiTile(icon: Icons.handshake_rounded, label: 'Reseller settled (mo)', value: '৳${_fmt.format(f.resellerSettledMonth)}', color: RadiantTokens.accentCyan, compact: true),
-        RadiantKpiTile(icon: Icons.badge_rounded, label: 'Paid salary (mo)', value: '৳${_fmt.format(f.paidSalaryMonth)}', color: RadiantTokens.warning, compact: true),
-        RadiantKpiTile(icon: Icons.receipt_long_rounded, label: 'Expense (mo)', value: '৳${_fmt.format(f.expenseMonth)}', color: RadiantTokens.danger, compact: true),
-      ],
-    );
-  }
-
-  Widget _financeStat(String label, double value, Color color) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Container(width: 22, height: 3, decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(2))),
-        const SizedBox(height: 6),
-        FittedBox(
-          fit: BoxFit.scaleDown,
-          alignment: Alignment.centerLeft,
-          child: Text('৳${_fmt.format(value)}',
-              style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13)),
-        ),
-        Text(label, style: TextStyle(fontSize: 10, color: context.brand.textMuted)),
-      ],
-    );
-  }
-
-  Widget _kpiRow(StaffKpis k) {
-    return GridView.count(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      crossAxisCount: 2,
-      mainAxisSpacing: 12,
-      crossAxisSpacing: 12,
-      childAspectRatio: 1.45,
-      children: [
-        RadiantKpiTile(label: "Today's collection", value: '৳${_fmt.format(k.collectedToday)}', icon: Icons.payments_rounded, color: RadiantTokens.success, compact: true),
-        RadiantKpiTile(label: 'Cash on hand', value: '৳${_fmt.format(k.cashOnHand)}', icon: Icons.account_balance_wallet_rounded, color: RadiantTokens.brand, compact: true),
-        RadiantKpiTile(label: 'Online PPP', value: '${k.onlineClients}', icon: Icons.wifi_rounded, color: RadiantTokens.accentCyan, compact: true),
-        RadiantKpiTile(label: 'Due clients', value: '${k.dueClients}', icon: Icons.warning_amber_rounded, color: RadiantTokens.warning, compact: true),
-        RadiantKpiTile(label: 'Active clients', value: '${k.activeClients}', icon: Icons.groups_rounded, color: RadiantTokens.brand, compact: true),
-        RadiantKpiTile(label: 'Expire today', value: '${k.expiringToday}', icon: Icons.event_busy_rounded, color: RadiantTokens.accent, compact: true),
-      ],
-    );
-  }
-
-  Widget _revenueChart7d(RevenueSeries series) {
-    if (series.isEmpty) return const SizedBox.shrink();
-    final collected = series.collected;
-    final labels = series.labels;
-    final maxY = collected.fold<double>(0, (a, b) => a > b ? a : b) * 1.2 + 1;
-
-    return RadiantGlassCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('Revenue — last 7 days',
-              style: context.text.titleSmall?.copyWith(fontWeight: FontWeight.w700)),
-          const SizedBox(height: 12),
-          SizedBox(
-            height: 160,
-            child: LineChart(
-              LineChartData(
-                minY: 0,
-                maxY: maxY,
-                titlesData: FlTitlesData(
-                  bottomTitles: AxisTitles(
-                    sideTitles: SideTitles(
-                      showTitles: true,
-                      interval: 1,
-                      getTitlesWidget: (v, _) => labels.length > v.toInt()
-                          ? Text(labels[v.toInt()],
-                              style: TextStyle(fontSize: 9, color: context.brand.textMuted))
-                          : const SizedBox.shrink(),
-                    ),
-                  ),
-                  leftTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                  topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                  rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                ),
-                gridData: const FlGridData(show: false),
-                borderData: FlBorderData(show: false),
-                lineBarsData: [
-                  LineChartBarData(
-                    spots: List.generate(collected.length, (i) => FlSpot(i.toDouble(), collected[i])),
-                    isCurved: true,
-                    color: DesignTokens.primary,
-                    barWidth: 3,
-                    dotData: const FlDotData(show: true),
-                    belowBarData: BarAreaData(show: true, color: DesignTokens.primary.withValues(alpha: 0.14)),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _statusCard(String title, CountStat stat) {
-    final maxVal = stat.total == 0 ? 1 : stat.total;
-    return RadiantGlassCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('${stat.total} $title', style: const TextStyle(fontWeight: FontWeight.w700)),
-          const SizedBox(height: 8),
-          Text('${stat.pending} Pending', style: const TextStyle(fontSize: 11)),
-          const SizedBox(height: 3),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(4),
-            child: LinearProgressIndicator(
-              value: stat.pending / maxVal,
-              minHeight: 6,
-              backgroundColor: context.brand.surfaceAlt,
-              color: DesignTokens.warning,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text('${stat.process} Process', style: const TextStyle(fontSize: 11)),
-          const SizedBox(height: 3),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(4),
-            child: LinearProgressIndicator(
-              value: stat.process / maxVal,
-              minHeight: 6,
-              backgroundColor: context.brand.surfaceAlt,
-              color: DesignTokens.info,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _zoneChart(List<ZoneRow> rows) {
-    final maxY = rows.fold<double>(0, (a, r) => [a, r.paid, r.unpaid].reduce((x, y) => x > y ? x : y)) * 1.2 + 1;
-
-    return RadiantGlassCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              _legend('Unpaid', DesignTokens.pink),
-              const SizedBox(width: 12),
-              _legend('Paid', DesignTokens.info),
-            ],
-          ),
-          const SizedBox(height: 12),
-          SizedBox(
-            height: 200,
-            child: BarChart(
-              BarChartData(
-                maxY: maxY,
-                barGroups: List.generate(rows.length, (i) {
-                  return BarChartGroupData(
-                    x: i,
-                    barRods: [
-                      BarChartRodData(toY: rows[i].unpaid, color: DesignTokens.pink, width: 10),
-                      BarChartRodData(toY: rows[i].paid, color: DesignTokens.info, width: 10),
-                    ],
-                  );
-                }),
-                titlesData: FlTitlesData(
-                  leftTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                  topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                  rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                  bottomTitles: AxisTitles(
-                    sideTitles: SideTitles(
-                      showTitles: true,
-                      getTitlesWidget: (v, _) {
-                        final i = v.toInt();
-                        if (i < 0 || i >= rows.length) return const SizedBox.shrink();
-                        return Text(rows[i].zone,
-                            style: TextStyle(fontSize: 8, color: context.brand.textMuted));
-                      },
-                    ),
-                  ),
-                ),
-                gridData: const FlGridData(show: false),
-                borderData: FlBorderData(show: false),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _legend(String label, Color color) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(width: 10, height: 10, decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(3))),
-        const SizedBox(width: 5),
-        Text(label, style: const TextStyle(fontSize: 11)),
-      ],
-    );
-  }
+  final String label;
+  final IconData icon;
+  final IconData? selectedIcon;
 }

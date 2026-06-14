@@ -26,6 +26,8 @@ class RadiantSuperShell extends StatelessWidget {
     this.centerActionIcon = Icons.add_rounded,
     this.centerActionLabel,
     this.drawer,
+    this.scaffoldKey,
+    this.legacyBottomBar = false,
     this.floatingActionButton,
   });
 
@@ -37,6 +39,8 @@ class RadiantSuperShell extends StatelessWidget {
   final IconData centerActionIcon;
   final String? centerActionLabel;
   final Widget? drawer;
+  final GlobalKey<ScaffoldState>? scaffoldKey;
+  final bool legacyBottomBar;
   final Widget? floatingActionButton;
 
   @override
@@ -46,12 +50,19 @@ class RadiantSuperShell extends StatelessWidget {
     final brand = context.radiant;
 
     return Scaffold(
+      key: scaffoldKey,
       backgroundColor: isDark ? RadiantTokens.darkBg : RadiantTokens.lightBg,
       drawer: drawer,
       body: IndexedStack(index: index, children: pages),
       floatingActionButton: floatingActionButton,
-      extendBody: true,
-      bottomNavigationBar: Padding(
+      extendBody: !legacyBottomBar,
+      bottomNavigationBar: legacyBottomBar
+          ? _LegacyBottomBar(
+              index: index,
+              destinations: destinations,
+              onTab: onTab,
+            )
+          : Padding(
         padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
         child: SafeArea(
           top: false,
@@ -93,6 +104,43 @@ class RadiantSuperShell extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _LegacyBottomBar extends StatelessWidget {
+  const _LegacyBottomBar({
+    required this.index,
+    required this.destinations,
+    required this.onTab,
+  });
+
+  final int index;
+  final List<RadiantNavDestination> destinations;
+  final ValueChanged<int> onTab;
+
+  static const _blue = Color(0xFF4267B2);
+
+  @override
+  Widget build(BuildContext context) {
+    return BottomNavigationBar(
+      currentIndex: index.clamp(0, destinations.length - 1),
+      onTap: onTab,
+      type: BottomNavigationBarType.fixed,
+      backgroundColor: Colors.white,
+      selectedItemColor: _blue,
+      unselectedItemColor: const Color(0xFF90A4AE),
+      selectedFontSize: 11,
+      unselectedFontSize: 11,
+      elevation: 12,
+      items: [
+        for (final dest in destinations)
+          BottomNavigationBarItem(
+            icon: dest.icon,
+            activeIcon: dest.selectedIcon,
+            label: dest.label,
+          ),
+      ],
     );
   }
 }
