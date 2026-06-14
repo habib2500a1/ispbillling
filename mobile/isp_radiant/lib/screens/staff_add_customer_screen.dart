@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:intl/intl.dart';
+import 'package:latlong2/latlong.dart';
 
+import '../design_system/radiant_tokens.dart';
 import '../services/api_service.dart';
-import '../theme/app_theme.dart';
 import '../utils/app_nav.dart';
-import '../widgets/page_scaffold.dart';
-import '../widgets/state_views.dart';
 import 'staff_customer_detail_screen.dart';
 
+/// Legacy SOFTIFY multi-step Add Client — personal info, location/map, network (website parity).
 class StaffAddCustomerScreen extends StatefulWidget {
   const StaffAddCustomerScreen({super.key, required this.api});
 
@@ -19,30 +21,70 @@ class StaffAddCustomerScreen extends StatefulWidget {
 class _StaffAddCustomerScreenState extends State<StaffAddCustomerScreen> {
   final _nameCtrl = TextEditingController();
   final _phoneCtrl = TextEditingController();
+  final _altPhoneCtrl = TextEditingController();
+  final _emailCtrl = TextEditingController();
+  final _nidCtrl = TextEditingController();
+  final _occupationCtrl = TextEditingController();
+  final _addressCtrl = TextEditingController();
+  final _houseCtrl = TextEditingController();
+  final _roadCtrl = TextEditingController();
   final _pppUserCtrl = TextEditingController();
   final _pppPassCtrl = TextEditingController();
-  final _addressCtrl = TextEditingController();
   final _notesCtrl = TextEditingController();
   final _customerIdCtrl = TextEditingController();
+  final _onuMacCtrl = TextEditingController();
+  final _eponCtrl = TextEditingController();
+  final _boxCtrl = TextEditingController();
+  final _installChargeCtrl = TextEditingController(text: '0');
+  final _deviceChargeCtrl = TextEditingController(text: '0');
+  final _cashCtrl = TextEditingController(text: '0');
+  final _discountCtrl = TextEditingController(text: '0');
+  final _mapController = MapController();
 
   List<Map<String, dynamic>> _packages = [];
   List<Map<String, dynamic>> _servers = [];
   List<Map<String, dynamic>> _areas = [];
   List<Map<String, dynamic>> _zones = [];
+  List<Map<String, dynamic>> _subzones = [];
+  List<Map<String, dynamic>> _districts = [];
+  List<Map<String, dynamic>> _upazilas = [];
+  List<Map<String, dynamic>> _genders = [];
+  List<Map<String, dynamic>> _segments = [];
+  List<Map<String, dynamic>> _subscriberTypes = [];
+  List<Map<String, dynamic>> _connectionTypes = [];
+  List<Map<String, dynamic>> _onuOwnership = [];
+
   int? _packageId;
   int? _serverId;
   int? _areaId;
   int? _zoneId;
+  int? _subzoneId;
+  int? _districtId;
+  int? _upazilaId;
   int _expireDay = 10;
+  int _billingDay = 1;
   String _billingMode = 'prepaid';
   String _firstBillCycle = 'this_month';
+  String _status = 'active';
+  String? _gender;
+  String _segment = 'residential';
+  String _subscriberType = 'standard';
+  String _connectionType = 'fiber';
+  String _onuOwnershipVal = 'company';
+  String _lineCashMethod = 'cash';
   bool _provisionMikrotik = true;
   bool _autoCustomerId = true;
+  bool _applyLineCharges = false;
+  bool _useWallet = true;
   String? _nextCustomerIdExample;
+  DateTime? _dob;
+  LatLng? _gps;
   int _step = 0;
   bool _loading = true;
   bool _saving = false;
   String? _error;
+
+  static const _steps = ['Personal information', 'Location & package', 'Network'];
 
   @override
   void initState() {
@@ -52,13 +94,14 @@ class _StaffAddCustomerScreenState extends State<StaffAddCustomerScreen> {
 
   @override
   void dispose() {
-    _nameCtrl.dispose();
-    _phoneCtrl.dispose();
-    _pppUserCtrl.dispose();
-    _pppPassCtrl.dispose();
-    _addressCtrl.dispose();
-    _notesCtrl.dispose();
-    _customerIdCtrl.dispose();
+    for (final c in [
+      _nameCtrl, _phoneCtrl, _altPhoneCtrl, _emailCtrl, _nidCtrl, _occupationCtrl,
+      _addressCtrl, _houseCtrl, _roadCtrl, _pppUserCtrl, _pppPassCtrl, _notesCtrl,
+      _customerIdCtrl, _onuMacCtrl, _eponCtrl, _boxCtrl, _installChargeCtrl,
+      _deviceChargeCtrl, _cashCtrl, _discountCtrl,
+    ]) {
+      c.dispose();
+    }
     super.dispose();
   }
 
@@ -75,25 +118,34 @@ class _StaffAddCustomerScreenState extends State<StaffAddCustomerScreen> {
       setState(() {
         _autoCustomerId = customerId['auto_generate'] != false;
         _nextCustomerIdExample = customerId['next_example']?.toString();
-        _packages = (body['packages'] as List<dynamic>?)?.map((e) => Map<String, dynamic>.from(e as Map)).toList() ?? [];
-        _servers = (body['mikrotik_servers'] as List<dynamic>?)?.map((e) => Map<String, dynamic>.from(e as Map)).toList() ?? [];
-        _areas = (body['areas'] as List<dynamic>?)?.map((e) => Map<String, dynamic>.from(e as Map)).toList() ?? [];
-        _zones = (body['zones'] as List<dynamic>?)?.map((e) => Map<String, dynamic>.from(e as Map)).toList() ?? [];
+        _packages = _list(body['packages']);
+        _servers = _list(body['mikrotik_servers']);
+        _areas = _list(body['areas']);
+        _zones = _list(body['zones']);
+        _subzones = _list(body['subzones']);
+        _districts = _list(body['districts']);
+        _upazilas = _list(body['upazilas']);
+        _genders = _list(body['gender_options']);
+        _segments = _list(body['segments']);
+        _subscriberTypes = _list(body['subscriber_types']);
+        _connectionTypes = _list(body['connection_types']);
+        _onuOwnership = _list(body['onu_ownership_options']);
         _billingMode = defaults['billing_mode']?.toString() ?? 'prepaid';
         _firstBillCycle = defaults['first_bill_cycle']?.toString() ?? 'this_month';
         _expireDay = (defaults['expire_day'] as num?)?.toInt() ?? 10;
+        _billingDay = (defaults['billing_day'] as num?)?.toInt() ?? 1;
+        _status = defaults['status']?.toString() ?? 'active';
         _provisionMikrotik = defaults['provision_mikrotik'] != false;
         if (_packages.isNotEmpty) {
           _packageId = (_packages.first['id'] as num).toInt();
           _applyServerForPackage(_packageId);
         }
-        if (_serverId == null && _servers.isNotEmpty) {
-          _serverId = (_servers.first['id'] as num).toInt();
-        }
+        if (_serverId == null && _servers.isNotEmpty) _serverId = (_servers.first['id'] as num).toInt();
         if (_areas.isNotEmpty) {
           _areaId = (_areas.first['id'] as num).toInt();
           _syncZonesForArea();
         }
+        _gps ??= const LatLng(23.8103, 90.4125);
       });
     } on ApiException catch (e) {
       if (mounted) setState(() => _error = e.message);
@@ -103,6 +155,9 @@ class _StaffAddCustomerScreenState extends State<StaffAddCustomerScreen> {
       if (mounted) setState(() => _loading = false);
     }
   }
+
+  List<Map<String, dynamic>> _list(dynamic raw) =>
+      (raw as List<dynamic>? ?? const []).whereType<Map>().map((e) => Map<String, dynamic>.from(e)).toList();
 
   void _applyServerForPackage(int? packageId) {
     if (packageId == null) return;
@@ -120,88 +175,168 @@ class _StaffAddCustomerScreenState extends State<StaffAddCustomerScreen> {
     return _zones.where((z) => (z['area_id'] as num?)?.toInt() == _areaId).toList();
   }
 
+  List<Map<String, dynamic>> get _subzonesForZone {
+    if (_zoneId == null) return _subzones;
+    return _subzones.where((s) => (s['zone_id'] as num?)?.toInt() == _zoneId).toList();
+  }
+
+  List<Map<String, dynamic>> get _upazilasForDistrict {
+    if (_districtId == null) return _upazilas;
+    return _upazilas.where((u) => (u['district_id'] as num?)?.toInt() == _districtId).toList();
+  }
+
   void _syncZonesForArea() {
     final list = _zonesForArea;
     if (list.isEmpty) {
       _zoneId = null;
+      _subzoneId = null;
       return;
     }
     if (_zoneId == null || !list.any((z) => (z['id'] as num).toInt() == _zoneId)) {
       _zoneId = (list.first['id'] as num).toInt();
     }
+    _syncSubzonesForZone();
   }
 
-  bool _validateStep1() {
-    if (_nameCtrl.text.trim().isEmpty || _phoneCtrl.text.trim().isEmpty || _packageId == null) {
-      showSnack(context, 'Name, phone and package required', isError: true);
-      return false;
+  void _syncSubzonesForZone() {
+    final list = _subzonesForZone;
+    if (list.isEmpty) {
+      _subzoneId = null;
+      return;
     }
-    if (_addressCtrl.text.trim().isEmpty) {
-      showSnack(context, 'Address required', isError: true);
-      return false;
+    if (_subzoneId == null || !list.any((s) => (s['id'] as num).toInt() == _subzoneId)) {
+      _subzoneId = (list.first['id'] as num).toInt();
     }
-    if (_areas.isNotEmpty && _areaId == null) {
-      showSnack(context, 'Select area', isError: true);
-      return false;
+  }
+
+  bool _validateStep(int step) {
+    if (step == 0) {
+      if (_nameCtrl.text.trim().isEmpty || _phoneCtrl.text.trim().isEmpty) {
+        showSnack(context, 'Client name and mobile are required', isError: true);
+        return false;
+      }
+      return true;
     }
-    if (_zonesForArea.isNotEmpty && _zoneId == null) {
-      showSnack(context, 'Select zone', isError: true);
-      return false;
-    }
-    if (!_autoCustomerId && _customerIdCtrl.text.trim().isEmpty) {
-      showSnack(context, 'Customer ID required', isError: true);
-      return false;
+    if (step == 1) {
+      if (_packageId == null) {
+        showSnack(context, 'Select a package', isError: true);
+        return false;
+      }
+      if (_addressCtrl.text.trim().isEmpty) {
+        showSnack(context, 'Address is required', isError: true);
+        return false;
+      }
+      if (_areas.isNotEmpty && _areaId == null) {
+        showSnack(context, 'Select area', isError: true);
+        return false;
+      }
+      if (_zonesForArea.isNotEmpty && _zoneId == null) {
+        showSnack(context, 'Select zone', isError: true);
+        return false;
+      }
+      if (!_autoCustomerId && _customerIdCtrl.text.trim().isEmpty) {
+        showSnack(context, 'Customer ID required', isError: true);
+        return false;
+      }
+      return true;
     }
     return true;
   }
 
-  void _goNext() {
-    if (!_validateStep1()) return;
-    setState(() => _step = 1);
+  void _next() {
+    if (!_validateStep(_step)) return;
+    if (_step < _steps.length - 1) setState(() => _step++);
+  }
+
+  void _back() {
+    if (_step > 0) setState(() => _step--);
+  }
+
+  Future<void> _pickDob() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _dob ?? DateTime(1990),
+      firstDate: DateTime(1950),
+      lastDate: DateTime.now(),
+    );
+    if (picked != null) setState(() => _dob = picked);
   }
 
   Future<void> _save() async {
-    if (!_validateStep1()) {
-      setState(() => _step = 0);
-      return;
+    for (var i = 0; i < _steps.length - 1; i++) {
+      if (!_validateStep(i)) {
+        setState(() => _step = i);
+        return;
+      }
     }
     setState(() => _saving = true);
     try {
+      final meta = <String, dynamic>{
+        if (_gender != null) 'gender': _gender,
+        if (_dob != null) 'date_of_birth': DateFormat('yyyy-MM-dd').format(_dob!),
+        if (_occupationCtrl.text.trim().isNotEmpty) 'occupation': _occupationCtrl.text.trim(),
+        if (_houseCtrl.text.trim().isNotEmpty) 'house_no': _houseCtrl.text.trim(),
+        if (_roadCtrl.text.trim().isNotEmpty) 'road_no': _roadCtrl.text.trim(),
+        'connection_type': _connectionType,
+        'onu_ownership': _onuOwnershipVal,
+        if (_boxCtrl.text.trim().isNotEmpty) 'box_name': _boxCtrl.text.trim(),
+        if (_eponCtrl.text.trim().isNotEmpty) 'epon_port': _eponCtrl.text.trim(),
+        if (_onuMacCtrl.text.trim().isNotEmpty) 'onu_mac': _onuMacCtrl.text.trim(),
+        if (_gps != null) ...{
+          'gps_lat': _gps!.latitude.toStringAsFixed(7),
+          'gps_lng': _gps!.longitude.toStringAsFixed(7),
+        },
+        'monthly_discount_bdt': double.tryParse(_discountCtrl.text.trim()) ?? 0,
+      };
+
       final pppUser = _pppUserCtrl.text.trim();
       final res = await widget.api.createStaffCustomerFull(
         name: _nameCtrl.text.trim(),
         phone: _phoneCtrl.text.trim(),
         packageId: _packageId!,
+        email: _emailCtrl.text.trim(),
+        alternatePhone: _altPhoneCtrl.text.trim(),
+        nidNumber: _nidCtrl.text.trim(),
+        gender: _gender,
+        dateOfBirth: _dob != null ? DateFormat('yyyy-MM-dd').format(_dob!) : null,
+        occupation: _occupationCtrl.text.trim(),
+        segment: _segment,
+        subscriberType: _subscriberType,
         address: _addressCtrl.text.trim(),
         areaId: _areaId,
         zoneId: _zoneId,
+        subzoneId: _subzoneId,
+        districtId: _districtId,
+        upazilaId: _upazilaId,
         notes: _notesCtrl.text.trim(),
-        billingDay: 1,
+        billingDay: _billingDay,
         billingMode: _billingMode,
         firstBillCycle: _firstBillCycle,
         expireDay: _expireDay,
+        status: _status,
         mikrotikSecretName: pppUser.isNotEmpty ? pppUser : null,
         mikrotikPppPassword: _pppPassCtrl.text.trim().isNotEmpty ? _pppPassCtrl.text.trim() : null,
         mikrotikServerId: _serverId,
         provisionMikrotik: _provisionMikrotik && pppUser.isNotEmpty,
         customerCode: _customerIdCtrl.text.trim().isNotEmpty ? _customerIdCtrl.text.trim() : null,
+        applyLineCharges: _applyLineCharges,
+        installationCharge: double.tryParse(_installChargeCtrl.text.trim()),
+        lineDeviceCharge: double.tryParse(_deviceChargeCtrl.text.trim()),
+        lineCashAmount: double.tryParse(_cashCtrl.text.trim()),
+        lineCashMethod: _lineCashMethod,
+        useWalletOnRegister: _useWallet,
+        meta: meta,
       );
       final id = (res['customer'] as Map?)?['id'] as num?;
       if (!mounted) return;
-      final bill = res['billing'] as Map<String, dynamic>?;
-      final inv = bill?['invoice'] as Map<String, dynamic>?;
-      var msg = res['message']?.toString() ?? 'Customer created';
-      if (inv != null) {
-        msg = '${bill?['message'] ?? 'Bill created'} · ${inv['invoice_number']} · ৳${inv['balance_due'] ?? inv['total']}';
-      }
-      showSnack(context, msg);
+      showSnack(context, res['message']?.toString() ?? 'Client added');
       if (id != null) {
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (_) => StaffCustomerDetailScreen(api: widget.api, customerId: id.toInt())),
         );
       } else {
-        Navigator.pop(context);
+        Navigator.pop(context, true);
       }
     } on ApiException catch (e) {
       if (mounted) showSnack(context, e.message, isError: true);
@@ -212,344 +347,446 @@ class _StaffAddCustomerScreenState extends State<StaffAddCustomerScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return PageScaffold(
-      title: 'New customer',
-      useGradientBody: true,
+    return Scaffold(
+      backgroundColor: RadiantTokens.brand,
       body: _loading
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(child: CircularProgressIndicator(color: Colors.white))
           : _error != null
-              ? Center(child: ErrorBanner(message: _error!, onRetry: _loadOptions))
+              ? Center(child: Text(_error!, style: const TextStyle(color: Colors.white)))
               : Column(
                   children: [
-                    _stepHeader(),
-                    Expanded(
-                      child: SingleChildScrollView(
-                        padding: const EdgeInsets.all(16),
-                        child: _step == 0 ? _buildStep1() : _buildStep2(),
+                    SafeArea(
+                      bottom: false,
+                      child: Row(
+                        children: [
+                          IconButton(onPressed: () => Navigator.maybePop(context), icon: const Icon(Icons.arrow_back, color: Colors.white)),
+                          const Expanded(
+                            child: Text('Add Client', textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w600)),
+                          ),
+                          const SizedBox(width: 48),
+                        ],
                       ),
                     ),
-                    _bottomBar(),
+                    Expanded(
+                      child: Container(
+                        width: double.infinity,
+                        decoration: const BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+                        ),
+                        child: Column(
+                          children: [
+                            _stepper(),
+                            Expanded(
+                              child: SingleChildScrollView(
+                                padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+                                child: switch (_step) {
+                                  0 => _stepPersonal(),
+                                  1 => _stepLocation(),
+                                  _ => _stepNetwork(),
+                                },
+                              ),
+                            ),
+                            _bottomActions(),
+                          ],
+                        ),
+                      ),
+                    ),
                   ],
                 ),
     );
   }
 
-  Widget _stepHeader() {
+  Widget _stepper() {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
       child: Row(
         children: [
-          _stepDot(0, 'Customer'),
-          Expanded(child: Container(height: 2, color: _step >= 1 ? AppTheme.primary : Colors.grey.shade300)),
-          _stepDot(1, 'PPPoE'),
+          for (var i = 0; i < _steps.length; i++) ...[
+            if (i > 0) Expanded(child: Container(height: 2, color: i <= _step ? RadiantTokens.brand : Colors.grey.shade300)),
+            _stepBubble(i),
+          ],
         ],
       ),
     );
   }
 
-  Widget _stepDot(int index, String label) {
+  Widget _stepBubble(int index) {
     final active = _step == index;
     final done = _step > index;
     return Column(
       children: [
         CircleAvatar(
           radius: 14,
-          backgroundColor: done || active ? AppTheme.primary : Colors.grey.shade300,
+          backgroundColor: done || active ? RadiantTokens.brand : Colors.grey.shade300,
+          child: Text('${index + 1}', style: TextStyle(fontSize: 12, color: done || active ? Colors.white : Colors.grey.shade700)),
+        ),
+        const SizedBox(height: 4),
+        SizedBox(
+          width: 88,
           child: Text(
-            '${index + 1}',
-            style: TextStyle(fontSize: 12, color: done || active ? Colors.white : Colors.grey.shade700),
+            _steps[index],
+            textAlign: TextAlign.center,
+            maxLines: 2,
+            style: TextStyle(fontSize: 10, fontWeight: active ? FontWeight.w700 : FontWeight.normal, color: active ? RadiantTokens.brand : Colors.grey.shade600),
           ),
         ),
-        const SizedBox(height: 4),
-        Text(label, style: TextStyle(fontSize: 11, fontWeight: active ? FontWeight.w600 : FontWeight.normal)),
       ],
     );
   }
 
-  Widget _buildStep1() {
+  Widget _stepPersonal() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const Text(
-          'Step 1 — Customer details',
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-        ),
-        const SizedBox(height: 4),
-        const Text('Name, phone, package. PPP login on next page.', style: TextStyle(fontSize: 13, color: Colors.grey)),
-        const SizedBox(height: 16),
-        _field(_nameCtrl, 'Full name *', Icons.person),
-        _field(_phoneCtrl, 'Phone *', Icons.phone, keyboard: TextInputType.phone),
-        if (!_autoCustomerId)
-          _field(_customerIdCtrl, 'Customer ID *', Icons.badge)
-        else if (_nextCustomerIdExample != null)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 12),
-            child: Text(
-              'Customer ID: automatic (e.g. $_nextCustomerIdExample)',
-              style: TextStyle(fontSize: 12, color: Colors.grey.shade700),
-            ),
-          ),
-        if (_packages.isEmpty)
-          Card(
-            color: Colors.orange.shade50,
-            child: Padding(
-              padding: const EdgeInsets.all(12),
-              child: Column(
-                children: [
-                  const Text('No packages — sync from website or tap reload.'),
-                  TextButton(onPressed: _loadOptions, child: const Text('Reload')),
-                ],
+        Center(
+          child: Stack(
+            children: [
+              CircleAvatar(
+                radius: 48,
+                backgroundColor: Colors.grey.shade300,
+                child: Icon(Icons.person, size: 56, color: Colors.grey.shade500),
               ),
-            ),
-          )
-        else
-          _packageDropdown(),
-        _field(_addressCtrl, 'Address *', Icons.location_on, maxLines: 2),
-        if (_areas.isNotEmpty) _areaDropdown(),
-        if (_zonesForArea.isNotEmpty) _zoneDropdown(),
-        _expireDayDropdown(),
-        _billingModeChips(),
-        if (_billingMode == 'prepaid' || _billingMode == 'advance') _firstBillChips(),
-        if (_autoCustomerId) _field(_customerIdCtrl, 'Custom Customer ID (optional)', Icons.badge),
+              Positioned(
+                right: 0,
+                bottom: 0,
+                child: CircleAvatar(
+                  radius: 16,
+                  backgroundColor: Colors.white,
+                  child: Icon(Icons.edit, size: 16, color: RadiantTokens.brand),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 20),
+        _legacyField(_nameCtrl, 'Client name', required: true),
+        _legacyField(_phoneCtrl, 'Mobile Number', required: true, keyboard: TextInputType.phone),
+        _legacyDobField(),
+        _legacyField(_emailCtrl, 'E-mail', keyboard: TextInputType.emailAddress),
+        _legacyDropdown('Gender', _gender, _genders, (v) => setState(() => _gender = v), valueKey: 'value', labelKey: 'label'),
+        _legacyField(_occupationCtrl, 'Occupation'),
+        _legacyField(_altPhoneCtrl, 'Alternate phone', keyboard: TextInputType.phone),
+        _legacyField(_nidCtrl, 'NID number'),
+        if (_segments.isNotEmpty)
+          _legacyDropdown('Client type', _segment, _segments, (v) => setState(() => _segment = v ?? _segment), valueKey: 'value'),
+        if (_subscriberTypes.isNotEmpty)
+          _legacyDropdown('Billing category', _subscriberType, _subscriberTypes, (v) => setState(() => _subscriberType = v ?? _subscriberType), valueKey: 'value'),
       ],
     );
   }
 
-  Widget _buildStep2() {
+  Widget _stepLocation() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const Text(
-          'Step 2 — PPPoE login',
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-        ),
-        const SizedBox(height: 4),
-        const Text('Username and password together (one place only).', style: TextStyle(fontSize: 13, color: Colors.grey)),
-        const SizedBox(height: 16),
-        Card(
-          elevation: 0,
-          color: AppTheme.primary.withValues(alpha: 0.06),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-            side: BorderSide(color: AppTheme.primary.withValues(alpha: 0.25)),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(12),
-            child: Column(
+        const Text('Location GPS', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
+        const SizedBox(height: 8),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(12),
+          child: SizedBox(
+            height: 180,
+            child: FlutterMap(
+              mapController: _mapController,
+              options: MapOptions(
+                initialCenter: _gps ?? const LatLng(23.8103, 90.4125),
+                initialZoom: 14,
+                onTap: (_, point) => setState(() => _gps = point),
+              ),
               children: [
-                _field(_pppUserCtrl, 'PPPoE username (optional)', Icons.person_outline),
-                _field(_pppPassCtrl, 'PPPoE password', Icons.lock_outline, obscure: true),
+                TileLayer(urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png'),
+                if (_gps != null)
+                  MarkerLayer(
+                    markers: [
+                      Marker(
+                        point: _gps!,
+                        width: 36,
+                        height: 36,
+                        child: const Icon(Icons.location_on, color: Colors.red, size: 36),
+                      ),
+                    ],
+                  ),
               ],
             ),
           ),
         ),
-        if (_servers.length > 1) _serverDropdown(),
-        SwitchListTile(
-          value: _provisionMikrotik,
-          onChanged: (v) => setState(() => _provisionMikrotik = v),
-          title: const Text('Activate on MikroTik'),
-          subtitle: const Text('Only when PPP username is set'),
-          contentPadding: EdgeInsets.zero,
-        ),
-        const SizedBox(height: 8),
-        _field(_notesCtrl, 'Notes (optional)', Icons.notes, maxLines: 2),
+        if (_gps != null)
+          Padding(
+            padding: const EdgeInsets.only(top: 6, bottom: 12),
+            child: Text('${_gps!.latitude.toStringAsFixed(6)}, ${_gps!.longitude.toStringAsFixed(6)}', style: TextStyle(fontSize: 11, color: Colors.grey.shade600)),
+          ),
+        _legacyField(_addressCtrl, 'Address', required: true, maxLines: 2),
+        if (_districts.isNotEmpty)
+          _legacyDropdown('District', _districtId?.toString(), _districts, (v) => setState(() {
+                _districtId = v != null ? int.tryParse(v) : null;
+                _upazilaId = null;
+              }), valueKey: 'id'),
+        if (_upazilasForDistrict.isNotEmpty)
+          _legacyDropdown('Thana / upazila', _upazilaId?.toString(), _upazilasForDistrict, (v) => setState(() => _upazilaId = v != null ? int.tryParse(v) : null), valueKey: 'id'),
+        _legacyField(_houseCtrl, 'House no'),
+        _legacyField(_roadCtrl, 'Road / street'),
+        if (_areas.isNotEmpty)
+          _legacyDropdown('Area', _areaId?.toString(), _areas, (v) => setState(() {
+                _areaId = v != null ? int.tryParse(v) : null;
+                _syncZonesForArea();
+              }), valueKey: 'id'),
+        if (_zonesForArea.isNotEmpty)
+          _legacyDropdown('Zone', _zoneId?.toString(), _zonesForArea, (v) => setState(() {
+                _zoneId = v != null ? int.tryParse(v) : null;
+                _syncSubzonesForZone();
+              }), valueKey: 'id'),
+        if (_subzonesForZone.isNotEmpty)
+          _legacyDropdown('Sub zone', _subzoneId?.toString(), _subzonesForZone, (v) => setState(() => _subzoneId = v != null ? int.tryParse(v) : null), valueKey: 'id'),
+        if (_packages.isEmpty)
+          const Text('No packages — add from website first.')
+        else
+          _legacyDropdown('Package', _packageId?.toString(), _packages, (v) => setState(() {
+                _packageId = v != null ? int.tryParse(v) : null;
+                _applyServerForPackage(_packageId);
+              }), valueKey: 'id', labelKey: 'name'),
+        _legacyDropdown('Expire day', '$_expireDay', List.generate(31, (i) => {'id': '${i + 1}', 'name': 'Day ${i + 1}'}), (v) => setState(() => _expireDay = int.tryParse(v ?? '') ?? _expireDay), valueKey: 'id'),
+        _legacyDropdown('Bill day', '$_billingDay', List.generate(28, (i) => {'id': '${i + 1}', 'name': 'Day ${i + 1}'}), (v) => setState(() => _billingDay = int.tryParse(v ?? '') ?? _billingDay), valueKey: 'id'),
+        _billingModeRow(),
+        if (_billingMode == 'prepaid' || _billingMode == 'advance') _firstBillRow(),
+        if (_autoCustomerId && _nextCustomerIdExample != null)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: Text('Customer ID: auto (e.g. $_nextCustomerIdExample)', style: TextStyle(fontSize: 12, color: Colors.grey.shade700)),
+          ),
+        _legacyField(_customerIdCtrl, _autoCustomerId ? 'Custom Customer ID (optional)' : 'Customer ID', required: !_autoCustomerId),
+        _legacyField(_discountCtrl, 'Monthly discount (BDT)', keyboard: const TextInputType.numberWithOptions(decimal: true)),
+        _legacyField(_notesCtrl, 'Remarks / notes', maxLines: 3),
       ],
     );
   }
 
-  Widget _bottomBar() {
+  Widget _stepNetwork() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const Text('PPPoE login', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
+        const SizedBox(height: 10),
+        if (_servers.length > 1)
+          _legacyDropdown('Router', _serverId?.toString(), _servers, (v) => setState(() => _serverId = v != null ? int.tryParse(v) : null), valueKey: 'id'),
+        _legacyField(_pppUserCtrl, 'PPPoE username'),
+        _legacyField(_pppPassCtrl, 'PPPoE password', obscure: true),
+        SwitchListTile(
+          contentPadding: EdgeInsets.zero,
+          value: _provisionMikrotik,
+          onChanged: (v) => setState(() => _provisionMikrotik = v),
+          title: const Text('Activate on MikroTik'),
+        ),
+        const Divider(),
+        const Text('Connection & ONU', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
+        const SizedBox(height: 8),
+        if (_connectionTypes.isNotEmpty)
+          _legacyDropdown('Connection type', _connectionType, _connectionTypes, (v) => setState(() => _connectionType = v ?? _connectionType), valueKey: 'value'),
+        if (_onuOwnership.isNotEmpty)
+          _legacyDropdown('ONU ownership', _onuOwnershipVal, _onuOwnership, (v) => setState(() => _onuOwnershipVal = v ?? _onuOwnershipVal), valueKey: 'value'),
+        _legacyField(_boxCtrl, 'TJ box / port'),
+        _legacyField(_eponCtrl, 'EPON port'),
+        _legacyField(_onuMacCtrl, 'ONU MAC'),
+        const Divider(),
+        SwitchListTile(
+          contentPadding: EdgeInsets.zero,
+          value: _applyLineCharges,
+          onChanged: (v) => setState(() => _applyLineCharges = v),
+          title: const Text('Apply line & device charges now'),
+        ),
+        if (_applyLineCharges) ...[
+          _legacyField(_installChargeCtrl, 'Line / installation charge (BDT)', keyboard: const TextInputType.numberWithOptions(decimal: true)),
+          _legacyField(_deviceChargeCtrl, 'Device charge (BDT)', keyboard: const TextInputType.numberWithOptions(decimal: true)),
+          _legacyField(_cashCtrl, 'Cash collected (BDT)', keyboard: const TextInputType.numberWithOptions(decimal: true)),
+          _legacyDropdown('Cash method', _lineCashMethod, const [
+            {'value': 'cash', 'label': 'Cash'},
+            {'value': 'bkash', 'label': 'bKash'},
+            {'value': 'nagad', 'label': 'Nagad'},
+            {'value': 'bank', 'label': 'Bank'},
+          ], (v) => setState(() => _lineCashMethod = v ?? _lineCashMethod), valueKey: 'value', labelKey: 'label'),
+          SwitchListTile(
+            contentPadding: EdgeInsets.zero,
+            value: _useWallet,
+            onChanged: (v) => setState(() => _useWallet = v),
+            title: const Text('Use wallet balance'),
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _legacyField(
+    TextEditingController ctrl,
+    String label, {
+    bool required = false,
+    bool obscure = false,
+    int maxLines = 1,
+    TextInputType? keyboard,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          RichText(
+            text: TextSpan(
+              style: TextStyle(fontSize: 13, color: Colors.grey.shade800),
+              children: [
+                TextSpan(text: label),
+                if (required) const TextSpan(text: ' *', style: TextStyle(color: Colors.red)),
+              ],
+            ),
+          ),
+          const SizedBox(height: 6),
+          TextField(
+            controller: ctrl,
+            obscureText: obscure,
+            maxLines: maxLines,
+            keyboardType: keyboard,
+            decoration: InputDecoration(
+              filled: true,
+              fillColor: Colors.white,
+              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: Colors.grey.shade300)),
+              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: Colors.grey.shade300)),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _legacyDobField() {
+    final text = _dob != null ? DateFormat('dd/MM/yyyy').format(_dob!) : '';
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Date of Birth', style: TextStyle(fontSize: 13, color: Colors.grey.shade800)),
+          const SizedBox(height: 6),
+          InkWell(
+            onTap: _pickDob,
+            borderRadius: BorderRadius.circular(10),
+            child: InputDecorator(
+              decoration: InputDecoration(
+                filled: true,
+                fillColor: Colors.white,
+                hintText: 'dd/mm/yyyy',
+                contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: Colors.grey.shade300)),
+                enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: Colors.grey.shade300)),
+                suffixIcon: const Icon(Icons.calendar_today, size: 18, color: Colors.grey),
+              ),
+              child: Text(text, style: TextStyle(color: text.isEmpty ? Colors.grey : Colors.black87)),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _legacyDropdown(
+    String label,
+    String? value,
+    List<Map<String, dynamic>> options,
+    ValueChanged<String?> onChanged, {
+    String valueKey = 'id',
+    String labelKey = 'label',
+    bool required = false,
+  }) {
+    final items = options
+        .map((o) => DropdownMenuItem<String>(
+              value: o[valueKey]?.toString(),
+              child: Text(o[labelKey]?.toString() ?? o['name']?.toString() ?? '—'),
+            ))
+        .toList();
+    final selected = items.any((i) => i.value == value) ? value : null;
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          RichText(
+            text: TextSpan(
+              style: TextStyle(fontSize: 13, color: Colors.grey.shade800),
+              children: [
+                TextSpan(text: label),
+                if (required) const TextSpan(text: ' *', style: TextStyle(color: Colors.red)),
+              ],
+            ),
+          ),
+          const SizedBox(height: 6),
+          DropdownButtonFormField<String>(
+            initialValue: selected,
+            decoration: InputDecoration(
+              filled: true,
+              fillColor: Colors.white,
+              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: Colors.grey.shade300)),
+              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: Colors.grey.shade300)),
+            ),
+            hint: const Text('Select'),
+            items: items,
+            onChanged: onChanged,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _billingModeRow() {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Wrap(
+        spacing: 8,
+        children: [
+          for (final mode in ['postpaid', 'prepaid', 'advance'])
+            ChoiceChip(
+              label: Text(mode[0].toUpperCase() + mode.substring(1)),
+              selected: _billingMode == mode,
+              onSelected: (_) => setState(() => _billingMode = mode),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _firstBillRow() {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Wrap(
+        spacing: 8,
+        children: [
+          ChoiceChip(label: const Text('Bill today'), selected: _firstBillCycle == 'this_month', onSelected: (_) => setState(() => _firstBillCycle = 'this_month')),
+          ChoiceChip(label: const Text('Next month'), selected: _firstBillCycle == 'next_month', onSelected: (_) => setState(() => _firstBillCycle = 'next_month')),
+        ],
+      ),
+    );
+  }
+
+  Widget _bottomActions() {
     return SafeArea(
       child: Padding(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
         child: Row(
           children: [
             if (_step > 0)
-              OutlinedButton(
-                onPressed: _saving ? null : () => setState(() => _step = 0),
-                child: const Text('Back'),
+              TextButton(onPressed: _saving ? null : _back, child: const Text('BACK')),
+            const Spacer(),
+            if (_saving)
+              const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2))
+            else
+              TextButton(
+                onPressed: _step < _steps.length - 1 ? _next : _save,
+                child: Text(
+                  _step < _steps.length - 1 ? 'NEXT >' : 'SUBMIT',
+                  style: const TextStyle(color: RadiantTokens.brand, fontWeight: FontWeight.w700, fontSize: 15),
+                ),
               ),
-            if (_step > 0) const SizedBox(width: 12),
-            Expanded(
-              child: FilledButton(
-                onPressed: _saving
-                    ? null
-                    : _step == 0
-                        ? _goNext
-                        : _save,
-                style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(52)),
-                child: _saving
-                    ? const SizedBox(
-                        height: 22,
-                        width: 22,
-                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                      )
-                    : Text(_step == 0 ? 'Next' : 'Save & open customer'),
-              ),
-            ),
           ],
         ),
       ),
-    );
-  }
-
-  Widget _field(TextEditingController c, String label, IconData icon,
-      {bool obscure = false, int maxLines = 1, TextInputType? keyboard}) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: TextField(
-        controller: c,
-        obscureText: obscure,
-        maxLines: maxLines,
-        keyboardType: keyboard,
-        decoration: InputDecoration(
-          labelText: label,
-          prefixIcon: Icon(icon, size: 22),
-          border: const OutlineInputBorder(),
-        ),
-      ),
-    );
-  }
-
-  Widget _packageDropdown() {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: DropdownButtonFormField<int>(
-        initialValue: _packageId,
-        decoration: const InputDecoration(labelText: 'Package *', prefixIcon: Icon(Icons.speed), border: OutlineInputBorder()),
-        items: _packages
-            .map((p) => DropdownMenuItem(
-                  value: (p['id'] as num).toInt(),
-                  child: Text('${p['name']} · ৳${p['price_monthly']}', overflow: TextOverflow.ellipsis),
-                ))
-            .toList(),
-        onChanged: (v) => setState(() {
-          _packageId = v;
-          _applyServerForPackage(v);
-        }),
-      ),
-    );
-  }
-
-  Widget _areaDropdown() {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: DropdownButtonFormField<int>(
-        initialValue: _areaId,
-        decoration: const InputDecoration(labelText: 'Area *', prefixIcon: Icon(Icons.map), border: OutlineInputBorder()),
-        items: _areas
-            .map((a) => DropdownMenuItem(value: (a['id'] as num).toInt(), child: Text(a['name']?.toString() ?? '')))
-            .toList(),
-        onChanged: (v) => setState(() {
-          _areaId = v;
-          _syncZonesForArea();
-        }),
-      ),
-    );
-  }
-
-  Widget _zoneDropdown() {
-    final list = _zonesForArea;
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: DropdownButtonFormField<int>(
-        initialValue: list.any((z) => (z['id'] as num).toInt() == _zoneId) ? _zoneId : null,
-        decoration: const InputDecoration(labelText: 'Zone *', prefixIcon: Icon(Icons.place), border: OutlineInputBorder()),
-        items: list
-            .map((z) => DropdownMenuItem(value: (z['id'] as num).toInt(), child: Text(z['name']?.toString() ?? '')))
-            .toList(),
-        onChanged: (v) => setState(() => _zoneId = v),
-      ),
-    );
-  }
-
-  Widget _expireDayDropdown() {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: DropdownButtonFormField<int>(
-        initialValue: _expireDay,
-        decoration: const InputDecoration(labelText: 'Expire day *', prefixIcon: Icon(Icons.event), border: OutlineInputBorder()),
-        items: List.generate(31, (i) => i + 1)
-            .map((d) => DropdownMenuItem(value: d, child: Text('Day $d')))
-            .toList(),
-        onChanged: (v) => setState(() => _expireDay = v ?? _expireDay),
-      ),
-    );
-  }
-
-  Widget _serverDropdown() {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: DropdownButtonFormField<int>(
-        initialValue: _serverId,
-        decoration: const InputDecoration(labelText: 'Router', prefixIcon: Icon(Icons.dns), border: OutlineInputBorder()),
-        items: _servers.map((s) => DropdownMenuItem(value: (s['id'] as num).toInt(), child: Text(s['name']?.toString() ?? ''))).toList(),
-        onChanged: (v) => setState(() => _serverId = v),
-      ),
-    );
-  }
-
-  Widget _firstBillChips() {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text('First bill (prepaid)', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
-          const SizedBox(height: 6),
-          Wrap(
-            spacing: 8,
-            children: [
-              _firstBillChip('this_month', 'Bill today'),
-              _firstBillChip('next_month', 'Next month'),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _firstBillChip(String value, String label) {
-    final selected = _firstBillCycle == value;
-    return ChoiceChip(
-      label: Text(label, style: const TextStyle(fontSize: 12)),
-      selected: selected,
-      onSelected: (_) => setState(() => _firstBillCycle = value),
-      selectedColor: AppTheme.accent.withValues(alpha: 0.4),
-    );
-  }
-
-  Widget _billingModeChips() {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text('Billing', style: TextStyle(fontSize: 13, color: Colors.grey)),
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 8,
-            children: [
-              _modeChip('postpaid', 'Postpaid'),
-              _modeChip('prepaid', 'Prepaid'),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _modeChip(String value, String label) {
-    final selected = _billingMode == value;
-    return ChoiceChip(
-      label: Text(label),
-      selected: selected,
-      onSelected: (_) => setState(() {
-        _billingMode = value;
-        if (value == 'prepaid' || value == 'advance') {
-          _firstBillCycle = 'this_month';
-        }
-      }),
-      selectedColor: AppTheme.accent.withValues(alpha: 0.4),
     );
   }
 }

@@ -71,6 +71,116 @@ class MonitoringLive {
       );
 }
 
+class ClientMonitorStats {
+  const ClientMonitorStats({required this.total, required this.online, required this.offline});
+
+  final int total;
+  final int online;
+  final int offline;
+
+  factory ClientMonitorStats.fromJson(Map<String, dynamic> j) => ClientMonitorStats(
+        total: _i(j['total']),
+        online: _i(j['online']),
+        offline: _i(j['offline']),
+      );
+}
+
+class ClientMonitorRow {
+  const ClientMonitorRow({
+    required this.id,
+    required this.name,
+    required this.customerCode,
+    required this.username,
+    required this.phone,
+    required this.zone,
+    required this.subzone,
+    required this.box,
+    required this.profile,
+    required this.framedIp,
+    required this.isOnline,
+    required this.connectionStatus,
+    required this.lastLogout,
+    required this.mikrotikServerName,
+  });
+
+  final int id;
+  final String name;
+  final String customerCode;
+  final String username;
+  final String phone;
+  final String zone;
+  final String subzone;
+  final String box;
+  final String profile;
+  final String framedIp;
+  final bool isOnline;
+  final String connectionStatus;
+  final String lastLogout;
+  final String mikrotikServerName;
+
+  factory ClientMonitorRow.fromJson(Map<String, dynamic> j) => ClientMonitorRow(
+        id: _i(j['id']),
+        name: _s(j['name'], 'Client'),
+        customerCode: _s(j['customer_code']),
+        username: _s(j['username']),
+        phone: _s(j['phone']),
+        zone: _s(j['zone']),
+        subzone: _s(j['subzone'], 'N/A'),
+        box: _s(j['box'], 'N/A'),
+        profile: _s(j['profile']),
+        framedIp: _s(j['framed_ip']),
+        isOnline: j['is_online'] == true,
+        connectionStatus: _s(j['connection_status'], 'Offline'),
+        lastLogout: _s(j['last_logout']),
+        mikrotikServerName: _s(j['mikrotik_server_name']),
+      );
+}
+
+class ClientMonitorFilters {
+  const ClientMonitorFilters({
+    required this.routers,
+    required this.zones,
+    required this.subzones,
+  });
+
+  final List<Map<String, dynamic>> routers;
+  final List<Map<String, dynamic>> zones;
+  final List<Map<String, dynamic>> subzones;
+
+  factory ClientMonitorFilters.fromJson(Map<String, dynamic> j) => ClientMonitorFilters(
+        routers: (j['routers'] as List<dynamic>? ?? const [])
+            .whereType<Map>()
+            .map((e) => Map<String, dynamic>.from(e))
+            .toList(),
+        zones: (j['zones'] as List<dynamic>? ?? const [])
+            .whereType<Map>()
+            .map((e) => Map<String, dynamic>.from(e))
+            .toList(),
+        subzones: (j['subzones'] as List<dynamic>? ?? const [])
+            .whereType<Map>()
+            .map((e) => Map<String, dynamic>.from(e))
+            .toList(),
+      );
+}
+
+class ClientMonitorPage {
+  const ClientMonitorPage({
+    required this.stats,
+    required this.filters,
+    required this.clients,
+    required this.currentPage,
+    required this.lastPage,
+    required this.total,
+  });
+
+  final ClientMonitorStats stats;
+  final ClientMonitorFilters filters;
+  final List<ClientMonitorRow> clients;
+  final int currentPage;
+  final int lastPage;
+  final int total;
+}
+
 /// Repository for staff live monitoring. Wraps the unchanged [ApiService]
 /// endpoints and returns typed models / [Result].
 class MonitoringRepository {
@@ -86,6 +196,40 @@ class MonitoringRepository {
         return OnlineClientsPage(
           totalOnline: (body['total_online'] as num?)?.toInt() ?? clients.length,
           clients: clients,
+        );
+      });
+
+  Future<Result<ClientMonitorPage>> clientMonitoring({
+    String q = '',
+    int? mikrotikServerId,
+    int? zoneId,
+    int? subzoneId,
+    String connection = 'all',
+    int page = 1,
+    int perPage = 25,
+  }) =>
+      guard(() async {
+        final body = await _api.staffMonitoringClients(
+          q: q,
+          mikrotikServerId: mikrotikServerId,
+          zoneId: zoneId,
+          subzoneId: subzoneId,
+          connection: connection,
+          page: page,
+          perPage: perPage,
+        );
+        final clients = (body['data'] as List<dynamic>? ?? const [])
+            .whereType<Map>()
+            .map((e) => ClientMonitorRow.fromJson(Map<String, dynamic>.from(e)))
+            .toList();
+        final meta = body['meta'] as Map<String, dynamic>? ?? const {};
+        return ClientMonitorPage(
+          stats: ClientMonitorStats.fromJson(body['stats'] as Map<String, dynamic>? ?? const {}),
+          filters: ClientMonitorFilters.fromJson(body['filters'] as Map<String, dynamic>? ?? const {}),
+          clients: clients,
+          currentPage: _i(meta['current_page']),
+          lastPage: _i(meta['last_page']),
+          total: _i(meta['total']),
         );
       });
 

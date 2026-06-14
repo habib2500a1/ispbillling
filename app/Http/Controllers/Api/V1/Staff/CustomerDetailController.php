@@ -56,12 +56,22 @@ class CustomerDetailController extends Controller
             $query->where(function ($w) use ($like, $q): void {
                 $w->where('customer_code', 'like', $like)
                     ->orWhere('name', 'like', $like)
-                    ->orWhere('phone', 'like', $like);
+                    ->orWhere('phone', 'like', $like)
+                    ->orWhere('radius_username', 'like', $like)
+                    ->orWhere('mikrotik_secret_name', 'like', $like)
+                    ->orWhere('address', 'like', $like);
+                if (is_numeric($q)) {
+                    $w->orWhere('id', (int) $q);
+                }
             });
         }
 
         if ($request->filled('status')) {
             $query->where('status', $request->query('status'));
+        }
+
+        if ($request->boolean('network_suspended')) {
+            $query->where('network_access_state', 'suspended');
         }
 
         if ($request->filled('package_id')) {

@@ -26,4 +26,15 @@ class StaffMonitoringController extends Controller
 
         return response()->json($monitoring->liveSnapshot(StaffTenantScope::tenantIdFor($user)));
     }
+
+    public function clients(Request $request, StaffMonitoringService $monitoring): JsonResponse
+    {
+        $user = $request->user();
+        abort_unless($user instanceof User, 403);
+
+        return response()->json($monitoring->clientMonitoringIndex(
+            StaffTenantScope::tenantIdFor($user),
+            $request->only(['q', 'mikrotik_server_id', 'zone_id', 'subzone_id', 'connection', 'page', 'per_page']),
+        ));
+    }
 }

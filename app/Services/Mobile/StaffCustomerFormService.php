@@ -5,16 +5,23 @@ namespace App\Services\Mobile;
 use App\Jobs\SyncCustomerNetworkAccessJob;
 use App\Models\Area;
 use App\Models\Customer;
+use App\Models\District;
 use App\Models\MikrotikServer;
 use App\Models\Package;
+use App\Models\Subzone;
+use App\Models\Upazila;
 use App\Models\User;
 use App\Models\Zone;
 use App\Services\Billing\CustomerActivationBillingService;
+use App\Services\Network\FiberPlantMapService;
 use App\Services\Subscribers\CustomerLineActivationService;
 use App\Services\Mikrotik\MikrotikServerService;
 use App\Support\BillingDefaults;
 use App\Support\CustomerCodeGenerator;
+use App\Models\CustomerContact;
 use App\Support\CustomerStatus;
+use App\Support\OnuOwnership;
+use App\Support\SubscriberGpsMeta;
 use App\Support\SubscriberIdSettings;
 use App\Support\SubscriberType;
 use App\Support\TenantResolver;
@@ -58,6 +65,45 @@ final class StaffCustomerFormService
                 ->where('tenant_id', $tenantId)
                 ->orderBy('name')
                 ->get(['id', 'name', 'area_id']),
+            'subzones' => Subzone::withoutGlobalScopes()
+                ->where('tenant_id', $tenantId)
+                ->where('is_active', true)
+                ->orderBy('name')
+                ->get(['id', 'name', 'zone_id']),
+            'districts' => District::query()
+                ->where('is_active', true)
+                ->orderBy('name')
+                ->get(['id', 'name']),
+            'upazilas' => Upazila::query()
+                ->where('is_active', true)
+                ->orderBy('name')
+                ->get(['id', 'name', 'district_id']),
+            'segments' => [
+                ['value' => 'residential', 'label' => 'Home / residential'],
+                ['value' => 'corporate', 'label' => 'Corporate'],
+                ['value' => 'commercial', 'label' => 'Commercial'],
+                ['value' => 'vip', 'label' => 'VIP'],
+            ],
+            'subscriber_types' => collect(SubscriberType::options())->map(fn ($label, $value) => [
+                'value' => $value,
+                'label' => $label,
+            ])->values(),
+            'connection_types' => [
+                ['value' => 'fiber', 'label' => 'Fiber (FTTH)'],
+                ['value' => 'wireless', 'label' => 'Wireless'],
+                ['value' => 'dedicated', 'label' => 'Dedicated line'],
+                ['value' => 'hotspot', 'label' => 'Hotspot'],
+                ['value' => 'other', 'label' => 'Other'],
+            ],
+            'onu_ownership_options' => collect(OnuOwnership::options())->map(fn ($label, $value) => [
+                'value' => $value,
+                'label' => $label,
+            ])->values(),
+            'gender_options' => [
+                ['value' => 'male', 'label' => 'Male'],
+                ['value' => 'female', 'label' => 'Female'],
+                ['value' => 'other', 'label' => 'Other'],
+            ],
             'mikrotik_servers' => MikrotikServer::withoutGlobalScopes()
                 ->where('tenant_id', $tenantId)
                 ->where('is_enabled', true)
@@ -109,7 +155,16 @@ final class StaffCustomerFormService
             'name' => ['required', 'string', 'max:255'],
             'phone' => ['required', 'string', 'max:32'],
             'email' => ['nullable', 'email', 'max:255'],
+            'alternate_phone' => ['nullable', 'string', 'max:32'],
+            'nid_number' => ['nullable', 'string', 'max:255'],
+            'gender' => ['nullable', 'string', 'max:32'],
+            'date_of_birth' => ['nullable', 'date'],
+            'occupation' => ['nullable', 'string', 'max:120'],
+            'segment' => ['nullable', 'string', 'max:32'],
+            'subscriber_type' => ['nullable', 'string', 'max:32'],
             'address' => ['required', 'string', 'max:500'],
+            'district_id' => ['nullable', 'integer', 'exists:districts,id'],
+            'upazila_id' => ['nullable', 'integer', 'exists:upazilas,id'],
             'area_id' => [
                 Rule::requiredIf(fn () => Area::withoutGlobalScopes()->where('tenant_id', $tenantId)->exists()),
                 'nullable',
@@ -122,6 +177,7 @@ final class StaffCustomerFormService
                 'integer',
                 'exists:zones,id',
             ],
+            'subzone_id' => ['nullable', 'integer', 'exists:subzones,id'],
             'package_id' => ['required', 'integer', 'exists:packages,id'],
             'customer_code' => ['nullable', 'string', 'max:64'],
             'status' => ['nullable', Rule::in(array_keys(CustomerStatus::options()))],
@@ -139,6 +195,21 @@ final class StaffCustomerFormService
             'notes' => ['nullable', 'string', 'max:2000'],
             'provision_mikrotik' => ['nullable', 'boolean'],
             'first_bill_cycle' => ['nullable', 'in:this_month,next_month'],
+            'apply_line_charges' => ['nullable', 'boolean'],
+            'account_balance' => ['nullable', 'numeric', 'min:0'],
+            'installation_charge' => ['nullable', 'numeric', 'min:0'],
+            'line_charge' => ['nullable', 'numeric', 'min:0'],
+            'device_charge' => ['nullable', 'numeric', 'min:0'],
+            'line_device_charge' => ['nullable', 'numeric', 'min:0'],
+            'onu_device_id' => ['nullable', 'integer'],
+            'device_id' => ['nullable', 'integer'],
+            'cash_amount' => ['nullable', 'numeric', 'min:0'],
+            'line_cash_amount' => ['nullable', 'numeric', 'min:0'],
+            'cash_method' => ['nullable', 'string', 'max:32'],
+            'line_cash_method' => ['nullable', 'string', 'max:32'],
+            'use_wallet' => ['nullable', 'boolean'],
+            'use_wallet_on_register' => ['nullable', 'boolean'],
+            'meta' => ['nullable', 'array'],
         ]);
 
         $this->assertValidCustomerCode($tenantId, $data['customer_code'] ?? null);
@@ -151,18 +222,43 @@ final class StaffCustomerFormService
             ? trim((string) $data['mikrotik_secret_name'])
             : null;
 
+        $metaInput = is_array($data['meta'] ?? null) ? $data['meta'] : [];
+        foreach (['gender', 'date_of_birth', 'occupation', 'house_no', 'road_no', 'connection_type', 'onu_ownership', 'box_name', 'epon_port', 'onu_mac', 'cable_length_m', 'gps_lat', 'gps_lng', 'monthly_discount_bdt'] as $metaKey) {
+            if (array_key_exists($metaKey, $data) && filled($data[$metaKey])) {
+                $metaInput[$metaKey] = $data[$metaKey];
+            }
+        }
+
+        $meta = SubscriberGpsMeta::normalize(array_merge([
+            'notify_sms' => true,
+            'auto_invoice' => true,
+            'auto_pppoe' => true,
+            'auto_onu' => (bool) config('optical.auto_provision_customer_onu', true),
+            'auto_activate' => true,
+            'auto_suspend' => true,
+            'installation_status' => 'pending',
+            'onu_ownership' => OnuOwnership::COMPANY,
+            'registered_by_id' => $user->id,
+            'technician_id' => $user->id,
+        ], $metaInput));
+
         $attrs = [
             'tenant_id' => $tenantId,
             'name' => $data['name'],
-            'phone' => $data['phone'],
+            'phone' => CustomerContact::normalizePhone($data['phone']),
             'email' => $data['email'] ?? null,
+            'nid_number' => $data['nid_number'] ?? null,
+            'segment' => $data['segment'] ?? 'residential',
+            'subscriber_type' => SubscriberType::normalize($data['subscriber_type'] ?? SubscriberType::STANDARD),
             'address' => $data['address'] ?? null,
+            'district_id' => $data['district_id'] ?? null,
+            'upazila_id' => $data['upazila_id'] ?? null,
             'package_id' => $package->id,
             'area_id' => $data['area_id'] ?? null,
             'zone_id' => $data['zone_id'] ?? null,
+            'subzone_id' => $data['subzone_id'] ?? null,
             'status' => CustomerStatus::normalize($data['status'] ?? CustomerStatus::ACTIVE),
             'network_access_state' => $data['network_access_state'] ?? 'active',
-            'subscriber_type' => SubscriberType::STANDARD,
             'billing_mode' => $data['billing_mode'] ?? 'prepaid',
             'joined_at' => isset($data['joined_at'])
                 ? Carbon::parse($data['joined_at'])->toDateString()
@@ -180,6 +276,8 @@ final class StaffCustomerFormService
                 : $pppUser,
             'kyc_status' => 'pending',
             'notes' => trim(($data['notes'] ?? '')."\n\nCreated via mobile app by {$user->name}"),
+            'meta' => $meta,
+            'account_balance' => (float) ($data['account_balance'] ?? 0),
         ];
 
         if (filled($data['customer_code'] ?? null)) {
@@ -192,9 +290,25 @@ final class StaffCustomerFormService
 
         if (filled($data['portal_password'] ?? null)) {
             $attrs['portal_password'] = Hash::make($data['portal_password']);
+        } else {
+            $attrs['portal_password'] = Hash::make((string) config('portal.default_password', '123456'));
         }
 
         $customer = Customer::createTrusted($attrs);
+
+        $alternate = trim((string) ($data['alternate_phone'] ?? ''));
+        if ($alternate !== '') {
+            $customer->contacts()->firstOrCreate(
+                ['phone' => CustomerContact::normalizePhone($alternate)],
+                ['label' => 'alternate', 'is_primary' => false, 'is_whatsapp' => false],
+            );
+        }
+
+        try {
+            app(FiberPlantMapService::class)->syncCustomerNodeFromGps($customer->fresh());
+        } catch (\Throwable) {
+            // Map sync is optional when GPS missing.
+        }
 
         $network = ['provisioned' => false, 'message' => 'MikroTik sync skipped.'];
 

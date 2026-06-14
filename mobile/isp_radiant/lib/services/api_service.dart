@@ -380,6 +380,13 @@ class ApiService {
     required String phone,
     required int packageId,
     String? email,
+    String? alternatePhone,
+    String? nidNumber,
+    String? gender,
+    String? dateOfBirth,
+    String? occupation,
+    String? segment,
+    String? subscriberType,
     String? address,
     String? customerCode,
     String? status,
@@ -392,18 +399,37 @@ class ApiService {
     String? billingMode,
     int? areaId,
     int? zoneId,
+    int? subzoneId,
+    int? districtId,
+    int? upazilaId,
     int? mikrotikServerId,
     String? joinedAt,
     String? serviceExpiresAt,
     bool provisionMikrotik = true,
     String? firstBillCycle,
     int? expireDay,
+    String? networkAccessState,
+    bool applyLineCharges = false,
+    double? accountBalance,
+    double? installationCharge,
+    double? lineDeviceCharge,
+    double? lineCashAmount,
+    String? lineCashMethod,
+    bool useWalletOnRegister = true,
+    Map<String, dynamic>? meta,
   }) =>
       _post('/staff/customers/create', {
         'name': name,
         'phone': phone,
         'package_id': packageId,
         if (email != null && email.isNotEmpty) 'email': email,
+        if (alternatePhone != null && alternatePhone.isNotEmpty) 'alternate_phone': alternatePhone,
+        if (nidNumber != null && nidNumber.isNotEmpty) 'nid_number': nidNumber,
+        if (gender != null && gender.isNotEmpty) 'gender': gender,
+        if (dateOfBirth != null && dateOfBirth.isNotEmpty) 'date_of_birth': dateOfBirth,
+        if (occupation != null && occupation.isNotEmpty) 'occupation': occupation,
+        if (segment != null && segment.isNotEmpty) 'segment': segment,
+        if (subscriberType != null && subscriberType.isNotEmpty) 'subscriber_type': subscriberType,
         if (address != null && address.isNotEmpty) 'address': address,
         if (customerCode != null && customerCode.isNotEmpty) 'customer_code': customerCode,
         if (status != null) 'status': status,
@@ -416,13 +442,24 @@ class ApiService {
         if (billingMode != null) 'billing_mode': billingMode,
         if (areaId != null) 'area_id': areaId,
         if (zoneId != null) 'zone_id': zoneId,
+        if (subzoneId != null) 'subzone_id': subzoneId,
+        if (districtId != null) 'district_id': districtId,
+        if (upazilaId != null) 'upazila_id': upazilaId,
         if (mikrotikServerId != null) 'mikrotik_server_id': mikrotikServerId,
         if (joinedAt != null) 'joined_at': joinedAt,
         if (serviceExpiresAt != null) 'service_expires_at': serviceExpiresAt,
         'provision_mikrotik': provisionMikrotik,
-        'network_access_state': 'active',
+        'network_access_state': networkAccessState ?? 'active',
         if (firstBillCycle != null) 'first_bill_cycle': firstBillCycle,
         if (expireDay != null) 'expire_day': expireDay,
+        'apply_line_charges': applyLineCharges,
+        if (accountBalance != null) 'account_balance': accountBalance,
+        if (installationCharge != null) 'installation_charge': installationCharge,
+        if (lineDeviceCharge != null) 'line_device_charge': lineDeviceCharge,
+        if (lineCashAmount != null) 'line_cash_amount': lineCashAmount,
+        if (lineCashMethod != null) 'line_cash_method': lineCashMethod,
+        'use_wallet_on_register': useWalletOnRegister,
+        if (meta != null && meta.isNotEmpty) 'meta': meta,
       });
 
   Future<Map<String, dynamic>> createStaffCustomer({
@@ -513,7 +550,9 @@ class ApiService {
     String? status,
     int? packageId,
     bool dueOnly = false,
+    bool? networkSuspended,
     int? expiringDays,
+    bool? networkSuspended,
   }) async {
     final params = <String, String>{
       'page': '$page',
@@ -522,6 +561,7 @@ class ApiService {
       if (status != null && status.isNotEmpty) 'status': status,
       if (packageId != null) 'package_id': '$packageId',
       if (dueOnly) 'due_only': '1',
+      if (networkSuspended == true) 'network_suspended': '1',
       if (expiringDays != null) 'expiring_days': '$expiringDays',
     };
     final query = params.entries.map((e) => '${e.key}=${Uri.encodeQueryComponent(e.value)}').join('&');
@@ -695,6 +735,28 @@ class ApiService {
   Future<Map<String, dynamic>> staffOnlineClients() => _get('/staff/monitoring/online');
 
   Future<Map<String, dynamic>> staffMonitoringLive() => _get('/staff/monitoring/live');
+
+  Future<Map<String, dynamic>> staffMonitoringClients({
+    String q = '',
+    int? mikrotikServerId,
+    int? zoneId,
+    int? subzoneId,
+    String connection = 'all',
+    int page = 1,
+    int perPage = 25,
+  }) async {
+    final params = <String, String>{
+      'page': '$page',
+      'per_page': '$perPage',
+      if (q.isNotEmpty) 'q': q,
+      if (mikrotikServerId != null) 'mikrotik_server_id': '$mikrotikServerId',
+      if (zoneId != null) 'zone_id': '$zoneId',
+      if (subzoneId != null) 'subzone_id': '$subzoneId',
+      if (connection.isNotEmpty && connection != 'all') 'connection': connection,
+    };
+    final query = params.entries.map((e) => '${Uri.encodeQueryComponent(e.key)}=${Uri.encodeQueryComponent(e.value)}').join('&');
+    return _get('/staff/monitoring/clients?$query');
+  }
 
   Future<Map<String, dynamic>> staffBillingSummary() => _get('/staff/billing/summary');
 

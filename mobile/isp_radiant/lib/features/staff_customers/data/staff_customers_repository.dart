@@ -18,12 +18,18 @@ class StaffCustomersRepository {
   StaffCustomersRepository(this._api);
   final ApiService _api;
 
-  Future<Result<CustomerPage>> list({int page = 1, String? status, bool dueOnly = false}) =>
+  Future<Result<CustomerPage>> list({
+    int page = 1,
+    String? status,
+    bool dueOnly = false,
+    bool networkSuspended = false,
+  }) =>
       guard(() async {
         final body = await _api.staffCustomers(
           page: page,
           status: (status == null || status.isEmpty) ? null : status,
           dueOnly: dueOnly,
+          networkSuspended: networkSuspended ? true : null,
         );
         final items = (body['data'] as List<dynamic>? ?? const [])
             .whereType<Map>()

@@ -111,6 +111,7 @@ Route::prefix('v1')->group(function (): void {
         Route::get('/staff/optical/olts', [\App\Http\Controllers\Api\V1\Staff\StaffOpticalNocController::class, 'oltHealth']);
         Route::get('/staff/optical/olt/{device}/health', [\App\Http\Controllers\Api\V1\Staff\StaffOpticalNocController::class, 'oltHealthHistory'])->whereNumber('device');
         Route::get('/staff/monitoring/online', [StaffMonitoringController::class, 'index']);
+        Route::get('/staff/monitoring/clients', [StaffMonitoringController::class, 'clients']);
         Route::get('/staff/monitoring/live', [StaffMonitoringController::class, 'live']);
         Route::get('/staff/billing/summary', [StaffBillingController::class, 'summary']);
         Route::get('/staff/billing/due', [StaffBillingController::class, 'due']);
