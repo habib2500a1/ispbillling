@@ -19,7 +19,8 @@ class EnsureSanctumTechnician
             return response()->json(['message' => 'Staff authentication required.'], 403);
         }
 
-        if (! $user->hasAnyRole(['super-admin', 'isp-admin', 'isp-engineer', 'isp-support', 'isp-manager'])) {
+        if (! $request->user()?->tokenCan('technician')
+            && ! $user->hasAnyRole(['technician', 'super-admin', 'isp-admin', 'isp-engineer', 'isp-support', 'isp-manager'])) {
             return response()->json(['message' => 'Technician access denied.'], 403);
         }
 

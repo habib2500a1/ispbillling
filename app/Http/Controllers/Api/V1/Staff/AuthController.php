@@ -27,8 +27,8 @@ class AuthController extends Controller
             return response()->json(['message' => 'Account deactivated.'], 403);
         }
 
-        $collectorRoles = ['cashier', 'branch-manager', 'admin'];
-        $technicianRoles = ['super-admin', 'isp-admin', 'isp-engineer', 'isp-support', 'isp-manager'];
+        $collectorRoles = ['collector', 'cashier', 'branch-manager', 'admin'];
+        $technicianRoles = ['technician', 'super-admin', 'isp-admin', 'isp-engineer', 'isp-support', 'isp-manager'];
 
         if (! $user->hasAnyRole(array_merge($technicianRoles, $collectorRoles))) {
             return response()->json(['message' => 'Mobile access not allowed for this account.'], 403);

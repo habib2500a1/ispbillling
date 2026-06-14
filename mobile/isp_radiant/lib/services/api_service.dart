@@ -473,6 +473,8 @@ class ApiService {
     required int packageId,
     String? email,
     String? address,
+    int? areaId,
+    int? zoneId,
     String? notes,
     String? portalPassword,
   }) =>
@@ -481,7 +483,9 @@ class ApiService {
         'phone': phone,
         'package_id': packageId,
         if (email != null) 'email': email,
-        if (address != null) 'address': address,
+        'address': address?.trim().isNotEmpty == true ? address!.trim() : 'Created from mobile app',
+        if (areaId != null) 'area_id': areaId,
+        if (zoneId != null) 'zone_id': zoneId,
         if (notes != null) 'notes': notes,
         if (portalPassword != null) 'portal_password': portalPassword,
       });
@@ -939,7 +943,11 @@ class ApiService {
     final t = await token;
     final r = await role;
     if (t != null) {
-      final path = r == 'customer' ? '/customer/logout' : '/auth/logout';
+      final path = switch (r) {
+        'customer' => '/customer/logout',
+        'reseller' => '/reseller/logout',
+        _ => '/auth/logout',
+      };
       try {
         await _client.post(Uri.parse('${ServerConfig.apiBaseUrl}$path'), headers: await _headers()).timeout(_timeout);
       } catch (_) {}

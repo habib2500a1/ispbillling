@@ -76,6 +76,17 @@ class _ResellerHomeScreenState extends State<ResellerHomeScreen> {
   Map<String, dynamic> get _metrics =>
       (_dash?['metrics'] as Map?)?.cast<String, dynamic>() ?? {};
 
+  num _metric(List<String> keys) {
+    final m = _metrics;
+    for (final key in keys) {
+      final value = m[key];
+      if (value is num) return value;
+      final parsed = num.tryParse('${value ?? ''}');
+      if (parsed != null) return parsed;
+    }
+    return 0;
+  }
+
   @override
   Widget build(BuildContext context) {
     final name = widget.loginPayload['reseller']?['name']?.toString() ??
@@ -111,7 +122,6 @@ class _ResellerHomeScreenState extends State<ResellerHomeScreen> {
       );
     }
 
-    final m = _metrics;
     return RefreshIndicator(
       onRefresh: _load,
       child: ListView(
@@ -145,17 +155,17 @@ class _ResellerHomeScreenState extends State<ResellerHomeScreen> {
                 const SizedBox(height: 8),
                 Row(
                   children: [
-                    Expanded(child: _kpi('Revenue', _fmt.format(m['revenue_mtd'] ?? m['collected_mtd'] ?? 0))),
+                    Expanded(child: _kpi('Revenue', _fmt.format(_metric(['revenue_mtd', 'month_revenue', 'month_collection', 'collected_mtd'])))),
                     const SizedBox(width: 10),
-                    Expanded(child: _kpi('Customers', '${m['active_customers'] ?? m['customers'] ?? 0}')),
+                    Expanded(child: _kpi('Customers', '${_metric(['active_customers', 'customers_active', 'customers'])}')),
                   ],
                 ),
                 const SizedBox(height: 10),
                 Row(
                   children: [
-                    Expanded(child: _kpi('Due', _fmt.format(m['due_total'] ?? m['total_due'] ?? 0))),
+                    Expanded(child: _kpi('Due', _fmt.format(_metric(['due_total', 'total_due', 'due_amount'])))),
                     const SizedBox(width: 10),
-                    Expanded(child: _kpi('Collection', _fmt.format(m['collected_mtd'] ?? 0))),
+                    Expanded(child: _kpi('Collection', _fmt.format(_metric(['collected_mtd', 'month_collection', 'collection_mtd'])))),
                   ],
                 ),
                 const SizedBox(height: 16),
@@ -253,6 +263,7 @@ class _ResellerListTab extends StatefulWidget {
 class _ResellerListTabState extends State<_ResellerListTab> {
   List<Map<String, dynamic>> _items = [];
   bool _loading = true;
+  String? _error;
 
   @override
   void initState() {
@@ -261,21 +272,38 @@ class _ResellerListTabState extends State<_ResellerListTab> {
   }
 
   Future<void> _load() async {
-    setState(() => _loading = true);
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
     try {
       final list = await widget.loader();
       if (mounted) setState(() {
         _items = list;
         _loading = false;
       });
+    } on ApiException catch (e) {
+      if (mounted) setState(() {
+        _error = e.message;
+        _loading = false;
+      });
     } catch (_) {
-      if (mounted) setState(() => _loading = false);
+      if (mounted) setState(() {
+        _error = 'Could not load ${widget.title.toLowerCase()}';
+        _loading = false;
+      });
     }
   }
 
   @override
   Widget build(BuildContext context) {
     if (_loading) return const Center(child: CircularProgressIndicator());
+    if (_error != null) {
+      return ErrorStateView(
+        failure: Failure(_error!),
+        onRetry: _load,
+      );
+    }
     return RefreshIndicator(
       onRefresh: _load,
       child: ListView(
