@@ -1,7 +1,7 @@
 {
   "app_url": "https://anetbd.com",
   "api_base_url": "https://anetbd.com/api/v1",
-  "built_at": "2026-06-14T18:04:04Z",
-  "radiant_version": "3.3.9+52",
+  "built_at": "2026-06-14T18:19:01Z",
+  "radiant_version": "3.3.10+53",
   "mfs_version": "1.0.12+13"
 }

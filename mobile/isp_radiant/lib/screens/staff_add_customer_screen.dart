@@ -532,11 +532,14 @@ class _StaffAddCustomerScreenState extends State<StaffAddCustomerScreen> {
           _legacyDropdown('Router', _serverId?.toString(), _servers, (v) => setState(() => _serverId = v != null ? int.tryParse(v) : null), valueKey: 'id'),
         _legacyField(_pppUserCtrl, 'PPPoE username'),
         _legacyField(_pppPassCtrl, 'PPPoE password', obscure: true),
-        SwitchListTile(
-          contentPadding: EdgeInsets.zero,
-          value: _provisionMikrotik,
-          onChanged: (v) => setState(() => _provisionMikrotik = v),
-          title: const Text('Activate on MikroTik'),
+        Material(
+          color: Colors.transparent,
+          child: SwitchListTile(
+            contentPadding: EdgeInsets.zero,
+            value: _provisionMikrotik,
+            onChanged: (v) => setState(() => _provisionMikrotik = v),
+            title: const Text('Activate on MikroTik'),
+          ),
         ),
         _legacyField(_notesCtrl, 'Remarks / notes', maxLines: 3),
       ],
@@ -600,11 +603,14 @@ class _StaffAddCustomerScreenState extends State<StaffAddCustomerScreen> {
           _legacyDropdown('Router', _serverId?.toString(), _servers, (v) => setState(() => _serverId = v != null ? int.tryParse(v) : null), valueKey: 'id'),
         _legacyField(_pppUserCtrl, 'PPPoE username'),
         _legacyField(_pppPassCtrl, 'PPPoE password', obscure: true),
-        SwitchListTile(
-          contentPadding: EdgeInsets.zero,
-          value: _provisionMikrotik,
-          onChanged: (v) => setState(() => _provisionMikrotik = v),
-          title: const Text('Activate on MikroTik'),
+        Material(
+          color: Colors.transparent,
+          child: SwitchListTile(
+            contentPadding: EdgeInsets.zero,
+            value: _provisionMikrotik,
+            onChanged: (v) => setState(() => _provisionMikrotik = v),
+            title: const Text('Activate on MikroTik'),
+          ),
         ),
         const Divider(),
         const Text('Connection & ONU', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
@@ -633,11 +639,14 @@ class _StaffAddCustomerScreenState extends State<StaffAddCustomerScreen> {
             {'value': 'nagad', 'label': 'Nagad'},
             {'value': 'bank', 'label': 'Bank'},
           ], (v) => setState(() => _lineCashMethod = v ?? _lineCashMethod), valueKey: 'value', labelKey: 'label'),
-          SwitchListTile(
-            contentPadding: EdgeInsets.zero,
-            value: _useWallet,
-            onChanged: (v) => setState(() => _useWallet = v),
-            title: const Text('Use wallet balance'),
+          Material(
+            color: Colors.transparent,
+            child: SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              value: _useWallet,
+              onChanged: (v) => setState(() => _useWallet = v),
+              title: const Text('Use wallet balance'),
+            ),
           ),
         ],
       ],
