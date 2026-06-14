@@ -34,31 +34,8 @@
     $heroTitle = $this->getDirectoryHeroTitle();
     $heroSubtitle = $this->getDirectoryHeroSubtitle();
     $variant = $this->getDirectoryPageVariant();
-    $listUrl = match ($variant) {
-        'due' => \App\Filament\Resources\CustomerResource::getUrl('due'),
-        'paid' => \App\Filament\Resources\CustomerResource::getUrl('paid'),
-        'vip' => \App\Filament\Resources\CustomerResource::getUrl('vip'),
-        default => $indexUrl,
-    };
     $billingNavTabs = $this->getDirectoryBillingNavTabs();
     $activePreset = ($preset ?? 'all') !== 'all' ? ($preset ?? 'all') : null;
-    $listQuery = [];
-    if ($activePreset) {
-        $listQuery['preset'] = $activePreset;
-    }
-    if (filled($activeZone)) {
-        $listQuery['tableFilters']['zone_id']['value'] = $activeZone;
-    }
-    if (filled($activeStatus)) {
-        $listQuery['tableFilters']['status']['value'] = $activeStatus;
-    }
-    if (filled($this->tableSearch)) {
-        $listQuery['tableSearch'] = $this->tableSearch;
-    }
-    $resetUrl = $listUrl.($activePreset ? '?preset='.$activePreset : '');
-    $clearSearchQuery = $listQuery;
-    unset($clearSearchQuery['tableSearch']);
-    $clearSearchUrl = $listUrl.(filled($clearSearchQuery) ? '?'.http_build_query($clearSearchQuery) : '');
 @endphp
 
 {!! \App\Support\ClientsDirectoryStyles::navigatedScript() !!}
@@ -147,49 +124,20 @@
         </div>
 
         <section class="cl-dir-command cl-dir-toolbar" aria-label="Search and filters">
-            <form method="GET" action="{{ $listUrl }}" id="cl-dir-toolbar-form" class="cl-dir-command__row cl-dir-command__row--search">
-                @if ($activePreset)
-                    <input type="hidden" name="preset" value="{{ $activePreset }}">
-                @endif
-                @if (filled($activeZone))
-                    <input type="hidden" name="tableFilters[zone_id][value]" value="{{ $activeZone }}">
-                @endif
-                @if (filled($activeStatus))
-                    <input type="hidden" name="tableFilters[status][value]" value="{{ $activeStatus }}">
-                @endif
-                @if (filled($activePackage))
-                    <input type="hidden" name="tableFilters[package_id][value]" value="{{ $activePackage }}">
-                @endif
-                @if (filled($activeArea))
-                    <input type="hidden" name="tableFilters[area_id][value]" value="{{ $activeArea }}">
-                @endif
-                @if (filled($activeOwner))
-                    <input type="hidden" name="tableFilters[reseller_id][value]" value="{{ $activeOwner }}">
-                @endif
-                @if (filled($activeLine))
-                    <input type="hidden" name="tableFilters[network_access_state][value]" value="{{ $activeLine }}">
-                @endif
-                @if (filled($activeRemaining))
-                    <input type="hidden" name="tableFilters[remaining_days][value]" value="{{ $activeRemaining }}">
-                @endif
-                @if (filled($activeOnu))
-                    <input type="hidden" name="tableFilters[onu_ownership][value]" value="{{ $activeOnu }}">
-                @endif
-
+            <form wire:submit.prevent="$refresh" id="cl-dir-toolbar-form" class="cl-dir-command__row cl-dir-command__row--search">
                 <label class="cl-dir-command__search">
-                    <x-filament::icon icon="heroicon-m-magnifying-glass" class="cl-dir-toolbar__icon h-4 w-4" />
+                    <x-filament::icon icon="heroicon-m-magnifying-glass" class="cl-dir-toolbar__icon h-4 w-4" wire:loading.remove wire:target="tableSearch" />
+                    <x-filament::loading-indicator class="cl-dir-toolbar__icon h-4 w-4" wire:loading wire:target="tableSearch" />
                     <input
                         type="search"
                         id="cl-dir-search-input"
-                        name="tableSearch"
-                        value="{{ $this->tableSearch }}"
+                        wire:model.live.debounce.500ms="tableSearch"
                         autocomplete="off"
                         maxlength="1000"
                         placeholder="Search name, phone, ID, PPPoE, zone, package, router…"
-                        oninput="window.clearTimeout(window._clDirSearchTimer); window._clDirSearchTimer = window.setTimeout(function () { document.getElementById('cl-dir-toolbar-form').requestSubmit(); }, 500);"
                     />
                     @if ($hasSearch)
-                        <a href="{{ $clearSearchUrl }}" class="cl-dir-toolbar__clear" aria-label="Clear search">&times;</a>
+                        <button type="button" wire:click="setDirectorySearch('')" class="cl-dir-toolbar__clear" aria-label="Clear search">&times;</button>
                     @endif
                 </label>
 
