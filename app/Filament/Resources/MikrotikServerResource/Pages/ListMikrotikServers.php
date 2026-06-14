@@ -3,7 +3,6 @@
 namespace App\Filament\Resources\MikrotikServerResource\Pages;
 
 use App\Filament\Resources\MikrotikServerResource;
-use App\Filament\Resources\MikrotikServerResource\Pages\Concerns\UsesNetworkRouterLayout;
 use App\Models\MikrotikServer;
 use App\Services\Mikrotik\MikrotikPppImportService;
 use Filament\Actions;
@@ -16,31 +15,7 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ListMikrotikServers extends ListRecords
 {
-    use UsesNetworkRouterLayout;
-
     protected static string $resource = MikrotikServerResource::class;
-
-    protected static string $view = 'filament.resources.mikrotik-server-resource.pages.list-mikrotik-servers';
-
-    public function getExtraBodyAttributes(): array
-    {
-        return ['class' => 'isp-network-noc-page'];
-    }
-
-    /**
-     * @return array{total: int, enabled: int, online: int, subscribers: int}
-     */
-    public function getRouterStats(): array
-    {
-        $stats = $this->getNetworkRouterStats();
-
-        return [
-            'total' => $stats['total'],
-            'enabled' => $stats['enabled'],
-            'online' => $stats['online'],
-            'subscribers' => $stats['subscribers'],
-        ];
-    }
 
     protected function getHeaderActions(): array
     {
