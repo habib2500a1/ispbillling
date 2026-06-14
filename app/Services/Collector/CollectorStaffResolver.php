@@ -160,7 +160,7 @@ final class CollectorStaffResolver
 
                 if (! array_key_exists($requestedCollectorId, $options)) {
                     throw ValidationException::withMessages([
-                        'collectorUserId' => 'Select a valid staff member for this collection.',
+                        'collector_user_id' => 'Select a valid staff member for this collection.',
                     ]);
                 }
 
@@ -172,13 +172,13 @@ final class CollectorStaffResolver
             }
 
             throw ValidationException::withMessages([
-                'collectorUserId' => 'Select which staff member receives credit for this collection.',
+                'collector_user_id' => 'Select which staff member receives credit for this collection.',
             ]);
         }
 
         if ($requestedCollectorId !== null && $requestedCollectorId > 0 && $requestedCollectorId !== $selfId) {
             throw ValidationException::withMessages([
-                'collectorUserId' => 'You can only record collections under your own name.',
+                'collector_user_id' => 'You can only record collections under your own name.',
             ]);
         }
 

@@ -11,6 +11,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 COPY deploy/php/opcache.ini /usr/local/etc/php/conf.d/99-isp-opcache.ini
+COPY deploy/php/memory.ini /usr/local/etc/php/conf.d/99-isp-memory.ini
 COPY deploy/php-fpm-docker.conf /usr/local/etc/php-fpm.d/zz-docker.conf
 COPY deploy/php-fpm-www.conf /usr/local/etc/php-fpm.d/zz-isp-www.conf
 RUN mv /usr/local/etc/php-fpm.d/www.conf /usr/local/etc/php-fpm.d/www.conf.disabled

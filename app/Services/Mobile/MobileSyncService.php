@@ -5,6 +5,7 @@ namespace App\Services\Mobile;
 use App\Http\Controllers\Api\V1\Collector\CollectorController;
 use App\Models\MobileSyncQueue;
 use App\Models\User;
+use App\Services\Billing\StaffCollectionPaymentService;
 use Illuminate\Http\Request;
 
 final class MobileSyncService
@@ -88,7 +89,10 @@ final class MobileSyncService
     {
         $request = Request::create('/api/v1/collector/collections', 'POST', $payload);
         $request->setUserResolver(fn () => $user);
-        $response = app(CollectorController::class)->storeCollection($request, app(\App\Services\Collector\CollectorVisitService::class));
+        $response = app(CollectorController::class)->storeCollection(
+            $request,
+            app(StaffCollectionPaymentService::class),
+        );
 
         return json_decode($response->getContent(), true) ?? [];
     }

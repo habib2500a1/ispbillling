@@ -25,7 +25,9 @@ final class StaffCollectionPaymentService
         if ($requestedCollector === 0 && isset($data['collector_id'])) {
             $requestedCollector = (int) $data['collector_id'];
         }
-        app(CollectorStaffResolver::class)->requireSelfCollectorId($requestedCollector, $user);
+        $resolver = app(CollectorStaffResolver::class);
+        $collectorId = $resolver->requireSelfCollectorId($requestedCollector, $user);
+        $collectorUser = $resolver->resolveCollectorUser($collectorId);
 
         $amount = round((float) ($data['amount'] ?? 0), 2);
         $presetId = (string) ($data['discount_preset'] ?? 'none');
@@ -44,7 +46,7 @@ final class StaffCollectionPaymentService
         }
 
         if ($amount > 0) {
-            $duplicate = $this->findRecentDuplicatePayment($user, $customer, $invoice?->id, $amount);
+            $duplicate = $this->findRecentDuplicatePayment($collectorId, $customer, $invoice?->id, $amount);
             if ($duplicate !== null) {
                 $due = BillingDueRealtimeSync::afterPayment($customer, queueNetwork: false);
 
@@ -70,7 +72,7 @@ final class StaffCollectionPaymentService
         }
 
         $meta = array_merge(
-            app(CollectorStaffResolver::class)->paymentMetaForCollector((int) $user->id, (int) $user->id),
+            $resolver->paymentMetaForCollector($collectorId, (int) $user->id),
             CollectionPaymentClassifier::paymentMeta(
                 $customer,
                 $invoice,
@@ -91,7 +93,7 @@ final class StaffCollectionPaymentService
             'notes' => $notes !== '' ? $notes : null,
             'status' => 'completed',
             'paid_at' => now(),
-            'recorded_by' => $user->id,
+            'recorded_by' => $collectorId,
             'meta' => $meta,
         ]);
 
@@ -105,7 +107,7 @@ final class StaffCollectionPaymentService
             );
         }
 
-        $visit = app(CollectorVisitService::class)->recordCollection($user, $customer, $payment, [
+        $visit = app(CollectorVisitService::class)->recordCollection($collectorUser, $customer, $payment, [
             'latitude' => $data['latitude'] ?? null,
             'longitude' => $data['longitude'] ?? null,
             'accuracy_meters' => $data['accuracy_meters'] ?? null,
@@ -212,14 +214,14 @@ final class StaffCollectionPaymentService
         return $discountBdt;
     }
 
-    protected function findRecentDuplicatePayment(User $user, Customer $customer, ?int $invoiceId, float $amount): ?Payment
+    protected function findRecentDuplicatePayment(int $collectorId, Customer $customer, ?int $invoiceId, float $amount): ?Payment
     {
         return Payment::withoutGlobalScopes()
             ->where('tenant_id', $customer->tenant_id)
             ->where('customer_id', $customer->id)
             ->where('payment_type', PaymentType::PAYMENT)
             ->where('status', 'completed')
-            ->where('recorded_by', $user->id)
+            ->where('recorded_by', $collectorId)
             ->where('amount', round($amount, 2))
             ->when($invoiceId !== null, fn ($q) => $q->where('invoice_id', $invoiceId))
             ->where('created_at', '>=', now()->subSeconds(45))

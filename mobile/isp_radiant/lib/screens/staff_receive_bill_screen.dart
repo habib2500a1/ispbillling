@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../config/remote_config.dart';
-import '../design_system/components/radiant_glass_card.dart';
 import '../design_system/components/radiant_screen_header.dart';
 import '../design_system/radiant_tokens.dart';
 import '../core/theme/design_tokens.dart';
@@ -37,9 +36,12 @@ class _StaffReceiveBillScreenState extends State<StaffReceiveBillScreen> {
   final _fmt = NumberFormat('#,##0.00');
 
   List<Map<String, dynamic>> _methods = [];
+  List<Map<String, dynamic>> _collectors = [];
   String _method = 'cash';
   String _preset = 'none';
   Map<String, dynamic>? _opts;
+  int? _collectorId;
+  bool _canPickCollector = false;
   bool _sendSms = true;
   bool _nextBilling = false;
   bool _loading = true;
@@ -56,6 +58,9 @@ class _StaffReceiveBillScreenState extends State<StaffReceiveBillScreen> {
   void initState() {
     super.initState();
     if (_payable > 0) _receivedCtrl.text = _payable.toStringAsFixed(2);
+    _receivedCtrl.addListener(() {
+      if (mounted) setState(() {});
+    });
     _load();
   }
 
@@ -78,6 +83,12 @@ class _StaffReceiveBillScreenState extends State<StaffReceiveBillScreen> {
         _methods = methods;
         if (_methods.any((m) => m['code'] == 'cash')) _method = 'cash';
         _opts = opts;
+        _collectors = _listFrom(opts['collectors']);
+        _canPickCollector = opts['can_pick_collector'] == true;
+        _collectorId = (opts['default_collector_id'] as num?)?.toInt();
+        if (_collectorId == null && _collectors.length == 1) {
+          _collectorId = (_collectors.first['id'] as num?)?.toInt();
+        }
         _loading = false;
       });
     } catch (_) {
@@ -109,10 +120,26 @@ class _StaffReceiveBillScreenState extends State<StaffReceiveBillScreen> {
         msg.contains('internet');
   }
 
+  List<Map<String, dynamic>> _listFrom(dynamic raw) {
+    if (raw is! List) return [];
+    return raw.whereType<Map>().map((e) => Map<String, dynamic>.from(e)).toList();
+  }
+
+  bool get _canSubmit {
+    final amount = double.tryParse(_receivedCtrl.text.trim()) ?? 0;
+    if (amount <= 0) return false;
+    if (_collectorId == null || _collectorId! < 1) return false;
+    return true;
+  }
+
   Future<void> _submit() async {
     final amount = double.tryParse(_receivedCtrl.text.trim()) ?? 0;
     if (amount <= 0) {
       showSnack(context, 'Enter received amount', isError: true);
+      return;
+    }
+    if (_collectorId == null || _collectorId! < 1) {
+      showSnack(context, 'Select who received this payment', isError: true);
       return;
     }
     setState(() => _saving = true);
@@ -125,6 +152,7 @@ class _StaffReceiveBillScreenState extends State<StaffReceiveBillScreen> {
         method: _method,
         reference: _receiptCtrl.text.trim().isNotEmpty ? _receiptCtrl.text.trim() : null,
         notes: _buildNotes(),
+        collectorUserId: _collectorId,
         discountPreset: _preset,
         discountCustom: double.tryParse(_discountCtrl.text.trim()),
       );
@@ -152,6 +180,7 @@ class _StaffReceiveBillScreenState extends State<StaffReceiveBillScreen> {
           method: _method,
           reference: _receiptCtrl.text.trim().isNotEmpty ? _receiptCtrl.text.trim() : null,
           notes: _buildNotes(),
+          collectorUserId: _collectorId,
         );
         if (mounted) {
           showSnack(context, 'Offline — payment queued for sync');
@@ -172,10 +201,13 @@ class _StaffReceiveBillScreenState extends State<StaffReceiveBillScreen> {
     final gross = _payable;
 
     return Scaffold(
-      backgroundColor: context.isDark ? RadiantTokens.darkBg : RadiantTokens.lightBg,
+      backgroundColor: context.isDark ? RadiantTokens.darkBg : const Color(0xFFF0F4F8),
       appBar: AppBar(
-        title: const Text('Receive payment'),
-        centerTitle: false,
+        backgroundColor: RadiantTokens.brand,
+        foregroundColor: Colors.white,
+        elevation: 0,
+        centerTitle: true,
+        title: const Text('Receive Bill'),
       ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
@@ -185,6 +217,8 @@ class _StaffReceiveBillScreenState extends State<StaffReceiveBillScreen> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   _clientCard(c, monthly),
+                  const SizedBox(height: 12),
+                  _receivedByField(),
                   const SizedBox(height: 12),
                   RadiantFormSection(
                     title: 'Payment method',
@@ -201,10 +235,10 @@ class _StaffReceiveBillScreenState extends State<StaffReceiveBillScreen> {
                                 m['label']?.toString() ?? m['code']?.toString() ?? '',
                               ),
                             if (_methods.isEmpty) ...[
+                              _methodPill('other', 'Other'),
                               _methodPill('cash', 'Cash'),
-                              _methodPill('bank', 'Bank transfer'),
                               _methodPill('bkash', 'bKash'),
-                              _methodPill('nagad', 'Nagad'),
+                              _methodPill('bank', 'Bank'),
                               _methodPill('rocket', 'Rocket'),
                             ],
                           ],
@@ -333,9 +367,9 @@ class _StaffReceiveBillScreenState extends State<StaffReceiveBillScreen> {
                       const SizedBox(width: 12),
                       Expanded(
                         child: FilledButton(
-                          onPressed: _saving ? null : _submit,
+                          onPressed: (_saving || !_canSubmit) ? null : _submit,
                           style: FilledButton.styleFrom(
-                            backgroundColor: RadiantTokens.brand,
+                            backgroundColor: _canSubmit ? RadiantTokens.brand : Colors.grey.shade400,
                             minimumSize: const Size.fromHeight(48),
                           ),
                           child: _saving
@@ -353,6 +387,60 @@ class _StaffReceiveBillScreenState extends State<StaffReceiveBillScreen> {
                 ],
               ),
             ),
+    );
+  }
+
+  Widget _receivedByField() {
+    final collectors = _collectors;
+    final selected = _collectorId;
+    String? label;
+    for (final c in collectors) {
+      if ((c['id'] as num?)?.toInt() == selected) {
+        label = c['name']?.toString() ?? c['label']?.toString();
+        break;
+      }
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text('Received By', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+        const SizedBox(height: 8),
+        InputDecorator(
+          decoration: InputDecoration(
+            filled: true,
+            fillColor: Colors.white,
+            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(24)),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(24),
+              borderSide: BorderSide(color: Colors.grey.shade300),
+            ),
+          ),
+          child: collectors.isEmpty
+              ? Text(label ?? '—', style: const TextStyle(fontWeight: FontWeight.w600))
+              : DropdownButtonHideUnderline(
+                  child: DropdownButton<int>(
+                    isExpanded: true,
+                    value: collectors.any((c) => (c['id'] as num?)?.toInt() == selected) ? selected : null,
+                    hint: const Text('Select staff'),
+                    items: [
+                      for (final c in collectors)
+                        DropdownMenuItem<int>(
+                          value: (c['id'] as num).toInt(),
+                          child: Text(
+                            c['name']?.toString() ?? c['label']?.toString() ?? 'Staff',
+                            style: const TextStyle(fontWeight: FontWeight.w600),
+                          ),
+                        ),
+                    ],
+                    onChanged: (_canPickCollector && collectors.length > 1)
+                        ? (v) => setState(() => _collectorId = v)
+                        : null,
+                  ),
+                ),
+        ),
+      ],
     );
   }
 
@@ -397,7 +485,14 @@ class _StaffReceiveBillScreenState extends State<StaffReceiveBillScreen> {
   }
 
   Widget _sectionCard({required Widget child, Color? color}) {
-    return RadiantGlassCard(padding: const EdgeInsets.all(14), child: child);
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: color ?? const Color(0xFFE8EEF4),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: child,
+    );
   }
 
   Widget _infoCol(IconData icon, String label, String value, {Color? valueColor}) {
@@ -444,15 +539,27 @@ class _StaffReceiveBillScreenState extends State<StaffReceiveBillScreen> {
 
   Widget _methodPill(String code, String label) {
     final selected = _method == code;
-    return ChoiceChip(
-      label: Text(label),
-      selected: selected,
-      onSelected: (_) => setState(() => _method = code),
-      selectedColor: RadiantTokens.brand,
-      labelStyle: TextStyle(
-        color: selected ? Colors.white : RadiantTokens.brand,
-        fontWeight: FontWeight.w600,
-        fontSize: 12,
+    return Material(
+      color: selected ? RadiantTokens.brand : Colors.white,
+      borderRadius: BorderRadius.circular(20),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(20),
+        onTap: () => setState(() => _method = code),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: selected ? RadiantTokens.brand : Colors.grey.shade300),
+          ),
+          child: Text(
+            label,
+            style: TextStyle(
+              color: selected ? Colors.white : RadiantTokens.brand,
+              fontWeight: FontWeight.w600,
+              fontSize: 12,
+            ),
+          ),
+        ),
       ),
     );
   }

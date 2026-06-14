@@ -555,6 +555,9 @@ class ApiService {
     int? invoiceId,
     String? reference,
     String? notes,
+    int? collectorUserId,
+    String discountPreset = 'none',
+    double? discountCustom,
   }) =>
       _post('/staff/payments', {
         'customer_id': customerId,
@@ -563,6 +566,9 @@ class ApiService {
         if (invoiceId != null) 'invoice_id': invoiceId,
         if (reference != null) 'reference': reference,
         if (notes != null) 'notes': notes,
+        if (collectorUserId != null) 'collector_user_id': collectorUserId,
+        'discount_preset': discountPreset,
+        if (discountCustom != null && discountCustom > 0) 'discount_custom': discountCustom,
       });
 
   Future<List<Map<String, dynamic>>> staffPackagesList() async {
@@ -664,19 +670,21 @@ class ApiService {
     String method = 'cash',
     String? reference,
     String? notes,
+    int? collectorUserId,
     String discountPreset = 'none',
     double? discountCustom,
   }) async {
-    return _post('/collector/collections', {
-      'customer_id': customerId,
-      'amount': amount,
-      if (invoiceId != null) 'invoice_id': invoiceId,
-      'method': method,
-      if (reference != null) 'reference': reference,
-      if (notes != null) 'notes': notes,
-      'discount_preset': discountPreset,
-      if (discountCustom != null && discountCustom > 0) 'discount_custom': discountCustom,
-    });
+    return staffRecordPayment(
+      customerId: customerId,
+      amount: amount,
+      method: method,
+      invoiceId: invoiceId,
+      reference: reference,
+      notes: notes,
+      collectorUserId: collectorUserId,
+      discountPreset: discountPreset,
+      discountCustom: discountCustom,
+    );
   }
 
   Future<List<Map<String, dynamic>>> staffTasks() async {

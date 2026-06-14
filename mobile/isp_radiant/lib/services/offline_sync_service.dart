@@ -36,6 +36,7 @@ class OfflineSyncService {
     String method = 'cash',
     String? reference,
     String? notes,
+    int? collectorUserId,
   }) async {
     final items = await _loadQueue();
     items.add({
@@ -48,6 +49,7 @@ class OfflineSyncService {
         'method': method,
         if (reference != null) 'reference': reference,
         if (notes != null) 'notes': notes,
+        if (collectorUserId != null) 'collector_user_id': collectorUserId,
       },
     });
     await _saveQueue(items);

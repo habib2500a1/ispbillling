@@ -24,7 +24,7 @@ class StaffPaymentsController extends Controller
     {
         return response()->json([
             'data' => collect(PaymentGateway::options())
-                ->only([PaymentGateway::CASH, PaymentGateway::BKASH, PaymentGateway::NAGAD, PaymentGateway::BANK, PaymentGateway::ROCKET])
+                ->only([PaymentGateway::OTHER, PaymentGateway::CASH, PaymentGateway::BKASH, PaymentGateway::NAGAD, PaymentGateway::BANK, PaymentGateway::ROCKET])
                 ->map(fn ($label, $code) => ['code' => $code, 'label' => $label])
                 ->values(),
         ]);
@@ -43,6 +43,7 @@ class StaffPaymentsController extends Controller
             'notes' => ['nullable', 'string', 'max:1000'],
             'discount_preset' => ['nullable', 'string', 'max:64'],
             'discount_custom' => ['nullable', 'numeric', 'min:0'],
+            'collector_user_id' => ['nullable', 'integer', 'exists:users,id'],
         ]);
 
         $customer = $this->staffCustomerOrFail($user, (int) $data['customer_id']);

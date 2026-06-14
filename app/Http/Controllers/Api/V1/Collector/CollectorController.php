@@ -67,6 +67,7 @@ class CollectorController extends Controller
             'notes' => ['nullable', 'string', 'max:1000'],
             'discount_preset' => ['nullable', 'string', 'max:64'],
             'discount_custom' => ['nullable', 'numeric', 'min:0'],
+            'collector_user_id' => ['nullable', 'integer', 'exists:users,id'],
             'latitude' => ['nullable', 'numeric', 'between:-90,90'],
             'longitude' => ['nullable', 'numeric', 'between:-180,180'],
             'accuracy_meters' => ['nullable', 'integer', 'min:0', 'max:100000'],

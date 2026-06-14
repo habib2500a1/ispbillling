@@ -144,7 +144,7 @@ final class NetworkAccessCoordinator
     }
 
     /**
-     * When validity was extended into the future, clear stale expired state (idempotent).
+     * Clear stale expired/suspended state when subscriber is paid up (no overdue balance).
      */
     private function restoreServiceValidityIfNeeded(Customer $customer): Customer
     {
@@ -156,12 +156,10 @@ final class NetworkAccessCoordinator
             return $customer;
         }
 
-        if ($customer->service_expires_at === null || $customer->isServiceExpired()) {
-            return $customer;
-        }
-
         $status = CustomerStatus::normalize((string) $customer->status);
-        if ($status !== CustomerStatus::EXPIRED && ($customer->network_access_state ?? 'active') !== 'suspended') {
+        $networkSuspended = ($customer->network_access_state ?? 'active') === 'suspended';
+
+        if ($status !== CustomerStatus::EXPIRED && ! $networkSuspended) {
             return $customer;
         }
 
@@ -179,6 +177,7 @@ final class NetworkAccessCoordinator
 
     /**
      * When service validity date is past, mark customer inactive and suspend network (idempotent).
+     * Only mark as expired if there is an overdue balance - otherwise keep active.
      */
     private function applyServiceExpiryIfNeeded(Customer $customer): Customer
     {
@@ -203,10 +202,16 @@ final class NetworkAccessCoordinator
             return $customer;
         }
 
-        $updates = ['status' => CustomerStatus::EXPIRED];
-        if ($this->hasOverdueOpenBalance($customer)) {
-            $updates['network_access_state'] = 'suspended';
+        // Only mark as expired if there is an overdue balance
+        // If no dues, keep status active to avoid showing "expired" when paid up
+        if (! $this->hasOverdueOpenBalance($customer)) {
+            return $customer;
         }
+
+        $updates = [
+            'status' => CustomerStatus::EXPIRED,
+            'network_access_state' => 'suspended',
+        ];
 
         $customer->forceFill($updates)->saveQuietly();
 

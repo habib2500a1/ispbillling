@@ -95,4 +95,46 @@ class CustomerServiceExpiryTest extends TestCase
         $this->assertSame('expired', $customer->status);
         $this->assertSame('suspended', $customer->network_access_state);
     }
+
+    public function test_coordinator_restores_paid_up_customer_with_stale_expired_status(): void
+    {
+        config([
+            'network.service_expiry_enforced' => true,
+            'network.auto_suspend_enabled' => true,
+            'network.provisioner_driver' => 'null',
+        ]);
+
+        $package = Package::query()->create([
+            'name' => 'Paid',
+            'type' => 'residential',
+            'download_mbps' => 10,
+            'price_monthly' => 100,
+            'setup_fee' => 0,
+            'vat_percent' => 0,
+            'billing_cycle_days' => 30,
+            'is_active' => true,
+        ]);
+
+        $customer = Customer::query()->create([
+            'tenant_id' => 1,
+            'name' => 'Paid Up',
+            'phone' => '01700000003',
+            'status' => 'expired',
+            'billing_day' => 1,
+            'package_id' => $package->id,
+            'network_access_state' => 'active',
+            'grace_period_days' => 0,
+            'service_expires_at' => now()->subDays(5)->toDateString(),
+        ]);
+
+        $provisioner = $this->createMock(\App\Contracts\NetworkAccessProvisioner::class);
+        $provisioner->expects($this->once())->method('syncAccessPolicy');
+        $this->app->instance(\App\Contracts\NetworkAccessProvisioner::class, $provisioner);
+
+        app(NetworkAccessCoordinator::class)->syncCustomer($customer->fresh());
+
+        $customer->refresh();
+        $this->assertSame('active', $customer->status);
+        $this->assertSame('active', $customer->network_access_state);
+    }
 }

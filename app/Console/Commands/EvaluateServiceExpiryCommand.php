@@ -23,8 +23,9 @@ class EvaluateServiceExpiryCommand extends Command
         $q = Customer::query()->withoutGlobalScopes()
             ->whereNotNull('service_expires_at')
             ->whereDate('service_expires_at', '<', now()->toDateString())
+            ->where('status', '!=', 'terminated')
             ->where(function ($q): void {
-                $q->whereIn('status', ['active', 'suspended', 'inactive'])
+                $q->whereIn('status', ['active', 'suspended', 'inactive', 'expired'])
                     ->orWhere('network_access_state', 'active');
             });
 

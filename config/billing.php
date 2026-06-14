@@ -40,6 +40,11 @@ return [
     'bill_on_customer_create' => (bool) env('BILLING_ON_CUSTOMER_CREATE', true),
 
     /**
+     * Opening a subscriber profile re-runs billing/network policy (fixes stale Expired when paid up).
+     */
+    'auto_reconcile_on_subscriber_view' => (bool) env('BILLING_AUTO_RECONCILE_ON_SUBSCRIBER_VIEW', true),
+
+    /**
      * Default grace days when subscriber has none set.
      */
     'default_grace_period_days' => (int) env('BILLING_DEFAULT_GRACE_DAYS', 0),

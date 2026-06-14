@@ -11,6 +11,7 @@ use App\Models\Customer;
 use App\Models\Device;
 use App\Models\PaymentLink;
 use App\Services\BillPayment\PaymentLinkService;
+use App\Support\CustomerStatus;
 use App\Support\OpticalCustomerSync;
 use App\Services\Optical\CustomerOnuAutoProvisionService;
 use App\Services\Optical\CustomerOnuMatcher;
@@ -138,6 +139,30 @@ class ViewCustomer extends ViewRecord
         ])->loadCount('documents');
 
         $this->queueOpticalBackgroundSync($customer);
+        $this->reconcileBillingNetworkState($customer);
+    }
+
+    /**
+     * Paid-up subscribers should not stay "Expired" — reconcile status + MikroTik on page open.
+     */
+    private function reconcileBillingNetworkState(Customer $customer): void
+    {
+        if (! config('billing.auto_reconcile_on_subscriber_view', true)) {
+            return;
+        }
+
+        $status = CustomerStatus::normalize((string) $customer->status);
+        $networkSuspended = ($customer->network_access_state ?? 'active') === 'suspended';
+        $looksStale = in_array($status, [CustomerStatus::EXPIRED, CustomerStatus::SUSPENDED], true)
+            || $networkSuspended
+            || ($customer->isServiceExpired() && $status !== CustomerStatus::TERMINATED);
+
+        if (! $looksStale) {
+            return;
+        }
+
+        SyncCustomerNetworkAccessJob::dispatchSync((int) $customer->tenant_id, (int) $customer->id);
+        $this->record = $customer->fresh() ?? $customer;
     }
 
     /**
