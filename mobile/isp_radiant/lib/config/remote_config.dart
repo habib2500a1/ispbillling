@@ -126,6 +126,31 @@ class RemoteConfig {
     return links?['pay']?.toString();
   }
 
+  static String? get portalSignupUrl {
+    final links = _raw?['links'] as Map?;
+    final base = links?['base']?.toString();
+    if (base != null && base.isNotEmpty) {
+      return '$base/portal/signup';
+    }
+    final landing = websiteUrl;
+    if (landing != null && landing.isNotEmpty) {
+      return '$landing/portal/signup';
+    }
+    return null;
+  }
+
+  static String get forgotPasswordUrl {
+    final links = _raw?['links'] as Map?;
+    final portal = links?['portal_login']?.toString();
+    if (portal != null && portal.isNotEmpty) return portal;
+    return loginHubUrl;
+  }
+
+  static bool get rememberLoginDefault {
+    final auth = _raw?['auth'] as Map?;
+    return auth?['remember_default'] != false;
+  }
+
   static String? get resellerLoginUrl {
     final links = _raw?['links'] as Map?;
     final fromLinks = links?['reseller_login']?.toString();

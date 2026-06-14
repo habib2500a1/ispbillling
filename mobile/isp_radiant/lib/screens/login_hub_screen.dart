@@ -1,18 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../config/remote_config.dart';
 import '../core/navigation/super_app_navigator.dart';
-import '../core/theme/design_tokens.dart';
-import '../design_system/components/radiant_glass_card.dart';
-import '../design_system/components/radiant_section.dart';
-import '../design_system/navigation/radiant_super_shell.dart';
-import '../design_system/radiant_tokens.dart';
 import '../services/api_service.dart';
+import '../widgets/radiant_legacy_login_header.dart';
 import 'reseller_web_portal_screen.dart';
 import 'server_setup_screen.dart';
 
-/// Radiant 3.0 — single sign-in. Server detects customer / staff / reseller.
+/// Radiant login — legacy SOFTIFY-style UI with unified mobile API sign-in.
 class LoginHubScreen extends StatefulWidget {
   const LoginHubScreen({super.key, required this.api});
 
@@ -23,6 +20,9 @@ class LoginHubScreen extends StatefulWidget {
 }
 
 class _LoginHubScreenState extends State<LoginHubScreen> {
+  static const _rememberKey = 'login_remember_me';
+  static const _savedLoginKey = 'login_saved_identifier';
+
   final _formKey = GlobalKey<FormState>();
   final _loginCtrl = TextEditingController();
   final _passCtrl = TextEditingController();
@@ -32,14 +32,33 @@ class _LoginHubScreenState extends State<LoginHubScreen> {
   bool _bootLoading = true;
   bool _obscure = true;
   bool _needs2fa = false;
+  bool _rememberMe = true;
   String? _error;
+
+  static const _fieldBorder = Color(0xFFB0BEC5);
+  static const _labelColor = Color(0xFF607D8B);
 
   @override
   void initState() {
     super.initState();
-    widget.api.loadRemoteConfig().whenComplete(() {
+    _boot();
+  }
+
+  Future<void> _boot() async {
+    try {
+      await widget.api.loadRemoteConfig();
+      final prefs = await SharedPreferences.getInstance();
+      _rememberMe = prefs.getBool(_rememberKey) ?? RemoteConfig.rememberLoginDefault;
+      if (_rememberMe) {
+        final saved = prefs.getString(_savedLoginKey);
+        if (saved != null && saved.isNotEmpty) {
+          _loginCtrl.text = saved;
+        }
+      }
+    } catch (_) {
+    } finally {
       if (mounted) setState(() => _bootLoading = false);
-    });
+    }
   }
 
   @override
@@ -48,6 +67,42 @@ class _LoginHubScreenState extends State<LoginHubScreen> {
     _passCtrl.dispose();
     _twoFactorCtrl.dispose();
     super.dispose();
+  }
+
+  InputDecoration _outlineField(String label, {Widget? suffix}) {
+    return InputDecoration(
+      labelText: label,
+      labelStyle: const TextStyle(color: _labelColor, fontSize: 14),
+      floatingLabelStyle: const TextStyle(color: _labelColor, fontSize: 13),
+      suffixIcon: suffix,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(4),
+        borderSide: const BorderSide(color: _fieldBorder, width: 1.2),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(4),
+        borderSide: const BorderSide(color: RadiantLegacyLoginHeader.primaryBlue, width: 1.4),
+      ),
+      errorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(4),
+        borderSide: const BorderSide(color: Colors.redAccent, width: 1.2),
+      ),
+      focusedErrorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(4),
+        borderSide: const BorderSide(color: Colors.redAccent, width: 1.4),
+      ),
+    );
+  }
+
+  Future<void> _persistRememberMe() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_rememberKey, _rememberMe);
+    if (_rememberMe) {
+      await prefs.setString(_savedLoginKey, _loginCtrl.text.trim());
+    } else {
+      await prefs.remove(_savedLoginKey);
+    }
   }
 
   Future<void> _submit() async {
@@ -63,6 +118,8 @@ class _LoginHubScreenState extends State<LoginHubScreen> {
         password: _passCtrl.text,
         twoFactorCode: _needs2fa ? _twoFactorCtrl.text.trim() : null,
       );
+
+      await _persistRememberMe();
 
       if (!mounted) return;
       await SuperAppNavigator.routeAfterLogin(context, widget.api, body);
@@ -83,236 +140,260 @@ class _LoginHubScreenState extends State<LoginHubScreen> {
     }
   }
 
-  Widget _brandLogo() {
-    final url = RemoteConfig.logoUrl;
-    if (url != null && url.isNotEmpty) {
-      return ClipRRect(
-        borderRadius: BorderRadius.circular(RadiantTokens.radiusSm),
-        child: Image.network(
-          url,
-          width: 56,
-          height: 56,
-          fit: BoxFit.contain,
-          errorBuilder: (_, __, ___) => _fallbackLogo(),
-        ),
-      );
-    }
-    return _fallbackLogo();
-  }
-
-  Widget _fallbackLogo() {
-    return Container(
-      width: 56,
-      height: 56,
-      decoration: BoxDecoration(
-        color: RadiantTokens.brand.withValues(alpha: 0.15),
-        borderRadius: BorderRadius.circular(RadiantTokens.radiusSm),
+  void _openWeb(String url, String title) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => ResellerWebPortalScreen(initialUrl: url, title: title),
       ),
-      child: const Icon(Icons.wifi_tethering_rounded, color: RadiantTokens.brand, size: 30),
     );
   }
 
-  InputDecoration _field(String label, {Widget? prefix, Widget? suffix}) {
-    return InputDecoration(
-      labelText: label,
-      prefixIcon: prefix,
-      suffixIcon: suffix,
-      filled: true,
-      fillColor: context.isDark ? RadiantTokens.darkSurface : RadiantTokens.lightSurface,
-      border: OutlineInputBorder(borderRadius: BorderRadius.circular(RadiantTokens.radiusSm)),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(RadiantTokens.radiusSm),
-        borderSide: BorderSide(color: context.radiant.border),
-      ),
-    );
+  String get _companyShort {
+    final name = RemoteConfig.appName.trim();
+    if (name.isEmpty) return 'Radiant';
+    return name.split(RegExp(r'\s+')).first;
   }
 
   @override
   Widget build(BuildContext context) {
-    final brand = context.radiant;
-
     return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: context.isDark ? SystemUiOverlayStyle.light : SystemUiOverlayStyle.dark,
+      value: SystemUiOverlayStyle.dark.copyWith(statusBarColor: Colors.transparent),
       child: Scaffold(
-        backgroundColor: context.isDark ? RadiantTokens.darkBg : RadiantTokens.lightBg,
+        backgroundColor: Colors.white,
         body: _bootLoading
-            ? const Center(child: CircularProgressIndicator(color: RadiantTokens.brand))
-            : Stack(
-                children: [
-                  Positioned.fill(
-                    child: DecoratedBox(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: context.isDark
-                              ? [const Color(0xFF1E1B4B), RadiantTokens.darkBg]
-                              : [const Color(0xFFEEF2FF), RadiantTokens.lightBg],
-                        ),
-                      ),
-                    ),
-                  ),
-                  SafeArea(
-                    child: ListView(
-                      padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
-                      children: [
-                    RadiantMeshBackground(
-                      bottomRadius: RadiantTokens.radiusXl,
-                      child: Padding(
-                        padding: const EdgeInsets.fromLTRB(20, 28, 20, 28),
-                        child: Column(
-                          children: [
-                            _brandLogo(),
-                            const SizedBox(height: 16),
-                            Text(
-                              RemoteConfig.appName,
-                              textAlign: TextAlign.center,
-                              style: context.text.titleLarge?.copyWith(
-                                fontWeight: FontWeight.w800,
-                                letterSpacing: -0.4,
-                              ),
-                            ),
-                            const SizedBox(height: 6),
-                            Text(
-                              'Enterprise ISP Super App',
-                              style: context.text.bodySmall?.copyWith(color: brand.muted),
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              'Sign in with your account — we’ll open the right workspace.',
-                              textAlign: TextAlign.center,
-                              style: context.text.bodySmall?.copyWith(color: brand.muted, height: 1.4),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-                    RadiantGlassCard(
-                      child: Form(
-                        key: _formKey,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            TextFormField(
-                              controller: _loginCtrl,
-                              keyboardType: TextInputType.text,
-                              textInputAction: TextInputAction.next,
-                              autofocus: true,
-                              decoration: _field(
-                                'Email, phone, or username',
-                                prefix: const Icon(Icons.person_outline_rounded, color: RadiantTokens.brand),
-                              ),
-                              validator: (v) => (v == null || v.trim().isEmpty) ? 'Required' : null,
-                            ),
-                            const SizedBox(height: 14),
-                            TextFormField(
-                              controller: _passCtrl,
-                              obscureText: _obscure,
-                              textInputAction: TextInputAction.done,
-                              onFieldSubmitted: (_) => _submit(),
-                              decoration: _field(
-                                'Password',
-                                prefix: const Icon(Icons.lock_outline_rounded, color: RadiantTokens.brand),
-                                suffix: IconButton(
-                                  icon: Icon(_obscure ? Icons.visibility_off_outlined : Icons.visibility_outlined),
-                                  onPressed: () => setState(() => _obscure = !_obscure),
+            ? const Center(child: CircularProgressIndicator(color: RadiantLegacyLoginHeader.primaryBlue))
+            : SafeArea(
+                top: false,
+                child: Column(
+                  children: [
+                    const RadiantLegacyLoginHeader(),
+                    Expanded(
+                      child: ListView(
+                        padding: const EdgeInsets.fromLTRB(28, 8, 28, 16),
+                        children: [
+                          Form(
+                            key: _formKey,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                TextFormField(
+                                  controller: _loginCtrl,
+                                  keyboardType: TextInputType.text,
+                                  textInputAction: TextInputAction.next,
+                                  autofocus: _loginCtrl.text.isEmpty,
+                                  decoration: _outlineField('Client Code/User Name'),
+                                  validator: (v) => (v == null || v.trim().isEmpty) ? 'Required' : null,
                                 ),
-                              ),
-                              validator: (v) => (v == null || v.isEmpty) ? 'Required' : null,
-                            ),
-                            if (_needs2fa) ...[
-                              const SizedBox(height: 14),
-                              TextFormField(
-                                controller: _twoFactorCtrl,
-                                keyboardType: TextInputType.number,
-                                decoration: _field(
-                                  'Two-factor code',
-                                  prefix: const Icon(Icons.shield_outlined, color: RadiantTokens.brand),
+                                const SizedBox(height: 22),
+                                TextFormField(
+                                  controller: _passCtrl,
+                                  obscureText: _obscure,
+                                  textInputAction: TextInputAction.done,
+                                  onFieldSubmitted: (_) => _submit(),
+                                  decoration: _outlineField(
+                                    'Password',
+                                    suffix: IconButton(
+                                      icon: Icon(
+                                        _obscure ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                                        color: _labelColor,
+                                      ),
+                                      onPressed: () => setState(() => _obscure = !_obscure),
+                                    ),
+                                  ),
+                                  validator: (v) => (v == null || v.isEmpty) ? 'Required' : null,
                                 ),
-                                validator: (v) => (_needs2fa && (v == null || v.trim().isEmpty)) ? 'Required' : null,
-                              ),
-                            ],
-                            if (_error != null) ...[
-                              const SizedBox(height: 14),
-                              Container(
-                                padding: const EdgeInsets.all(12),
-                                decoration: BoxDecoration(
-                                  color: RadiantTokens.danger.withValues(alpha: 0.08),
-                                  borderRadius: BorderRadius.circular(RadiantTokens.radiusSm),
-                                  border: Border.all(color: RadiantTokens.danger.withValues(alpha: 0.25)),
-                                ),
-                                child: Text(_error!, style: const TextStyle(color: RadiantTokens.danger, fontSize: 13)),
-                              ),
-                            ],
-                            const SizedBox(height: 20),
-                            FilledButton(
-                              onPressed: _loading ? null : _submit,
-                              style: FilledButton.styleFrom(
-                                minimumSize: const Size.fromHeight(52),
-                                backgroundColor: RadiantTokens.brand,
-                              ),
-                              child: _loading
-                                  ? const SizedBox(
+                                if (_needs2fa) ...[
+                                  const SizedBox(height: 22),
+                                  TextFormField(
+                                    controller: _twoFactorCtrl,
+                                    keyboardType: TextInputType.number,
+                                    decoration: _outlineField('Two-factor code'),
+                                    validator: (v) => (_needs2fa && (v == null || v.trim().isEmpty)) ? 'Required' : null,
+                                  ),
+                                ],
+                                const SizedBox(height: 14),
+                                Row(
+                                  children: [
+                                    SizedBox(
                                       width: 24,
                                       height: 24,
-                                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                                    )
-                                  : const Text('Sign in', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+                                      child: Checkbox(
+                                        value: _rememberMe,
+                                        activeColor: RadiantLegacyLoginHeader.primaryBlue,
+                                        side: const BorderSide(color: _fieldBorder, width: 1.4),
+                                        onChanged: (v) => setState(() => _rememberMe = v ?? false),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    GestureDetector(
+                                      onTap: () => setState(() => _rememberMe = !_rememberMe),
+                                      child: const Text(
+                                        'Remember me?',
+                                        style: TextStyle(color: Color(0xFF455A64), fontSize: 14),
+                                      ),
+                                    ),
+                                    const Spacer(),
+                                    TextButton(
+                                      onPressed: () => _openWeb(RemoteConfig.forgotPasswordUrl, 'Forgot password'),
+                                      style: TextButton.styleFrom(
+                                        padding: EdgeInsets.zero,
+                                        minimumSize: Size.zero,
+                                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                      ),
+                                      child: const Text(
+                                        'Forgot Password?',
+                                        style: TextStyle(
+                                          color: Color(0xFF37474F),
+                                          fontSize: 14,
+                                          decoration: TextDecoration.underline,
+                                          decorationColor: Color(0xFF37474F),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                if (_error != null) ...[
+                                  const SizedBox(height: 14),
+                                  Text(
+                                    _error!,
+                                    style: const TextStyle(color: Colors.redAccent, fontSize: 13),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                ],
+                                const SizedBox(height: 28),
+                                SizedBox(
+                                  height: 48,
+                                  child: ElevatedButton(
+                                    onPressed: _loading ? null : _submit,
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: RadiantLegacyLoginHeader.primaryBlue,
+                                      foregroundColor: Colors.white,
+                                      elevation: 0,
+                                      shape: const StadiumBorder(),
+                                      textStyle: const TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
+                                    ),
+                                    child: _loading
+                                        ? const SizedBox(
+                                            width: 24,
+                                            height: 24,
+                                            child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                                          )
+                                        : const Text('Log In'),
+                                  ),
+                                ),
+                              ],
                             ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    if (RemoteConfig.payUrl != null) ...[
-                      const SizedBox(height: 16),
-                      RadiantGlassCard(
-                        onTap: () {
-                          final pay = RemoteConfig.payUrl!;
-                          Navigator.of(context).push(
-                            RadiantPageRoute(
-                              page: ResellerWebPortalScreen(initialUrl: pay, title: 'Pay bill'),
-                            ),
-                          );
-                        },
-                        child: Row(
-                          children: [
-                            const Icon(Icons.payment_rounded, color: RadiantTokens.brand),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Text(
-                                'Quick pay without login',
-                                style: context.text.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
+                          ),
+                          const SizedBox(height: 36),
+                          Text(
+                            'Are you a customer of $_companyShort?',
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(color: Color(0xFF455A64), fontSize: 15),
+                          ),
+                          const SizedBox(height: 6),
+                          Center(
+                            child: GestureDetector(
+                              onTap: () {
+                                final signup = RemoteConfig.portalSignupUrl;
+                                if (signup != null) {
+                                  _openWeb(signup, 'Register account');
+                                }
+                              },
+                              child: RichText(
+                                text: TextSpan(
+                                  style: const TextStyle(color: Color(0xFF455A64), fontSize: 15),
+                                  children: [
+                                    const TextSpan(text: 'Ensure your account is '),
+                                    TextSpan(
+                                      text: 'Registered',
+                                      style: TextStyle(
+                                        decoration: TextDecoration.underline,
+                                        color: RadiantLegacyLoginHeader.primaryBlue.withValues(alpha: 0.95),
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
                             ),
-                            Icon(Icons.chevron_right_rounded, color: brand.muted),
+                          ),
+                          if (RemoteConfig.payUrl != null) ...[
+                            const SizedBox(height: 18),
+                            Center(
+                              child: TextButton(
+                                onPressed: () => _openWeb(RemoteConfig.payUrl!, 'Pay bill'),
+                                child: const Text(
+                                  'Pay bill without login',
+                                  style: TextStyle(
+                                    decoration: TextDecoration.underline,
+                                    color: Color(0xFF546E7A),
+                                  ),
+                                ),
+                              ),
+                            ),
                           ],
-                        ),
+                          if (RemoteConfig.canChangeServer) ...[
+                            const SizedBox(height: 4),
+                            Center(
+                              child: TextButton.icon(
+                                onPressed: () async {
+                                  await Navigator.of(context).push(
+                                    MaterialPageRoute(page: ServerSetupScreen(api: widget.api)),
+                                  );
+                                  if (!mounted) return;
+                                  setState(() => _bootLoading = true);
+                                  await _boot();
+                                },
+                                icon: const Icon(Icons.dns_outlined, size: 16),
+                                label: const Text('Server settings'),
+                              ),
+                            ),
+                          ],
+                        ],
                       ),
-                    ],
-                    if (RemoteConfig.canChangeServer) ...[
-                      const SizedBox(height: 16),
-                      Center(
-                        child: TextButton.icon(
-                          onPressed: () async {
-                            await Navigator.of(context).push(
-                              RadiantPageRoute(page: ServerSetupScreen(api: widget.api)),
-                            );
-                            if (mounted) setState(() => _bootLoading = true);
-                            await widget.api.loadRemoteConfig();
-                            if (mounted) setState(() => _bootLoading = false);
-                          },
-                          icon: const Icon(Icons.dns_outlined, size: 18),
-                          label: const Text('Server settings'),
-                        ),
-                      ),
-                    ],
+                    ),
+                    const Padding(
+                      padding: EdgeInsets.fromLTRB(16, 8, 16, 14),
+                      child: _DevelopedByFooter(),
+                    ),
                   ],
                 ),
               ),
+      ),
+    );
+  }
+}
+
+class _DevelopedByFooter extends StatelessWidget {
+  const _DevelopedByFooter();
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        const Text(
+          'Developed By',
+          style: TextStyle(color: Color(0xFF78909C), fontSize: 13),
+        ),
+        const SizedBox(width: 8),
+        Text(
+          'SOFTIFY',
+          style: TextStyle(
+            color: const Color(0xFF26A69A),
+            fontSize: 22,
+            fontWeight: FontWeight.w800,
+            letterSpacing: 0.5,
+            shadows: [
+              Shadow(
+                color: const Color(0xFF26A69A).withValues(alpha: 0.35),
+                blurRadius: 1,
+                offset: const Offset(1, 1),
+              ),
             ],
           ),
-      ),
+        ),
+      ],
     );
   }
 }
