@@ -2,6 +2,7 @@
 
 namespace App\Services\Mobile;
 
+use App\Models\Area;
 use App\Models\Customer;
 use App\Models\MikrotikServer;
 use App\Models\PppSessionLog;
@@ -128,14 +129,14 @@ final class StaffMonitoringService
 
         $statsBase = Customer::query()
             ->where('tenant_id', $tenantId)
-            ->withMikrotikPpp();
+            ->forNetworkMonitoring();
 
         $total = (clone $statsBase)->count();
         $online = $bandwidth->displayedOnlineCount($tenantId, $statsBase);
 
         $query = Customer::query()
             ->where('tenant_id', $tenantId)
-            ->withMikrotikPpp()
+            ->forNetworkMonitoring()
             ->with([
                 'zone:id,name',
                 'subzone:id,name',
@@ -156,7 +157,8 @@ final class StaffMonitoringService
                     ->orWhere('name', 'like', $like)
                     ->orWhere('phone', 'like', $like)
                     ->orWhere('radius_username', 'like', $like)
-                    ->orWhere('mikrotik_secret_name', 'like', $like);
+                    ->orWhere('mikrotik_secret_name', 'like', $like)
+                    ->orWhere('address', 'like', $like);
                 if (is_numeric($q)) {
                     $w->orWhere('id', (int) $q);
                 }
@@ -173,6 +175,10 @@ final class StaffMonitoringService
 
         if (! empty($filters['subzone_id'])) {
             $query->where('subzone_id', (int) $filters['subzone_id']);
+        }
+
+        if (! empty($filters['area_id'])) {
+            $query->where('area_id', (int) $filters['area_id']);
         }
 
         $connection = (string) ($filters['connection'] ?? 'all');
@@ -223,6 +229,13 @@ final class StaffMonitoringService
                     ->orderBy('name')
                     ->get(['id', 'name', 'zone_id'])
                     ->map(fn (Subzone $s) => ['id' => $s->id, 'name' => $s->name, 'zone_id' => $s->zone_id])
+                    ->values()
+                    ->all(),
+                'areas' => Area::query()
+                    ->where('tenant_id', $tenantId)
+                    ->orderBy('name')
+                    ->get(['id', 'name'])
+                    ->map(fn (Area $a) => ['id' => $a->id, 'name' => $a->name])
                     ->values()
                     ->all(),
             ],

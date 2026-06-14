@@ -141,11 +141,13 @@ class ClientMonitorFilters {
     required this.routers,
     required this.zones,
     required this.subzones,
+    required this.areas,
   });
 
   final List<Map<String, dynamic>> routers;
   final List<Map<String, dynamic>> zones;
   final List<Map<String, dynamic>> subzones;
+  final List<Map<String, dynamic>> areas;
 
   factory ClientMonitorFilters.fromJson(Map<String, dynamic> j) => ClientMonitorFilters(
         routers: (j['routers'] as List<dynamic>? ?? const [])
@@ -157,6 +159,10 @@ class ClientMonitorFilters {
             .map((e) => Map<String, dynamic>.from(e))
             .toList(),
         subzones: (j['subzones'] as List<dynamic>? ?? const [])
+            .whereType<Map>()
+            .map((e) => Map<String, dynamic>.from(e))
+            .toList(),
+        areas: (j['areas'] as List<dynamic>? ?? const [])
             .whereType<Map>()
             .map((e) => Map<String, dynamic>.from(e))
             .toList(),
@@ -204,6 +210,7 @@ class MonitoringRepository {
     int? mikrotikServerId,
     int? zoneId,
     int? subzoneId,
+    int? areaId,
     String connection = 'all',
     int page = 1,
     int perPage = 25,
@@ -214,6 +221,7 @@ class MonitoringRepository {
           mikrotikServerId: mikrotikServerId,
           zoneId: zoneId,
           subzoneId: subzoneId,
+          areaId: areaId,
           connection: connection,
           page: page,
           perPage: perPage,

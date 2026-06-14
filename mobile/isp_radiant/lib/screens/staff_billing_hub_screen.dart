@@ -294,8 +294,9 @@ class _StaffBillingHubScreenState extends State<StaffBillingHubScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF0F4F8),
+    return LegacySoftifyPage(
+      child: Scaffold(
+        backgroundColor: RadiantTokens.legacyPageBg,
       body: Column(
         children: [
           LegacySoftifyScreenHeader(
@@ -306,7 +307,7 @@ class _StaffBillingHubScreenState extends State<StaffBillingHubScreen> {
                     children: [
                       Expanded(
                         child: Material(
-                          color: RadiantTokens.brand,
+                          color: RadiantTokens.legacyHeaderBlue,
                           borderRadius: BorderRadius.circular(20),
                           child: InkWell(
                             borderRadius: BorderRadius.circular(20),
@@ -439,6 +440,7 @@ class _StaffBillingHubScreenState extends State<StaffBillingHubScreen> {
             ),
           Expanded(child: _buildBody()),
         ],
+      ),
       ),
     );
   }
@@ -582,7 +584,11 @@ class _StaffBillingHubScreenState extends State<StaffBillingHubScreen> {
   Widget _miniKpi(String label, String value) {
     return Container(
       padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(10)),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: RadiantTokens.legacyCardBorder),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

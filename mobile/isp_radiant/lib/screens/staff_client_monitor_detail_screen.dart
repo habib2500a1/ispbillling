@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../design_system/radiant_tokens.dart';
+import '../widgets/legacy_softify_screen_header.dart';
 import '../features/staff_monitoring/data/monitoring_repository.dart';
 import '../services/api_service.dart';
 import '../widgets/usage_area_chart.dart';
@@ -83,16 +84,17 @@ class _StaffClientMonitorDetailScreenState extends State<StaffClientMonitorDetai
     final isOnline = usage?['online'] == true || preview?.isOnline == true;
     final activeStatus = isOnline ? 'Connected' : 'Offline';
 
-    return Scaffold(
-      backgroundColor: const Color(0xFFF0F4F8),
-      appBar: AppBar(
-        backgroundColor: RadiantTokens.brand,
-        foregroundColor: Colors.white,
-        elevation: 0,
-        centerTitle: true,
-        title: const Text('Monitoring'),
-      ),
-      body: _loading && customer == null
+    return LegacySoftifyPage(
+      child: Scaffold(
+        backgroundColor: RadiantTokens.legacyPageBg,
+        appBar: AppBar(
+          backgroundColor: RadiantTokens.legacyHeaderBlue,
+          foregroundColor: Colors.white,
+          elevation: 0,
+          centerTitle: true,
+          title: const Text('Monitoring'),
+        ),
+        body: _loading && customer == null
           ? const Center(child: CircularProgressIndicator(color: RadiantTokens.brand))
           : RefreshIndicator(
               onRefresh: _load,
@@ -181,6 +183,7 @@ class _StaffClientMonitorDetailScreenState extends State<StaffClientMonitorDetai
                 ],
               ),
             ),
+      ),
     );
   }
 
@@ -199,8 +202,9 @@ class _StaffClientMonitorDetailScreenState extends State<StaffClientMonitorDetai
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: const Color(0xFFE8EEF4),
+        color: Colors.white,
         borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFE0E7EF)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -245,9 +249,9 @@ class _StaffClientMonitorDetailScreenState extends State<StaffClientMonitorDetai
       padding: const EdgeInsets.symmetric(vertical: 5),
       child: Row(
         children: [
-          SizedBox(width: 100, child: Text(label, style: TextStyle(fontSize: 13, color: Colors.grey.shade700))),
+          SizedBox(width: 100, child: Text(label, style: const TextStyle(fontSize: 13, color: Color(0xFF607D8B)))),
           Expanded(
-            child: Text(value, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: valueColor)),
+            child: Text(value, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: valueColor ?? const Color(0xFF212121))),
           ),
         ],
       ),

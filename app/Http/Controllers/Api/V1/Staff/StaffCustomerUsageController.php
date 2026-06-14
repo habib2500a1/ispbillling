@@ -3,8 +3,8 @@
 namespace App\Http\Controllers\Api\V1\Staff;
 
 use App\Http\Controllers\Controller;
-use App\Models\Customer;
 use App\Models\User;
+use App\Support\StaffTenantScope;
 use App\Services\Mobile\CustomerMobileService;
 use App\Services\Portal\CustomerBandwidthService;
 use Illuminate\Http\JsonResponse;
@@ -21,10 +21,7 @@ class StaffCustomerUsageController extends Controller
             403,
         );
 
-        $model = Customer::withoutGlobalScopes()
-            ->where('tenant_id', $user->tenant_id)
-            ->whereKey($customer)
-            ->firstOrFail();
+        $model = StaffTenantScope::customerForStaff($user, $customer);
 
         $stats = $bandwidth->liveStats($model);
 

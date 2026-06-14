@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../config/remote_config.dart';
 import '../core/theme/design_tokens.dart';
+import '../widgets/radiant_brand_logo.dart';
 import '../services/api_service.dart';
 import '../core/navigation/super_app_navigator.dart';
 import '../core/roles/staff_interface.dart';
@@ -119,13 +120,15 @@ class _SplashGateState extends State<SplashGate> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Container(
-                padding: const EdgeInsets.all(22),
+                padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.14),
-                  shape: BoxShape.circle,
-                  border: Border.all(color: Colors.white.withValues(alpha: 0.25)),
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(color: Colors.black.withValues(alpha: 0.12), blurRadius: 12, offset: const Offset(0, 4)),
+                  ],
                 ),
-                child: const Icon(Icons.wifi_tethering_rounded, size: 56, color: Colors.white),
+                child: const RadiantBrandLogo(height: 64),
               ),
               const SizedBox(height: 22),
               Text(

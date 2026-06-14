@@ -146,8 +146,9 @@ class _StaffTicketsScreenState extends State<StaffTicketsScreen> {
   @override
   Widget build(BuildContext context) {
     final visible = _visible;
-    return Scaffold(
-      backgroundColor: const Color(0xFFF0F4F8),
+    return LegacySoftifyPage(
+      child: Scaffold(
+        backgroundColor: RadiantTokens.legacyPageBg,
       body: Column(
         children: [
           LegacySoftifyScreenHeader(
@@ -200,6 +201,7 @@ class _StaffTicketsScreenState extends State<StaffTicketsScreen> {
           Expanded(child: _buildList(visible)),
         ],
       ),
+      ),
     );
   }
 
@@ -240,8 +242,11 @@ class _StaffTicketsScreenState extends State<StaffTicketsScreen> {
 
     return Material(
       color: Colors.white,
-      elevation: 1,
-      borderRadius: BorderRadius.circular(10),
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(10),
+        side: const BorderSide(color: RadiantTokens.legacyCardBorder),
+      ),
       child: InkWell(
         borderRadius: BorderRadius.circular(10),
         onTap: () async {

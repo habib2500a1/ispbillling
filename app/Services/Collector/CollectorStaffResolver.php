@@ -167,7 +167,7 @@ final class CollectorStaffResolver
                 return $requestedCollectorId;
             }
 
-            if ($selfId > 0 && filter_var(env('PERMISSION_TESTING', false), FILTER_VALIDATE_BOOLEAN)) {
+            if ($selfId > 0) {
                 return $selfId;
             }
 

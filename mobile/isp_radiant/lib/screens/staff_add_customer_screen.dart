@@ -272,7 +272,6 @@ class _StaffAddCustomerScreenState extends State<StaffAddCustomerScreen> {
     setState(() => _saving = true);
     try {
       final meta = <String, dynamic>{
-        if (_gender != null) 'gender': _gender,
         if (_dob != null) 'date_of_birth': DateFormat('yyyy-MM-dd').format(_dob!),
         if (_occupationCtrl.text.trim().isNotEmpty) 'occupation': _occupationCtrl.text.trim(),
         if (_houseCtrl.text.trim().isNotEmpty) 'house_no': _houseCtrl.text.trim(),

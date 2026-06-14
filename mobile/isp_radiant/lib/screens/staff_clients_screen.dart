@@ -12,6 +12,7 @@ import '../features/staff_customers/domain/customer_list_item.dart';
 import '../services/api_service.dart';
 import '../utils/app_nav.dart';
 import '../widgets/legacy_client_card.dart';
+import '../widgets/legacy_softify_screen_header.dart';
 import 'staff_add_customer_screen.dart';
 import 'staff_customer_detail_screen.dart';
 import 'staff_customer_edit_screen.dart';
@@ -269,8 +270,9 @@ class _StaffClientsScreenState extends State<StaffClientsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF0F4F8),
+    return LegacySoftifyPage(
+      child: Scaffold(
+        backgroundColor: RadiantTokens.legacyPageBg,
       body: Column(
         children: [
           _header(),
@@ -303,19 +305,20 @@ class _StaffClientsScreenState extends State<StaffClientsScreen> {
         ],
       ),
       floatingActionButton: FloatingActionButton(
-        backgroundColor: RadiantTokens.brand,
+        backgroundColor: RadiantTokens.legacyHeaderBlue,
         onPressed: () => Navigator.push(
           context,
           MaterialPageRoute(builder: (_) => StaffAddCustomerScreen(api: widget.api)),
         ).then((_) => _load()),
         child: const Icon(Icons.person_add, color: Colors.white),
       ),
+      ),
     );
   }
 
   Widget _header() {
     return Container(
-      color: RadiantTokens.brand,
+      color: RadiantTokens.legacyHeaderBlue,
       child: SafeArea(
         bottom: false,
         child: Padding(

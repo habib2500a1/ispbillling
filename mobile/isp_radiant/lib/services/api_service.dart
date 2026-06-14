@@ -557,7 +557,6 @@ class ApiService {
     bool dueOnly = false,
     bool? networkSuspended,
     int? expiringDays,
-    bool? networkSuspended,
   }) async {
     final params = <String, String>{
       'page': '$page',
@@ -640,6 +639,9 @@ class ApiService {
   }
 
   Future<Map<String, dynamic>> staffCollectionsReport() => _get('/staff/reports/collections');
+
+  Future<Map<String, dynamic>> staffReportsDue({int page = 1}) =>
+      _get('/staff/reports/due?page=$page');
 
   Future<Map<String, dynamic>> staffMfsSmsIngest({
     required String gateway,
@@ -746,6 +748,7 @@ class ApiService {
     int? mikrotikServerId,
     int? zoneId,
     int? subzoneId,
+    int? areaId,
     String connection = 'all',
     int page = 1,
     int perPage = 25,
@@ -757,6 +760,7 @@ class ApiService {
       if (mikrotikServerId != null) 'mikrotik_server_id': '$mikrotikServerId',
       if (zoneId != null) 'zone_id': '$zoneId',
       if (subzoneId != null) 'subzone_id': '$subzoneId',
+      if (areaId != null) 'area_id': '$areaId',
       if (connection.isNotEmpty && connection != 'all') 'connection': connection,
     };
     final query = params.entries.map((e) => '${Uri.encodeQueryComponent(e.key)}=${Uri.encodeQueryComponent(e.value)}').join('&');

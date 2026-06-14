@@ -47,8 +47,11 @@ class LegacyClientCard extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 10),
       child: Material(
         color: Colors.white,
-        elevation: 1,
-        borderRadius: BorderRadius.circular(10),
+        elevation: 0,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10),
+          side: const BorderSide(color: RadiantTokens.legacyCardBorder),
+        ),
         child: InkWell(
           borderRadius: BorderRadius.circular(10),
           onTap: onTap,
@@ -112,9 +115,10 @@ class LegacyClientCard extends StatelessWidget {
                 ),
               ),
               Container(
-                decoration: const BoxDecoration(
-                  color: Color(0xFFE8EEF4),
-                  borderRadius: BorderRadius.vertical(bottom: Radius.circular(10)),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: const BorderRadius.vertical(bottom: Radius.circular(10)),
+                  border: Border(top: BorderSide(color: RadiantTokens.legacyCardBorder)),
                 ),
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 0),
                 child: Row(

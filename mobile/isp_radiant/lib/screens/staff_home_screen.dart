@@ -45,6 +45,7 @@ import 'staff_comms_screen.dart';
 import 'staff_profile_screen.dart';
 import 'staff_inventory_pos_screen.dart';
 import 'staff_mfs_sms_screen.dart';
+import 'staff_team_discount_screen.dart';
 import 'staff_global_search_screen.dart';
 import '../widgets/role_switcher_sheet.dart';
 import '../services/mfs_sms_listener.dart';

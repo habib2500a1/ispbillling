@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../design_system/radiant_theme.dart';
 import '../design_system/radiant_tokens.dart';
 
 /// Blue SOFTIFY-style screen header with optional toolbar row.
@@ -22,7 +23,7 @@ class LegacySoftifyScreenHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      color: RadiantTokens.brand,
+      color: RadiantTokens.legacyHeaderBlue,
       child: SafeArea(
         bottom: false,
         child: Padding(
@@ -120,7 +121,7 @@ class LegacySoftifySearchToolbar extends StatelessWidget {
             child: const SizedBox(
               width: 44,
               height: 44,
-              child: Icon(Icons.filter_list, color: RadiantTokens.brand),
+              child: Icon(Icons.filter_list, color: RadiantTokens.legacyHeaderBlue),
             ),
           ),
         ),
@@ -174,7 +175,7 @@ class LegacyBillingStatsGrid extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(10),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 4)],
+        border: Border.all(color: RadiantTokens.legacyCardBorder),
       ),
       child: Row(
         children: [
@@ -191,6 +192,24 @@ class LegacyBillingStatsGrid extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// White SOFTIFY page shell — light theme body; blue header / bottom nav stay outside.
+class LegacySoftifyPage extends StatelessWidget {
+  const LegacySoftifyPage({super.key, required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Theme(
+      data: RadiantTheme.light,
+      child: ColoredBox(
+        color: RadiantTokens.legacyPageBg,
+        child: child,
       ),
     );
   }

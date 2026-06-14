@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../../features/staff_billing/domain/billing_models.dart';
+import '../../design_system/radiant_tokens.dart';
 import '../theme/design_tokens.dart';
 
 /// Billing List row (due client) — mirrors the reference layout: name, code,
@@ -39,9 +40,9 @@ class DueClientCard extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 12),
       child: Container(
         decoration: BoxDecoration(
-          color: context.cs.surface,
+          color: Colors.white,
           borderRadius: BorderRadius.circular(DesignTokens.radius),
-          border: Border.all(color: context.brand.border),
+          border: Border.all(color: RadiantTokens.legacyCardBorder),
         ),
         clipBehavior: Clip.antiAlias,
         child: Column(
@@ -83,7 +84,7 @@ class DueClientCard extends StatelessWidget {
             ),
             Container(
               decoration: BoxDecoration(
-                color: DesignTokens.primary.withValues(alpha: 0.06),
+                color: Colors.white,
                 border: Border(top: BorderSide(color: context.brand.border)),
               ),
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),

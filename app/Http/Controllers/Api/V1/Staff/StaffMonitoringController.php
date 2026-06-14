@@ -34,7 +34,7 @@ class StaffMonitoringController extends Controller
 
         return response()->json($monitoring->clientMonitoringIndex(
             StaffTenantScope::tenantIdFor($user),
-            $request->only(['q', 'mikrotik_server_id', 'zone_id', 'subzone_id', 'connection', 'page', 'per_page']),
+            $request->only(['q', 'mikrotik_server_id', 'zone_id', 'subzone_id', 'area_id', 'connection', 'page', 'per_page']),
         ));
     }
 }

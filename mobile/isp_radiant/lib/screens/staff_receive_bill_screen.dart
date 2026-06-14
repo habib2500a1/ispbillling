@@ -79,16 +79,24 @@ class _StaffReceiveBillScreenState extends State<StaffReceiveBillScreen> {
       final methods = await widget.api.staffPaymentMethods();
       final opts = await widget.api.staffCollectionOptions();
       if (!mounted) return;
+      var collectorId = (opts['default_collector_id'] as num?)?.toInt();
+      final collectors = _listFrom(opts['collectors']);
+      if ((collectorId == null || collectorId < 1) && collectors.length == 1) {
+        collectorId = (collectors.first['id'] as num?)?.toInt();
+      }
+      if (collectorId == null || collectorId < 1) {
+        try {
+          final me = await widget.api.staffMe();
+          collectorId = (me['id'] as num?)?.toInt();
+        } catch (_) {}
+      }
       setState(() {
         _methods = methods;
         if (_methods.any((m) => m['code'] == 'cash')) _method = 'cash';
         _opts = opts;
-        _collectors = _listFrom(opts['collectors']);
+        _collectors = collectors;
         _canPickCollector = opts['can_pick_collector'] == true;
-        _collectorId = (opts['default_collector_id'] as num?)?.toInt();
-        if (_collectorId == null && _collectors.length == 1) {
-          _collectorId = (_collectors.first['id'] as num?)?.toInt();
-        }
+        _collectorId = collectorId;
         _loading = false;
       });
     } catch (_) {
@@ -201,7 +209,7 @@ class _StaffReceiveBillScreenState extends State<StaffReceiveBillScreen> {
     final gross = _payable;
 
     return Scaffold(
-      backgroundColor: context.isDark ? RadiantTokens.darkBg : const Color(0xFFF0F4F8),
+      backgroundColor: context.isDark ? RadiantTokens.darkBg : RadiantTokens.legacyPageBg,
       appBar: AppBar(
         backgroundColor: RadiantTokens.brand,
         foregroundColor: Colors.white,

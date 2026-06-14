@@ -17,6 +17,11 @@ class RadiantTokens {
   static const Color danger = Color(0xFFEF4444);
   static const Color info = Color(0xFF38BDF8);
 
+  /// Legacy SOFTIFY mobile lists — pure white body under blue header.
+  static const Color legacyPageBg = Color(0xFFFFFFFF);
+  static const Color legacyHeaderBlue = Color(0xFF4267B2);
+  static const Color legacyCardBorder = Color(0xFFE8ECF0);
+
   // Light — premium SaaS
   static const Color lightBg = Color(0xFFFAFAFA);
   static const Color lightSurface = Color(0xFFFFFFFF);

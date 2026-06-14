@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use App\Models\User;
+use App\Support\Rbac\StaffCapability;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -19,9 +20,9 @@ class EnsureSanctumCollector
             return response()->json(['message' => 'Staff authentication required.'], 403);
         }
 
-        if (! $user->tokenCan('collector') && ! $user->hasAnyRole([
-            'super-admin', 'isp-admin', 'admin', 'cashier', 'branch-manager',
-        ])) {
+        if (! $user->tokenCan('collector')
+            && ! StaffCapability::for($user)->canCollect()
+            && ! $user->hasAnyRole(['super-admin', 'isp-admin', 'admin', 'cashier', 'branch-manager', 'collector', 'isp-manager'])) {
             return response()->json(['message' => 'Collector access denied.'], 403);
         }
 

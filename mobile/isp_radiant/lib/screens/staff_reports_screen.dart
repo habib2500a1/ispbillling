@@ -25,6 +25,7 @@ class _StaffReportsScreenState extends State<StaffReportsScreen> with SingleTick
   List<Map<String, dynamic>> _due = [];
   Map<String, dynamic>? _collectionReport;
   bool _loading = true;
+  String? _loadError;
 
   @override
   void initState() {
@@ -39,10 +40,13 @@ class _StaffReportsScreenState extends State<StaffReportsScreen> with SingleTick
   }
 
   Future<void> _load() async {
-    setState(() => _loading = true);
+    setState(() {
+      _loading = true;
+      _loadError = null;
+    });
     try {
       final exp = await widget.api.staffExpiringReport(days: 7);
-      final dueBody = await widget.api.staffBillingDue();
+      final dueBody = await widget.api.staffReportsDue();
       final col = await widget.api.staffCollectionsReport();
       if (mounted) {
         setState(() {
@@ -51,7 +55,11 @@ class _StaffReportsScreenState extends State<StaffReportsScreen> with SingleTick
           _collectionReport = col['report'] as Map<String, dynamic>?;
         });
       }
-    } catch (_) {}
+    } on ApiException catch (e) {
+      if (mounted) setState(() => _loadError = e.message);
+    } catch (_) {
+      if (mounted) setState(() => _loadError = 'Could not load reports');
+    }
     if (mounted) setState(() => _loading = false);
   }
 
@@ -66,7 +74,15 @@ class _StaffReportsScreenState extends State<StaffReportsScreen> with SingleTick
       ),
       body: _loading
           ? const ListLoading()
-          : TabBarView(
+          : _loadError != null
+              ? EmptyState(
+                  icon: Icons.error_outline,
+                  title: 'Could not load reports',
+                  subtitle: _loadError,
+                  action: _load,
+                  actionLabel: 'Retry',
+                )
+              : TabBarView(
               controller: _tabs,
               children: [_collectionTab(), _dueTab(), _expiringTab()],
             ),

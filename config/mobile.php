@@ -29,4 +29,7 @@ return [
 
     /** When false, mobile app hides "Server settings" on login (single-domain production APK). */
     'allow_server_override' => (bool) env('MOBILE_ALLOW_SERVER_OVERRIDE', false),
+
+    /** Short name shown on the phone launcher and login splash. */
+    'app_display_name' => env('MOBILE_APP_DISPLAY_NAME', 'Radiant'),
 ];

@@ -85,7 +85,16 @@ class _StaffCollectionScreenState extends State<StaffCollectionScreen> {
         _walletError = null;
       });
     } on ApiException catch (e) {
-      if (mounted) setState(() => _walletError = e.message);
+      if (mounted) {
+        if (e.statusCode == 403) {
+          setState(() {
+            _wallet = null;
+            _walletError = null;
+          });
+        } else {
+          setState(() => _walletError = e.message);
+        }
+      }
     } catch (_) {
       if (mounted) setState(() => _walletError = 'Could not load wallet');
     }

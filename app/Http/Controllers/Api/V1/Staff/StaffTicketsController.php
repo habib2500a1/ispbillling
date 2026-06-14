@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\SupportTicket;
 use App\Models\SupportTicketMessage;
 use App\Models\User;
+use App\Support\Rbac\StaffCapability;
 use App\Support\StaffTenantScope;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -15,6 +16,7 @@ class StaffTicketsController extends Controller
 {
     private const ACCESS_ROLES = [
         'super-admin', 'isp-admin', 'admin', 'isp-manager', 'branch-manager', 'isp-support', 'isp-engineer',
+        'cashier', 'collector',
     ];
 
     public function index(Request $request): JsonResponse
@@ -198,7 +200,11 @@ class StaffTicketsController extends Controller
     private function staffUser(Request $request): User
     {
         $user = $request->user();
-        if (! $user instanceof User || ! $user->hasAnyRole(self::ACCESS_ROLES)) {
+        if (! $user instanceof User) {
+            abort(403, 'Ticket access not allowed.');
+        }
+
+        if (! $user->hasAnyRole(self::ACCESS_ROLES) && ! StaffCapability::for($user)->canSupport()) {
             abort(403, 'Ticket access not allowed.');
         }
 

@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../config/remote_config.dart';
+import '../config/server_config.dart';
 import '../core/navigation/super_app_navigator.dart';
 import '../services/api_service.dart';
 import '../widgets/radiant_legacy_login_header.dart';
@@ -36,7 +37,9 @@ class _LoginHubScreenState extends State<LoginHubScreen> {
   String? _error;
 
   static const _fieldBorder = Color(0xFFB0BEC5);
-  static const _labelColor = Color(0xFF607D8B);
+  static const _labelColor = Color(0xFF90A4AE);
+  static const _fieldFill = Color(0xFF263238);
+  static const _fieldText = Colors.white;
 
   @override
   void initState() {
@@ -69,30 +72,38 @@ class _LoginHubScreenState extends State<LoginHubScreen> {
     super.dispose();
   }
 
-  InputDecoration _outlineField(String label, {Widget? suffix}) {
+  InputDecoration _darkField(String label, {Widget? suffix}) {
     return InputDecoration(
       labelText: label,
-      labelStyle: const TextStyle(color: _labelColor, fontSize: 14),
-      floatingLabelStyle: const TextStyle(color: _labelColor, fontSize: 13),
+      labelStyle: const TextStyle(color: _labelColor, fontSize: 13),
+      floatingLabelStyle: const TextStyle(color: _labelColor, fontSize: 12),
       suffixIcon: suffix,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
+      filled: true,
+      fillColor: _fieldFill,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 18),
       enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(4),
-        borderSide: const BorderSide(color: _fieldBorder, width: 1.2),
+        borderRadius: BorderRadius.circular(6),
+        borderSide: BorderSide.none,
       ),
       focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(4),
+        borderRadius: BorderRadius.circular(6),
         borderSide: const BorderSide(color: RadiantLegacyLoginHeader.primaryBlue, width: 1.4),
       ),
       errorBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(4),
+        borderRadius: BorderRadius.circular(6),
         borderSide: const BorderSide(color: Colors.redAccent, width: 1.2),
       ),
       focusedErrorBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(4),
+        borderRadius: BorderRadius.circular(6),
         borderSide: const BorderSide(color: Colors.redAccent, width: 1.4),
       ),
     );
+  }
+
+  String get _payWithoutLoginUrl {
+    final fromRemote = RemoteConfig.payUrl?.trim();
+    if (fromRemote != null && fromRemote.isNotEmpty) return fromRemote;
+    return '${ServerConfig.siteRootFromApiBase()}/pay';
   }
 
   Future<void> _persistRememberMe() async {
@@ -149,7 +160,8 @@ class _LoginHubScreenState extends State<LoginHubScreen> {
   }
 
   String get _companyShort {
-    final name = RemoteConfig.appName.trim();
+    final branding = RemoteConfig.branding;
+    final name = branding['company_name']?.toString().trim() ?? RemoteConfig.appName.trim();
     if (name.isEmpty) return 'Radiant';
     return name.split(RegExp(r'\s+')).first;
   }
@@ -160,6 +172,9 @@ class _LoginHubScreenState extends State<LoginHubScreen> {
       value: SystemUiOverlayStyle.dark.copyWith(statusBarColor: Colors.transparent),
       child: Scaffold(
         backgroundColor: Colors.white,
+        bottomNavigationBar: _PayWithoutLoginBar(
+          onTap: () => _openWeb(_payWithoutLoginUrl, 'Pay bill'),
+        ),
         body: _bootLoading
             ? const Center(child: CircularProgressIndicator(color: RadiantLegacyLoginHeader.primaryBlue))
             : SafeArea(
@@ -181,7 +196,9 @@ class _LoginHubScreenState extends State<LoginHubScreen> {
                                   keyboardType: TextInputType.text,
                                   textInputAction: TextInputAction.next,
                                   autofocus: _loginCtrl.text.isEmpty,
-                                  decoration: _outlineField('Client Code/User Name'),
+                                  style: const TextStyle(color: _fieldText, fontSize: 15),
+                                  cursorColor: RadiantLegacyLoginHeader.primaryBlue,
+                                  decoration: _darkField('Client Code/User Name'),
                                   validator: (v) => (v == null || v.trim().isEmpty) ? 'Required' : null,
                                 ),
                                 const SizedBox(height: 22),
@@ -190,7 +207,9 @@ class _LoginHubScreenState extends State<LoginHubScreen> {
                                   obscureText: _obscure,
                                   textInputAction: TextInputAction.done,
                                   onFieldSubmitted: (_) => _submit(),
-                                  decoration: _outlineField(
+                                  style: const TextStyle(color: _fieldText, fontSize: 15),
+                                  cursorColor: RadiantLegacyLoginHeader.primaryBlue,
+                                  decoration: _darkField(
                                     'Password',
                                     suffix: IconButton(
                                       icon: Icon(
@@ -207,7 +226,9 @@ class _LoginHubScreenState extends State<LoginHubScreen> {
                                   TextFormField(
                                     controller: _twoFactorCtrl,
                                     keyboardType: TextInputType.number,
-                                    decoration: _outlineField('Two-factor code'),
+                                    style: const TextStyle(color: _fieldText, fontSize: 15),
+                                    cursorColor: RadiantLegacyLoginHeader.primaryBlue,
+                                    decoration: _darkField('Two-factor code'),
                                     validator: (v) => (_needs2fa && (v == null || v.trim().isEmpty)) ? 'Required' : null,
                                   ),
                                 ],
@@ -317,28 +338,13 @@ class _LoginHubScreenState extends State<LoginHubScreen> {
                               ),
                             ),
                           ),
-                          if (RemoteConfig.payUrl != null) ...[
-                            const SizedBox(height: 18),
-                            Center(
-                              child: TextButton(
-                                onPressed: () => _openWeb(RemoteConfig.payUrl!, 'Pay bill'),
-                                child: const Text(
-                                  'Pay bill without login',
-                                  style: TextStyle(
-                                    decoration: TextDecoration.underline,
-                                    color: Color(0xFF546E7A),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
                           if (RemoteConfig.canChangeServer) ...[
-                            const SizedBox(height: 4),
+                            const SizedBox(height: 12),
                             Center(
                               child: TextButton.icon(
                                 onPressed: () async {
                                   await Navigator.of(context).push(
-                                    MaterialPageRoute(page: ServerSetupScreen(api: widget.api)),
+                                    MaterialPageRoute(builder: (_) => ServerSetupScreen(api: widget.api)),
                                   );
                                   if (!mounted) return;
                                   setState(() => _bootLoading = true);
@@ -349,12 +355,9 @@ class _LoginHubScreenState extends State<LoginHubScreen> {
                               ),
                             ),
                           ],
+                          const SizedBox(height: 12),
                         ],
                       ),
-                    ),
-                    const Padding(
-                      padding: EdgeInsets.fromLTRB(16, 8, 16, 14),
-                      child: _DevelopedByFooter(),
                     ),
                   ],
                 ),
@@ -364,36 +367,41 @@ class _LoginHubScreenState extends State<LoginHubScreen> {
   }
 }
 
-class _DevelopedByFooter extends StatelessWidget {
-  const _DevelopedByFooter();
+class _PayWithoutLoginBar extends StatelessWidget {
+  const _PayWithoutLoginBar({required this.onTap});
+
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        const Text(
-          'Developed By',
-          style: TextStyle(color: Color(0xFF78909C), fontSize: 13),
-        ),
-        const SizedBox(width: 8),
-        Text(
-          'SOFTIFY',
-          style: TextStyle(
-            color: const Color(0xFF26A69A),
-            fontSize: 22,
-            fontWeight: FontWeight.w800,
-            letterSpacing: 0.5,
-            shadows: [
-              Shadow(
-                color: const Color(0xFF26A69A).withValues(alpha: 0.35),
-                blurRadius: 1,
-                offset: const Offset(1, 1),
+    return Material(
+      color: const Color(0xFFF8FAFC),
+      elevation: 12,
+      shadowColor: Colors.black26,
+      child: SafeArea(
+        top: false,
+        child: InkWell(
+          onTap: onTap,
+          child: Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+            decoration: BoxDecoration(
+              border: Border(top: BorderSide(color: Colors.grey.shade300)),
+            ),
+            child: const Text(
+              'Pay bill without login',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: Color(0xFF546E7A),
+                fontSize: 15,
+                fontWeight: FontWeight.w500,
+                decoration: TextDecoration.underline,
+                decorationColor: Color(0xFF546E7A),
               ),
-            ],
+            ),
           ),
         ),
-      ],
+      ),
     );
   }
 }

@@ -53,7 +53,7 @@ chmod 755 public/downloads
 export COPY_LOCAL=1
 export UPLOAD_GITHUB=0
 
-echo "[mobile] Building Radiant ISP for ${BASE_URL}/api/v1 ..."
+echo "[mobile] Building Radiant for ${BASE_URL}/api/v1 ..."
 "$APP_ROOT/scripts/build-mobile-apk.sh" "$BASE_URL"
 
 echo "[mobile] Building MFS Verify for ${BASE_URL} ..."
@@ -80,7 +80,7 @@ MFS_URL="${BASE_URL}/downloads/isp-mfs-verify.apk"
 
 echo ""
 echo "Mobile APKs published on this server."
-echo "  Radiant ISP : $RADIANT_URL"
+echo "  Radiant : $RADIANT_URL"
 echo "  MFS Verify  : $MFS_URL"
 echo ""
 echo "Landing page, portal, and admin panel use these links automatically."

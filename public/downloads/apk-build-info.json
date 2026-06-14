@@ -1,9 +1,7 @@
 {
-  "app_url": "https://bill.flixbd.xyz",
-  "api_base_url": "https://bill.flixbd.xyz/api/v1",
-  "built_at": "2026-06-09T02:58:00Z",
-  "radiant_version": "3.3.2+45",
-  "mfs_version": "1.0.12+13",
-  "download_url": "https://bill.flixbd.xyz/downloads/isp-radiant.apk?v=3.3.2_45",
-  "notes": "Fix unified login on servers without role=auto support"
+  "app_url": "https://anetbd.com",
+  "api_base_url": "https://anetbd.com/api/v1",
+  "built_at": "2026-06-14T17:32:03Z",
+  "radiant_version": "3.3.7+50",
+  "mfs_version": "1.0.12+13"
 }

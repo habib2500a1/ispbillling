@@ -26,7 +26,7 @@ class MobileConfigService
         $tenantId = $this->resolveTenantId();
 
         return [
-            'app_name' => CompanyBranding::name(),
+            'app_name' => (string) config('mobile.app_display_name', 'Radiant'),
             'api_version' => 'v1',
             'app_version' => '2.8.0',
             'server' => [

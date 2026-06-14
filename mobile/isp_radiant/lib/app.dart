@@ -14,7 +14,7 @@ class IspRadiantApp extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final mode = ref.watch(themeControllerProvider);
     return MaterialApp(
-      title: 'RADIANT ISP',
+      title: 'Radiant',
       debugShowCheckedModeBanner: false,
       theme: RadiantTheme.light,
       darkTheme: RadiantTheme.dark,

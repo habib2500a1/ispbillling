@@ -4,7 +4,7 @@
 set -euo pipefail
 
 APP_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-BASE_URL="${1:-https://bill.flixbd.xyz}"
+BASE_URL="${1:-https://anetbd.com}"
 API_URL="${BASE_URL%/}/api/v1"
 APP_DIR="$APP_ROOT/mobile/isp_radiant"
 UPLOAD_GITHUB="${UPLOAD_GITHUB:-0}"
@@ -20,6 +20,7 @@ if ! command -v flutter >/dev/null 2>&1; then
 fi
 
 cd "$APP_DIR"
+"$APP_ROOT/scripts/generate-radiant-app-icons.sh" 2>/dev/null || true
 flutter pub get
 "$APP_ROOT/scripts/patch-telephony-android.sh"
 
@@ -42,7 +43,7 @@ if [[ "$COPY_LOCAL" == "1" ]]; then
 fi
 
 if [[ "$UPLOAD_GITHUB" == "1" ]]; then
-  RELEASE_TITLE="Radiant ISP ${VERSION}+${BUILD}" \
+  RELEASE_TITLE="Radiant ${VERSION}+${BUILD}" \
   RELEASE_NOTES="Staff + customer app. API: ${API_URL}" \
   "$APP_ROOT/scripts/github-release-apk.sh" "$TAG" "$OUT" "$ASSET"
 else

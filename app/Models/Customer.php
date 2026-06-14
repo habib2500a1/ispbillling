@@ -443,6 +443,21 @@ class Customer extends Model implements AuthenticatableContract, AuthorizableCon
         });
     }
 
+    /**
+     * PPP / radius subscribers shown on mobile + admin client monitoring.
+     */
+    public function scopeForNetworkMonitoring(\Illuminate\Database\Eloquent\Builder $query): \Illuminate\Database\Eloquent\Builder
+    {
+        return $query
+            ->whereNotIn('status', ['terminated', 'cancelled'])
+            ->where(function (\Illuminate\Database\Eloquent\Builder $q): void {
+                $q->whereNotNull('mikrotik_secret_name')
+                    ->orWhereNotNull('mikrotik_server_id')
+                    ->orWhere('import_source', 'mikrotik')
+                    ->orWhereNotNull('radius_username');
+            });
+    }
+
     public function bandwidthUsageDaily(): HasMany
     {
         return $this->hasMany(BandwidthUsageDaily::class)->latest('usage_date');

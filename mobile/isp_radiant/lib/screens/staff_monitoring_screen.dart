@@ -3,9 +3,12 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../core/network/api_result.dart';
+import '../core/widgets/states.dart';
 import '../design_system/radiant_tokens.dart';
 import '../features/staff_monitoring/data/monitoring_repository.dart';
 import '../services/api_service.dart';
+import '../widgets/legacy_softify_screen_header.dart';
 import 'staff_client_monitor_detail_screen.dart';
 
 /// Legacy SOFTIFY "Client Monitoring" — stats, router picker, search, filters, client cards.
@@ -23,10 +26,11 @@ class _StaffMonitoringScreenState extends State<StaffMonitoringScreen> {
   final _searchCtrl = TextEditingController();
 
   ClientMonitorStats _stats = const ClientMonitorStats(total: 0, online: 0, offline: 0);
-  ClientMonitorFilters _filters = const ClientMonitorFilters(routers: [], zones: [], subzones: []);
+  ClientMonitorFilters _filters = const ClientMonitorFilters(routers: [], zones: [], subzones: [], areas: []);
   List<ClientMonitorRow> _clients = [];
   bool _loading = true;
   bool _loadingMore = false;
+  Failure? _error;
   int _page = 1;
   int _lastPage = 1;
   int _resultTotal = 0;
@@ -34,8 +38,10 @@ class _StaffMonitoringScreenState extends State<StaffMonitoringScreen> {
   int? _routerId;
   int? _zoneId;
   int? _subzoneId;
+  int? _areaId;
   String _connection = 'all';
   Timer? _searchDebounce;
+  Timer? _refreshTimer;
 
   @override
   void initState() {
@@ -45,11 +51,15 @@ class _StaffMonitoringScreenState extends State<StaffMonitoringScreen> {
       _scheduleSearch();
     });
     _load(page: 1);
+    _refreshTimer = Timer.periodic(const Duration(seconds: 45), (_) {
+      if (mounted && !_loading) _load(page: 1, silent: true);
+    });
   }
 
   @override
   void dispose() {
     _searchDebounce?.cancel();
+    _refreshTimer?.cancel();
     _searchCtrl.dispose();
     super.dispose();
   }
@@ -59,10 +69,13 @@ class _StaffMonitoringScreenState extends State<StaffMonitoringScreen> {
     _searchDebounce = Timer(const Duration(milliseconds: 400), () => _load(page: 1));
   }
 
-  Future<void> _load({required int page}) async {
-    if (page == 1) {
-      setState(() => _loading = true);
-    } else {
+  Future<void> _load({required int page, bool silent = false}) async {
+    if (page == 1 && !silent) {
+      setState(() {
+        _loading = true;
+        _error = null;
+      });
+    } else if (page > 1) {
       setState(() => _loadingMore = true);
     }
 
@@ -71,6 +84,7 @@ class _StaffMonitoringScreenState extends State<StaffMonitoringScreen> {
       mikrotikServerId: _routerId,
       zoneId: _zoneId,
       subzoneId: _subzoneId,
+      areaId: _areaId,
       connection: _connection,
       page: page,
     );
@@ -90,8 +104,10 @@ class _StaffMonitoringScreenState extends State<StaffMonitoringScreen> {
         }
         _loading = false;
         _loadingMore = false;
+        _error = null;
       }),
-      err: (_) => setState(() {
+      err: (f) => setState(() {
+        _error = f;
         _loading = false;
         _loadingMore = false;
       }),
@@ -169,46 +185,66 @@ class _StaffMonitoringScreenState extends State<StaffMonitoringScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF0F4F8),
-      body: Column(
+    return LegacySoftifyPage(
+      child: Scaffold(
+        backgroundColor: RadiantTokens.legacyPageBg,
+        body: Column(
+          children: [
+            _header(),
+            Expanded(child: _buildBody()),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBody() {
+    if (_loading && _clients.isEmpty) {
+      return const Center(child: CircularProgressIndicator(color: RadiantTokens.brand));
+    }
+    if (_error != null && _clients.isEmpty) {
+      return ErrorStateView(failure: _error!, onRetry: () => _load(page: 1));
+    }
+    if (_clients.isEmpty) {
+      return EmptyStateView(
+        icon: Icons.router_outlined,
+        title: 'No clients found',
+        message: _stats.total == 0
+            ? 'No PPP subscribers linked yet. Check Mikrotik import or radius username.'
+            : 'Try another filter or search term.',
+        actionLabel: 'Refresh',
+        onAction: () => _load(page: 1),
+      );
+    }
+
+    return RefreshIndicator(
+      onRefresh: () => _load(page: 1),
+      color: RadiantTokens.brand,
+      child: ListView(
+        padding: const EdgeInsets.fromLTRB(12, 0, 12, 16),
         children: [
-          _header(),
-          Expanded(
-            child: _loading
-                ? const Center(child: CircularProgressIndicator(color: RadiantTokens.brand))
-                : RefreshIndicator(
-                    onRefresh: () => _load(page: 1),
-                    color: RadiantTokens.brand,
-                    child: ListView(
-                      padding: const EdgeInsets.fromLTRB(12, 0, 12, 16),
-                      children: [
-                        _searchBar(),
-                        const SizedBox(height: 10),
-                        _filterRow(),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Showing Result: $_resultTotal of ${_stats.total}',
-                          style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
-                        ),
-                        const SizedBox(height: 10),
-                        ..._clients.map(_clientCard),
-                        if (_page < _lastPage)
-                          Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                            child: Center(
-                              child: _loadingMore
-                                  ? const CircularProgressIndicator()
-                                  : OutlinedButton(
-                                      onPressed: () => _load(page: _page + 1),
-                                      child: const Text('Load more'),
-                                    ),
-                            ),
-                          ),
-                      ],
-                    ),
-                  ),
+          _searchBar(),
+          const SizedBox(height: 10),
+          _filterRow(),
+          const SizedBox(height: 8),
+          Text(
+            'Showing Result: $_resultTotal of ${_stats.total} · Online ${_stats.online} · Offline ${_stats.offline}',
+            style: TextStyle(fontSize: 12, color: Colors.grey.shade700),
           ),
+          const SizedBox(height: 10),
+          ..._clients.map(_clientCard),
+          if (_page < _lastPage)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              child: Center(
+                child: _loadingMore
+                    ? const CircularProgressIndicator()
+                    : OutlinedButton(
+                        onPressed: () => _load(page: _page + 1),
+                        child: const Text('Load more'),
+                      ),
+              ),
+            ),
         ],
       ),
     );
@@ -221,7 +257,7 @@ class _StaffMonitoringScreenState extends State<StaffMonitoringScreen> {
         .firstOrNull;
 
     return Container(
-      color: RadiantTokens.brand,
+      color: RadiantTokens.legacyHeaderBlue,
       child: SafeArea(
         bottom: false,
         child: Padding(
@@ -307,8 +343,11 @@ class _StaffMonitoringScreenState extends State<StaffMonitoringScreen> {
       elevation: 0.5,
       child: TextField(
         controller: _searchCtrl,
+        style: const TextStyle(color: Color(0xFF212121), fontSize: 14),
+        cursorColor: RadiantTokens.brand,
         decoration: InputDecoration(
           hintText: 'Search name, code, phone, username…',
+          hintStyle: TextStyle(color: Colors.grey.shade500, fontSize: 13),
           border: InputBorder.none,
           contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
           suffixIcon: _searchCtrl.text.isNotEmpty
@@ -330,7 +369,7 @@ class _StaffMonitoringScreenState extends State<StaffMonitoringScreen> {
       scrollDirection: Axis.horizontal,
       child: Row(
         children: [
-          _filterChip('Status', _connection == 'all' ? null : _connectionLabel(), _pickConnection),
+          _filterChip('Conn.', _connection == 'all' ? null : _connectionLabel(), _pickConnection),
           _filterChip('Zone', _zoneName(), () => _pickFilter(
                 title: 'Zone',
                 options: _filters.zones,
@@ -343,8 +382,12 @@ class _StaffMonitoringScreenState extends State<StaffMonitoringScreen> {
                 currentId: _subzoneId,
                 onPick: (v) => setState(() => _subzoneId = v),
               )),
-          _filterChip('Box', null, () {}),
-          _filterChip('Conn.', _connection == 'all' ? null : _connectionLabel(), _pickConnection),
+          _filterChip('Box', _areaName(), () => _pickFilter(
+                title: 'Box',
+                options: _filters.areas,
+                currentId: _areaId,
+                onPick: (v) => setState(() => _areaId = v),
+              )),
         ],
       ),
     );
@@ -358,6 +401,11 @@ class _StaffMonitoringScreenState extends State<StaffMonitoringScreen> {
   String? _subzoneName() => _subzonesForZone()
       .where((z) => (z['id'] as num?)?.toInt() == _subzoneId)
       .map((z) => z['name']?.toString())
+      .firstOrNull;
+
+  String? _areaName() => _filters.areas
+      .where((a) => (a['id'] as num?)?.toInt() == _areaId)
+      .map((a) => a['name']?.toString())
       .firstOrNull;
 
   List<Map<String, dynamic>> _subzonesForZone() {
@@ -375,7 +423,10 @@ class _StaffMonitoringScreenState extends State<StaffMonitoringScreen> {
     return Padding(
       padding: const EdgeInsets.only(right: 8),
       child: ActionChip(
-        label: Text(value == null ? label : '$label: $value', style: const TextStyle(fontSize: 12)),
+        label: Text(
+          value == null ? label : '$label: $value',
+          style: const TextStyle(fontSize: 12, color: Color(0xFF37474F)),
+        ),
         onPressed: onTap,
         backgroundColor: Colors.white,
         side: BorderSide(color: Colors.grey.shade300),
@@ -389,9 +440,12 @@ class _StaffMonitoringScreenState extends State<StaffMonitoringScreen> {
       padding: const EdgeInsets.only(bottom: 10),
       child: Material(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(10),
-        child: InkWell(
+        elevation: 0,
+        shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(10),
+          side: const BorderSide(color: RadiantTokens.legacyCardBorder),
+        ),
+        child: InkWell(
           onTap: () => Navigator.push(
             context,
             MaterialPageRoute(
@@ -459,8 +513,9 @@ class _StaffMonitoringScreenState extends State<StaffMonitoringScreen> {
                 margin: const EdgeInsets.only(top: 8),
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFE8EEF4),
+                  color: Colors.white,
                   borderRadius: const BorderRadius.vertical(bottom: Radius.circular(10)),
+                  border: Border(top: BorderSide(color: RadiantTokens.legacyCardBorder)),
                 ),
                 child: Row(
                   children: [
@@ -493,12 +548,15 @@ class _StaffMonitoringScreenState extends State<StaffMonitoringScreen> {
       padding: const EdgeInsets.only(bottom: 4),
       child: RichText(
         text: TextSpan(
-          style: TextStyle(fontSize: 12, color: Colors.grey.shade700),
+          style: const TextStyle(fontSize: 12, color: Color(0xFF607D8B)),
           children: [
             TextSpan(text: '$label: ', style: const TextStyle(fontWeight: FontWeight.w500)),
             TextSpan(
               text: value.isNotEmpty ? value : '—',
-              style: TextStyle(color: valueColor ?? Colors.black87, fontWeight: FontWeight.w600),
+              style: TextStyle(
+                color: valueColor ?? const Color(0xFF212121),
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ],
         ),

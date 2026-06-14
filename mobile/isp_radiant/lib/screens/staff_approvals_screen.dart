@@ -7,7 +7,7 @@ import '../utils/app_nav.dart';
 import '../widgets/legacy_softify_screen_header.dart';
 import '../widgets/state_views.dart';
 
-/// Legacy SOFTIFY Bill Approval — pending collector & staff expenses.
+/// Legacy SOFTIFY Bill Approval
 class StaffApprovalsScreen extends StatefulWidget {
   const StaffApprovalsScreen({super.key, required this.api});
 
@@ -112,8 +112,9 @@ class _StaffApprovalsScreenState extends State<StaffApprovalsScreen> {
   @override
   Widget build(BuildContext context) {
     final visible = _visible;
-    return Scaffold(
-      backgroundColor: const Color(0xFFF0F4F8),
+    return LegacySoftifyPage(
+      child: Scaffold(
+        backgroundColor: RadiantTokens.legacyPageBg,
       body: Column(
         children: [
           LegacySoftifyScreenHeader(
@@ -159,6 +160,7 @@ class _StaffApprovalsScreenState extends State<StaffApprovalsScreen> {
           ),
         ],
       ),
+      ),
     );
   }
 
@@ -172,8 +174,11 @@ class _StaffApprovalsScreenState extends State<StaffApprovalsScreen> {
 
     return Material(
       color: Colors.white,
-      elevation: 1,
-      borderRadius: BorderRadius.circular(10),
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(10),
+        side: const BorderSide(color: RadiantTokens.legacyCardBorder),
+      ),
       child: Padding(
         padding: const EdgeInsets.fromLTRB(14, 12, 14, 10),
         child: Column(
