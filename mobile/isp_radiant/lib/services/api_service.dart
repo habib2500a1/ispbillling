@@ -368,6 +368,11 @@ class ApiService {
   Future<void> rejectExpense(int id, {String? reason}) =>
       _post('/staff/approvals/expenses/$id/reject', {if (reason != null) 'reason': reason});
 
+  Future<void> approveStaffExpense(int id) => _post('/staff/approvals/staff-expenses/$id/approve', {});
+
+  Future<void> rejectStaffExpense(int id, {String? reason}) =>
+      _post('/staff/approvals/staff-expenses/$id/reject', {if (reason != null) 'reason': reason});
+
   Future<Map<String, dynamic>> staffCustomerFormOptions() => _get('/staff/customers/form-options');
 
   Future<List<Map<String, dynamic>>> staffCustomerPackages() async {
@@ -760,9 +765,10 @@ class ApiService {
 
   Future<Map<String, dynamic>> staffBillingSummary() => _get('/staff/billing/summary');
 
-  Future<Map<String, dynamic>> staffBillingDue({int page = 1}) async {
-    final body = await _get('/staff/billing/due?page=$page');
-    return body;
+  Future<Map<String, dynamic>> staffBillingDue({int page = 1, String q = ''}) async {
+    final params = <String>['page=$page', 'per_page=50'];
+    if (q.trim().isNotEmpty) params.add('q=${Uri.encodeQueryComponent(q.trim())}');
+    return _get('/staff/billing/due?${params.join('&')}');
   }
 
   Future<Map<String, dynamic>> staffBillingInvoices({String status = 'all', int page = 1}) async {

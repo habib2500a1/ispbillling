@@ -50,6 +50,26 @@ class StaffBillingRepository {
         );
       });
 
+  Future<Result<BillingSummary>> loadSummary() => guard(() async {
+        final summary = await _api.staffBillingSummary();
+        return BillingSummary.fromJson(summary['billing'] as Map<String, dynamic>? ?? const {});
+      });
+
+  Future<Result<({List<DueClient> items, int total, int lastPage, int page})>> loadDue({
+    int page = 1,
+    String q = '',
+  }) =>
+      guard(() async {
+        final body = await _api.staffBillingDue(page: page, q: q);
+        final meta = body['meta'] as Map<String, dynamic>? ?? const {};
+        return (
+          items: _rows(body).map(DueClient.fromJson).toList(),
+          total: (meta['total'] as num?)?.toInt() ?? 0,
+          lastPage: (meta['last_page'] as num?)?.toInt() ?? 1,
+          page: (meta['current_page'] as num?)?.toInt() ?? page,
+        );
+      });
+
   Future<Result<List<InvoiceRow>>> invoices(String status) => guard(() async {
         final body = await _api.staffBillingInvoices(status: status);
         return _rows(body).map(InvoiceRow.fromJson).toList();

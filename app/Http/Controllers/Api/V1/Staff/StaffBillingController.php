@@ -25,8 +25,9 @@ class StaffBillingController extends Controller
     {
         $user = $this->staffMobileUser($request);
         $page = max(1, (int) $request->query('page', 1));
+        $q = $request->query('q');
 
-        return response()->json($billing->dueList(StaffTenantScope::tenantIdFor($user), $page));
+        return response()->json($billing->dueList(StaffTenantScope::tenantIdFor($user), $page, 50, is_string($q) ? $q : null));
     }
 
     public function invoices(Request $request, StaffBillingMobileService $billing): JsonResponse

@@ -16,6 +16,9 @@ class DueClientCard extends StatelessWidget {
     this.onExtend,
     this.onCall,
     this.onSms,
+    this.onInfo,
+    this.selected = false,
+    this.onSelect,
   });
 
   final DueClient client;
@@ -24,6 +27,9 @@ class DueClientCard extends StatelessWidget {
   final VoidCallback? onExtend;
   final VoidCallback? onCall;
   final VoidCallback? onSms;
+  final VoidCallback? onInfo;
+  final bool selected;
+  final ValueChanged<bool>? onSelect;
 
   @override
   Widget build(BuildContext context) {
@@ -62,6 +68,8 @@ class DueClientCard extends StatelessWidget {
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
+                      const Icon(Icons.military_tech, color: Color(0xFFFFB300), size: 22),
+                      const SizedBox(height: 4),
                       Text('৳${fmt.format(c.balanceDue)}',
                           style: const TextStyle(
                               color: DesignTokens.danger, fontWeight: FontWeight.w800, fontSize: 20)),
@@ -81,13 +89,20 @@ class DueClientCard extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
               child: Row(
                 children: [
+                  if (onSelect != null)
+                    Checkbox(
+                      value: selected,
+                      onChanged: (v) => onSelect?.call(v ?? false),
+                      visualDensity: VisualDensity.compact,
+                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
                   IconButton(
                     tooltip: 'Extend 30 days',
                     icon: const Icon(Icons.autorenew_rounded, size: 19, color: DesignTokens.primary),
                     visualDensity: VisualDensity.compact,
                     onPressed: onExtend,
                   ),
-                  Text('Ex: ${c.expireDay}',
+                  Text('Ex.Date: ${c.expireDay}',
                       style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
                   const SizedBox(width: 8),
                   Expanded(
@@ -104,9 +119,9 @@ class DueClientCard extends StatelessWidget {
                       onPressed: onCall,
                     ),
                   IconButton(
-                    icon: const Icon(Icons.sms_rounded, color: DesignTokens.info, size: 19),
+                    icon: const Icon(Icons.info_outline, color: DesignTokens.primary, size: 20),
                     visualDensity: VisualDensity.compact,
-                    onPressed: onSms,
+                    onPressed: onInfo,
                   ),
                 ],
               ),

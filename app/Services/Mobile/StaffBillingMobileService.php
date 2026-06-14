@@ -36,17 +36,34 @@ final class StaffBillingMobileService
     /**
      * @return array{data: list<array<string, mixed>>, meta: array<string, int>}
      */
-    public function dueList(int $tenantId, int $page = 1, int $perPage = 30): array
+    public function dueList(int $tenantId, int $page = 1, int $perPage = 30, ?string $q = null): array
     {
         $driver = Customer::query()->getConnection()->getDriverName();
         $dueExpr = \App\Support\CustomerBalanceDue::resolvedBalanceDueExpression('customers', $driver);
 
-        $customers = Customer::withoutGlobalScopes()
+        $query = Customer::withoutGlobalScopes()
             ->where('tenant_id', $tenantId)
             ->with(['package:id,name,download_mbps,price_monthly', 'zone:id,name', 'subzone:id,name', 'area:id,name'])
             ->whereRaw("{$dueExpr} > 0.009")
-            ->orderBy('name')
-            ->paginate($perPage, ['*'], 'page', $page);
+            ->orderBy('name');
+
+        $search = trim((string) ($q ?? ''));
+        if ($search !== '') {
+            $like = '%'.$search.'%';
+            $query->where(function ($w) use ($like, $search): void {
+                $w->where('customer_code', 'like', $like)
+                    ->orWhere('name', 'like', $like)
+                    ->orWhere('phone', 'like', $like)
+                    ->orWhere('radius_username', 'like', $like)
+                    ->orWhere('mikrotik_secret_name', 'like', $like)
+                    ->orWhere('address', 'like', $like);
+                if (is_numeric($search)) {
+                    $w->orWhere('id', (int) $search);
+                }
+            });
+        }
+
+        $customers = $query->paginate($perPage, ['*'], 'page', $page);
 
         $data = collect($customers->items())
             ->map(function (Customer $c): array {
