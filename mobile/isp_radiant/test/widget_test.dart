@@ -4,10 +4,12 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:isp_radiant/app.dart';
 import 'package:isp_radiant/screens/reseller_home_screen.dart';
 import 'package:isp_radiant/screens/staff_add_customer_screen.dart';
+import 'package:isp_radiant/screens/staff_client_monitor_detail_screen.dart';
 import 'package:isp_radiant/screens/staff_expense_screen.dart';
 import 'package:isp_radiant/screens/staff_monitoring_screen.dart';
 import 'package:isp_radiant/screens/staff_receive_bill_screen.dart';
 import 'package:isp_radiant/services/api_service.dart';
+import 'package:isp_radiant/features/staff_monitoring/data/monitoring_repository.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class FakeApiService extends ApiService {
@@ -85,6 +87,37 @@ class FakeApiService extends ApiService {
           },
         ],
         'meta': {'current_page': 1, 'last_page': 1, 'total': 1},
+      };
+
+  @override
+  Future<Map<String, dynamic>> staffCustomerDetail(int id) async => {
+        'id': id,
+        'name': 'Habibur Rahman',
+        'username': 'habibfree',
+        'customer_code': '10001',
+        'phone': '01841558023',
+        'zone': 'Zone A',
+        'monthly_bill': 500,
+        'status': 'active',
+      };
+
+  @override
+  Future<Map<String, dynamic>> staffCustomerUsageLive(int customerId) async => {
+        'usage': {
+          'online': true,
+          'download_human': '1 Mb/s',
+          'upload_human': '512 Kb/s',
+          'connection_duration': '10m',
+        },
+        'customer': {'is_online': true},
+      };
+
+  @override
+  Future<Map<String, dynamic>> staffCustomerOnu(int customerId) async => {
+        'customer_id': customerId,
+        'onu_mac': 'AA:BB:CC:DD:EE:FF',
+        'mac_binding': 'bound',
+        'epon_port': 'EPON0/1',
       };
 
   @override
@@ -203,6 +236,35 @@ void main() {
     expect(find.text('Client Monitoring'), findsOneWidget);
     expect(find.textContaining('Showing Result: 1 of 2'), findsOneWidget);
     expect(find.textContaining('Online 1'), findsWidgets);
+  });
+
+  testWidgets('Monitoring detail keeps online status and opens ONU view', (tester) async {
+    final api = FakeApiService();
+    await _phone(tester, _wrap(StaffClientMonitorDetailScreen(
+      api: api,
+      customerId: 1,
+      preview: const ClientMonitorRow(
+        id: 1,
+        name: 'Habibur Rahman',
+        customerCode: '10001',
+        username: 'habibfree',
+        phone: '01841558023',
+        zone: 'Zone A',
+        subzone: 'N/A',
+        box: 'N/A',
+        profile: '24Mbps',
+        framedIp: '10.8.28.2',
+        isOnline: true,
+        connectionStatus: 'Connected',
+        lastLogout: '',
+        mikrotikServerName: 'Router 1',
+      ),
+    )));
+    await tester.pumpAndSettle();
+    expect(find.text('Connected'), findsWidgets);
+    await tester.tap(find.text('View'));
+    await tester.pumpAndSettle();
+    expect(find.text('AA:BB:CC:DD:EE:FF'), findsOneWidget);
   });
 
   testWidgets('Expense sends category source on submit', (tester) async {

@@ -73,6 +73,7 @@ class _StaffClientMonitorDetailScreenState extends State<StaffClientMonitorDetai
     final preview = widget.preview;
     final customer = _customer;
     final usage = _usage?['usage'] as Map<String, dynamic>? ?? _usage;
+    final usageCustomer = _usage?['customer'] as Map<String, dynamic>?;
     final name = _s(customer?['name'], preview?.name ?? '—');
     final username = _s(customer?['username'], preview?.username ?? '—');
     final code = _s(customer?['customer_code'], preview?.customerCode ?? '—');
@@ -81,7 +82,7 @@ class _StaffClientMonitorDetailScreenState extends State<StaffClientMonitorDetai
     final monthlyNum = customer?['monthly_bill'] as num?;
     final monthlyText = monthlyNum != null ? monthlyNum.toStringAsFixed(2) : '—';
     final billingStatus = _s(customer?['status'] ?? preview?.connectionStatus, 'Active');
-    final isOnline = usage?['online'] == true || preview?.isOnline == true;
+    final isOnline = usage?['online'] == true || usageCustomer?['is_online'] == true || preview?.isOnline == true;
     final activeStatus = isOnline ? 'Connected' : 'Offline';
 
     return LegacySoftifyPage(
@@ -104,7 +105,7 @@ class _StaffClientMonitorDetailScreenState extends State<StaffClientMonitorDetai
                   _sectionCard(
                     title: 'ONU Information',
                     trailing: TextButton(
-                      onPressed: () {},
+                      onPressed: _openOnuInfo,
                       style: TextButton.styleFrom(
                         backgroundColor: RadiantTokens.brand,
                         foregroundColor: Colors.white,
@@ -119,7 +120,14 @@ class _StaffClientMonitorDetailScreenState extends State<StaffClientMonitorDetai
                       children: [
                         Row(
                           children: [
-                            Expanded(child: _infoTile(Icons.public, 'Active Status', activeStatus, valueColor: const Color(0xFFFF7043))),
+                            Expanded(
+                              child: _infoTile(
+                                Icons.public,
+                                'Active Status',
+                                activeStatus,
+                                valueColor: isOnline ? const Color(0xFF2E7D32) : const Color(0xFFFF7043),
+                              ),
+                            ),
                             Expanded(child: _infoTile(Icons.receipt_long, 'Billing Status', billingStatus, valueColor: const Color(0xFF66BB6A))),
                           ],
                         ),
@@ -196,6 +204,51 @@ class _StaffClientMonitorDetailScreenState extends State<StaffClientMonitorDetai
       return '${v.toStringAsFixed(0)} b';
     }
     return _s(raw);
+  }
+
+  Future<void> _openOnuInfo() async {
+    try {
+      final onu = await widget.api.staffCustomerOnu(widget.customerId);
+      if (!mounted) return;
+      showModalBottomSheet<void>(
+        context: context,
+        backgroundColor: Colors.white,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
+        ),
+        builder: (context) => SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(18, 16, 18, 22),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('ONU Information', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+                const SizedBox(height: 14),
+                _detailLine('ONU MAC', _s(onu['onu_mac'])),
+                _detailLine('MAC Binding', _s(onu['mac_binding'])),
+                _detailLine('EPON Port', _s(onu['epon_port'])),
+                const SizedBox(height: 10),
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton(
+                    onPressed: () => Navigator.pop(context),
+                    style: FilledButton.styleFrom(backgroundColor: RadiantTokens.brand),
+                    child: const Text('Close'),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Could not load ONU information')));
+    }
   }
 
   Widget _sectionCard({String? title, Widget? trailing, required Widget child}) {

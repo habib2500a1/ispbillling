@@ -57,12 +57,16 @@ final class StaffMonitoringService
                 'name' => $c->name,
                 'phone' => $c->phone,
                 'package' => $c->package?->name,
+                'username' => $c->pppLoginName(),
+                'profile' => $c->package?->name,
                 'status' => $c->status,
                 'session_started' => null,
                 'online_duration' => null,
                 'download_human' => null,
                 'upload_human' => null,
                 'framed_ip' => null,
+                'is_online' => true,
+                'connection_status' => 'Connected',
             ]);
 
         return [
@@ -302,6 +306,10 @@ final class StaffMonitoringService
             'download_human' => BandwidthDirection::formatBps($s->liveDownloadBps()),
             'upload_human' => BandwidthDirection::formatBps($s->liveUploadBps()),
             'framed_ip' => $s->framed_ip,
+            'username' => $c->pppLoginName(),
+            'profile' => $c->package?->name,
+            'is_online' => true,
+            'connection_status' => 'Connected',
         ];
     }
 }

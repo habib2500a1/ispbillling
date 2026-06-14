@@ -775,7 +775,16 @@ class ApiService {
     } on ApiException catch (e) {
       if (e.statusCode != 404) rethrow;
       final fallback = await _get('/staff/monitoring/online');
-      final clients = _listFrom(fallback['data']);
+      final clients = _listFrom(fallback['data'])
+          .map((row) => {
+                ...row,
+                'username': row['username'] ?? row['radius_username'] ?? row['user_id'] ?? '',
+                'profile': row['profile'] ?? row['package'] ?? '',
+                'is_online': true,
+                'connection_status': 'Connected',
+                'last_logout': '',
+              })
+          .toList();
       final online = (fallback['total_online'] as num?)?.toInt() ?? clients.length;
       return {
         'data': clients,
