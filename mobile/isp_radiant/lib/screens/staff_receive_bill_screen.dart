@@ -84,6 +84,11 @@ class _StaffReceiveBillScreenState extends State<StaffReceiveBillScreen> {
       if ((collectorId == null || collectorId < 1) && collectors.length == 1) {
         collectorId = (collectors.first['id'] as num?)?.toInt();
       }
+      if (collectorId != null &&
+          collectors.isNotEmpty &&
+          !collectors.any((c) => (c['id'] as num?)?.toInt() == collectorId)) {
+        collectorId = (collectors.first['id'] as num?)?.toInt();
+      }
       if (collectorId == null || collectorId < 1) {
         try {
           final me = await widget.api.staffMe();
@@ -136,7 +141,6 @@ class _StaffReceiveBillScreenState extends State<StaffReceiveBillScreen> {
   bool get _canSubmit {
     final amount = double.tryParse(_receivedCtrl.text.trim()) ?? 0;
     if (amount <= 0) return false;
-    if (_collectorId == null || _collectorId! < 1) return false;
     return true;
   }
 
@@ -146,10 +150,7 @@ class _StaffReceiveBillScreenState extends State<StaffReceiveBillScreen> {
       showSnack(context, 'Enter received amount', isError: true);
       return;
     }
-    if (_collectorId == null || _collectorId! < 1) {
-      showSnack(context, 'Select who received this payment', isError: true);
-      return;
-    }
+    final collectorUserId = (_collectorId != null && _collectorId! > 0) ? _collectorId : null;
     setState(() => _saving = true);
     try {
       final id = (widget.customer['id'] as num).toInt();
@@ -160,7 +161,7 @@ class _StaffReceiveBillScreenState extends State<StaffReceiveBillScreen> {
         method: _method,
         reference: _receiptCtrl.text.trim().isNotEmpty ? _receiptCtrl.text.trim() : null,
         notes: _buildNotes(),
-        collectorUserId: _collectorId,
+        collectorUserId: collectorUserId,
         discountPreset: _preset,
         discountCustom: double.tryParse(_discountCtrl.text.trim()),
       );
@@ -188,7 +189,7 @@ class _StaffReceiveBillScreenState extends State<StaffReceiveBillScreen> {
           method: _method,
           reference: _receiptCtrl.text.trim().isNotEmpty ? _receiptCtrl.text.trim() : null,
           notes: _buildNotes(),
-          collectorUserId: _collectorId,
+          collectorUserId: collectorUserId,
         );
         if (mounted) {
           showSnack(context, 'Offline — payment queued for sync');
@@ -208,18 +209,31 @@ class _StaffReceiveBillScreenState extends State<StaffReceiveBillScreen> {
     final monthly = (c['monthly_bill'] as num?)?.toDouble();
     final gross = _payable;
 
-    return Scaffold(
-      backgroundColor: context.isDark ? RadiantTokens.darkBg : RadiantTokens.legacyPageBg,
-      appBar: AppBar(
-        backgroundColor: RadiantTokens.brand,
-        foregroundColor: Colors.white,
-        elevation: 0,
-        centerTitle: true,
-        title: const Text('Receive Bill'),
+    final lightTheme = Theme.of(context).copyWith(
+      brightness: Brightness.light,
+      scaffoldBackgroundColor: RadiantTokens.legacyPageBg,
+      colorScheme: ColorScheme.fromSeed(seedColor: RadiantTokens.brand, brightness: Brightness.light),
+      textTheme: Theme.of(context).textTheme.apply(bodyColor: Colors.black87, displayColor: Colors.black87),
+      inputDecorationTheme: const InputDecorationTheme(
+        labelStyle: TextStyle(color: Color(0xFF6B7280)),
+        hintStyle: TextStyle(color: Color(0xFF9CA3AF)),
       ),
-      body: _loading
-          ? const Center(child: CircularProgressIndicator())
-          : SingleChildScrollView(
+    );
+
+    return Theme(
+      data: lightTheme,
+      child: Scaffold(
+        backgroundColor: RadiantTokens.legacyPageBg,
+        appBar: AppBar(
+          backgroundColor: RadiantTokens.brand,
+          foregroundColor: Colors.white,
+          elevation: 0,
+          centerTitle: true,
+          title: const Text('Receive Bill'),
+        ),
+        body: _loading
+            ? const Center(child: CircularProgressIndicator())
+            : SingleChildScrollView(
               padding: const EdgeInsets.all(12),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -288,6 +302,7 @@ class _StaffReceiveBillScreenState extends State<StaffReceiveBillScreen> {
                       Expanded(
                         child: TextField(
                           controller: _receivedCtrl,
+                          style: const TextStyle(color: Colors.black87),
                           keyboardType: const TextInputType.numberWithOptions(decimal: true),
                           decoration: const InputDecoration(
                             labelText: 'Received amount',
@@ -301,6 +316,7 @@ class _StaffReceiveBillScreenState extends State<StaffReceiveBillScreen> {
                       Expanded(
                         child: TextField(
                           controller: _discountCtrl,
+                          style: const TextStyle(color: Colors.black87),
                           keyboardType: const TextInputType.numberWithOptions(decimal: true),
                           decoration: const InputDecoration(
                             labelText: 'Discount',
@@ -330,6 +346,7 @@ class _StaffReceiveBillScreenState extends State<StaffReceiveBillScreen> {
                   const SizedBox(height: 10),
                   TextField(
                     controller: _vatCtrl,
+                    style: const TextStyle(color: Colors.black87),
                     decoration: const InputDecoration(
                       labelText: 'VAT amount',
                       filled: true,
@@ -340,6 +357,7 @@ class _StaffReceiveBillScreenState extends State<StaffReceiveBillScreen> {
                   const SizedBox(height: 10),
                   TextField(
                     controller: _receiptCtrl,
+                    style: const TextStyle(color: Colors.black87),
                     decoration: const InputDecoration(
                       labelText: 'Money receipt',
                       filled: true,
@@ -350,6 +368,7 @@ class _StaffReceiveBillScreenState extends State<StaffReceiveBillScreen> {
                   const SizedBox(height: 10),
                   TextField(
                     controller: _noteCtrl,
+                    style: const TextStyle(color: Colors.black87),
                     maxLines: 4,
                     decoration: const InputDecoration(
                       labelText: 'Remark/note',
@@ -395,6 +414,7 @@ class _StaffReceiveBillScreenState extends State<StaffReceiveBillScreen> {
                 ],
               ),
             ),
+      ),
     );
   }
 
@@ -431,6 +451,8 @@ class _StaffReceiveBillScreenState extends State<StaffReceiveBillScreen> {
                   child: DropdownButton<int>(
                     isExpanded: true,
                     value: collectors.any((c) => (c['id'] as num?)?.toInt() == selected) ? selected : null,
+                    dropdownColor: Colors.white,
+                    style: const TextStyle(color: Colors.black87, fontWeight: FontWeight.w600),
                     hint: const Text('Select staff'),
                     items: [
                       for (final c in collectors)

@@ -25,6 +25,14 @@ class StaffCollectionOptionsController extends Controller
                 'name' => explode(' · ', $label)[0],
             ];
         }
+        $selfId = $resolver->defaultCollectorId($user);
+        if ($selfId > 0 && ! collect($collectors)->contains(fn (array $row): bool => (int) $row['id'] === $selfId)) {
+            array_unshift($collectors, [
+                'id' => $selfId,
+                'label' => trim($user->name.' (me)'),
+                'name' => $user->name,
+            ]);
+        }
 
         return response()->json([
             'data' => array_merge(

@@ -51,7 +51,7 @@ class StaffExpenseController extends Controller
         $user = $this->user($request);
 
         $data = $request->validate([
-            'expense_source' => ['required', 'string', 'in:vendor,office,other'],
+            'expense_source' => ['nullable', 'string', 'in:vendor,office,other'],
             'amount' => ['required', 'numeric', 'min:0.01'],
             'category_id' => ['required', 'integer', 'exists:staff_expense_categories,id'],
             'vendor_id' => ['nullable', 'integer', 'exists:vendors,id'],
@@ -59,6 +59,10 @@ class StaffExpenseController extends Controller
             'expense_date' => ['nullable', 'date'],
             'payment_method' => ['nullable', 'string', 'max:24'],
         ]);
+        if (blank($data['expense_source'] ?? null)) {
+            $category = StaffExpenseCategory::query()->find((int) $data['category_id']);
+            $data['expense_source'] = $category?->expense_source ?: StaffExpense::SOURCE_OFFICE;
+        }
 
         $expense = $service->submit([
             ...$data,

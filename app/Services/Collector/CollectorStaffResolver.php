@@ -156,6 +156,10 @@ final class CollectorStaffResolver
 
         if ($this->canPickCollector($user)) {
             if ($requestedCollectorId !== null && $requestedCollectorId > 0) {
+                if ($requestedCollectorId === $selfId) {
+                    return $selfId;
+                }
+
                 $options = $this->collectableStaffOptions($user?->tenant_id);
 
                 if (! array_key_exists($requestedCollectorId, $options)) {

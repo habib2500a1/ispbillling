@@ -499,10 +499,12 @@ class ApiService {
   Future<Map<String, dynamic>> submitCollectorExpense({
     required double amount,
     required int categoryId,
+    String expenseSource = 'office',
     String? description,
     String? expenseDate,
   }) =>
       _post('/staff/expenses', {
+        'expense_source': expenseSource,
         'amount': amount,
         'category_id': categoryId,
         if (description != null) 'description': description,
@@ -764,7 +766,20 @@ class ApiService {
       if (connection.isNotEmpty && connection != 'all') 'connection': connection,
     };
     final query = params.entries.map((e) => '${Uri.encodeQueryComponent(e.key)}=${Uri.encodeQueryComponent(e.value)}').join('&');
-    return _get('/staff/monitoring/clients?$query');
+    try {
+      return await _get('/staff/monitoring/clients?$query');
+    } on ApiException catch (e) {
+      if (e.statusCode != 404) rethrow;
+      final fallback = await _get('/staff/monitoring/online');
+      final clients = _listFrom(fallback['data']);
+      final online = (fallback['total_online'] as num?)?.toInt() ?? clients.length;
+      return {
+        'data': clients,
+        'stats': {'total': online, 'online': online, 'offline': 0},
+        'filters': {'routers': const [], 'zones': const [], 'subzones': const [], 'areas': const []},
+        'meta': {'current_page': 1, 'last_page': 1, 'total': clients.length},
+      };
+    }
   }
 
   Future<Map<String, dynamic>> staffBillingSummary() => _get('/staff/billing/summary');

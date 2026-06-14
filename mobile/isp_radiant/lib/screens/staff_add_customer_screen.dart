@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_map/flutter_map.dart';
 import 'package:intl/intl.dart';
 import 'package:latlong2/latlong.dart';
 
@@ -39,7 +38,6 @@ class _StaffAddCustomerScreenState extends State<StaffAddCustomerScreen> {
   final _deviceChargeCtrl = TextEditingController(text: '0');
   final _cashCtrl = TextEditingController(text: '0');
   final _discountCtrl = TextEditingController(text: '0');
-  final _mapController = MapController();
 
   List<Map<String, dynamic>> _packages = [];
   List<Map<String, dynamic>> _servers = [];
@@ -481,34 +479,7 @@ class _StaffAddCustomerScreenState extends State<StaffAddCustomerScreen> {
       children: [
         const Text('Location GPS', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
         const SizedBox(height: 8),
-        ClipRRect(
-          borderRadius: BorderRadius.circular(12),
-          child: SizedBox(
-            height: 180,
-            child: FlutterMap(
-              mapController: _mapController,
-              options: MapOptions(
-                initialCenter: _gps ?? const LatLng(23.8103, 90.4125),
-                initialZoom: 14,
-                onTap: (_, point) => setState(() => _gps = point),
-              ),
-              children: [
-                TileLayer(urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png'),
-                if (_gps != null)
-                  MarkerLayer(
-                    markers: [
-                      Marker(
-                        point: _gps!,
-                        width: 36,
-                        height: 36,
-                        child: const Icon(Icons.location_on, color: Colors.red, size: 36),
-                      ),
-                    ],
-                  ),
-              ],
-            ),
-          ),
-        ),
+        _gpsPicker(),
         if (_gps != null)
           Padding(
             padding: const EdgeInsets.only(top: 6, bottom: 12),
@@ -554,8 +525,68 @@ class _StaffAddCustomerScreenState extends State<StaffAddCustomerScreen> {
           ),
         _legacyField(_customerIdCtrl, _autoCustomerId ? 'Custom Customer ID (optional)' : 'Customer ID', required: !_autoCustomerId),
         _legacyField(_discountCtrl, 'Monthly discount (BDT)', keyboard: const TextInputType.numberWithOptions(decimal: true)),
+        const SizedBox(height: 8),
+        const Text('PPPoE username & password', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
+        const SizedBox(height: 8),
+        if (_servers.isNotEmpty)
+          _legacyDropdown('Router', _serverId?.toString(), _servers, (v) => setState(() => _serverId = v != null ? int.tryParse(v) : null), valueKey: 'id'),
+        _legacyField(_pppUserCtrl, 'PPPoE username'),
+        _legacyField(_pppPassCtrl, 'PPPoE password', obscure: true),
+        SwitchListTile(
+          contentPadding: EdgeInsets.zero,
+          value: _provisionMikrotik,
+          onChanged: (v) => setState(() => _provisionMikrotik = v),
+          title: const Text('Activate on MikroTik'),
+        ),
         _legacyField(_notesCtrl, 'Remarks / notes', maxLines: 3),
       ],
+    );
+  }
+
+  Widget _gpsPicker() {
+    final point = _gps ?? const LatLng(23.8103, 90.4125);
+    return InkWell(
+      borderRadius: BorderRadius.circular(12),
+      onTap: () => setState(() => _gps ??= point),
+      child: Container(
+        height: 120,
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF8FAFC),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: const Color(0xFFE5E7EB)),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 52,
+              height: 52,
+              decoration: BoxDecoration(
+                color: RadiantTokens.brand.withValues(alpha: 0.10),
+                borderRadius: BorderRadius.circular(18),
+              ),
+              child: Icon(Icons.location_on, color: RadiantTokens.brand, size: 30),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Text('GPS location', style: TextStyle(fontWeight: FontWeight.w700)),
+                  const SizedBox(height: 4),
+                  Text(
+                    _gps == null
+                        ? 'Tap to keep default location. Map tiles disabled to avoid OpenStreetMap blocking.'
+                        : '${point.latitude.toStringAsFixed(6)}, ${point.longitude.toStringAsFixed(6)}',
+                    style: TextStyle(fontSize: 12, color: Colors.grey.shade700),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -638,6 +669,7 @@ class _StaffAddCustomerScreenState extends State<StaffAddCustomerScreen> {
           const SizedBox(height: 6),
           TextField(
             controller: ctrl,
+            style: const TextStyle(color: Colors.black87),
             obscureText: obscure,
             maxLines: maxLines,
             keyboardType: keyboard,
@@ -696,7 +728,10 @@ class _StaffAddCustomerScreenState extends State<StaffAddCustomerScreen> {
     final items = options
         .map((o) => DropdownMenuItem<String>(
               value: o[valueKey]?.toString(),
-              child: Text(o[labelKey]?.toString() ?? o['name']?.toString() ?? '—'),
+              child: Text(
+                o[labelKey]?.toString() ?? o['name']?.toString() ?? '—',
+                style: const TextStyle(color: Colors.black87),
+              ),
             ))
         .toList();
     final selected = items.any((i) => i.value == value) ? value : null;
@@ -718,6 +753,8 @@ class _StaffAddCustomerScreenState extends State<StaffAddCustomerScreen> {
           const SizedBox(height: 6),
           DropdownButtonFormField<String>(
             initialValue: selected,
+            style: const TextStyle(color: Colors.black87),
+            dropdownColor: Colors.white,
             decoration: InputDecoration(
               filled: true,
               fillColor: Colors.white,

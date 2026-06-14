@@ -73,9 +73,14 @@ class _StaffExpenseScreenState extends State<StaffExpenseScreen> {
     }
     setState(() => _submitting = true);
     try {
+      final category = _categories.firstWhere(
+        (c) => (c['id'] as num?)?.toInt() == _categoryId,
+        orElse: () => const <String, dynamic>{},
+      );
       await widget.api.submitCollectorExpense(
         amount: amount,
         categoryId: _categoryId!,
+        expenseSource: category['expense_source']?.toString() ?? 'office',
         description: _descCtrl.text.trim().isEmpty ? null : _descCtrl.text.trim(),
         expenseDate: DateFormat('yyyy-MM-dd').format(DateTime.now()),
       );
