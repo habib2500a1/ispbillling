@@ -35,6 +35,8 @@
                 string $filter = 'all',
                 ?int $customerId = null,
                 ?string $mode = null,
+                ?string $tab = null,
+                ?string $historyFilter = null,
             ) use ($collectionDeskUrl): string {
                 $params = [];
 
@@ -52,6 +54,14 @@
 
                 if ($mode === 'advance') {
                     $params['mode'] = 'advance';
+                }
+
+                if (in_array($tab, ['collect', 'bills', 'history'], true)) {
+                    $params['tab'] = $tab;
+                }
+
+                if (in_array($historyFilter, ['all', 'legacy_portal'], true)) {
+                    $params['history_filter'] = $historyFilter;
                 }
 
                 return $params === []
@@ -232,13 +242,13 @@
             @endphp
             <div class="isp-collection-panel" id="isp-collection-panel">
                 <nav class="isp-collection-tabs" aria-label="Subscriber tabs">
-                    <button type="button" wire:click="setTab('collect')" @class(['isp-collection-tabs__btn', 'isp-collection-tabs__btn--active' => $activeTab === 'collect'])>Collect payment</button>
-                    <button type="button" wire:click="setTab('bills')" @class(['isp-collection-tabs__btn', 'isp-collection-tabs__btn--active' => $activeTab === 'bills'])>Bills ({{ count($selectedCustomer['bill_history'] ?? []) }})</button>
-                    <button type="button" wire:click="setTab('history')" @class(['isp-collection-tabs__btn', 'isp-collection-tabs__btn--active' => $activeTab === 'history'])>{{ $this->collectionHistoryTabLabel() }}</button>
+                    <a href="{{ $collectionSearchQuery($search, $searchFilter, $selectedCustomerId, $this->isRechargeMode() ? 'advance' : null, 'collect') }}" data-navigate="false" @class(['isp-collection-tabs__btn', 'isp-collection-tabs__btn--active' => $activeTab === 'collect'])>Collect payment</a>
+                    <a href="{{ $collectionSearchQuery($search, $searchFilter, $selectedCustomerId, $this->isRechargeMode() ? 'advance' : null, 'bills') }}" data-navigate="false" @class(['isp-collection-tabs__btn', 'isp-collection-tabs__btn--active' => $activeTab === 'bills'])>Bills ({{ count($selectedCustomer['bill_history'] ?? []) }})</a>
+                    <a href="{{ $collectionSearchQuery($search, $searchFilter, $selectedCustomerId, $this->isRechargeMode() ? 'advance' : null, 'history', $collectionHistoryFilter) }}" data-navigate="false" @class(['isp-collection-tabs__btn', 'isp-collection-tabs__btn--active' => $activeTab === 'history'])>{{ $this->collectionHistoryTabLabel() }}</a>
                 </nav>
 
                 @if ($activeTab === 'collect')
-                    <form wire:submit="collectPayment" class="isp-collection-sheet">
+                    <form wire:submit.prevent="collectPayment" class="isp-collection-sheet">
                         <header class="isp-collection-sheet__header">
                             <div>
                                 <p class="isp-collection-sheet__eyebrow">{{ $this->isRechargeMode() ? 'Recharge / advance' : 'Bill collection' }}</p>
@@ -256,6 +266,7 @@
                             <button
                                 type="button"
                                 wire:click="setCollectionMode('bill')"
+                                onclick="if(!window.Livewire){window.location.href='{{ $collectionSearchQuery($search, $searchFilter, $selectedCustomerId, null, 'collect') }}'}"
                                 @class(['isp-collection-mode-btn', 'isp-collection-mode-btn--active' => ! $this->isRechargeMode()])
                             >
                                 Collect due
@@ -263,6 +274,7 @@
                             <button
                                 type="button"
                                 wire:click="setCollectionMode('advance')"
+                                onclick="if(!window.Livewire){window.location.href='{{ $collectionSearchQuery($search, $searchFilter, $selectedCustomerId, 'advance', 'collect') }}'}"
                                 @class(['isp-collection-mode-btn', 'isp-collection-mode-btn--active' => $this->isRechargeMode()])
                             >
                                 Recharge (advance)
@@ -581,16 +593,16 @@
                     @endphp
                     <div class="mb-3 flex flex-wrap items-center gap-2">
                         <span class="text-xs font-semibold uppercase text-gray-500">Show</span>
-                        <button type="button" wire:click="$set('collectionHistoryFilter', 'legacy_portal')" @class([
+                        <a href="{{ $collectionSearchQuery($search, $searchFilter, $selectedCustomerId, $this->isRechargeMode() ? 'advance' : null, 'history', 'legacy_portal') }}" data-navigate="false" @class([
                             'rounded-lg px-3 py-1.5 text-xs font-semibold',
                             'bg-primary-600 text-white' => $collectionHistoryFilter === 'legacy_portal',
                             'bg-gray-100 text-gray-700 dark:bg-gray-800' => $collectionHistoryFilter !== 'legacy_portal',
-                        ])>{{ \App\Support\BillingPortalLabel::collectionFilter() }}</button>
-                        <button type="button" wire:click="$set('collectionHistoryFilter', 'all')" @class([
+                        ])>{{ \App\Support\BillingPortalLabel::collectionFilter() }}</a>
+                        <a href="{{ $collectionSearchQuery($search, $searchFilter, $selectedCustomerId, $this->isRechargeMode() ? 'advance' : null, 'history', 'all') }}" data-navigate="false" @class([
                             'rounded-lg px-3 py-1.5 text-xs font-semibold',
                             'bg-primary-600 text-white' => $collectionHistoryFilter === 'all',
                             'bg-gray-100 text-gray-700 dark:bg-gray-800' => $collectionHistoryFilter !== 'all',
-                        ])>All in this system</button>
+                        ])>All in this system</a>
                     </div>
                     @if (($sync['show_legacy_portal_hint'] ?? false) && $collectionHistoryFilter === 'all' && $localOnly > 0)
                         <p class="mb-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-100">
@@ -599,7 +611,7 @@
                         </p>
                     @endif
                     @if ($editingPaymentId)
-                        <form wire:submit="savePaymentCorrection" class="mb-4 max-w-2xl space-y-3 rounded-xl border border-amber-300 bg-amber-50/80 p-4 dark:border-amber-700 dark:bg-amber-950/30">
+                        <form wire:submit.prevent="savePaymentCorrection" class="mb-4 max-w-2xl space-y-3 rounded-xl border border-amber-300 bg-amber-50/80 p-4 dark:border-amber-700 dark:bg-amber-950/30">
                             <p class="text-sm font-bold text-amber-900 dark:text-amber-200">Correct wrong collection</p>
                             <p class="text-xs text-amber-800 dark:text-amber-300">Reverses the old allocation and applies again. Logged under your user account.</p>
                             <div class="grid gap-3 sm:grid-cols-2">

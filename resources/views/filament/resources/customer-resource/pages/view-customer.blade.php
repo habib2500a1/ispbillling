@@ -65,9 +65,10 @@
     {!! \App\Support\SubscriberViewStyles::navigatedScriptWithOlt() !!}
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin="" data-cfasync="false"></script>
+    <script src="{{ asset('js/subscriber-view-tabs.js') }}?v={{ @filemtime(public_path('js/subscriber-view-tabs.js')) ?: 1 }}" data-cfasync="false" defer></script>
     <script src="{{ asset('js/subscriber-view-location-map.js') }}?v={{ @filemtime(public_path('js/subscriber-view-location-map.js')) ?: 1 }}" data-cfasync="false" defer></script>
 
-    <div class="sub-pro olt-pro" wire:key="client-view-{{ $record->getKey() }}-{{ \App\Support\SubscriberViewStyles::version() }}" x-data="{ tab: 'overview' }">
+    <div class="sub-pro olt-pro" wire:key="client-view-{{ $record->getKey() }}-{{ \App\Support\SubscriberViewStyles::version() }}" x-data="{ tab: 'overview' }" data-sub-tabs-root data-initial-tab="overview">
         <header class="olt-hero sub-hero">
             <div class="olt-hero__grid">
                 <span class="olt-hero__badge">
@@ -195,8 +196,10 @@
                 <button
                     type="button"
                     @click="tab = '{{ $item['key'] }}'"
+                    data-sub-tab="{{ $item['key'] }}"
+                    aria-selected="{{ $item['key'] === 'overview' ? 'true' : 'false' }}"
                     :class="tab === '{{ $item['key'] }}' && 'sub-tabs__btn--active'"
-                    class="sub-tabs__btn"
+                    @class(['sub-tabs__btn', 'sub-tabs__btn--active' => $item['key'] === 'overview'])
                 >
                     <x-filament::icon :icon="$item['icon']" class="h-4 w-4" />
                     <span>{{ $item['label'] }}</span>
@@ -204,7 +207,7 @@
             @endforeach
         </nav>
 
-        <div x-show="tab === 'overview'" x-cloak class="sub-pane">
+        <div x-show="tab === 'overview'" x-cloak class="sub-pane" data-sub-pane="overview">
             @include('filament.resources.customer-resource.partials.client-details-overview', [
                 'sections' => $overview,
                 'connectionLink' => $details['connection_link'] ?? [],
@@ -264,7 +267,7 @@
             @endif
         </div>
 
-        <div x-show="tab === 'billing'" x-cloak class="sub-pane">
+        <div x-show="tab === 'billing'" x-cloak class="sub-pane" data-sub-pane="billing" hidden>
             <div class="isp-cv-split">
                 <section class="isp-cv-card isp-cv-card--full">
                     <h3 class="isp-cv-card__title">Payments</h3>
@@ -333,7 +336,7 @@
             </div>
         </div>
 
-        <div x-show="tab === 'network'" x-cloak class="sub-pane">
+        <div x-show="tab === 'network'" x-cloak class="sub-pane" data-sub-pane="network" hidden>
             @include('filament.resources.customer-resource.partials.client-fiber-path', ['customer' => $record])
             <section class="isp-cv-card isp-cv-card--full" wire:poll.60s wire:key="onu-optical-{{ $record->getKey() }}-v2">
                 <h3 class="isp-cv-card__title">ONU / Optical</h3>
@@ -351,7 +354,7 @@
             </section>
         </div>
 
-        <div x-show="tab === 'more'" x-cloak class="sub-pane">
+        <div x-show="tab === 'more'" x-cloak class="sub-pane" data-sub-pane="more" hidden>
             <div class="isp-cv-more-grid">
                 <section class="isp-cv-card">
                     <h3 class="isp-cv-card__title">Contacts</h3>

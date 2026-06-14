@@ -235,6 +235,17 @@ class EditOlt extends EditRecord
         ];
     }
 
+    public function hydrate(): void
+    {
+        if (! $this->record) {
+            return;
+        }
+
+        if (blank($this->data['management_ip'] ?? null) && blank($this->data['display_name'] ?? null)) {
+            $this->fillForm();
+        }
+    }
+
     /**
      * @param  array<string, mixed>  $data
      * @return array<string, mixed>

@@ -14,7 +14,14 @@
 
 {!! \App\Support\OltStyles::navigatedScript() !!}
 
-<x-filament-panels::page class="isp-olt-profile-page">
+<x-filament-panels::page
+    @class([
+        'isp-olt-profile-page',
+        'fi-resource-edit-record-page',
+        'fi-resource-olts',
+        'fi-resource-record-' . $record->getKey(),
+    ])
+>
     <div class="olt-oc-pro">
         <header class="olt-profile-hero">
             <div>
@@ -80,10 +87,16 @@
         @endif
 
         <section class="olt-profile-form">
-            <x-filament-panels::form wire:submit="save">
+            <x-filament-panels::form
+                id="form"
+                :wire:key="'olt-edit-' . $record->getKey() . '.' . $this->getFormStatePath()"
+                wire:submit.prevent="save"
+            >
                 {{ $this->form }}
                 <x-filament-panels::form.actions :actions="$this->getCachedFormActions()" :full-width="$this->hasFullWidthFormActions()" />
             </x-filament-panels::form>
         </section>
     </div>
+
+    <x-filament-panels::page.unsaved-data-changes-alert />
 </x-filament-panels::page>

@@ -81,6 +81,14 @@
     border-color: rgba(71, 85, 105, 0.5);
 }
 
+.dark .net-noc-pro .net-profile-form .fi-input input,
+.dark .net-noc-pro .net-profile-form .fi-input-wrp input,
+[data-theme='dark'] .net-noc-pro .net-profile-form .fi-input input,
+[data-theme='dark'] .net-noc-pro .net-profile-form .fi-input-wrp input {
+    color: #f1f5f9;
+    -webkit-text-fill-color: #f1f5f9;
+}
+
 .dark .net-noc-pro .net-rt-btn--primary {
     background: #f1f5f9;
     color: #1e3a8a;

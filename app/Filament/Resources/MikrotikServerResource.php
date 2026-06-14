@@ -186,6 +186,9 @@ class MikrotikServerResource extends Resource
                     ->label('Enabled'),
             ])
             ->actions([
+                Tables\Actions\EditAction::make()
+                    ->label('Edit'),
+                Tables\Actions\ActionGroup::make([
                 Tables\Actions\Action::make('check_status')
                     ->label('Check')
                     ->icon('heroicon-o-arrow-path')
@@ -409,7 +412,11 @@ class MikrotikServerResource extends Resource
                         }
                         $notification->send();
                     }),
-                Tables\Actions\EditAction::make(),
+                ])
+                    ->label('More')
+                    ->icon('heroicon-m-ellipsis-horizontal')
+                    ->button()
+                    ->color('gray'),
             ])
             ->headerActions([
                 Tables\Actions\Action::make('poll_all')

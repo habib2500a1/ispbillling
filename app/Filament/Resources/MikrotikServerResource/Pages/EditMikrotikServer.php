@@ -28,6 +28,28 @@ class EditMikrotikServer extends EditRecord
         ];
     }
 
+    public function hydrate(): void
+    {
+        if (! $this->record) {
+            return;
+        }
+
+        if (blank($this->data['name'] ?? null) && blank($this->data['host'] ?? null)) {
+            $this->fillForm();
+        }
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    protected function mutateFormDataBeforeFill(array $data): array
+    {
+        unset($data['api_password'], $data['default_ppp_password']);
+
+        return $data;
+    }
+
     protected function mutateFormDataBeforeSave(array $data): array
     {
         $tid = (int) $this->record->tenant_id;

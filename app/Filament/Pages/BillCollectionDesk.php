@@ -140,6 +140,16 @@ class BillCollectionDesk extends Page
             $this->collectionMode = 'advance';
         }
 
+        $openTab = (string) request()->query('tab', '');
+        if (in_array($openTab, ['collect', 'bills', 'history'], true)) {
+            $this->activeTab = $openTab;
+        }
+
+        $historyFilter = (string) request()->query('history_filter', '');
+        if (in_array($historyFilter, ['all', 'legacy_portal'], true)) {
+            $this->collectionHistoryFilter = $historyFilter;
+        }
+
         $customerId = request()->integer('customer');
         if ($customerId > 0) {
             $customer = \App\Models\Customer::withoutGlobalScopes()->find($customerId);

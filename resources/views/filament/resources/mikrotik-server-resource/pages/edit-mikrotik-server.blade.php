@@ -13,7 +13,14 @@
 
 {!! \App\Support\NetworkStyles::navigatedScript() !!}
 
-<x-filament-panels::page class="isp-network-noc-page">
+<x-filament-panels::page
+    @class([
+        'isp-network-noc-page',
+        'fi-resource-edit-record-page',
+        'fi-resource-mikrotik-servers',
+        'fi-resource-record-' . $record->getKey(),
+    ])
+>
     <div class="net-noc-pro space-y-4">
         <header class="net-profile-hero">
             <div style="display:flex;flex-wrap:wrap;align-items:flex-start;justify-content:space-between;gap:0.75rem;">
@@ -56,7 +63,11 @@
         </header>
 
         <section class="net-profile-form isp-network-router-form">
-            <x-filament-panels::form wire:submit.prevent="save" id="mikrotik-router-edit-form">
+            <x-filament-panels::form
+                id="form"
+                :wire:key="'mikrotik-edit-' . $record->getKey() . '.' . $this->getFormStatePath()"
+                wire:submit.prevent="save"
+            >
                 {{ $this->form }}
                 <div class="net-profile-form__actions">
                     <x-filament-panels::form.actions :actions="$this->getCachedFormActions()" :full-width="$this->hasFullWidthFormActions()" />
@@ -80,4 +91,6 @@
             </p>
         @endif
     </div>
+
+    <x-filament-panels::page.unsaved-data-changes-alert />
 </x-filament-panels::page>

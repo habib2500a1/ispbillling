@@ -4460,6 +4460,8 @@ a.isp-lifecycle-card:hover {
 }
 
 .isp-collection-tabs__btn {
+    display: inline-flex;
+    align-items: center;
     border: 0;
     border-radius: 0.5rem;
     padding: 0.45rem 0.85rem;
@@ -4468,6 +4470,7 @@ a.isp-lifecycle-card:hover {
     color: #64748b;
     background: transparent;
     cursor: pointer;
+    text-decoration: none;
 }
 
 .isp-collection-tabs__btn--active {

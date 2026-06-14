@@ -159,7 +159,18 @@
     border: 1px solid var(--nr-border);
     background: var(--nr-card);
     box-shadow: var(--nr-shadow);
-    overflow: hidden;
+    overflow: visible;
+}
+
+.nr-inv-table-card .fi-ta-ctn,
+.nr-inv-table-card .fi-ta-content {
+    border-radius: inherit;
+}
+
+.nr-inv-table-card .fi-ta-actions,
+.nr-inv-table-card .fi-ac {
+    position: relative;
+    z-index: 5;
 }
 
 .nr-inv-table-card .fi-ta-header-cell {

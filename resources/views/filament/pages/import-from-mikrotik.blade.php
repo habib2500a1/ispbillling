@@ -13,12 +13,16 @@
         </section>
 
         <section class="isp-network-form-card">
-            <form wire:submit="submitImport" class="space-y-4">
+            <x-filament-panels::form
+                id="mikrotik-import-form"
+                :wire:key="$this->getId() . '.forms.data'"
+                wire:submit.prevent="submitImport"
+            >
                 {{ $this->form }}
                 <x-filament::button type="submit" icon="heroicon-o-arrow-down-tray">
                     Import selected users
                 </x-filament::button>
-            </form>
+            </x-filament-panels::form>
         </section>
     </div>
 </x-filament-panels::page>
