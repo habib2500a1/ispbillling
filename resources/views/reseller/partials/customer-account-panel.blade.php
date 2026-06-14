@@ -18,6 +18,15 @@
         <div><dt>Area / Zone</dt><dd>{{ $customer->area?->name ?? '—' }} / {{ $customer->zone?->name ?? '—' }}</dd></div>
         <div><dt>Billing day</dt><dd>Day {{ $p['billing_day'] ?? $customer->billing_day ?? 1 }} of month</dd></div>
         <div><dt>Joined</dt><dd>{{ $p['joined_at'] ?? ($customer->joined_at?->format('d M Y') ?? '—') }}</dd></div>
+        @if (filled(data_get($meta, 'legacy_portal_validity_to')))
+            <div><dt>Validity</dt><dd>{{ data_get($meta, 'legacy_portal_validity_to') }}</dd></div>
+        @endif
+        @if (filled(data_get($meta, 'server_name')))
+            <div><dt>Server</dt><dd>{{ data_get($meta, 'server_name') }}</dd></div>
+        @endif
+        @if (filled(data_get($meta, 'connection_type')))
+            <div><dt>Connection</dt><dd>{{ data_get($meta, 'connection_type') }}</dd></div>
+        @endif
         <div><dt>First month</dt><dd>{{ $p['charge_mode_label'] ?? '—' }}</dd></div>
         <div><dt>Grace</dt><dd>{{ (int) ($customer->grace_period_days ?? 0) }} days ({{ $customer->billing_mode ?? 'prepaid' }})</dd></div>
         @if (data_get($meta, 'allow_active_when_due'))

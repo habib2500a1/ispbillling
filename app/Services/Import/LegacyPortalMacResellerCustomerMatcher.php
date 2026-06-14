@@ -12,8 +12,46 @@ final class LegacyPortalMacResellerCustomerMatcher
 {
     public function find(array $row): ?Customer
     {
+        $code = trim((string) ($row['CustomerId'] ?? ''));
         $username = trim((string) ($row['UserName'] ?? ''));
         $login = $username !== '' ? CustomerPppLoginResolver::normalize($username) : '';
+        $isMacSmCode = $code !== '' && str_starts_with(strtoupper($code), 'SM');
+
+        if ($code !== '') {
+            $byCode = Customer::query()->where('customer_code', $code)->first();
+            if ($byCode !== null) {
+                return $byCode;
+            }
+        }
+
+        if ($username !== '') {
+            $candidates = Customer::query()
+                ->where(function ($q) use ($username, $login): void {
+                    $q->where('mikrotik_secret_name', $username)
+                        ->orWhere('radius_username', $username)
+                        ->orWhereRaw('LOWER(mikrotik_secret_name) = ?', [$login])
+                        ->orWhereRaw('LOWER(radius_username) = ?', [$login]);
+                })
+                ->orderByRaw("CASE WHEN customer_code NOT LIKE 'Sm%' THEN 0 ELSE 1 END")
+                ->orderBy('id')
+                ->get();
+
+            foreach ($candidates as $candidate) {
+                if ($isMacSmCode) {
+                    if (strcasecmp($candidate->customer_code, $code) === 0) {
+                        return $candidate;
+                    }
+
+                    if (! str_starts_with($candidate->customer_code, 'Sm')) {
+                        return $candidate;
+                    }
+
+                    continue;
+                }
+
+                return $candidate;
+            }
+        }
 
         $headerId = (int) ($row['CustomerHeaderId'] ?? 0);
         if ($headerId > 0) {
@@ -29,43 +67,35 @@ final class LegacyPortalMacResellerCustomerMatcher
                     ->first(fn (Customer $c): bool => (int) data_get($c->meta, 'legacy_portal_raw.CustomerHeaderId') === $headerId);
             }
 
-            if ($byHeader !== null && ($login === '' || $this->loginMatches($byHeader, $login))) {
-                return $byHeader;
+            if ($byHeader !== null) {
+                $codeMatches = $code !== '' && strcasecmp($byHeader->customer_code, $code) === 0;
+                if ($codeMatches || ($login !== '' && $this->loginMatches($byHeader, $login))) {
+                    return $byHeader;
+                }
             }
         }
 
-        if ($username !== '') {
-            $byLogin = Customer::query()
-                ->where(function ($q) use ($username, $login): void {
-                    $q->where('mikrotik_secret_name', $username)
-                        ->orWhere('radius_username', $username)
-                        ->orWhereRaw('LOWER(mikrotik_secret_name) = ?', [$login])
-                        ->orWhereRaw('LOWER(radius_username) = ?', [$login]);
-                })
-                ->orderByRaw("CASE WHEN customer_code NOT LIKE 'Sm%' THEN 0 ELSE 1 END")
-                ->orderBy('id')
-                ->first();
+        if (! $isMacSmCode) {
+            $phone = preg_replace('/\D+/', '', (string) ($row['MobileNumber'] ?? '')) ?? '';
+            if (strlen($phone) >= 10) {
+                $suffix = substr($phone, -10);
+                $byPhone = Customer::query()
+                    ->where('phone', 'like', '%'.$suffix)
+                    ->when($login !== '', function ($q) use ($login): void {
+                        $q->where(function ($inner) use ($login): void {
+                            $inner->whereRaw('LOWER(mikrotik_secret_name) = ?', [$login])
+                                ->orWhereRaw('LOWER(radius_username) = ?', [$login])
+                                ->orWhereNull('mikrotik_secret_name')
+                                ->orWhere('mikrotik_secret_name', '');
+                        });
+                    })
+                    ->orderByRaw("CASE WHEN customer_code NOT LIKE 'Sm%' THEN 0 ELSE 1 END")
+                    ->first();
 
-            if ($byLogin !== null) {
-                return $byLogin;
+                if ($byPhone !== null) {
+                    return $byPhone;
+                }
             }
-        }
-
-        $phone = preg_replace('/\D+/', '', (string) ($row['MobileNumber'] ?? '')) ?? '';
-        if (strlen($phone) >= 10) {
-            $byPhone = Customer::query()
-                ->where('phone', 'like', '%'.substr($phone, -10))
-                ->orderByRaw("CASE WHEN customer_code NOT LIKE 'Sm%' THEN 0 ELSE 1 END")
-                ->first();
-
-            if ($byPhone !== null) {
-                return $byPhone;
-            }
-        }
-
-        $code = trim((string) ($row['CustomerId'] ?? ''));
-        if ($code !== '') {
-            return Customer::query()->where('customer_code', $code)->first();
         }
 
         return null;

@@ -25,8 +25,8 @@ class ImportLegacyPortalResellersCommand extends Command
         $username = (string) ($this->option('user') ?: config('legacy_portal.username'));
         $password = (string) ($this->option('password') ?: config('legacy_portal.password'));
 
-        if ($password === '') {
-            $this->error('Set LEGACY_PORTAL_PASSWORD in .env');
+        if ($password === '' || $password === 'KEEP_CURRENT') {
+            $this->error('Set LEGACY_PORTAL_PASSWORD in .env or pass --password=');
 
             return self::FAILURE;
         }

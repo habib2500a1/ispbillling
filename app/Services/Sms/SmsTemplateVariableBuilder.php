@@ -28,6 +28,11 @@ final class SmsTemplateVariableBuilder
     public static function forCustomer(Customer $customer): array
     {
         $package = $customer->package;
+        $meta = is_array($customer->meta) ? $customer->meta : [];
+        $monthlyBill = (float) ($meta['legacy_portal_monthly_bill'] ?? 0);
+        if ($monthlyBill <= 0) {
+            $monthlyBill = $package?->price_monthly !== null ? (float) $package->price_monthly : 0;
+        }
 
         return array_merge(self::defaults(), [
             'CustomerName' => (string) $customer->name,
@@ -38,7 +43,7 @@ final class SmsTemplateVariableBuilder
             'Password' => '****',
             'LoginPassword' => '****',
             'Package' => (string) ($package?->name ?? '—'),
-            'MonthlyBillAmount' => number_format((float) ($package?->price_monthly ?? 0), 2),
+            'MonthlyBillAmount' => number_format($monthlyBill, 2),
             'CustomerNumber' => (string) ($customer->phone ?? ''),
             'Zone' => (string) ($customer->zone?->name ?? $customer->area?->name ?? '—'),
             'Address' => (string) ($customer->address ?? '—'),

@@ -79,6 +79,25 @@ $app = Application::configure(basePath: $basePath)
             ->onOneServer()
             ->when(fn (): bool => (bool) config('legacy_portal.daily_sync_enabled', true));
 
+        $legacyCollectionMinutes = max(0, min(59, (int) config('legacy_portal.collections_sync_every_minutes', 15)));
+        if ($legacyCollectionMinutes > 0) {
+            $schedule->command('isp:sync-legacy-portal-collections', array_filter([
+                '--void-orphans' => (bool) config('legacy_portal.sync_collections_void_orphans', true),
+                '--password' => \App\Support\LegacyPortalPassword::resolve(),
+            ]))
+                ->cron('*/'.$legacyCollectionMinutes.' * * * *')
+                ->withoutOverlapping(max(10, $legacyCollectionMinutes))
+                ->onOneServer()
+                ->when(fn (): bool => (bool) config('legacy_portal.daily_sync_enabled', true)
+                    && \App\Support\LegacyPortalPassword::resolve() !== '');
+        }
+
+        $schedule->command('isp:mirror-legacy-portal --with-customer-details --with-history')
+            ->dailyAt((string) config('legacy_portal.raw_mirror_at', '01:15'))
+            ->withoutOverlapping(360)
+            ->onOneServer()
+            ->when(fn (): bool => (bool) config('legacy_portal.raw_mirror_enabled', false));
+
         foreach ($schedule->events() as $event) {
             $event->appendOutputTo(storage_path('logs/scheduler.log'));
         }
@@ -156,15 +175,30 @@ $app = Application::configure(basePath: $basePath)
     })
     ->withExceptions(function (Exceptions $exceptions) {
         $exceptions->render(function (MethodNotAllowedHttpException $e, Request $request) {
-            if (! ($request->is('livewire/update') || $request->is('livewire/update/*'))) {
-                return null;
+            if ($request->is('livewire/update') || $request->is('livewire/update/*')) {
+                if (auth()->check()) {
+                    return redirect()->route('filament.admin.pages.dashboard');
+                }
+
+                return redirect()->route('filament.admin.auth.login');
             }
 
-            if (auth()->check()) {
-                return redirect()->route('filament.admin.pages.dashboard');
+            // Native HTML POST when Livewire/JS did not load (Cloudflare Rocket Loader, stale cache, etc.).
+            if ($request->isMethod('POST')
+                && $request->is('admin/*')
+                && preg_match('#^admin/[\w\-]+/\d+/edit$#', $request->path()) === 1) {
+                return redirect()->to($request->url())
+                    ->with('danger', __('Could not save — page scripts did not load. Hard-refresh (Ctrl+F5) and try again.'));
             }
 
-            return redirect()->route('filament.admin.auth.login');
+            if ($request->isMethod('POST')
+                && $request->is('admin/*')
+                && preg_match('#^admin/[\w\-]+/create$#', $request->path()) === 1) {
+                return redirect()->to($request->url())
+                    ->with('danger', __('Could not save — page scripts did not load. Hard-refresh (Ctrl+F5) and try again.'));
+            }
+
+            return null;
         });
 
         $exceptions->render(function (PublicPropertyNotFoundException $e, Request $request) {

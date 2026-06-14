@@ -251,9 +251,7 @@ final class BillCollectionSearchService
             'status' => $customer->status,
             'package' => $customer->package?->name,
             'package_id' => $customer->package_id,
-            'monthly_bill' => $customer->package?->price_monthly !== null
-                ? round((float) $customer->package->price_monthly, 2)
-                : null,
+            'monthly_bill' => app(CustomerPrepayService::class)->monthlyRate($customer),
             'package_speed' => $customer->package?->download_mbps,
             'balance_due' => $balanceDue,
             'billing_payment_state' => $due['payment_state'],

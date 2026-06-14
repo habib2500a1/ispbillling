@@ -8,6 +8,7 @@ use App\Models\Payment;
 use App\Support\LegacyPortalBillNotes;
 use App\Support\PaymentGateway;
 use App\Support\PaymentType;
+use App\Support\LegacyPortalDateParser;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 
@@ -417,26 +418,7 @@ final class LegacyPortalBillingImporter
 
     private function parseBillMonth(string $billMonth): ?Carbon
     {
-        $billMonth = trim($billMonth);
-        if ($billMonth === '') {
-            return null;
-        }
-
-        if (preg_match('/^([A-Za-z]{3,})-(\d{2})$/i', $billMonth, $m)) {
-            $year = 2000 + (int) $m[2];
-
-            try {
-                return Carbon::parse('1 '.$m[1].' '.$year)->startOfMonth();
-            } catch (\Throwable) {
-                return null;
-            }
-        }
-
-        try {
-            return Carbon::parse($billMonth)->startOfMonth();
-        } catch (\Throwable) {
-            return null;
-        }
+        return LegacyPortalDateParser::parseBillMonth($billMonth);
     }
 
     private function parseMoney(mixed $value): float
@@ -452,33 +434,12 @@ final class LegacyPortalBillingImporter
 
     private function parseDotNetDate(mixed $value): ?Carbon
     {
-        if (! is_string($value) || ! preg_match('/\/Date\((\d+)\)\//', $value, $m)) {
-            return null;
-        }
-
-        return Carbon::createFromTimestampMs((int) $m[1]);
+        return LegacyPortalDateParser::parseDotNetDate($value);
     }
 
     private function parseFlexibleDate(mixed $value): ?Carbon
     {
-        if (! filled($value)) {
-            return null;
-        }
-
-        $value = trim((string) $value);
-        foreach (['d M Y', 'd/m/Y', 'd-M-Y', 'M d, Y'] as $format) {
-            try {
-                return Carbon::createFromFormat($format, $value);
-            } catch (\Throwable) {
-                continue;
-            }
-        }
-
-        try {
-            return Carbon::parse($value);
-        } catch (\Throwable) {
-            return null;
-        }
+        return LegacyPortalDateParser::parse($value);
     }
 
     /**

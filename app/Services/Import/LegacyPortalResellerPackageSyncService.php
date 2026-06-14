@@ -39,6 +39,106 @@ final class LegacyPortalResellerPackageSyncService
     }
 
     /**
+     * @param  list<array<string, mixed>>  $tariffRows  TariffPackages from MAC reseller Details page.
+     */
+    public function syncFromTariffPackages(Reseller $reseller, array $tariffRows): int
+    {
+        $synced = 0;
+        $wholesaleByPackage = [];
+        $tariffMeta = [];
+
+        foreach ($tariffRows as $row) {
+            $packageId = $this->resolvePackageId([
+                'PackageSpeed' => $row['ProfileSpeed'] ?? '',
+                'Package' => $row['PackageName'] ?? '',
+                'PackageId' => $row['PackageId'] ?? null,
+            ]);
+
+            if ($packageId === null) {
+                continue;
+            }
+
+            $buy = round((float) ($row['PackageRate'] ?? 0), 2);
+            $sell = round((float) ($row['SellingRate'] ?? 0), 2);
+            $daily = round((float) ($row['DailyRate'] ?? 0), 2);
+
+            $wholesaleByPackage[(string) $packageId] = $buy;
+            $tariffMeta[] = [
+                'package_id' => $packageId,
+                'legacy_package_id' => (int) ($row['PackageId'] ?? 0),
+                'package_name' => (string) ($row['PackageName'] ?? ''),
+                'wholesale_monthly' => $buy,
+                'selling_monthly' => $sell,
+                'daily_rate' => $daily,
+                'validity_days' => (int) ($row['ValidityDays'] ?? 30),
+            ];
+
+            if ($this->upsertAssignmentWithRates($reseller, $packageId, $buy, $sell)) {
+                $synced++;
+            }
+        }
+
+        if ($tariffMeta !== []) {
+            $meta = is_array($reseller->meta) ? $reseller->meta : [];
+            $meta['legacy_portal_tariff_packages'] = $tariffMeta;
+            $meta['legacy_portal_package_wholesale'] = $wholesaleByPackage;
+            $reseller->forceFill([
+                'meta' => $meta,
+                'commission_type' => 'percent',
+                'commission_value' => $this->averageCommissionPercent($tariffMeta),
+                'revenue_share_percent' => $this->averageCommissionPercent($tariffMeta),
+            ])->saveQuietly();
+        }
+
+        return $synced;
+    }
+
+    private function averageCommissionPercent(array $tariffMeta): float
+    {
+        $percents = [];
+        foreach ($tariffMeta as $row) {
+            $sell = (float) ($row['selling_monthly'] ?? 0);
+            $buy = (float) ($row['wholesale_monthly'] ?? 0);
+            if ($sell > 0 && $buy >= 0) {
+                $percents[] = max(0, round((($sell - $buy) / $sell) * 100, 2));
+            }
+        }
+
+        if ($percents === []) {
+            return 0.0;
+        }
+
+        return round(array_sum($percents) / count($percents), 2);
+    }
+
+    private function upsertAssignmentWithRates(Reseller $reseller, int $packageId, float $wholesale, float $selling): bool
+    {
+        $existing = ResellerPackage::query()
+            ->where('reseller_id', $reseller->id)
+            ->where('package_id', $packageId)
+            ->first();
+
+        $attrs = [
+            'tenant_id' => $this->tenantId,
+            'reseller_id' => $reseller->id,
+            'package_id' => $packageId,
+            'wholesale_price' => $wholesale,
+            'selling_price' => $selling,
+            'is_active' => true,
+        ];
+
+        if ($existing !== null) {
+            $existing->forceFill($attrs)->saveQuietly();
+
+            return false;
+        }
+
+        ResellerPackage::query()->create($attrs);
+
+        return true;
+    }
+
+    /**
      * @param  array<string, mixed>  $row
      */
     private function resolvePackageId(array $row): ?int

@@ -26,6 +26,13 @@ final class PackagePriceResolver
     {
         $onDate ??= now();
 
+        if ($customer !== null) {
+            $legacyMonthly = (float) data_get($customer->meta, 'legacy_portal_monthly_bill', 0);
+            if ($legacyMonthly > 0 && \App\Support\LegacyPortalSource::isImportedSource($customer->import_source)) {
+                return self::applyCustomerMonthlyDiscount($legacyMonthly, $customer);
+            }
+        }
+
         if ($customer?->reseller_id) {
             $override = data_get($customer->meta, 'reseller_retail_monthly_bdt');
             if ($override !== null && $override !== '' && is_numeric($override)) {

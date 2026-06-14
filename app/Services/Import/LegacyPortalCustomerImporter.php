@@ -13,6 +13,7 @@ use App\Support\BillingDefaults;
 use App\Support\CustomerStatus;
 use App\Support\LegacyPortalPackageSpeed;
 use App\Support\SubscriberType;
+use App\Support\LegacyPortalDateParser;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Hash;
 final class LegacyPortalCustomerImporter
@@ -66,7 +67,7 @@ final class LegacyPortalCustomerImporter
             'subscriber_type' => $this->resolveSubscriberType($row),
             'billing_mode' => $this->resolveBillingMode($row),
             'billing_day' => $this->resolveBillingDay($row),
-            'joined_at' => $this->parseDate($row['ClientJoiningDate'] ?? null)?->toDateString() ?? now()->toDateString(),
+            'joined_at' => $this->resolveJoinedAt($row)?->toDateString() ?? now()->toDateString(),
             'service_expires_at' => $this->resolveServiceExpiresAt($row)?->toDateString(),
             'network_access_state' => $this->mapNetworkAccessState($row),
             'is_ppp_online' => $online,
@@ -95,6 +96,15 @@ final class LegacyPortalCustomerImporter
         $this->syncContacts($customer, $row, $phone);
 
         return $customer;
+    }
+
+    /**
+     * @param  array<string, mixed>  $row
+     * @return array{area_id: ?int, zone_id: ?int, subzone_id: ?int}
+     */
+    public function resolveZoneIdsForRow(array $row): array
+    {
+        return $this->resolveZoneIds($row);
     }
 
     /**
@@ -182,7 +192,7 @@ final class LegacyPortalCustomerImporter
             }
         }
 
-        $monthly = (float) ($row['MonthlyBill'] ?? 0);
+        $monthly = $this->resolveMonthlyBill($row);
         $speed = (string) ($row['Speed'] ?? '');
         $mbps = 10;
         if (preg_match('/(\d+)\s*mbps/i', $name.$speed, $m)) {
@@ -239,7 +249,10 @@ final class LegacyPortalCustomerImporter
             'district' => (string) ($row['District'] ?? ''),
             'package_speed' => (string) ($row['PackageSpeed'] ?? ''),
             'mikrotik_profile' => LegacyPortalPackageSpeed::parse($row)['mikrotik_profile'],
-            'monthly_bill_snapshot' => $row['MonthlyBill'] ?? null,
+            'monthly_bill_snapshot' => $this->resolveMonthlyBill($row),
+            'legacy_portal_monthly_bill' => $this->resolveMonthlyBill($row),
+            'legacy_portal_join_date' => $this->resolveJoinDateRaw($row),
+            'registration_date' => (string) ($row['RegistrationDate'] ?? ''),
             'is_online_snapshot' => $row['IsOnline'] ?? null,
             'is_connected_to_mikrotik' => (bool) ($row['IsConnectedToMikrotik'] ?? false),
             'connectivity_status' => (string) ($row['ConnectivityStatus'] ?? ''),
@@ -463,24 +476,57 @@ final class LegacyPortalCustomerImporter
 
     private function parseDate(mixed $value): ?Carbon
     {
-        if (! filled($value)) {
-            return null;
-        }
+        return LegacyPortalDateParser::parse($value);
+    }
 
-        $value = trim((string) $value);
-        foreach (['d-M-Y', 'M-d-y', 'd-M-y', 'Y-m-d'] as $format) {
-            try {
-                return Carbon::createFromFormat($format, $value);
-            } catch (\Throwable) {
-                continue;
+    /**
+     * @param  array<string, mixed>  $row
+     */
+    private function resolveJoinedAt(array $row): ?Carbon
+    {
+        foreach (['ClientJoiningDate', 'RegistrationDate', 'PurchaseDate', 'ActivationDate'] as $key) {
+            $parsed = $this->parseDate($row[$key] ?? null);
+            if ($parsed !== null) {
+                return $parsed;
             }
         }
 
-        try {
-            return Carbon::parse($value);
-        } catch (\Throwable) {
+        return null;
+    }
+
+    /**
+     * @param  array<string, mixed>  $row
+     */
+    private function resolveJoinDateRaw(array $row): ?string
+    {
+        foreach (['ClientJoiningDate', 'RegistrationDate', 'PurchaseDate'] as $key) {
+            $value = trim((string) ($row[$key] ?? ''));
+            if ($value !== '') {
+                return $value;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * @param  array<string, mixed>  $row
+     */
+    private function resolveMonthlyBill(array $row): ?float
+    {
+        foreach (['MonthlyBill', 'MonthlyBillAmount', 'PayabaleBill', 'PayableBill'] as $key) {
+            $amount = round((float) ($row[$key] ?? 0), 2);
+            if ($amount > 0) {
+                return $amount;
+            }
+        }
+
+        $raw = is_array($row['legacy_portal_raw'] ?? null) ? $row['legacy_portal_raw'] : [];
+        if ($raw === [] || $raw === $row) {
             return null;
         }
+
+        return $this->resolveMonthlyBill($raw);
     }
 
     private function normalizePhone(string $phone): string

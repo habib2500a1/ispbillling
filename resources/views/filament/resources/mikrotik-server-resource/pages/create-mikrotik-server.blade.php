@@ -20,10 +20,12 @@
             </div>
         </header>
 
-        <section class="net-profile-form">
-            <x-filament-panels::form wire:submit="create">
+        <section class="net-profile-form isp-network-router-form">
+            <x-filament-panels::form wire:submit.prevent="create">
                 {{ $this->form }}
-                <x-filament-panels::form.actions :actions="$this->getCachedFormActions()" :full-width="$this->hasFullWidthFormActions()" />
+                <div class="net-profile-form__actions">
+                    <x-filament-panels::form.actions :actions="$this->getCachedFormActions()" :full-width="$this->hasFullWidthFormActions()" />
+                </div>
             </x-filament-panels::form>
         </section>
 

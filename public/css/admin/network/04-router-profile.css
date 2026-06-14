@@ -1,127 +1,155 @@
 /** Router profile — create/edit forms, overview panels */
 
-.isp-network-router-profile .fi-header { display: none !important; }
-
-.nr-profile-hero {
-    display: grid;
-    gap: 1rem;
-    padding: 1.35rem 1.5rem;
-    border-radius: var(--nr-radius);
-    border: 1px solid var(--nr-border);
-    background: var(--nr-card);
-    box-shadow: var(--nr-shadow-lg);
+.isp-network-router-profile .fi-header,
+.isp-network-noc-page.isp-network-router-profile .fi-header {
+    display: none !important;
 }
 
-@media (min-width: 768px) {
-    .nr-profile-hero {
-        grid-template-columns: 1fr auto;
-        align-items: center;
-    }
+.isp-network-router-profile .fi-page-main,
+.isp-network-noc-page .fi-page-main {
+    padding-bottom: calc(6rem + env(safe-area-inset-bottom, 0px));
 }
 
-.nr-profile-hero__title {
+.net-noc-pro .net-profile-hero {
+    padding: 1.25rem 1.35rem;
+    border-radius: var(--nr-radius, 14px);
+    border: 1px solid var(--nr-border, rgba(148, 163, 184, 0.28));
+    background: var(--nr-card, rgba(15, 23, 42, 0.72));
+    box-shadow: var(--nr-shadow-lg, 0 12px 40px -16px rgba(15, 23, 42, 0.45));
+}
+
+.net-noc-pro .net-profile-hero--compact {
+    padding: 1rem 1.2rem;
+}
+
+.net-noc-pro .net-profile-hero__eyebrow {
+    margin: 0 0 0.35rem;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--nr-cyan, #06b6d4);
+}
+
+.net-noc-pro .net-profile-hero__title {
     margin: 0;
     font-size: 1.45rem;
     font-weight: 700;
-    color: var(--nr-text);
+    color: var(--nr-text, #f8fafc);
 }
 
-.nr-profile-hero__meta {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-    margin-top: 0.65rem;
+.net-noc-pro .net-profile-hero__sub {
+    margin: 0.4rem 0 0;
+    font-size: 0.84rem;
+    color: var(--nr-muted, #94a3b8);
 }
 
-.nr-profile-pill {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.3rem;
-    padding: 0.28rem 0.65rem;
-    border-radius: 999px;
-    font-size: 0.72rem;
-    font-weight: 600;
-    border: 1px solid var(--nr-border);
-    background: var(--nr-glass);
-    color: var(--nr-muted);
-}
-
-.nr-profile-pill--online { color: #047857; border-color: rgba(5, 150, 105, 0.35); }
-.nr-profile-pill--offline { color: #be123c; border-color: rgba(220, 38, 38, 0.35); }
-
-.nr-profile-stats {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.75rem;
-}
-
-.nr-profile-stat {
-    min-width: 5.5rem;
-    padding: 0.65rem 0.85rem;
-    border-radius: var(--nr-radius-sm);
-    border: 1px solid var(--nr-border);
-    background: var(--nr-glass);
-    text-align: center;
-}
-
-.nr-profile-stat strong {
-    display: block;
-    font-size: 1.15rem;
-    color: var(--nr-text);
-}
-
-.nr-profile-stat span {
-    font-size: 0.65rem;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    color: var(--nr-muted);
-}
-
-.nr-profile-form-card {
-    border-radius: var(--nr-radius);
-    border: 1px solid var(--nr-border);
-    background: var(--nr-card);
-    box-shadow: var(--nr-shadow);
-    padding: 1.25rem;
-}
-
-.nr-profile-form-card .fi-section-header-heading {
-    font-weight: 700;
-    color: var(--nr-text);
-}
-
-.nr-profile-sections {
+.net-noc-pro .net-profile-status {
     display: grid;
-    gap: 1rem;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 0.65rem;
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--nr-border, rgba(148, 163, 184, 0.22));
 }
 
-@media (min-width: 1024px) {
-    .nr-profile-sections--edit {
-        grid-template-columns: 280px 1fr;
-        align-items: start;
-    }
+.net-noc-pro .net-profile-status__item {
+    padding: 0.55rem 0.7rem;
+    border-radius: 10px;
+    border: 1px solid var(--nr-border, rgba(148, 163, 184, 0.22));
+    background: var(--nr-glass, rgba(30, 41, 59, 0.55));
 }
 
-.nr-profile-nav {
-    display: flex;
-    flex-direction: column;
-    gap: 0.35rem;
-    padding: 0.75rem;
-    border-radius: var(--nr-radius-sm);
-    border: 1px solid var(--nr-border);
-    background: var(--nr-glass);
+.net-noc-pro .net-profile-status__label {
+    display: block;
+    font-size: 0.62rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--nr-muted, #94a3b8);
 }
 
-.nr-profile-nav__item {
-    padding: 0.5rem 0.65rem;
-    border-radius: 8px;
-    font-size: 0.82rem;
-    font-weight: 500;
-    color: var(--nr-muted);
-}
-
-.nr-profile-nav__item--active {
-    background: color-mix(in srgb, var(--nr-indigo) 12%, transparent);
-    color: var(--nr-indigo);
+.net-noc-pro .net-profile-status__value {
+    display: block;
+    margin-top: 0.2rem;
+    font-size: 0.92rem;
     font-weight: 600;
+    color: var(--nr-text, #f8fafc);
+}
+
+.net-noc-pro .net-profile-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin-top: 1rem;
+}
+
+.net-noc-pro .net-profile-tab {
+    padding: 0.35rem 0.75rem;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--nr-muted, #94a3b8);
+    border: 1px solid transparent;
+    background: transparent;
+}
+
+.net-noc-pro .net-profile-tab--active {
+    color: var(--nr-indigo, #818cf8);
+    border-color: color-mix(in srgb, var(--nr-indigo, #818cf8) 35%, transparent);
+    background: color-mix(in srgb, var(--nr-indigo, #818cf8) 12%, transparent);
+}
+
+.net-noc-pro .net-profile-form {
+    padding: 1.1rem 1.15rem 1.35rem;
+    border-radius: var(--nr-radius, 14px);
+    border: 1px solid var(--nr-border, rgba(148, 163, 184, 0.28));
+    background: var(--nr-card, rgba(15, 23, 42, 0.72));
+    box-shadow: var(--nr-shadow, 0 8px 24px -12px rgba(15, 23, 42, 0.4));
+}
+
+.net-noc-pro .net-profile-form .fi-section {
+    border-radius: 12px;
+}
+
+.net-noc-pro .net-profile-form .fi-form-actions,
+.net-noc-pro .net-profile-form__actions .fi-form-actions {
+    position: sticky;
+    bottom: calc(4.5rem + env(safe-area-inset-bottom, 0px));
+    z-index: 30;
+    margin: 1.25rem -0.35rem -0.35rem;
+    padding: 0.85rem 0.35rem;
+    border-top: 1px solid var(--nr-border, rgba(148, 163, 184, 0.28));
+    background: color-mix(in srgb, var(--nr-card, #0f172a) 92%, transparent);
+    backdrop-filter: blur(10px);
+    box-shadow: 0 -10px 28px -12px rgba(15, 23, 42, 0.55);
+}
+
+.net-noc-pro .net-profile-form .fi-form-actions .fi-btn,
+.net-noc-pro .net-profile-form__actions .fi-form-actions .fi-btn {
+    min-height: 2.5rem;
+    font-weight: 600;
+}
+
+.net-noc-pro .net-profile-notes {
+    margin: 0;
+    padding: 0.85rem 1rem;
+    border-radius: 10px;
+    border: 1px solid rgba(245, 158, 11, 0.35);
+    background: rgba(245, 158, 11, 0.08);
+    font-size: 0.82rem;
+    color: var(--nr-muted, #cbd5e1);
+}
+
+@media (max-width: 1023px) {
+    .net-noc-pro .net-profile-form .fi-form-actions,
+    .net-noc-pro .net-profile-form__actions .fi-form-actions {
+        bottom: calc(5.5rem + env(safe-area-inset-bottom, 0px));
+    }
+
+    .net-noc-pro .net-profile-form .fi-form-actions .fi-btn,
+    .net-noc-pro .net-profile-form__actions .fi-form-actions .fi-btn {
+        flex: 1 1 45%;
+        justify-content: center;
+    }
 }

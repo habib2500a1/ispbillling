@@ -13,10 +13,12 @@ class ImportLegacyPortalFullCommand extends Command
 {
     protected $signature = 'isp:import-legacy-portal-full
                             {--force : Update existing subscribers, invoices, and payments}
+                            {--with-mirror : Raw-mirror source pages before importing}
                             {--skip-clients : Skip subscriber list import (use if already imported)}
                             {--skip-billing : Skip bill/payment history import}
                             {--with-details : Pull customer details HTML into meta (ONU MAC, network)}
                             {--with-onu : Include ONU rent/deposit from details in price sync}
+                            {--skip-onu-pipeline : Skip OLT/ONU discovery/signal pipeline}
                             {--skip-staff : Skip HR employee import}
                             {--query=alloverclients : legacy portal list filter}
                             {--url= : Override LEGACY_PORTAL_URL}
@@ -47,19 +49,29 @@ class ImportLegacyPortalFullCommand extends Command
 
         $failed = false;
 
+        if ($this->option('with-mirror')) {
+            $this->info('Step 0 — Raw mirror source pages before import…');
+            if ($this->call('isp:mirror-legacy-portal', array_merge($common, [
+                '--with-customer-details' => true,
+                '--with-history' => true,
+            ])) !== self::SUCCESS) {
+                $failed = true;
+            }
+        }
+
         if (! $this->option('skip-staff')) {
-            $this->info('Step 1/6 — Import HR staff (employees) — before subscriber list…');
+            $this->info('Step 1/8 — Import HR staff (employees) — before subscriber list…');
             if ($this->call('isp:import-legacy-portal-employees', array_merge($connection, [
                 '--force' => $force,
             ])) !== self::SUCCESS) {
                 $failed = true;
             }
         } else {
-            $this->warn('Step 1/6 — Skipped staff import (--skip-staff).');
+            $this->warn('Step 1/8 — Skipped staff import (--skip-staff).');
         }
 
         if (! $this->option('skip-clients')) {
-            $this->info('Step 2/6 — Import all subscribers from legacy portal…');
+            $this->info('Step 2/8 — Import all subscribers from legacy portal…');
             $exit = $this->call('isp:import-legacy-portal', array_merge($common, [
                 '--all' => true,
                 '--force' => $force,
@@ -69,15 +81,15 @@ class ImportLegacyPortalFullCommand extends Command
                 $failed = true;
             }
         } else {
-            $this->warn('Step 2/6 — Skipped subscriber import (--skip-clients).');
+            $this->warn('Step 2/8 — Skipped subscriber import (--skip-clients).');
         }
 
-        $this->info('Step 3/6 — Sync package profiles (MikroTik)…');
+        $this->info('Step 3/8 — Sync package profiles (MikroTik)…');
         if ($this->call('isp:sync-package-profiles-from-legacy-portal', $common) !== self::SUCCESS) {
             $failed = true;
         }
 
-        $this->info('Step 4/6 — Sync package prices & monthly bills…');
+        $this->info('Step 4/8 — Sync package prices & monthly bills…');
         $priceOpts = array_merge($common, [
             '--with-onu-details' => (bool) $this->option('with-onu'),
         ]);
@@ -86,7 +98,7 @@ class ImportLegacyPortalFullCommand extends Command
         }
 
         if (! $this->option('skip-billing')) {
-            $this->info('Step 5/6 — Import bill history (payments + all invoices)…');
+            $this->info('Step 5/8 — Import bill history (payments + all invoices)…');
             $billingOpts = array_merge($connection, [
                 '--force' => $force,
             ]);
@@ -94,7 +106,7 @@ class ImportLegacyPortalFullCommand extends Command
                 $failed = true;
             }
         } else {
-            $this->warn('Step 5/6 — Skipped billing history (--skip-billing).');
+            $this->warn('Step 5/8 — Skipped billing history (--skip-billing).');
         }
 
         if (! $this->option('skip-billing')) {
@@ -102,8 +114,13 @@ class ImportLegacyPortalFullCommand extends Command
             $this->call('isp:sync-legacy-portal-collections', $connection);
         }
 
-        $this->info('Step 6/6 — Sync current-month due/balance grid…');
+        $this->info('Step 6/8 — Sync current-month due/balance grid…');
         if ($this->call('isp:sync-legacy-portal-current-billing', $connection) !== self::SUCCESS) {
+            $failed = true;
+        }
+
+        $this->info('Step 6b — Sync active/expired grace and line state…');
+        if ($this->call('isp:sync-legacy-portal-line-grace', ['--resolve-alerts' => true]) !== self::SUCCESS) {
             $failed = true;
         }
 
@@ -113,10 +130,15 @@ class ImportLegacyPortalFullCommand extends Command
             ]));
         }
 
-        $this->info('Extras — resellers, SMS, app users, collectors, service invoices…');
+        $this->info('Step 7/8 — Extras: resellers, SMS, app users, collectors, service invoices…');
         $this->call('isp:import-legacy-portal-extras', array_merge($connection, [
             '--force' => $force,
         ]));
+
+        if (! $this->option('skip-onu-pipeline')) {
+            $this->info('Step 8/8 — OLT/ONU inventory and signal pipeline…');
+            $this->call('isp:legacy-portal-onu-sync');
+        }
 
         $this->info('Reconcile invoice duplicates & payment totals…');
         $this->call('isp:reconcile-imported-billing');

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Reseller;
 
 use App\Http\Controllers\Controller;
 use App\Models\Customer;
+use App\Services\Resellers\ResellerCustomerPricingService;
 use App\Services\Resellers\ResellerCustomerProfileService;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -67,6 +68,7 @@ class ResellerCustomerController extends Controller
             'tagOptions' => ResellerCustomerProfileService::tagFilterOptions(),
             'dueCustomerCount' => $dueCustomerCount,
             'totalDue' => round($totalDue, 2),
+            'pricingService' => app(ResellerCustomerPricingService::class),
         ]);
     }
 }

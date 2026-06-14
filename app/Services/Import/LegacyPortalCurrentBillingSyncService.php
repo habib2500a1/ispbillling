@@ -134,6 +134,11 @@ final class LegacyPortalCurrentBillingSyncService
         if ($billingDay >= 1 && $billingDay <= 31) {
             $meta['legacy_portal_billing_last_day'] = $billingDay;
         }
+        $monthlyBill = $this->parseMoney($row['MonthlyBill'] ?? $row['PayabaleBill'] ?? $row['PayableBill'] ?? 0);
+        if ($monthlyBill > 0) {
+            $meta['legacy_portal_monthly_bill'] = $monthlyBill;
+            $meta['monthly_bill_snapshot'] = $monthlyBill;
+        }
         $meta['legacy_portal_advance'] = $advance;
         $customer->updateQuietly([
             'meta' => $meta,

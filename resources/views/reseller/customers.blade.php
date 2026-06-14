@@ -60,7 +60,9 @@
                         <th class="px-4 py-3">Code</th>
                         <th class="px-4 py-3">Name</th>
                         <th class="px-4 py-3">Phone</th>
+                        <th class="px-4 py-3">PPPoE</th>
                         <th class="px-4 py-3">Package</th>
+                        <th class="px-4 py-3">Bill/mo</th>
                         <th class="px-4 py-3">Due (BDT)</th>
                         <th class="px-4 py-3">Status</th>
                         <th class="px-4 py-3"></th>
@@ -68,7 +70,10 @@
                 </thead>
                 <tbody>
                     @forelse ($customers as $customer)
-                        @php $due = app(\App\Services\Resellers\ResellerSuspendedBillingService::class)->displayableOpenDue($customer); @endphp
+                        @php
+                            $due = app(\App\Services\Resellers\ResellerSuspendedBillingService::class)->displayableOpenDue($customer);
+                            $monthly = ($pricingService ?? null)?->effectiveRetailMonthly($customer) ?? 0;
+                        @endphp
                         <tr class="border-b border-slate-100 {{ $due > 0 ? 'bg-rose-50/60' : '' }}">
                             <td class="px-4 py-3 font-mono text-xs">{{ $customer->customer_code }}</td>
                             <td class="px-4 py-3 font-medium">
@@ -78,7 +83,9 @@
                                 @if (! empty($m['tag_late_payer']))<span class="rsl-tag-pill rsl-tag-pill--late_payer">Late</span>@endif
                             </td>
                             <td class="px-4 py-3">{{ $customer->phone ?? '—' }}</td>
+                            <td class="px-4 py-3 font-mono text-xs">{{ $customer->mikrotik_secret_name ?: '—' }}</td>
                             <td class="px-4 py-3">{{ $customer->package?->name ?? '—' }}</td>
+                            <td class="px-4 py-3">{{ $monthly > 0 ? number_format($monthly, 0) : '—' }}</td>
                             <td class="px-4 py-3 font-semibold {{ $due > 0 ? 'text-rose-700' : 'text-slate-400' }}">
                                 {{ $due > 0 ? number_format($due, 2) : '—' }}
                             </td>
@@ -103,7 +110,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="7" class="px-4 py-8 text-center text-slate-500">No subscribers assigned yet.</td>
+                            <td colspan="9" class="px-4 py-8 text-center text-slate-500">No subscribers assigned yet.</td>
                         </tr>
                     @endforelse
                 </tbody>

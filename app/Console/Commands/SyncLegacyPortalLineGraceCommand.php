@@ -12,18 +12,21 @@ use Illuminate\Console\Command;
 class SyncLegacyPortalLineGraceCommand extends Command
 {
     protected $signature = 'isp:sync-legacy-portal-line-grace
-                            {--resolve-alerts : Resolve false overdue_still_online session alerts}';
+                            {--resolve-alerts : Resolve false overdue_still_online session alerts}
+                            {--url= : Override LEGACY_PORTAL_URL}
+                            {--user= : Override LEGACY_PORTAL_USERNAME}
+                            {--password= : Override LEGACY_PORTAL_PASSWORD}';
 
     protected $description = 'Apply legacy portal bill-day / EffectiveTo line grace for all imported subscribers and clear false overdue session alerts';
 
     public function handle(): int
     {
-        $baseUrl = (string) config('legacy_portal.base_url');
-        $username = (string) config('legacy_portal.username');
-        $password = (string) config('legacy_portal.password');
+        $baseUrl = (string) ($this->option('url') ?: config('legacy_portal.base_url'));
+        $username = (string) ($this->option('user') ?: config('legacy_portal.username'));
+        $password = (string) ($this->option('password') ?: config('legacy_portal.password'));
 
-        if ($password === '') {
-            $this->error('Set LEGACY_PORTAL_PASSWORD in .env');
+        if ($password === '' || $password === 'KEEP_CURRENT') {
+            $this->error('Set LEGACY_PORTAL_PASSWORD in .env or pass --password=');
 
             return self::FAILURE;
         }

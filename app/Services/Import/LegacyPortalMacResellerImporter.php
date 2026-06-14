@@ -3,9 +3,12 @@
 namespace App\Services\Import;
 
 use App\Models\Customer;
+use App\Models\Package;
 use App\Models\Reseller;
+use App\Services\Billing\PackagePriceResolver;
 use App\Support\CustomerPppLoginResolver;
 use App\Support\ResellerType;
+use Illuminate\Support\Facades\Hash;
 
 final class LegacyPortalMacResellerImporter
 {
@@ -35,14 +38,9 @@ final class LegacyPortalMacResellerImporter
         }
 
         $page = $client->fetchMacResellersPage(0, 100);
-        $baseUrl = config('legacy_portal.base_url');
-        $username = config('legacy_portal.username');
-        $password = config('legacy_portal.password');
 
         foreach ($page['data'] as $row) {
-            $linkClient = new LegacyPortalSessionClient((string) $baseUrl, (string) $username, (string) $password);
-            $linkClient->login();
-            $result = $this->importRow($client, $row, $force, $linkClient);
+            $result = $this->importRow($client, $row, $force, $client);
             $stats[$result['action']]++;
             $stats['linked'] += $result['linked'];
             $stats['clients_imported'] += $result['clients_imported'];
@@ -84,6 +82,10 @@ final class LegacyPortalMacResellerImporter
 
         if ($existing !== null && ! $force) {
             $linkStats = $this->linkResellerClients($linkSession, $existing, $macId);
+            $tariffRows = $client->fetchMacResellerTariffPackages($macId);
+            if ($tariffRows !== []) {
+                $linkStats['packages_synced'] += $this->packageSync()->syncFromTariffPackages($existing, $tariffRows);
+            }
 
             return ['action' => 'skipped', 'linked' => $linkStats['linked'], 'clients_imported' => $linkStats['imported'], 'packages_synced' => $linkStats['packages_synced']];
         }
@@ -99,7 +101,23 @@ final class LegacyPortalMacResellerImporter
             $action = 'imported';
         }
 
+        if (! filled($reseller->portal_password)) {
+            $plain = (string) config('legacy_portal.default_mac_reseller_portal_password', 'habib@123');
+            $meta = is_array($reseller->meta) ? $reseller->meta : [];
+            $meta['portal_password_plain'] = $plain;
+            $reseller->forceFill([
+                'portal_login' => $reseller->portal_login ?: ($attrs['portal_login'] ?? $reseller->code),
+                'portal_password' => Hash::make($plain),
+                'meta' => $meta,
+            ])->saveQuietly();
+        }
+
         $linkStats = $this->linkResellerClients($linkSession, $reseller, $macId);
+
+        $tariffRows = $client->fetchMacResellerTariffPackages($macId);
+        if ($tariffRows !== []) {
+            $linkStats['packages_synced'] += $this->packageSync()->syncFromTariffPackages($reseller, $tariffRows);
+        }
 
         return [
             'action' => $action,
@@ -117,11 +135,15 @@ final class LegacyPortalMacResellerImporter
     {
         $name = trim((string) (($row['MACResellerName'] ?? '') ?: ($row['ResellerCompanyName'] ?? 'Reseller')));
         $commission = $this->resolveCommissionPercent($row);
+        $portalLogin = trim((string) (($row['Tariff'] ?? '') ?: ($row['MACResellerCode'] ?? $code)));
+        $portalPassword = (string) config('legacy_portal.default_mac_reseller_portal_password', 'habib@123');
 
         return [
             'tenant_id' => $this->tenantId,
             'code' => $code,
             'name' => $name,
+            'portal_login' => $portalLogin !== '' ? $portalLogin : $code,
+            'portal_password' => Hash::make($portalPassword),
             'client_id_prefix' => filled($row['Tariff'] ?? null) ? trim((string) $row['Tariff']) : null,
             'franchise_type' => $this->mapFranchiseType($row),
             'contact_person' => trim((string) ($row['ContactPerson'] ?? '')),
@@ -140,6 +162,7 @@ final class LegacyPortalMacResellerImporter
                 'import_source' => 'legacy_portal',
                 'legacy_portal_mac_reseller_id' => $macId,
                 'legacy_portal_raw' => $row,
+                'portal_password_plain' => $portalPassword,
                 'fund_start_status' => (bool) ($row['FundStartStatus'] ?? false),
                 'minimum_balance' => (float) ($row['MinimumBalance'] ?? 0),
                 'number_of_clients' => (int) ($row['NumberOfClients'] ?? 0),
@@ -312,6 +335,7 @@ final class LegacyPortalMacResellerImporter
             'PackageSpeed' => $row['PackageSpeed'] ?? '',
             'Package' => $row['PackageName'] ?? '',
             'PackageId' => $row['PackageId'] ?? null,
+            'MonthlyBill' => $row['MonthlyBill'] ?? data_get($customer->meta, 'legacy_portal_monthly_bill'),
         ]);
 
         $meta = is_array($customer->meta) ? $customer->meta : [];
@@ -321,13 +345,95 @@ final class LegacyPortalMacResellerImporter
             $meta['legacy_id'] = (string) $headerId;
         }
 
+        $monthly = round((float) ($row['MonthlyBill'] ?? 0), 2);
+        if ($monthly <= 0) {
+            $monthly = round((float) data_get($customer->meta, 'legacy_portal_monthly_bill', 0), 2);
+        }
+        if ($monthly <= 0 && $packageId !== null) {
+            $tariffSell = $this->resolveTariffSellingRate($reseller, (int) $packageId);
+            if ($tariffSell > 0) {
+                $monthly = $tariffSell;
+            } else {
+                $package = Package::query()->find($packageId);
+                if ($package !== null) {
+                    $monthly = PackagePriceResolver::resolveBaseMonthlyPrice($package, $customer);
+                }
+            }
+        }
+        if ($monthly > 0) {
+            $meta['legacy_portal_monthly_bill'] = $monthly;
+            $meta['monthly_bill_snapshot'] = $monthly;
+            $meta['reseller_retail_monthly_bdt'] = $monthly;
+        }
+
+        foreach ([
+            'mac_binding' => $row['MacAddress'] ?? null,
+            'server_name' => $row['Server'] ?? null,
+            'static_ip' => $row['CustomerRealIP'] ?? null,
+            'connection_type' => $row['ConnectionType'] ?? null,
+            'customer_type' => $row['CustomerType'] ?? null,
+        ] as $metaKey => $value) {
+            if (filled($value)) {
+                $meta[$metaKey] = trim((string) $value);
+            }
+        }
+
+        if (isset($row['RemainingDays'])) {
+            $meta['legacy_portal_remaining_days'] = (int) $row['RemainingDays'];
+        }
+        if (filled($row['ValidityToDate'] ?? null)) {
+            $meta['legacy_portal_validity_to'] = (string) $row['ValidityToDate'];
+        }
+
         $patch = [
             'reseller_id' => $reseller->id,
             'meta' => $meta,
         ];
 
+        $name = trim((string) ($row['CustomerName'] ?? ''));
+        if ($name !== '') {
+            $patch['name'] = $name;
+        }
+
+        $phone = preg_replace('/\D+/', '', (string) ($row['MobileNumber'] ?? '')) ?? '';
+        if (strlen($phone) >= 10) {
+            $patch['phone'] = $phone;
+        }
+
+        $zoneIds = $importer->resolveZoneIdsForRow([
+            'ZoneName' => $row['Zone'] ?? '',
+            'SubZoneName' => '',
+        ]);
+        if ($zoneIds['zone_id'] !== null) {
+            $patch['zone_id'] = $zoneIds['zone_id'];
+        }
+        if ($zoneIds['area_id'] !== null) {
+            $patch['area_id'] = $zoneIds['area_id'];
+        }
+
         if ($packageId !== null) {
             $patch['package_id'] = $packageId;
+        }
+
+        $pppPassword = trim((string) ($row['Password'] ?? ''));
+        if ($pppPassword !== '') {
+            $patch['mikrotik_ppp_password'] = $pppPassword;
+        }
+
+        $username = trim((string) ($row['UserName'] ?? ''));
+        if ($username !== '') {
+            $patch['mikrotik_secret_name'] = $username;
+            $patch['radius_username'] = CustomerPppLoginResolver::normalize($username);
+        }
+
+        $disabled = filter_var($row['Disabled'] ?? false, FILTER_VALIDATE_BOOLEAN);
+        $status = strtolower(trim((string) ($row['Status'] ?? 'active')));
+        if ($disabled || $status === 'disabled' || $status === 'suspended') {
+            $patch['status'] = 'suspended';
+            $patch['network_access_state'] = 'suspended';
+        } elseif ($status === 'active' && $customer->status === 'terminated') {
+            $patch['status'] = 'active';
+            $patch['network_access_state'] = 'active';
         }
 
         $customer->forceFill($patch)->saveQuietly();
@@ -364,7 +470,7 @@ final class LegacyPortalMacResellerImporter
                 'CustomerType' => $row['CustomerType'] ?? 'Home',
                 'PackageSpeed' => $row['PackageSpeed'] ?? '',
                 'PackageId' => $row['PackageId'] ?? null,
-                'MonthlyBill' => 0,
+                'MonthlyBill' => (float) ($row['MonthlyBill'] ?? 0),
                 'MACAddress' => $row['MacAddress'] ?? '',
                 'Server' => $row['Server'] ?? '',
                 'Status' => $row['Status'] ?? 'Active',
@@ -395,5 +501,19 @@ final class LegacyPortalMacResellerImporter
     private function packageSync(): LegacyPortalResellerPackageSyncService
     {
         return $this->packageSync ?? new LegacyPortalResellerPackageSyncService($this->tenantId);
+    }
+
+    private function resolveTariffSellingRate(Reseller $reseller, int $packageId): float
+    {
+        $meta = is_array($reseller->meta) ? $reseller->meta : [];
+        $tariffs = is_array($meta['legacy_portal_tariff_packages'] ?? null) ? $meta['legacy_portal_tariff_packages'] : [];
+
+        foreach ($tariffs as $row) {
+            if ((int) ($row['package_id'] ?? 0) === $packageId) {
+                return round((float) ($row['selling_monthly'] ?? 0), 2);
+            }
+        }
+
+        return 0.0;
     }
 }

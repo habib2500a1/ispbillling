@@ -58,18 +58,28 @@ final class LegacyPortalCustomerPackageSyncService
 
         $packageId = $this->importer->resolvePackageIdForRow($row);
         $parsed = LegacyPortalPackageSpeed::parse($row);
-        $monthly = (float) ($row['MonthlyBill'] ?? 0);
+        $monthly = $this->resolveMonthlyBill($row);
+        $joinedAt = $this->importerJoinDate($row);
 
         $meta = is_array($customer->meta) ? $customer->meta : [];
         $meta['legacy_portal_package_label'] = $parsed['display_name'] !== '' ? $parsed['display_name'] : null;
         $meta['package_speed'] = (string) ($row['PackageSpeed'] ?? '');
         $meta['mikrotik_profile'] = $parsed['mikrotik_profile'];
         $meta['monthly_bill_snapshot'] = $monthly > 0 ? $monthly : ($meta['monthly_bill_snapshot'] ?? null);
+        $meta['legacy_portal_monthly_bill'] = $monthly > 0 ? $monthly : ($meta['legacy_portal_monthly_bill'] ?? null);
+        if ($joinedAt !== null) {
+            $meta['legacy_portal_join_date'] = $joinedAt;
+        }
 
         $changes = false;
 
         if ($packageId !== null && (int) $customer->package_id !== (int) $packageId) {
             $customer->package_id = $packageId;
+            $changes = true;
+        }
+
+        if ($joinedAt !== null && $customer->joined_at?->toDateString() !== $joinedAt) {
+            $customer->joined_at = $joinedAt;
             $changes = true;
         }
 
@@ -135,5 +145,41 @@ final class LegacyPortalCustomerPackageSyncService
         }
 
         return $stats;
+    }
+
+    /**
+     * @param  array<string, mixed>  $row
+     */
+    private function resolveMonthlyBill(array $row): float
+    {
+        foreach (['MonthlyBill', 'MonthlyBillAmount', 'PayabaleBill', 'PayableBill'] as $key) {
+            $amount = round((float) ($row[$key] ?? 0), 2);
+            if ($amount > 0) {
+                return $amount;
+            }
+        }
+
+        return 0.0;
+    }
+
+    /**
+     * @param  array<string, mixed>  $row
+     */
+    private function importerJoinDate(array $row): ?string
+    {
+        foreach (['ClientJoiningDate', 'RegistrationDate', 'PurchaseDate'] as $key) {
+            $value = trim((string) ($row[$key] ?? ''));
+            if ($value === '') {
+                continue;
+            }
+
+            try {
+                return \Carbon\Carbon::parse($value)->toDateString();
+            } catch (\Throwable) {
+                continue;
+            }
+        }
+
+        return null;
     }
 }

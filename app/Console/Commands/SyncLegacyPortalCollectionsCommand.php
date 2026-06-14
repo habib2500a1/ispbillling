@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Support\LegacyPortalPassword;
 use App\Services\Import\LegacyPortalBillingImporter;
 use App\Services\Import\LegacyPortalCollectionReconcileService;
 use App\Services\Import\LegacyPortalSessionClient;
@@ -13,22 +14,25 @@ class SyncLegacyPortalCollectionsCommand extends Command
                             {--customer= : Only this customer_code (e.g. 219)}
                             {--void-orphans : Void duplicate local desk/wallet rows when legacy portal already has the payment}
                             {--no-import : Skip importing missing rows from legacy portal}
-                            {--dry-run : Report only; with --void-orphans shows what would be voided}';
+                            {--dry-run : Report only; with --void-orphans shows what would be voided}
+                            {--url= : Override LEGACY_PORTAL_URL}
+                            {--user= : Override LEGACY_PORTAL_USERNAME}
+                            {--password= : Override LEGACY_PORTAL_PASSWORD}';
 
     protected $description = 'Match local collection history with legacy portal (import missing + optional void duplicates)';
 
     public function handle(LegacyPortalCollectionReconcileService $reconcile): int
     {
-        $password = (string) config('legacy_portal.password');
+        $password = LegacyPortalPassword::resolve((string) $this->option('password'));
         if ($password === '') {
-            $this->error('Set LEGACY_PORTAL_PASSWORD in .env');
+            $this->error('Set LEGACY_PORTAL_PASSWORD (not KEEP_CURRENT) in .env or pass --password=');
 
             return self::FAILURE;
         }
 
         $client = new LegacyPortalSessionClient(
-            (string) config('legacy_portal.base_url'),
-            (string) config('legacy_portal.username'),
+            (string) ($this->option('url') ?: config('legacy_portal.base_url')),
+            (string) ($this->option('user') ?: config('legacy_portal.username')),
             $password,
         );
 

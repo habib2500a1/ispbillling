@@ -23,6 +23,7 @@ use App\Filament\Pages\InventoryHub;
 use App\Filament\Pages\ManageAppSettings;
 use App\Filament\Pages\ManagePlatformBackups;
 use App\Filament\Pages\ManagePortalSettings;
+use App\Filament\Pages\LegacyPortalSyncStatusPage;
 use App\Filament\Pages\MobileAppsHub;
 use App\Filament\Pages\FaultManagementHub;
 use App\Filament\Pages\FieldTechnicianCenter;
@@ -182,6 +183,7 @@ class AdminModuleRegistry
             ['group' => 'System', 'section' => 'Setup', 'label' => 'ISP setup center', 'description' => 'Areas · packages · MikroTik · districts · import', 'url' => IspSetupCenter::getUrl(), 'accent' => 'text-sky-600', 'icon' => 'heroicon-o-wrench-screwdriver'],
             ['group' => 'System', 'section' => 'Integrations', 'label' => 'Integrations', 'description' => 'Gateways & API keys', 'url' => ManageAppSettings::getUrl(), 'accent' => 'text-slate-600', 'icon' => 'heroicon-o-puzzle-piece'],
             ['group' => 'System', 'section' => 'Automation', 'label' => 'Automatic process', 'description' => 'Scheduled billing · sync · suspend', 'url' => AutomaticProcessResource::getUrl('index'), 'accent' => 'text-amber-600', 'icon' => 'heroicon-o-clock'],
+            ['group' => 'System', 'section' => 'Automation', 'label' => 'Legacy portal sync', 'description' => 'pay.anetbd mirror · counts · raw field audit', 'url' => LegacyPortalSyncStatusPage::getUrl(), 'accent' => 'text-amber-600', 'icon' => 'heroicon-o-arrow-path-rounded-square'],
             ['group' => 'System', 'section' => 'Automation', 'label' => 'Queue monitor', 'description' => 'Horizon workers · failed jobs', 'url' => HorizonQueueMonitor::getUrl(), 'accent' => 'text-violet-600', 'icon' => 'heroicon-o-server-stack'],
             ['group' => 'System', 'section' => 'Comms', 'label' => 'Notifications', 'description' => 'SMS · email · WhatsApp', 'url' => NotificationsHub::getUrl(), 'accent' => 'text-slate-600', 'icon' => 'heroicon-o-bell-alert'],
             ['group' => 'System', 'section' => 'Comms', 'label' => 'WhatsApp bot', 'description' => 'Two-way MENU / BILL / SUPPORT', 'url' => WhatsAppBotHub::getUrl(), 'accent' => 'text-slate-600', 'icon' => 'heroicon-o-chat-bubble-left-right'],

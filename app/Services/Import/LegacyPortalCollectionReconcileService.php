@@ -6,6 +6,7 @@ use App\Models\Customer;
 use App\Models\Payment;
 use App\Services\Billing\PaymentVoidService;
 use App\Support\CustomerBalanceDue;
+use App\Support\LegacyPortalDateParser;
 use App\Support\PaymentCollectionSource;
 use App\Support\PaymentType;
 use Carbon\Carbon;
@@ -54,11 +55,12 @@ final class LegacyPortalCollectionReconcileService
 
         $i = 0;
         foreach ($customers as $headerId => $customer) {
-            if ($i > 0 && $i % 40 === 0) {
+            if ($i > 0 && $i % 25 === 0) {
                 try {
+                    $client->resetSession();
                     $client->login();
                 } catch (\Throwable $e) {
-                    $totals['errors'][] = 'legacy portal re-login failed: '.$e->getMessage();
+                    $totals['errors'][] = 'legacy portal session reset failed: '.$e->getMessage();
                 }
             }
             $i++;
@@ -530,14 +532,9 @@ final class LegacyPortalCollectionReconcileService
         }
 
         foreach (['PaymentDate', 'BillReceivedDate'] as $key) {
-            $raw = trim((string) ($row[$key] ?? ''));
-            if ($raw === '') {
-                continue;
-            }
-            try {
-                return Carbon::parse($raw)->format('Y-m');
-            } catch (\Throwable) {
-                continue;
+            $parsed = LegacyPortalDateParser::parse($row[$key] ?? null);
+            if ($parsed !== null) {
+                return $parsed->format('Y-m');
             }
         }
 
@@ -546,26 +543,7 @@ final class LegacyPortalCollectionReconcileService
 
     private function parseBillMonthString(string $billMonth): ?Carbon
     {
-        $billMonth = trim($billMonth);
-        if ($billMonth === '') {
-            return null;
-        }
-
-        if (preg_match('/^([A-Za-z]{3,})-(\d{2})$/i', $billMonth, $m)) {
-            $year = 2000 + (int) $m[2];
-
-            try {
-                return Carbon::parse('1 '.$m[1].' '.$year)->startOfMonth();
-            } catch (\Throwable) {
-                return null;
-            }
-        }
-
-        try {
-            return Carbon::parse($billMonth)->startOfMonth();
-        } catch (\Throwable) {
-            return null;
-        }
+        return LegacyPortalDateParser::parseBillMonth($billMonth);
     }
 
     private function canonicalBillMonth(Payment $payment): ?string

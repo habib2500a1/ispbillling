@@ -104,19 +104,26 @@ final class LegacyPortalPriceSyncService
 
         $parsed = LegacyPortalPackageSpeed::parse($row);
         $meta = is_array($customer->meta) ? $customer->meta : [];
+        $joinedAt = $this->resolveJoinedAt($row);
         $nextMeta = array_merge($meta, [
             'legacy_portal_package_label' => $parsed['display_name'] !== '' ? $parsed['display_name'] : ($meta['legacy_portal_package_label'] ?? null),
             'package_speed' => (string) ($row['PackageSpeed'] ?? ''),
             'mikrotik_profile' => $parsed['mikrotik_profile'] ?? ($meta['mikrotik_profile'] ?? null),
             'monthly_bill_snapshot' => $monthly > 0 ? $monthly : ($meta['monthly_bill_snapshot'] ?? null),
             'legacy_portal_monthly_bill' => $monthly > 0 ? $monthly : ($meta['legacy_portal_monthly_bill'] ?? null),
+            'legacy_portal_join_date' => $joinedAt ?? ($meta['legacy_portal_join_date'] ?? null),
         ]);
 
-        if ($nextMeta === $meta && $monthly <= 0) {
+        $attrs = [];
+        if ($joinedAt !== null && $customer->joined_at?->toDateString() !== $joinedAt) {
+            $attrs['joined_at'] = $joinedAt;
+        }
+
+        if ($nextMeta === $meta && $monthly <= 0 && $attrs === []) {
             return 'customers_skipped';
         }
 
-        $customer->forceFill(['meta' => $nextMeta])->saveQuietly();
+        $customer->forceFill(array_merge(['meta' => $nextMeta], $attrs))->saveQuietly();
 
         return 'customers_updated';
     }
@@ -126,14 +133,37 @@ final class LegacyPortalPriceSyncService
      */
     private function resolveMonthlyBill(array $row): float
     {
-        $monthly = (float) ($row['MonthlyBill'] ?? 0);
-        if ($monthly > 0) {
-            return round($monthly, 2);
+        foreach (['MonthlyBill', 'MonthlyBillAmount', 'PayabaleBill', 'PayableBill'] as $key) {
+            $monthly = round((float) ($row[$key] ?? 0), 2);
+            if ($monthly > 0) {
+                return $monthly;
+            }
         }
 
         $raw = is_array($row['legacy_portal_raw'] ?? null) ? $row['legacy_portal_raw'] : [];
 
         return round((float) ($raw['MonthlyBill'] ?? 0), 2);
+    }
+
+    /**
+     * @param  array<string, mixed>  $row
+     */
+    private function resolveJoinedAt(array $row): ?string
+    {
+        foreach (['ClientJoiningDate', 'RegistrationDate', 'PurchaseDate'] as $key) {
+            $value = trim((string) ($row[$key] ?? ''));
+            if ($value === '') {
+                continue;
+            }
+
+            try {
+                return \Carbon\Carbon::parse($value)->toDateString();
+            } catch (\Throwable) {
+                continue;
+            }
+        }
+
+        return null;
     }
 
     /**
