@@ -7,7 +7,6 @@ use App\Models\Invoice;
 use App\Models\Package;
 use App\Models\Payment;
 use App\Models\User;
-use App\Services\Billing\BillingDueRealtimeSync;
 use App\Support\CustomerStatus;
 use App\Support\PaymentType;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -63,8 +62,6 @@ class PaymentAutoActivationTest extends TestCase
             'status' => 'completed',
             'paid_at' => now(),
         ]);
-
-        BillingDueRealtimeSync::afterPayment($customer->fresh());
 
         $customer = $customer->fresh();
 

@@ -29,6 +29,13 @@ final class AdvanceInvoiceSyncService
             return [];
         }
 
+        if ($payment !== null) {
+            $meta = is_array($payment->meta) ? $payment->meta : [];
+            if (($meta['forward_invoice_synced'] ?? false) === true) {
+                return array_map('intval', $meta['forward_invoice_ids'] ?? []);
+            }
+        }
+
         $customer = $customer->fresh() ?? $customer;
         if (! $this->isPrepaidLike($customer) || ! $customer->shouldGenerateInvoice()) {
             return [];
@@ -59,6 +66,16 @@ final class AdvanceInvoiceSyncService
             $latest = $invoice->fresh();
             $this->settleForwardInvoice($customer, $invoice, $payment);
             $touched[] = (int) $invoice->id;
+        }
+
+        if ($payment !== null) {
+            $payment = $payment->fresh() ?? $payment;
+            $meta = is_array($payment->meta) ? $payment->meta : [];
+            $existing = is_array($meta['forward_invoice_ids'] ?? null) ? $meta['forward_invoice_ids'] : [];
+            $meta['forward_invoice_ids'] = array_values(array_unique(array_map('intval', array_merge($existing, $touched))));
+            $meta['forward_invoice_synced'] = true;
+            $meta['forward_invoice_synced_at'] = now()->toIso8601String();
+            $payment->forceFill(['meta' => $meta])->saveQuietly();
         }
 
         return $touched;

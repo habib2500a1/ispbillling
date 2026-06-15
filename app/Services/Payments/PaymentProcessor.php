@@ -5,8 +5,9 @@ namespace App\Services\Payments;
 use App\Models\Customer;
 use App\Models\Invoice;
 use App\Models\Payment;
+use App\Services\Billing\AdvanceInvoiceSyncService;
+use App\Services\Billing\BillingDueRealtimeSync;
 use App\Services\Billing\InvoiceCalculator;
-use App\Jobs\SyncCustomerNetworkAccessJob;
 use App\Support\PaymentGateway;
 use App\Support\PaymentType;
 use Illuminate\Support\Facades\DB;
@@ -41,7 +42,9 @@ final class PaymentProcessor
             static::markProcessed($payment);
         });
 
-        static::maybeSyncNetwork($payment->fresh(['customer', 'invoice']));
+        $payment = $payment->fresh(['customer', 'invoice']);
+        static::syncBillingWorkflow($payment);
+        static::syncAdvancePrepay($payment->fresh(['customer', 'invoice']));
     }
 
     /**
@@ -159,10 +162,14 @@ final class PaymentProcessor
             }
 
             $surplus = round($amount - $toInvoice, 2);
-            if ($surplus > 0.009 && config('payments.overpayment_to_wallet', true)) {
+            if ($surplus > 0.009 && ! static::isAdvancePrepay($payment) && config('payments.overpayment_to_wallet', true)) {
                 static::addWallet($customer, $surplus, $payment, 'overpayment');
             }
 
+            return;
+        }
+
+        if (static::isAdvancePrepay($payment)) {
             return;
         }
 
@@ -276,19 +283,89 @@ final class PaymentProcessor
         $payment->forceFill(['meta' => $meta])->saveQuietly();
     }
 
-    private static function maybeSyncNetwork(Payment $payment): void
+    private static function syncAdvancePrepay(?Payment $payment): bool
+    {
+        if ($payment === null || ! static::isAdvancePrepay($payment)) {
+            return false;
+        }
+
+        $customer = $payment->customer?->fresh();
+        if ($customer === null) {
+            return false;
+        }
+
+        $meta = is_array($payment->meta) ? $payment->meta : [];
+        $months = max(0, (int) ($meta['prepay_months'] ?? 0));
+        if ($months < 1) {
+            return false;
+        }
+
+        $forwardSync = app(AdvanceInvoiceSyncService::class);
+        if (! $forwardSync->isEnabled()) {
+            return false;
+        }
+
+        $touched = $forwardSync->syncForwardInvoices($customer, $months, $payment);
+
+        $payment = $payment->fresh();
+        $customer = $customer->fresh() ?? $customer;
+        $remaining = static::unallocatedPaymentAmount($payment);
+        if ($remaining > 0.009 && config('payments.overpayment_to_wallet', true)) {
+            static::addWallet($customer, $remaining, $payment, 'prepay_surplus');
+        }
+
+        $payment = $payment->fresh() ?? $payment;
+        $meta = is_array($payment->meta) ? $payment->meta : [];
+
+        return $touched !== [] || ($meta['forward_invoice_synced'] ?? false) === true;
+    }
+
+    private static function syncBillingWorkflow(?Payment $payment): void
+    {
+        if ($payment === null || ! static::shouldRefreshBillingWorkflow($payment)) {
+            return;
+        }
+
+        $customer = $payment->customer?->fresh();
+        if ($customer === null) {
+            return;
+        }
+
+        BillingDueRealtimeSync::afterPayment($customer, queueNetwork: true);
+    }
+
+    private static function shouldRefreshBillingWorkflow(Payment $payment): bool
     {
         if (! $payment->customer_id) {
-            return;
+            return false;
         }
 
-        $tenantId = (int) ($payment->tenant_id ?? $payment->customer?->tenant_id ?? 0);
-        if ($tenantId < 1) {
-            return;
+        $type = $payment->payment_type ?? PaymentType::PAYMENT;
+        if (in_array($type, [PaymentType::WALLET_DEPOSIT, PaymentType::RESELLER_WALLET_RECHARGE, PaymentType::PLATFORM_SUBSCRIPTION], true)) {
+            return false;
         }
 
-        // Never block collection desk / gateway saves on MikroTik API timeouts.
-        SyncCustomerNetworkAccessJob::dispatch($tenantId, (int) $payment->customer_id)
-            ->afterResponse();
+        $meta = is_array($payment->meta) ? $payment->meta : [];
+
+        return $payment->invoice_id !== null
+            || static::isAdvancePrepay($payment)
+            || is_array($meta['fifo_allocations'] ?? null);
+    }
+
+    private static function isAdvancePrepay(Payment $payment): bool
+    {
+        $meta = is_array($payment->meta) ? $payment->meta : [];
+
+        return ($payment->payment_type ?? PaymentType::PAYMENT) === PaymentType::PREPAY
+            || ((int) ($meta['prepay_months'] ?? 0)) > 0;
+    }
+
+    private static function unallocatedPaymentAmount(Payment $payment): float
+    {
+        $meta = is_array($payment->meta) ? $payment->meta : [];
+        $applied = (float) ($meta['invoice_applied'] ?? 0);
+        $walletCredit = (float) ($meta['wallet_credit'] ?? 0);
+
+        return round((float) $payment->amount - $applied - $walletCredit, 2);
     }
 }

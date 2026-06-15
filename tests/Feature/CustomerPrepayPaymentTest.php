@@ -6,11 +6,7 @@ use App\Models\Customer;
 use App\Models\Invoice;
 use App\Models\Package;
 use App\Models\Payment;
-use App\Services\Billing\AdvanceInvoiceSyncService;
-use App\Services\Billing\BillingDueRealtimeSync;
 use App\Services\Billing\CustomerPrepayService;
-use App\Services\Billing\ServiceExpiryExtensionService;
-use App\Services\Payments\PaymentProcessor;
 use App\Support\CustomerStatus;
 use App\Support\PaymentType;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -78,6 +74,8 @@ class CustomerPrepayPaymentTest extends TestCase
             'network_access_state' => 'suspended',
             'service_expires_at' => now()->subDays(5)->toDateString(),
             'package_id' => $package->id,
+            'billing_mode' => 'prepaid',
+            'billing_day' => now()->day,
             'meta' => ['auto_activate' => true],
         ]);
 
@@ -113,18 +111,15 @@ class CustomerPrepayPaymentTest extends TestCase
         ]);
 
         $payment = Payment::query()->where('customer_id', $customer->id)->latest('id')->first();
-        PaymentProcessor::processCompletedPayment($payment);
-        BillingDueRealtimeSync::afterPayment($customer->fresh());
-        $expiry = app(ServiceExpiryExtensionService::class);
-        for ($i = 0; $i < 3; $i++) {
-            $expiry->extendForPaidCycle($customer->fresh());
-        }
+        $payment->refresh();
 
         $customer = $customer->fresh();
         $this->assertSame(CustomerStatus::ACTIVE, $customer->status);
         $this->assertSame('active', $customer->network_access_state);
         $this->assertTrue($customer->service_expires_at->greaterThan(now()->addDays(80)));
+        $this->assertSame(0.0, (float) $customer->account_balance);
         $this->assertGreaterThanOrEqual(1, Invoice::query()->where('customer_id', $customer->id)->count());
+        $this->assertTrue((bool) ($payment->meta['forward_invoice_synced'] ?? false));
     }
 
     public function test_prepaid_invoice_payment_creates_next_month_bill_together(): void
@@ -173,12 +168,8 @@ class CustomerPrepayPaymentTest extends TestCase
             'method' => 'cash',
             'status' => 'completed',
             'paid_at' => now(),
-            'meta' => ['renewal_policy' => 'from_previous_expiry'],
+            'meta' => ['renewal_policy' => 'from_previous_expiry', 'prepay_months' => 1],
         ]);
-
-        PaymentProcessor::processCompletedPayment($payment);
-        BillingDueRealtimeSync::afterPayment($customer->fresh());
-        app(AdvanceInvoiceSyncService::class)->syncForwardInvoices($customer->fresh(), 1, $payment);
 
         $customer = $customer->fresh();
         $this->assertGreaterThanOrEqual(2, Invoice::query()->where('customer_id', $customer->id)->count());
