@@ -237,7 +237,7 @@ class CollectorMobile extends Page
         }
 
         $payment = $payment->fresh(['invoice']);
-        $due = BillingDueRealtimeSync::afterPayment($customer, queueNetwork: false);
+        $due = BillingDueRealtimeSync::afterPayment($customer);
         $customer = $customer->fresh() ?? $customer;
         $isAdvance = CollectionPaymentClassifier::isAdvancePayment($payment);
 

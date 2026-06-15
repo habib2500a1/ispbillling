@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use App\Models\Customer;
 use App\Models\Invoice;
+use App\Support\CustomerNetworkSyncDispatcher;
 use App\Services\Network\NetworkAccessCoordinator;
 use Illuminate\Console\Command;
 
@@ -39,7 +40,11 @@ class EvaluateNetworkAccessCommand extends Command
         $processed = 0;
         $query->orderBy('id')->chunkById(200, function ($customers) use ($coordinator, &$processed): void {
             foreach ($customers as $customer) {
-                $coordinator->syncCustomer($customer);
+                if (config('queue_ops.heavy_jobs_enabled', false)) {
+                    CustomerNetworkSyncDispatcher::dispatch((int) $customer->tenant_id, (int) $customer->id);
+                } else {
+                    $coordinator->syncCustomer($customer);
+                }
                 $processed++;
             }
         });

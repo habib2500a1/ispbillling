@@ -19,17 +19,42 @@ final class AutomatedSmsNotifier
 
     public function onClientCreated(Customer $customer): void
     {
+        if (! $this->customerWantsSms($customer)) {
+            return;
+        }
+
         $this->sendToCustomer($customer, 'client_created', SmsTemplateVariableBuilder::forCustomer($customer));
     }
 
     public function onClientStatusChanged(Customer $customer, string $from, string $to): void
     {
+        if (! $this->customerWantsSms($customer)) {
+            return;
+        }
+
         $key = SmsTemplateVariableBuilder::statusEventKey($customer, $from, $to);
         if ($key === null) {
             return;
         }
 
         $this->sendToCustomer($customer, $key, SmsTemplateVariableBuilder::forCustomer($customer));
+    }
+
+    public function onNetworkAccessChanged(Customer $customer, string $from, string $to): void
+    {
+        if (! $this->customerWantsSms($customer) || $from === $to) {
+            return;
+        }
+
+        if ($to === 'suspended') {
+            $this->sendToCustomer($customer, 'client_disable', SmsTemplateVariableBuilder::forCustomer($customer));
+
+            return;
+        }
+
+        if ($from === 'suspended' && $to === 'active') {
+            $this->sendToCustomer($customer, 'client_enable', SmsTemplateVariableBuilder::forCustomer($customer));
+        }
     }
 
     public function onPaymentCompleted(Payment $payment): void
@@ -74,6 +99,14 @@ final class AutomatedSmsNotifier
             NotificationEvent::PORTAL_OTP,
             SmsTemplateVariableBuilder::forOtp($code, $minutes),
         );
+    }
+
+    private function customerWantsSms(Customer $customer): bool
+    {
+        $meta = is_array($customer->meta) ? $customer->meta : [];
+
+        return ! array_key_exists('notify_sms', $meta)
+            || filter_var($meta['notify_sms'], FILTER_VALIDATE_BOOLEAN);
     }
 
     /**

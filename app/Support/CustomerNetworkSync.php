@@ -9,7 +9,10 @@ use App\Models\Package;
 use App\Models\Payment;
 use App\Services\Network\MikrotikNetworkProvisioner;
 use App\Services\Network\NetworkAccessCoordinator;
+use App\Services\Radius\CustomerRadiusSyncService;
+use App\Support\CustomerNetworkSyncDispatcher;
 use App\Support\CustomerStatus;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 /**
@@ -82,10 +85,21 @@ final class CustomerNetworkSync
 
         $customer = static::ensurePppCredentials($customer);
 
-        SyncCustomerNetworkAccessJob::dispatch(
+        if ((bool) config('radius_admin.enabled', false)) {
+            try {
+                app(CustomerRadiusSyncService::class)->sync($customer->fresh() ?? $customer);
+            } catch (\Throwable $e) {
+                Log::channel('single')->warning('network.provision_on_create_radius_failed', [
+                    'customer_id' => $customer->id,
+                    'message' => $e->getMessage(),
+                ]);
+            }
+        }
+
+        CustomerNetworkSyncDispatcher::dispatch(
             (int) $customer->tenant_id,
             (int) $customer->id,
-        )->afterResponse();
+        );
     }
 
     /**

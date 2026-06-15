@@ -7,7 +7,11 @@ use App\Models\Device;
 use App\Models\Invoice;
 use App\Models\InvoiceItem;
 use App\Models\Package;
+use App\Services\Notifications\NotificationDispatcher;
+use App\Services\Sms\SmsTemplateVariableBuilder;
 use App\Support\BillingCycleType;
+use App\Support\CustomerBalanceDue;
+use App\Support\NotificationEvent;
 use Carbon\Carbon;
 use Carbon\CarbonInterface;
 
@@ -220,7 +224,37 @@ final class InvoiceGenerator
         app(CustomerActivationBillingService::class)->applyServiceValidityFromInvoice($customer->fresh(), $invoice);
         CustomerLineGraceService::clearForNewBillingPeriod($customer->fresh(), $invoice);
 
+        static::notifyCustomerForNewInvoice($invoice, $customer->fresh() ?? $customer);
+
         return $invoice;
+    }
+
+    private static function notifyCustomerForNewInvoice(Invoice $invoice, Customer $customer): void
+    {
+        $invoice = $invoice->fresh(['customer']);
+        if ($invoice === null || $invoice->balanceDue() <= 0.009) {
+            return;
+        }
+
+        if (! in_array($invoice->status, CustomerBalanceDue::OPEN_INVOICE_STATUSES, true)) {
+            return;
+        }
+
+        CustomerBalanceDue::refreshMetaAfterPayment($customer->fresh() ?? $customer);
+
+        try {
+            app(NotificationDispatcher::class)->notifyCustomer(
+                $customer->fresh() ?? $customer,
+                NotificationEvent::INVOICE_CREATED,
+                array_merge(
+                    SmsTemplateVariableBuilder::forInvoice($invoice),
+                    ['name' => $customer->name],
+                ),
+                ['subject' => 'New bill — '.($invoice->invoice_number ?? 'invoice')],
+            );
+        } catch (\Throwable) {
+            // Notification failure must not block invoice generation.
+        }
     }
 
     /**

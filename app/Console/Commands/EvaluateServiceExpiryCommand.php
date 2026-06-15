@@ -2,8 +2,9 @@
 
 namespace App\Console\Commands;
 
-use App\Jobs\SyncCustomerNetworkAccessJob;
 use App\Models\Customer;
+use App\Services\Network\NetworkAccessCoordinator;
+use App\Support\CustomerNetworkSyncDispatcher;
 use Illuminate\Console\Command;
 
 class EvaluateServiceExpiryCommand extends Command
@@ -34,9 +35,14 @@ class EvaluateServiceExpiryCommand extends Command
         }
 
         $n = 0;
-        $q->orderBy('id')->chunkById(200, function ($customers) use (&$n): void {
+        $coordinator = app(NetworkAccessCoordinator::class);
+        $q->orderBy('id')->chunkById(200, function ($customers) use ($coordinator, &$n): void {
             foreach ($customers as $customer) {
-                SyncCustomerNetworkAccessJob::dispatch((int) $customer->tenant_id, (int) $customer->id)->afterResponse();
+                if (config('queue_ops.heavy_jobs_enabled', false)) {
+                    CustomerNetworkSyncDispatcher::dispatch((int) $customer->tenant_id, (int) $customer->id);
+                } else {
+                    $coordinator->syncCustomer($customer);
+                }
                 $n++;
             }
         });

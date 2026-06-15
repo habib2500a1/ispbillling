@@ -6,6 +6,7 @@ use App\Models\Customer;
 use App\Models\Invoice;
 use App\Models\Payment;
 use App\Support\NotificationEvent;
+use App\Support\PaymentType;
 
 /**
  * Classifies collection desk / mobile payments (bill vs advance / overpayment).
@@ -39,6 +40,10 @@ final class CollectionPaymentClassifier
 
     public static function isAdvancePayment(Payment $payment): bool
     {
+        if (($payment->payment_type ?? 'payment') === PaymentType::PREPAY) {
+            return true;
+        }
+
         if (($payment->payment_type ?? 'payment') !== 'payment') {
             return false;
         }

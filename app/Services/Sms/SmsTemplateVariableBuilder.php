@@ -101,6 +101,27 @@ final class SmsTemplateVariableBuilder
         ]);
     }
 
+    /**
+     * @return array<string, string>
+     */
+    public static function forInvoice(Invoice $invoice): array
+    {
+        $customer = $invoice->customer;
+        $base = $customer ? self::forCustomer($customer) : self::defaults();
+        $issueDate = $invoice->issue_date ?? $invoice->period_start ?? now();
+
+        return array_merge($base, [
+            'invoice_number' => (string) ($invoice->invoice_number ?? '—'),
+            'Due' => number_format($invoice->balanceDue(), 2),
+            'balance' => number_format($invoice->balanceDue(), 2),
+            'Month' => $issueDate instanceof \Carbon\CarbonInterface
+                ? $issueDate->format('F')
+                : (string) $issueDate,
+            'BillingLastDate' => $invoice->due_date?->toDateString() ?? '—',
+            'due_date' => $invoice->due_date?->toFormattedDateString() ?? '—',
+        ]);
+    }
+
     public static function statusEventKey(Customer $customer, string $from, string $to): ?string
     {
         $toNorm = CustomerStatus::normalize($to);

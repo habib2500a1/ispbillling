@@ -123,6 +123,27 @@ final class MikrotikNetworkProvisioner implements NetworkAccessProvisioner
         ]);
     }
 
+    /**
+     * Update PPP profile on router and kick live sessions so the new package speed applies on reconnect.
+     */
+    public function pushPackageChange(Customer $customer): void
+    {
+        $name = $this->pppSecretName($customer);
+
+        foreach ($this->fleet->serversForCustomer($customer) as $server) {
+            try {
+                $this->mikrotik->upsertPppSecretForCustomer($server, $customer);
+                $this->mikrotik->removeActivePppoeSessionsForSecret($server, $name);
+            } catch (\Throwable $e) {
+                Log::channel('single')->error('network.mikrotik.package_change_failed', [
+                    'customer_id' => $customer->id,
+                    'mikrotik_server_id' => $server->id,
+                    'message' => $e->getMessage(),
+                ]);
+            }
+        }
+    }
+
     private function pppSecretName(Customer $customer): string
     {
         return filled($customer->radius_username)

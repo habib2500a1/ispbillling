@@ -25,7 +25,8 @@ final class OpsNotificationService
 
     public function onPaymentCompleted(Payment $payment): void
     {
-        if (($payment->payment_type ?? PaymentType::PAYMENT) !== PaymentType::PAYMENT) {
+        $type = $payment->payment_type ?? PaymentType::PAYMENT;
+        if (! in_array($type, [PaymentType::PAYMENT, PaymentType::PREPAY], true)) {
             return;
         }
 

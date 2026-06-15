@@ -69,6 +69,14 @@ final class SmsTemplateCatalog
                 'sort_order' => 16,
             ],
             [
+                'key' => 'invoice_created',
+                'name' => 'New Invoice / Monthly Bill',
+                'event_key' => 'invoice_created',
+                'body' => 'প্রিয় গ্রাহক, আপনার {Month} মাসের বিল {Due} টাকা। ইনভয়েস: {invoice_number} শেষ তারিখ: {BillingLastDate}। {CompanyName} {CompanyMobile}',
+                'placeholders' => ['Month', 'Due', 'invoice_number', 'BillingLastDate', 'CompanyName', 'CompanyMobile'],
+                'sort_order' => 16,
+            ],
+            [
                 'key' => 'due_template',
                 'name' => 'Due Template',
                 'event_key' => 'invoice_due',

@@ -7,10 +7,12 @@ use App\Models\Customer;
 use App\Models\Invoice;
 use App\Services\Billing\CustomerLineGraceService;
 use App\Services\Import\LegacyPortalOverdueEvaluator;
+use App\Services\Sms\AutomatedSmsNotifier;
 use App\Services\Subscribers\SubscriberPolicyService;
 use App\Support\CustomerStatus;
 use App\Support\LegacyPortalSource;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 final class NetworkAccessCoordinator
 {
@@ -139,6 +141,23 @@ final class NetworkAccessCoordinator
 
             $customer->forceFill(['network_access_state' => $desired])->saveQuietly();
         });
+
+        if ($desired !== $current) {
+            try {
+                app(AutomatedSmsNotifier::class)->onNetworkAccessChanged(
+                    $customer->fresh() ?? $customer,
+                    $current,
+                    $desired,
+                );
+            } catch (\Throwable $e) {
+                Log::warning('network.access_notify_failed', [
+                    'customer_id' => $customer->id,
+                    'from' => $current,
+                    'to' => $desired,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
 
         $this->provisioner->syncAccessPolicy($customer->fresh() ?? $customer);
     }

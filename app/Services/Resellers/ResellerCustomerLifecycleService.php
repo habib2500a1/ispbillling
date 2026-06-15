@@ -2,13 +2,11 @@
 
 namespace App\Services\Resellers;
 
-use App\Jobs\SyncCustomerNetworkAccessJob;
 use App\Models\Customer;
 use App\Models\Reseller;
-use App\Services\Network\MikrotikNetworkProvisioner;
-use App\Services\Network\NetworkAccessCoordinator;
 use App\Services\Subscribers\CustomerServiceRenewalService;
 use App\Support\CustomerNetworkSync;
+use App\Support\CustomerNetworkSyncDispatcher;
 use App\Support\CustomerStatus;
 use App\Support\ResellerPortalPermission;
 use App\Support\ResellerPortalSession;
@@ -20,8 +18,6 @@ final class ResellerCustomerLifecycleService
     public function __construct(
         private readonly ResellerCustomerService $customers,
         private readonly CustomerServiceRenewalService $renewal,
-        private readonly MikrotikNetworkProvisioner $network,
-        private readonly NetworkAccessCoordinator $networkAccess,
         private readonly ResellerPortalActivityLogger $activity,
     ) {}
 
@@ -65,7 +61,7 @@ final class ResellerCustomerLifecycleService
 
         app(ResellerSuspendedBillingService::class)->markSuspended($customer->fresh());
 
-        $this->network->suspendCustomer($customer, $data['reason'] ?? 'reseller-portal');
+        CustomerNetworkSyncDispatcher::dispatch((int) $customer->tenant_id, (int) $customer->id);
         $this->activity->log($reseller, 'customer.suspend', $customer, ['reason' => $data['reason'] ?? null], $request);
 
         return ['message' => 'Subscriber suspended and network disconnected.'];
@@ -85,9 +81,7 @@ final class ResellerCustomerLifecycleService
             'network_access_state' => 'active',
         ])->save();
 
-        $this->network->unsuspendCustomer($customer);
-        $this->network->syncAccessPolicy($customer);
-        SyncCustomerNetworkAccessJob::dispatch((int) $customer->tenant_id, (int) $customer->id)->afterResponse();
+        CustomerNetworkSyncDispatcher::dispatch((int) $customer->tenant_id, (int) $customer->id);
 
         $this->activity->log($reseller, 'customer.reconnect', $customer, [], $request);
 
@@ -136,8 +130,7 @@ final class ResellerCustomerLifecycleService
             throw ValidationException::withMessages(['permission' => 'Network action is not allowed.']);
         }
 
-        $this->network->suspendCustomer($customer, 'reseller-kick');
-        $customer->forceFill(['is_ppp_online' => false])->saveQuietly();
+        CustomerNetworkSyncDispatcher::kickSessions($customer);
 
         $this->activity->log($reseller, 'network.disconnect', $customer, [], $request);
 

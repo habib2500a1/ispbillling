@@ -7,6 +7,7 @@ use App\Models\Invoice;
 use App\Models\PaymentLink;
 use App\Services\BillPayment\PaymentLinkService;
 use App\Services\Notifications\NotificationDispatcher;
+use App\Support\CustomerBalanceDue;
 use Illuminate\Support\Facades\Cache;
 
 final class DunningLadderService
@@ -44,7 +45,7 @@ final class DunningLadderService
 
             $query = Invoice::query()
                 ->with('customer')
-                ->whereIn('status', ['open', 'partial'])
+                ->whereIn('status', CustomerBalanceDue::OPEN_INVOICE_STATUSES)
                 ->whereRaw('(total - amount_paid) > 0')
                 ->whereDate('due_date', $targetDate);
 

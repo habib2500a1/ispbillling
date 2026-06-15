@@ -3,8 +3,9 @@
 return [
 
     /**
-     * When true, heavy ISP tasks (MikroTik poll, network sync) use the queue instead of running inline.
-     * Requires a queue worker: php artisan queue:work or Horizon.
+     * When true, heavy ISP tasks (MikroTik poll, network suspend/reconnect) use Redis workers
+     * instead of running inline or afterResponse in the web process.
+     * Requires: php artisan queue:work --queue=network,default (or Horizon).
      */
     'heavy_jobs_enabled' => (bool) env('QUEUE_HEAVY_JOBS_ENABLED', false),
 

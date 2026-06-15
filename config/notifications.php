@@ -66,6 +66,11 @@ return [
             'channels' => ['sms'],
             'telegram_ops' => true,
         ],
+        'invoice_created' => [
+            'enabled' => (bool) env('NOTIFICATIONS_INVOICE_CREATED', true),
+            'channels' => ['email', 'sms'],
+            'telegram_ops' => false,
+        ],
         'support_token_created' => [
             'enabled' => true,
             'channels' => ['sms'],
@@ -162,6 +167,7 @@ return [
         'payment_success' => "Dear {name},\n\nPayment of {amount} BDT received for invoice {invoice_number}. Receipt: {receipt_number}.\n\nThank you.",
         'payment_advance' => "Dear {name},\n\nAdvance (অগ্রিম) {amount} BDT received. Receipt: {receipt_number}. Wallet credit: {wallet_credit} BDT.\n\nThank you — {CompanyName}",
         'payment_advance_ops' => "💰 Advance (অগ্রিম)\nCustomer: {name} ({ClientID})\nAmount: {PaidAmount} BDT\nInvoice: {invoice_number}\nReceipt: {receipt_number}\nWallet+: {wallet_credit} BDT\nMethod: {method}\nCollected by: {collected_by}\nPhone: {phone}\nTime: {time}",
+        'invoice_created' => "Dear {name},\n\nYour bill for {Month} is {Due} BDT. Invoice {invoice_number}. Due date: {BillingLastDate}. Pay via the customer portal.",
         'invoice_due' => "Dear {name},\n\nInvoice {invoice_number} balance {balance} BDT is due on {due_date}. Please pay via the customer portal.",
         'invoice_due_soon' => "Dear {name},\n\nReminder: Invoice {invoice_number} — {balance} BDT due on {due_date}. Pay: {payment_url}",
         'invoice_due_today' => "Dear {name},\n\nInvoice {invoice_number} ({balance} BDT) is due TODAY ({due_date}). Pay now: {payment_url}",

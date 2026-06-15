@@ -210,6 +210,19 @@ return [
             'timeout' => 300,
             'nice' => 0,
         ],
+        'supervisor-network' => [
+            'connection' => 'redis',
+            'queue' => ['network'],
+            'balance' => 'auto',
+            'autoScalingStrategy' => 'time',
+            'maxProcesses' => max(1, (int) env('HORIZON_NETWORK_MAX_PROCESSES', 10)),
+            'maxTime' => 0,
+            'maxJobs' => 0,
+            'memory' => 256,
+            'tries' => 3,
+            'timeout' => 90,
+            'nice' => 0,
+        ],
     ],
 
     'environments' => [
@@ -219,11 +232,19 @@ return [
                 'balanceMaxShift' => 1,
                 'balanceCooldown' => 3,
             ],
+            'supervisor-network' => [
+                'maxProcesses' => max(1, (int) env('HORIZON_NETWORK_MAX_PROCESSES', 10)),
+                'balanceMaxShift' => 2,
+                'balanceCooldown' => 3,
+            ],
         ],
 
         'local' => [
             'supervisor-1' => [
                 'maxProcesses' => 3,
+            ],
+            'supervisor-network' => [
+                'maxProcesses' => max(1, (int) env('HORIZON_NETWORK_MAX_PROCESSES', 3)),
             ],
         ],
     ],

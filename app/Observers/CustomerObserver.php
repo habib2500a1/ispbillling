@@ -3,8 +3,11 @@
 namespace App\Observers;
 
 use App\Support\CustomerNetworkSync;
+use App\Support\CustomerNetworkSyncDispatcher;
 use App\Models\Customer;
+use App\Services\Notifications\OpsNotificationService;
 use App\Services\Radius\CustomerRadiusSyncService;
+use App\Services\Sms\AutomatedSmsNotifier;
 use App\Models\CustomerNote;
 use App\Models\MikrotikServer;
 use App\Support\CustomerStatus;
@@ -23,6 +26,27 @@ class CustomerObserver
                 'exception' => $e::class,
             ]);
         }
+
+        if ((bool) config('radius_admin.enabled', false)) {
+            try {
+                app(CustomerRadiusSyncService::class)->sync($customer->fresh() ?? $customer);
+            } catch (\Throwable $e) {
+                Log::channel('single')->warning('customer.radius_sync_on_create_failed', [
+                    'customer_id' => $customer->id,
+                    'message' => $e->getMessage(),
+                ]);
+            }
+        }
+
+        try {
+            app(AutomatedSmsNotifier::class)->onClientCreated($customer->fresh() ?? $customer);
+            app(OpsNotificationService::class)->onClientCreated($customer->fresh() ?? $customer);
+        } catch (\Throwable $e) {
+            Log::channel('single')->warning('customer.observer.created_notify_failed', [
+                'customer_id' => $customer->id,
+                'message' => $e->getMessage(),
+            ]);
+        }
     }
 
     public function saved(Customer $customer): void
@@ -39,6 +63,16 @@ class CustomerObserver
                     'body' => sprintf('Status changed from %s to %s.', CustomerStatus::label($from), CustomerStatus::label($to)),
                     'meta' => ['from' => $from, 'to' => $to],
                 ]);
+
+                try {
+                    app(AutomatedSmsNotifier::class)->onClientStatusChanged($customer, $from, $to);
+                    app(OpsNotificationService::class)->onClientStatusChanged($customer, $from, $to);
+                } catch (\Throwable $e) {
+                    Log::channel('single')->warning('customer.observer.status_notify_failed', [
+                        'customer_id' => $customer->id,
+                        'message' => $e->getMessage(),
+                    ]);
+                }
             }
         }
 
@@ -52,6 +86,23 @@ class CustomerObserver
                 app(CustomerRadiusSyncService::class)->sync($customer);
             } catch (\Throwable $e) {
                 Log::channel('single')->warning('customer.radius_sync_failed', [
+                    'customer_id' => $customer->id,
+                    'message' => $e->getMessage(),
+                ]);
+            }
+        }
+
+        if ($customer->wasChanged('package_id') && ! $customer->wasRecentlyCreated) {
+            try {
+                if ((bool) config('network.mikrotik_push_enabled', true)
+                    && MikrotikServer::query()->withoutGlobalScopes()
+                        ->where('tenant_id', $customer->tenant_id)
+                        ->where('is_enabled', true)
+                        ->exists()) {
+                    CustomerNetworkSyncDispatcher::packageChange($customer);
+                }
+            } catch (\Throwable $e) {
+                Log::channel('single')->error('customer.observer.package_change_failed', [
                     'customer_id' => $customer->id,
                     'message' => $e->getMessage(),
                 ]);
@@ -98,7 +149,7 @@ class CustomerObserver
                 return;
             }
 
-            CustomerNetworkSync::runNow($customer);
+            CustomerNetworkSyncDispatcher::dispatch((int) $customer->tenant_id, (int) $customer->id);
         } catch (\Throwable $e) {
             Log::channel('single')->error('customer.observer.saved_failed', [
                 'customer_id' => $customer->id,

@@ -134,9 +134,9 @@ final class MfsPaymentTransferService
 
         $wrong = Customer::withoutGlobalScopes()->find($fromCustomerId);
         if ($wrong !== null) {
-            BillingDueRealtimeSync::afterPayment($wrong, queueNetwork: false);
+            BillingDueRealtimeSync::afterPayment($wrong);
         }
-        BillingDueRealtimeSync::afterPayment($payment->customer ?? $target, queueNetwork: false);
+        BillingDueRealtimeSync::afterPayment($payment->customer ?? $target);
 
         return $payment;
     }

@@ -7,7 +7,7 @@ use App\Filament\Resources\CustomerResource\Pages;
 use App\Filament\Resources\CustomerResource\RelationManagers;
 use App\Filament\Resources\CustomerResource\Widgets;
 use App\Filament\Pages\BillCollectionDesk;
-use App\Jobs\SyncCustomerNetworkAccessJob;
+use App\Support\CustomerNetworkSyncDispatcher;
 use App\Jobs\SyncCustomerOnuFromOltJob;
 use App\Models\Reseller;
 use App\Models\Area;
@@ -18,7 +18,6 @@ use App\Models\MikrotikServer;
 use App\Models\Package;
 use App\Models\Zone;
 use App\Support\TenantResolver;
-use App\Services\Mikrotik\MikrotikServerService;
 use App\Support\CustomerBalanceDue;
 use App\Support\CustomerStatus;
 use App\Support\SubscriberType;
@@ -759,7 +758,7 @@ class CustomerResource extends Resource
                     ->requiresConfirmation()
                     ->action(function (Customer $record): void {
                         $record->update(['network_access_state' => 'suspended']);
-                        SyncCustomerNetworkAccessJob::dispatchSync((int) $record->tenant_id, (int) $record->id);
+                        CustomerNetworkSyncDispatcher::dispatch((int) $record->tenant_id, (int) $record->id);
                         Notification::make()->title('Network suspended')->success()->send();
                     }),
                 Tables\Actions\Action::make('network_on')
@@ -790,10 +789,10 @@ class CustomerResource extends Resource
                     ->color('warning')
                     ->requiresConfirmation()
                     ->action(function (Customer $record): void {
-                        $n = app(MikrotikServerService::class)->kickPppoeActiveSessionsForCustomer($record);
+                        CustomerNetworkSyncDispatcher::kickSessions($record);
                         Notification::make()
                             ->title('MikroTik PPP kick')
-                            ->body("Sessions removed: {$n}")
+                            ->body('Disconnect job queued — session will drop shortly.')
                             ->success()
                             ->send();
                     }),
@@ -1319,7 +1318,7 @@ class CustomerResource extends Resource
                             ? CustomerStatus::ACTIVE
                             : $record->status,
                     ]);
-                    SyncCustomerNetworkAccessJob::dispatch((int) $record->tenant_id, (int) $record->id)->afterResponse();
+                    CustomerNetworkSyncDispatcher::dispatch((int) $record->tenant_id, (int) $record->id);
                 })
                 ->disabled(fn (Customer $record): bool => $record->status === CustomerStatus::TERMINATED),
             ...($billingList ? static::clientsDirectoryBillingColumns() : []),
@@ -1659,7 +1658,7 @@ class CustomerResource extends Resource
         $type = SubscriberType::normalize($type);
         foreach ($records as $record) {
             $record->update(['subscriber_type' => $type]);
-            SyncCustomerNetworkAccessJob::dispatch((int) $record->tenant_id, (int) $record->id)->afterResponse();
+            CustomerNetworkSyncDispatcher::dispatch((int) $record->tenant_id, (int) $record->id);
         }
         Notification::make()
             ->title('Updated '.count($records).' subscriber type(s) → '.SubscriberType::label($type))
@@ -1682,7 +1681,7 @@ class CustomerResource extends Resource
                 'status' => $status,
                 'network_access_state' => $network,
             ]);
-            SyncCustomerNetworkAccessJob::dispatch((int) $record->tenant_id, (int) $record->id)->afterResponse();
+            CustomerNetworkSyncDispatcher::dispatch((int) $record->tenant_id, (int) $record->id);
         }
         Notification::make()
             ->title('Updated '.count($records).' subscriber(s)')

@@ -4,6 +4,7 @@ namespace App\Services\Billing;
 
 use App\Models\Customer;
 use App\Models\Package;
+use App\Support\CustomerNetworkSyncDispatcher;
 use Carbon\Carbon;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Facades\Log;
@@ -83,6 +84,8 @@ final class ScheduledPackageChangeService
                 'from' => $from,
                 'to' => $package->name,
             ]);
+
+            CustomerNetworkSyncDispatcher::packageChange($customer->fresh() ?? $customer);
 
             $stats['applied']++;
         }

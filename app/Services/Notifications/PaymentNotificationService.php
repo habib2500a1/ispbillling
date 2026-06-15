@@ -15,8 +15,8 @@ final class PaymentNotificationService
 
     public function onPaymentCompleted(Payment $payment): void
     {
-        // Customer + ops alerts only for real collections (not wallet_apply / refunds).
-        if (($payment->payment_type ?? PaymentType::PAYMENT) !== PaymentType::PAYMENT) {
+        $type = $payment->payment_type ?? PaymentType::PAYMENT;
+        if (! in_array($type, [PaymentType::PAYMENT, PaymentType::PREPAY], true)) {
             return;
         }
 

@@ -3,7 +3,7 @@
 namespace App\Jobs;
 
 use App\Models\Customer;
-use App\Services\Network\NetworkAccessCoordinator;
+use App\Services\Mikrotik\MikrotikServerService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -12,18 +12,15 @@ use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
 
 /**
- * Re-runs network access policy for one customer (MikroTik PPP suspend/reconnect, RADIUS, etc.).
- *
- * Dispatched to the `network` queue when QUEUE_HEAVY_JOBS_ENABLED=true so bulk suspend/reconnect
- * does not block the web app or cron process on router API latency.
+ * Remove live PPPoE sessions without disabling the PPP secret (admin disconnect / kick).
  */
-class SyncCustomerNetworkAccessJob implements ShouldQueue
+class KickPppSessionJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     public int $tries = 3;
 
-    public int $timeout = 90;
+    public int $timeout = 60;
 
     public function __construct(
         public int $tenantId,
@@ -32,7 +29,7 @@ class SyncCustomerNetworkAccessJob implements ShouldQueue
         $this->onQueue('network');
     }
 
-    public function handle(NetworkAccessCoordinator $coordinator): void
+    public function handle(MikrotikServerService $mikrotik): void
     {
         try {
             $customer = Customer::query()
@@ -40,18 +37,27 @@ class SyncCustomerNetworkAccessJob implements ShouldQueue
                 ->where('tenant_id', $this->tenantId)
                 ->find($this->customerId);
 
-            if (! $customer) {
+            if ($customer === null) {
                 return;
             }
 
-            $coordinator->syncCustomer($customer);
+            $removed = $mikrotik->kickPppoeActiveSessionsForCustomer($customer);
+            $customer->forceFill(['is_ppp_online' => false])->saveQuietly();
+
+            Log::channel('single')->info('network.kick_ppp_sessions', [
+                'tenant_id' => $this->tenantId,
+                'customer_id' => $this->customerId,
+                'sessions_removed' => $removed,
+            ]);
         } catch (\Throwable $e) {
-            Log::channel('single')->error('network.sync_customer_job_failed', [
+            Log::channel('single')->error('network.kick_ppp_sessions_failed', [
                 'tenant_id' => $this->tenantId,
                 'customer_id' => $this->customerId,
                 'message' => $e->getMessage(),
                 'exception' => $e::class,
             ]);
+
+            throw $e;
         }
     }
 }

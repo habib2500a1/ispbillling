@@ -53,7 +53,7 @@ class InvoiceObserver
             app(PackageUpgradeApplicator::class)->applyWhenInvoicePaid($invoice->fresh(['customer', 'items']));
         }
 
-        if ($invoice->customer_id && ($invoice->wasChanged('status') || $invoice->wasChanged('amount_paid'))) {
+        if ($invoice->customer_id && ($invoice->wasChanged('status') || $invoice->wasChanged('amount_paid') || $invoice->wasChanged('total'))) {
             $customer = $invoice->customer?->fresh();
             if ($customer !== null) {
                 CustomerBalanceDue::refreshMetaAfterPayment($customer);

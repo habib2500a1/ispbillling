@@ -5,7 +5,7 @@ namespace App\Http\Controllers\Api\V1\Staff;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Services\Mobile\MobileBroadcastService;
-use App\Services\Network\MikrotikNetworkProvisioner;
+use App\Support\CustomerNetworkSyncDispatcher;
 use App\Support\StaffMobileApiAccess;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -14,7 +14,7 @@ class NetworkController extends Controller
 {
     use StaffMobileApiAccess;
 
-    public function suspend(Request $request, MikrotikNetworkProvisioner $network, MobileBroadcastService $broadcast): JsonResponse
+    public function suspend(Request $request, MobileBroadcastService $broadcast): JsonResponse
     {
         $user = $this->authorizeStaff($request);
 
@@ -25,7 +25,7 @@ class NetworkController extends Controller
 
         $customer = $this->staffCustomerOrFail($user, (int) $data['customer_id']);
         $customer->forceFill(['network_access_state' => 'suspended'])->save();
-        $network->suspendCustomer($customer, $data['reason'] ?? 'mobile-api');
+        CustomerNetworkSyncDispatcher::dispatch((int) $customer->tenant_id, (int) $customer->id);
 
         $broadcast->routerAlert(
             (int) $customer->tenant_id,
@@ -40,7 +40,7 @@ class NetworkController extends Controller
         ]);
     }
 
-    public function reconnect(Request $request, MikrotikNetworkProvisioner $network, MobileBroadcastService $broadcast): JsonResponse
+    public function reconnect(Request $request, MobileBroadcastService $broadcast): JsonResponse
     {
         $user = $this->authorizeStaff($request);
 
@@ -50,8 +50,7 @@ class NetworkController extends Controller
 
         $customer = $this->staffCustomerOrFail($user, (int) $data['customer_id']);
         $customer->forceFill(['network_access_state' => 'active'])->save();
-        $network->unsuspendCustomer($customer);
-        $network->syncAccessPolicy($customer);
+        CustomerNetworkSyncDispatcher::dispatch((int) $customer->tenant_id, (int) $customer->id);
 
         $broadcast->routerAlert(
             (int) $customer->tenant_id,

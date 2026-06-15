@@ -8,6 +8,8 @@ final class NotificationEvent
 
     public const PAYMENT_ADVANCE = 'payment_advance';
 
+    public const INVOICE_CREATED = 'invoice_created';
+
     public const INVOICE_DUE = 'invoice_due';
 
     public const INVOICE_DUE_SOON = 'invoice_due_soon';
@@ -42,6 +44,7 @@ final class NotificationEvent
         return [
             self::PAYMENT_SUCCESS => 'Payment success',
             self::PAYMENT_ADVANCE => 'Advance payment (wallet / অগ্রিম)',
+            self::INVOICE_CREATED => 'New invoice / monthly bill',
             self::INVOICE_DUE => 'Invoice due reminder',
             self::INVOICE_DUE_SOON => 'Invoice due soon (3 days)',
             self::INVOICE_DUE_TODAY => 'Invoice due today',

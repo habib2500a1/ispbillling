@@ -2,18 +2,19 @@
 
 namespace App\Services\Billing;
 
-use App\Jobs\SyncCustomerNetworkAccessJob;
+use App\Support\CustomerNetworkSyncDispatcher;
 use App\Models\Customer;
 use App\Support\BillingMetricsCache;
 use App\Support\CustomerBalanceDue;
 use Illuminate\Support\Facades\Cache;
 
 /**
- * Keeps due balances and UI caches in sync immediately after a payment (MikroTik ON/OFF in same request).
+ * Keeps due balances and UI caches in sync immediately after a payment.
+ * MikroTik ON/OFF is queued so the payment callback never waits on router API.
  */
 final class BillingDueRealtimeSync
 {
-    public static function afterPayment(Customer $customer, bool $queueNetwork = false): float
+    public static function afterPayment(Customer $customer, bool $queueNetwork = true): float
     {
         $customer = $customer->fresh() ?? $customer;
 
@@ -31,9 +32,9 @@ final class BillingDueRealtimeSync
         static::flushCaches((int) $customer->tenant_id);
 
         if ($queueNetwork) {
-            SyncCustomerNetworkAccessJob::dispatch((int) $customer->tenant_id, (int) $customer->id)->afterResponse();
+            CustomerNetworkSyncDispatcher::dispatch((int) $customer->tenant_id, (int) $customer->id);
         } else {
-            SyncCustomerNetworkAccessJob::dispatchSync((int) $customer->tenant_id, (int) $customer->id);
+            CustomerNetworkSyncDispatcher::dispatchSync((int) $customer->tenant_id, (int) $customer->id);
         }
 
         return $due;
