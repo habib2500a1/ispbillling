@@ -79,6 +79,15 @@
             </div>
         </div>
 
+        @if (! $this->mikrotikRoutingHealthy())
+            <div class="isp-online-clients-alert" role="alert">
+                <strong>MikroTik server disabled or missing.</strong>
+                Live online status cannot update — enable your router under
+                <strong>Network → MikroTik servers</strong>, then click
+                <strong>Sync live sessions</strong>.
+            </div>
+        @endif
+
         @if ($stats['sync_stale'] ?? false)
             <div class="isp-online-clients-alert" role="status">
                 MikroTik sync is stale — counts use last known online data.

@@ -307,6 +307,11 @@ class Customer extends Model implements AuthenticatableContract, AuthorizableCon
         $bandwidth = app(\App\Services\Bandwidth\BandwidthCollectionService::class);
         $tenantId = (int) $this->tenant_id;
 
+        if (! $bandwidth->tenantHasEnabledMikrotik($tenantId)
+            && ! app(\App\Services\Radius\RadiusAccountingService::class)->isEnabled()) {
+            return false;
+        }
+
         if (! $bandwidth->tenantOnlineFlagsTrustworthy($tenantId)) {
             if ($bandwidth->freshBandwidthSyncShowsActiveSubscribers($tenantId)) {
                 return (bool) $this->is_ppp_online;

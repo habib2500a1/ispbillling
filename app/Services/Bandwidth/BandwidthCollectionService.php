@@ -714,15 +714,11 @@ final class BandwidthCollectionService
     }
 
     /**
-     * Clear leftover PPP online flags when the tenant has no MikroTik (or RADIUS) source of truth.
+     * Clear leftover PPP online flags when the tenant has no enabled MikroTik (or RADIUS) source of truth.
      */
     public function clearStaleOnlineFlagsWhenNoRouters(int $tenantId): void
     {
         if ($this->tenantHasEnabledMikrotik($tenantId)) {
-            return;
-        }
-
-        if ($this->tenantHasActivePppSessions($tenantId)) {
             return;
         }
 
@@ -734,7 +730,21 @@ final class BandwidthCollectionService
             return;
         }
 
+        $now = now();
         $this->syncCustomerOnlineFlags($tenantId, []);
+        $this->closeStaleSessions($tenantId, [], $now);
+
+        $existing = BandwidthSyncStatus::get($tenantId);
+        BandwidthSyncStatus::store($tenantId, array_merge($existing, [
+            'api' => [
+                'ok' => false,
+                'reachable' => false,
+                'sessions' => 0,
+                'error' => 'No enabled MikroTik server — stale online sessions cleared',
+            ],
+            'radius' => array_merge($existing['radius'] ?? [], ['sessions' => 0]),
+            'merged_active' => 0,
+        ]));
     }
 
     /**

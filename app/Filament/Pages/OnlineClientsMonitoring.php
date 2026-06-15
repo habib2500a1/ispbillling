@@ -74,8 +74,47 @@ class OnlineClientsMonitoring extends Page implements HasForms, HasTable
             'online_status' => ['value' => 'all'],
         ];
 
-        // Do not run refreshOnlineFlagsForTenant on mount — it can wipe is_ppp_online when
-        // router probes are stale while real PPP sessions are still active.
+        $this->reconcileStaleOnlineDataOnMount();
+    }
+
+    /**
+     * Drop phantom "online" rows when MikroTik is disabled or sync has never run.
+     */
+    private function reconcileStaleOnlineDataOnMount(): void
+    {
+        $tenantId = TenantResolver::requiredTenantId();
+        $bandwidth = app(BandwidthCollectionService::class);
+
+        if ($bandwidth->tenantOnlineFlagsTrustworthy($tenantId)) {
+            return;
+        }
+
+        $hasPhantomOnline = Customer::query()
+            ->where('tenant_id', $tenantId)
+            ->withMikrotikPpp()
+            ->where(function ($q): void {
+                $q->where('is_ppp_online', true)
+                    ->orWhereHas('activePppSession');
+            })
+            ->exists();
+
+        if (! $hasPhantomOnline) {
+            return;
+        }
+
+        if (! $bandwidth->tenantHasEnabledMikrotik($tenantId)) {
+            $bandwidth->clearStaleOnlineFlagsWhenNoRouters($tenantId);
+
+            return;
+        }
+
+        if (config('bandwidth.collection_enabled', true)) {
+            try {
+                $bandwidth->collectForTenant($tenantId);
+            } catch (\Throwable) {
+                // Page load must stay fast; cron / Sync live sessions handle recovery.
+            }
+        }
     }
 
     public function getActiveTableSearch(): string
@@ -102,10 +141,12 @@ class OnlineClientsMonitoring extends Page implements HasForms, HasTable
 
         $tenantId = TenantResolver::requiredTenantId();
         $service = app(BandwidthCollectionService::class);
+        $shouldCollect = config('bandwidth.online_clients_collect_on_poll', false)
+            || ! $service->tenantOnlineFlagsTrustworthy($tenantId);
 
-        if (config('bandwidth.online_clients_collect_on_poll', false)
+        if ($shouldCollect
             && config('bandwidth.collection_enabled', true)
-            && $service->tenantHasEnabledMikrotik($tenantId)) {
+            && ($service->tenantHasEnabledMikrotik($tenantId) || $service->tenantHasActivePppSessions($tenantId))) {
             try {
                 $service->collectForTenant($tenantId);
             } catch (\Throwable) {
@@ -114,6 +155,13 @@ class OnlineClientsMonitoring extends Page implements HasForms, HasTable
         }
 
         $this->flushCachedTableRecords();
+    }
+
+    public function mikrotikRoutingHealthy(): bool
+    {
+        return app(BandwidthCollectionService::class)->tenantHasEnabledMikrotik(
+            TenantResolver::requiredTenantId(),
+        );
     }
 
     /**
