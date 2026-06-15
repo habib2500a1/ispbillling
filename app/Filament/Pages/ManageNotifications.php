@@ -5,6 +5,7 @@ namespace App\Filament\Pages;
 use App\Models\AppSetting;
 use App\Models\IntegrationSettingsAudit;
 use App\Services\Notifications\Channels\SmsNotificationChannel;
+use App\Services\Notifications\Channels\TelegramNotificationChannel;
 use App\Services\Tenant\TenantScopedConfig;
 use App\Support\KhudeBartaUrls;
 use App\Support\TenantResolver;
@@ -229,6 +230,34 @@ class ManageNotifications extends Page
     protected function getFormActions(): array
     {
         return [
+            Action::make('testTelegram')
+                ->label('Send test Telegram')
+                ->color('gray')
+                ->icon('heroicon-o-chat-bubble-left-right')
+                ->action(function (): void {
+                    if (! config('notifications.telegram.enabled', false)) {
+                        Notification::make()->title('Telegram disabled')->danger()->send();
+
+                        return;
+                    }
+
+                    $chatId = trim((string) config('notifications.telegram.ops_chat_id', ''));
+                    if ($chatId === '') {
+                        Notification::make()->title('Ops chat ID missing')->danger()->send();
+
+                        return;
+                    }
+
+                    try {
+                        app(TelegramNotificationChannel::class)->send(
+                            $chatId,
+                            '✅ ISP Billing Telegram test — '.now()->format('d M Y, h:i A')."\nBot is connected. Payment & suspend alerts will arrive here.",
+                        );
+                        Notification::make()->title('Test Telegram sent')->success()->send();
+                    } catch (\Throwable $e) {
+                        Notification::make()->title('Telegram failed')->body($e->getMessage())->danger()->send();
+                    }
+                }),
             Action::make('testSms')
                 ->label('Send test SMS')
                 ->color('gray')

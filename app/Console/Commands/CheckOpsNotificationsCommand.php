@@ -6,7 +6,7 @@ use Illuminate\Console\Command;
 
 class CheckOpsNotificationsCommand extends Command
 {
-    protected $signature = 'isp:check-ops-notifications';
+    protected $signature = 'isp:check-ops-notifications {--send-test : Send a test message to the ops Telegram chat}';
 
     protected $description = 'Verify Telegram, email, SMS, and FCM ops notification configuration.';
 
@@ -19,6 +19,18 @@ class CheckOpsNotificationsCommand extends Command
             $issues++;
         } else {
             $this->line('[ok] Telegram ops chat configured.');
+            if ($this->option('send-test')) {
+                try {
+                    app(\App\Services\Notifications\Channels\TelegramNotificationChannel::class)->send(
+                        (string) config('notifications.telegram.ops_chat_id'),
+                        '✅ ISP Billing Telegram test — '.now()->format('d M Y, h:i A'),
+                    );
+                    $this->line('[ok] Test Telegram sent.');
+                } catch (\Throwable $e) {
+                    $this->error('[!] Telegram test failed: '.$e->getMessage());
+                    $issues++;
+                }
+            }
         }
 
         if (blank(config('alerts.ops_email'))) {

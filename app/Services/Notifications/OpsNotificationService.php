@@ -114,6 +114,35 @@ final class OpsNotificationService
         ]);
     }
 
+    public function onNetworkAccessChanged(Customer $customer, string $from, string $to): void
+    {
+        if ($from === $to) {
+            return;
+        }
+
+        if ($to === 'suspended') {
+            if (! $this->opsEnabledFor('client_disable')) {
+                return;
+            }
+            $this->notifyCustomerEvent($customer, 'client_disable', 'Line suspended (auto/billing)', [
+                'network_from' => $from,
+                'network_to' => $to,
+            ]);
+
+            return;
+        }
+
+        if ($from === 'suspended' && $to === 'active') {
+            if (! $this->opsEnabledFor('client_enable')) {
+                return;
+            }
+            $this->notifyCustomerEvent($customer, 'client_enable', 'Line reconnected', [
+                'network_from' => $from,
+                'network_to' => $to,
+            ]);
+        }
+    }
+
     public function onSupportTicketCreated(SupportTicket $ticket): void
     {
         if (! $this->opsEnabledFor('support_token_created')) {
