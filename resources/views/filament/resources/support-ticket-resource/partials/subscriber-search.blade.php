@@ -1,8 +1,16 @@
 @php
     $query = trim($this->subscriberSearch);
+    $searchUrl = route('filament.admin.resources.support-tickets.subscriber-search');
 @endphp
 
-<div class="isp-support-subscriber-search isp-collection-search-wrap sp-create-search">
+{{-- Fetch search shell: immune to Livewire DOM morph (same pattern as bill collection desk). --}}
+<div
+    wire:ignore.self
+    id="support-ticket-search-shell"
+    class="isp-support-subscriber-search isp-collection-search-wrap sp-create-search"
+    data-component-id="{{ $this->getId() }}"
+    data-search-url="{{ $searchUrl }}"
+>
     <div class="sp-create-search__head">
         <label for="support-ticket-subscriber-search" class="isp-collection-search-label">
             Find subscriber
@@ -16,8 +24,7 @@
             <input
                 id="support-ticket-subscriber-search"
                 type="search"
-                wire:model.live.debounce.400ms="subscriberSearch"
-                wire:keydown.enter.prevent="runSubscriberSearch"
+                value="{{ $query }}"
                 placeholder="ID, phone, name, PPP username, address, invoice #…"
                 class="isp-collection-search-input"
                 autocomplete="off"
@@ -25,29 +32,24 @@
                 maxlength="200"
             />
             <span
-                wire:loading.delay.shortest
-                wire:target="subscriberSearch,runSubscriberSearch,selectSubscriber"
-                class="isp-collection-search-loading"
+                id="support-ticket-search-spinner"
+                class="isp-collection-search-loading hidden"
                 aria-hidden="true"
             ></span>
         </div>
         <button
             type="button"
-            wire:click="runSubscriberSearch"
-            wire:loading.attr="disabled"
-            wire:target="subscriberSearch,runSubscriberSearch"
+            id="support-ticket-search-btn"
             class="isp-collection-search-btn"
         >
             Search
         </button>
-        @if ($query !== '')
-            <button
-                type="button"
-                wire:click="clearSubscriberSearch"
-                class="isp-collection-search-clear"
-                title="Clear search"
-            >×</button>
-        @endif
+        <button
+            type="button"
+            id="support-ticket-search-clear"
+            class="isp-collection-search-clear @if ($query === '') hidden @endif"
+            title="Clear search"
+        >×</button>
     </div>
 
     <p class="isp-collection-search-hint">
@@ -57,27 +59,19 @@
         @endif
     </p>
 
-    @if ($query !== '')
-        <p class="isp-collection-search-active mt-2 text-xs text-gray-500 dark:text-gray-400" role="status">
-            <span wire:loading.remove wire:target="subscriberSearch,runSubscriberSearch,selectSubscriber">
-                @if (count($this->subscriberResults) > 0)
-                    Showing results for “{{ $query }}” · {{ count($this->subscriberResults) }} match(es)
-                @elseif (mb_strlen($query) >= 2)
-                    No match for “{{ $query }}”
-                @else
-                    Type at least 2 characters
-                @endif
-            </span>
-            <span wire:loading wire:target="subscriberSearch,runSubscriberSearch,selectSubscriber">Searching…</span>
-        </p>
-    @endif
-
-    <div
-        id="support-ticket-search-results"
-        class="isp-collection-results mt-4"
-        wire:loading.class="opacity-60"
-        wire:target="subscriberSearch,runSubscriberSearch,selectSubscriber"
+    <p
+        id="support-ticket-search-status"
+        class="isp-collection-search-active mt-2 text-xs text-gray-500 dark:text-gray-400 @if ($query === '') hidden @endif"
+        role="status"
     >
+        @if ($query !== '' && count($this->subscriberResults) > 0)
+            Showing results for “{{ $query }}” · {{ count($this->subscriberResults) }} match(es)
+        @elseif ($query !== '' && mb_strlen($query) >= 2)
+            No match for “{{ $query }}”
+        @endif
+    </p>
+
+    <div id="support-ticket-search-results" class="isp-collection-results mt-4">
         @if (count($this->subscriberResults) > 0)
             <p class="mb-2 text-xs font-bold uppercase tracking-wide text-gray-500">
                 {{ count($this->subscriberResults) }} result(s) — tap to link ticket
@@ -89,12 +83,10 @@
                         $online = (bool) (($row['connection']['online'] ?? false));
                         $isSelected = (int) ($this->selectedSubscriberId ?? 0) === (int) ($row['id'] ?? 0);
                     @endphp
-                    <li role="option" wire:key="sp-search-row-{{ $row['id'] }}">
+                    <li role="option">
                         <button
                             type="button"
-                            wire:click="selectSubscriber({{ (int) $row['id'] }})"
-                            wire:loading.attr="disabled"
-                            wire:target="selectSubscriber"
+                            data-customer-id="{{ (int) $row['id'] }}"
                             @class([
                                 'isp-collection-result-card sp-create-result-card w-full text-left',
                                 'sp-create-result-card--active ring-2 ring-primary-500 dark:ring-primary-400' => $isSelected,
@@ -140,38 +132,38 @@
                 @endforeach
             </ul>
         @elseif (mb_strlen($query) >= 2)
-            <div wire:loading.remove wire:target="subscriberSearch,runSubscriberSearch" class="isp-collection-empty rounded-xl border border-dashed border-gray-300 p-6 text-center dark:border-gray-600">
+            <div class="isp-collection-empty rounded-xl border border-dashed border-gray-300 p-6 text-center dark:border-gray-600">
                 <p class="font-medium text-gray-700 dark:text-gray-300">No subscriber found</p>
                 <p class="mt-1 text-sm text-gray-500">Try phone, customer ID, or PPP username.</p>
             </div>
         @endif
     </div>
-
-    @if ($this->selectedSubscriber)
-        <div class="isp-support-subscriber-picked sp-create-picked mt-4 rounded-xl border border-primary-200 bg-primary-50/80 p-4 dark:border-primary-800 dark:bg-primary-950/30">
-            <div class="flex flex-wrap items-start justify-between gap-2">
-                <div>
-                    <p class="text-xs font-bold uppercase tracking-wide text-primary-700 dark:text-primary-300">Linked subscriber</p>
-                    <p class="mt-1 text-lg font-bold text-gray-900 dark:text-white">
-                        {{ $this->selectedSubscriber['name'] }}
-                        <span class="font-mono text-sm font-normal text-violet-600 dark:text-violet-400">#{{ $this->selectedSubscriber['customer_code'] }}</span>
-                    </p>
-                    <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">
-                        {{ $this->selectedSubscriber['phone'] ?: '—' }} · {{ $this->selectedSubscriber['username'] }}
-                    </p>
-                </div>
-                <button
-                    type="button"
-                    wire:click="clearSubscriberSelection"
-                    class="text-xs font-semibold text-gray-500 hover:text-gray-800 dark:hover:text-gray-200"
-                >
-                    Change
-                </button>
-            </div>
-        </div>
-    @else
-        <p class="mt-3 text-sm text-amber-700 dark:text-amber-300" id="support-ticket-search-prompt">
-            Search and pick a subscriber before saving the ticket.
-        </p>
-    @endif
 </div>
+
+@if ($this->selectedSubscriber)
+    <div class="isp-support-subscriber-picked sp-create-picked mt-4 rounded-xl border border-primary-200 bg-primary-50/80 p-4 dark:border-primary-800 dark:bg-primary-950/30">
+        <div class="flex flex-wrap items-start justify-between gap-2">
+            <div>
+                <p class="text-xs font-bold uppercase tracking-wide text-primary-700 dark:text-primary-300">Linked subscriber</p>
+                <p class="mt-1 text-lg font-bold text-gray-900 dark:text-white">
+                    {{ $this->selectedSubscriber['name'] }}
+                    <span class="font-mono text-sm font-normal text-violet-600 dark:text-violet-400">#{{ $this->selectedSubscriber['customer_code'] }}</span>
+                </p>
+                <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">
+                    {{ $this->selectedSubscriber['phone'] ?: '—' }} · {{ $this->selectedSubscriber['username'] }}
+                </p>
+            </div>
+            <button
+                type="button"
+                wire:click="clearSubscriberSelection"
+                class="text-xs font-semibold text-gray-500 hover:text-gray-800 dark:hover:text-gray-200"
+            >
+                Change
+            </button>
+        </div>
+    </div>
+@else
+    <p class="mt-3 text-sm text-amber-700 dark:text-amber-300" id="support-ticket-search-prompt">
+        Search and pick a subscriber before saving the ticket.
+    </p>
+@endif

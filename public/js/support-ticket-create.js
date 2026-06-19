@@ -286,53 +286,99 @@
     }
 
     function bindResultsClick() {
-        /* Click handled by @script $wire.selectSubscriber on create-support-ticket.blade.php */
+        const shellEl = shell();
+        if (!shellEl || shellEl.dataset.clickBound === '1') {
+            return;
+        }
+
+        shellEl.dataset.clickBound = '1';
+
+        shellEl.addEventListener('click', function (event) {
+            const button = event.target.closest('[data-customer-id]');
+            if (!button) {
+                return;
+            }
+
+            event.preventDefault();
+
+            const customerId = parseInt(button.getAttribute('data-customer-id'), 10);
+            if (!customerId) {
+                return;
+            }
+
+            markSelecting(button);
+
+            const livewire = wire();
+            if (!livewire) {
+                console.error('[support-ticket-search] Livewire component not found');
+
+                return;
+            }
+
+            callLivewire(livewire, 'selectSubscriber', customerId)
+                .then(function () {
+                    hidePrompt();
+                    scrollToLinkedSubscriber();
+                })
+                .catch(function (error) {
+                    console.error('[support-ticket-search]', error);
+                });
+        });
     }
 
     function bindShell() {
         const shellEl = shell();
         const inputEl = input();
-        if (!shellEl || !inputEl || shellEl.dataset.bound === '1') {
+        if (!shellEl || !inputEl) {
             return;
         }
 
-        shellEl.dataset.bound = '1';
+        if (shellEl.dataset.bound !== '1') {
+            shellEl.dataset.bound = '1';
 
-        inputEl.addEventListener('input', function () {
-            clearTimeout(debounceTimer);
-            debounceTimer = setTimeout(function () {
-                runSearch();
-            }, 280);
-        });
+            inputEl.addEventListener('input', function () {
+                clearTimeout(debounceTimer);
+                debounceTimer = setTimeout(function () {
+                    runSearch();
+                }, 280);
+            });
 
-        inputEl.addEventListener('keydown', function (event) {
-            if (event.key === 'Enter') {
-                event.preventDefault();
+            inputEl.addEventListener('keydown', function (event) {
+                if (event.key === 'Enter') {
+                    event.preventDefault();
+                    clearTimeout(debounceTimer);
+                    runSearch();
+                }
+            });
+
+            document.getElementById('support-ticket-search-btn')?.addEventListener('click', function () {
                 clearTimeout(debounceTimer);
                 runSearch();
-            }
-        });
+            });
 
-        document.getElementById('support-ticket-search-btn')?.addEventListener('click', function () {
-            clearTimeout(debounceTimer);
-            runSearch();
-        });
+            document.getElementById('support-ticket-search-clear')?.addEventListener('click', function () {
+                inputEl.value = '';
+                toggleClear(false);
+                setStatus('');
+                renderResults([]);
+                syncUrl('');
+                const livewire = wire();
+                if (livewire) {
+                    livewire.set('subscriberSearch', '');
+                }
+                inputEl.focus();
+            });
+        }
 
-        document.getElementById('support-ticket-search-clear')?.addEventListener('click', function () {
-            inputEl.value = '';
-            toggleClear(false);
-            setStatus('');
-            renderResults([]);
-            syncUrl('');
-            const livewire = wire();
-            if (livewire) {
-                livewire.set('subscriberSearch', '');
-            }
-            inputEl.focus();
-        });
+        bindResultsClick();
 
         const initial = new URL(window.location.href).searchParams.get('q') || inputEl.value || '';
-        if (initial.trim().length >= 2) {
+        if (initial.trim().length >= 2 && !shellEl.dataset.initialSearchDone) {
+            shellEl.dataset.initialSearchDone = '1';
+            if (document.querySelector('#support-ticket-search-results [data-customer-id]')) {
+                return;
+            }
+
             inputEl.value = initial.trim();
             runSearch(initial.trim());
         }
@@ -341,7 +387,6 @@
     function init() {
         closeMobileSidebar();
         bindShell();
-        bindResultsClick();
     }
 
     if (document.readyState === 'loading') {
@@ -351,4 +396,5 @@
     }
 
     document.addEventListener('livewire:navigated', init);
+    document.addEventListener('livewire:init', init);
 })();
