@@ -340,7 +340,7 @@
             </section>
             <section class="isp-cv-card isp-cv-card--full">
                 <h3 class="isp-cv-card__title">Live traffic</h3>
-                @livewire(\App\Filament\Resources\CustomerResource\Widgets\SubscriberLiveTrafficWidget::class, ['record' => $record], key('traffic-'.$record->getKey()))
+                @livewire(\App\Filament\Resources\CustomerResource\Widgets\SubscriberLiveTrafficWidget::class, ['record' => $record, 'embedded' => true], key('traffic-'.$record->getKey()))
             </section>
         </div>
 

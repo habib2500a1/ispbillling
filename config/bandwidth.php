@@ -68,6 +68,15 @@ return [
     /** Per-subscriber traffic chart refresh (seconds). 0 = off. */
     'subscriber_chart_poll_seconds' => (int) env('BANDWIDTH_SUBSCRIBER_CHART_POLL_SECONDS', 1),
 
+    /** Slower poll when chart is embedded on subscriber 360° (network tab). */
+    'subscriber_view_chart_poll_seconds' => (int) env('BANDWIDTH_SUBSCRIBER_VIEW_CHART_POLL_SECONDS', 15),
+
+    /** Skip livewire poll on embedded chart when PPP is offline. */
+    'subscriber_view_poll_when_offline' => filter_var(
+        env('BANDWIDTH_SUBSCRIBER_VIEW_POLL_OFFLINE', false),
+        FILTER_VALIDATE_BOOL,
+    ),
+
     /** Rolling chart points kept in memory (1 point per poll). */
     'subscriber_chart_points' => (int) env('BANDWIDTH_SUBSCRIBER_CHART_POINTS', 120),
 

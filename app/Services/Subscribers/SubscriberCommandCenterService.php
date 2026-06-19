@@ -9,6 +9,7 @@ use App\Models\Customer;
 use App\Models\CustomerNote;
 use App\Models\Device;
 use App\Models\NotificationLog;
+use App\Models\Payment;
 use App\Models\PppSessionLog;
 use App\Models\SupportTicket;
 use App\Models\User;

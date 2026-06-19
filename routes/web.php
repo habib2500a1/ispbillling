@@ -88,9 +88,6 @@ Route::middleware(['web', 'auth'])->prefix('admin')->group(function (): void {
         ->whereNumber('customer')
         ->middleware('portal.enabled')
         ->name('staff.subscribers.portal-login');
-    Route::get('/support-tickets/subscriber-search', \App\Http\Controllers\Admin\SupportTicketSubscriberSearchController::class)
-        ->middleware('throttle:120,1')
-        ->name('admin.support-tickets.subscriber-search');
     Route::get('/reseller-portal-login/{reseller}', [StaffResellerPortalController::class, 'login'])
         ->whereNumber('reseller')
         ->name('staff.resellers.portal-login');
@@ -144,6 +141,7 @@ Route::middleware(['web', 'auth'])->prefix('admin')->group(function (): void {
     Route::get('/smart-search', \App\Http\Controllers\Admin\SmartSearchController::class)->name('admin.smart-search');
     Route::get('/command-palette-items', \App\Http\Controllers\Admin\CommandPaletteItemsController::class)->name('admin.command-palette.items');
     Route::get('/dashboard-stream', \App\Http\Controllers\Admin\DashboardStreamController::class)->name('admin.dashboard-stream');
+    Route::get('/noc-wall-stream', \App\Http\Controllers\Admin\NocWallStreamController::class)->name('admin.noc-wall-stream');
     Route::middleware('throttle:40,1')->group(function (): void {
         Route::get('/ai-copilot/dashboard', [\App\Http\Controllers\Admin\AiCopilotController::class, 'dashboard'])->name('admin.ai-copilot.dashboard');
         Route::post('/ai-copilot/ask', [\App\Http\Controllers\Admin\AiCopilotController::class, 'ask'])->name('admin.ai-copilot.ask');

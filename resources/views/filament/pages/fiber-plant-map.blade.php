@@ -315,10 +315,26 @@
             <div data-gis-panel="faults" id="gis-fault-list"></div>
             <div data-gis-panel="rca" id="gis-rca-cards" hidden><p class="gis-empty">Select a customer or fault for RCA.</p></div>
             <div data-gis-panel="layers" hidden>
-                <label class="gis-layer-row"><input type="checkbox" id="gis-layer-offline"> Offline heatmap</label>
+                <p class="gis-layer-intro">Enterprise NOC layers — toggle visibility on map.</p>
+                <label class="gis-layer-row"><input type="checkbox" id="gis-layer-customers" checked> Customers (online/offline/VIP)</label>
+                <label class="gis-layer-row"><input type="checkbox" id="gis-layer-onu" checked> ONU telemetry</label>
+                <label class="gis-layer-row"><input type="checkbox" id="gis-layer-olt" checked> OLT</label>
+                <label class="gis-layer-row"><input type="checkbox" id="gis-layer-pop" checked> POP / FAT</label>
+                <label class="gis-layer-row"><input type="checkbox" id="gis-layer-splitter" checked> Splitter / distribution</label>
+                <label class="gis-layer-row"><input type="checkbox" id="gis-layer-fiber" checked> Fiber routes</label>
+                <label class="gis-layer-row"><input type="checkbox" id="gis-layer-incidents" checked> Incidents / faults</label>
+                <label class="gis-layer-row"><input type="checkbox" id="gis-layer-outage-areas"> Outage heat (area)</label>
+                <label class="gis-layer-row"><input type="checkbox" id="gis-layer-tickets"> Open tickets</label>
+                <label class="gis-layer-row"><input type="checkbox" id="gis-layer-coverage"> Coverage polygons</label>
+                <label class="gis-layer-row"><input type="checkbox" id="gis-layer-pop-equipment"> POP equipment</label>
+                <label class="gis-layer-row"><input type="checkbox" id="gis-layer-field-staff"> Live field GPS</label>
+                <label class="gis-layer-row"><input type="checkbox" id="gis-layer-vector-tiles"> Vector tiles (PostGIS)</label>
+                <hr class="gis-layer-divider">
+                <label class="gis-layer-row"><input type="checkbox" id="gis-layer-offline"> Offline point heatmap</label>
                 <label class="gis-layer-row"><input type="checkbox" id="gis-layer-weak"> Weak RX heatmap</label>
                 <label class="gis-layer-row"><input type="checkbox" id="gis-layer-faults" checked> Fault markers</label>
                 <label class="gis-layer-row"><input type="checkbox" id="gis-layer-techs"> Technicians</label>
+                <label class="gis-layer-row"><input type="checkbox" id="gis-layer-server-clusters" checked> Zoom clusters (500k safe)</label>
             </div>
             <div data-gis-panel="timeline" hidden>
                 <p id="gis-timeline-label" class="gis-empty">Playback network events</p>
@@ -344,6 +360,7 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
     <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js" crossorigin=""></script>
     <script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js" crossorigin=""></script>
+    <script src="https://unpkg.com/leaflet.vectorgrid@1.3.0/dist/Leaflet.VectorGrid.bundled.js" crossorigin=""></script>
     <script src="{{ asset('js/fiber-plant-map.js') }}?v={{ @filemtime(public_path('js/fiber-plant-map.js')) ?: 1 }}" data-cfasync="false"></script>
     <script src="{{ asset('js/gis-intelligence.js') }}?v={{ @filemtime(public_path('js/gis-intelligence.js')) ?: 1 }}" data-cfasync="false"></script>
     <script data-cfasync="false">

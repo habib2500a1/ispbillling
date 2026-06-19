@@ -36,7 +36,7 @@ class PortalTicketTest extends TestCase
 
         $ticket = SupportTicket::query()->where('customer_id', $customer->id)->first();
         $this->assertNotNull($ticket);
-        $this->assertStringStartsWith('TKT-', $ticket->ticket_number);
+        $this->assertMatchesRegularExpression('/^ISP-\d{4}-\d{6}$/', $ticket->ticket_number);
         $this->assertSame('open', $ticket->status);
         $this->assertNotNull($ticket->sla_resolve_due_at);
 
@@ -54,7 +54,7 @@ class PortalTicketTest extends TestCase
 
         $ticket = SupportTicket::query()->create([
             'customer_id' => $b->id,
-            'ticket_number' => 'TKT-TEST-0001',
+            'ticket_number' => 'ISP-TEST-000001',
             'channel' => 'portal',
             'department' => 'billing',
             'priority' => 'low',
@@ -73,7 +73,7 @@ class PortalTicketTest extends TestCase
         $customer = $this->makeCustomerWithPortal('secret');
         $ticket = SupportTicket::query()->create([
             'customer_id' => $customer->id,
-            'ticket_number' => 'TKT-TEST-0002',
+            'ticket_number' => 'ISP-TEST-000002',
             'channel' => 'portal',
             'department' => 'billing',
             'priority' => 'medium',
@@ -101,7 +101,7 @@ class PortalTicketTest extends TestCase
         $customer = $this->makeCustomerWithPortal('secret');
         $ticket = SupportTicket::query()->create([
             'customer_id' => $customer->id,
-            'ticket_number' => 'TKT-TEST-0003',
+            'ticket_number' => 'ISP-TEST-000003',
             'channel' => 'portal',
             'department' => 'billing',
             'priority' => 'medium',

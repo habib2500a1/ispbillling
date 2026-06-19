@@ -14,6 +14,7 @@ class Area extends Model
         'tenant_id',
         'name',
         'code',
+        'boundary',
         'is_active',
     ];
 
@@ -21,6 +22,7 @@ class Area extends Model
     {
         return [
             'is_active' => 'boolean',
+            'boundary' => 'array',
         ];
     }
 

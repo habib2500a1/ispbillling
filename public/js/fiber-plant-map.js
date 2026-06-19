@@ -33,6 +33,21 @@
     let labelLayers = [];
     let customerCluster = null;
     let clusteringEnabled = true;
+    let serverClusterLayer = null;
+    let serverClusterFetchTimer = null;
+    const layerVisibility = {
+        customers: true,
+        onu: true,
+        olt: true,
+        pop: true,
+        splitter: true,
+        fiber: true,
+        pole: true,
+        junction: true,
+        closure: true,
+        other: true,
+        server_clusters: true,
+    };
 
     function init(options) {
         wire = options.wire;
@@ -89,6 +104,8 @@
 
         renderAll();
         bindUi();
+        bindEnterpriseLayers();
+        bindServerClusterRefresh();
         renderSearchResults();
         fitBounds();
         applyUrlParams();
@@ -120,6 +137,9 @@
         );
 
         (payload.ops?.fiber_paths || []).forEach((path) => {
+            if (!layerVisibility.fiber) {
+                return;
+            }
             if (!path.points || path.points.length < 2) {
                 return;
             }
@@ -154,6 +174,9 @@
         });
 
         (payload.ops?.drop_lines || []).forEach((drop, idx) => {
+            if (!layerVisibility.fiber) {
+                return;
+            }
             if (drop.customer_id && pathCustomerIds.has(drop.customer_id)) {
                 return;
             }
@@ -183,16 +206,22 @@
         });
 
         (payload.edges || []).forEach((edge) => {
+            if (!layerVisibility.fiber) {
+                return;
+            }
             if (!edge.from || !edge.to) {
                 return;
             }
-            const color = edge.cable_color_hex || '#2563eb';
-            const weight = edge.highlighted ? 6 : 4;
+            const healthColor = edge.is_active === false ? '#dc2626' : edge.health === 'warning' ? '#ca8a04' : edge.cable_color_hex || '#16a34a';
+            const color = edge.cable_color_hex && edge.is_active !== false ? edge.cable_color_hex : healthColor;
+            const weight = edge.highlighted ? 6 : edge.cable_type === 'backbone' ? 6 : edge.cable_type === 'drop' ? 2 : 4;
+            const deployment = edge.deployment || edge.meta?.deployment || (edge.cable_type === 'backbone' ? 'aerial' : 'distribution');
+            const dashArray = edge.cable_type === 'drop' ? '6 4' : deployment === 'underground' ? '2 6' : null;
             const line = L.polyline([edge.from, edge.to], {
                 color,
                 weight,
                 opacity: edge.highlighted ? 1 : 0.85,
-                dashArray: edge.cable_type === 'drop' ? '6 4' : null,
+                dashArray,
             }).addTo(map);
 
             line.bindPopup(buildEdgePopup(edge));
@@ -216,6 +245,10 @@
             }
 
             if (!nodePassesFilter(node)) {
+                return;
+            }
+
+            if (!nodeTypeVisible(node)) {
                 return;
             }
 
@@ -1127,6 +1160,159 @@
         return (R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
     }
 
+    function nodeTypeVisible(node) {
+        const type = node.type || 'other';
+        if (type === 'customer') {
+            if (!layerVisibility.customers) {
+                return false;
+            }
+            if (!layerVisibility.onu && node.ops && node.ops.onu_online !== null) {
+                return false;
+            }
+
+            return true;
+        }
+
+        if (type === 'olt') {
+            return layerVisibility.olt;
+        }
+        if (type === 'pop') {
+            return layerVisibility.pop;
+        }
+        if (type === 'splitter') {
+            return layerVisibility.splitter;
+        }
+        if (type === 'pole') {
+            return layerVisibility.pole;
+        }
+        if (type === 'junction') {
+            return layerVisibility.junction;
+        }
+        if (type === 'closure') {
+            return layerVisibility.closure;
+        }
+
+        return layerVisibility.other;
+    }
+
+    function bindEnterpriseLayers() {
+        const mapIds = {
+            customers: 'gis-layer-customers',
+            onu: 'gis-layer-onu',
+            olt: 'gis-layer-olt',
+            pop: 'gis-layer-pop',
+            splitter: 'gis-layer-splitter',
+            fiber: 'gis-layer-fiber',
+            server_clusters: 'gis-layer-server-clusters',
+        };
+
+        Object.entries(mapIds).forEach(([key, id]) => {
+            const el = document.getElementById(id);
+            if (!el) {
+                return;
+            }
+            el.addEventListener('change', () => {
+                layerVisibility[key] = el.checked;
+                if (key === 'server_clusters') {
+                    refreshServerClusters();
+                } else {
+                    renderAll();
+                }
+            });
+        });
+
+        document.getElementById('gis-layer-incidents')?.addEventListener('change', (e) => {
+            document.getElementById('gis-layer-faults')?.dispatchEvent(new Event('change'));
+            if (e.target.checked) {
+                document.getElementById('gis-layer-faults').checked = true;
+            }
+            document.dispatchEvent(new CustomEvent('isp-gis-layer-incidents', { detail: { on: e.target.checked } }));
+        });
+    }
+
+    function bindServerClusterRefresh() {
+        if (!map) {
+            return;
+        }
+        map.on('moveend zoomend', () => {
+            clearTimeout(serverClusterFetchTimer);
+            serverClusterFetchTimer = setTimeout(refreshServerClusters, 350);
+        });
+        refreshServerClusters();
+    }
+
+    async function refreshServerClusters() {
+        if (!map || !layerVisibility.server_clusters) {
+            if (serverClusterLayer) {
+                map?.removeLayer(serverClusterLayer);
+                serverClusterLayer = null;
+            }
+
+            return;
+        }
+
+        const zoom = map.getZoom();
+        const maxZoom = payload.ops?.intelligence?.config?.clustering?.max_zoom || 16;
+        if (zoom >= maxZoom) {
+            if (serverClusterLayer) {
+                map.removeLayer(serverClusterLayer);
+                serverClusterLayer = null;
+            }
+
+            return;
+        }
+
+        const bounds = map.getBounds();
+        const params = new URLSearchParams({
+            north: String(bounds.getNorth()),
+            south: String(bounds.getSouth()),
+            east: String(bounds.getEast()),
+            west: String(bounds.getWest()),
+            zoom: String(zoom),
+        });
+
+        try {
+            const res = await fetch(`/api/v1/staff/gis/clusters?${params}`, {
+                headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+                credentials: 'same-origin',
+            });
+            if (!res.ok) {
+                return;
+            }
+            const data = await res.json();
+            if (!data.ok || !Array.isArray(data.clusters)) {
+                return;
+            }
+
+            if (serverClusterLayer) {
+                map.removeLayer(serverClusterLayer);
+            }
+            serverClusterLayer = L.layerGroup();
+
+            data.clusters.forEach((cluster) => {
+                const count = cluster.count || 0;
+                const radius = Math.min(56, 18 + Math.log10(Math.max(count, 1)) * 14);
+                const color =
+                    cluster.severity === 'critical' ? '#dc2626' : cluster.severity === 'warning' ? '#ca8a04' : '#16a34a';
+                const marker = L.circleMarker([cluster.lat, cluster.lng], {
+                    radius,
+                    color: '#fff',
+                    weight: 2,
+                    fillColor: color,
+                    fillOpacity: 0.82,
+                });
+                marker.bindPopup(
+                    `<strong>${escapeHtml(cluster.label)}</strong><br>Online: ${cluster.online || 0} · Offline: ${cluster.offline || 0}<br>Suspended: ${cluster.suspended || 0} · VIP: ${cluster.vip || 0}`,
+                );
+                serverClusterLayer.addLayer(marker);
+            });
+
+            serverClusterLayer.addTo(map);
+        } catch {
+            // ignore transient network errors
+        }
+    }
+
     function escapeHtml(str) {
         return String(str || '')
             .replace(/&/g, '&amp;')
@@ -1144,5 +1330,12 @@
         pickSearchNode,
         renderAll,
         fitBounds,
+        setLayerVisibility(key, on) {
+            if (Object.prototype.hasOwnProperty.call(layerVisibility, key)) {
+                layerVisibility[key] = !!on;
+                renderAll();
+            }
+        },
+        refreshServerClusters,
     };
 })();

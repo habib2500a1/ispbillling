@@ -59,7 +59,7 @@ services:
       - nextdeploy
 
   postgres:
-    image: postgres:16-alpine
+    image: postgis/postgis:16-3.4
     restart: unless-stopped
     mem_limit: 3g
     memswap_limit: 3g
@@ -78,6 +78,34 @@ services:
       timeout: 5s
       retries: 12
       start_period: 20s
+    networks:
+      - isp
+
+  pg_tileserv:
+    image: pramsey/pg_tileserv:20240131
+    restart: unless-stopped
+    mem_limit: 256m
+    memswap_limit: 256m
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER:-isp}:${POSTGRES_PASSWORD:-isp_secret_change_me}@postgres:5432/${POSTGRES_DB:-isp_platform}?sslmode=disable
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - isp
+
+  soketi:
+    image: quay.io/soketi/soketi:1.6-16-debian
+    restart: unless-stopped
+    mem_limit: 256m
+    memswap_limit: 256m
+    environment:
+      SOKETI_DEFAULT_APP_ID: ${PUSHER_APP_ID:-isp-local}
+      SOKETI_DEFAULT_APP_KEY: ${PUSHER_APP_KEY:-isp-local-key}
+      SOKETI_DEFAULT_APP_SECRET: ${PUSHER_APP_SECRET:-isp-local-secret}
+      SOKETI_DEBUG: '0'
+    ports:
+      - "6001:6001"
     networks:
       - isp
 

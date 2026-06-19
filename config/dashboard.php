@@ -26,4 +26,10 @@ return [
     /** NOC wall Livewire poll interval (seconds). */
     'noc_wall_poll_seconds' => (int) env('DASHBOARD_NOC_WALL_POLL_SECONDS', 90),
 
+    /** NOC wall SSE stream interval (seconds). */
+    'noc_stream_interval_seconds' => (int) env('DASHBOARD_NOC_STREAM_INTERVAL_SECONDS', 30),
+
+    /** Max SSE payloads per NOC wall HTTP request. */
+    'noc_stream_max_iterations' => (int) env('DASHBOARD_NOC_STREAM_MAX_ITERATIONS', 6),
+
 ];

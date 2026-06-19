@@ -11,8 +11,8 @@
     {!! \App\Support\AdminSaasStyles::html() !!}
     <link rel="stylesheet" href="{{ asset('css/optical-noc.css') }}">
 </head>
-<body class="isp-noc-wall-body" data-isp-dashboard="1">
+<body class="isp-noc-wall-body" data-isp-noc-wall="1" data-noc-stream="{{ route('admin.noc-wall-stream') }}">
     {{ $slot }}
-    <script src="{{ asset('js/isp-dashboard-realtime.js') }}?v={{ filemtime(public_path('js/isp-dashboard-realtime.js')) }}" defer></script>
+    <script src="{{ asset('js/isp-noc-wall-realtime.js') }}?v={{ filemtime(public_path('js/isp-noc-wall-realtime.js')) }}" defer></script>
 </body>
 </html>

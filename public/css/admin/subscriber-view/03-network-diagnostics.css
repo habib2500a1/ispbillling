@@ -577,3 +577,285 @@
         flex: 0 1 auto;
     }
 }
+
+/* Network tab — identity strip + router/ONU diagnostic cards */
+.sub-pro .isp-net-identity {
+    margin: 0 0 0.85rem;
+    padding: 0.9rem 1rem;
+    border-radius: var(--olt-radius-sm, 12px);
+    border: 1px solid var(--olt-border);
+    background: var(--olt-card);
+    color: var(--olt-text);
+    box-shadow: var(--olt-shadow);
+}
+
+.sub-pro .isp-net-identity__label {
+    margin: 0 0 0.7rem;
+    font-size: 0.68rem;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--olt-muted);
+}
+
+.sub-pro .isp-net-identity__grid {
+    display: grid;
+    gap: 0.75rem 1rem;
+    grid-template-columns: 1fr;
+    margin: 0;
+}
+
+@media (min-width: 640px) {
+    .sub-pro .isp-net-identity__grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+}
+
+.sub-pro .isp-net-identity__item dt {
+    margin: 0;
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--olt-muted);
+}
+
+.sub-pro .isp-net-identity__item dd {
+    margin: 0.2rem 0 0;
+    font-size: 0.92rem;
+    font-weight: 700;
+    color: var(--olt-text);
+    word-break: break-word;
+}
+
+.sub-pro .isp-net-diag-grid {
+    display: grid;
+    gap: 0.85rem;
+    margin: 0 0 1rem;
+}
+
+@media (min-width: 768px) {
+    .sub-pro .isp-net-diag-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        align-items: stretch;
+    }
+}
+
+.sub-pro .isp-net-diag-card {
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+    min-width: 0;
+    padding: 1rem 1.05rem;
+    border-radius: var(--olt-radius, 16px);
+    border: 1px solid var(--olt-border);
+    background: var(--olt-card);
+    box-shadow: var(--olt-shadow);
+    color: var(--olt-text);
+}
+
+.sub-pro .isp-net-diag-card--router {
+    border-color: color-mix(in srgb, #6366f1 24%, var(--olt-border));
+}
+
+.sub-pro .isp-net-diag-card--onu {
+    border-color: color-mix(in srgb, #06b6d4 24%, var(--olt-border));
+}
+
+.sub-pro .isp-net-diag-card__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+}
+
+.sub-pro .isp-net-diag-card__title {
+    font-size: 0.76rem;
+    font-weight: 800;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--olt-muted);
+}
+
+.sub-pro .isp-net-diag-card__icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.1rem;
+    height: 2.1rem;
+    border-radius: 0.6rem;
+    flex-shrink: 0;
+}
+
+.sub-pro .isp-net-diag-card__icon--router {
+    background: color-mix(in srgb, #6366f1 14%, var(--olt-card));
+    color: #6366f1;
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, #6366f1 22%, transparent);
+}
+
+.sub-pro .isp-net-diag-card__icon--router::before {
+    content: '';
+    width: 1rem;
+    height: 1rem;
+    border-radius: 0.2rem;
+    border: 2px solid currentColor;
+    opacity: 0.85;
+}
+
+.sub-pro .isp-net-diag-card__icon--onu {
+    background: color-mix(in srgb, #06b6d4 14%, var(--olt-card));
+    color: #0891b2;
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, #06b6d4 22%, transparent);
+}
+
+.sub-pro .isp-net-diag-card__name {
+    margin: 0;
+    font-size: 1.05rem;
+    font-weight: 800;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    color: var(--olt-text);
+    word-break: break-all;
+}
+
+.sub-pro .isp-net-diag-card__metrics {
+    display: grid;
+    gap: 0.55rem 0.85rem;
+    margin: 0;
+    grid-template-columns: 1fr;
+}
+
+.sub-pro .isp-net-diag-card__metrics--split {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.sub-pro .isp-net-diag-card__metrics dt {
+    margin: 0;
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--olt-muted);
+}
+
+.sub-pro .isp-net-diag-card__metrics dd {
+    margin: 0.15rem 0 0;
+    font-size: 0.88rem;
+    font-weight: 600;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    color: var(--olt-text);
+    word-break: break-all;
+}
+
+.sub-pro .isp-net-diag-metric-value--warning { color: #d97706 !important; }
+.sub-pro .isp-net-diag-metric-value--success { color: #059669 !important; }
+.sub-pro .isp-net-diag-metric-value--danger { color: #e11d48 !important; }
+
+.sub-pro .isp-net-diag-card__badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+}
+
+.sub-pro .isp-net-diag-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    min-height: 1.5rem;
+    padding: 0.12rem 0.55rem;
+    border-radius: 999px;
+    font-size: 0.68rem;
+    font-weight: 700;
+    border: 1px solid var(--olt-border);
+    background: color-mix(in srgb, var(--olt-card) 92%, var(--olt-muted) 8%);
+    color: var(--olt-text);
+}
+
+.sub-pro .isp-net-diag-badge--vendor {
+    background: color-mix(in srgb, #6366f1 12%, var(--olt-card));
+    border-color: color-mix(in srgb, #6366f1 28%, var(--olt-border));
+    color: #4f46e5;
+}
+
+.dark .sub-pro .isp-net-diag-badge--vendor,
+[data-theme='dark'] .sub-pro .isp-net-diag-badge--vendor {
+    color: #a5b4fc;
+}
+
+.sub-pro .isp-net-diag-badge--online {
+    background: rgba(16, 185, 129, 0.14);
+    border-color: rgba(16, 185, 129, 0.28);
+    color: #047857;
+}
+
+.dark .sub-pro .isp-net-diag-badge--online,
+[data-theme='dark'] .sub-pro .isp-net-diag-badge--online {
+    color: #6ee7b7;
+}
+
+.sub-pro .isp-net-diag-badge--offline {
+    background: rgba(148, 163, 184, 0.14);
+    border-color: rgba(148, 163, 184, 0.28);
+    color: #64748b;
+}
+
+.sub-pro .isp-net-diag-badge__dot {
+    width: 0.42rem;
+    height: 0.42rem;
+    border-radius: 999px;
+    background: currentColor;
+    flex-shrink: 0;
+}
+
+.sub-pro .isp-net-diag-badge--online .isp-net-diag-badge__dot {
+    background: #10b981;
+}
+
+.sub-pro .isp-net-diag-card__footer {
+    margin-top: auto;
+    padding-top: 0.7rem;
+    border-top: 1px dashed var(--olt-border);
+    font-size: 0.78rem;
+    line-height: 1.45;
+    color: var(--olt-muted);
+}
+
+.sub-pro .isp-net-diag-card__footer strong {
+    color: var(--olt-text);
+    font-weight: 700;
+}
+
+.sub-pro .isp-net-diag-card__footer.isp-net-diag-card__footer--inline {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    margin-top: 0;
+    padding-top: 0;
+    border-top: none;
+    font-weight: 600;
+    color: #047857;
+}
+
+@media (max-width: 640px) {
+    .sub-pro .isp-net-identity {
+        margin-left: 0;
+        margin-right: 0;
+        padding: 0.8rem 0.85rem;
+    }
+
+    .sub-pro .isp-net-diag-card {
+        padding: 0.9rem;
+    }
+
+    .sub-pro .isp-net-diag-card__metrics,
+    .sub-pro .isp-net-diag-card__metrics--split {
+        grid-template-columns: 1fr;
+    }
+
+    .sub-pro .isp-net-diag-card__name {
+        font-size: 0.95rem;
+    }
+}
+
+@media (min-width: 641px) and (max-width: 767px) {
+    .sub-pro .isp-net-diag-grid {
+        grid-template-columns: 1fr;
+    }
+}

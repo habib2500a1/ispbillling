@@ -20,8 +20,30 @@ class GisMapApiTest extends TestCase
             ->assertOk()
             ->assertJsonPath('ok', true)
             ->assertJsonStructure([
-                'payload' => ['nodes', 'edges', 'stats', 'ops' => ['intelligence' => ['faults', 'heatmaps', 'technicians']]],
+                'payload' => ['nodes', 'edges', 'stats', 'ops' => ['intelligence' => ['faults', 'heatmaps', 'outage_areas', 'technicians', 'tickets', 'coverage_areas', 'pop_equipment', 'field_staff']]],
             ]);
+    }
+
+    public function test_staff_can_fetch_gis_clusters_in_bbox(): void
+    {
+        $user = User::factory()->create(['tenant_id' => 1]);
+        $token = $user->createToken('staff')->plainTextToken;
+
+        $this->withToken($token)
+            ->getJson('/api/v1/staff/gis/clusters?north=24&south=23&east=91&west=90&zoom=10')
+            ->assertOk()
+            ->assertJsonPath('ok', true)
+            ->assertJsonStructure(['mode', 'zoom', 'clusters', 'total_in_view']);
+    }
+
+    public function test_staff_gis_clusters_requires_bbox(): void
+    {
+        $user = User::factory()->create(['tenant_id' => 1]);
+        $token = $user->createToken('staff')->plainTextToken;
+
+        $this->withToken($token)
+            ->getJson('/api/v1/staff/gis/clusters?zoom=10')
+            ->assertStatus(422);
     }
 
     public function test_staff_gis_search_requires_query(): void
@@ -34,6 +56,18 @@ class GisMapApiTest extends TestCase
             ->assertOk()
             ->assertJsonPath('ok', true)
             ->assertJsonStructure(['results']);
+    }
+
+    public function test_staff_gis_vector_tiles_manifest(): void
+    {
+        $user = User::factory()->create(['tenant_id' => 1]);
+        $token = $user->createToken('staff')->plainTextToken;
+
+        $this->withToken($token)
+            ->getJson('/api/v1/staff/gis/vector-tiles')
+            ->assertOk()
+            ->assertJsonPath('ok', true)
+            ->assertJsonStructure(['enabled', 'postgis', 'layers']);
     }
 
     public function test_staff_gis_rca_for_unknown_customer(): void

@@ -34,10 +34,27 @@ body.isp-support-ticket-create .isp-collection-results {
     z-index: 4;
     max-height: min(24rem, 55vh);
     overflow-y: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
 }
 
-body.isp-support-ticket-create .isp-collection-result-card {
+body.isp-support-ticket-create .isp-collection-results-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+body.isp-support-ticket-create .isp-collection-result-card,
+body.isp-support-ticket-create .sp-create-result-card {
     cursor: pointer;
+    min-height: 3.25rem;
+    transition: background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+body.isp-support-ticket-create .sp-create-result-card--active {
+    border-color: rgba(99, 102, 241, 0.55) !important;
+    background: rgba(99, 102, 241, 0.1) !important;
+    box-shadow: 0 0 0 1px rgba(99, 102, 241, 0.25);
 }
 
 body.isp-support-ticket-create .fi-page,
@@ -124,6 +141,58 @@ body.isp-support-ticket-create .fi-main {
     align-items: start;
 }
 
+@media (max-width: 1023px) {
+    .sp-create-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .sp-create-layout__rail {
+        position: relative;
+        z-index: 5;
+    }
+
+    .sp-create-hero__title {
+        font-size: 1.15rem;
+    }
+
+    .sp-create-steps {
+        gap: 0.35rem;
+    }
+
+    .sp-create-steps__item {
+        flex: 1 1 calc(50% - 0.35rem);
+        text-align: center;
+    }
+
+    body.isp-support-ticket-create .isp-collection-search-row {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    body.isp-support-ticket-create .isp-collection-search-btn,
+    body.isp-support-ticket-create .isp-collection-search-clear {
+        width: 100%;
+        min-height: 2.75rem;
+    }
+
+    body.isp-support-ticket-create .isp-collection-results {
+        max-height: min(18rem, 42vh);
+    }
+
+    body.isp-support-ticket-create .sp-create-layout__main .fi-section {
+        margin-top: 0;
+    }
+
+    body.isp-support-ticket-create .fi-fo-select .choices {
+        position: relative;
+        z-index: 20;
+    }
+
+    body.isp-support-ticket-create .fi-fo-select .choices.is-open {
+        z-index: 60;
+    }
+}
+
 @media (min-width: 1024px) {
     .sp-create-layout {
         grid-template-columns: minmax(18rem, 22rem) minmax(0, 1fr);
@@ -162,6 +231,14 @@ body.isp-support-ticket-create .fi-main {
 
 .sp-create-result-card--active {
     background: rgba(99, 102, 241, 0.08);
+}
+
+.sp-create-picked {
+    scroll-margin-top: 5rem;
+}
+
+.sp-create-preview {
+    scroll-margin-top: 5rem;
 }
 
 .sp-create-preview {
@@ -204,4 +281,28 @@ body.isp-support-ticket-create .fi-section {
 
 body.isp-support-ticket-create .fi-fo-field-wrp-label {
     font-weight: 700;
+}
+
+body.isp-support-ticket-create .fi-section-content {
+    gap: 1rem;
+}
+
+body.isp-support-ticket-create .fi-fo-select .choices__inner {
+    min-height: 2.75rem;
+}
+
+body.isp-support-ticket-create select.fi-select-input {
+    min-height: 2.75rem;
+    width: 100%;
+    font-size: 0.875rem;
+}
+
+body.isp-support-ticket-create .sp-create-form-footer .fi-btn {
+    width: 100%;
+}
+
+@media (min-width: 640px) {
+    body.isp-support-ticket-create .sp-create-form-footer .fi-btn {
+        width: auto;
+    }
 }

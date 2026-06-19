@@ -7,7 +7,6 @@
 
 {!! \App\Support\SupportStyles::html() !!}
 {!! \App\Support\SupportStyles::navigatedScript() !!}
-<script src="{{ asset('js/support-ticket-create.js') }}?v={{ @filemtime(public_path('js/support-ticket-create.js')) ?: 1 }}" defer data-cfasync="false"></script>
 
 <x-filament-panels::page
     @class([

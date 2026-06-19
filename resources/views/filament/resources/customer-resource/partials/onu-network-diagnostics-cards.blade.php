@@ -4,25 +4,25 @@
 
 @if ($diag)
     @if (! empty($diag['network']))
-        <div class="isp-net-identity mb-3 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm dark:border-slate-700 dark:bg-slate-900/50">
-            <p class="text-xs font-bold uppercase tracking-wide text-slate-500 mb-2">Network (আপনার সেট করা নাম)</p>
-            <dl class="grid gap-2 sm:grid-cols-3">
-                <div>
-                    <dt class="text-xs text-slate-500">PON port</dt>
-                    <dd class="font-mono font-semibold text-slate-900 dark:text-slate-100">{{ $diag['network']['pon_port'] }}</dd>
+        <div class="isp-net-identity">
+            <p class="isp-net-identity__label">Network (আপনার সেট করা নাম)</p>
+            <dl class="isp-net-identity__grid">
+                <div class="isp-net-identity__item">
+                    <dt>PON port</dt>
+                    <dd class="font-mono">{{ $diag['network']['pon_port'] }}</dd>
                 </div>
-                <div>
-                    <dt class="text-xs text-slate-500">MikroTik</dt>
-                    <dd class="font-semibold text-slate-900 dark:text-slate-100">{{ $diag['network']['mikrotik'] }}</dd>
+                <div class="isp-net-identity__item">
+                    <dt>MikroTik</dt>
+                    <dd>{{ $diag['network']['mikrotik'] }}</dd>
                 </div>
-                <div>
-                    <dt class="text-xs text-slate-500">VLAN</dt>
-                    <dd class="font-mono font-semibold text-slate-900 dark:text-slate-100">{{ $diag['network']['vlan'] }}</dd>
+                <div class="isp-net-identity__item">
+                    <dt>VLAN</dt>
+                    <dd class="font-mono">{{ $diag['network']['vlan'] }}</dd>
                 </div>
             </dl>
         </div>
     @endif
-    <div class="isp-net-diag-grid mb-4">
+    <div class="isp-net-diag-grid">
         <article class="isp-net-diag-card isp-net-diag-card--router">
             <header class="isp-net-diag-card__head">
                 <span class="isp-net-diag-card__title">Router Info</span>
@@ -44,7 +44,7 @@
                 </div>
             </dl>
             @if ($diag['router']['mac_unlock'])
-                <p class="isp-net-diag-card__footer">
+                <p class="isp-net-diag-card__footer isp-net-diag-card__footer--inline">
                     <x-filament::icon icon="heroicon-o-lock-open" class="h-4 w-4" />
                     MAC Unlock
                 </p>
@@ -73,9 +73,9 @@
                 <div>
                     <dt>Rx Power</dt>
                     <dd @class([
-                        'font-mono font-semibold',
-                        'text-amber-600' => ($diag['onu']['rx_tone'] ?? '') === 'warning' || ($diag['onu']['rx_tone'] ?? '') === 'danger',
-                        'text-emerald-600' => ($diag['onu']['rx_tone'] ?? '') === 'success',
+                        'isp-net-diag-metric-value',
+                        'isp-net-diag-metric-value--warning' => ($diag['onu']['rx_tone'] ?? '') === 'warning' || ($diag['onu']['rx_tone'] ?? '') === 'danger',
+                        'isp-net-diag-metric-value--success' => ($diag['onu']['rx_tone'] ?? '') === 'success',
                     ])>{{ $diag['onu']['rx_display'] }}</dd>
                 </div>
                 <div>
@@ -85,9 +85,9 @@
                 <div>
                     <dt>Temp</dt>
                     <dd @class([
-                        'font-mono',
-                        'text-amber-600' => ($diag['onu']['temperature_tone'] ?? '') === 'warning',
-                        'text-rose-600' => ($diag['onu']['temperature_tone'] ?? '') === 'danger',
+                        'isp-net-diag-metric-value',
+                        'isp-net-diag-metric-value--warning' => ($diag['onu']['temperature_tone'] ?? '') === 'warning',
+                        'isp-net-diag-metric-value--danger' => ($diag['onu']['temperature_tone'] ?? '') === 'danger',
                     ])>{{ $diag['onu']['temperature'] }}</dd>
                 </div>
                 <div>

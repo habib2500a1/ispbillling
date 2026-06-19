@@ -4,6 +4,7 @@ namespace App\Filament\Resources\SupportTicketResource\Pages\Concerns;
 
 use App\Services\Billing\BillCollectionSearchService;
 use App\Services\Support\SupportTicketWorkspaceService;
+use Filament\Notifications\Notification;
 use Livewire\Attributes\Computed;
 
 /**
@@ -37,11 +38,10 @@ trait ProvidesSupportTicketCustomerSearch
     {
         $this->subscriberResults = [];
 
-        if ($this->subscriberSearch === '') {
-            $this->subscriberSearch = trim((string) request()->query('q', ''));
-        }
+        $q = trim((string) request()->query('q', $this->subscriberSearch));
+        $this->subscriberSearch = $q;
 
-        if (mb_strlen(trim($this->subscriberSearch)) >= 2) {
+        if (mb_strlen($q) >= 2) {
             $this->runSubscriberSearch();
         }
     }
@@ -54,10 +54,35 @@ trait ProvidesSupportTicketCustomerSearch
         }
 
         $this->selectSubscriber($customerId);
-        if ($this->selectedSubscriber !== null) {
+
+        $q = trim((string) request()->query('q', ''));
+        if ($q !== '') {
+            $this->subscriberSearch = $q;
+            $this->runSubscriberSearch();
+        } elseif ($this->selectedSubscriber !== null) {
             $this->subscriberSearch = (string) ($this->selectedSubscriber['customer_code'] ?? $this->selectedSubscriber['name'] ?? '');
             $this->runSubscriberSearch();
         }
+    }
+
+    public function pickSubscriberUrl(int $customerId): string
+    {
+        $params = array_filter([
+            'q' => trim($this->subscriberSearch) !== '' ? trim($this->subscriberSearch) : null,
+            'customer_id' => $customerId,
+        ]);
+
+        $url = \App\Filament\Resources\SupportTicketResource::getUrl('create');
+
+        return $params === [] ? $url : $url.'?'.http_build_query($params);
+    }
+
+    public function createPageUrl(?string $query = null): string
+    {
+        $q = $query ?? trim($this->subscriberSearch);
+        $url = \App\Filament\Resources\SupportTicketResource::getUrl('create');
+
+        return $q !== '' && $q !== null ? $url.'?'.http_build_query(['q' => $q]) : $url;
     }
 
     public function updatedSubscriberSearch(): void
@@ -105,6 +130,10 @@ trait ProvidesSupportTicketCustomerSearch
         $row = app(BillCollectionSearchService::class)->find($customerId);
         if ($row === null) {
             $this->clearSubscriberSelection();
+            Notification::make()
+                ->title('Subscriber not found')
+                ->danger()
+                ->send();
 
             return;
         }
@@ -113,6 +142,13 @@ trait ProvidesSupportTicketCustomerSearch
         $this->selectedSubscriber = $row;
         $this->data['customer_id'] = $customerId;
         $this->applySmartTicketDefaults($row);
+        $this->form->fill($this->data);
+
+        Notification::make()
+            ->title('Subscriber linked')
+            ->body($row['name'].' (#'.($row['customer_code'] ?? $customerId).')')
+            ->success()
+            ->send();
     }
 
     public function clearSubscriberSelection(): void
@@ -120,6 +156,7 @@ trait ProvidesSupportTicketCustomerSearch
         $this->selectedSubscriberId = null;
         $this->selectedSubscriber = null;
         $this->data['customer_id'] = null;
+        $this->form->fill($this->data);
     }
 
     public function assignTicketToMe(): void
@@ -130,6 +167,7 @@ trait ProvidesSupportTicketCustomerSearch
         }
 
         $this->data['assigned_to'] = (int) $userId;
+        $this->form->fill($this->data);
     }
 
     /**

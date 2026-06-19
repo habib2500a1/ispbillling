@@ -187,6 +187,14 @@ final class AdminRouteAssets
             'subscriber-view',
         );
         if ($viewAssets !== []) {
+            $oltHubCss = public_path('css/olt-hub-pro.css');
+            if (is_file($oltHubCss)) {
+                $viewAssets = array_merge([[
+                    'id' => 'subscriber-olt-hub-css',
+                    'href' => asset('css/olt-hub-pro.css').'?v='.((int) (@filemtime($oltHubCss) ?: 1)),
+                ]], $viewAssets);
+            }
+
             $rules[] = [
                 'match' => 'subscribers-view',
                 'assets' => $viewAssets,

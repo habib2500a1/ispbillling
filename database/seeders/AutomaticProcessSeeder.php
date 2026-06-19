@@ -537,6 +537,28 @@ class AutomaticProcessSeeder extends Seeder
                 'enabled' => in_array(config('broadcasting.default'), ['reverb', 'pusher'], true),
                 'sort_order' => 200,
             ],
+            [
+                'slug' => 'broadcast-noc-wall',
+                'name' => 'Broadcast live NOC wall KPIs',
+                'artisan_command' => 'isp:broadcast-noc-wall',
+                'command_options' => [],
+                'execute_at' => '00:00',
+                'interval' => 'every_minute',
+                'when_config_key' => null,
+                'enabled' => in_array(config('broadcasting.default'), ['reverb', 'pusher'], true),
+                'sort_order' => 201,
+            ],
+            [
+                'slug' => 'sync-gis-geom',
+                'name' => 'Sync PostGIS geom from GPS coordinates',
+                'artisan_command' => 'isp:sync-gis-geom',
+                'command_options' => [],
+                'execute_at' => '02:30',
+                'interval' => 'daily',
+                'when_config_key' => null,
+                'enabled' => true,
+                'sort_order' => 202,
+            ],
         ];
     }
 }

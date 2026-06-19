@@ -4,8 +4,10 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\SupportTicketResource\Pages;
 use App\Filament\Resources\SupportTicketResource\RelationManagers;
+use App\Http\Controllers\Admin\SupportTicketSubscriberSearchController;
 use App\Models\Customer;
 use App\Models\SupportTicket;
+use App\Services\Support\SupportSlaService;
 use App\Models\User;
 use App\Services\Billing\BillCollectionSearchService;
 use App\Services\Support\SupportTicketWorkspaceService;
@@ -16,7 +18,9 @@ use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Filament\Panel;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Route;
 use Illuminate\Support\HtmlString;
 
 class SupportTicketResource extends Resource
@@ -87,18 +91,25 @@ class SupportTicketResource extends Resource
     {
         return Forms\Components\Select::make('assigned_to')
             ->label('Assigned technician')
-            ->options(function (Get $get, ?SupportTicket $record = null): array {
-                $current = $get('assigned_to') ?? $record?->assigned_to;
-
-                return SupportPanelAccess::assignableStaffOptions(
+            ->placeholder('Unassigned')
+            ->nullable()
+            ->native(true)
+            ->options(function (Get $get): array {
+                $current = $get('assigned_to');
+                $staff = SupportPanelAccess::assignableStaffOptions(
                     filled($current) ? (int) $current : null,
                 );
+
+                return ['' => 'Unassigned'] + $staff;
             })
             ->dehydrateStateUsing(fn ($state): ?int => filled($state) ? (int) $state : null)
-            ->nullable()
-            ->placeholder('Unassigned')
-            ->native(false)
-            ->helperText('Pick technician — or use Assign staff in the page header on edit.');
+            ->helperText(function (): string {
+                $count = count(SupportPanelAccess::assignableStaffOptions());
+
+                return $count > 0
+                    ? $count.' staff — pick who owns this ticket (optional).'
+                    : 'No staff found. Add users in Settings → Staff.';
+            });
     }
 
     public static function form(Form $form, bool $useSubscriberSearchPicker = false): Form
@@ -126,12 +137,14 @@ class SupportTicketResource extends Resource
         $schema[] = Forms\Components\Section::make('Assignment & routing')
             ->description('Who owns this ticket and which team handles it.')
             ->schema([
-                Forms\Components\Grid::make(2)->schema([
+                Forms\Components\Grid::make(['default' => 1, 'md' => 2])->schema([
                     static::assigneeSelectField(),
                     Forms\Components\Select::make('department')
+                        ->label('Department')
                         ->options(SupportTicket::DEPARTMENTS)
                         ->required()
-                        ->native(false),
+                        ->native(true)
+                        ->placeholder('Select department'),
                 ]),
             ]);
 
@@ -175,13 +188,18 @@ class SupportTicketResource extends Resource
                     ->label('SLA resolve target')
                     ->content(function (Get $get): HtmlString {
                         $priority = (string) ($get('priority') ?: 'medium');
-                        $hours = (int) (config('support.sla_resolve_hours.'.$priority) ?? 48);
-                        $due = now()->addHours($hours)->format('M j, Y · g:i A');
+                        $customerId = $get('customer_id');
+                        $customer = filled($customerId) ? Customer::query()->find($customerId) : null;
+                        $sla = app(SupportSlaService::class);
+                        $due = $sla->previewResolveDueAt($customer, $priority)->format('M j, Y · g:i A');
+                        $hours = $sla->resolveHours($customer, $priority);
                         $label = SupportTicket::PRIORITIES[$priority] ?? $priority;
+                        $profile = $sla->resolveProfile($customer);
+                        $profileNote = $profile !== 'standard' ? ' · '.ucfirst($profile).' SLA' : '';
 
                         return new HtmlString(
-                            '<span class="sp-sla-preview"><strong>'.$due.'</strong>'
-                            .' <span class="text-gray-500">('.$hours.' hours · '.$label.' priority)</span></span>'
+                            '<span class="sp-sla-preview"><strong>'.e($due).'</strong>'
+                            .' <span class="text-gray-500">('.e($hours.'h · '.$label.' priority'.$profileNote).')</span></span>'
                         );
                     })
                     ->visibleOn('create'),
@@ -362,6 +380,24 @@ class SupportTicketResource extends Resource
             RelationManagers\MessagesRelationManager::class,
             RelationManagers\FieldVisitsRelationManager::class,
         ];
+    }
+
+    public static function routes(Panel $panel): void
+    {
+        Route::name(static::getRelativeRouteName().'.')
+            ->prefix(static::getRoutePrefix())
+            ->middleware(static::getRouteMiddleware($panel))
+            ->withoutMiddleware(static::getWithoutRouteMiddleware($panel))
+            ->group(function () use ($panel): void {
+                // Must register before /{record} or "subscriber-search" is treated as a ticket id.
+                Route::get('/subscriber-search', SupportTicketSubscriberSearchController::class)
+                    ->middleware('throttle:120,1')
+                    ->name('subscriber-search');
+
+                foreach (static::getPages() as $name => $page) {
+                    $page->registerRoute($panel)?->name($name);
+                }
+            });
     }
 
     public static function getPages(): array

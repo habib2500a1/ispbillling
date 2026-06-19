@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Services\Billing\BillCollectionSearchService;
+use App\Support\SupportPanelAccess;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -14,15 +15,7 @@ final class SupportTicketSubscriberSearchController extends Controller
     {
         abort_unless(auth()->check(), 403);
 
-        abort_unless(auth()->user()?->hasAnyRole([
-            'super-admin',
-            'isp-admin',
-            'isp-manager',
-            'isp-support',
-            'isp-engineer',
-            'admin',
-            'branch-manager',
-        ]) ?? false, 403);
+        abort_unless(SupportPanelAccess::canSearchTicketSubscribers(auth()->user()), 403);
 
         $query = trim((string) $request->query('q', ''));
         if (mb_strlen($query) < 2) {

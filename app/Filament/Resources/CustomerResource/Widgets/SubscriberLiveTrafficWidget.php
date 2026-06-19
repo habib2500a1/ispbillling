@@ -17,6 +17,9 @@ class SubscriberLiveTrafficWidget extends ChartWidget
 
     public ?Model $record = null;
 
+    /** Embedded on subscriber 360° network tab (slower poll, optional off when offline). */
+    public bool $embedded = false;
+
     protected static ?string $maxHeight = '320px';
 
     protected int|string|array $columnSpan = 'full';
@@ -32,7 +35,16 @@ class SubscriberLiveTrafficWidget extends ChartWidget
 
     protected function getPollingInterval(): ?string
     {
-        $seconds = (int) config('bandwidth.subscriber_chart_poll_seconds', 1);
+        if ($this->embedded
+            && $this->record instanceof Customer
+            && ! $this->record->isPppOnline()
+            && ! config('bandwidth.subscriber_view_poll_when_offline', false)) {
+            return null;
+        }
+
+        $seconds = $this->embedded
+            ? (int) config('bandwidth.subscriber_view_chart_poll_seconds', 15)
+            : (int) config('bandwidth.subscriber_chart_poll_seconds', 1);
 
         return $seconds > 0 ? "{$seconds}s" : null;
     }
@@ -58,8 +70,10 @@ class SubscriberLiveTrafficWidget extends ChartWidget
         $tx = BandwidthDirection::formatBps($snapshot['tx_bps']);
         $rx = BandwidthDirection::formatBps($snapshot['rx_bps']);
 
-        $poll = (int) config('bandwidth.subscriber_chart_poll_seconds', 1);
-        $hint = " · Updates every {$poll}s";
+        $poll = $this->embedded
+            ? (int) config('bandwidth.subscriber_view_chart_poll_seconds', 15)
+            : (int) config('bandwidth.subscriber_chart_poll_seconds', 1);
+        $hint = $poll > 0 ? " · Updates every {$poll}s" : ' · Live updates paused';
 
         if (! $this->record->isPppOnline()) {
             $hint .= ' · Offline';

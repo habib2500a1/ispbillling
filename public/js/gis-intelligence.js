@@ -4,7 +4,7 @@
 (function () {
     'use strict';
 
-    let intelLayers = { faults: [], techs: [], heatOffline: null, heatWeak: null };
+    let intelLayers = { faults: [], techs: [], heatOffline: null, heatWeak: null, outageAreas: null, tickets: null, coverage: null, popEquipment: null, fieldStaff: null, vectorTiles: null };
     let timelineTimer = null;
     let timelineIndex = 0;
     let baseLayersRef = null;
@@ -66,6 +66,25 @@
         if (techOn) {
             toggleTechnicians(true);
         }
+        const outageOn = document.getElementById('gis-layer-outage-areas')?.checked;
+        if (outageOn) {
+            toggleOutageAreas(true);
+        }
+        if (document.getElementById('gis-layer-tickets')?.checked) {
+            toggleTickets(true);
+        }
+        if (document.getElementById('gis-layer-coverage')?.checked) {
+            toggleCoverage(true);
+        }
+        if (document.getElementById('gis-layer-pop-equipment')?.checked) {
+            togglePopEquipment(true);
+        }
+        if (document.getElementById('gis-layer-field-staff')?.checked) {
+            toggleFieldStaff(true);
+        }
+        if (document.getElementById('gis-layer-vector-tiles')?.checked) {
+            toggleVectorTiles(true);
+        }
     }
 
     function bindDrawer() {
@@ -111,6 +130,24 @@
         });
         document.getElementById('gis-layer-techs')?.addEventListener('change', (e) => {
             toggleTechnicians(e.target.checked);
+        });
+        document.getElementById('gis-layer-outage-areas')?.addEventListener('change', (e) => {
+            toggleOutageAreas(e.target.checked);
+        });
+        document.getElementById('gis-layer-tickets')?.addEventListener('change', (e) => {
+            toggleTickets(e.target.checked);
+        });
+        document.getElementById('gis-layer-coverage')?.addEventListener('change', (e) => {
+            toggleCoverage(e.target.checked);
+        });
+        document.getElementById('gis-layer-pop-equipment')?.addEventListener('change', (e) => {
+            togglePopEquipment(e.target.checked);
+        });
+        document.getElementById('gis-layer-field-staff')?.addEventListener('change', (e) => {
+            toggleFieldStaff(e.target.checked);
+        });
+        document.getElementById('gis-layer-vector-tiles')?.addEventListener('change', (e) => {
+            toggleVectorTiles(e.target.checked);
         });
         document.getElementById('gis-basemap-dark')?.addEventListener('click', () => {
             switchBasemap('dark');
@@ -187,6 +224,41 @@
         intelLayers[key].addTo(map);
     }
 
+    function toggleOutageAreas(on) {
+        const map = getMap();
+        if (!map) {
+            return;
+        }
+        if (intelLayers.outageAreas) {
+            map.removeLayer(intelLayers.outageAreas);
+            intelLayers.outageAreas = null;
+        }
+        if (!on) {
+            return;
+        }
+        const areas = intelligence().outage_areas || [];
+        if (areas.length === 0) {
+            return;
+        }
+        intelLayers.outageAreas = L.layerGroup();
+        areas.forEach((area) => {
+            const radius = Math.min(1200, 200 + (area.offline_count || 0) * 4);
+            const color = area.severity === 'critical' ? '#dc2626' : '#f97316';
+            const circle = L.circle([area.lat, area.lng], {
+                radius,
+                color,
+                weight: 2,
+                fillColor: color,
+                fillOpacity: 0.22,
+            });
+            circle.bindPopup(
+                `<div class="gis-popup"><strong>${escapeHtml(area.title)}</strong><br>ONU offline: ${area.onu_offline || 0} · PPP offline: ${area.ppp_offline || 0}</div>`,
+            );
+            intelLayers.outageAreas.addLayer(circle);
+        });
+        intelLayers.outageAreas.addTo(map);
+    }
+
     function toggleFaults(on) {
         const map = getMap();
         if (!map) {
@@ -242,6 +314,169 @@
                 .addTo(map);
             intelLayers.techs.push(marker);
         });
+    }
+
+    function toggleTickets(on) {
+        const map = getMap();
+        if (!map) {
+            return;
+        }
+        if (intelLayers.tickets) {
+            map.removeLayer(intelLayers.tickets);
+            intelLayers.tickets = null;
+        }
+        if (!on) {
+            return;
+        }
+        intelLayers.tickets = L.layerGroup();
+        (intelligence().tickets || []).forEach((ticket) => {
+            if (ticket.lat == null || ticket.lng == null) {
+                return;
+            }
+            const marker = L.circleMarker([ticket.lat, ticket.lng], {
+                radius: 8,
+                color: '#fff',
+                weight: 2,
+                fillColor: ticket.priority === 'urgent' ? '#dc2626' : '#2563eb',
+                fillOpacity: 0.9,
+            });
+            marker.bindPopup(
+                `<strong>${escapeHtml(ticket.subject)}</strong><br>${escapeHtml(ticket.customer || '')} · ${escapeHtml(ticket.status || '')}`,
+            );
+            intelLayers.tickets.addLayer(marker);
+        });
+        intelLayers.tickets.addTo(map);
+    }
+
+    function toggleCoverage(on) {
+        const map = getMap();
+        if (!map) {
+            return;
+        }
+        if (intelLayers.coverage) {
+            map.removeLayer(intelLayers.coverage);
+            intelLayers.coverage = null;
+        }
+        if (!on) {
+            return;
+        }
+        intelLayers.coverage = L.layerGroup();
+        (intelligence().coverage_areas || []).forEach((area) => {
+            if (!area.boundary) {
+                return;
+            }
+            const layer = L.geoJSON(area.boundary, {
+                style: {
+                    color: '#06b6d4',
+                    weight: 2,
+                    fillColor: '#0891b2',
+                    fillOpacity: 0.12,
+                },
+            });
+            layer.bindPopup(`<strong>${escapeHtml(area.name)}</strong>`);
+            intelLayers.coverage.addLayer(layer);
+        });
+        intelLayers.coverage.addTo(map);
+    }
+
+    function togglePopEquipment(on) {
+        const map = getMap();
+        if (!map) {
+            return;
+        }
+        if (intelLayers.popEquipment) {
+            map.removeLayer(intelLayers.popEquipment);
+            intelLayers.popEquipment = null;
+        }
+        if (!on) {
+            return;
+        }
+        intelLayers.popEquipment = L.layerGroup();
+        (intelligence().pop_equipment || []).forEach((pop) => {
+            const marker = L.marker([pop.lat, pop.lng], {
+                icon: L.divIcon({
+                    className: 'gis-pop-equip-marker',
+                    html: '<span>📦</span>',
+                    iconSize: [26, 26],
+                }),
+            });
+            marker.bindPopup(
+                `<strong>${escapeHtml(pop.name)}</strong><br>${escapeHtml(pop.code || '')}<br>Capacity: ${escapeHtml(String(pop.capacity || '—'))}`,
+            );
+            intelLayers.popEquipment.addLayer(marker);
+        });
+        intelLayers.popEquipment.addTo(map);
+    }
+
+    function toggleFieldStaff(on) {
+        const map = getMap();
+        if (!map) {
+            return;
+        }
+        if (intelLayers.fieldStaff) {
+            map.removeLayer(intelLayers.fieldStaff);
+            intelLayers.fieldStaff = null;
+        }
+        if (!on) {
+            return;
+        }
+        intelLayers.fieldStaff = L.layerGroup();
+        (intelligence().field_staff || []).forEach((s) => {
+            const marker = L.circleMarker([s.lat, s.lng], {
+                radius: 9,
+                color: '#fff',
+                weight: 2,
+                fillColor: '#7c3aed',
+                fillOpacity: 0.95,
+            });
+            marker.bindPopup(
+                `<strong>${escapeHtml(s.name)}</strong><br>GPS: ${escapeHtml((s.recorded_at || '').replace('T', ' ').slice(0, 19))}`,
+            );
+            intelLayers.fieldStaff.addLayer(marker);
+        });
+        intelLayers.fieldStaff.addTo(map);
+    }
+
+    function toggleVectorTiles(on) {
+        const map = getMap();
+        if (!map || typeof L.vectorGrid === 'undefined') {
+            return;
+        }
+        if (intelLayers.vectorTiles) {
+            map.removeLayer(intelLayers.vectorTiles);
+            intelLayers.vectorTiles = null;
+        }
+        if (!on) {
+            return;
+        }
+
+        const manifestUrl = intelligence().vector_tiles?.manifest_url || '/api/v1/staff/gis/vector-tiles';
+
+        fetch(manifestUrl, { credentials: 'same-origin' })
+            .then((r) => r.json())
+            .then((data) => {
+                if (!data.enabled || !data.layers?.customers) {
+                    return;
+                }
+                intelLayers.vectorTiles = L.vectorGrid.protobuf(data.layers.customers.url, {
+                    vectorTileLayerStyles: {
+                        gis_mvt_customers: function (properties) {
+                            return {
+                                fill: true,
+                                fillColor: properties.is_ppp_online ? '#16a34a' : '#dc2626',
+                                fillOpacity: 0.55,
+                                color: '#fff',
+                                weight: 0.5,
+                                radius: 4,
+                            };
+                        },
+                    },
+                    interactive: true,
+                    maxNativeZoom: 18,
+                });
+                intelLayers.vectorTiles.addTo(map);
+            })
+            .catch(() => {});
     }
 
     function renderFaultCenter() {

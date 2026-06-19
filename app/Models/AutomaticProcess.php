@@ -108,6 +108,8 @@ class AutomaticProcess extends Model
             'support-check-sla',
             'sales-lead-follow-ups',
             'broadcast-dashboard-metrics',
+            'broadcast-noc-wall',
+            'sync-gis-geom',
             'platform-backup',
         ];
     }

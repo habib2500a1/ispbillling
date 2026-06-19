@@ -22,6 +22,38 @@ final class SupportSlaService
         return (string) config('support.default_sla_profile', 'standard');
     }
 
+    public function resolveHours(?Customer $customer, string $priority): int
+    {
+        $profile = $this->resolveProfile($customer);
+
+        return (int) (config("support.sla_profiles.{$profile}.resolve_hours.{$priority}")
+            ?? config('support.sla_resolve_hours.'.$priority, 48));
+    }
+
+    public function firstResponseMinutes(?Customer $customer, string $priority): int
+    {
+        $profile = $this->resolveProfile($customer);
+
+        return (int) (config("support.sla_profiles.{$profile}.first_response_minutes.{$priority}")
+            ?? config("support.sla_profiles.standard.first_response_minutes.{$priority}", 30));
+    }
+
+    public function previewResolveDueAt(?Customer $customer, string $priority): \Illuminate\Support\Carbon
+    {
+        return now()->addHours(max(1, $this->resolveHours($customer, $priority)));
+    }
+
+    public function previewLabel(?Customer $customer, string $priority): string
+    {
+        $profile = $this->resolveProfile($customer);
+        $hours = $this->resolveHours($customer, $priority);
+        $due = $this->previewResolveDueAt($customer, $priority);
+        $label = SupportTicket::PRIORITIES[$priority] ?? $priority;
+        $profileNote = $profile !== 'standard' ? ' · '.ucfirst($profile).' SLA' : '';
+
+        return $due->format('M j, Y · g:i A').' ('.$hours.'h · '.$label.' priority'.$profileNote.')';
+    }
+
     public function applyTargets(SupportTicket $ticket, ?Customer $customer = null): void
     {
         $customer ??= $ticket->customer;

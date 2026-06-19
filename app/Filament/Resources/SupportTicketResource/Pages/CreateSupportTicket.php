@@ -6,8 +6,10 @@ use App\Filament\Pages\SupportHub;
 use App\Filament\Resources\SupportTicketResource;
 use App\Filament\Resources\SupportTicketResource\Pages\Concerns\ProvidesSupportTicketCustomerSearch;
 use App\Models\SupportTicket;
+use App\Services\Support\SupportSlaService;
 use Filament\Actions;
 use Filament\Forms\Form;
+use Filament\Notifications\Notification;
 use Filament\Resources\Pages\CreateRecord;
 
 class CreateSupportTicket extends CreateRecord
@@ -95,11 +97,6 @@ class CreateSupportTicket extends CreateRecord
 
     protected function mutateFormDataBeforeCreate(array $data): array
     {
-        if (empty($data['sla_resolve_due_at']) && filled($data['priority'] ?? null)) {
-            $hours = (int) (config('support.sla_resolve_hours.'.$data['priority']) ?? 48);
-            $data['sla_resolve_due_at'] = now()->addHours($hours);
-        }
-
         return $data;
     }
 
@@ -111,9 +108,10 @@ class CreateSupportTicket extends CreateRecord
     public function slaPreviewLabel(): string
     {
         $priority = (string) ($this->data['priority'] ?? 'medium');
-        $hours = (int) (config('support.sla_resolve_hours.'.$priority) ?? 48);
+        $customerId = $this->data['customer_id'] ?? null;
+        $customer = filled($customerId) ? \App\Models\Customer::query()->find($customerId) : null;
 
-        return now()->addHours($hours)->format('M j, Y · g:i A').' ('.$hours.'h · '.(SupportTicket::PRIORITIES[$priority] ?? $priority).')';
+        return app(SupportSlaService::class)->previewLabel($customer, $priority);
     }
 
     public function canSaveTicket(): bool

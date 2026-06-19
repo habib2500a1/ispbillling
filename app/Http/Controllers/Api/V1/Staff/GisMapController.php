@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1\Staff;
 
 use App\Http\Controllers\Controller;
 use App\Services\Network\FiberPlantMapService;
+use App\Services\Network\GisClusterService;
 use App\Services\Network\GisIntelligenceOpsService;
 use App\Support\TenantResolver;
 use Illuminate\Http\JsonResponse;
@@ -103,6 +104,27 @@ class GisMapController extends Controller
         }
 
         return response()->json(['ok' => true, 'results' => $results]);
+    }
+
+    public function clusters(Request $request, GisClusterService $clusters): JsonResponse
+    {
+        $north = $request->input('north');
+        $south = $request->input('south');
+        $east = $request->input('east');
+        $west = $request->input('west');
+        $zoom = $request->integer('zoom', 12);
+
+        if (! is_numeric($north) || ! is_numeric($south) || ! is_numeric($east) || ! is_numeric($west)) {
+            return response()->json([
+                'ok' => false,
+                'message' => 'north, south, east, west query params required',
+            ], 422);
+        }
+
+        return response()->json([
+            'ok' => true,
+            ...$clusters->clusters((float) $north, (float) $south, (float) $east, (float) $west, $zoom),
+        ]);
     }
 
     public function dependency(int $customerId, GisIntelligenceOpsService $gis): JsonResponse

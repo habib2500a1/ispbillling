@@ -8,6 +8,10 @@ Broadcast::channel('tenant.{tenantId}.dashboard', function (User $user, int $ten
     return (int) $user->tenant_id === $tenantId;
 });
 
+Broadcast::channel('tenant.{tenantId}.noc', function (User $user, int $tenantId): bool {
+    return (int) $user->tenant_id === $tenantId;
+});
+
 Broadcast::channel('tenant.{tenantId}.mobile', function (User $user, int $tenantId): bool {
     return (int) $user->tenant_id === $tenantId;
 });

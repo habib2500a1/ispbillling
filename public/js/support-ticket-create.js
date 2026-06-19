@@ -34,18 +34,66 @@
         return document.getElementById(INPUT_ID);
     }
 
+    function wireProxy(component) {
+        if (!component) {
+            return null;
+        }
+
+        return component.$wire ?? component;
+    }
+
     function wire() {
         if (!window.Livewire) {
             return null;
         }
 
-        const el = document.querySelector('.isp-support-ticket-create [wire\\:id], .fi-resource-create-record-page [wire\\:id], [wire\\:id].fi-page');
-        const id = el?.getAttribute('wire:id');
-        if (!id) {
-            return null;
+        const shellEl = shell();
+        const componentId = shellEl?.dataset.componentId;
+        if (componentId) {
+            const fromShell = wireProxy(window.Livewire.find(componentId));
+            if (fromShell) {
+                return fromShell;
+            }
         }
 
-        return window.Livewire.find(id) ?? null;
+        const selectors = [
+            '.fi-resource-create-record-page[wire\\:id]',
+            '.isp-support-ticket-create .fi-page[wire\\:id]',
+            '.isp-support-ticket-create [wire\\:id]',
+        ];
+
+        for (let i = 0; i < selectors.length; i++) {
+            const el = document.querySelector(selectors[i]);
+            const id = el?.getAttribute('wire:id');
+            if (!id) {
+                continue;
+            }
+
+            const component = wireProxy(window.Livewire.find(id));
+            if (component) {
+                return component;
+            }
+        }
+
+        return null;
+    }
+
+    function callLivewire(component, method) {
+        if (!component) {
+            return Promise.reject(new Error('Livewire component not found'));
+        }
+
+        const args = Array.prototype.slice.call(arguments, 2);
+
+        if (typeof component.call === 'function') {
+            return component.call.apply(component, [method].concat(args));
+        }
+
+        if (typeof component[method] === 'function') {
+            return component[method].apply(component, args);
+        }
+
+        return Promise.reject(new Error('Method not found: ' + method));
     }
 
     function setLoading(on) {
@@ -137,7 +185,28 @@
 
         container.innerHTML = '<p class="mb-2 text-xs font-bold uppercase tracking-wide text-gray-500">'
             + rows.length + ' result(s) — tap to link ticket</p>'
-            + '<ul class="space-y-2" role="listbox">' + items + '</ul>';
+            + '<ul class="isp-collection-results-list space-y-2" role="listbox">' + items + '</ul>';
+    }
+
+    function markSelecting(button) {
+        document.querySelectorAll('.sp-create-result-card--active').forEach(function (el) {
+            el.classList.remove('sp-create-result-card--active');
+        });
+
+        if (button) {
+            button.classList.add('sp-create-result-card--active');
+        }
+    }
+
+    function scrollToLinkedSubscriber() {
+        if (!isMobile()) {
+            return;
+        }
+
+        document.querySelector('.sp-create-picked, .sp-create-preview')?.scrollIntoView({
+            behavior: 'smooth',
+            block: 'nearest',
+        });
     }
 
     function syncUrl(query) {
@@ -217,27 +286,7 @@
     }
 
     function bindResultsClick() {
-        const container = document.getElementById('support-ticket-search-results');
-        if (!container || container.dataset.bound === '1') {
-            return;
-        }
-
-        container.dataset.bound = '1';
-        container.addEventListener('click', function (event) {
-            const button = event.target.closest('[data-customer-id]');
-            if (!button) {
-                return;
-            }
-
-            const customerId = parseInt(button.getAttribute('data-customer-id'), 10);
-            const livewire = wire();
-            if (!livewire || !Number.isFinite(customerId)) {
-                return;
-            }
-
-            livewire.selectSubscriber(customerId);
-            hidePrompt();
-        });
+        /* Click handled by @script $wire.selectSubscriber on create-support-ticket.blade.php */
     }
 
     function bindShell() {

@@ -396,3 +396,23 @@
     padding: 0.5rem;
 }
 
+.sub-pro {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    padding: 0 0.35rem 1.25rem;
+}
+
+@media (min-width: 768px) {
+    .sub-pro {
+        padding-left: 0.5rem;
+        padding-right: 0.5rem;
+    }
+}
+
+@media (min-width: 1024px) {
+    .sub-pro {
+        padding-left: 0;
+        padding-right: 0;
+    }
+}

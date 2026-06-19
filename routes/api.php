@@ -53,6 +53,7 @@ use App\Http\Controllers\Api\V1\Staff\DashboardController as StaffDashboardContr
 use App\Http\Controllers\Api\V1\SupportTicketApiController;
 use App\Http\Controllers\Api\V1\Technician\DeviceController as TechnicianDeviceController;
 use App\Http\Controllers\Api\V1\Technician\FieldVisitController;
+use App\Http\Controllers\Api\V1\Technician\TechnicianNavigationController;
 use App\Http\Controllers\Api\V1\Technician\TechnicianTicketsController;
 use App\Http\Controllers\Api\V1\Collector\CollectorController;
 use App\Http\Middleware\EnsureSanctumCollector;
@@ -101,6 +102,8 @@ Route::prefix('v1')->group(function (): void {
         Route::post('/staff/mfs/sms/ingest', [\App\Http\Controllers\Api\V1\MfsSmsIngestController::class, 'ingestStaff']);
         Route::get('/staff/noc/dashboard', [NocController::class, 'dashboard']);
         Route::get('/staff/gis/map', [\App\Http\Controllers\Api\V1\Staff\GisMapController::class, 'map']);
+        Route::get('/staff/gis/clusters', [\App\Http\Controllers\Api\V1\Staff\GisMapController::class, 'clusters']);
+        Route::get('/staff/gis/vector-tiles', [\App\Http\Controllers\Api\V1\Staff\GisVectorTileController::class, 'manifest']);
         Route::get('/staff/gis/search', [\App\Http\Controllers\Api\V1\Staff\GisMapController::class, 'search']);
         Route::get('/staff/gis/customers/{customer}/dependency', [\App\Http\Controllers\Api\V1\Staff\GisMapController::class, 'dependency'])->whereNumber('customer');
         Route::get('/staff/gis/customers/{customer}/rca', [\App\Http\Controllers\Api\V1\Staff\GisMapController::class, 'rca'])->whereNumber('customer');
@@ -203,6 +206,8 @@ Route::prefix('v1')->group(function (): void {
             Route::get('/field-visits/{fieldVisit}', [FieldVisitController::class, 'show']);
             Route::patch('/field-visits/{fieldVisit}', [FieldVisitController::class, 'update']);
             Route::post('/devices', [TechnicianDeviceController::class, 'register']);
+            Route::post('/location', [TechnicianNavigationController::class, 'ping']);
+            Route::get('/navigate', [TechnicianNavigationController::class, 'navigate']);
             Route::post('/installations', [InstallationController::class, 'store']);
         });
 

@@ -144,6 +144,19 @@
     font-size: 0.85rem;
 }
 
+.gis-layer-intro {
+    margin: 0 0 0.5rem;
+    font-size: 0.78rem;
+    color: #94a3b8;
+    line-height: 1.45;
+}
+
+.gis-layer-divider {
+    margin: 0.65rem 0;
+    border: none;
+    border-top: 1px solid rgb(51 65 105);
+}
+
 .gis-timeline-item {
     padding: 0.4rem 0;
     border-bottom: 1px solid rgb(51 65 105);

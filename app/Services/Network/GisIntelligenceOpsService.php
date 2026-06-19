@@ -2,10 +2,14 @@
 
 namespace App\Services\Network;
 
+use App\Models\Area;
 use App\Models\Customer;
+use App\Models\FieldStaffLocation;
 use App\Models\FieldVisit;
 use App\Models\FiberFaultLog;
 use App\Models\FiberPlantEdge;
+use App\Models\PopBox;
+use App\Models\SupportTicket;
 use App\Services\IspOs\NetworkDependencyTreeService;
 use App\Support\CustomerStatus;
 use App\Support\TenantResolver;
@@ -16,6 +20,10 @@ use Illuminate\Support\Collection;
  */
 final class GisIntelligenceOpsService
 {
+    public function __construct(
+        private readonly GisClusterService $clusters,
+    ) {}
+
     /**
      * @param  array<string, mixed>  $payload
      * @return array<string, mixed>
@@ -35,7 +43,20 @@ final class GisIntelligenceOpsService
             'technicians' => $this->buildTechnicians($tenantId),
             'timeline' => $this->buildTimeline($tenantId, $nodes),
             'heatmaps' => $this->buildHeatmaps($nodes),
+            'outage_areas' => $this->clusters->outageAreas(
+                $nodes,
+                (int) config('gis.outage_area_min_offline', 50),
+            ),
+            'tickets' => $this->buildOpenTickets($tenantId),
+            'coverage_areas' => $this->buildCoverageAreas($tenantId),
+            'pop_equipment' => $this->buildPopEquipment($tenantId),
+            'field_staff' => $this->buildFieldStaff($tenantId),
+            'vector_tiles' => [
+                'enabled' => (bool) config('gis.vector_tiles.enabled', false),
+                'manifest_url' => '/api/v1/staff/gis/vector-tiles',
+            ],
             'core_maps' => $this->buildCoreMaps($payload['edges'] ?? []),
+            'enterprise_layers' => config('gis.enterprise_layers', []),
         ];
     }
 
@@ -232,6 +253,133 @@ final class GisIntelligenceOpsService
         }
 
         return ['offline' => $offline, 'weak_rx' => $weakRx];
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    private function buildOpenTickets(int $tenantId): array
+    {
+        return SupportTicket::query()
+            ->where('tenant_id', $tenantId)
+            ->whereNotIn('status', ['resolved', 'closed'])
+            ->with(['customer:id,name,customer_code,meta', 'popBox:id,name,code,latitude,longitude'])
+            ->orderByDesc('priority')
+            ->limit(80)
+            ->get()
+            ->map(function (SupportTicket $ticket): array {
+                $lat = data_get($ticket->customer?->meta, 'gps_lat');
+                $lng = data_get($ticket->customer?->meta, 'gps_lng');
+
+                if (! is_numeric($lat) && $ticket->popBox?->latitude !== null) {
+                    $lat = $ticket->popBox->latitude;
+                    $lng = $ticket->popBox->longitude;
+                }
+
+                return [
+                    'id' => (int) $ticket->id,
+                    'subject' => $ticket->subject,
+                    'status' => $ticket->status,
+                    'priority' => $ticket->priority,
+                    'customer' => $ticket->customer?->name,
+                    'customer_code' => $ticket->customer?->customer_code,
+                    'lat' => is_numeric($lat) ? (float) $lat : null,
+                    'lng' => is_numeric($lng) ? (float) $lng : null,
+                ];
+            })
+            ->filter(fn (array $row): bool => $row['lat'] !== null && $row['lng'] !== null)
+            ->values()
+            ->all();
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    private function buildCoverageAreas(int $tenantId): array
+    {
+        return Area::query()
+            ->where('tenant_id', $tenantId)
+            ->where('is_active', true)
+            ->get(['id', 'name', 'code', 'boundary'])
+            ->map(function (Area $area): array {
+                $boundary = $area->boundary;
+                if (is_string($boundary)) {
+                    $boundary = json_decode($boundary, true);
+                }
+
+                return [
+                    'id' => (int) $area->id,
+                    'name' => $area->name,
+                    'code' => $area->code,
+                    'boundary' => is_array($boundary) ? $boundary : null,
+                ];
+            })
+            ->filter(fn (array $row): bool => is_array($row['boundary']))
+            ->values()
+            ->all();
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    private function buildPopEquipment(int $tenantId): array
+    {
+        return PopBox::query()
+            ->where('tenant_id', $tenantId)
+            ->where('is_active', true)
+            ->whereNotNull('latitude')
+            ->whereNotNull('longitude')
+            ->orderBy('name')
+            ->limit(200)
+            ->get()
+            ->map(fn (PopBox $pop) => [
+                'id' => (int) $pop->id,
+                'code' => $pop->code,
+                'name' => $pop->name,
+                'lat' => (float) $pop->latitude,
+                'lng' => (float) $pop->longitude,
+                'capacity' => $pop->capacity,
+                'address' => $pop->address,
+            ])
+            ->values()
+            ->all();
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    private function buildFieldStaff(int $tenantId): array
+    {
+        if (! \Illuminate\Support\Facades\Schema::hasTable('field_staff_locations')) {
+            return [];
+        }
+
+        $latestIds = FieldStaffLocation::query()
+            ->where('tenant_id', $tenantId)
+            ->where('recorded_at', '>=', now()->subHours(8))
+            ->selectRaw('MAX(id) as id')
+            ->groupBy('user_id')
+            ->pluck('id');
+
+        if ($latestIds->isEmpty()) {
+            return [];
+        }
+
+        return FieldStaffLocation::query()
+            ->whereIn('id', $latestIds)
+            ->with('user:id,name')
+            ->get()
+            ->map(fn (FieldStaffLocation $loc) => [
+                'id' => (int) $loc->user_id,
+                'name' => $loc->user?->name ?? 'Technician',
+                'lat' => (float) $loc->latitude,
+                'lng' => (float) $loc->longitude,
+                'accuracy_m' => $loc->accuracy_meters,
+                'heading_deg' => $loc->heading_deg,
+                'recorded_at' => $loc->recorded_at?->toIso8601String(),
+            ])
+            ->values()
+            ->all();
     }
 
     /**

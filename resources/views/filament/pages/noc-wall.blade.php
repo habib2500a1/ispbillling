@@ -54,14 +54,14 @@
     }
 
     $topCards = [
-        ['label' => 'PPPoE online', 'value' => $fmt($n['online_now'] ?? 0), 'hint' => 'Active subscriber sessions', 'tone' => 'cyan'],
-        ['label' => 'User down', 'value' => $fmt($n['user_down'] ?? 0), 'hint' => 'Active subscribers currently offline', 'tone' => 'orange'],
-        ['label' => 'WAN downlink', 'value' => $fmt($n['wan_download_mbps'] ?? 0, 2).' Mbps', 'hint' => 'Core ingress traffic', 'tone' => 'violet'],
-        ['label' => 'WAN uplink', 'value' => $fmt($n['wan_upload_mbps'] ?? 0, 2).' Mbps', 'hint' => 'Core egress traffic', 'tone' => 'purple'],
-        ['label' => 'User bandwidth', 'value' => $fmt($n['users_download_mbps'] ?? 0, 2).' / '.$fmt($n['users_upload_mbps'] ?? 0, 2), 'hint' => 'Users down/up Mbps', 'tone' => 'green'],
-        ['label' => 'Link down', 'value' => $fmt($n['link_down'] ?? 0), 'hint' => 'OLT interfaces reported down', 'tone' => 'red'],
-        ['label' => 'OLT impact', 'value' => $fmt($n['olt_offline'] ?? 0).' down · '.$fmt($n['olt_partial'] ?? 0).' partial', 'hint' => 'Offline and degraded chassis', 'tone' => 'amber'],
-        ['label' => 'Fiber / alerts', 'value' => $fmt($n['fiber_alerts'] ?? 0), 'hint' => 'Fiber faults + open optical alerts', 'tone' => 'yellow'],
+        ['label' => 'PPPoE online', 'value' => $fmt($n['online_now'] ?? 0), 'hint' => 'Active subscriber sessions', 'tone' => 'cyan', 'key' => 'online_now'],
+        ['label' => 'User down', 'value' => $fmt($n['user_down'] ?? 0), 'hint' => 'Active subscribers currently offline', 'tone' => 'orange', 'key' => 'user_down'],
+        ['label' => 'WAN downlink', 'value' => $fmt($n['wan_download_mbps'] ?? 0, 2).' Mbps', 'hint' => 'Core ingress traffic', 'tone' => 'violet', 'key' => 'wan_download_mbps'],
+        ['label' => 'WAN uplink', 'value' => $fmt($n['wan_upload_mbps'] ?? 0, 2).' Mbps', 'hint' => 'Core egress traffic', 'tone' => 'purple', 'key' => 'wan_upload_mbps'],
+        ['label' => 'User bandwidth', 'value' => $fmt($n['users_download_mbps'] ?? 0, 2).' / '.$fmt($n['users_upload_mbps'] ?? 0, 2), 'hint' => 'Users down/up Mbps', 'tone' => 'green', 'key' => 'users_bandwidth'],
+        ['label' => 'Link down', 'value' => $fmt($n['link_down'] ?? 0), 'hint' => 'OLT interfaces reported down', 'tone' => 'red', 'key' => 'link_down'],
+        ['label' => 'OLT impact', 'value' => $fmt($n['olt_offline'] ?? 0).' down · '.$fmt($n['olt_partial'] ?? 0).' partial', 'hint' => 'Offline and degraded chassis', 'tone' => 'amber', 'key' => 'olt_impact'],
+        ['label' => 'Fiber / alerts', 'value' => $fmt($n['fiber_alerts'] ?? 0), 'hint' => 'Fiber faults + open optical alerts', 'tone' => 'yellow', 'key' => 'fiber_alerts'],
     ];
 
     $alertCards = [];
@@ -202,7 +202,7 @@
                         <span class="noc-top-card__label">{{ $card['label'] }}</span>
                         <span class="noc-top-card__dot"></span>
                     </div>
-                    <div style="margin-top:.7rem;color:#fff;font-size:2rem;line-height:1;font-weight:900;">{{ $card['value'] }}</div>
+                    <div style="margin-top:.7rem;color:#fff;font-size:2rem;line-height:1;font-weight:900;" @if(!empty($card['key'])) data-noc-metric="{{ $card['key'] }}" @endif>{{ $card['value'] }}</div>
                     <div style="margin-top:.45rem;color:#94a3b8;font-size:.82rem;">{{ $card['hint'] }}</div>
                 </div>
             </section>
