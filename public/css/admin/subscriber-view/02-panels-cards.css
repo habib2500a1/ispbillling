@@ -461,10 +461,10 @@
     .sub-pro .sub-dock-mobile {
         display: none !important;
     }
+}
 
 /* ============================================================
  * Mobile fixes for subscriber detail page (<=640px)
- * Added: 2026-05-30 — stack grids, wrap buttons, readable spacing
  * ============================================================ */
 @media (max-width: 640px) {
     /* Prevent horizontal scroll */
