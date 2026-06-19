@@ -132,6 +132,8 @@ class CreateSupportTicket extends CreateRecord
             ]);
         }
 
+        unset($data['create_attachment']);
+
         return $data;
     }
 
@@ -256,16 +258,6 @@ class CreateSupportTicket extends CreateRecord
     protected function getCreatedNotificationTitle(): ?string
     {
         return null;
-    }
-
-    public function getTitle(): string
-    {
-        return 'New support ticket';
-    }
-
-    public function getSubheading(): ?string
-    {
-        return 'Search subscriber → review live status → assign technician → save to queue.';
     }
 
     public function mount(): void
