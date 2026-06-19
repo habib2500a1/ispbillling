@@ -22,6 +22,7 @@ use App\Models\PppSessionLog;
 use App\Models\SupportTicket;
 use App\Services\Optical\OpticalDashboardService;
 use App\Services\Reports\AnalyticsReportService;
+use App\Services\Reports\StaffPerformanceReportService;
 use App\Support\CustomerBalanceDue;
 use App\Support\CustomerStatus;
 use App\Support\PaymentType;
