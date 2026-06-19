@@ -114,7 +114,6 @@
                     'sub-cc-timeline-wrap',
                     'sub-cc-timeline-wrap--scroll' => count($timeline) > 4,
                 ])
-                @if (count($timeline) > 4) data-sub-timeline-cap="4" @endif
                 tabindex="0"
                 aria-label="Activity timeline, scroll for more events"
             >
@@ -133,41 +132,6 @@
                 @endforeach
                 </ol>
             </div>
-            @if (count($timeline) > 4)
-                <script data-cfasync="false">
-                    (function () {
-                        function capSubTimeline() {
-                            document.querySelectorAll('[data-sub-timeline-cap]').forEach(function (wrap) {
-                                var visible = parseInt(wrap.getAttribute('data-sub-timeline-cap') || '4', 10);
-                                var list = wrap.querySelector('.sub-cc-timeline');
-                                var items = list ? list.querySelectorAll('.sub-cc-timeline__item') : [];
-                                if (!list || items.length <= visible) {
-                                    return;
-                                }
-
-                                var total = 0;
-                                for (var i = 0; i < visible; i++) {
-                                    total += items[i].offsetHeight;
-                                }
-
-                                var gap = parseFloat(window.getComputedStyle(list).rowGap || window.getComputedStyle(list).gap || '0');
-                                if (!isNaN(gap) && gap > 0) {
-                                    total += gap * (visible - 1);
-                                }
-
-                                wrap.style.setProperty('max-height', total + 'px', 'important');
-                                wrap.style.setProperty('overflow-y', 'auto', 'important');
-                            });
-                        }
-
-                        capSubTimeline();
-                        window.requestAnimationFrame(capSubTimeline);
-                        window.setTimeout(capSubTimeline, 150);
-                        window.addEventListener('load', capSubTimeline);
-                        document.addEventListener('livewire:navigated', capSubTimeline);
-                    })();
-                </script>
-            @endif
         @endif
     </section>
 

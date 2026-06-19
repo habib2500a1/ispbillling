@@ -197,16 +197,16 @@
 
 .sub-cc-timeline-wrap {
     --sub-cc-timeline-visible: 4;
-    --sub-cc-timeline-item-block: calc(
-        0.55rem * 2 + 0.82rem * 1.35 + 0.15rem + 0.76rem * 1.45 + 0.2rem + 0.68rem
-    );
+    --sub-cc-timeline-row-h: 4rem;
     overflow-x: hidden;
     margin: 0 -0.15rem;
     padding: 0 0.15rem 0.1rem;
 }
 
-.sub-cc-timeline-wrap--scroll {
-    overflow-y: auto;
+.isp-sub-view-page .sub-pro .sub-cc-panel--timeline .sub-cc-timeline-wrap--scroll,
+.isp-subscriber-record-page .sub-pro .sub-cc-panel--timeline .sub-cc-timeline-wrap--scroll {
+    max-height: calc(var(--sub-cc-timeline-visible) * var(--sub-cc-timeline-row-h)) !important;
+    overflow-y: auto !important;
     -webkit-overflow-scrolling: touch;
     overscroll-behavior-y: contain;
     touch-action: pan-y;
@@ -214,9 +214,11 @@
     scrollbar-color: rgba(100, 116, 139, 0.45) transparent;
 }
 
-.isp-sub-view-page .sub-pro .sub-cc-timeline-wrap--scroll,
-.isp-subscriber-record-page .sub-pro .sub-cc-timeline-wrap--scroll {
-    max-height: calc(var(--sub-cc-timeline-visible) * var(--sub-cc-timeline-item-block));
+.sub-cc-timeline-wrap--scroll .sub-cc-timeline__item {
+    box-sizing: border-box;
+    min-height: var(--sub-cc-timeline-row-h);
+    max-height: var(--sub-cc-timeline-row-h);
+    overflow: hidden;
 }
 
 .sub-cc-timeline-wrap--scroll::-webkit-scrollbar {
@@ -565,22 +567,19 @@
     }
 
     .sub-pro .sub-cc-timeline-wrap {
-        --sub-cc-timeline-item-block: calc(
-            0.7rem * 2 + 0.84rem * 1.35 + 0.15rem + 0.78rem * 1.45 + 0.2rem + 0.68rem + 0.35rem
-        );
+        --sub-cc-timeline-row-h: 4.25rem;
         margin: 0;
         padding: 0 0.1rem 0.15rem 0;
     }
 
-    .sub-pro .sub-cc-timeline-wrap--scroll {
-        max-height: calc(
-            var(--sub-cc-timeline-visible) * var(--sub-cc-timeline-item-block) + 3 * 0.35rem
-        );
-        overflow-x: hidden;
-        overflow-y: auto;
-        -webkit-overflow-scrolling: touch;
-        overscroll-behavior-y: contain;
-        touch-action: pan-y;
+    .isp-sub-view-page .sub-pro .sub-cc-panel--timeline .sub-cc-timeline-wrap--scroll,
+    .isp-subscriber-record-page .sub-pro .sub-cc-panel--timeline .sub-cc-timeline-wrap--scroll {
+        max-height: calc(var(--sub-cc-timeline-visible) * var(--sub-cc-timeline-row-h) + 3 * 0.35rem) !important;
+    }
+
+    .sub-pro .sub-cc-timeline-wrap--scroll .sub-cc-timeline__item {
+        min-height: var(--sub-cc-timeline-row-h);
+        max-height: var(--sub-cc-timeline-row-h);
     }
 
     .sub-pro .sub-cc-timeline {
