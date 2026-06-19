@@ -256,7 +256,6 @@ trait ProvidesSupportTicketCustomerSearch
         $this->subscriberSearch = $this->subscriberLabel($row);
         $this->data['customer_id'] = $customerId;
         $this->applySmartTicketDefaults($row);
-        $this->form->fill($this->data);
 
         return true;
     }
@@ -266,7 +265,6 @@ trait ProvidesSupportTicketCustomerSearch
         $this->selectedSubscriberId = null;
         $this->selectedSubscriber = null;
         $this->data['customer_id'] = null;
-        $this->form->fill($this->data);
         $this->dispatch('subscriber-search-reset');
     }
 
@@ -278,7 +276,6 @@ trait ProvidesSupportTicketCustomerSearch
         }
 
         $this->data['assigned_to'] = (int) $userId;
-        $this->form->fill($this->data);
     }
 
     /**

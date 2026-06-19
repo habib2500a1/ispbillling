@@ -80,10 +80,9 @@ class CreateSupportTicket extends CreateRecord
         return [];
     }
 
-    public function createTicket(): void
+    public function create(bool $another = false): void
     {
-        $this->selectSubscriberFromTypedQuery(trim($this->subscriberSearch));
-        $this->syncCustomerIdFromSelection();
+        $this->prepareCreateFormState();
 
         if (! filled($this->data['customer_id'] ?? null)) {
             Notification::make()
@@ -93,6 +92,27 @@ class CreateSupportTicket extends CreateRecord
                 ->send();
 
             return;
+        }
+
+        try {
+            parent::create($another);
+        } catch (ValidationException $e) {
+            Notification::make()
+                ->title('Fix the form errors below')
+                ->body(collect($e->errors())->flatten()->first() ?? 'Complaint details is required.')
+                ->danger()
+                ->send();
+
+            throw $e;
+        }
+    }
+
+    protected function prepareCreateFormState(): void
+    {
+        $this->selectSubscriberFromTypedQuery(trim($this->subscriberSearch));
+
+        if ($this->selectedSubscriberId !== null) {
+            $this->data['customer_id'] = $this->selectedSubscriberId;
         }
 
         foreach ([
@@ -122,26 +142,6 @@ class CreateSupportTicket extends CreateRecord
                 ? "{$issue} — {$name} (#{$code})"
                 : "{$issue} — {$name}";
         }
-
-        $this->form->fill($this->data);
-
-        try {
-            $this->create();
-        } catch (ValidationException $e) {
-            Notification::make()
-                ->title('Fix the form errors below')
-                ->body(collect($e->errors())->flatten()->first() ?? 'Check required fields.')
-                ->danger()
-                ->send();
-
-            throw $e;
-        }
-
-        if ($this->record !== null) {
-            $url = $this->getRedirectUrl();
-            $this->redirect($url, navigate: false);
-            $this->js('window.location.assign('.json_encode($url).')');
-        }
     }
 
     protected function applySmartDefaultsFromSelection(): void
@@ -161,16 +161,6 @@ class CreateSupportTicket extends CreateRecord
         if ($row !== null) {
             $this->applySmartTicketDefaults($row);
         }
-    }
-
-    protected function syncCustomerIdFromSelection(): void
-    {
-        if ($this->selectedSubscriberId === null) {
-            return;
-        }
-
-        $this->data['customer_id'] = $this->selectedSubscriberId;
-        $this->form->fill($this->data);
     }
 
     /**
@@ -241,8 +231,6 @@ class CreateSupportTicket extends CreateRecord
                 ? "{$issue} — {$customer->name} (#{$code})"
                 : "{$issue} — {$customer->name}";
         }
-
-        $this->form->fill($this->data);
     }
 
     /**

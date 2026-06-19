@@ -112,8 +112,8 @@
                 <div class="sp-create-card sp-create-form-card">
                     <h2 class="sp-create-form-card__title">Ticket details</h2>
                     <x-filament-panels::form
-                        id="form"
-                        wire:submit="createTicket"
+                        id="support-ticket-create-form"
+                        wire:submit="create"
                     >
                         {{ $this->form }}
 
@@ -128,11 +128,10 @@
                                 type="submit"
                                 class="sp-create-submit-btn fi-btn fi-btn-size-lg fi-btn-color-primary"
                                 wire:loading.attr="disabled"
-                                wire:target="createTicket"
-                                @disabled(! $this->canSaveTicket())
+                                wire:target="create"
                             >
-                                <span wire:loading.remove wire:target="createTicket">Create ticket → Open</span>
-                                <span wire:loading wire:target="createTicket">Creating ticket…</span>
+                                <span wire:loading.remove wire:target="create">Create ticket → Open</span>
+                                <span wire:loading wire:target="create">Creating ticket…</span>
                             </button>
                         </div>
                     </x-filament-panels::form>

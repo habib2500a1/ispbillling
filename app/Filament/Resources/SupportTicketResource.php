@@ -335,7 +335,7 @@ class SupportTicketResource extends Resource
                 ->label('Complaint details')
                 ->required()
                 ->rows(4)
-                ->live(debounce: 600)
+                ->live(onBlur: true)
                 ->placeholder('Customer reported… technician notes… on-site findings…')
                 ->columnSpanFull(),
             Forms\Components\FileUpload::make('create_attachment')

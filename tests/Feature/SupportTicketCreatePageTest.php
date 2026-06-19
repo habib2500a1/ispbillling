@@ -96,7 +96,7 @@ class SupportTicketCreatePageTest extends TestCase
             ->test(\App\Filament\Resources\SupportTicketResource\Pages\CreateSupportTicket::class)
             ->set('subscriberSearch', 'habib3.kp (0603)')
             ->set('data.description', 'No internet since morning')
-            ->call('createTicket')
+            ->call('create')
             ->assertHasNoErrors();
 
         $this->assertDatabaseHas('support_tickets', [
