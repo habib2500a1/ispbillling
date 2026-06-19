@@ -50,6 +50,17 @@ class CreateSupportTicket extends CreateRecord
         $this->mountSubscriberFromRequest();
     }
 
+    /**
+     * @return array<string, mixed>
+     */
+    protected function queryString(): array
+    {
+        return array_merge(
+            $this->queryStringWithSubscriberSearch(),
+            [],
+        );
+    }
+
     public function form(Form $form): Form
     {
         return SupportTicketResource::form($form, useSubscriberSearchPicker: true);

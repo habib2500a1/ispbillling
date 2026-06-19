@@ -4,31 +4,42 @@ namespace App\Filament\Resources\SupportTicketResource\Pages\Concerns;
 
 use App\Services\Billing\BillCollectionSearchService;
 use App\Services\Support\SupportTicketWorkspaceService;
-use Illuminate\Support\Collection;
 use Livewire\Attributes\Computed;
-use Livewire\Attributes\Url;
 
 /**
  * Bill-collection-style subscriber search for support ticket create (reliable vs Filament Select AJAX).
  */
 trait ProvidesSupportTicketCustomerSearch
 {
-    #[Url(as: 'q', except: '', history: true)]
     public string $subscriberSearch = '';
 
     public bool $subscriberSearching = false;
 
-    /** @var Collection<int, array<string, mixed>> */
-    public Collection $subscriberResults;
+    /** @var list<array<string, mixed>> */
+    public array $subscriberResults = [];
 
     public ?int $selectedSubscriberId = null;
 
     /** @var array<string, mixed>|null */
     public ?array $selectedSubscriber = null;
 
+    /**
+     * @return array<string, mixed>
+     */
+    protected function queryStringWithSubscriberSearch(): array
+    {
+        return [
+            'subscriberSearch' => ['except' => '', 'as' => 'q'],
+        ];
+    }
+
     public function mountSubscriberSearch(): void
     {
-        $this->subscriberResults = collect();
+        $this->subscriberResults = [];
+
+        if ($this->subscriberSearch === '') {
+            $this->subscriberSearch = trim((string) request()->query('q', ''));
+        }
 
         if (mb_strlen(trim($this->subscriberSearch)) >= 2) {
             $this->runSubscriberSearch();
@@ -54,14 +65,31 @@ trait ProvidesSupportTicketCustomerSearch
         $this->runSubscriberSearch();
     }
 
+    public function clearSubscriberSearch(): void
+    {
+        $this->subscriberSearch = '';
+        $this->subscriberResults = [];
+    }
+
     public function runSubscriberSearch(): void
     {
+        $query = trim($this->subscriberSearch);
+
+        if (mb_strlen($query) < 2) {
+            $this->subscriberResults = [];
+
+            return;
+        }
+
         $this->subscriberSearching = true;
 
         try {
-            $this->subscriberResults = app(BillCollectionSearchService::class)->search($this->subscriberSearch);
+            $this->subscriberResults = app(BillCollectionSearchService::class)
+                ->search($query)
+                ->values()
+                ->all();
 
-            if ($this->selectedSubscriberId !== null && $this->subscriberResults->where('id', $this->selectedSubscriberId)->isEmpty()) {
+            if ($this->selectedSubscriberId !== null && ! collect($this->subscriberResults)->contains(fn (array $row): bool => (int) ($row['id'] ?? 0) === (int) $this->selectedSubscriberId)) {
                 $row = app(BillCollectionSearchService::class)->find($this->selectedSubscriberId);
                 if ($row === null) {
                     $this->clearSubscriberSelection();

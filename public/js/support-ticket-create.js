@@ -1,8 +1,11 @@
 /**
- * Support ticket create — mobile drawer, search UX, keyboard on results.
+ * Support ticket create — mobile drawer, live search sync, keyboard on results.
  */
 (function () {
     'use strict';
+
+    const INPUT_SELECTOR = '#support-ticket-subscriber-search';
+    let debounceTimer = null;
 
     function isMobile() {
         return window.matchMedia('(max-width: 1023px)').matches;
@@ -21,41 +24,49 @@
         document.body.classList.remove('isp-admin-sidebar-open');
     }
 
-    function bindLiveSearch() {
-        const root = document.querySelector('.sp-create-search');
-        const input = document.getElementById('support-ticket-subscriber-search');
-        if (!root || !input || input.dataset.liveSearchBound === '1') {
+    function findCreateComponent() {
+        if (!window.Livewire) {
+            return null;
+        }
+
+        const input = document.querySelector(INPUT_SELECTOR);
+        if (input) {
+            const root = input.closest('[wire\\:id]');
+            if (root) {
+                const fromDom = window.Livewire.find(root.getAttribute('wire:id'));
+                if (fromDom) {
+                    return fromDom;
+                }
+            }
+        }
+
+        return window.Livewire.all().find(function (component) {
+            return typeof component.runSubscriberSearch === 'function';
+        }) ?? null;
+    }
+
+    function syncLiveSearch(input) {
+        if (!input) {
             return;
         }
 
-        input.dataset.liveSearchBound = '1';
+        const component = findCreateComponent();
+        if (!component) {
+            return;
+        }
 
-        let debounceTimer = null;
-        input.addEventListener('input', function () {
-            clearTimeout(debounceTimer);
-            debounceTimer = setTimeout(function () {
-                const wireRoot = root.closest('[wire\\:id]');
-                if (!wireRoot || !window.Livewire) {
-                    return;
-                }
+        const value = (input.value || '').trim();
 
-                const component = Livewire.find(wireRoot.getAttribute('wire:id'));
-                if (!component) {
-                    return;
-                }
-
-                const value = input.value.trim();
-                if (value.length >= 2 || value === '') {
-                    component.set('subscriberSearch', value);
-                    component.call('runSubscriberSearch');
-                }
-            }, 320);
-        });
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(function () {
+            component.set('subscriberSearch', value);
+            component.call('runSubscriberSearch');
+        }, 280);
     }
 
     function bindSearchEnter() {
         const root = document.querySelector('.isp-support-subscriber-search');
-        const input = document.getElementById('support-ticket-subscriber-search');
+        const input = document.querySelector(INPUT_SELECTOR);
         if (!root || !input || input.dataset.createBound === '1') {
             return;
         }
@@ -68,10 +79,18 @@
             }
 
             event.preventDefault();
-            const btn = root.querySelector('[wire\\:click="runSubscriberSearch"]');
-            if (btn) {
-                btn.click();
+            clearTimeout(debounceTimer);
+
+            const component = findCreateComponent();
+            if (component) {
+                component.set('subscriberSearch', (input.value || '').trim());
+                component.call('runSubscriberSearch');
+
+                return;
             }
+
+            const btn = root.querySelector('[wire\\:click="runSubscriberSearch"]');
+            btn?.click();
         });
     }
 
@@ -82,7 +101,7 @@
         }
 
         list.dataset.keyboardBound = '1';
-        const input = document.getElementById('support-ticket-subscriber-search');
+        const input = document.querySelector(INPUT_SELECTOR);
         if (!input) {
             return;
         }
@@ -112,10 +131,18 @@
 
     function init() {
         closeMobileSidebar();
-        bindLiveSearch();
         bindSearchEnter();
         bindResultKeyboard();
     }
+
+    document.addEventListener('input', function (event) {
+        const input = event.target;
+        if (!input?.matches?.(INPUT_SELECTOR)) {
+            return;
+        }
+
+        syncLiveSearch(input);
+    }, true);
 
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', init, { once: true });
@@ -126,11 +153,7 @@
     document.addEventListener('livewire:navigated', init);
     document.addEventListener('livewire:initialized', function () {
         if (window.Livewire) {
-            Livewire.hook('morph.updated', function () {
-                bindLiveSearch();
-                bindSearchEnter();
-                bindResultKeyboard();
-            });
+            Livewire.hook('morph.updated', init);
         }
     });
 })();

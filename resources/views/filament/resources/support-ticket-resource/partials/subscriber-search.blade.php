@@ -1,7 +1,4 @@
-<div
-    class="isp-support-subscriber-search isp-collection-search-wrap sp-create-search"
-    x-data="{ q: @entangle('subscriberSearch').live }"
->
+<div class="isp-support-subscriber-search isp-collection-search-wrap sp-create-search">
     <div class="sp-create-search__head">
         <label for="support-ticket-subscriber-search" class="isp-collection-search-label">
             Find subscriber
@@ -14,7 +11,7 @@
             <input
                 id="support-ticket-subscriber-search"
                 type="search"
-                x-model.debounce.300ms="q"
+                wire:model.live.debounce.300ms="subscriberSearch"
                 placeholder="ID, phone, name, PPP username, address, invoice #…"
                 class="isp-collection-search-input"
                 autocomplete="off"
@@ -28,7 +25,7 @@
             <span wire:loading wire:target="runSubscriberSearch">…</span>
         </button>
         @if ($this->subscriberSearch !== '')
-            <button type="button" wire:click="$set('subscriberSearch', '')" class="isp-collection-search-clear" title="Clear search">×</button>
+            <button type="button" wire:click="clearSubscriberSearch" class="isp-collection-search-clear" title="Clear search">×</button>
         @endif
     </div>
 
@@ -43,6 +40,9 @@
     @if ($this->subscriberSearch !== '')
         <p class="isp-collection-search-active mt-2 text-xs text-gray-500 dark:text-gray-400" role="status">
             Showing results for “{{ $this->subscriberSearch }}”
+            @if (count($this->subscriberResults) > 0)
+                · {{ count($this->subscriberResults) }} match(es)
+            @endif
         </p>
     @endif
 
@@ -52,17 +52,17 @@
         </p>
     @endif
 
-    @if ($this->subscriberSearch !== '' && ! $this->subscriberSearching && $this->subscriberResults->isEmpty())
+    @if ($this->subscriberSearch !== '' && ! $this->subscriberSearching && count($this->subscriberResults) === 0)
         <div class="isp-collection-empty mt-4 rounded-xl border border-dashed border-gray-300 p-6 text-center dark:border-gray-600">
             <p class="font-medium text-gray-700 dark:text-gray-300">No subscriber found</p>
             <p class="mt-1 text-sm text-gray-500">Try phone number, customer ID (e.g. TST0001), or PPP username.</p>
         </div>
     @endif
 
-    @if ($this->subscriberResults->isNotEmpty())
+    @if (count($this->subscriberResults) > 0)
         <div class="isp-collection-results mt-4 {{ $this->selectedSubscriber ? 'isp-collection-results--with-panel' : '' }}">
             <p class="mb-2 text-xs font-bold uppercase tracking-wide text-gray-500">
-                {{ $this->subscriberResults->count() }} result(s) — tap to link ticket
+                {{ count($this->subscriberResults) }} result(s) — tap to link ticket
             </p>
             <ul class="space-y-2 {{ $this->selectedSubscriber ? 'max-h-52 overflow-y-auto' : '' }}" role="listbox">
                 @foreach ($this->subscriberResults as $row)
