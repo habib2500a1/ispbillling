@@ -206,13 +206,17 @@
 }
 
 .sub-cc-timeline-wrap--scroll {
-    max-height: calc(var(--sub-cc-timeline-visible) * var(--sub-cc-timeline-item-block)) !important;
-    overflow-y: auto !important;
+    overflow-y: auto;
     -webkit-overflow-scrolling: touch;
     overscroll-behavior-y: contain;
     touch-action: pan-y;
     scrollbar-width: thin;
     scrollbar-color: rgba(100, 116, 139, 0.45) transparent;
+}
+
+.isp-sub-view-page .sub-pro .sub-cc-timeline-wrap--scroll,
+.isp-subscriber-record-page .sub-pro .sub-cc-timeline-wrap--scroll {
+    max-height: calc(var(--sub-cc-timeline-visible) * var(--sub-cc-timeline-item-block));
 }
 
 .sub-cc-timeline-wrap--scroll::-webkit-scrollbar {
@@ -571,9 +575,9 @@
     .sub-pro .sub-cc-timeline-wrap--scroll {
         max-height: calc(
             var(--sub-cc-timeline-visible) * var(--sub-cc-timeline-item-block) + 3 * 0.35rem
-        ) !important;
+        );
         overflow-x: hidden;
-        overflow-y: auto !important;
+        overflow-y: auto;
         -webkit-overflow-scrolling: touch;
         overscroll-behavior-y: contain;
         touch-action: pan-y;
