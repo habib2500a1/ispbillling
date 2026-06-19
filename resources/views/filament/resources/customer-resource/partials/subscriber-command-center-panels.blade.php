@@ -95,14 +95,17 @@
     </section>
 
     <section class="isp-cv-card sub-cc-panel sub-cc-panel--timeline">
-        <div class="isp-cv-card__head">
-            <h3 class="isp-cv-card__title">Activity timeline</h3>
-            <span class="text-xs text-slate-500">Payments · tickets · SMS · notes</span>
+        <div class="isp-cv-card__head sub-cc-panel__head">
+            <div class="sub-cc-panel__head-main">
+                <h3 class="isp-cv-card__title">Activity timeline</h3>
+                <span class="sub-cc-panel__hint">Payments · tickets · SMS · notes</span>
+            </div>
         </div>
         @if ($timeline === [])
             <p class="isp-cv-muted text-sm">No activity yet.</p>
         @else
-            <ol class="sub-cc-timeline">
+            <div class="sub-cc-timeline-wrap">
+                <ol class="sub-cc-timeline">
                 @foreach ($timeline as $event)
                     <li class="sub-cc-timeline__item sub-cc-timeline__item--{{ $event['tone'] ?? 'slate' }}">
                         <span class="sub-cc-timeline__dot"></span>
@@ -113,20 +116,23 @@
                         </div>
                     </li>
                 @endforeach
-            </ol>
+                </ol>
+            </div>
         @endif
     </section>
 
     <section class="isp-cv-card sub-cc-panel sub-cc-panel--usage" data-sub-usage-panel>
-        <div class="isp-cv-card__head">
+        <div class="isp-cv-card__head sub-cc-panel__head">
             <h3 class="isp-cv-card__title">Usage analytics</h3>
-            <div class="sub-cc-usage-tabs">
+            <div class="sub-cc-usage-tabs" role="tablist" aria-label="Usage period">
                 <button type="button" class="is-active" data-usage-tab="day">7 days</button>
                 <button type="button" data-usage-tab="week">4 weeks</button>
                 <button type="button" data-usage-tab="month">90 days</button>
             </div>
         </div>
-        <canvas id="sub-usage-chart" height="120"></canvas>
+        <div class="sub-cc-chart-wrap">
+            <canvas id="sub-usage-chart" height="120"></canvas>
+        </div>
         <script type="application/json" id="sub-usage-data">@json($usage)</script>
     </section>
 

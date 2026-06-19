@@ -1,8 +1,16 @@
 (function () {
+    var activeUsagePeriod = 'day';
+    var resizeTimer = null;
+
     function parseJson(id) {
         var el = document.getElementById(id);
         if (!el) return null;
         try { return JSON.parse(el.textContent || '{}'); } catch (e) { return null; }
+    }
+
+    function canvasWidth(canvas, fallback) {
+        var width = canvas.offsetWidth || canvas.parentElement?.offsetWidth || fallback || 320;
+        return Math.max(240, width);
     }
 
     function drawSparkline(canvasId, dataId, color) {
@@ -14,11 +22,15 @@
         if (values.length === 0) return;
 
         var ctx = canvas.getContext('2d');
-        var w = canvas.width = canvas.offsetWidth * (window.devicePixelRatio || 1);
-        var h = canvas.height = (canvas.getAttribute('height') || 64) * (window.devicePixelRatio || 1);
-        ctx.scale(window.devicePixelRatio || 1, window.devicePixelRatio || 1);
-        var width = canvas.offsetWidth;
+        var width = canvasWidth(canvas);
         var height = parseInt(canvas.getAttribute('height') || '64', 10);
+        var ratio = window.devicePixelRatio || 1;
+
+        canvas.width = width * ratio;
+        canvas.height = height * ratio;
+        canvas.style.width = width + 'px';
+        canvas.style.height = height + 'px';
+        ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
 
         var min = Math.min.apply(null, values);
         var max = Math.max.apply(null, values);
@@ -43,24 +55,30 @@
         var all = parseJson('sub-usage-data');
         if (!canvas || !all) return;
 
-        var data = all[period] || all.day || { labels: [], download_gb: [], upload_gb: [] };
+        activeUsagePeriod = period || activeUsagePeriod || 'day';
+        var data = all[activeUsagePeriod] || all.day || { labels: [], download_gb: [], upload_gb: [] };
         var ctx = canvas.getContext('2d');
-        var width = canvas.offsetWidth;
+        var width = canvasWidth(canvas);
         var height = parseInt(canvas.getAttribute('height') || '120', 10);
-        canvas.width = width * (window.devicePixelRatio || 1);
-        canvas.height = height * (window.devicePixelRatio || 1);
-        ctx.scale(window.devicePixelRatio || 1, window.devicePixelRatio || 1);
+        var ratio = window.devicePixelRatio || 1;
+
+        canvas.width = width * ratio;
+        canvas.height = height * ratio;
+        canvas.style.width = width + 'px';
+        canvas.style.height = height + 'px';
+        ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
 
         var downloads = (data.download_gb || []).map(Number);
         var max = Math.max.apply(null, downloads.concat([0.01]));
+        var count = Math.max(1, downloads.length);
+        var barW = Math.max(6, (width - 16) / count - 3);
 
         ctx.clearRect(0, 0, width, height);
-        var barW = Math.max(4, (width - 16) / Math.max(1, downloads.length) - 2);
 
         downloads.forEach(function (v, i) {
-            var barH = (v / max) * (height - 24);
-            var x = 8 + i * (barW + 2);
-            var y = height - 8 - barH;
+            var barH = (v / max) * (height - 28);
+            var x = 8 + i * (barW + 3);
+            var y = height - 10 - barH;
             ctx.fillStyle = '#3b82f6';
             ctx.fillRect(x, y, barW, barH);
         });
@@ -78,9 +96,23 @@
         });
     }
 
-    function init() {
+    function redrawCharts() {
         drawSparkline('sub-onu-sparkline', 'sub-onu-spark-data', '#7c3aed');
-        drawUsageChart('day');
+        drawUsageChart(activeUsagePeriod);
+    }
+
+    function scheduleRedraw() {
+        if (resizeTimer) window.clearTimeout(resizeTimer);
+        resizeTimer = window.setTimeout(redrawCharts, 120);
+    }
+
+    function init() {
+        activeUsagePeriod = 'day';
+        var activeBtn = document.querySelector('[data-sub-usage-panel] [data-usage-tab].is-active');
+        if (activeBtn) {
+            activeUsagePeriod = activeBtn.getAttribute('data-usage-tab') || 'day';
+        }
+        redrawCharts();
         bindUsageTabs();
     }
 
@@ -91,4 +123,6 @@
     }
 
     document.addEventListener('livewire:navigated', init);
+    window.addEventListener('resize', scheduleRedraw);
+    window.addEventListener('orientationchange', scheduleRedraw);
 })();

@@ -193,21 +193,55 @@
     list-style: none;
     margin: 0;
     padding: 0;
+}
+
+.sub-cc-timeline-wrap {
     max-height: 22rem;
     overflow: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+    margin: 0 -0.15rem;
+    padding: 0 0.15rem;
 }
 
 .sub-cc-timeline__item {
     display: grid;
-    grid-template-columns: auto 1fr;
+    grid-template-columns: auto minmax(0, 1fr);
     gap: 0.65rem;
     padding: 0.55rem 0;
     border-bottom: 1px solid #f1f5f9;
 }
 
-.sub-cc-timeline__item strong { font-size: 0.82rem; color: #0f172a; }
-.sub-cc-timeline__item p { margin: 0.1rem 0; font-size: 0.76rem; color: #64748b; }
-.sub-cc-timeline__item time { font-size: 0.68rem; color: #94a3b8; }
+.sub-cc-timeline__item:last-child {
+    border-bottom: none;
+}
+
+.sub-cc-timeline__item > div {
+    min-width: 0;
+}
+
+.sub-cc-timeline__item strong {
+    display: block;
+    font-size: 0.82rem;
+    color: #0f172a;
+    line-height: 1.35;
+    overflow-wrap: anywhere;
+}
+
+.sub-cc-timeline__item p {
+    margin: 0.15rem 0 0;
+    font-size: 0.76rem;
+    color: #64748b;
+    line-height: 1.45;
+    overflow-wrap: anywhere;
+}
+
+.sub-cc-timeline__item time {
+    display: block;
+    margin-top: 0.2rem;
+    font-size: 0.68rem;
+    color: #94a3b8;
+}
 
 .sub-cc-timeline__dot {
     width: 0.55rem;
@@ -223,16 +257,59 @@
 
 .sub-cc-usage-tabs {
     display: flex;
-    gap: 0.25rem;
+    flex-wrap: wrap;
+    gap: 0.35rem;
 }
 
 .sub-cc-usage-tabs button {
     border: 1px solid #e2e8f0;
     background: #fff;
     border-radius: 999px;
-    padding: 0.15rem 0.55rem;
+    padding: 0.25rem 0.65rem;
     font-size: 0.68rem;
+    font-weight: 600;
+    line-height: 1.2;
     cursor: pointer;
+    white-space: nowrap;
+}
+
+.sub-cc-chart-wrap {
+    position: relative;
+    width: 100%;
+    min-height: 7.5rem;
+    margin-top: 0.15rem;
+}
+
+.sub-cc-chart-wrap canvas {
+    display: block;
+    width: 100% !important;
+    max-width: 100%;
+    height: auto;
+}
+
+.sub-cc-panel__head {
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 0.65rem;
+}
+
+.sub-cc-panel__head-main {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    min-width: 0;
+    flex: 1 1 12rem;
+}
+
+.sub-cc-panel__hint {
+    font-size: 0.72rem;
+    color: #64748b;
+    line-height: 1.35;
+}
+
+.sub-cc-panel--usage .isp-cv-card__title,
+.sub-cc-panel--timeline .isp-cv-card__title {
+    margin: 0;
 }
 
 .sub-cc-usage-tabs button.is-active {
@@ -461,8 +538,65 @@
         max-width: calc(100vw - 2rem);
     }
 
+    .sub-pro .sub-cc-timeline-wrap {
+        max-height: none;
+        overflow: visible;
+        margin: 0;
+        padding: 0;
+    }
+
     .sub-pro .sub-cc-timeline {
-        max-height: 16rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.35rem;
+    }
+
+    .sub-pro .sub-cc-timeline__item {
+        padding: 0.7rem 0.75rem;
+        border: 1px solid var(--olt-border, #e2e8f0);
+        border-radius: 0.75rem;
+        background: color-mix(in srgb, var(--olt-card, #fff) 96%, #6366f1 4%);
+        border-bottom: 1px solid var(--olt-border, #e2e8f0);
+    }
+
+    .sub-pro .sub-cc-timeline__item strong {
+        font-size: 0.84rem;
+    }
+
+    .sub-pro .sub-cc-timeline__item p {
+        font-size: 0.78rem;
+    }
+
+    .sub-pro .sub-cc-panel--usage .sub-cc-panel__head,
+    .sub-pro .sub-cc-panel--timeline .sub-cc-panel__head {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .sub-pro .sub-cc-panel--usage .sub-cc-usage-tabs {
+        width: 100%;
+    }
+
+    .sub-pro .sub-cc-usage-tabs button {
+        flex: 1 1 calc(33.333% - 0.35rem);
+        min-height: 2.35rem;
+        padding: 0.4rem 0.5rem;
+        font-size: 0.72rem;
+        text-align: center;
+    }
+
+    .sub-pro .sub-cc-chart-wrap {
+        min-height: 9rem;
+        padding: 0.15rem 0 0.25rem;
+    }
+
+    .sub-pro .sub-cc-chart-wrap canvas {
+        min-height: 9rem;
+    }
+
+    .sub-pro .sub-cc-panel--usage,
+    .sub-pro .sub-cc-panel--timeline {
+        padding: 0.85rem 0.9rem;
     }
 
     .sub-pro .sub-onu-ops__grid {
@@ -478,6 +612,39 @@
     .sub-pro .sub-cc-intel-grid {
         grid-template-columns: 1fr 1fr;
     }
+
+    .sub-pro .sub-cc-panel--usage .sub-cc-usage-tabs {
+        flex-wrap: nowrap;
+    }
+
+    .sub-pro .sub-cc-usage-tabs button {
+        flex: 0 1 auto;
+    }
+}
+
+.dark .sub-pro .sub-cc-timeline__item,
+[data-theme='dark'] .sub-pro .sub-cc-timeline__item {
+    background: rgba(255, 255, 255, 0.04);
+    border-color: rgba(148, 163, 184, 0.18);
+}
+
+.dark .sub-pro .sub-cc-timeline__item strong,
+[data-theme='dark'] .sub-pro .sub-cc-timeline__item strong {
+    color: #e2e8f0;
+}
+
+.dark .sub-pro .sub-cc-usage-tabs button,
+[data-theme='dark'] .sub-pro .sub-cc-usage-tabs button {
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(148, 163, 184, 0.22);
+    color: #e2e8f0;
+}
+
+.dark .sub-pro .sub-cc-usage-tabs button.is-active,
+[data-theme='dark'] .sub-pro .sub-cc-usage-tabs button.is-active {
+    background: #e2e8f0;
+    color: #0f172a;
+    border-color: #e2e8f0;
 }
 
 /* Light cards inside command center — readable on white panels */
