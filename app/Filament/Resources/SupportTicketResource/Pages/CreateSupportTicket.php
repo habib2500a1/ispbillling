@@ -11,6 +11,7 @@ use Filament\Actions\Action;
 use Filament\Forms\Form;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\CreateRecord;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Validation\ValidationException;
 
 class CreateSupportTicket extends CreateRecord
@@ -33,26 +34,27 @@ class CreateSupportTicket extends CreateRecord
 
     protected function getRedirectUrl(): string
     {
-        return $this->getResource()::getUrl('index');
+        return $this->getResource()::getUrl('index', panel: 'admin', parameters: [
+            'activeTab' => 'all',
+        ]);
     }
 
     protected function getCreateFormAction(): Action
     {
         return parent::getCreateFormAction()
             ->label('Create ticket')
-            ->disabled(fn (): bool => ! $this->canSaveTicket())
             ->before(function (): void {
                 $this->syncCustomerIdFromSelection();
 
                 if (! filled($this->data['customer_id'] ?? null)) {
                     Notification::make()
                         ->title('Pick a subscriber first')
-                        ->body('Search and select a user from the dropdown before creating the ticket.')
+                        ->body('Click a name in the dropdown list — typing alone is not enough.')
                         ->warning()
                         ->send();
 
                     throw ValidationException::withMessages([
-                        'data.customer_id' => 'Pick a subscriber from the search dropdown before saving.',
+                        'data.customer_id' => 'Click a subscriber in the dropdown before saving.',
                     ]);
                 }
             });
@@ -85,6 +87,15 @@ class CreateSupportTicket extends CreateRecord
         }
 
         return $data;
+    }
+
+    protected function handleRecordCreation(array $data): Model
+    {
+        if (empty($data['customer_id']) && $this->selectedSubscriberId !== null) {
+            $data['customer_id'] = $this->selectedSubscriberId;
+        }
+
+        return static::getModel()::create($data);
     }
 
     protected function getCreatedNotification(): ?Notification

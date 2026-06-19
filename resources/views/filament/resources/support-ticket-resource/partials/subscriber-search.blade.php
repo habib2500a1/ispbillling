@@ -1,6 +1,8 @@
 @php
     $query = trim($this->subscriberSearch);
     $searchUrl = route('filament.admin.resources.support-tickets.subscriber-search');
+    $createUrl = \App\Filament\Resources\SupportTicketResource::getUrl('create');
+    $livewireId = $this->getId();
     $selected = $this->selectedSubscriber;
     $selectedLabel = $selected
         ? trim((string) (($selected['username'] ?? '') !== '' ? $selected['username'] : ($selected['name'] ?? '')))
@@ -26,7 +28,34 @@
             loading: false,
             activeIndex: -1,
             searchUrl: @js($searchUrl),
+            createUrl: @js($createUrl),
+            livewireId: @js($livewireId),
             debounce: null,
+            callSelect(row) {
+                const id = Number(row?.id || 0);
+                if (! id) {
+                    return;
+                }
+
+                const lw = window.Livewire?.find(this.livewireId);
+                if (lw && typeof lw.call === 'function') {
+                    lw.call('selectSubscriber', id);
+
+                    return;
+                }
+
+                if (typeof $wire !== 'undefined' && $wire.selectSubscriber) {
+                    $wire.selectSubscriber(id);
+
+                    return;
+                }
+
+                const params = new URLSearchParams({
+                    customer_id: String(id),
+                    q: this.query.trim(),
+                });
+                window.location.assign(this.createUrl + '?' + params.toString());
+            },
             label(row) {
                 const user = row.username || row.name || 'Subscriber';
                 return user + ' (' + (row.customer_code || row.id) + ')';
@@ -69,7 +98,7 @@
             pick(row) {
                 this.query = this.label(row);
                 this.open = false;
-                $wire.selectSubscriber(row.id);
+                this.callSelect(row);
             },
             onKeydown(event) {
                 if (!this.open || !this.results.length) {
@@ -155,9 +184,9 @@
     @endunless
 </div>
 
-@if ($selected)
-    <div class="isp-support-subscriber-picked sp-create-picked mt-3 rounded-xl border border-primary-200 bg-primary-50/80 px-3 py-2 dark:border-primary-800 dark:bg-primary-950/30">
-        <p class="text-xs font-bold uppercase tracking-wide text-primary-700 dark:text-primary-300">Linked</p>
+    @if ($selected)
+        <div class="isp-support-subscriber-picked sp-create-picked mt-3 rounded-xl border-2 border-emerald-400 bg-emerald-50/90 px-3 py-2 dark:border-emerald-600 dark:bg-emerald-950/40">
+            <p class="text-xs font-bold uppercase tracking-wide text-emerald-700 dark:text-emerald-300">✓ Subscriber linked — you can save the ticket</p>
         <p class="text-sm font-semibold text-gray-900 dark:text-white">
             {{ ($selected['username'] ?? '') !== '' ? $selected['username'] : $selected['name'] }}
             <span class="font-mono text-violet-600 dark:text-violet-400">({{ $selected['customer_code'] }})</span>

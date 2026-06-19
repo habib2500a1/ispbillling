@@ -14,6 +14,7 @@
         'fi-resource-' . str_replace('/', '-', $this->getResource()::getSlug()),
         'isp-support-ticket-create',
     ])
+    data-ticket-create-component="{{ $this->getId() }}"
 >
     <div class="sp-pro sp-create-pro">
         <header class="sp-ticket-hero sp-create-hero">
