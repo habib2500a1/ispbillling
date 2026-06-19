@@ -286,6 +286,9 @@ class SupportTicketWorkspaceService
 
         return [
             'serial' => $onu->serial_number ?? '—',
+            'mac' => $onu->mac_address ?? '—',
+            'vendor' => filled($onu->vendor) ? (string) $onu->vendor : '—',
+            'ip' => $onu->framed_ip_address ?? '—',
             'status' => (string) ($onu->onu_oper_status ?? 'unknown'),
             'online' => $onuOnline,
             'offline_reason' => filled($onu->offline_reason) ? (string) $onu->offline_reason : null,

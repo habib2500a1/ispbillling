@@ -7,11 +7,6 @@
 
 {!! \App\Support\SupportStyles::html() !!}
 {!! \App\Support\SupportStyles::navigatedScript() !!}
-@php
-    $ticketCreateJs = public_path('js/support-ticket-create.js');
-    $ticketCreateJsVer = file_exists($ticketCreateJs) ? (int) filemtime($ticketCreateJs) : 1;
-@endphp
-<script src="{{ asset('js/support-ticket-create.js') }}?v={{ $ticketCreateJsVer }}" defer data-cfasync="false"></script>
 
 <x-filament-panels::page
     @class([

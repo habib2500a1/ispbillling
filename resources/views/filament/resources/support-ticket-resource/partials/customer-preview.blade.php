@@ -1,44 +1,71 @@
 @php
     $urls = $preview['urls'] ?? [];
+    $onu = $preview['onu'] ?? null;
+    $connectivity = ($preview['ppp_online'] ?? false) ? 'Online' : 'Offline';
 @endphp
 
-<section class="sp-panel sp-create-preview" aria-label="Customer 360 preview" wire:key="sp-create-preview-{{ $preview['id'] ?? 'none' }}">
-    <h2 class="sp-panel__title">Customer 360</h2>
+<section class="sp-panel sp-create-preview" aria-label="Subscriber & ONU preview" wire:key="sp-create-preview-{{ $preview['id'] ?? 'none' }}">
+    <h2 class="sp-panel__title">Onu informations</h2>
 
-    <section
-        @class([
-            'sp-live-status sp-live-status--compact',
-            'sp-live-status--ok' => ($live['ppp_online'] ?? false) && (($live['onu_online'] ?? null) !== false),
-            'sp-live-status--warn' => ! ($live['ppp_online'] ?? true) || ($live['onu_online'] ?? null) === false,
-        ])
-    >
-        <div class="sp-live-status__grid">
-            <div class="sp-live-status__item">
-                <span class="sp-live-status__label">PPP</span>
-                <span class="sp-live-status__badge @if ($live['ppp_online'] ?? false) sp-live-status__badge--online @else sp-live-status__badge--offline @endif">
-                    {{ ($live['ppp_online'] ?? false) ? 'Online' : 'Offline' }}
-                </span>
-            </div>
-            <div class="sp-live-status__item">
-                <span class="sp-live-status__label">ONU</span>
-                @if (($live['onu_online'] ?? null) === null)
-                    <span class="sp-live-status__badge sp-live-status__badge--muted">Not mapped</span>
-                @else
-                    <span class="sp-live-status__badge @if ($live['onu_online']) sp-live-status__badge--online @else sp-live-status__badge--offline @endif">
-                        {{ $live['onu_online'] ? 'Online' : 'Offline' }}
-                    </span>
-                @endif
-            </div>
-            <div class="sp-live-status__item">
-                <span class="sp-live-status__label">Due</span>
-                <span class="sp-live-status__time">{{ $preview['billing_due_fmt'] ?? '—' }}</span>
-            </div>
+    <div class="sp-onu-grid">
+        <div class="sp-onu-grid__field">
+            <span class="sp-onu-grid__label">Device vendor name</span>
+            <span class="sp-onu-grid__value">{{ $onu['vendor'] ?? '—' }}</span>
         </div>
-    </section>
+        <div class="sp-onu-grid__field">
+            <span class="sp-onu-grid__label">Connectivity status</span>
+            <span @class([
+                'sp-onu-grid__value sp-onu-grid__badge',
+                'sp-onu-grid__badge--ok' => ($preview['ppp_online'] ?? false),
+                'sp-onu-grid__badge--bad' => ! ($preview['ppp_online'] ?? true),
+            ])>{{ $connectivity }}</span>
+        </div>
+        <div class="sp-onu-grid__field">
+            <span class="sp-onu-grid__label">Client MAC address</span>
+            <span class="sp-onu-grid__value font-mono text-xs">{{ $onu['mac'] ?? '—' }}</span>
+        </div>
+        <div class="sp-onu-grid__field">
+            <span class="sp-onu-grid__label">IP address</span>
+            <span class="sp-onu-grid__value font-mono text-xs">{{ $onu['ip'] ?? '—' }}</span>
+        </div>
+        <div class="sp-onu-grid__field">
+            <span class="sp-onu-grid__label">OLT name</span>
+            <span class="sp-onu-grid__value">{{ $onu['olt'] ?? '—' }}</span>
+        </div>
+        <div class="sp-onu-grid__field">
+            <span class="sp-onu-grid__label">Optical power</span>
+            <span class="sp-onu-grid__value">{{ isset($onu['rx_dbm']) ? $onu['rx_dbm'].' dBm' : '—' }}</span>
+        </div>
+        <div class="sp-onu-grid__field">
+            <span class="sp-onu-grid__label">OLT port</span>
+            <span class="sp-onu-grid__value">{{ $onu['pon'] ?? '—' }}</span>
+        </div>
+        <div class="sp-onu-grid__field">
+            <span class="sp-onu-grid__label">ONU MAC / serial</span>
+            <span class="sp-onu-grid__value font-mono text-xs">{{ $onu['serial'] ?? '—' }}</span>
+        </div>
+        <div class="sp-onu-grid__field">
+            <span class="sp-onu-grid__label">Status</span>
+            <span class="sp-onu-grid__value">{{ $onu['status'] ?? 'Not Found' }}</span>
+        </div>
+        <div class="sp-onu-grid__field">
+            <span class="sp-onu-grid__label">Last deregister / poll</span>
+            <span class="sp-onu-grid__value">{{ $onu['last_polled'] ?? '—' }}</span>
+        </div>
+        <div class="sp-onu-grid__field sp-onu-grid__field--wide">
+            <span class="sp-onu-grid__label">Last deregister reasons</span>
+            <span class="sp-onu-grid__value">{{ $onu['offline_reason'] ?? '—' }}</span>
+        </div>
+        <div class="sp-onu-grid__field sp-onu-grid__field--wide">
+            <span class="sp-onu-grid__label">Description</span>
+            <span class="sp-onu-grid__value">{{ $preview['address'] ?? '—' }}</span>
+        </div>
+    </div>
 
-    <p class="sp-360__name">{{ $preview['name'] }}</p>
-    <p class="sp-360__code">#{{ $preview['code'] }}</p>
-
+    <div class="sp-360__row">
+        <span class="sp-360__label">Subscriber</span>
+        <span class="sp-360__value">{{ $preview['name'] }} (#{{ $preview['code'] }})</span>
+    </div>
     <div class="sp-360__row">
         <span class="sp-360__label">Phone</span>
         <span class="sp-360__value">{{ $preview['phone'] ?? '—' }}</span>
@@ -48,20 +75,8 @@
         <span class="sp-360__value">{{ $preview['package'] ?? '—' }}</span>
     </div>
     <div class="sp-360__row">
-        <span class="sp-360__label">Area</span>
-        <span class="sp-360__value">{{ $preview['area'] ?? '—' }}</span>
-    </div>
-    <div class="sp-360__row">
-        <span class="sp-360__label">PPP login</span>
-        <span class="sp-360__value font-mono text-xs">{{ $preview['ppp_login'] ?? '—' }}</span>
-    </div>
-    <div class="sp-360__row">
-        <span class="sp-360__label">Past tickets</span>
-        <span class="sp-360__value">{{ number_format((int) ($preview['ticket_count'] ?? 0)) }}</span>
-    </div>
-    <div class="sp-360__row">
-        <span class="sp-360__label">Last payment</span>
-        <span class="sp-360__value">{{ $preview['last_payment'] ?? '—' }}</span>
+        <span class="sp-360__label">Due</span>
+        <span class="sp-360__value">{{ $preview['billing_due_fmt'] ?? '—' }}</span>
     </div>
 
     <div class="sp-360__actions">
@@ -70,9 +85,6 @@
         @endif
         @if (! empty($urls['collect']))
             <a href="{{ $urls['collect'] }}" class="sp-360__link" target="_blank" rel="noopener">Collect</a>
-        @endif
-        @if (! empty($urls['invoices']))
-            <a href="{{ $urls['invoices'] }}" class="sp-360__link" target="_blank" rel="noopener">Invoices</a>
         @endif
         @if (! empty($urls['tickets']))
             <a href="{{ $urls['tickets'] }}" class="sp-360__link" target="_blank" rel="noopener">Past tickets</a>

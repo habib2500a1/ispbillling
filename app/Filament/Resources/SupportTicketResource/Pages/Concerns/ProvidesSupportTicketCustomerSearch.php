@@ -157,6 +157,7 @@ trait ProvidesSupportTicketCustomerSearch
         $this->selectedSubscriber = null;
         $this->data['customer_id'] = null;
         $this->form->fill($this->data);
+        $this->dispatch('subscriber-search-reset');
     }
 
     public function assignTicketToMe(): void
