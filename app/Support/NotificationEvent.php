@@ -10,6 +10,8 @@ final class NotificationEvent
 
     public const INVOICE_CREATED = 'invoice_created';
 
+    public const INVOICE_CREATED_BULK = 'invoice_created_bulk';
+
     public const INVOICE_DUE = 'invoice_due';
 
     public const INVOICE_DUE_SOON = 'invoice_due_soon';

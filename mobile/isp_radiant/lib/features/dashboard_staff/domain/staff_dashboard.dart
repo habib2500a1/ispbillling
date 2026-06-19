@@ -17,6 +17,7 @@ class StaffDashboard {
     required this.tasks,
     required this.revenue7d,
     required this.zoneChart,
+    required this.staffPerformance,
     required this.modules,
     required this.quickActions,
   });
@@ -29,6 +30,7 @@ class StaffDashboard {
   final CountStat tasks;
   final RevenueSeries revenue7d;
   final List<ZoneRow> zoneChart;
+  final StaffPerformance staffPerformance;
   final List<Map<String, dynamic>> modules;
   final List<Map<String, dynamic>> quickActions;
 
@@ -47,6 +49,7 @@ class StaffDashboard {
       tasks: CountStat.fromJson(json['tasks'] as Map<String, dynamic>? ?? const {}),
       revenue7d: RevenueSeries.fromJson(json['revenue_chart_7d'] as Map<String, dynamic>? ?? const {}),
       zoneChart: maps(json['zone_collection_chart']).map(ZoneRow.fromJson).toList(),
+      staffPerformance: StaffPerformance.fromJson(json['staff_performance'] as Map<String, dynamic>? ?? const {}),
       modules: maps(json['app_modules']),
       quickActions: maps(json['quick_actions']),
     );
@@ -171,4 +174,115 @@ class ZoneRow {
 
   factory ZoneRow.fromJson(Map<String, dynamic> j) =>
       ZoneRow(zone: '${j['zone'] ?? ''}', paid: _d(j['paid']), unpaid: _d(j['unpaid']));
+}
+
+class StaffPerformance {
+  const StaffPerformance({
+    required this.today,
+    required this.month,
+    required this.newLinesMonth,
+    this.mine,
+  });
+
+  final PerformancePeriod today;
+  final PerformancePeriod month;
+  final NewLinesSummary newLinesMonth;
+  final MinePerformance? mine;
+
+  factory StaffPerformance.fromJson(Map<String, dynamic> j) => StaffPerformance(
+        today: PerformancePeriod.fromJson(j['today'] as Map<String, dynamic>? ?? const {}),
+        month: PerformancePeriod.fromJson(j['month'] as Map<String, dynamic>? ?? const {}),
+        newLinesMonth: NewLinesSummary.fromJson(j['new_lines_month'] as Map<String, dynamic>? ?? const {}),
+        mine: j['mine'] == null ? null : MinePerformance.fromJson(j['mine'] as Map<String, dynamic>),
+      );
+
+  static const empty = StaffPerformance(
+    today: PerformancePeriod.empty,
+    month: PerformancePeriod.empty,
+    newLinesMonth: NewLinesSummary.empty,
+  );
+}
+
+class PerformancePeriod {
+  const PerformancePeriod({required this.total, required this.count, required this.byStaff});
+
+  final double total;
+  final int count;
+  final List<StaffMetricRow> byStaff;
+
+  factory PerformancePeriod.fromJson(Map<String, dynamic> j) => PerformancePeriod(
+        total: _d(j['total']),
+        count: _i(j['count']),
+        byStaff: (j['by_staff'] as List<dynamic>? ?? const [])
+            .whereType<Map>()
+            .map((e) => StaffMetricRow.fromJson(Map<String, dynamic>.from(e)))
+            .toList(),
+      );
+
+  static const empty = PerformancePeriod(total: 0, count: 0, byStaff: []);
+}
+
+class NewLinesSummary {
+  const NewLinesSummary({required this.total, required this.byStaff});
+
+  final int total;
+  final List<StaffCountRow> byStaff;
+
+  factory NewLinesSummary.fromJson(Map<String, dynamic> j) => NewLinesSummary(
+        total: _i(j['total']),
+        byStaff: (j['by_staff'] as List<dynamic>? ?? const [])
+            .whereType<Map>()
+            .map((e) => StaffCountRow.fromJson(Map<String, dynamic>.from(e)))
+            .toList(),
+      );
+
+  static const empty = NewLinesSummary(total: 0, byStaff: []);
+}
+
+class StaffMetricRow {
+  const StaffMetricRow({required this.staffId, required this.name, required this.total, required this.count});
+
+  final int? staffId;
+  final String name;
+  final double total;
+  final int count;
+
+  factory StaffMetricRow.fromJson(Map<String, dynamic> j) => StaffMetricRow(
+        staffId: j['staff_id'] is num ? (j['staff_id'] as num).toInt() : int.tryParse('${j['staff_id'] ?? ''}'),
+        name: '${j['name'] ?? '—'}',
+        total: _d(j['total']),
+        count: _i(j['count']),
+      );
+}
+
+class StaffCountRow {
+  const StaffCountRow({required this.staffId, required this.name, required this.count});
+
+  final int? staffId;
+  final String name;
+  final int count;
+
+  factory StaffCountRow.fromJson(Map<String, dynamic> j) => StaffCountRow(
+        staffId: j['staff_id'] is num ? (j['staff_id'] as num).toInt() : int.tryParse('${j['staff_id'] ?? ''}'),
+        name: '${j['name'] ?? '—'}',
+        count: _i(j['count']),
+      );
+}
+
+class MinePerformance {
+  const MinePerformance({
+    required this.todayCollection,
+    required this.monthCollection,
+    required this.monthNewLines,
+  });
+
+  final double todayCollection;
+  final double monthCollection;
+  final int monthNewLines;
+
+  factory MinePerformance.fromJson(Map<String, dynamic> j) => MinePerformance(
+        todayCollection: _d(j['today_collection']),
+        monthCollection: _d(j['month_collection']),
+        monthNewLines: _i(j['month_new_lines']),
+      );
 }

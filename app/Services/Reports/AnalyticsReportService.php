@@ -94,6 +94,8 @@ class AnalyticsReportService
         return [
             'by_method' => $byMethod,
             'by_day' => $byDay,
+            'by_staff' => app(StaffPerformanceReportService::class)
+                ->collectionSummary($tenantId, $from, $to)['by_staff'],
             'total' => $this->totalCollected($from, $to, $tenantId),
         ];
     }

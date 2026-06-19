@@ -8,6 +8,8 @@ use App\Support\Rbac\StaffCapability;
 use App\Support\TenantResolver;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 final class CollectorStaffResolver
@@ -65,9 +67,28 @@ final class CollectorStaffResolver
 
     public function scopePaymentsToCollector(Builder $query, int $collectorId): Builder
     {
-        return $query->where(function (Builder $q) use ($collectorId): void {
+        $user = User::query()->find($collectorId);
+        $nameKeys = [];
+        if ($user !== null) {
+            $nameKeys[] = mb_strtolower(trim($user->name));
+            if (str_contains($user->email, '@import.local')) {
+                $local = Str::contains($user->email, 'legacyportal+')
+                    ? Str::before(Str::after($user->email, 'legacyportal+'), '@')
+                    : Str::before(Str::after($user->email, 'ispdigital+'), '@');
+                if ($local !== '') {
+                    $nameKeys[] = mb_strtolower($local);
+                }
+            }
+        }
+        $nameKeys = array_values(array_unique(array_filter($nameKeys)));
+
+        return $query->where(function (Builder $q) use ($collectorId, $nameKeys): void {
             $q->where('recorded_by', $collectorId)
                 ->orWhere('meta->collector_attributed_to', $collectorId);
+
+            foreach ($nameKeys as $nameKey) {
+                $q->orWhereRaw('LOWER(meta->>\'received_by\') = ?', [$nameKey]);
+            }
         });
     }
 
@@ -114,12 +135,87 @@ final class CollectorStaffResolver
      */
     public function resolveCollectorUserIdFromPayment(Payment $payment): ?int
     {
-        $meta = $payment->meta ?? [];
+        $meta = is_array($payment->meta) ? $payment->meta : [];
         if (! empty($meta['collector_attributed_to'])) {
             return (int) $meta['collector_attributed_to'];
         }
 
-        return $payment->recorded_by !== null ? (int) $payment->recorded_by : null;
+        if ($payment->recorded_by !== null) {
+            return (int) $payment->recorded_by;
+        }
+
+        $receivedBy = trim((string) ($meta['received_by'] ?? ''));
+        if ($receivedBy !== '') {
+            $tenantId = (int) ($payment->tenant_id ?? TenantResolver::requiredTenantId());
+            $resolved = $this->resolveStaffUserIdFromName($receivedBy, $tenantId);
+            if ($resolved !== null) {
+                return $resolved;
+            }
+        }
+
+        return null;
+    }
+
+    public function resolveStaffDisplayNameFromPayment(Payment $payment, ?int $tenantId = null): ?string
+    {
+        $meta = is_array($payment->meta) ? $payment->meta : [];
+        $staffId = $this->resolveCollectorUserIdFromPayment($payment);
+        if ($staffId !== null) {
+            return User::query()->find($staffId)?->name;
+        }
+
+        $receivedBy = trim((string) ($meta['received_by'] ?? ''));
+        if ($receivedBy !== '') {
+            return $receivedBy;
+        }
+
+        return $payment->recorder?->name;
+    }
+
+    public function resolveStaffUserIdFromName(string $name, int $tenantId): ?int
+    {
+        $key = mb_strtolower(trim($name));
+        if ($key === '') {
+            return null;
+        }
+
+        $lookup = $this->staffNameLookup($tenantId);
+
+        return $lookup[$key]['id'] ?? null;
+    }
+
+    /**
+     * @return array<string, array{id: int, label: string}>
+     */
+    public function staffNameLookup(int $tenantId): array
+    {
+        return Cache::remember(
+            'collector:staff_name_lookup:'.$tenantId,
+            now()->addMinutes(30),
+            function () use ($tenantId): array {
+                $lookup = [];
+
+                foreach (User::query()->where('tenant_id', $tenantId)->get(['id', 'name', 'email']) as $user) {
+                    $lookup[mb_strtolower($user->name)] = ['id' => (int) $user->id, 'label' => $user->name];
+
+                    if (str_contains($user->email, '@import.local')) {
+                        $local = Str::contains($user->email, 'legacyportal+')
+                            ? Str::before(Str::after($user->email, 'legacyportal+'), '@')
+                            : Str::before(Str::after($user->email, 'ispdigital+'), '@');
+                        if ($local !== '') {
+                            $lookup[mb_strtolower($local)] = ['id' => (int) $user->id, 'label' => $user->name];
+                        }
+                    }
+                }
+
+                return $lookup;
+            },
+        );
+    }
+
+    public function flushStaffNameLookup(int $tenantId): void
+    {
+        Cache::forget('collector:staff_name_lookup:'.$tenantId);
     }
 
     /**

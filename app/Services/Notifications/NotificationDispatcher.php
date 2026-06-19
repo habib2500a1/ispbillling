@@ -125,6 +125,8 @@ final class NotificationDispatcher
         return in_array($event, [
             NotificationEvent::PAYMENT_SUCCESS,
             NotificationEvent::PAYMENT_ADVANCE,
+            NotificationEvent::INVOICE_CREATED,
+            NotificationEvent::INVOICE_CREATED_BULK,
         ], true);
     }
 
@@ -251,6 +253,9 @@ final class NotificationDispatcher
     ): void {
         $logMeta = array_filter([
             'payment_id' => isset($context['payment_id']) ? (int) $context['payment_id'] : null,
+            'invoice_id' => isset($context['invoice_id']) ? (int) $context['invoice_id'] : null,
+            'billing_digest' => ($context['billing_digest'] ?? false) === true ? true : null,
+            'invoice_count' => isset($context['invoice_count']) ? (int) $context['invoice_count'] : null,
         ], fn ($v) => $v !== null);
 
         $log = NotificationLog::query()->create([

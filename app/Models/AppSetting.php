@@ -198,8 +198,13 @@ class AppSetting extends Model
             return in_array(strtolower($value), ['1', 'true', 'yes', 'on'], true);
         }
 
-        if (str_ends_with($key, '.telegram_ops')) {
+        if (str_ends_with($key, '.telegram_ops')
+            || str_ends_with($key, '.telegram_ops_digest')) {
             return in_array(strtolower($value), ['1', 'true', 'yes', 'on'], true);
+        }
+
+        if (str_ends_with($key, '.telegram_ops_digest_min')) {
+            return max(2, (int) $value);
         }
 
         if (str_ends_with($key, '.channels')) {

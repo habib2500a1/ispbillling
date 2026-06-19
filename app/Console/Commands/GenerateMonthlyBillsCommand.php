@@ -6,6 +6,7 @@ use App\Models\Customer;
 use App\Services\Automation\PrepaidWalletAutoSettleService;
 use App\Services\Billing\InvoiceGenerator;
 use App\Services\Billing\ScheduledPackageChangeService;
+use App\Services\Notifications\InvoiceOpsNotificationBatch;
 use App\Jobs\RunMonthlyBillingJob;
 use App\Support\BillingCycleType;
 use App\Support\QueueJobDispatcher;
@@ -81,45 +82,59 @@ class GenerateMonthlyBillsCommand extends Command
         $created = 0;
         $skipped = 0;
 
-        foreach ($query->cursor() as $customer) {
-            $package = $customer->package;
-            if (! $package) {
-                continue;
-            }
+        $useDigest = ! $this->option('dry-run')
+            && ! $this->option('customer')
+            && (bool) config('notifications.events.invoice_created.telegram_ops_digest', true);
 
-            if ($cycleFilter && ($package->billing_cycle_type ?? '') !== $cycleFilter) {
-                continue;
-            }
+        if ($useDigest) {
+            app(InvoiceOpsNotificationBatch::class)->start('Monthly billing · '.$date->format('M Y'));
+        }
 
-            if (! InvoiceGenerator::shouldBillOnDate($customer, $package, $date, (bool) $this->option('force'))) {
-                $skipped++;
+        try {
+            foreach ($query->cursor() as $customer) {
+                $package = $customer->package;
+                if (! $package) {
+                    continue;
+                }
 
-                continue;
-            }
+                if ($cycleFilter && ($package->billing_cycle_type ?? '') !== $cycleFilter) {
+                    continue;
+                }
 
-            if ($this->option('dry-run')) {
-                $this->info("[dry-run] Would invoice #{$customer->id} ({$customer->name}) — ".($package->billing_cycle_type ?? 'monthly'));
+                if (! InvoiceGenerator::shouldBillOnDate($customer, $package, $date, (bool) $this->option('force'))) {
+                    $skipped++;
+
+                    continue;
+                }
+
+                if ($this->option('dry-run')) {
+                    $this->info("[dry-run] Would invoice #{$customer->id} ({$customer->name}) — ".($package->billing_cycle_type ?? 'monthly'));
+                    $created++;
+
+                    continue;
+                }
+
+                $invoice = InvoiceGenerator::generateForCustomer(
+                    $customer,
+                    $date,
+                    (bool) $this->option('no-prorate'),
+                    $this->option('coupon'),
+                );
+
+                if ($invoice === null) {
+                    $this->line("Skip #{$customer->id} — period already invoiced.");
+                    $skipped++;
+
+                    continue;
+                }
+
+                $this->info("Created {$invoice->invoice_number} for #{$customer->id} ({$package->billing_cycle_type})");
                 $created++;
-
-                continue;
             }
-
-            $invoice = InvoiceGenerator::generateForCustomer(
-                $customer,
-                $date,
-                (bool) $this->option('no-prorate'),
-                $this->option('coupon'),
-            );
-
-            if ($invoice === null) {
-                $this->line("Skip #{$customer->id} — period already invoiced.");
-                $skipped++;
-
-                continue;
+        } finally {
+            if ($useDigest) {
+                app(InvoiceOpsNotificationBatch::class)->flush();
             }
-
-            $this->info("Created {$invoice->invoice_number} for #{$customer->id} ({$package->billing_cycle_type})");
-            $created++;
         }
 
         $this->info("Done. Created: {$created}, skipped: {$skipped}");

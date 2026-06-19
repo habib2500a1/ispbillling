@@ -5,6 +5,7 @@ namespace App\Services\Collector;
 use App\Models\CollectorCollection;
 use App\Models\Payment;
 use App\Models\User;
+use App\Services\Reports\StaffPerformanceReportService;
 use App\Support\TenantResolver;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
@@ -27,6 +28,28 @@ final class CollectorCollectionReportService
             ->groupBy('collector_id')
             ->orderByDesc('total')
             ->get();
+
+        if ($rows->isEmpty()) {
+            $fromPayments = app(StaffPerformanceReportService::class)->collectionSummary(
+                $tenantId,
+                Carbon::parse($date)->startOfDay(),
+                Carbon::parse($date)->endOfDay(),
+            );
+
+            return [
+                'total' => $fromPayments['total'],
+                'count' => $fromPayments['count'],
+                'by_collector' => array_map(
+                    fn (array $row): array => [
+                        'collector_id' => $row['staff_id'],
+                        'name' => $row['name'],
+                        'total' => $row['total'],
+                        'count' => $row['count'],
+                    ],
+                    $fromPayments['by_staff'],
+                ),
+            ];
+        }
 
         $collectorIds = $rows->pluck('collector_id')->all();
         $names = User::query()->whereIn('id', $collectorIds)->pluck('name', 'id');
@@ -115,13 +138,13 @@ final class CollectorCollectionReportService
             return round($fromCollections, 2);
         }
 
-        return round((float) Payment::query()
-            ->withoutGlobalScopes()
-            ->where('tenant_id', $tenantId)
-            ->where('recorded_by', $collectorId)
-            ->where('status', 'completed')
-            ->whereDate('paid_at', today())
-            ->whereIn('method', config('collector.cash_methods', ['cash', 'counter']))
-            ->sum('amount'), 2);
+        $fromPayments = app(StaffPerformanceReportService::class)->collectionSummary(
+            $tenantId,
+            now()->startOfDay(),
+            now()->endOfDay(),
+            $collectorId,
+        );
+
+        return round((float) ($fromPayments['total'] ?? 0), 2);
     }
 }

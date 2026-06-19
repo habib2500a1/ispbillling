@@ -170,6 +170,7 @@ Route::prefix('v1')->group(function (): void {
         Route::patch('/staff/packages/{package}', [StaffPackagesController::class, 'update'])->whereNumber('package');
         Route::get('/staff/reports/expiring', [StaffReportsController::class, 'expiring']);
         Route::get('/staff/reports/collections', [StaffReportsController::class, 'collections']);
+        Route::get('/staff/reports/performance', [StaffReportsController::class, 'performance']);
         Route::get('/staff/reports/due', [StaffReportsController::class, 'due']);
         Route::middleware('throttle:30,1')->group(function (): void {
             Route::get('/staff/ai/dashboard', [\App\Http\Controllers\Api\V1\Staff\StaffAiController::class, 'dashboard']);

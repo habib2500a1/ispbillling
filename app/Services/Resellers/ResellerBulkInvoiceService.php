@@ -6,6 +6,7 @@ use App\Models\Customer;
 use App\Models\Invoice;
 use App\Models\Reseller;
 use App\Services\Billing\InvoiceGenerator;
+use App\Services\Notifications\InvoiceOpsNotificationBatch;
 use App\Support\CustomerStatus;
 use Carbon\Carbon;
 use Carbon\CarbonInterface;
@@ -45,51 +46,62 @@ final class ResellerBulkInvoiceService
             ->whereNotNull('package_id')
             ->with('package');
 
-        foreach ($query->cursor() as $customer) {
-            /** @var Customer $customer */
-            if (! $customer->shouldGenerateInvoice()) {
-                $skipped++;
+        $useDigest = ! $dryRun && (bool) config('notifications.events.invoice_created.telegram_ops_digest', true);
+        if ($useDigest) {
+            app(InvoiceOpsNotificationBatch::class)->start('Reseller bulk billing · '.$reseller->name);
+        }
 
-                continue;
-            }
-
-            if ($customer->package === null) {
-                $skipped++;
-
-                continue;
-            }
-
-            if ($dryRun) {
-                if ($this->wouldSkipExistingPeriod($customer, $date)) {
-                    $skipped++;
-                } else {
-                    $created++;
-                }
-
-                continue;
-            }
-
-            try {
-                $noProrate = app(ResellerCustomerBillingEngine::class)->shouldSkipProration($customer);
-                $invoice = InvoiceGenerator::generateForCustomer($customer, $date, $noProrate, null);
-
-                if ($invoice === null) {
+        try {
+            foreach ($query->cursor() as $customer) {
+                /** @var Customer $customer */
+                if (! $customer->shouldGenerateInvoice()) {
                     $skipped++;
 
                     continue;
                 }
 
-                $created++;
-                $invoices[] = [
-                    'customer_code' => (string) $customer->customer_code,
-                    'invoice_number' => (string) $invoice->invoice_number,
-                    'total' => round((float) $invoice->total, 2),
-                ];
-            } catch (ValidationException $e) {
-                $msg = collect($e->errors())->flatten()->first() ?? $e->getMessage();
-                $errors[] = ($customer->customer_code ?? '#'.$customer->id).': '.$msg;
-            } catch (\Throwable $e) {
-                $errors[] = ($customer->customer_code ?? '#'.$customer->id).': '.$e->getMessage();
+                if ($customer->package === null) {
+                    $skipped++;
+
+                    continue;
+                }
+
+                if ($dryRun) {
+                    if ($this->wouldSkipExistingPeriod($customer, $date)) {
+                        $skipped++;
+                    } else {
+                        $created++;
+                    }
+
+                    continue;
+                }
+
+                try {
+                    $noProrate = app(ResellerCustomerBillingEngine::class)->shouldSkipProration($customer);
+                    $invoice = InvoiceGenerator::generateForCustomer($customer, $date, $noProrate, null);
+
+                    if ($invoice === null) {
+                        $skipped++;
+
+                        continue;
+                    }
+
+                    $created++;
+                    $invoices[] = [
+                        'customer_code' => (string) $customer->customer_code,
+                        'invoice_number' => (string) $invoice->invoice_number,
+                        'total' => round((float) $invoice->total, 2),
+                    ];
+                } catch (ValidationException $e) {
+                    $msg = collect($e->errors())->flatten()->first() ?? $e->getMessage();
+                    $errors[] = ($customer->customer_code ?? '#'.$customer->id).': '.$msg;
+                } catch (\Throwable $e) {
+                    $errors[] = ($customer->customer_code ?? '#'.$customer->id).': '.$e->getMessage();
+                }
+            }
+        } finally {
+            if ($useDigest) {
+                app(InvoiceOpsNotificationBatch::class)->flush();
             }
         }
 

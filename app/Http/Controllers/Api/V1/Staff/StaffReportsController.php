@@ -7,6 +7,7 @@ use App\Models\Customer;
 use App\Models\User;
 use App\Services\Mobile\StaffBillingMobileService;
 use App\Services\Reports\AnalyticsReportService;
+use App\Services\Reports\StaffPerformanceReportService;
 use App\Support\StaffTenantScope;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
@@ -60,6 +61,20 @@ class StaffReportsController extends Controller
         $report = $analytics->collectionReport($from, $to, StaffTenantScope::tenantIdFor($user));
 
         return response()->json(['report' => $report]);
+    }
+
+    public function performance(Request $request, StaffPerformanceReportService $performance): JsonResponse
+    {
+        $user = $request->user();
+        abort_unless($user instanceof User, 403);
+
+        $tenantId = StaffTenantScope::tenantIdFor($user);
+        $scopedStaffId = app(\App\Services\Collector\CollectorStaffResolver::class)
+            ->scopedCollectorIdForReports($user);
+
+        return response()->json([
+            'performance' => $performance->dashboard($tenantId, $scopedStaffId),
+        ]);
     }
 
     public function due(Request $request, StaffBillingMobileService $billing): JsonResponse

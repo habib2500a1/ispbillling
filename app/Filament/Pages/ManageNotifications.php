@@ -76,6 +76,8 @@ class ManageNotifications extends Page
             'telegram_enabled' => (bool) config('notifications.telegram.enabled', false),
             'telegram_bot_token' => '',
             'telegram_ops_chat_id' => (string) (config('notifications.telegram.ops_chat_id') ?? ''),
+            'event_invoice_created_telegram_ops' => (bool) config('notifications.events.invoice_created.telegram_ops', true),
+            'event_invoice_created_telegram_digest' => (bool) config('notifications.events.invoice_created.telegram_ops_digest', true),
             'event_payment_enabled' => (bool) config('notifications.events.payment_success.enabled', true),
             'event_payment_channels' => config('notifications.events.payment_success.channels', ['email', 'sms']),
             'event_payment_telegram_ops' => (bool) config('notifications.events.payment_success.telegram_ops', true),
@@ -192,6 +194,9 @@ class ManageNotifications extends Page
                                     ->options($channelOptions)
                                     ->columns(2),
                                 Toggle::make('event_payment_telegram_ops')->label('Telegram ops on payment'),
+                                Toggle::make('event_invoice_created_telegram_ops')->label('Telegram ops on new bill / invoice'),
+                                Toggle::make('event_invoice_created_telegram_digest')
+                                    ->label('Telegram digest on bulk billing (one message per run)'),
                                 Toggle::make('event_due_enabled')->label('Invoice due reminders'),
                                 TextInput::make('event_due_days')
                                     ->label('Days before due date')
@@ -342,6 +347,8 @@ class ManageNotifications extends Page
         AppSetting::putValue('notifications.events.payment_success.enabled', $this->truthy($state['event_payment_enabled'] ?? true) ? '1' : '0');
         AppSetting::putValue('notifications.events.payment_success.channels', $this->channelsCsv($state['event_payment_channels'] ?? []));
         AppSetting::putValue('notifications.events.payment_success.telegram_ops', $this->truthy($state['event_payment_telegram_ops'] ?? false) ? '1' : '0');
+        AppSetting::putValue('notifications.events.invoice_created.telegram_ops', $this->truthy($state['event_invoice_created_telegram_ops'] ?? true) ? '1' : '0');
+        AppSetting::putValue('notifications.events.invoice_created.telegram_ops_digest', $this->truthy($state['event_invoice_created_telegram_digest'] ?? true) ? '1' : '0');
 
         $dueEnabled = $this->truthy($state['event_due_enabled'] ?? false);
         AppSetting::putValue('notifications.events.invoice_due.enabled', $dueEnabled ? '1' : '0');

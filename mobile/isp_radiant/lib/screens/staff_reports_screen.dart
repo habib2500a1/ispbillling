@@ -112,6 +112,16 @@ class _StaffReportsScreenState extends State<StaffReportsScreen> with SingleTick
             );
           }),
           const SizedBox(height: 12),
+          const Text('By staff (this month)', style: TextStyle(fontWeight: FontWeight.bold)),
+          ...((_collectionReport?['by_staff'] as List<dynamic>?) ?? []).map((s) {
+            final row = Map<String, dynamic>.from(s as Map);
+            return ListTile(
+              title: Text(row['name']?.toString() ?? '—'),
+              subtitle: Text('${row['count'] ?? 0} payments'),
+              trailing: Text('৳${_fmt.format((row['amount'] as num?) ?? row['total'] ?? 0)}', style: const TextStyle(fontWeight: FontWeight.w600)),
+            );
+          }),
+          const SizedBox(height: 12),
           const Text('By method', style: TextStyle(fontWeight: FontWeight.bold)),
           ...byMethod.map((m) {
             final row = Map<String, dynamic>.from(m as Map);

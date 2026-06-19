@@ -15,6 +15,7 @@ use App\Models\SupportTicket;
 use App\Models\User;
 use App\Models\Zone;
 use App\Services\Dashboard\DashboardMetricsService;
+use App\Services\Reports\StaffPerformanceReportService;
 use App\Support\CustomerStatus;
 use App\Support\InternalTaskStatus;
 use App\Support\StaffTenantScope;
@@ -27,6 +28,7 @@ final class StaffMobileService
     public function __construct(
         private readonly DashboardMetricsService $metrics,
         private readonly StaffBillingKpiResolver $billingKpis,
+        private readonly StaffPerformanceReportService $staffPerformance,
     ) {}
 
     /**
@@ -74,6 +76,10 @@ final class StaffMobileService
             ->where('tenant_id', $tenantId)
             ->sum('wallet_balance');
 
+        $scopedStaffId = app(\App\Services\Collector\CollectorStaffResolver::class)
+            ->scopedCollectorIdForReports($user);
+        $staffPerformance = $this->staffPerformance->dashboard($tenantId, $scopedStaffId);
+
         return [
             'kpis' => [
                 'collected_today' => round((float) ($snap['collected_today'] ?? 0), 2),
@@ -111,6 +117,7 @@ final class StaffMobileService
             'tickets' => $this->ticketStats($tenantId),
             'tasks' => $this->taskStats($tenantId),
             'zone_collection_chart' => $this->zoneCollectionChartFromSynced($tenantId, $from, $to),
+            'staff_performance' => $staffPerformance,
             'quick_actions' => $this->quickActions($user),
         ];
     }

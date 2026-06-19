@@ -26,6 +26,11 @@ class MobileStaffDashboardTest extends TestCase
             ->assertJsonStructure([
                 'user' => ['id', 'name', 'user_type', 'status'],
                 'billing' => ['monthly_bill', 'collected_bill', 'due', 'discount'],
+                'staff_performance' => [
+                    'today' => ['total', 'count', 'by_staff'],
+                    'month' => ['total', 'count', 'by_staff'],
+                    'new_lines_month' => ['total', 'by_staff'],
+                ],
                 'tickets' => ['total', 'pending', 'process'],
                 'tasks' => ['total', 'pending', 'process'],
                 'zone_collection_chart',

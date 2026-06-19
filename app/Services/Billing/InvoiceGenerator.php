@@ -252,6 +252,7 @@ final class InvoiceGenerator
                 ),
                 ['subject' => 'New bill — '.($invoice->invoice_number ?? 'invoice')],
             );
+            app(\App\Services\Notifications\OpsNotificationService::class)->onInvoiceCreated($invoice);
         } catch (\Throwable) {
             // Notification failure must not block invoice generation.
         }

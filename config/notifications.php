@@ -69,7 +69,15 @@ return [
         'invoice_created' => [
             'enabled' => (bool) env('NOTIFICATIONS_INVOICE_CREATED', true),
             'channels' => ['email', 'sms'],
-            'telegram_ops' => false,
+            'telegram_ops' => (bool) env('NOTIFICATIONS_INVOICE_CREATED_TELEGRAM_OPS', true),
+            /** Bulk isp:generate-bills sends one digest instead of per-invoice Telegram spam. */
+            'telegram_ops_digest' => (bool) env('NOTIFICATIONS_INVOICE_CREATED_TELEGRAM_DIGEST', true),
+            'telegram_ops_digest_min' => max(2, (int) env('NOTIFICATIONS_INVOICE_CREATED_TELEGRAM_DIGEST_MIN', 2)),
+        ],
+        'invoice_created_bulk' => [
+            'enabled' => true,
+            'channels' => [],
+            'telegram_ops' => (bool) env('NOTIFICATIONS_INVOICE_CREATED_TELEGRAM_OPS', true),
         ],
         'support_token_created' => [
             'enabled' => true,
@@ -179,6 +187,8 @@ return [
         'outage' => "Dear {name},\n\nService notice: {message}\n\nWe apologize for the inconvenience.",
         'portal_otp' => "Your portal login code is {code}. Valid for {minutes} minutes. Do not share this code.",
         'payment_success_ops' => "💰 Bill paid\nCustomer: {name} ({ClientID})\nAmount: {PaidAmount} BDT\nInvoice: {invoice_number}\nReceipt: {receipt_number}\nMethod: {method}\nCollected by: {collected_by}\nDue left: {due} BDT\nPhone: {phone}\nTime: {time}",
+        'invoice_created_ops' => "📄 New bill\nCustomer: {name} ({ClientID})\nInvoice: {invoice_number}\nAmount: {Due} BDT\nMonth: {Month}\nDue date: {BillingLastDate}\nPackage: {Package}\nPhone: {CustomerNumber}\nTime: {time}",
+        'invoice_created_bulk_ops' => "📄 Billing digest · {run_label}\nInvoices: {count}\nTotal: {total_amount} BDT\nPeriod: {Month}\n\n{customer_list}\n\n<i>{time}</i>",
         'client_created_ops' => "✅ {title}\n{name} ({ClientID})\nPackage: {Package}\nPhone: {CustomerNumber}\nTime: {time}",
         'client_enable_ops' => "🟢 {title}\n{name} ({ClientID})\nUser: {UserName}\nTime: {time}",
         'client_disable_ops' => "🔴 {title}\n{name} ({ClientID})\nBill: {MonthlyBillAmount} BDT\nTime: {time}",

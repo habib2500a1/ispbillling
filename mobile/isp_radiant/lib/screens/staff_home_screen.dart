@@ -425,6 +425,13 @@ class _StaffHomeScreenState extends ConsumerState<StaffHomeScreen> {
                   RadiantLegacyDashboardCards.billingSummary(d.billing),
                   const SizedBox(height: 12),
                 ],
+                if (_hasModule(d, 'reports') || _showCollection(d)) ...[
+                  RadiantLegacyDashboardCards.staffPerformance(
+                    d.staffPerformance,
+                    showLeaderboard: _user?['user_type']?.toString() == 'Admin',
+                  ),
+                  const SizedBox(height: 12),
+                ],
                 RadiantLegacyDashboardCards.ticketTaskRow(
                   tickets: d.tickets,
                   tasks: d.tasks,

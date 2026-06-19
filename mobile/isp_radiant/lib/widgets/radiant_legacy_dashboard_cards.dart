@@ -196,6 +196,114 @@ class RadiantLegacyDashboardCards {
     );
   }
 
+  static Widget staffPerformance(StaffPerformance performance, {bool showLeaderboard = true}) {
+    final today = performance.today;
+    final month = performance.month;
+    final newLines = performance.newLinesMonth;
+    final mine = performance.mine;
+
+    return Column(
+      children: [
+        _card(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Today collection', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Expanded(child: _plainTile('Total today', today.total)),
+                  if (mine != null) Expanded(child: _plainTile('My collection', mine.todayCollection)),
+                ],
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 10),
+        _card(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('This month', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Expanded(child: _plainTile('Collection', month.total)),
+                  Expanded(child: _plainTile('New lines', newLines.total.toDouble())),
+                ],
+              ),
+              if (mine != null) ...[
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Expanded(child: _plainTile('My collection', mine.monthCollection)),
+                    Expanded(child: _plainTile('My new lines', mine.monthNewLines.toDouble())),
+                  ],
+                ),
+              ],
+            ],
+          ),
+        ),
+        if (showLeaderboard && month.byStaff.isNotEmpty) ...[
+          const SizedBox(height: 10),
+          _card(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('Staff collection (month)', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
+                const SizedBox(height: 10),
+                ...month.byStaff.take(8).map(
+                      (row) => Padding(
+                        padding: const EdgeInsets.only(bottom: 8),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Text(row.name, style: const TextStyle(fontSize: 13, color: Color(0xFF37474F))),
+                            ),
+                            Text(
+                              _fmt.format(row.total),
+                              style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: Color(0xFF26A69A)),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+              ],
+            ),
+          ),
+        ],
+        if (showLeaderboard && newLines.byStaff.isNotEmpty) ...[
+          const SizedBox(height: 10),
+          _card(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('New line performance (month)', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
+                const SizedBox(height: 10),
+                ...newLines.byStaff.take(8).map(
+                      (row) => Padding(
+                        padding: const EdgeInsets.only(bottom: 8),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Text(row.name, style: const TextStyle(fontSize: 13, color: Color(0xFF37474F))),
+                            ),
+                            Text(
+                              '${row.count}',
+                              style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: Color(0xFF5C6BC0)),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+              ],
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
   static Widget _card({required Widget child}) {
     return Container(
       width: double.infinity,
