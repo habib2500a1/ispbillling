@@ -19,6 +19,9 @@ class ScoutSyncCustomersCommand extends Command
     {
         CustomerSearchConfigurator::apply();
 
+        // Bulk CLI import must run synchronously; queued jobs may sit behind billing/network work.
+        config(['scout.queue' => false]);
+
         if (! in_array((string) config('scout.driver'), ['meilisearch', 'collection'], true)) {
             $this->error('Customer search disabled or Scout not available. Enable in Settings → Customer search.');
 
