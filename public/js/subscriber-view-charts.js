@@ -8,6 +8,16 @@
         try { return JSON.parse(el.textContent || '{}'); } catch (e) { return null; }
     }
 
+    function chartHeight() {
+        if (window.matchMedia('(max-width: 640px)').matches) {
+            return 84;
+        }
+        if (window.matchMedia('(max-width: 1023px)').matches) {
+            return 96;
+        }
+        return 120;
+    }
+
     function canvasWidth(canvas, fallback) {
         var width = canvas.offsetWidth || canvas.parentElement?.offsetWidth || fallback || 320;
         return Math.max(240, width);
@@ -59,7 +69,7 @@
         var data = all[activeUsagePeriod] || all.day || { labels: [], download_gb: [], upload_gb: [] };
         var ctx = canvas.getContext('2d');
         var width = canvasWidth(canvas);
-        var height = parseInt(canvas.getAttribute('height') || '120', 10);
+        var height = chartHeight();
         var ratio = window.devicePixelRatio || 1;
 
         canvas.width = width * ratio;

@@ -131,7 +131,7 @@
             </div>
         </div>
         <div class="sub-cc-chart-wrap">
-            <canvas id="sub-usage-chart" height="120"></canvas>
+            <canvas id="sub-usage-chart" height="96"></canvas>
         </div>
         <script type="application/json" id="sub-usage-data">@json($usage)</script>
     </section>
