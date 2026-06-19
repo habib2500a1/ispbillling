@@ -52,16 +52,21 @@
                 <x-filament-panels::form
                     id="form"
                     :wire:key="$this->getId() . '.forms.' . $this->getFormStatePath()"
-                    wire:submit="create"
+                    wire:submit="createTicket"
                 >
                     {{ $this->form }}
 
                     <div class="sp-create-form-footer">
                         @unless ($this->canSaveTicket())
                             <p class="sp-create-form-footer__warn">
-                                Pick a subscriber on the left before saving.
+                                Type username (ID) and press Enter — e.g. habib3.kp (0603).
                             </p>
                         @endunless
+                        @if (blank($this->data['description'] ?? null))
+                            <p class="sp-create-form-footer__warn">
+                                Problem details (description) is required before saving.
+                            </p>
+                        @endif
                         <x-filament-panels::form.actions
                             :actions="$this->getCachedFormActions()"
                             :full-width="$this->hasFullWidthFormActions()"

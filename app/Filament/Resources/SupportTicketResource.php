@@ -143,6 +143,7 @@ class SupportTicketResource extends Resource
                         ->label('Department')
                         ->options(SupportTicket::DEPARTMENTS)
                         ->required()
+                        ->default('technical_support')
                         ->native(true)
                         ->placeholder('Select department'),
                 ]),

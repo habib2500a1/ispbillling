@@ -209,7 +209,7 @@
                 fetchResults();
             }
             $wire.on('subscriber-search-reset', () => reset());
-            document.getElementById('form')?.addEventListener('submit', () => syncToLivewire());
+            document.getElementById('form')?.addEventListener('submit', () => syncToLivewire(), true);
         "
         @click.outside="open = false"
     >

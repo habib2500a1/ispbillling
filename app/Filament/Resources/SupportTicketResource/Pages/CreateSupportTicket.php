@@ -42,23 +42,46 @@ class CreateSupportTicket extends CreateRecord
     protected function getCreateFormAction(): Action
     {
         return parent::getCreateFormAction()
-            ->label('Create ticket')
-            ->before(function (): void {
-                $this->selectSubscriberFromTypedQuery();
-                $this->syncCustomerIdFromSelection();
+            ->label('Create ticket');
+    }
 
-                if (! filled($this->data['customer_id'] ?? null)) {
-                    Notification::make()
-                        ->title('Subscriber not found')
-                        ->body('Type username (ID) like habib3.kp (0603) or pick from the list.')
-                        ->warning()
-                        ->send();
+    public function createTicket(): void
+    {
+        $this->selectSubscriberFromTypedQuery(trim($this->subscriberSearch));
+        $this->syncCustomerIdFromSelection();
 
-                    throw ValidationException::withMessages([
-                        'data.customer_id' => 'Click a subscriber in the dropdown before saving.',
-                    ]);
-                }
-            });
+        if (! filled($this->data['customer_id'] ?? null)) {
+            Notification::make()
+                ->title('Subscriber not found')
+                ->body('Type username (ID) like habib3.kp (0603) and press Enter first.')
+                ->warning()
+                ->send();
+
+            return;
+        }
+
+        foreach ([
+            'department' => 'technical_support',
+            'channel' => 'call_center',
+            'priority' => 'medium',
+            'status' => 'open',
+        ] as $field => $default) {
+            if (blank($this->data[$field] ?? null)) {
+                $this->data[$field] = $default;
+            }
+        }
+
+        if (blank($this->data['subject'] ?? null) && $this->selectedSubscriber !== null) {
+            $name = (string) ($this->selectedSubscriber['name'] ?? 'Subscriber');
+            $code = (string) ($this->selectedSubscriber['customer_code'] ?? '');
+            $this->data['subject'] = $code !== ''
+                ? "Support — {$name} (#{$code})"
+                : "Support — {$name}";
+        }
+
+        $this->form->fill($this->data);
+
+        $this->create();
     }
 
     protected function syncCustomerIdFromSelection(): void

@@ -59,19 +59,49 @@ class SupportTicketCreatePageTest extends TestCase
             ->call('runSubscriberSearch')
             ->assertSet('subscriberResults.0.customer_code', 'TST0099')
             ->call('selectSubscriber', (int) $customer->id)
-            ->assertSet('data.customer_id', $customer->id)
-            ->set('data.subject', 'Test ticket from feature test')
-            ->set('data.description', 'Subscriber reported no internet.')
-            ->set('data.department', 'technical_support')
-            ->set('data.priority', 'medium')
-            ->set('data.status', 'open')
-            ->set('data.channel', 'call_center')
-            ->call('create')
+            ->assertSet('data.customer_id', $customer->id);
+    }
+
+    public function test_create_ticket_from_typed_subscriber_and_description(): void
+    {
+        Role::findOrCreate('isp-admin');
+        $user = User::factory()->create();
+        $user->assignRole('isp-admin');
+
+        \App\Models\Package::query()->create([
+            'tenant_id' => 1,
+            'name' => 'Demo 10 Mbps',
+            'type' => 'residential',
+            'download_mbps' => 10,
+            'upload_mbps' => 10,
+            'price_monthly' => 500,
+            'setup_fee' => 0,
+            'vat_percent' => 0,
+            'billing_cycle_days' => 30,
+            'is_active' => true,
+        ]);
+
+        \App\Models\Customer::query()->create([
+            'tenant_id' => 1,
+            'customer_code' => '0603',
+            'name' => 'Habib Three',
+            'phone' => '01710000603',
+            'username' => 'habib3.kp',
+            'status' => 'active',
+            'billing_day' => 1,
+            'package_id' => 1,
+        ]);
+
+        Livewire::actingAs($user)
+            ->test(\App\Filament\Resources\SupportTicketResource\Pages\CreateSupportTicket::class)
+            ->set('subscriberSearch', 'habib3.kp (0603)')
+            ->set('data.description', 'No internet since morning')
+            ->call('createTicket')
             ->assertHasNoErrors();
 
         $this->assertDatabaseHas('support_tickets', [
-            'customer_id' => $customer->id,
-            'subject' => 'Test ticket from feature test',
+            'customer_id' => 1,
+            'description' => 'No internet since morning',
         ]);
     }
 
