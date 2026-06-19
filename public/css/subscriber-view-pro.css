@@ -2926,12 +2926,15 @@ body.isp-cv-map-modal-open {
 }
 
 .sub-cc-timeline-wrap {
+    --sub-cc-timeline-visible: 4;
+    --sub-cc-timeline-row-h: 2.5rem;
     overflow-x: hidden;
     margin: 0 -0.15rem;
     padding: 0 0.15rem 0.1rem;
 }
 
 .sub-cc-timeline-wrap--scroll {
+    max-height: calc(var(--sub-cc-timeline-visible) * var(--sub-cc-timeline-row-h));
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
     overscroll-behavior-y: contain;
@@ -2955,6 +2958,7 @@ body.isp-cv-map-modal-open {
     gap: 0.65rem;
     padding: 0.55rem 0;
     border-bottom: 1px solid #f1f5f9;
+    flex-shrink: 0;
 }
 
 .sub-cc-timeline__item:last-child {
@@ -3285,11 +3289,13 @@ body.isp-cv-map-modal-open {
     }
 
     .sub-pro .sub-cc-timeline-wrap {
+        --sub-cc-timeline-row-h: 3.35rem;
         margin: 0;
         padding: 0 0.1rem 0.15rem 0;
     }
 
     .sub-pro .sub-cc-timeline-wrap--scroll {
+        max-height: calc(var(--sub-cc-timeline-visible) * var(--sub-cc-timeline-row-h) + 3 * 0.35rem);
         overflow-x: hidden;
         overflow-y: auto;
         -webkit-overflow-scrolling: touch;

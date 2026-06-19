@@ -110,9 +110,10 @@
             <p class="isp-cv-muted text-sm">No activity yet.</p>
         @else
             <div
-                class="sub-cc-timeline-wrap"
-                data-sub-timeline-wrap
-                data-sub-timeline-visible="4"
+                @class([
+                    'sub-cc-timeline-wrap',
+                    'sub-cc-timeline-wrap--scroll' => count($timeline) > 4,
+                ])
                 tabindex="0"
                 aria-label="Activity timeline, scroll for more events"
             >
