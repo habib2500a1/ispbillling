@@ -158,7 +158,12 @@ class SupportTicketResource extends Resource
                         ->default('call_center')
                         ->native(false),
                     Forms\Components\Select::make('priority')
-                        ->options(SupportTicket::PRIORITIES)
+                        ->options([
+                            'critical' => 'P1 Critical',
+                            'high' => 'P2 High',
+                            'medium' => 'P3 Medium',
+                            'low' => 'P4 Low',
+                        ])
                         ->required()
                         ->default('medium')
                         ->live()
@@ -183,7 +188,21 @@ class SupportTicketResource extends Resource
                     ->label('Problem details')
                     ->required()
                     ->rows(5)
+                    ->live(debounce: 600)
                     ->placeholder('What did the customer report? Steps tried, error lights, outage area, etc.')
+                    ->columnSpanFull(),
+                Forms\Components\FileUpload::make('create_attachment')
+                    ->label('Attachment (photo, PDF, screenshot)')
+                    ->disk('public')
+                    ->directory(fn (Get $get): string => 'ticket-uploads/'.(auth()->user()?->tenant_id ?? '0'))
+                    ->acceptedFileTypes([
+                        'image/jpeg', 'image/png', 'image/gif', 'image/webp',
+                        'application/pdf',
+                    ])
+                    ->maxSize(5120)
+                    ->downloadable()
+                    ->openable()
+                    ->visible($useSubscriberSearchPicker)
                     ->columnSpanFull(),
                 Forms\Components\Placeholder::make('sla_preview')
                     ->label('SLA resolve target')

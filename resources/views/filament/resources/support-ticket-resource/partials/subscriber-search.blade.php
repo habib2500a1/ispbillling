@@ -73,13 +73,11 @@
                         $isSelected = (int) ($this->selectedSubscriberId ?? 0) === (int) ($row['id'] ?? 0);
                     @endphp
                     <li role="option" wire:key="sp-search-row-{{ $row['id'] }}">
-                        <button
-                            type="button"
-                            wire:click="selectSubscriber({{ (int) $row['id'] }})"
-                            wire:loading.attr="disabled"
-                            wire:target="selectSubscriber"
+                        <a
+                            href="{{ $this->pickSubscriberUrl((int) $row['id']) }}"
+                            data-navigate="false"
                             @class([
-                                'isp-collection-result-card sp-create-result-card w-full text-left',
+                                'isp-collection-result-card sp-create-result-card block w-full text-left no-underline',
                                 'sp-create-result-card--active ring-2 ring-primary-500 dark:ring-primary-400' => $isSelected,
                             ])
                         >
@@ -118,7 +116,7 @@
                                     <p class="text-xs text-gray-500">{{ $row['status'] ?? '—' }}</p>
                                 </div>
                             </div>
-                        </button>
+                        </a>
                     </li>
                 @endforeach
             </ul>

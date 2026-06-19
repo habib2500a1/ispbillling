@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\SupportTicketResource\Pages\Concerns;
 
 use App\Services\Billing\BillCollectionSearchService;
+use App\Support\SupportCategories;
 use App\Services\Support\SupportTicketWorkspaceService;
 use Filament\Notifications\Notification;
 use Livewire\Attributes\Computed;
@@ -301,24 +302,28 @@ trait ProvidesSupportTicketCustomerSearch
         $due = (float) ($row['balance_due'] ?? 0);
         $offline = ! (bool) (($row['connection']['online'] ?? false));
         $suspended = strtolower((string) ($row['status'] ?? '')) === 'suspended';
+        $customer = \App\Models\Customer::query()->find($row['id'] ?? 0);
 
         if ($due > 0.009) {
-            $this->data['issue_type'] ??= 'billing';
+            $this->data['issue_type'] ??= 'billing_due';
             $this->data['department'] ??= 'billing';
         } elseif ($offline || $suspended) {
-            $this->data['issue_type'] ??= 'connection';
+            $this->data['issue_type'] ??= 'network_no_internet';
             $this->data['department'] ??= 'technical_support';
-            if (($this->data['priority'] ?? 'medium') === 'medium') {
-                $this->data['priority'] = 'high';
-            }
+        } else {
+            $this->data['issue_type'] ??= 'network_slow_speed';
         }
+
+        $issueType = (string) ($this->data['issue_type'] ?? 'network_slow_speed');
+        $this->data['priority'] = SupportCategories::defaultPriority($issueType, $customer);
 
         if (blank($this->data['subject'] ?? null)) {
             $name = (string) ($row['name'] ?? 'Subscriber');
             $code = (string) ($row['customer_code'] ?? '');
+            $label = SupportCategories::label($issueType);
             $this->data['subject'] = $code !== ''
-                ? "Support — {$name} (#{$code})"
-                : "Support — {$name}";
+                ? "{$label} — {$name} (#{$code})"
+                : "{$label} — {$name}";
         }
     }
 

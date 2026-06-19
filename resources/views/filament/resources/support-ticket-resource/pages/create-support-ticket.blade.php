@@ -5,6 +5,9 @@
     $live = $preview['live'] ?? [];
     $ticketCreateJs = public_path('js/support-ticket-create.js');
     $ticketCreateJsVer = file_exists($ticketCreateJs) ? (int) filemtime($ticketCreateJs) : 1;
+    $selectedIssue = $this->data['issue_type'] ?? null;
+    $categories = collect($this->getCategoryPickerItems())->groupBy('group');
+    $aiSuggestions = $this->createAiSuggestions;
 @endphp
 
 {!! \App\Support\SupportStyles::html() !!}
@@ -18,24 +21,46 @@
         'isp-support-ticket-create',
     ])
 >
-    <div class="sp-pro sp-create-pro">
-        <header class="sp-ticket-hero sp-create-hero">
+    <div class="sp-pro sp-create-pro sp-create-enterprise">
+        <header class="sp-create-hero sp-create-hero--enterprise">
             <div class="sp-create-hero__row">
                 <div>
-                    <p class="sp-create-hero__eyebrow">Support · New ticket</p>
-                    <h1 class="sp-create-hero__title">Open a service desk ticket</h1>
-                    <p class="sp-create-hero__sub">Link subscriber, check PPP/ONU, assign technician, save to queue.</p>
+                    <p class="sp-create-hero__eyebrow">NOC · New service ticket</p>
+                    <h1 class="sp-create-hero__title">Create ticket</h1>
+                    <p class="sp-create-hero__sub">Link subscriber · pick category · AI network hints · assign field tech · SLA auto-set</p>
                 </div>
                 <div class="sp-create-hero__links">
                     <a href="{{ $listUrl }}" class="sp-360__link" data-navigate="false">← Queue</a>
-                    <a href="{{ $hubUrl }}" class="sp-360__link">Center</a>
+                    <a href="{{ $hubUrl }}" class="sp-360__link" data-navigate="false">NOC Center</a>
                 </div>
             </div>
+
+            <div class="sp-create-kpi-strip">
+                <div class="sp-create-kpi">
+                    <span class="sp-create-kpi__label">Priority</span>
+                    <strong class="sp-create-kpi__value">{{ $this->priorityCodeLabel() }}</strong>
+                </div>
+                <div class="sp-create-kpi">
+                    <span class="sp-create-kpi__label">SLA target</span>
+                    <strong class="sp-create-kpi__value sp-create-kpi__value--sm">{{ $this->slaPreviewLabel() }}</strong>
+                </div>
+                <div class="sp-create-kpi">
+                    <span class="sp-create-kpi__label">Subscriber</span>
+                    <strong class="sp-create-kpi__value sp-create-kpi__value--sm">
+                        @if ($this->selectedSubscriber)
+                            {{ $this->selectedSubscriber['customer_code'] ?? 'Linked' }}
+                        @else
+                            Not linked
+                        @endif
+                    </strong>
+                </div>
+            </div>
+
             <ol class="sp-create-steps" aria-label="Create ticket steps">
                 <li @class(['sp-create-steps__item', 'sp-create-steps__item--done' => $this->selectedSubscriber])>1. Find subscriber</li>
-                <li @class(['sp-create-steps__item', 'sp-create-steps__item--done' => $this->selectedSubscriber])>2. Review status</li>
-                <li @class(['sp-create-steps__item', 'sp-create-steps__item--done' => filled($this->data['assigned_to'] ?? null)])>3. Assign &amp; route</li>
-                <li class="sp-create-steps__item">4. Save ticket</li>
+                <li @class(['sp-create-steps__item', 'sp-create-steps__item--done' => $this->selectedSubscriber])>2. Network / ONU check</li>
+                <li @class(['sp-create-steps__item', 'sp-create-steps__item--done' => filled($selectedIssue)])>3. Category &amp; priority</li>
+                <li @class(['sp-create-steps__item', 'sp-create-steps__item--done' => filled($this->data['assigned_to'] ?? null)])>4. Assign &amp; save</li>
             </ol>
         </header>
 
@@ -51,6 +76,46 @@
             </aside>
 
             <div class="sp-create-layout__main">
+                @if ($aiSuggestions !== [])
+                    <section class="sp-ai-panel sp-create-ai" aria-label="AI ticket hints">
+                        <h2 class="sp-ai-panel__title">AI analysis (live network)</h2>
+                        <ul class="sp-ai-panel__list">
+                            @foreach ($aiSuggestions as $suggestion)
+                                <li @class(['sp-ai-panel__item', 'sp-ai-panel__item--'.$suggestion['tone']])>
+                                    <strong>{{ $suggestion['label'] }}</strong>
+                                    <span>{{ $suggestion['detail'] }}</span>
+                                </li>
+                            @endforeach
+                        </ul>
+                    </section>
+                @endif
+
+                <section class="sp-create-categories" aria-label="Quick category pick">
+                    <h2 class="sp-create-categories__title">Ticket category</h2>
+                    <p class="sp-create-categories__hint">Tap a category — priority and department auto-set from NOC rules.</p>
+                    @foreach ($categories as $group => $items)
+                        <div class="sp-create-cat-group">
+                            <span class="sp-create-cat-group__label">{{ $group }}</span>
+                            <div class="sp-create-cat-group__pills">
+                                @foreach ($items as $item)
+                                    <button
+                                        type="button"
+                                        wire:click="pickCategory('{{ $item['key'] }}')"
+                                        wire:loading.attr="disabled"
+                                        @class([
+                                            'sp-create-cat-pill',
+                                            'sp-create-cat-pill--active' => $selectedIssue === $item['key'],
+                                            'sp-create-cat-pill--'.$item['default_priority'],
+                                        ])
+                                    >
+                                        {{ $item['label'] }}
+                                    </button>
+                                @endforeach
+                            </div>
+                        </div>
+                    @endforeach
+                </section>
+
                 <x-filament-panels::form
                     id="form"
                     :wire:key="$this->getId() . '.forms.' . $this->getFormStatePath()"
@@ -61,7 +126,7 @@
                     <div class="sp-create-form-footer">
                         @unless ($this->canSaveTicket())
                             <p class="sp-create-form-footer__warn">
-                                Pick a subscriber on the left before saving.
+                                Link a subscriber on the left before creating the ticket.
                             </p>
                         @endunless
                         <x-filament-panels::form.actions
