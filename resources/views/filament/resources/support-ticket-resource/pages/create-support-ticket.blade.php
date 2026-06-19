@@ -92,7 +92,9 @@
                                     <button
                                         type="button"
                                         wire:click="pickCategory('{{ $item['key'] }}')"
+                                        wire:key="sp-cat-{{ $item['key'] }}"
                                         wire:loading.attr="disabled"
+                                        wire:target="pickCategory"
                                         @class([
                                             'sp-create-cat-pill',
                                             'sp-create-cat-pill--active' => $selectedIssue === $item['key'],
@@ -115,16 +117,23 @@
                     >
                         {{ $this->form }}
 
-                        <div class="sp-create-form-footer" wire:loading.class="opacity-60" wire:target="createTicket">
+                        <div class="sp-create-form-footer">
                             @unless ($this->canSaveTicket())
                                 <p class="sp-create-form-footer__warn">
                                     Link subscriber first — search above, tap a result, then fill complaint details.
                                 </p>
                             @endunless
-                            <x-filament-panels::form.actions
-                                :actions="$this->getCachedFormActions()"
-                                :full-width="false"
-                            />
+
+                            <button
+                                type="submit"
+                                class="sp-create-submit-btn fi-btn fi-btn-size-lg fi-btn-color-primary"
+                                wire:loading.attr="disabled"
+                                wire:target="createTicket"
+                                @disabled(! $this->canSaveTicket())
+                            >
+                                <span wire:loading.remove wire:target="createTicket">Create ticket → Open</span>
+                                <span wire:loading wire:target="createTicket">Creating ticket…</span>
+                            </button>
                         </div>
                     </x-filament-panels::form>
                 </div>
@@ -152,27 +161,45 @@
     body.isp-support-ticket-create .fi-main-ctn {
         padding-left: 0.65rem !important;
         padding-right: 0.65rem !important;
-        padding-bottom: calc(var(--isp-mobile-bar-height, 10.5rem) + 5rem + env(safe-area-inset-bottom, 0px)) !important;
+        padding-bottom: calc(var(--isp-mobile-bar-height, 10.5rem) + 1rem + env(safe-area-inset-bottom, 0px)) !important;
     }
 
     .sp-create-layout--v4 { display: flex; flex-direction: column; gap: 0.85rem; }
 
     .sp-create-form-footer {
-        position: sticky;
-        bottom: calc(var(--isp-mobile-bar-height, 10.5rem) + env(safe-area-inset-bottom, 0px));
-        z-index: 50;
-        background: var(--sp-card, #fff);
-        margin-left: -0.75rem;
-        margin-right: -0.75rem;
-        padding: 0.75rem;
+        position: relative;
+        z-index: 1;
+        margin-top: 1rem;
+        padding-top: 0.75rem;
         border-top: 1px solid var(--sp-border, #e2e8f0);
-        box-shadow: 0 -8px 24px rgba(15, 23, 42, 0.12);
+        background: var(--sp-card, #fff);
     }
 
-    .sp-create-form-footer .fi-btn {
+    .sp-create-submit-btn {
         width: 100% !important;
-        min-height: 3rem !important;
+        min-height: 3.1rem !important;
         font-size: 0.95rem !important;
+        font-weight: 800 !important;
+        border-radius: 10px !important;
+        background: linear-gradient(135deg, #d97706, #f59e0b) !important;
+        border: 0 !important;
+        color: #fff !important;
+    }
+
+    .sp-create-submit-btn:disabled {
+        opacity: 0.45 !important;
+        cursor: not-allowed !important;
+    }
+
+    .sp-create-categories,
+    .sp-create-cat-pill {
+        position: relative;
+        z-index: 2;
+    }
+
+    .sp-create-cat-pill {
+        min-height: 2.5rem;
+        touch-action: manipulation;
     }
 
     .isp-collection-search-input { font-size: 16px !important; min-height: 2.85rem; }

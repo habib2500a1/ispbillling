@@ -7,7 +7,6 @@ use App\Filament\Resources\SupportTicketResource\Pages\Concerns\ProvidesSupportT
 use App\Services\Support\SupportSlaService;
 use App\Services\Support\SupportTicketIntelligenceService;
 use App\Support\SupportCategories;
-use Filament\Actions\Action;
 use Filament\Forms\Form;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\CreateRecord;
@@ -78,19 +77,7 @@ class CreateSupportTicket extends CreateRecord
 
     protected function getFormActions(): array
     {
-        return [
-            $this->getCreateFormAction(),
-        ];
-    }
-
-    protected function getCreateFormAction(): Action
-    {
-        return parent::getCreateFormAction()
-            ->label('Create ticket → Open')
-            ->icon('heroicon-o-paper-airplane')
-            ->size('lg')
-            ->disabled(fn (): bool => ! $this->canSaveTicket())
-            ->submit('createTicket');
+        return [];
     }
 
     public function createTicket(): void
@@ -141,7 +128,19 @@ class CreateSupportTicket extends CreateRecord
         try {
             $this->create();
         } catch (ValidationException $e) {
+            Notification::make()
+                ->title('Fix the form errors below')
+                ->body(collect($e->errors())->flatten()->first() ?? 'Check required fields.')
+                ->danger()
+                ->send();
+
             throw $e;
+        }
+
+        if ($this->record !== null) {
+            $url = $this->getRedirectUrl();
+            $this->redirect($url, navigate: false);
+            $this->js('window.location.assign('.json_encode($url).')');
         }
     }
 
@@ -234,6 +233,14 @@ class CreateSupportTicket extends CreateRecord
         $this->data['department'] = SupportCategories::groupLabel($issueType) === 'Billing'
             ? 'billing'
             : 'technical_support';
+
+        if ($customer !== null) {
+            $issue = SupportCategories::label($issueType);
+            $code = (string) ($customer->customer_code ?? '');
+            $this->data['subject'] = $code !== ''
+                ? "{$issue} — {$customer->name} (#{$code})"
+                : "{$issue} — {$customer->name}";
+        }
 
         $this->form->fill($this->data);
     }
