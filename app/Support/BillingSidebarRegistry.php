@@ -12,6 +12,7 @@ use App\Filament\Pages\PaymentsReport;
 use App\Support\Rbac\StaffCapability;
 use App\Filament\Pages\CollectionDeskReport;
 use App\Filament\Pages\CollectorMobile;
+use App\Filament\Pages\StaffPerformanceReport;
 use App\Filament\Pages\DunningReport;
 use App\Filament\Pages\ManageCollectionDiscountSettings;
 use App\Filament\Pages\ManagePaymentRenewalSettings;
@@ -223,6 +224,17 @@ final class BillingSidebarRegistry
                 ],
             ],
             [
+                'key' => 'staff_performance',
+                'label' => 'Staff performance',
+                'icon' => 'heroicon-o-user-group',
+                'sort' => 11.2,
+                'count_key' => 'today_collection',
+                'url_target' => 'billing.staff_performance',
+                'active_routes' => [
+                    'filament.admin.pages.staff-performance-report',
+                ],
+            ],
+            [
                 'key' => 'dunning_report',
                 'label' => 'Dunning report',
                 'icon' => 'heroicon-o-bell-alert',
@@ -316,6 +328,7 @@ final class BillingSidebarRegistry
             'payment_renewal_settings' => ManagePaymentRenewalSettings::canAccess(),
             'collector_mobile' => CollectorMobile::canAccess(),
             'collector_visits' => CollectorVisitsReport::canAccess(),
+            'staff_performance' => StaffPerformanceReport::canAccess(),
             'coupons' => CouponResource::canViewAny(),
             'promotional_offers' => PromotionalOfferResource::canViewAny(),
             'new_invoice' => InvoiceResource::canCreate(),
@@ -338,6 +351,7 @@ final class BillingSidebarRegistry
             'invoices.paid' => InvoiceResource::getUrl('paid'),
             'invoices.create' => InvoiceResource::getUrl('create'),
             'collection.report' => CollectionDeskReport::getUrl(['preset' => 'today']),
+            'billing.staff_performance' => StaffPerformanceReport::getUrl(['preset' => 'today']),
             'billing.dunning' => DunningReport::getUrl(),
             'collection.desk' => BillCollectionDesk::getUrl(),
             'billing.payment_reports' => PaymentsReport::getUrl(),

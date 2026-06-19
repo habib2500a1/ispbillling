@@ -73,20 +73,19 @@ final class StaffPerformanceReportService
         Carbon $to,
         ?int $scopedStaffId = null,
     ): array {
-        $payments = Payment::withoutGlobalScopes()
+        $query = Payment::withoutGlobalScopes()
             ->where('tenant_id', $tenantId)
             ->where('status', 'completed')
             ->whereIn('payment_type', [PaymentType::PAYMENT, PaymentType::WALLET_APPLY])
-            ->whereBetween('paid_at', [$from, $to])
-            ->get(['id', 'amount', 'recorded_by', 'meta']);
-
-        $grouped = $this->groupPaymentsByStaff($payments, $tenantId);
+            ->whereBetween('paid_at', [$from, $to]);
 
         if ($scopedStaffId !== null && $scopedStaffId > 0) {
-            $grouped = $grouped->filter(
-                fn (array $row): bool => ($row['staff_id'] ?? null) === $scopedStaffId
-            )->values();
+            app(CollectorStaffResolver::class)->scopePaymentsToCollector($query, $scopedStaffId);
         }
+
+        $payments = $query->get(['id', 'amount', 'recorded_by', 'meta']);
+
+        $grouped = $this->groupPaymentsByStaff($payments, $tenantId);
 
         $byStaff = $grouped
             ->sortByDesc('total')

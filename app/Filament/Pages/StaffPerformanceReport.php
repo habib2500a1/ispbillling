@@ -31,6 +31,8 @@ class StaffPerformanceReport extends Page
 
     protected static ?int $navigationSort = 42;
 
+    protected static bool $shouldRegisterNavigation = false;
+
     public string $dateFrom = '';
 
     public string $dateTo = '';
@@ -138,6 +140,7 @@ class StaffPerformanceReport extends Page
         $tenantId = TenantResolver::requiredTenantId();
         Cache::forget('dashboard:today-snapshot:'.$tenantId);
         Cache::forget('dashboard:snapshot:'.$tenantId);
+        Cache::forget('billing_sidebar_counts:'.$tenantId.':'.now()->format('Y-m-d-H'));
 
         Notification::make()
             ->title('Syncing collections from '.BillingPortalLabel::name())

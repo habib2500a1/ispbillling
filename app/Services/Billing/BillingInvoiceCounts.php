@@ -3,7 +3,7 @@
 namespace App\Services\Billing;
 
 use App\Models\Invoice;
-use App\Models\Payment;
+use App\Services\Reports\StaffPerformanceReportService;
 use App\Support\TenantResolver;
 use Illuminate\Support\Facades\Cache;
 
@@ -30,16 +30,17 @@ final class BillingInvoiceCounts
     {
         $base = Invoice::withoutGlobalScopes()->where('tenant_id', $tenantId);
 
-        $today = now()->toDateString();
+        $todayPayments = (int) app(StaffPerformanceReportService::class)->collectionSummary(
+            $tenantId,
+            now()->startOfDay(),
+            now()->endOfDay(),
+        )['count'];
 
         return [
             'all' => (clone $base)->whereNotIn('status', ['void', 'cancelled'])->count(),
             'due' => (clone $base)->whereIn('status', ['open', 'partial', 'draft'])->count(),
             'paid' => (clone $base)->where('status', 'paid')->count(),
-            'today_collection' => Payment::withoutGlobalScopes()
-                ->where('tenant_id', $tenantId)
-                ->whereDate('paid_at', $today)
-                ->count(),
+            'today_collection' => $todayPayments,
         ];
     }
 }
