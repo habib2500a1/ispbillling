@@ -53,6 +53,7 @@ use App\Http\Controllers\Api\V1\Staff\DashboardController as StaffDashboardContr
 use App\Http\Controllers\Api\V1\SupportTicketApiController;
 use App\Http\Controllers\Api\V1\Technician\DeviceController as TechnicianDeviceController;
 use App\Http\Controllers\Api\V1\Technician\FieldVisitController;
+use App\Http\Controllers\Api\V1\Technician\TechnicianTicketsController;
 use App\Http\Controllers\Api\V1\Collector\CollectorController;
 use App\Http\Middleware\EnsureSanctumCollector;
 use App\Http\Middleware\EnsureSanctumCustomer;
@@ -196,6 +197,8 @@ Route::prefix('v1')->group(function (): void {
         Route::post('/auth/logout', [StaffAuthController::class, 'logout']);
 
         Route::middleware(EnsureSanctumTechnician::class)->prefix('technician')->group(function (): void {
+            Route::get('/jobs/today', [TechnicianTicketsController::class, 'today']);
+            Route::get('/customers/{customer}/onu-panel', [TechnicianTicketsController::class, 'onuPanel'])->whereNumber('customer');
             Route::get('/field-visits', [FieldVisitController::class, 'index']);
             Route::get('/field-visits/{fieldVisit}', [FieldVisitController::class, 'show']);
             Route::patch('/field-visits/{fieldVisit}', [FieldVisitController::class, 'update']);

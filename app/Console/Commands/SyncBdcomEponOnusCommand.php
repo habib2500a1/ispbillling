@@ -10,7 +10,7 @@ class SyncBdcomEponOnusCommand extends Command
 {
     protected $signature = 'isp:sync-bdcom-epon-onus {--olt= : OLT device ID} {--delete-offline : Remove offline/LOS rows from inventory after sync}';
 
-    protected $description = 'SNMP sync all ONUs from BDCOM EPON OLT (MAC, RX/TX, status)';
+    protected $description = 'SNMP sync all ONUs from BDCOM EPON OLT (MAC, RX/TX, status). Use --delete-offline only with OPTICAL_DELETE_OFFLINE_ON_SYNC=true (unlinked placeholders only).';
 
     public function handle(BdcomEponOnuSyncService $sync): int
     {

@@ -73,7 +73,7 @@ final class AutomatedSmsNotifier
     public function onSupportTicketCreated(SupportTicket $ticket): void
     {
         if ($ticket->customer !== null) {
-            $this->sendToCustomer(
+            $this->notifyCustomerEvent(
                 $ticket->customer,
                 'support_token_created',
                 SmsTemplateVariableBuilder::forTicket($ticket),
@@ -84,7 +84,7 @@ final class AutomatedSmsNotifier
     public function onSupportTicketResolved(SupportTicket $ticket): void
     {
         if ($ticket->customer !== null) {
-            $this->sendToCustomer(
+            $this->notifyCustomerEvent(
                 $ticket->customer,
                 'support_solved',
                 SmsTemplateVariableBuilder::forTicket($ticket),
@@ -112,6 +112,65 @@ final class AutomatedSmsNotifier
     /**
      * @param  array<string, string|int|float|null>  $variables
      */
+    /**
+     * @param  array<string, string|int|float|null>  $variables
+     */
+    private function notifyCustomerEvent(Customer $customer, string $templateKey, array $variables): void
+    {
+        if (! $this->templates->isEnabled($templateKey, (int) $customer->tenant_id)) {
+            return;
+        }
+
+        $message = $this->templates->render($templateKey, $variables, (int) $customer->tenant_id);
+        if ($message === '') {
+            return;
+        }
+
+        $channels = config("notifications.events.{$templateKey}.channels", ['sms']);
+        if (! is_array($channels)) {
+            $channels = ['sms'];
+        }
+
+        foreach ($channels as $channel) {
+            if ($channel === NotificationChannel::SMS && $this->customerWantsSms($customer)) {
+                $this->sendToCustomer($customer, $templateKey, $variables);
+            }
+
+            if ($channel === NotificationChannel::WHATSAPP) {
+                $this->sendWhatsAppToCustomer($customer, $templateKey, $message);
+            }
+        }
+    }
+
+    private function sendWhatsAppToCustomer(Customer $customer, string $templateKey, string $message): void
+    {
+        if (! (bool) config('notifications.whatsapp.enabled', false)) {
+            return;
+        }
+
+        if (! filled($customer->phone)) {
+            return;
+        }
+
+        try {
+            $this->dispatcher->send(
+                (int) $customer->tenant_id,
+                (int) $customer->id,
+                $templateKey,
+                NotificationChannel::WHATSAPP,
+                (string) $customer->phone,
+                $message,
+                ['subject' => 'WhatsApp — '.$customer->name],
+            );
+        } catch (\Throwable $e) {
+            Log::warning('automated_whatsapp.failed', [
+                'template' => $templateKey,
+                'customer_id' => $customer->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
+    }
+
     private function sendToCustomer(Customer $customer, string $templateKey, array $variables): void
     {
         if (! (bool) config('notifications.sms.enabled', false)) {

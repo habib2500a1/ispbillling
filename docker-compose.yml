@@ -19,6 +19,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_started
+      meilisearch:
+        condition: service_started
     environment:
       APP_ENV: production
       DB_HOST: postgres
@@ -93,6 +95,34 @@ services:
     networks:
       - isp
 
+  meilisearch:
+    image: getmeili/meilisearch:v1.12
+    restart: unless-stopped
+    mem_limit: 2g
+    memswap_limit: 2g
+    env_file:
+      - .env
+    environment:
+      MEILI_ENV: production
+      MEILI_NO_ANALYTICS: "true"
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        if [ -z "$$MEILI_MASTER_KEY" ] && [ -n "$$APP_KEY" ]; then
+          export MEILI_MASTER_KEY=$$(printf '%s' "$$APP_KEY|isp-customer-search-meili-v1" | sha256sum | awk '{print $$1}')
+        fi
+        export MEILI_MASTER_KEY=$${MEILI_MASTER_KEY:-isp_meili_docker_internal_v1}
+        exec /bin/meilisearch
+    volumes:
+      - meilidata:/meili_data
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:7700/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+    networks:
+      - isp
+
   horizon:
     build:
       context: .
@@ -160,6 +190,7 @@ services:
 
 volumes:
   pgdata:
+  meilidata:
 
 networks:
   isp:

@@ -6,8 +6,8 @@
     @php
         $isLiveChat = $ticket->channel === 'live_chat';
         $statusClass = match ($ticket->status) {
-            'open', 'resolved' => 'portal-status-pill--success',
-            'pending' => 'portal-status-pill--warning',
+            'open', 'assigned', 'resolved' => 'portal-status-pill--success',
+            'pending_customer', 'pending_vendor', 'pending' => 'portal-status-pill--warning',
             'in_progress' => 'portal-status-pill--info',
             'closed' => 'portal-status-pill--muted',
             default => 'portal-status-pill--muted',
@@ -55,6 +55,17 @@
             <p class="portal-summary-card__eyebrow">Priority</p>
             <p class="portal-summary-card__value">{{ \App\Models\SupportTicket::PRIORITIES[$ticket->priority] ?? $ticket->priority }}</p>
             <p class="portal-summary-card__meta">Use reply updates here if the situation changes or gets worse.</p>
+        </article>
+        <article class="portal-summary-card portal-summary-card--info">
+            <p class="portal-summary-card__eyebrow">Assigned engineer</p>
+            <p class="portal-summary-card__value">{{ $ticket->assignee?->name ?? 'Assigning…' }}</p>
+            <p class="portal-summary-card__meta">
+                @if ($ticket->eta_at && $ticket->isOpen())
+                    ETA {{ $ticket->etaLabel() }}
+                @else
+                    We will update ETA once a technician is dispatched.
+                @endif
+            </p>
         </article>
         <article class="portal-summary-card portal-summary-card--info">
             <p class="portal-summary-card__eyebrow">Messages</p>
@@ -184,6 +195,16 @@
                         <dt>Issue type</dt>
                         <dd>{{ $ticket->issue_type ? \Illuminate\Support\Str::headline((string) $ticket->issue_type) : 'Not specified' }}</dd>
                     </div>
+                    <div class="portal-detail-list__item">
+                        <dt>Assignee</dt>
+                        <dd>{{ $ticket->assignee?->name ?? 'Not assigned yet' }}</dd>
+                    </div>
+                    @if ($ticket->eta_at && $ticket->isOpen())
+                        <div class="portal-detail-list__item">
+                            <dt>ETA</dt>
+                            <dd>{{ $ticket->eta_at->format('M j, Y g:i A') }}</dd>
+                        </div>
+                    @endif
                     <div class="portal-detail-list__item">
                         <dt>Updated</dt>
                         <dd>{{ $ticket->updated_at?->format('M j, Y g:i A') ?? '—' }}</dd>

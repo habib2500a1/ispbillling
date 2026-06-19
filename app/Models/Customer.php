@@ -16,10 +16,11 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\Access\Authorizable;
 use Laravel\Sanctum\HasApiTokens;
+use Laravel\Scout\Searchable;
 
 class Customer extends Model implements AuthenticatableContract, AuthorizableContract
 {
-    use AuthenticatableTrait, Authorizable, BelongsToTenant, CreatesFromTrustedSource, HasApiTokens;
+    use AuthenticatableTrait, Authorizable, BelongsToTenant, CreatesFromTrustedSource, HasApiTokens, Searchable;
 
     protected static function booted(): void
     {
@@ -598,5 +599,64 @@ class Customer extends Model implements AuthenticatableContract, AuthorizableCon
         }
 
         return "Line off from {$offFrom} if unpaid ({$days} days left){$lineGrace}";
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function toSearchableArray(): array
+    {
+        $this->loadMissing(['area', 'zone', 'subzone', 'package']);
+
+        $pppLogin = $this->pppLoginName();
+        $parts = array_filter([
+            $this->customer_code,
+            $this->name,
+            $this->phone,
+            $this->email,
+            $this->address,
+            $this->mikrotik_secret_name,
+            $this->radius_username,
+            $this->nid_number,
+            $this->area?->name,
+            $this->zone?->name,
+            $this->subzone?->name,
+            $this->package?->name,
+            $pppLogin !== '' ? $pppLogin : null,
+        ], fn ($v) => filled($v));
+
+        return [
+            'id' => $this->id,
+            'tenant_id' => $this->tenant_id,
+            'customer_code' => $this->customer_code,
+            'name' => $this->name,
+            'phone' => $this->phone,
+            'email' => $this->email,
+            'address' => $this->address,
+            'mikrotik_secret_name' => $this->mikrotik_secret_name,
+            'radius_username' => $this->radius_username,
+            'nid_number' => $this->nid_number,
+            'status' => $this->status,
+            'area' => $this->area?->name,
+            'zone' => $this->zone?->name,
+            'subzone' => $this->subzone?->name,
+            'package' => $this->package?->name,
+            'ppp_login' => $pppLogin !== '' ? $pppLogin : null,
+            'search_blob' => implode(' ', $parts),
+        ];
+    }
+
+    public function searchableAs(): string
+    {
+        return 'customers';
+    }
+
+    /**
+     * @param  \Illuminate\Database\Eloquent\Builder<Customer>  $query
+     * @return \Illuminate\Database\Eloquent\Builder<Customer>
+     */
+    protected function makeAllSearchableUsing($query)
+    {
+        return $query->with(['area', 'zone', 'subzone', 'package']);
     }
 }

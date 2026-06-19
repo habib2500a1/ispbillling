@@ -31,11 +31,12 @@ class CollectOnuSignalsCommand extends Command
         foreach ($tenantIds as $tenantId) {
             $result = $collector->collectForTenant((int) $tenantId);
             $this->info(sprintf(
-                'Tenant #%d: %d ONUs · %d snapshots · %d new alerts',
+                'Tenant #%d: %d ONUs · %d snapshots · %d new alerts · %d auto tickets',
                 $tenantId,
                 $result['onus'],
                 $result['logged'],
                 $result['alerts'],
+                $result['automation_tickets'] ?? 0,
             ));
         }
 

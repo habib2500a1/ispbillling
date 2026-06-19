@@ -44,8 +44,10 @@ final class PostDeployCommand extends Command
 
         $settingsAdded = AppSetting::syncMissingDefaultsFromEnv();
         if ($settingsAdded > 0) {
-            $this->info("App settings: {$settingsAdded} defaults seeded from .env.");
+            $this->info("App settings: {$settingsAdded} defaults seeded (performance, search, .env fallbacks).");
         }
+
+        \App\Services\Search\CustomerSearchBootstrap::runAfterDeploy();
 
         $this->syncSmsTemplates($smsTemplates);
 

@@ -6,6 +6,8 @@ use App\Models\Customer;
 use App\Models\Device;
 use App\Services\Olt\OltSnmpProbeService;
 use App\Services\Optical\CustomerOnuSmartLinkService;
+use App\Services\Optical\OnuMacArchiveService;
+use App\Services\Optical\OnuOfflineHandlingService;
 use App\Services\Optical\OpticalReadingPipeline;
 use App\Support\CustomerPppLoginResolver;
 use App\Support\BdcomOnuDescriptionHeuristic;
@@ -138,7 +140,7 @@ final class BdcomEponOnuSyncService
                 }
             }
 
-            if ($deleteOfflineFromInventory) {
+            if ($deleteOfflineFromInventory && config('onu_management.offline_handling.delete_offline_on_sync', false)) {
                 $result['deleted_offline'] = $this->deleteOfflineOnus($olt, $discovered);
             }
 
@@ -488,6 +490,8 @@ final class BdcomEponOnuSyncService
             $externalId = $login !== '' ? $login : (string) $row['label'];
         }
 
+        app(OnuMacArchiveService::class)->archiveIfMacChanged($onu, $mac);
+
         $onu->forceFill([
             'mac_address' => $mac,
             'display_name' => (string) $row['label'],
@@ -510,6 +514,8 @@ final class BdcomEponOnuSyncService
                 'vendor_profile' => strtolower((string) ($olt->olt_driver ?? 'bdcom_epon')),
                 'source' => 'bdcom_snmp',
             ]);
+        } elseif (isset($row['oper_status'])) {
+            app(OnuOfflineHandlingService::class)->recordStatus($onu->fresh(), (string) $row['oper_status']);
         }
 
         if ($customer !== null && $onu->customer_id === $customer->id) {
@@ -529,6 +535,10 @@ final class BdcomEponOnuSyncService
      */
     public function deleteOfflineOnus(Device $olt, array $discovered): int
     {
+        if (! config('onu_management.offline_handling.delete_offline_on_sync', false)) {
+            return 0;
+        }
+
         $offlineMacs = collect($discovered)
             ->filter(fn (array $r): bool => in_array($r['oper_status'], ['offline', 'los'], true))
             ->pluck('mac')
@@ -538,12 +548,17 @@ final class BdcomEponOnuSyncService
             return 0;
         }
 
-        return Device::query()
+        $query = Device::query()
             ->withoutGlobalScopes()
             ->where('olt_id', $olt->id)
             ->where('type', 'onu')
-            ->whereIn('mac_address', $offlineMacs)
-            ->delete();
+            ->whereIn('mac_address', $offlineMacs);
+
+        if (config('onu_management.offline_handling.protect_linked_onu_delete', true)) {
+            $query->whereNull('customer_id');
+        }
+
+        return $query->delete();
     }
 
     /**
@@ -569,11 +584,10 @@ final class BdcomEponOnuSyncService
             ->withoutGlobalScopes()
             ->where('olt_id', $olt->id)
             ->where('type', 'onu')
+            ->whereNull('customer_id')
             ->where(function ($q): void {
                 $q->whereNull('meta->last_bdcom_sync')
-                    ->orWhere('onu_oper_status', 'offline')
-                    ->orWhere('onu_oper_status', 'los')
-                    ->orWhere('onu_oper_status', 'unknown');
+                    ->orWhere('serial_number', 'like', 'SUB-%');
             })
             ->where('updated_at', '<', now()->subHours($olderThanHours))
             ->delete();

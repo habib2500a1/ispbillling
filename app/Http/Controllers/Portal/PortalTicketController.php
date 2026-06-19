@@ -82,7 +82,7 @@ class PortalTicketController extends Controller
         $customer = auth('customer')->user();
         abort_unless((int) $ticket->customer_id === (int) $customer->id, 404);
 
-        $ticket->load(['publicMessagesForCustomer', 'uploads']);
+        $ticket->load(['publicMessagesForCustomer', 'uploads', 'assignee:id,name']);
 
         return view('portal.tickets.show', [
             'ticket' => $ticket,

@@ -347,21 +347,23 @@ class OnusRelationManager extends RelationManager
                         }
                     }),
                 Tables\Actions\Action::make('delete_offline_onus')
-                    ->label('Delete offline MACs')
+                    ->label('Purge unlinked offline rows')
                     ->icon('heroicon-o-trash')
                     ->color('danger')
                     ->requiresConfirmation()
-                    ->modalHeading('Delete offline ONU records?')
-                    ->modalDescription('Removes inventory rows for ONUs marked offline/LOS on this OLT (does not reboot hardware).')
+                    ->modalHeading('Purge unlinked offline ONU placeholders?')
+                    ->modalDescription('Removes only inventory rows with no subscriber link. Linked ONUs are never deleted on offline — power loss, fiber cut, and OLT reboot all look offline.')
+                    ->visible(fn (): bool => config('onu_management.offline_handling.delete_offline_on_sync', false))
                     ->action(function (): void {
                         $deleted = Device::query()
                             ->where('olt_id', $this->getOwnerRecord()->getKey())
                             ->where('type', 'onu')
+                            ->whereNull('customer_id')
                             ->whereIn('onu_oper_status', ['offline', 'los', 'power_fail'])
                             ->delete();
                         Notification::make()
-                            ->title('Offline ONUs removed')
-                            ->body("Deleted {$deleted} record(s) from inventory.")
+                            ->title('Unlinked offline rows removed')
+                            ->body("Deleted {$deleted} placeholder record(s). Subscriber-linked ONUs were protected.")
                             ->success()
                             ->send();
                     }),
@@ -416,18 +418,21 @@ class OnusRelationManager extends RelationManager
                                 ->send();
                         }),
                     Tables\Actions\BulkAction::make('delete_offline_selected')
-                        ->label('Delete offline selected')
+                        ->label('Purge unlinked offline selected')
                         ->icon('heroicon-o-trash')
                         ->color('danger')
                         ->requiresConfirmation()
+                        ->modalDescription('Only deletes selected rows with no subscriber link. Never removes MAC for linked customers.')
+                        ->visible(fn (): bool => config('onu_management.offline_handling.delete_offline_on_sync', false))
                         ->action(function (\Illuminate\Database\Eloquent\Collection $records): void {
                             $ids = $records
-                                ->filter(fn (Device $d): bool => in_array(strtolower((string) $d->onu_oper_status), ['offline', 'los', 'power_fail'], true))
+                                ->filter(fn (Device $d): bool => $d->customer_id === null
+                                    && in_array(strtolower((string) $d->onu_oper_status), ['offline', 'los', 'power_fail'], true))
                                 ->pluck('id');
                             $deleted = Device::query()->whereIn('id', $ids)->delete();
                             Notification::make()
-                                ->title('Deleted offline ONUs')
-                                ->body("Removed {$deleted} record(s).")
+                                ->title('Purged unlinked offline ONUs')
+                                ->body("Removed {$deleted} placeholder record(s).")
                                 ->success()
                                 ->send();
                         }),

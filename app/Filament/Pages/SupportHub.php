@@ -62,7 +62,7 @@ class SupportHub extends Page
 
             return [
                 'open' => (clone $open)->count(),
-                'pending' => (clone $open)->where('status', 'pending')->count(),
+                'pending' => (clone $open)->whereIn('status', ['pending_customer', 'pending_vendor', 'pending'])->count(),
                 'closed' => (clone $base)->whereIn('status', ['resolved', 'closed'])->count(),
                 'breached' => (clone $open)->whereNotNull('sla_resolve_due_at')->where('sla_resolve_due_at', '<', now())->count(),
                 'unassigned' => (clone $open)->whereNull('assigned_to')->count(),
@@ -227,6 +227,12 @@ class SupportHub extends Page
                 'url' => SupportTicketResource::getUrl('create'),
                 'icon' => 'heroicon-o-plus-circle',
                 'featured' => true,
+            ],
+            [
+                'title' => 'Ticket NOC wall',
+                'desc' => 'OLT complaints · root incidents · map',
+                'url' => SupportNocTicketWall::getUrl(),
+                'icon' => 'heroicon-o-map',
             ],
             [
                 'title' => 'Call center',

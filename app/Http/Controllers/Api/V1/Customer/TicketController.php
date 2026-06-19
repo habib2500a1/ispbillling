@@ -66,7 +66,7 @@ class TicketController extends Controller
         $customer = $request->user();
         abort_unless((int) $ticket->customer_id === (int) $customer->id, 404);
 
-        $ticket->load(['publicMessagesForCustomer']);
+        $ticket->load(['publicMessagesForCustomer', 'assignee:id,name']);
 
         return response()->json([
             'ticket' => $this->ticketPayload($ticket),
@@ -113,6 +113,9 @@ class TicketController extends Controller
             'status' => $ticket->status,
             'priority' => $ticket->priority,
             'department' => $ticket->department,
+            'assignee_name' => $ticket->assignee?->name,
+            'eta_at' => $ticket->eta_at?->toIso8601String(),
+            'sla_resolve_due_at' => $ticket->sla_resolve_due_at?->toIso8601String(),
             'created_at' => $ticket->created_at?->toIso8601String(),
         ];
     }

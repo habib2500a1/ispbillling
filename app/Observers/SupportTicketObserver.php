@@ -5,6 +5,7 @@ namespace App\Observers;
 use App\Models\SupportTicket;
 use App\Services\Notifications\OpsNotificationService;
 use App\Services\Sms\AutomatedSmsNotifier;
+use App\Services\Support\SupportMassOutageService;
 use App\Services\Support\SupportTicketAutoAssignment;
 use App\Services\Support\SupportTicketNotifier;
 use Illuminate\Support\Facades\Log;
@@ -16,6 +17,9 @@ class SupportTicketObserver
     {
         try {
             app(SupportTicketAutoAssignment::class)->assignIfUnassigned($ticket);
+            $ticket->refresh();
+
+            app(SupportMassOutageService::class)->processNewTicket($ticket);
             $ticket->refresh();
 
             $notifier = app(SupportTicketNotifier::class);
@@ -45,7 +49,7 @@ class SupportTicketObserver
             if ($ticket->status === 'closed' && $ticket->closed_at === null) {
                 $ticket->closed_at = now();
             }
-            if (in_array($ticket->status, ['open', 'in_progress', 'pending'], true)) {
+            if (in_array($ticket->status, ['open', 'assigned', 'in_progress', 'pending_customer', 'pending_vendor', 'pending'], true)) {
                 if ($ticket->getOriginal('status') === 'resolved') {
                     $ticket->resolved_at = null;
                 }
@@ -53,6 +57,13 @@ class SupportTicketObserver
                     $ticket->closed_at = null;
                 }
             }
+            if ($ticket->status === 'assigned' && $ticket->assigned_to !== null && $ticket->getOriginal('status') === 'open') {
+                // keep explicit assigned status
+            }
+        }
+
+        if ($ticket->isDirty('assigned_to') && $ticket->assigned_to !== null && $ticket->status === 'open') {
+            $ticket->status = 'assigned';
         }
     }
 

@@ -132,6 +132,9 @@
 
             <p class="isp-collection-search-hint">
                 Search by code, mobile, name, PPP/RADIUS user, NID, invoice #, zone, or address.
+                @if (\App\Support\CustomerSearchSettings::useScout())
+                    <span class="text-emerald-700 dark:text-emerald-400">Meilisearch — fast, typo-tolerant.</span>
+                @endif
                 <span class="isp-collection-search-hint__links">
                     <a href="{{ \App\Filament\Pages\CollectorCashHub::getUrl() }}">Collector settlement</a> ·
                     <a href="{{ \App\Filament\Pages\CollectionBalanceStatement::getUrl() }}">Balance statement</a> ·

@@ -20,6 +20,7 @@ final class SubscriberViewStyles
             'admin/subscriber-view/03-network-diagnostics.css',
             'admin/subscriber-view/04-contact-location.css',
             'admin/subscriber-view/05-connection-link.css',
+            'admin/subscriber-view/06-command-center.css',
         ];
     }
 

@@ -17,6 +17,10 @@ use Illuminate\Support\Facades\Log;
 
 final class GlobalSmartSearchService
 {
+    public function __construct(
+        private readonly CustomerScoutSearchService $customerScout,
+    ) {}
+
     /**
      * @param  list<string>  $columns
      */
@@ -64,64 +68,10 @@ final class GlobalSmartSearchService
 
         $tenantId = TenantResolver::requiredTenantId();
         $like = '%'.$q.'%';
-        $digits = preg_replace('/\D+/', '', $q) ?? '';
         $results = [];
 
         try {
-            $customerQuery = Customer::withoutGlobalScopes()->where('tenant_id', $tenantId);
-            $op = $customerQuery->getConnection()->getDriverName() === 'pgsql' ? 'ilike' : 'like';
-            $customerQuery->where(function (Builder $b) use ($like, $q, $digits, $op): void {
-                $cols = [
-                    'name',
-                    'customer_code',
-                    'phone',
-                    'email',
-                    'address',
-                    'mikrotik_secret_name',
-                    'radius_username',
-                    'nid_number',
-                ];
-                $started = false;
-
-                if (ctype_digit($q)) {
-                    $b->where('id', (int) $q);
-                    $started = true;
-                }
-
-                foreach ($cols as $col) {
-                    if (! $started) {
-                        $b->where($col, $op, $like);
-                        $started = true;
-                    } else {
-                        $b->orWhere($col, $op, $like);
-                    }
-                }
-
-                if ($digits !== '' && strlen($digits) >= 3) {
-                    $b->orWhere('phone', 'like', '%'.$digits.'%');
-                }
-
-                $b->orWhereHas('area', fn (Builder $aq) => $aq->where('name', $op, $like))
-                    ->orWhereHas('zone', fn (Builder $zq) => $zq->where('name', $op, $like))
-                    ->orWhereHas('subzone', fn (Builder $sq) => $sq->where('name', $op, $like));
-            });
-
-            $customers = $customerQuery
-                ->with(['area:id,name', 'zone:id,name', 'subzone:id,name'])
-                ->limit($limit)
-                ->get([
-                    'id',
-                    'name',
-                    'customer_code',
-                    'phone',
-                    'address',
-                    'area_id',
-                    'zone_id',
-                    'subzone_id',
-                    'mikrotik_secret_name',
-                    'status',
-                    'is_ppp_online',
-                ]);
+            $customers = $this->resolveCustomers($tenantId, $q, $limit);
 
             foreach ($customers as $c) {
                 $links = $this->customerLinks($c);
@@ -288,5 +238,99 @@ final class GlobalSmartSearchService
         }
 
         return array_slice($results, 0, $limit);
+    }
+
+    /**
+     * @return \Illuminate\Support\Collection<int, Customer>
+     */
+    private function resolveCustomers(int $tenantId, string $query, int $limit): \Illuminate\Support\Collection
+    {
+        $scoutIds = $this->customerScout->searchIds($query, $limit, $tenantId);
+
+        if ($scoutIds !== null) {
+            if ($scoutIds === []) {
+                return collect();
+            }
+
+            $order = array_flip($scoutIds);
+
+            return Customer::withoutGlobalScopes()
+                ->where('tenant_id', $tenantId)
+                ->whereIn('id', $scoutIds)
+                ->with(['area:id,name', 'zone:id,name', 'subzone:id,name'])
+                ->get([
+                    'id',
+                    'name',
+                    'customer_code',
+                    'phone',
+                    'address',
+                    'area_id',
+                    'zone_id',
+                    'subzone_id',
+                    'mikrotik_secret_name',
+                    'status',
+                    'is_ppp_online',
+                ])
+                ->sortBy(fn (Customer $c): int => $order[$c->id] ?? 9999)
+                ->values();
+        }
+
+        $like = '%'.$query.'%';
+        $digits = preg_replace('/\D+/', '', $query) ?? '';
+
+        $customerQuery = Customer::withoutGlobalScopes()->where('tenant_id', $tenantId);
+        $op = $customerQuery->getConnection()->getDriverName() === 'pgsql' ? 'ilike' : 'like';
+        $customerQuery->where(function (Builder $b) use ($like, $query, $digits, $op): void {
+            $cols = [
+                'name',
+                'customer_code',
+                'phone',
+                'email',
+                'address',
+                'mikrotik_secret_name',
+                'radius_username',
+                'nid_number',
+            ];
+            $started = false;
+
+            if (ctype_digit($query)) {
+                $b->where('id', (int) $query);
+                $started = true;
+            }
+
+            foreach ($cols as $col) {
+                if (! $started) {
+                    $b->where($col, $op, $like);
+                    $started = true;
+                } else {
+                    $b->orWhere($col, $op, $like);
+                }
+            }
+
+            if ($digits !== '' && strlen($digits) >= 3) {
+                $b->orWhere('phone', 'like', '%'.$digits.'%');
+            }
+
+            $b->orWhereHas('area', fn (Builder $aq) => $aq->where('name', $op, $like))
+                ->orWhereHas('zone', fn (Builder $zq) => $zq->where('name', $op, $like))
+                ->orWhereHas('subzone', fn (Builder $sq) => $sq->where('name', $op, $like));
+        });
+
+        return $customerQuery
+            ->with(['area:id,name', 'zone:id,name', 'subzone:id,name'])
+            ->limit($limit)
+            ->get([
+                'id',
+                'name',
+                'customer_code',
+                'phone',
+                'address',
+                'area_id',
+                'zone_id',
+                'subzone_id',
+                'mikrotik_secret_name',
+                'status',
+                'is_ppp_online',
+            ]);
     }
 }

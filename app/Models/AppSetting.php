@@ -50,6 +50,10 @@ class AppSetting extends Model
             config([$key => $value]);
         }
 
+        if (class_exists(\App\Services\Search\CustomerSearchConfigurator::class)) {
+            \App\Services\Search\CustomerSearchConfigurator::apply();
+        }
+
         self::syncPublicPaymentGatewayFlags();
         self::applyRadiusDatabaseConnection();
         self::applyApplicationTimezone();
@@ -269,6 +273,37 @@ class AppSetting extends Model
             return max(1, min(65535, (int) $value));
         }
 
+        if (str_starts_with($key, 'customer_search.') && (
+            str_ends_with($key, '.enabled')
+            || str_ends_with($key, '.sql_fallback')
+            || str_ends_with($key, '.auto_index_on_deploy')
+            || str_ends_with($key, '.index_bootstrapped')
+        )) {
+            return in_array(strtolower($value), ['1', 'true', 'yes', 'on'], true);
+        }
+
+        if ($key === 'sync.fast_mode' || $key === 'isp.assets.bundle_css') {
+            return in_array(strtolower($value), ['1', 'true', 'yes', 'on'], true);
+        }
+
+        if (in_array($key, [
+            'optical.auto_sync_on_customer_view',
+            'optical.auto_sync_on_customer_save',
+            'optical.legacy_portal_auto_sync',
+            'optical.auto_sync_olt_on_mac_lookup',
+            'mikrotik.fetch_details_poll_enabled',
+            'network.olt_snmp_poll_enabled',
+        ], true)) {
+            return in_array(strtolower($value), ['1', 'true', 'yes', 'on'], true);
+        }
+
+        if (str_ends_with($key, '.poll_interval_minutes')
+            || $key === 'isp.app_settings_sync_cache_seconds'
+            || $key === 'automation.max_runner_processes'
+            || $key === 'automation.runner_lock_seconds') {
+            return (int) $value;
+        }
+
         if (str_starts_with($key, 'optical.') && (
             str_contains($key, 'threshold')
             || str_ends_with($key, '_min')
@@ -435,6 +470,9 @@ class AppSetting extends Model
             'bandwidth.collection_enabled' => fn (): bool => (bool) env('BANDWIDTH_COLLECTION_ENABLED', true),
             'mikrotik.poll_enabled' => fn (): bool => (bool) env('MIKROTIK_POLL_STATUS_ENABLED', true),
             'radius_admin.enabled' => fn (): bool => (bool) env('RADIUS_ADMIN_ENABLED', false),
+            'customer_search.enabled' => fn (): bool => (bool) config('customer_search.env_defaults.enabled', true),
+            'customer_search.sql_fallback' => fn (): bool => (bool) config('customer_search.env_defaults.sql_fallback', true),
+            'customer_search.meilisearch_host' => fn (): string => \App\Support\CustomerSearchSettings::detectDefaultHost(),
             'radius.db.host' => fn (): string => (string) env('RADIUS_DB_HOST', '127.0.0.1'),
             'radius.db.port' => fn (): string => (string) env('RADIUS_DB_PORT', '3306'),
             'radius.db.database' => fn (): string => (string) env('RADIUS_DB_DATABASE', 'radius'),
@@ -463,6 +501,20 @@ class AppSetting extends Model
             'optical.alert_on_high_tx' => fn (): bool => (bool) config('optical.alert_on_high_tx'),
             'optical.auto_ticket_enabled' => fn (): bool => (bool) config('optical.auto_ticket_enabled'),
             'optical.notify_ops' => fn (): bool => (bool) config('optical.notify_ops'),
+            'optical.auto_sync_on_customer_view' => fn (): bool => (bool) config('performance.env_defaults.optical.auto_sync_on_customer_view', false),
+            'optical.auto_sync_on_customer_save' => fn (): bool => (bool) config('performance.env_defaults.optical.auto_sync_on_customer_save', true),
+            'optical.legacy_portal_auto_sync' => fn (): bool => (bool) config('performance.env_defaults.optical.legacy_portal_auto_sync', true),
+            'optical.auto_sync_olt_on_mac_lookup' => fn (): bool => (bool) config('performance.env_defaults.optical.auto_sync_olt_on_mac_lookup', true),
+            'optical.customer_sync_connection' => fn (): string => (string) config('performance.env_defaults.optical.customer_sync_connection', 'redis'),
+            'optical.poll_interval_minutes' => fn (): int => (int) config('performance.env_defaults.optical.poll_interval_minutes', 10),
+            'bandwidth.poll_interval_minutes' => fn (): int => (int) config('performance.env_defaults.bandwidth.poll_interval_minutes', 5),
+            'mikrotik.fetch_details_poll_enabled' => fn (): bool => (bool) config('performance.env_defaults.mikrotik.fetch_details_poll_enabled', false),
+            'network.olt_snmp_poll_enabled' => fn (): bool => (bool) config('performance.env_defaults.network.olt_snmp_poll_enabled', true),
+            'sync.fast_mode' => fn (): bool => (bool) config('performance.env_defaults.sync.fast_mode', true),
+            'isp.assets.bundle_css' => fn (): bool => (bool) config('performance.env_defaults.isp.assets.bundle_css', true),
+            'isp.app_settings_sync_cache_seconds' => fn (): int => (int) config('performance.env_defaults.isp.app_settings_sync_cache_seconds', 120),
+            'automation.max_runner_processes' => fn (): int => (int) config('performance.env_defaults.automation.max_runner_processes', 1),
+            'automation.runner_lock_seconds' => fn (): int => (int) config('performance.env_defaults.automation.runner_lock_seconds', 1800),
         ];
     }
 }

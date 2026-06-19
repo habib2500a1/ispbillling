@@ -189,6 +189,17 @@ class SupportTicketResource extends Resource
                     ->label('SLA resolve due')
                     ->helperText('Auto-set on save from priority if left empty.')
                     ->visibleOn('edit'),
+                Forms\Components\DateTimePicker::make('first_response_due_at')
+                    ->label('First response due')
+                    ->visibleOn('edit'),
+                Forms\Components\DateTimePicker::make('eta_at')
+                    ->label('Customer ETA')
+                    ->helperText('Shown on customer portal and mobile app.')
+                    ->visibleOn('edit'),
+                Forms\Components\TextInput::make('sla_profile')
+                    ->label('SLA profile')
+                    ->disabled()
+                    ->visibleOn('edit'),
                 Forms\Components\DateTimePicker::make('resolved_at')
                     ->visibleOn('edit'),
                 Forms\Components\DateTimePicker::make('closed_at')
@@ -275,6 +286,11 @@ class SupportTicketResource extends Resource
                 Tables\Columns\TextColumn::make('assignee.name')
                     ->label('Assignee')
                     ->placeholder('—'),
+                Tables\Columns\TextColumn::make('eta_at')
+                    ->label('ETA')
+                    ->dateTime('M j, H:i')
+                    ->placeholder('—')
+                    ->toggleable(),
                 Tables\Columns\TextColumn::make('sla_resolve_due_at')
                     ->label('SLA')
                     ->formatStateUsing(fn (SupportTicket $record): string => $record->slaRemainingLabel())

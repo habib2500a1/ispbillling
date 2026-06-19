@@ -31,6 +31,8 @@
         <env name="QUEUE_CONNECTION" value="sync"/>
         <env name="SESSION_DRIVER" value="array"/>
         <env name="TELESCOPE_ENABLED" value="false"/>
+        <env name="SCOUT_DRIVER" value="null"/>
+        <env name="CUSTOMER_SEARCH_ENABLED" value="false"/>
         <!-- Never compile Blade into production view cache (phpunit often runs as root on the server). -->
         <env name="VIEW_COMPILED_PATH" value="storage/framework/views-testing"/>
     </php>

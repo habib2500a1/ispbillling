@@ -5,6 +5,8 @@ namespace App\Support;
 use App\Filament\Pages\ManageApiConfiguration;
 use App\Filament\Pages\ManagePlatformDeployment;
 use App\Filament\Pages\ManageCompanySetup;
+use App\Filament\Pages\ManageCustomerSearchSettings;
+use App\Filament\Pages\ManagePerformanceSettings;
 use App\Filament\Pages\ManageMobileApp;
 use App\Filament\Pages\ManageMovieServerList;
 use App\Filament\Pages\ManagePortalMarquee;
@@ -69,6 +71,22 @@ final class SettingsSidebarRegistry
                 'sort' => 5,
                 'url' => ManageCompanySetup::getUrl(),
                 'active_routes' => ['filament.admin.pages.company-setup'],
+            ],
+            [
+                'key' => 'performance',
+                'label' => 'Performance',
+                'icon' => 'heroicon-o-bolt',
+                'sort' => 57,
+                'url' => ManagePerformanceSettings::getUrl(),
+                'active_routes' => ['filament.admin.pages.performance-settings'],
+            ],
+            [
+                'key' => 'customer_search',
+                'label' => 'Customer search',
+                'icon' => 'heroicon-o-magnifying-glass-circle',
+                'sort' => 56,
+                'url' => ManageCustomerSearchSettings::getUrl(),
+                'active_routes' => ['filament.admin.pages.customer-search-settings'],
             ],
             [
                 'key' => 'mobile_app',
@@ -142,6 +160,8 @@ final class SettingsSidebarRegistry
             'company_info' => ManageCompanySetup::canAccess(),
             'api_configuration' => ManageApiConfiguration::canAccess(),
             'platform_deployment' => ManagePlatformDeployment::canAccess(),
+            'customer_search' => ManageCustomerSearchSettings::canAccess(),
+            'performance' => ManagePerformanceSettings::canAccess(),
             default => ManagePortalSettings::canAccess(),
         };
     }

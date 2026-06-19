@@ -6,6 +6,7 @@ use App\Filament\Pages\BroadcastOutage;
 use App\Filament\Pages\CallCenterHub;
 use App\Filament\Pages\SalesLeadPipeline;
 use App\Filament\Pages\SupportHub;
+use App\Filament\Pages\SupportNocTicketWall;
 use App\Filament\Resources\KnowledgeArticleResource;
 use App\Models\SalesLead;
 use App\Support\SalesLeadPanelAccess;
@@ -81,6 +82,14 @@ final class SupportSidebarRegistry
                     'filament.admin.resources.support-tickets.edit',
                     'filament.admin.resources.support-tickets.view',
                 ],
+            ],
+            [
+                'key' => 'ticket_noc_wall',
+                'label' => 'Ticket NOC wall',
+                'icon' => 'heroicon-o-map',
+                'sort' => 3.5,
+                'url' => SupportNocTicketWall::getUrl(),
+                'active_routes' => ['filament.admin.pages.support-noc-ticket-wall'],
             ],
             [
                 'key' => 'broadcast_outage',
@@ -196,6 +205,7 @@ final class SupportSidebarRegistry
             'support_center' => SupportHub::canAccess(),
             'call_center' => CallCenterHub::canAccess(),
             'tickets' => SupportPanelAccess::viewTickets($user),
+            'ticket_noc_wall' => SupportNocTicketWall::canAccess(),
             'pipeline', 'leads' => SalesLeadPanelAccess::canView(),
             'broadcast_outage' => BroadcastOutage::canAccess(),
             'outages' => OutageResource::canViewAny(),

@@ -10,6 +10,7 @@ use App\Notifications\SupportTicketCustomerOpenedMail;
 use App\Notifications\SupportTicketNewStaffMail;
 use App\Notifications\SupportTicketPublicReplyCustomerMail;
 use App\Notifications\SupportTicketResolvedCustomerMail;
+use App\Notifications\SupportTicketFirstResponseBreachedMail;
 use App\Notifications\SupportTicketSlaBreachedMail;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Notification;
@@ -84,6 +85,19 @@ class SupportTicketNotifier
         }
 
         Notification::send($recipients->unique('id'), new SupportTicketSlaBreachedMail($ticket, $level));
+    }
+
+    public function notifyFirstResponseBreached(SupportTicket $ticket): void
+    {
+        $recipients = $this->slaRecipients($ticket);
+        if ($ticket->assigned_to !== null) {
+            $assignee = User::withoutGlobalScopes()->find($ticket->assigned_to);
+            if ($assignee !== null) {
+                $recipients = $recipients->push($assignee);
+            }
+        }
+
+        Notification::send($recipients->unique('id'), new SupportTicketFirstResponseBreachedMail($ticket));
     }
 
     /**

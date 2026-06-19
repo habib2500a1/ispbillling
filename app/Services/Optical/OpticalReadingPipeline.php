@@ -84,6 +84,7 @@ final class OpticalReadingPipeline
         }
         if (isset($reading['oper_status'])) {
             $onu->onu_oper_status = $oper;
+            app(OnuOfflineHandlingService::class)->recordStatus($onu, $oper, $at);
         }
 
         $meta = is_array($onu->meta) ? $onu->meta : [];

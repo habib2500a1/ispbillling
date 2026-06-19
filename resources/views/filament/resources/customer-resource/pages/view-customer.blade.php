@@ -10,6 +10,8 @@
     @php
         $details = $this->getClientDetails();
         $h = $details['header'];
+        $cc = $details['command_center'] ?? [];
+        $strip = $cc['header_strip'] ?? [];
         $optical = $details['optical'];
         $sections = $details['sections'];
         $overview = $details['sections_overview'];
@@ -23,40 +25,11 @@
             ['key' => 'network', 'label' => 'Network', 'icon' => 'heroicon-o-signal'],
             ['key' => 'more', 'label' => 'More', 'icon' => 'heroicon-o-ellipsis-horizontal-circle'],
         ];
-        $heroKpis = [
-            [
-                'label' => 'Total due',
-                'value' => number_format($h['open_balance'], 2),
-                'meta' => $h['open_balance'] > 0 ? 'BDT outstanding' : 'No due',
-                'icon' => 'heroicon-o-banknotes',
-                'tone' => $h['open_balance'] > 0 ? 'rose' : 'emerald',
-            ],
-            [
-                'label' => 'Valid until',
-                'value' => $h['valid_until'],
-                'meta' => $h['expired'] ? 'Renew required' : ($h['off_date'] !== '—' ? 'Off from '.$h['off_date'] : 'Service window'),
-                'icon' => 'heroicon-o-calendar-days',
-                'tone' => $h['expired'] ? 'rose' : 'sky',
-            ],
-            [
-                'label' => 'Package',
-                'value' => \Illuminate\Support\Str::limit($h['package'], 24),
-                'meta' => $h['speed'],
-                'icon' => 'heroicon-o-cube',
-                'tone' => 'violet',
-            ],
-            [
-                'label' => 'Monthly bill',
-                'value' => $h['monthly_bill'],
-                'meta' => 'Wallet '.number_format($h['balance'], 2).' BDT',
-                'icon' => 'heroicon-o-receipt-percent',
-                'tone' => 'emerald',
-            ],
-        ];
         $quickLinks = [
             ['label' => 'Collect payment', 'url' => $details['urls']['collect'], 'icon' => 'heroicon-o-banknotes', 'btn' => 'white'],
             ['label' => 'Edit profile', 'url' => $details['urls']['edit'], 'icon' => 'heroicon-o-pencil-square', 'btn' => 'glass'],
             ['label' => 'Invoices', 'url' => $details['urls']['invoices'], 'icon' => 'heroicon-o-document-text', 'btn' => 'glass'],
+            ['label' => 'New ticket', 'url' => $cc['tickets']['create_url'] ?? '#', 'icon' => 'heroicon-o-lifebuoy', 'btn' => 'glass'],
         ];
         $onuOwnership = $details['connection_link']['onu_ownership'] ?? 'company';
         $onuOwnershipLabel = $details['connection_link']['onu_ownership_label'] ?? 'Company ONU';
@@ -67,8 +40,10 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin="" data-cfasync="false"></script>
     <script src="{{ asset('js/subscriber-view-tabs.js') }}?v={{ @filemtime(public_path('js/subscriber-view-tabs.js')) ?: 1 }}" data-cfasync="false" defer></script>
     <script src="{{ asset('js/subscriber-view-location-map.js') }}?v={{ @filemtime(public_path('js/subscriber-view-location-map.js')) ?: 1 }}" data-cfasync="false" defer></script>
+    <script src="{{ asset('js/subscriber-view-charts.js') }}?v={{ @filemtime(public_path('js/subscriber-view-charts.js')) ?: 1 }}" data-cfasync="false" defer></script>
 
     <div class="sub-pro olt-pro" wire:key="client-view-{{ $record->getKey() }}-{{ \App\Support\SubscriberViewStyles::version() }}" x-data="{ tab: 'overview' }" data-sub-tabs-root data-initial-tab="overview">
+        <div class="sub-hero-wrap">
         <header class="olt-hero sub-hero">
             <div class="olt-hero__grid">
                 <span class="olt-hero__badge">
@@ -87,11 +62,20 @@
                     · PPPoE <span class="font-mono">{{ $h['username'] }}</span>
                 </p>
                 <div class="sub-hero__pills">
+                    @if (! empty($strip['is_vip']))
+                        <span class="sub-pill sub-pill--warning">VIP</span>
+                    @endif
+                    @if (! empty($strip['is_corporate']))
+                        <span class="sub-pill sub-pill--info">Corporate</span>
+                    @endif
                     <span class="sub-pill sub-pill--{{ $h['status_color'] }}">{{ $h['status'] }}</span>
                     <span class="sub-pill sub-pill--{{ $h['subscriber_type_color'] }}">{{ $h['subscriber_type'] }}</span>
-                    <span @class(['sub-pill', $h['online'] ? 'sub-pill--online' : 'sub-pill--offline'])">{{ $h['online'] ? 'Online' : 'Offline' }}</span>
-                    <span @class(['sub-pill', $h['network'] === 'suspended' ? 'sub-pill--danger' : 'sub-pill--gray'])">Net {{ $h['network'] }}</span>
-                    <span @class(['sub-pill', $onuOwnership === 'customer' ? 'sub-pill--info' : 'sub-pill--success'])">{{ $onuOwnershipLabel }}</span>
+                    <span @class(['sub-pill', $h['online'] ? 'sub-pill--online' : 'sub-pill--offline'])>{{ $h['online'] ? 'Online' : 'Offline' }}</span>
+                    <span @class(['sub-pill', $h['network'] === 'suspended' ? 'sub-pill--danger' : 'sub-pill--gray'])>Net {{ $h['network'] }}</span>
+                    <span @class(['sub-pill', $onuOwnership === 'customer' ? 'sub-pill--info' : 'sub-pill--success'])>{{ $onuOwnershipLabel }}</span>
+                    @if (($strip['open_tickets'] ?? 0) > 0)
+                        <span class="sub-pill sub-pill--warning">{{ $strip['open_tickets'] }} ticket(s)</span>
+                    @endif
                 </div>
                 <div class="olt-hero__actions no-print">
                     @foreach ($quickLinks as $link)
@@ -126,6 +110,23 @@
                 </div>
             </div>
         </header>
+        </div>
+
+        @include('filament.resources.customer-resource.partials.subscriber-command-center-head', ['commandCenter' => $cc])
+
+        @php $onuWarning = ($details['onu_ops']['warning'] ?? ['active' => false]); @endphp
+        @if (! empty($onuWarning['active']))
+            <div @class([
+                'sub-onu-profile-alert no-print',
+                'sub-onu-profile-alert--' . ($onuWarning['level'] ?? 'warning'),
+            ]) role="alert">
+                <strong>ONU warning</strong>
+                <span>{{ $onuWarning['message'] ?? 'ONU requires attention.' }}</span>
+                @if (! empty($onuWarning['suggest_ticket']) && ! empty($details['onu_ops']['ticket_suggest_url']))
+                    <a href="{{ $details['onu_ops']['ticket_suggest_url'] }}" class="sub-onu-profile-alert__link">Open ticket →</a>
+                @endif
+            </div>
+        @endif
 
         <div class="sub-rail sub-rail--dates">
             <div class="sub-rail__item">
@@ -144,24 +145,6 @@
                 <span class="sub-rail__label">Portal logout</span>
                 <strong class="sub-rail__value">{{ $h['portal_last_logout'] }}</strong>
             </div>
-        </div>
-
-        <div class="olt-stats">
-            @foreach ($heroKpis as $kpi)
-                <div class="olt-stat sub-stat olt-stat--{{ $kpi['tone'] }}">
-                    <div class="olt-stat__row">
-                        <span class="olt-stat__icon">
-                            <x-filament::icon :icon="$kpi['icon']" class="h-5 w-5" />
-                        </span>
-                    </div>
-                    <span class="olt-stat__label">{{ $kpi['label'] }}</span>
-                    <strong @class([
-                        'olt-stat__value',
-                        'olt-stat__value--sm' => strlen((string) $kpi['value']) > 16,
-                    ])>{{ $kpi['value'] }}</strong>
-                    <span class="olt-stat__hint">{{ $kpi['meta'] }}</span>
-                </div>
-            @endforeach
         </div>
 
         <nav class="sub-quickbar no-print" aria-label="Quick actions">
@@ -208,6 +191,7 @@
         </nav>
 
         <div x-show="tab === 'overview'" x-cloak class="sub-pane" data-sub-pane="overview">
+            @include('filament.resources.customer-resource.partials.subscriber-command-center-panels', ['commandCenter' => $cc])
             @include('filament.resources.customer-resource.partials.client-details-overview', [
                 'sections' => $overview,
                 'connectionLink' => $details['connection_link'] ?? [],
@@ -337,6 +321,12 @@
         </div>
 
         <div x-show="tab === 'network'" x-cloak class="sub-pane" data-sub-pane="network" hidden>
+            @include('filament.resources.customer-resource.partials.subscriber-onu-ops-panel', [
+                'onuOps' => $details['onu_ops'] ?? [],
+            ])
+            @include('filament.resources.customer-resource.partials.onu-network-diagnostics-cards', [
+                'diagnostics' => $details['network_diagnostics'] ?? [],
+            ])
             @include('filament.resources.customer-resource.partials.client-fiber-path', ['customer' => $record])
             <section class="isp-cv-card isp-cv-card--full" wire:poll.60s wire:key="onu-optical-{{ $record->getKey() }}-v2">
                 <h3 class="isp-cv-card__title">ONU / Optical</h3>

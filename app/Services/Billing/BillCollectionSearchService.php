@@ -12,6 +12,7 @@ use App\Support\CustomerBalanceDue;
 use App\Support\CustomerSearchPresenter;
 use App\Support\PaymentCollectionSource;
 use App\Support\PaymentType;
+use App\Services\Search\CustomerScoutSearchService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 
@@ -21,6 +22,7 @@ final class BillCollectionSearchService
         private readonly CustomerConnectionStatusService $connectionStatus,
         private readonly CustomerSearchPresenter $searchPresenter,
         private readonly SubscriberBillingStatementService $statements,
+        private readonly CustomerScoutSearchService $scoutSearch,
     ) {}
 
     /**
@@ -35,12 +37,84 @@ final class BillCollectionSearchService
         }
 
         $filter = in_array($filter, ['all', 'due', 'paid'], true) ? $filter : 'all';
+
+        $customers = $this->resolveCustomers($query, $limit);
+        if ($customers->isEmpty()) {
+            return collect();
+        }
+
+        $customersWithDue = CustomerBalanceDue::augmentTableQuery(
+            Customer::query()
+                ->with(['area', 'zone', 'subzone', 'package'])
+                ->whereIn('id', $customers->pluck('id')),
+        )->get()->keyBy('id');
+
+        $rows = $customers
+            ->map(fn (Customer $customer): Customer => $customersWithDue->get($customer->id) ?? $customer)
+            ->map(fn (Customer $customer): array => $this->present($customer))
+            ->filter(function (array $row) use ($filter): bool {
+                $due = (float) ($row['balance_due'] ?? 0);
+
+                return match ($filter) {
+                    'due' => $due > 0.009,
+                    'paid' => $due <= 0.009,
+                    default => true,
+                };
+            })
+            ->sortBy(function (array $row) use ($query): array {
+                $dueRank = (float) ($row['balance_due'] ?? 0) > 0.009 ? 0 : 1;
+                $numericId = ctype_digit($query) ? (int) $query : 0;
+
+                return [
+                    $dueRank,
+                    $this->relevanceRank($row, $query, $numericId),
+                    strtolower((string) ($row['name'] ?? '')),
+                ];
+            })
+            ->take($limit)
+            ->values();
+
+        return $this->searchPresenter->annotateDuplicateNames($rows)->values();
+    }
+
+    /**
+     * Scout (Meilisearch) first, SQL fallback when index unavailable.
+     *
+     * @return \Illuminate\Support\Collection<int, Customer>
+     */
+    private function resolveCustomers(string $query, int $limit): Collection
+    {
+        $scoutIds = $this->scoutSearch->searchIds($query, $limit * 3);
+
+        if ($scoutIds !== null) {
+            if ($scoutIds === []) {
+                return collect();
+            }
+
+            $order = array_flip($scoutIds);
+
+            return Customer::query()
+                ->with(['area', 'zone', 'subzone', 'package'])
+                ->whereIn('id', $scoutIds)
+                ->get()
+                ->sortBy(fn (Customer $c): int => $order[$c->id] ?? 9999)
+                ->values();
+        }
+
+        return $this->resolveCustomersViaSql($query, $limit);
+    }
+
+    /**
+     * @return \Illuminate\Support\Collection<int, Customer>
+     */
+    private function resolveCustomersViaSql(string $query, int $limit): Collection
+    {
         $words = $this->extractSearchWords($query);
         $digits = preg_replace('/\D+/', '', $query) ?? '';
         $numericId = ctype_digit($query) ? (int) $query : 0;
         $driver = Customer::query()->getConnection()->getDriverName();
 
-        $customers = Customer::query()
+        return Customer::query()
             ->with(['area', 'zone', 'subzone', 'package'])
             ->where(function (Builder $w) use ($query, $words, $digits, $numericId, $driver): void {
                 if ($numericId > 0) {
@@ -70,42 +144,6 @@ final class BillCollectionSearchService
             })
             ->limit($limit * 3)
             ->get();
-
-        if ($customers->isEmpty()) {
-            return collect();
-        }
-
-        $customersWithDue = CustomerBalanceDue::augmentTableQuery(
-            Customer::query()
-                ->with(['area', 'zone', 'subzone', 'package'])
-                ->whereIn('id', $customers->pluck('id')),
-        )->get()->keyBy('id');
-
-        $rows = $customers
-            ->map(fn (Customer $customer): Customer => $customersWithDue->get($customer->id) ?? $customer)
-            ->map(fn (Customer $customer): array => $this->present($customer))
-            ->filter(function (array $row) use ($filter): bool {
-                $due = (float) ($row['balance_due'] ?? 0);
-
-                return match ($filter) {
-                    'due' => $due > 0.009,
-                    'paid' => $due <= 0.009,
-                    default => true,
-                };
-            })
-            ->sortBy(function (array $row) use ($query, $numericId): array {
-                $dueRank = (float) ($row['balance_due'] ?? 0) > 0.009 ? 0 : 1;
-
-                return [
-                    $dueRank,
-                    $this->relevanceRank($row, $query, $numericId),
-                    strtolower((string) ($row['name'] ?? '')),
-                ];
-            })
-            ->take($limit)
-            ->values();
-
-        return $this->searchPresenter->annotateDuplicateNames($rows)->values();
     }
 
     public function find(int $customerId, ?int $tenantId = null): ?array

@@ -104,18 +104,18 @@ return [
 
     /**
      * RX bands (dBm). Higher (less negative) = stronger signal.
-     * Excellent: -8 to -15 · Good: -15 to -22 · Weak: -22 to -27 · Critical: below -27
+     * Excellent: -8 to -15 · Good: -15 to -28 · Weak: -28 to -30 · Critical: below -30
      */
     'rx_thresholds' => [
         'excellent_max' => (float) env('OPTICAL_RX_EXCELLENT_MAX', -8),
         'excellent_min' => (float) env('OPTICAL_RX_EXCELLENT_MIN', -15),
-        'good_min' => (float) env('OPTICAL_RX_GOOD_MIN', -22),
-        'weak_min' => (float) env('OPTICAL_RX_WEAK_MIN', -27),
+        'good_min' => (float) env('OPTICAL_RX_GOOD_MIN', -28),
+        'weak_min' => (float) env('OPTICAL_RX_WEAK_MIN', -30),
         // Legacy keys (Filament filters / older code)
         'excellent' => (float) env('OPTICAL_RX_EXCELLENT_MAX', -8),
         'good' => (float) env('OPTICAL_RX_EXCELLENT_MIN', -15),
-        'warning' => (float) env('OPTICAL_RX_GOOD_MIN', -22),
-        'critical' => (float) env('OPTICAL_RX_WEAK_MIN', -27),
+        'warning' => (float) env('OPTICAL_RX_GOOD_MIN', -28),
+        'critical' => (float) env('OPTICAL_RX_WEAK_MIN', -30),
     ],
 
     'normalization' => [

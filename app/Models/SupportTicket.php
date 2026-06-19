@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Concerns\BelongsToTenant;
+use App\Services\Support\SupportSlaService;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -21,12 +22,16 @@ class SupportTicket extends Model
     ];
 
     public const ISSUE_TYPES = [
-        'billing' => 'Billing',
+        'billing' => 'Billing / invoice',
         'connection' => 'Connection / no internet',
         'speed' => 'Slow speed',
         'outage' => 'Area outage',
-        'installation' => 'Installation',
-        'equipment' => 'Equipment / ONU',
+        'installation' => 'Installation / new line',
+        'equipment' => 'Equipment / ONU / router',
+        'pppoe' => 'PPPoE / login issue',
+        'fiber' => 'Fiber / optical',
+        'wifi' => 'Wi-Fi / LAN',
+        'relocation' => 'Relocation / shifting',
         'other' => 'Other',
     ];
 
@@ -46,15 +51,22 @@ class SupportTicket extends Model
 
     public const STATUSES = [
         'open' => 'Open',
+        'assigned' => 'Assigned',
         'in_progress' => 'In progress',
-        'pending' => 'Pending',
+        'pending_customer' => 'Pending customer',
+        'pending_vendor' => 'Pending vendor',
         'resolved' => 'Resolved',
         'closed' => 'Closed',
     ];
 
+    /** @deprecated Use pending_customer */
+    public const LEGACY_PENDING = 'pending';
+
     protected $fillable = [
         'tenant_id',
         'customer_id',
+        'parent_ticket_id',
+        'root_incident_id',
         'ticket_number',
         'channel',
         'department',
@@ -64,7 +76,15 @@ class SupportTicket extends Model
         'subject',
         'description',
         'assigned_to',
+        'olt_device_id',
+        'pop_box_id',
         'sla_resolve_due_at',
+        'first_response_due_at',
+        'first_responded_at',
+        'first_response_breached_notified_at',
+        'eta_at',
+        'merged_at',
+        'sla_profile',
         'resolved_at',
         'closed_at',
         'customer_rating',
@@ -78,6 +98,11 @@ class SupportTicket extends Model
     {
         return [
             'sla_resolve_due_at' => 'datetime',
+            'first_response_due_at' => 'datetime',
+            'first_responded_at' => 'datetime',
+            'first_response_breached_notified_at' => 'datetime',
+            'eta_at' => 'datetime',
+            'merged_at' => 'datetime',
             'resolved_at' => 'datetime',
             'closed_at' => 'datetime',
             'escalated_at' => 'datetime',
@@ -92,16 +117,18 @@ class SupportTicket extends Model
             if (blank($ticket->ticket_number)) {
                 $ticket->ticket_number = static::generateTicketNumber((int) $ticket->tenant_id);
             }
-            if ($ticket->sla_resolve_due_at === null && filled($ticket->priority)) {
-                $hours = (int) (config('support.sla_resolve_hours.'.$ticket->priority) ?? 48);
-                $ticket->sla_resolve_due_at = now()->addHours($hours);
+
+            if ($ticket->customer_id !== null && $ticket->relationLoaded('customer') === false) {
+                $ticket->load('customer');
             }
+
+            app(SupportSlaService::class)->applyTargets($ticket, $ticket->customer);
         });
     }
 
     public static function generateTicketNumber(int $tenantId): string
     {
-        $prefix = 'TKT-'.now()->format('ym').'-';
+        $prefix = (string) config('support.ticket_number_prefix', 'ISP').'-'.now()->format('Y').'-';
         $last = static::withoutGlobalScopes()
             ->where('tenant_id', $tenantId)
             ->where('ticket_number', 'like', $prefix.'%')
@@ -112,7 +139,7 @@ class SupportTicket extends Model
             $seq = (int) $m[1] + 1;
         }
 
-        return $prefix.str_pad((string) $seq, 4, '0', STR_PAD_LEFT);
+        return $prefix.str_pad((string) $seq, 6, '0', STR_PAD_LEFT);
     }
 
     public function getRouteKeyName(): string
@@ -128,6 +155,31 @@ class SupportTicket extends Model
     public function assignee(): BelongsTo
     {
         return $this->belongsTo(User::class, 'assigned_to');
+    }
+
+    public function parentTicket(): BelongsTo
+    {
+        return $this->belongsTo(self::class, 'parent_ticket_id');
+    }
+
+    public function childTickets(): HasMany
+    {
+        return $this->hasMany(self::class, 'parent_ticket_id');
+    }
+
+    public function rootIncident(): BelongsTo
+    {
+        return $this->belongsTo(SupportRootIncident::class, 'root_incident_id');
+    }
+
+    public function olt(): BelongsTo
+    {
+        return $this->belongsTo(Device::class, 'olt_device_id');
+    }
+
+    public function popBox(): BelongsTo
+    {
+        return $this->belongsTo(PopBox::class);
     }
 
     public function messages(): HasMany
@@ -155,6 +207,12 @@ class SupportTicket extends Model
         return ! in_array($this->status, ['resolved', 'closed'], true);
     }
 
+    public function isMergedChild(): bool
+    {
+        return $this->parent_ticket_id !== null
+            && (int) $this->parent_ticket_id !== (int) $this->id;
+    }
+
     public function isSlaBreached(): bool
     {
         return $this->isOpen()
@@ -175,8 +233,26 @@ class SupportTicket extends Model
         return $this->sla_resolve_due_at->diffForHumans(now(), true).' left';
     }
 
+    public function etaLabel(): string
+    {
+        if ($this->eta_at === null || ! $this->isOpen()) {
+            return '—';
+        }
+
+        if ($this->eta_at->isPast()) {
+            return 'ETA passed '.$this->eta_at->diffForHumans(now(), true).' ago';
+        }
+
+        return $this->eta_at->format('M j, g:i A').' ('.$this->eta_at->diffForHumans().')';
+    }
+
     public function channelLabel(): string
     {
         return self::CHANNELS[$this->channel] ?? (string) $this->channel;
+    }
+
+    public function statusLabel(): string
+    {
+        return self::STATUSES[$this->status] ?? (string) $this->status;
     }
 }

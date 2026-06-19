@@ -61,11 +61,17 @@ final class OnuSignalCollectionService
         $this->rollupHourlyLogs($tenantId, $now);
         app(OpticalDatabaseMaintenanceService::class)->prune($tenantId);
 
+        $automation = ['tickets_created' => 0, 'evaluated' => 0];
+        if (config('onu_management.smart_automation.enabled', true)) {
+            $automation = app(OnuSmartAutomationService::class)->runForTenant($tenantId);
+        }
+
         return [
             'onus' => Device::query()->withoutGlobalScopes()->where('tenant_id', $tenantId)->where('type', 'onu')->count(),
             'logged' => $logged,
             'alerts' => $alertCount,
             'fiber_faults' => 0,
+            'automation_tickets' => $automation['tickets_created'],
         ];
     }
 

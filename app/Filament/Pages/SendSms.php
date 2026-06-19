@@ -50,8 +50,10 @@ class SendSms extends Page
     {
         abort_unless(static::canAccess(), 403);
 
+        $customerId = request()->integer('customer_id') ?: null;
+
         $this->form->fill([
-            'customer_id' => null,
+            'customer_id' => $customerId,
             'template_key' => null,
             'message' => '',
         ]);

@@ -8,6 +8,7 @@ use App\Models\User;
 use App\Services\Mobile\PushNotificationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 
 class FieldVisitController extends Controller
@@ -65,6 +66,7 @@ class FieldVisitController extends Controller
             'longitude' => ['nullable', 'numeric'],
             'location_text' => ['nullable', 'string', 'max:500'],
             'report' => ['nullable', 'string', 'max:10000'],
+            'closure_photo' => ['nullable', 'image', 'max:8192'],
         ]);
 
         if (isset($data['status'])) {
@@ -76,6 +78,14 @@ class FieldVisitController extends Controller
             }
         }
 
+        if ($request->hasFile('closure_photo')) {
+            $disk = 'public';
+            $path = $request->file('closure_photo')->store('field-visits/'.$fieldVisit->tenant_id, $disk);
+            $fieldVisit->closure_photo_path = $path;
+            $fieldVisit->closure_photo_disk = $disk;
+        }
+
+        unset($data['closure_photo']);
         $fieldVisit->fill($data)->save();
         $fieldVisit->load(['ticket.customer']);
 
@@ -111,6 +121,9 @@ class FieldVisitController extends Controller
             'longitude' => $visit->longitude,
             'location_text' => $visit->location_text,
             'report' => $visit->report,
+            'closure_photo_url' => $visit->closure_photo_path
+                ? Storage::disk($visit->closure_photo_disk ?: 'public')->url($visit->closure_photo_path)
+                : null,
             'ticket' => $visit->ticket ? [
                 'id' => $visit->ticket->id,
                 'ticket_number' => $visit->ticket->ticket_number,

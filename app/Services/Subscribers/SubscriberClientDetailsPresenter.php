@@ -18,6 +18,8 @@ use App\Support\NotificationEvent;
 use App\Services\Network\CustomerConnectionStatusService;
 use App\Services\Optical\OnuNetworkDiagnosticsPresenter;
 use App\Services\Optical\SubscriberOpticalPowerPresenter;
+use App\Services\Optical\SubscriberOnuOpsPresenter;
+use App\Services\Subscribers\SubscriberCommandCenterService;
 use App\Support\MacAddress;
 use App\Support\OnuOwnership;
 use App\Support\SubscriberContactLinks;
@@ -187,6 +189,7 @@ final class SubscriberClientDetailsPresenter
                 'whatsapp' => $c->is_whatsapp,
             ])->all(),
             'optical' => $this->optical->forCustomer($customer),
+            'onu_ops' => app(SubscriberOnuOpsPresenter::class)->forCustomer($customer),
             'network_diagnostics' => $this->onuDiagnostics->forCustomer($customer),
             'recent_payments' => $recentPayments,
             'recent_invoices' => $recentInvoices,
@@ -211,6 +214,7 @@ final class SubscriberClientDetailsPresenter
             ],
             'sms_event_labels' => NotificationEvent::labels(),
             'contact' => SubscriberContactLinks::forCustomer($customer, round($openBalance, 2)),
+            'command_center' => app(SubscriberCommandCenterService::class)->forCustomer($customer),
         ];
     }
 

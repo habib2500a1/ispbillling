@@ -479,6 +479,15 @@ class AutomaticProcessSeeder extends Seeder
                 'sort_order' => 180,
             ],
             [
+                'slug' => 'support-detect-mass-outage',
+                'name' => 'Support mass outage detect',
+                'artisan_command' => 'isp:support-detect-mass-outage',
+                'command_options' => [],
+                'execute_at' => '00:00',
+                'interval' => 'every_fifteen_minutes',
+                'sort_order' => 181,
+            ],
+            [
                 'slug' => 'sales-lead-follow-ups',
                 'name' => 'Sales lead follow-ups',
                 'artisan_command' => 'isp:sales-lead-follow-ups',

@@ -109,6 +109,36 @@
                 </div>
             @endif
 
+            @if (\App\Filament\Pages\ManagePerformanceSettings::canAccess())
+                <div class="bg-gray-900 border border-gray-800 rounded-xl p-6 hover:border-gray-700 transition-colors">
+                    <div class="flex items-center gap-4 mb-4">
+                        <div class="p-3 bg-emerald-500/10 rounded-lg">
+                            <x-filament::icon icon="heroicon-o-bolt" class="w-6 h-6 text-emerald-400" />
+                        </div>
+                        <h3 class="text-lg font-semibold text-white">Performance & polling</h3>
+                    </div>
+                    <p class="text-sm text-gray-400 mb-6">Subscriber page speed, SNMP polling intervals, CSS bundles, and scheduler limits — no .env editing.</p>
+                    <a href="{{ \App\Filament\Pages\ManagePerformanceSettings::getUrl() }}" class="text-emerald-400 hover:text-emerald-300 text-sm font-medium flex items-center gap-2">
+                        Performance hub <x-filament::icon icon="heroicon-m-arrow-right" class="w-4 h-4" />
+                    </a>
+                </div>
+            @endif
+
+            @if (\App\Filament\Pages\ManageCustomerSearchSettings::canAccess())
+                <div class="bg-gray-900 border border-gray-800 rounded-xl p-6 hover:border-gray-700 transition-colors">
+                    <div class="flex items-center gap-4 mb-4">
+                        <div class="p-3 bg-cyan-500/10 rounded-lg">
+                            <x-filament::icon icon="heroicon-o-magnifying-glass-circle" class="w-6 h-6 text-cyan-400" />
+                        </div>
+                        <h3 class="text-lg font-semibold text-white">Customer search</h3>
+                    </div>
+                    <p class="text-sm text-gray-400 mb-6">Meilisearch typo-tolerant lookup for tickets, billing, Ctrl+K — key auto-derived from APP_KEY.</p>
+                    <a href="{{ \App\Filament\Pages\ManageCustomerSearchSettings::getUrl() }}" class="text-cyan-400 hover:text-cyan-300 text-sm font-medium flex items-center gap-2">
+                        Search settings <x-filament::icon icon="heroicon-m-arrow-right" class="w-4 h-4" />
+                    </a>
+                </div>
+            @endif
+
             <div class="bg-gray-900 border border-gray-800 rounded-xl p-6 hover:border-gray-700 transition-colors">
                 <div class="flex items-center gap-4 mb-4">
                     <div class="p-3 bg-violet-500/10 rounded-lg">

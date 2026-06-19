@@ -3,6 +3,7 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\SupportAssignmentRuleResource\Pages;
+use App\Models\PopBox;
 use App\Models\SupportAssignmentRule;
 use App\Support\SupportPanelAccess;
 use App\Models\SupportTicket;
@@ -30,16 +31,36 @@ class SupportAssignmentRuleResource extends Resource
     {
         return $form
             ->schema([
-                Forms\Components\Select::make('area_id')
-                    ->label('Area (blank = any)')
-                    ->relationship('area', 'name')
-                    ->searchable()
-                    ->preload()
-                    ->nullable(),
-                Forms\Components\Select::make('department')
-                    ->label('Department (blank = any)')
-                    ->options(SupportTicket::DEPARTMENTS)
-                    ->nullable(),
+                Forms\Components\Grid::make(2)->schema([
+                    Forms\Components\Select::make('area_id')
+                        ->label('Area (blank = any)')
+                        ->relationship('area', 'name')
+                        ->searchable()
+                        ->preload()
+                        ->nullable(),
+                    Forms\Components\Select::make('pop_box_id')
+                        ->label('POP box (blank = any)')
+                        ->options(fn (): array => PopBox::query()->orderBy('name')->pluck('name', 'id')->all())
+                        ->searchable()
+                        ->nullable(),
+                    Forms\Components\Select::make('department')
+                        ->label('Department (blank = any)')
+                        ->options(SupportTicket::DEPARTMENTS)
+                        ->nullable(),
+                    Forms\Components\TextInput::make('skill_tag')
+                        ->label('Skill tag')
+                        ->helperText('Matches issue type or department substring — e.g. fiber, field_engineer')
+                        ->maxLength(64)
+                        ->nullable(),
+                    Forms\Components\Toggle::make('vip_priority')
+                        ->label('VIP / corporate only')
+                        ->default(false),
+                    Forms\Components\TextInput::make('max_open_tickets')
+                        ->label('Max open tickets')
+                        ->numeric()
+                        ->minValue(1)
+                        ->nullable(),
+                ]),
                 Forms\Components\Select::make('user_id')
                     ->label('Assign to user')
                     ->relationship('user', 'name', modifyQueryUsing: fn ($query) => $query->orderBy('name'))
@@ -58,8 +79,12 @@ class SupportAssignmentRuleResource extends Resource
             ->columns([
                 Tables\Columns\TextColumn::make('sort_order')->sortable(),
                 Tables\Columns\TextColumn::make('area.name')->label('Area')->placeholder('Any'),
+                Tables\Columns\TextColumn::make('popBox.name')->label('POP')->placeholder('Any'),
                 Tables\Columns\TextColumn::make('department')
                     ->formatStateUsing(fn (?string $state): string => $state ? (SupportTicket::DEPARTMENTS[$state] ?? $state) : 'Any'),
+                Tables\Columns\TextColumn::make('skill_tag')->placeholder('—'),
+                Tables\Columns\IconColumn::make('vip_priority')->boolean()->label('VIP'),
+                Tables\Columns\TextColumn::make('max_open_tickets')->label('Cap')->placeholder('—'),
                 Tables\Columns\TextColumn::make('user.name')->label('User'),
             ])
             ->defaultSort('sort_order')

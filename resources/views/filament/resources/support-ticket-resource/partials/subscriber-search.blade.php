@@ -31,6 +31,9 @@
 
     <p class="isp-collection-search-hint">
         Type at least 2 characters — customer code, mobile, name, MikroTik/RADIUS username, or address.
+        @if (\App\Support\CustomerSearchSettings::useScout())
+            <span class="text-emerald-700 dark:text-emerald-400">Meilisearch — fast, typo-tolerant.</span>
+        @endif
         <span class="isp-collection-search-hint__links">Press <kbd>Enter</kbd> to search.</span>
     </p>
 

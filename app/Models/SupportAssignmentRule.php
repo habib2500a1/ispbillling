@@ -13,7 +13,11 @@ class SupportAssignmentRule extends Model
     protected $fillable = [
         'tenant_id',
         'area_id',
+        'pop_box_id',
         'department',
+        'skill_tag',
+        'vip_priority',
+        'max_open_tickets',
         'user_id',
         'sort_order',
     ];
@@ -22,12 +26,19 @@ class SupportAssignmentRule extends Model
     {
         return [
             'sort_order' => 'integer',
+            'vip_priority' => 'boolean',
+            'max_open_tickets' => 'integer',
         ];
     }
 
     public function area(): BelongsTo
     {
         return $this->belongsTo(Area::class);
+    }
+
+    public function popBox(): BelongsTo
+    {
+        return $this->belongsTo(PopBox::class);
     }
 
     public function user(): BelongsTo

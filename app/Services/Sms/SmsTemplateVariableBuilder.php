@@ -85,6 +85,7 @@ final class SmsTemplateVariableBuilder
 
         return array_merge($base, [
             'Problem' => (string) ($ticket->subject ?? $ticket->description ?? '—'),
+            'ticket_number' => (string) ($ticket->ticket_number ?? '—'),
             'UserName' => (string) ($customer?->ppp_username ?? $customer?->customer_code ?? '—'),
         ]);
     }

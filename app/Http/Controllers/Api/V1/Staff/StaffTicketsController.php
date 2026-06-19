@@ -32,7 +32,7 @@ class StaffTicketsController extends Controller
         $status = $request->query('status');
         if (is_string($status) && $status !== '' && $status !== 'all') {
             if ($status === 'active') {
-                $query->whereIn('status', ['open', 'in_progress', 'pending']);
+                $query->whereIn('status', ['open', 'assigned', 'in_progress', 'pending_customer', 'pending_vendor', 'pending']);
             } elseif ($status === 'complete') {
                 $query->whereIn('status', ['resolved', 'closed']);
             } else {
@@ -101,7 +101,7 @@ class StaffTicketsController extends Controller
             'is_internal' => (bool) ($data['is_internal'] ?? false),
         ]);
 
-        if (in_array($model->status, ['open', 'pending'], true)) {
+        if (in_array($model->status, ['open', 'assigned', 'pending_customer', 'pending_vendor', 'pending'], true)) {
             $model->update(['status' => 'in_progress']);
         }
 
@@ -148,6 +148,7 @@ class StaffTicketsController extends Controller
             'status' => ['nullable', Rule::in(array_keys(SupportTicket::STATUSES))],
             'priority' => ['nullable', Rule::in(array_keys(SupportTicket::PRIORITIES))],
             'assigned_to' => ['nullable', 'integer'],
+            'eta_at' => ['nullable', 'date'],
         ]);
 
         $updates = [];
@@ -168,6 +169,12 @@ class StaffTicketsController extends Controller
                 }
             }
             $updates['assigned_to'] = $data['assigned_to'];
+            if ($data['assigned_to'] !== null && in_array($model->status, ['open'], true)) {
+                $updates['status'] = 'assigned';
+            }
+        }
+        if (array_key_exists('eta_at', $data)) {
+            $updates['eta_at'] = $data['eta_at'];
         }
 
         if ($updates !== []) {
@@ -235,6 +242,9 @@ class StaffTicketsController extends Controller
             'customer_code' => $t->customer?->customer_code,
             'assigned_to' => $t->assigned_to,
             'assignee_name' => $t->assignee?->name,
+            'eta_at' => $t->eta_at?->toIso8601String(),
+            'first_response_due_at' => $t->first_response_due_at?->toIso8601String(),
+            'sla_profile' => $t->sla_profile,
             'created_at' => $t->created_at?->toIso8601String(),
             'updated_at' => $t->updated_at?->toIso8601String(),
         ];

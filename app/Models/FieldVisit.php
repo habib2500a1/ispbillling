@@ -29,6 +29,8 @@ class FieldVisit extends Model
         'longitude',
         'location_text',
         'report',
+        'closure_photo_path',
+        'closure_photo_disk',
     ];
 
     protected function casts(): array

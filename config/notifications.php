@@ -81,12 +81,12 @@ return [
         ],
         'support_token_created' => [
             'enabled' => true,
-            'channels' => ['sms'],
+            'channels' => ['sms', 'whatsapp'],
             'telegram_ops' => true,
         ],
         'support_solved' => [
             'enabled' => true,
-            'channels' => ['sms'],
+            'channels' => ['sms', 'whatsapp'],
             'telegram_ops' => true,
         ],
         'invoice_due' => [
