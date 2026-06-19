@@ -62,9 +62,13 @@ class CreateSupportTicket extends CreateRecord
 
     protected function getRedirectUrl(): string
     {
-        return $this->getResource()::getUrl('index', panel: 'admin', parameters: [
-            'activeTab' => 'all',
-        ]);
+        if ($this->record !== null) {
+            return $this->getResource()::getUrl('edit', [
+                'record' => $this->record,
+            ], panel: 'admin');
+        }
+
+        return $this->getResource()::getUrl('index', panel: 'admin');
     }
 
     public function form(Form $form): Form
@@ -82,9 +86,10 @@ class CreateSupportTicket extends CreateRecord
     protected function getCreateFormAction(): Action
     {
         return parent::getCreateFormAction()
-            ->label('Create ticket → Queue')
+            ->label('Create ticket → Open')
             ->icon('heroicon-o-paper-airplane')
             ->size('lg')
+            ->disabled(fn (): bool => ! $this->canSaveTicket())
             ->submit('createTicket');
     }
 
@@ -118,6 +123,10 @@ class CreateSupportTicket extends CreateRecord
             $this->applySmartDefaultsFromSelection();
         }
 
+        if (blank($this->data['issue_type'] ?? null)) {
+            $this->data['issue_type'] = 'network_slow_speed';
+        }
+
         if (blank($this->data['subject'] ?? null) && $this->selectedSubscriber !== null) {
             $name = (string) ($this->selectedSubscriber['name'] ?? 'Subscriber');
             $code = (string) ($this->selectedSubscriber['customer_code'] ?? '');
@@ -138,11 +147,21 @@ class CreateSupportTicket extends CreateRecord
 
     protected function applySmartDefaultsFromSelection(): void
     {
-        if ($this->selectedSubscriber === null) {
+        if ($this->selectedSubscriber !== null) {
+            $this->applySmartTicketDefaults($this->selectedSubscriber);
+
             return;
         }
 
-        $this->applySmartTicketDefaults($this->selectedSubscriber);
+        $customerId = $this->data['customer_id'] ?? $this->selectedSubscriberId;
+        if (! filled($customerId)) {
+            return;
+        }
+
+        $row = app(\App\Services\Billing\BillCollectionSearchService::class)->find((int) $customerId);
+        if ($row !== null) {
+            $this->applySmartTicketDefaults($row);
+        }
     }
 
     protected function syncCustomerIdFromSelection(): void
@@ -169,6 +188,21 @@ class CreateSupportTicket extends CreateRecord
             throw ValidationException::withMessages([
                 'data.customer_id' => 'Pick a subscriber from search before saving.',
             ]);
+        }
+
+        if (blank($data['issue_type'] ?? null)) {
+            $data['issue_type'] = 'network_slow_speed';
+        }
+
+        if (blank($data['subject'] ?? null) && filled($data['customer_id'])) {
+            $customer = \App\Models\Customer::query()->find($data['customer_id']);
+            if ($customer !== null) {
+                $issue = SupportCategories::label($data['issue_type']);
+                $code = (string) ($customer->customer_code ?? '');
+                $data['subject'] = $code !== ''
+                    ? "{$issue} — {$customer->name} (#{$code})"
+                    : "{$issue} — {$customer->name}";
+            }
         }
 
         unset($data['create_attachment']);
@@ -257,8 +291,6 @@ class CreateSupportTicket extends CreateRecord
                 ]);
             }
         }
-
-        $this->redirect($this->getRedirectUrl(), navigate: false);
     }
 
     protected function getCreatedNotification(): ?Notification

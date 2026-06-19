@@ -12,6 +12,8 @@ use Filament\Actions;
 use Filament\Forms;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\EditRecord;
+use Filament\Support\Enums\MaxWidth;
+use Illuminate\Contracts\Support\Htmlable;
 
 class EditSupportTicket extends EditRecord
 {
@@ -24,9 +26,24 @@ class EditSupportTicket extends EditRecord
 
     protected static string $view = 'filament.resources.support-ticket-resource.pages.edit-support-ticket';
 
+    public function getHeading(): string|Htmlable
+    {
+        return '';
+    }
+
     public function getTitle(): string
     {
         return '';
+    }
+
+    public function getSubheading(): ?string
+    {
+        return null;
+    }
+
+    public function getMaxContentWidth(): MaxWidth
+    {
+        return MaxWidth::Full;
     }
 
     /**
@@ -35,7 +52,7 @@ class EditSupportTicket extends EditRecord
     public function getExtraBodyAttributes(): array
     {
         return [
-            'class' => 'isp-support-module isp-support-ticket-edit',
+            'class' => 'isp-support-module isp-support-ticket-edit isp-support-ticket-edit-v4',
         ];
     }
 

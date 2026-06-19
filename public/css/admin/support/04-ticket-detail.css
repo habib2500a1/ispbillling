@@ -284,3 +284,238 @@
     .sp-workspace__main { order: 1; }
     .sp-workspace__rail--right { order: 3; }
 }
+
+/* ── Ticket edit v4 — mobile + desktop workspace ── */
+body.isp-support-ticket-edit-v4 .fi-header-heading,
+.isp-support-ticket-edit-page .fi-header-heading {
+    display: none !important;
+}
+
+body.isp-support-ticket-edit-v4 .fi-main,
+.isp-support-ticket-edit-page .fi-main {
+    background: var(--sp-surface, #f8fafc) !important;
+}
+
+body.isp-support-ticket-edit-v4 .fi-header,
+.isp-support-ticket-edit-page .fi-header {
+    margin-bottom: 0.65rem;
+    padding: 0.65rem 0.75rem;
+    border-radius: var(--sp-radius-sm, 12px);
+    border: 1px solid var(--sp-border);
+    background: var(--sp-card);
+    box-shadow: var(--sp-shadow);
+}
+
+body.isp-support-ticket-edit-v4 .fi-header-actions,
+.isp-support-ticket-edit-page .fi-header-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    width: 100%;
+}
+
+.sp-create-flash {
+    margin: 0 0 0.75rem;
+    padding: 0.65rem 0.85rem;
+    border-radius: 10px;
+    border: 1px solid rgba(34, 197, 94, 0.35);
+    background: rgba(34, 197, 94, 0.1);
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: #166534;
+}
+
+.sp-ticket-edit-hero {
+    margin-bottom: 0.75rem;
+}
+
+.sp-ticket-edit-hero__meta {
+    margin: 0.45rem 0 0;
+    font-size: 0.75rem;
+    opacity: 0.92;
+    line-height: 1.45;
+}
+
+.sp-ticket-edit-form-footer {
+    margin-top: 1rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid var(--sp-border);
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 0.5rem;
+}
+
+body.isp-support-ticket-edit-v4 .sp-workspace__main .fi-section,
+.isp-support-ticket-edit-page .sp-workspace__main .fi-section {
+    border-radius: var(--sp-radius-sm, 12px);
+}
+
+body.isp-support-ticket-edit-v4 .sp-workspace__main .fi-fo-grid,
+.isp-support-ticket-edit-page .sp-workspace__main .fi-fo-grid {
+    gap: 0.75rem;
+}
+
+body.isp-support-ticket-edit-v4 .sp-workspace__main .fi-ta-content,
+.isp-support-ticket-edit-page .sp-workspace__main .fi-ta-content {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+@media (max-width: 767px) {
+    body.isp-support-ticket-edit-v4 .fi-main-ctn,
+    body.isp-support-ticket-edit .fi-main-ctn {
+        padding-left: 0.65rem !important;
+        padding-right: 0.65rem !important;
+        padding-bottom: calc(var(--isp-mobile-bar-height, 10.5rem) + 4rem + env(safe-area-inset-bottom, 0px)) !important;
+    }
+
+    body.isp-support-ticket-edit-v4 .fi-header,
+    .isp-support-ticket-edit-page .fi-header {
+        position: sticky;
+        top: 0;
+        z-index: 45;
+        margin-left: -0.65rem;
+        margin-right: -0.65rem;
+        border-radius: 0;
+        border-left: 0;
+        border-right: 0;
+    }
+
+    body.isp-support-ticket-edit-v4 .fi-header-actions,
+    .isp-support-ticket-edit-page .fi-header-actions {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        scroll-snap-type: x proximity;
+        padding-bottom: 0.15rem;
+    }
+
+    body.isp-support-ticket-edit-v4 .fi-header-actions .fi-btn,
+    .isp-support-ticket-edit-page .fi-header-actions .fi-btn {
+        flex: 0 0 auto;
+        scroll-snap-align: start;
+        min-height: 2.65rem;
+        white-space: nowrap;
+    }
+
+    .sp-ticket-edit-hero.sh-hero {
+        padding: 1rem 0.85rem;
+        border-radius: 12px;
+    }
+
+    .sp-ticket-edit-hero .sh-hero__title {
+        font-size: 1.15rem;
+        line-height: 1.25;
+    }
+
+    .sp-ticket-edit-hero .sh-hero__actions {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .sp-ticket-edit-hero .sh-hero__actions .sh-btn {
+        width: 100%;
+        justify-content: center;
+        min-height: 2.85rem;
+    }
+
+    .sp-ticket-summary {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.5rem;
+        margin-bottom: 0.75rem;
+    }
+
+    .sp-workspace__rail {
+        position: static;
+        top: auto;
+    }
+
+    .sp-live-status__grid {
+        grid-template-columns: 1fr;
+    }
+
+    .sp-360__links {
+        flex-direction: column;
+    }
+
+    .sp-360__link {
+        width: 100%;
+        min-height: 2.75rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .sp-map-preview {
+        height: 10rem;
+    }
+
+    .sp-ai-panel__item {
+        flex-direction: column;
+        align-items: flex-start !important;
+        gap: 0.15rem;
+    }
+
+    .sp-ai-panel__item span {
+        text-align: left !important;
+    }
+
+    body.isp-support-ticket-edit-v4 .sp-workspace__main .fi-fo-grid,
+    .isp-support-ticket-edit-page .sp-workspace__main .fi-fo-grid {
+        grid-template-columns: 1fr !important;
+    }
+
+    body.isp-support-ticket-edit-v4 .sp-workspace__main select.fi-select-input,
+    body.isp-support-ticket-edit-v4 .sp-workspace__main .fi-input-wrp input,
+    body.isp-support-ticket-edit-v4 .sp-workspace__main .fi-input-wrp textarea {
+        font-size: 16px;
+        min-height: 2.85rem;
+    }
+
+    .sp-ticket-edit-form-footer {
+        position: sticky;
+        bottom: calc(var(--isp-mobile-bar-height, 10.5rem) + env(safe-area-inset-bottom, 0px));
+        z-index: 40;
+        margin-left: -0.75rem;
+        margin-right: -0.75rem;
+        margin-bottom: -0.75rem;
+        padding: 0.75rem;
+        background: var(--sp-card);
+        box-shadow: 0 -8px 24px rgba(15, 23, 42, 0.12);
+    }
+
+    .sp-ticket-edit-form-footer .fi-btn {
+        width: 100% !important;
+        min-height: 3rem !important;
+        font-size: 0.95rem !important;
+    }
+
+    .sp-timeline {
+        max-height: min(20rem, 45vh);
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+}
+
+@media (min-width: 768px) and (max-width: 1099px) {
+    .sp-workspace {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .sp-ticket-summary {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+}
+
+@media (min-width: 1100px) {
+    .sp-ticket-edit-hero .sh-hero__title {
+        font-size: 1.35rem;
+    }
+
+    .sp-ticket-summary {
+        margin-top: 0;
+        margin-bottom: 0.85rem;
+    }
+}
+

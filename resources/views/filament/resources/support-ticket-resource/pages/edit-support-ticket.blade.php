@@ -21,66 +21,69 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin="" defer></script>
 <script src="{{ asset('js/support-ticket-map.js') }}?v={{ @filemtime(public_path('js/support-ticket-map.js')) ?: 1 }}" defer></script>
 
-<x-filament-panels::page class="isp-support-ticket-edit">
-    <div class="sp-pro">
-        <header class="sp-ticket-hero">
-            <div style="display:flex;flex-wrap:wrap;justify-content:space-between;gap:0.5rem;align-items:flex-start;">
-                <div>
-                    <span class="sp-ticket-hero__number">{{ $record->ticket_number }}</span>
-                    <h1 class="sp-ticket-hero__subject">{{ $record->subject }}</h1>
-                    <p style="margin:0.35rem 0 0;font-size:0.72rem;color:var(--sp-muted);">
-                        {{ $record->categoryGroupLabel() }} · {{ $record->issueTypeLabel() }}
-                        · {{ $record->priorityLabel() }}
-                        · {{ $record->statusLabel() }}
-                        · SLA {{ $record->slaRemainingLabel() }}
-                        · Technician: <strong style="color:var(--sp-text);">{{ $assignment['name'] }}</strong>
-                    </p>
-                </div>
-                <div style="display:flex;flex-wrap:wrap;gap:0.35rem;">
-                    <a href="{{ $listUrl }}" class="sp-360__link">← Queue</a>
-                    <a href="{{ $hubUrl }}" class="sp-360__link">Center</a>
+<x-filament-panels::page class="isp-support-ticket-edit-page">
+    <div class="sp-pro" data-sp-ticket-edit-v4>
+        @if (session('support_ticket_created'))
+            <p class="sp-create-flash" role="status">
+                Ticket <strong>{{ session('support_ticket_created') }}</strong> created — you are now on the ticket workspace.
+            </p>
+        @endif
+
+        <header class="sh-hero sp-grad--hero sp-ticket-edit-hero">
+            <div>
+                <span class="sh-hero__badge">{{ $record->ticket_number }}</span>
+                <h1 class="sh-hero__title">{{ $record->subject }}</h1>
+                <p class="sp-ticket-edit-hero__meta">
+                    {{ $record->categoryGroupLabel() }} · {{ $record->issueTypeLabel() }}
+                    · {{ $record->priorityLabel() }} · {{ $record->statusLabel() }}
+                </p>
+                <div class="sh-hero__actions">
+                    <a href="{{ $listUrl }}" class="sh-btn sh-btn--white" data-navigate="false">← Queue</a>
+                    <a href="{{ $hubUrl }}" class="sh-btn sh-btn--glass" data-navigate="false">NOC center</a>
                 </div>
             </div>
-
-            @if (! empty($c360['linked']))
-                <div class="sp-ticket-summary" aria-label="Ticket summary">
-                    <div class="sp-ticket-summary__item">
-                        <span class="sp-ticket-summary__label">Ticket ID</span>
-                        <span class="sp-ticket-summary__value">{{ $record->ticket_number }}</span>
-                    </div>
-                    <div class="sp-ticket-summary__item">
-                        <span class="sp-ticket-summary__label">Customer</span>
-                        <span class="sp-ticket-summary__value">{{ $c360['name'] }}</span>
-                    </div>
-                    <div class="sp-ticket-summary__item">
-                        <span class="sp-ticket-summary__label">CID</span>
-                        <span class="sp-ticket-summary__value">{{ $c360['code'] }}</span>
-                    </div>
-                    <div class="sp-ticket-summary__item">
-                        <span class="sp-ticket-summary__label">Mobile</span>
-                        <span class="sp-ticket-summary__value">{{ $c360['phone'] }}</span>
-                    </div>
-                    <div class="sp-ticket-summary__item">
-                        <span class="sp-ticket-summary__label">Package</span>
-                        <span class="sp-ticket-summary__value">{{ $c360['package'] }}</span>
-                    </div>
-                    <div class="sp-ticket-summary__item">
-                        <span class="sp-ticket-summary__label">Priority</span>
-                        <span class="sp-ticket-summary__value">{{ $record->priorityLabel() }}</span>
-                    </div>
-                    <div class="sp-ticket-summary__item">
-                        <span class="sp-ticket-summary__label">Status</span>
-                        <span class="sp-ticket-summary__value">{{ $record->statusLabel() }}</span>
-                    </div>
-                    @if ($record->rootIncident)
-                        <div class="sp-ticket-summary__item">
-                            <span class="sp-ticket-summary__label">Incident</span>
-                            <span class="sp-ticket-summary__value">{{ $record->rootIncident->incident_number }}</span>
-                        </div>
-                    @endif
-                </div>
-            @endif
+            <div class="sh-hero__kpi">
+                <span class="sh-hero__kpi-label">SLA remaining</span>
+                <strong class="sh-hero__kpi-value">{{ $record->slaRemainingLabel() }}</strong>
+                <span class="sh-hero__kpi-label" style="margin-top:0.35rem;display:block;">
+                    Technician: {{ $assignment['name'] }}
+                </span>
+                @if ($record->rootIncident)
+                    <span class="sh-hero__kpi-label" style="margin-top:0.35rem;display:block;">
+                        Incident: {{ $record->rootIncident->incident_number }}
+                    </span>
+                @endif
+            </div>
         </header>
+
+        @if (! empty($c360['linked']))
+            <div class="sp-ticket-summary" aria-label="Ticket summary">
+                <div class="sp-ticket-summary__item">
+                    <span class="sp-ticket-summary__label">Customer</span>
+                    <span class="sp-ticket-summary__value">{{ $c360['name'] }}</span>
+                </div>
+                <div class="sp-ticket-summary__item">
+                    <span class="sp-ticket-summary__label">CID</span>
+                    <span class="sp-ticket-summary__value">{{ $c360['code'] }}</span>
+                </div>
+                <div class="sp-ticket-summary__item">
+                    <span class="sp-ticket-summary__label">Mobile</span>
+                    <span class="sp-ticket-summary__value">{{ $c360['phone'] }}</span>
+                </div>
+                <div class="sp-ticket-summary__item">
+                    <span class="sp-ticket-summary__label">Package</span>
+                    <span class="sp-ticket-summary__value">{{ $c360['package'] }}</span>
+                </div>
+                <div class="sp-ticket-summary__item">
+                    <span class="sp-ticket-summary__label">Priority</span>
+                    <span class="sp-ticket-summary__value">{{ $record->priorityLabel() }}</span>
+                </div>
+                <div class="sp-ticket-summary__item">
+                    <span class="sp-ticket-summary__label">Status</span>
+                    <span class="sp-ticket-summary__value">{{ $record->statusLabel() }}</span>
+                </div>
+            </div>
+        @endif
 
         @if ($aiSuggestions !== [])
             <section class="sp-ai-panel" aria-label="AI ticket analysis">
@@ -235,10 +238,12 @@
             <div class="sp-workspace__main">
                 <x-filament-panels::form wire:submit="save">
                     {{ $this->form }}
-                    <x-filament-panels::form.actions
-                        :actions="$this->getCachedFormActions()"
-                        :full-width="$this->hasFullWidthFormActions()"
-                    />
+                    <div class="sp-ticket-edit-form-footer">
+                        <x-filament-panels::form.actions
+                            :actions="$this->getCachedFormActions()"
+                            :full-width="false"
+                        />
+                    </div>
                 </x-filament-panels::form>
 
                 @php $relationManagers = $this->getRelationManagers(); @endphp
@@ -344,3 +349,18 @@
         </div>
     </div>
 </x-filament-panels::page>
+
+<style>
+    body.isp-support-ticket-edit-v4 .fi-header-heading,
+    .isp-support-ticket-edit-page .fi-header-heading { display: none !important; }
+    body.isp-support-ticket-edit-v4 .fi-main,
+    .isp-support-ticket-edit-page .fi-main { background: var(--sp-surface, #f8fafc) !important; }
+    .sp-ticket-edit-hero.sp-grad--hero {
+        background: linear-gradient(135deg, #b45309 0%, #d97706 45%, #f59e0b 100%) !important;
+        color: #fff !important;
+    }
+    @media (max-width: 767px) {
+        .sp-ticket-edit-form-footer { position: sticky; bottom: 0; z-index: 35; background: var(--sp-card, #fff); padding-top: 0.75rem; border-top: 1px solid var(--sp-border); }
+        .sp-ticket-edit-form-footer .fi-btn { width: 100% !important; min-height: 3rem !important; }
+    }
+</style>

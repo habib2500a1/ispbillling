@@ -115,10 +115,10 @@
                     >
                         {{ $this->form }}
 
-                        <div class="sp-create-form-footer">
+                        <div class="sp-create-form-footer" wire:loading.class="opacity-60" wire:target="createTicket">
                             @unless ($this->canSaveTicket())
                                 <p class="sp-create-form-footer__warn">
-                                    Link subscriber first (search above)
+                                    Link subscriber first — search above, tap a result, then fill complaint details.
                                 </p>
                             @endunless
                             <x-filament-panels::form.actions
@@ -148,11 +148,35 @@
         color: #fff !important;
     }
     @media (max-width: 767px) {
-        .sp-create-layout--v4 { display: flex; flex-direction: column; gap: 0.85rem; }
-        .sp-create-form-footer { position: sticky; bottom: 0; z-index: 40; background: var(--sp-card, #fff); }
-        .sp-create-form-footer .fi-btn { width: 100% !important; min-height: 3rem !important; }
-        .isp-collection-search-input { font-size: 16px !important; min-height: 2.85rem; }
+    body.isp-support-create-v4 .fi-main-ctn,
+    body.isp-support-ticket-create .fi-main-ctn {
+        padding-left: 0.65rem !important;
+        padding-right: 0.65rem !important;
+        padding-bottom: calc(var(--isp-mobile-bar-height, 10.5rem) + 5rem + env(safe-area-inset-bottom, 0px)) !important;
     }
+
+    .sp-create-layout--v4 { display: flex; flex-direction: column; gap: 0.85rem; }
+
+    .sp-create-form-footer {
+        position: sticky;
+        bottom: calc(var(--isp-mobile-bar-height, 10.5rem) + env(safe-area-inset-bottom, 0px));
+        z-index: 50;
+        background: var(--sp-card, #fff);
+        margin-left: -0.75rem;
+        margin-right: -0.75rem;
+        padding: 0.75rem;
+        border-top: 1px solid var(--sp-border, #e2e8f0);
+        box-shadow: 0 -8px 24px rgba(15, 23, 42, 0.12);
+    }
+
+    .sp-create-form-footer .fi-btn {
+        width: 100% !important;
+        min-height: 3rem !important;
+        font-size: 0.95rem !important;
+    }
+
+    .isp-collection-search-input { font-size: 16px !important; min-height: 2.85rem; }
+}
 </style>
 
 <script data-cfasync="false">
