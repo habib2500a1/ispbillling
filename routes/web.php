@@ -88,6 +88,9 @@ Route::middleware(['web', 'auth'])->prefix('admin')->group(function (): void {
         ->whereNumber('customer')
         ->middleware('portal.enabled')
         ->name('staff.subscribers.portal-login');
+    Route::get('/support-tickets/subscriber-search', \App\Http\Controllers\Admin\SupportTicketSubscriberSearchController::class)
+        ->middleware('throttle:120,1')
+        ->name('admin.support-tickets.subscriber-search');
     Route::get('/reseller-portal-login/{reseller}', [StaffResellerPortalController::class, 'login'])
         ->whereNumber('reseller')
         ->name('staff.resellers.portal-login');
