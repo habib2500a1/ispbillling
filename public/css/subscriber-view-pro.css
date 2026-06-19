@@ -2812,12 +2812,26 @@ body.isp-cv-map-modal-open {
 }
 
 .sub-cc-timeline-wrap {
-    max-height: 22rem;
-    overflow: auto;
+    --sub-cc-timeline-visible: 4;
+    --sub-cc-timeline-item-h: 4.35rem;
+    max-height: calc(var(--sub-cc-timeline-visible) * var(--sub-cc-timeline-item-h));
+    overflow-x: hidden;
+    overflow-y: auto;
     -webkit-overflow-scrolling: touch;
-    overscroll-behavior-y: auto;
+    overscroll-behavior-y: contain;
     margin: 0 -0.15rem;
-    padding: 0 0.15rem;
+    padding: 0 0.15rem 0.1rem;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(100, 116, 139, 0.45) transparent;
+}
+
+.sub-cc-timeline-wrap::-webkit-scrollbar {
+    width: 0.35rem;
+}
+
+.sub-cc-timeline-wrap::-webkit-scrollbar-thumb {
+    border-radius: 999px;
+    background: rgba(100, 116, 139, 0.45);
 }
 
 .sub-cc-timeline__item {
@@ -3156,11 +3170,15 @@ body.isp-cv-map-modal-open {
     }
 
     .sub-pro .sub-cc-timeline-wrap {
-        max-height: none;
-        overflow: visible;
-        overscroll-behavior: auto;
+        --sub-cc-timeline-item-h: 5.35rem;
+        max-height: calc(var(--sub-cc-timeline-visible) * var(--sub-cc-timeline-item-h) + 0.75rem);
+        overflow-x: hidden;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+        overscroll-behavior-y: contain;
+        touch-action: pan-y;
         margin: 0;
-        padding: 0;
+        padding: 0 0.1rem 0.15rem 0;
     }
 
     .sub-pro .sub-cc-timeline {
@@ -3241,13 +3259,6 @@ body.isp-cv-map-modal-open {
 
     .sub-pro .sub-cc-usage-tabs button {
         flex: 0 1 auto;
-    }
-
-    /* Timeline grows with page on tablet — avoids nested scroll traps */
-    .sub-pro .sub-cc-timeline-wrap {
-        max-height: none;
-        overflow: visible;
-        overscroll-behavior: auto;
     }
 }
 

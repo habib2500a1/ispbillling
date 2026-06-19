@@ -98,13 +98,18 @@
         <div class="isp-cv-card__head sub-cc-panel__head">
             <div class="sub-cc-panel__head-main">
                 <h3 class="isp-cv-card__title">Activity timeline</h3>
-                <span class="sub-cc-panel__hint">Payments · tickets · SMS · notes</span>
+                <span class="sub-cc-panel__hint">
+                    Payments · tickets · SMS · notes
+                    @if (count($timeline) > 4)
+                        · scroll for more
+                    @endif
+                </span>
             </div>
         </div>
         @if ($timeline === [])
             <p class="isp-cv-muted text-sm">No activity yet.</p>
         @else
-            <div class="sub-cc-timeline-wrap">
+            <div class="sub-cc-timeline-wrap" tabindex="0" aria-label="Activity timeline, scroll for more events">
                 <ol class="sub-cc-timeline">
                 @foreach ($timeline as $event)
                     <li class="sub-cc-timeline__item sub-cc-timeline__item--{{ $event['tone'] ?? 'slate' }}">
