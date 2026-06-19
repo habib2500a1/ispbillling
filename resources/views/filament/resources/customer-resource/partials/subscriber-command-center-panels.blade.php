@@ -114,7 +114,7 @@
                     'sub-cc-timeline-wrap',
                     'sub-cc-timeline-wrap--scroll' => count($timeline) > 4,
                 ])
-                tabindex="0"
+                @if (count($timeline) > 4) data-sub-timeline-visible="4" @endif
                 aria-label="Activity timeline, scroll for more events"
             >
                 <ol class="sub-cc-timeline">

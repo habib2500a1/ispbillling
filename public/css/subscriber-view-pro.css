@@ -2915,22 +2915,16 @@ body.isp-cv-map-modal-open {
 
 .sub-cc-timeline-wrap {
     --sub-cc-timeline-visible: 4;
-    --sub-cc-timeline-row-h: 4rem;
-    --sub-cc-timeline-gap: 0;
     overflow: visible;
     margin: 0 -0.15rem;
     padding: 0 0.15rem 0.1rem;
 }
 
-/* Scroll the list itself — fixed item heights on the wrap caused top gaps on mobile cards */
+/* Height cap is applied by subscriber-view-tabs.js after measuring real card sizes */
 .isp-sub-view-page .sub-pro .sub-cc-panel--timeline .sub-cc-timeline-wrap--scroll .sub-cc-timeline,
 .isp-subscriber-record-page .sub-pro .sub-cc-panel--timeline .sub-cc-timeline-wrap--scroll .sub-cc-timeline {
-    max-height: calc(
-        var(--sub-cc-timeline-visible) * var(--sub-cc-timeline-row-h)
-        + (var(--sub-cc-timeline-visible) - 1) * var(--sub-cc-timeline-gap)
-    ) !important;
     overflow-x: hidden;
-    overflow-y: auto !important;
+    overflow-y: auto;
     -webkit-overflow-scrolling: touch;
     overscroll-behavior-y: contain;
     touch-action: pan-y;
@@ -3289,26 +3283,21 @@ body.isp-cv-map-modal-open {
     }
 
     .sub-pro .sub-cc-timeline-wrap {
-        --sub-cc-timeline-row-h: 5.375rem;
-        --sub-cc-timeline-gap: 0.35rem;
         margin: 0;
         padding: 0;
     }
 
-    .sub-pro .sub-cc-timeline {
-        display: flex;
-        flex-direction: column;
-        gap: var(--sub-cc-timeline-gap);
-        justify-content: flex-start;
-        align-content: flex-start;
-    }
-
     .sub-pro .sub-cc-timeline__item {
+        margin-bottom: 0.35rem;
         padding: 0.7rem 0.75rem;
         border: 1px solid var(--olt-border, #e2e8f0);
         border-radius: 0.75rem;
         background: color-mix(in srgb, var(--olt-card, #fff) 96%, #6366f1 4%);
         border-bottom: 1px solid var(--olt-border, #e2e8f0);
+    }
+
+    .sub-pro .sub-cc-timeline__item:last-child {
+        margin-bottom: 0;
     }
 
     .sub-pro .sub-cc-timeline__item strong {

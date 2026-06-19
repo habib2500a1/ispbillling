@@ -1,6 +1,52 @@
 (function () {
     'use strict';
 
+    var timelineVisibleDefault = 4;
+
+    function capTimelineScroll() {
+        document.querySelectorAll('.sub-cc-timeline-wrap--scroll').forEach(function (wrap) {
+            var list = wrap.querySelector('.sub-cc-timeline');
+            if (!list) {
+                return;
+            }
+
+            var items = list.querySelectorAll('.sub-cc-timeline__item');
+            var visible = parseInt(wrap.getAttribute('data-sub-timeline-visible') || String(timelineVisibleDefault), 10);
+
+            if (items.length <= visible) {
+                list.style.removeProperty('max-height');
+                list.scrollTop = 0;
+                return;
+            }
+
+            var height = 0;
+            var gap = 0;
+            var style = window.getComputedStyle(list);
+            if (style.display === 'flex') {
+                gap = parseFloat(style.rowGap || style.gap || '0') || 0;
+            }
+
+            for (var i = 0; i < visible && i < items.length; i++) {
+                if (i > 0) {
+                    height += gap;
+                }
+                height += items[i].getBoundingClientRect().height;
+            }
+
+            if (height > 0) {
+                list.style.setProperty('max-height', height + 'px', 'important');
+            }
+
+            list.scrollTop = 0;
+        });
+    }
+
+    function scheduleTimelineCap() {
+        window.requestAnimationFrame(function () {
+            window.requestAnimationFrame(capTimelineScroll);
+        });
+    }
+
     function activate(root, tab) {
         const next = tab || 'overview';
 
@@ -21,6 +67,7 @@
     function boot() {
         document.querySelectorAll('[data-sub-tabs-root]').forEach((root) => {
             if (root.dataset.subTabsBound === '1') {
+                scheduleTimelineCap();
                 return;
             }
 
@@ -35,9 +82,12 @@
                     if (history.replaceState) {
                         history.replaceState(null, '', '#' + tab);
                     }
+                    scheduleTimelineCap();
                 });
             });
         });
+
+        scheduleTimelineCap();
     }
 
     if (document.readyState === 'loading') {
@@ -47,4 +97,6 @@
     }
 
     document.addEventListener('livewire:navigated', boot);
+    window.addEventListener('resize', scheduleTimelineCap);
+    window.addEventListener('orientationchange', scheduleTimelineCap);
 })();
