@@ -103,108 +103,148 @@ class SupportTicketResource extends Resource
 
     public static function form(Form $form, bool $useSubscriberSearchPicker = false): Form
     {
-        return $form
-            ->schema([
-                Forms\Components\Section::make('Subscriber')
-                    ->schema([
-                        static::customerIdField($useSubscriberSearchPicker)->columnSpanFull(),
-                        Forms\Components\Placeholder::make('live_service_status')
-                            ->label('Live subscriber status')
-                            ->content(function (Get $get, ?SupportTicket $record = null): HtmlString {
-                                $customerId = $get('customer_id') ?? $record?->customer_id;
+        $schema = [];
 
-                                return app(SupportTicketWorkspaceService::class)->liveStatusHtml($customerId);
-                            })
-                            ->columnSpanFull(),
-                    ])
-                    ->columns(1),
-                Forms\Components\Section::make('Assignment')
-                    ->description('Who owns this ticket in the queue.')
-                    ->schema([
-                        static::assigneeSelectField(),
-                    ])
-                    ->columns(1),
-                Forms\Components\Select::make('channel')
-                    ->options(SupportTicket::CHANNELS)
-                    ->required()
-                    ->default('call_center'),
-                Forms\Components\Select::make('department')
-                    ->options(SupportTicket::DEPARTMENTS)
-                    ->required(),
-                Forms\Components\Select::make('priority')
-                    ->options(SupportTicket::PRIORITIES)
-                    ->required()
-                    ->default('medium'),
-                Forms\Components\Select::make('status')
-                    ->options(SupportTicket::STATUSES)
-                    ->required()
-                    ->default('open'),
-                Forms\Components\Select::make('issue_type')
-                    ->options(SupportTicket::ISSUE_TYPES)
-                    ->searchable()
-                    ->nullable(),
+        if ($useSubscriberSearchPicker) {
+            $schema[] = static::customerIdField(true);
+        } else {
+            $schema[] = Forms\Components\Section::make('Subscriber')
+                ->schema([
+                    static::customerIdField(false)->columnSpanFull(),
+                    Forms\Components\Placeholder::make('live_service_status')
+                        ->label('Live subscriber status')
+                        ->content(function (Get $get, ?SupportTicket $record = null): HtmlString {
+                            $customerId = $get('customer_id') ?? $record?->customer_id;
+
+                            return app(SupportTicketWorkspaceService::class)->liveStatusHtml($customerId);
+                        })
+                        ->columnSpanFull(),
+                ])
+                ->columns(1);
+        }
+
+        $schema[] = Forms\Components\Section::make('Assignment & routing')
+            ->description('Who owns this ticket and which team handles it.')
+            ->schema([
+                Forms\Components\Grid::make(2)->schema([
+                    static::assigneeSelectField(),
+                    Forms\Components\Select::make('department')
+                        ->options(SupportTicket::DEPARTMENTS)
+                        ->required()
+                        ->native(false),
+                ]),
+            ]);
+
+        $schema[] = Forms\Components\Section::make('Ticket details')
+            ->schema([
+                Forms\Components\Grid::make(2)->schema([
+                    Forms\Components\Select::make('channel')
+                        ->options(SupportTicket::CHANNELS)
+                        ->required()
+                        ->default('call_center')
+                        ->native(false),
+                    Forms\Components\Select::make('priority')
+                        ->options(SupportTicket::PRIORITIES)
+                        ->required()
+                        ->default('medium')
+                        ->live()
+                        ->native(false),
+                    Forms\Components\Select::make('status')
+                        ->options(SupportTicket::STATUSES)
+                        ->required()
+                        ->default('open')
+                        ->native(false),
+                    Forms\Components\Select::make('issue_type')
+                        ->label('Issue category')
+                        ->options(SupportTicket::ISSUE_TYPES)
+                        ->searchable()
+                        ->nullable()
+                        ->native(false),
+                ]),
                 Forms\Components\TextInput::make('subject')
                     ->required()
                     ->maxLength(255)
                     ->columnSpanFull(),
                 Forms\Components\Textarea::make('description')
+                    ->label('Problem details')
                     ->required()
-                    ->rows(4)
+                    ->rows(5)
+                    ->placeholder('What did the customer report? Steps tried, error lights, outage area, etc.')
                     ->columnSpanFull(),
+                Forms\Components\Placeholder::make('sla_preview')
+                    ->label('SLA resolve target')
+                    ->content(function (Get $get): HtmlString {
+                        $priority = (string) ($get('priority') ?: 'medium');
+                        $hours = (int) (config('support.sla_resolve_hours.'.$priority) ?? 48);
+                        $due = now()->addHours($hours)->format('M j, Y · g:i A');
+                        $label = SupportTicket::PRIORITIES[$priority] ?? $priority;
+
+                        return new HtmlString(
+                            '<span class="sp-sla-preview"><strong>'.$due.'</strong>'
+                            .' <span class="text-gray-500">('.$hours.' hours · '.$label.' priority)</span></span>'
+                        );
+                    })
+                    ->visibleOn('create'),
                 Forms\Components\DateTimePicker::make('sla_resolve_due_at')
-                    ->label('SLA resolve due'),
+                    ->label('SLA resolve due')
+                    ->helperText('Auto-set on save from priority if left empty.')
+                    ->visibleOn('edit'),
                 Forms\Components\DateTimePicker::make('resolved_at')
                     ->visibleOn('edit'),
                 Forms\Components\DateTimePicker::make('closed_at')
                     ->visibleOn('edit'),
-                Forms\Components\Section::make('RADIUS / network snapshot')
-                    ->description('Subscriber line, PPP, and OLT tools live under Billing → Subscribers and Network.')
-                    ->schema([
-                        Forms\Components\Placeholder::make('subscriber_net')
-                            ->label('')
-                            ->content(function (Get $get, SupportTicket $record): HtmlString {
-                                $customerId = $get('customer_id') ?? $record->customer_id;
-                                $c = $customerId
-                                    ? Customer::query()
-                                        ->with(['area', 'onuDevice', 'lastEndedPppSession'])
-                                        ->find($customerId)
-                                    : null;
+            ])
+            ->columns(1);
 
-                                if ($c === null) {
-                                    return new HtmlString('<span class="text-gray-500">No subscriber linked.</span>');
-                                }
+        $schema[] = Forms\Components\Section::make('RADIUS / network snapshot')
+            ->description('Subscriber line, PPP, and OLT tools live under Billing → Subscribers and Network.')
+            ->schema([
+                Forms\Components\Placeholder::make('subscriber_net')
+                    ->label('')
+                    ->content(function (Get $get, SupportTicket $record): HtmlString {
+                        $customerId = $get('customer_id') ?? $record->customer_id;
+                        $c = $customerId
+                            ? Customer::query()
+                                ->with(['area', 'onuDevice', 'lastEndedPppSession'])
+                                ->find($customerId)
+                            : null;
 
-                                $pppOnline = $c->isPppOnline();
-                                $onu = $c->primaryOnu();
-                                $onuOper = strtolower((string) ($onu?->onu_oper_status ?? ''));
-                                $onuOnline = $onu === null
-                                    ? null
-                                    : in_array($onuOper, ['online', 'active', 'up', 'working'], true);
-                                $lastLogout = $c->lastEndedPppSession?->ended_at ?? $c->ppp_last_seen_at;
-                                $radius = filled($c->radius_username) ? $c->radius_username : '(defaults to subscriber code)';
-                                $lines = [
-                                    '<strong>PPP</strong>: <span style="color:'.($pppOnline ? '#16a34a' : '#dc2626').';font-weight:700;">'.($pppOnline ? 'Online' : 'Offline').'</span>',
-                                    '<strong>ONU</strong>: '.($onuOnline === null ? 'Not mapped' : ($onuOnline ? '<span style="color:#16a34a;font-weight:700;">Online</span>' : '<span style="color:#dc2626;font-weight:700;">Offline</span>')),
-                                    '<strong>Code</strong>: '.e($c->customer_code),
-                                    '<strong>RADIUS user</strong>: '.e((string) $radius),
-                                    '<strong>Access</strong>: '.e((string) $c->network_access_state),
-                                    '<strong>Area</strong>: '.e((string) ($c->area?->name ?? '—')),
-                                ];
+                        if ($c === null) {
+                            return new HtmlString('<span class="text-gray-500">No subscriber linked.</span>');
+                        }
 
-                                if (! $pppOnline && $lastLogout) {
-                                    $lines[] = '<strong>Last logout</strong>: '.e($lastLogout->format('d M Y, h:i A')).' ('.e($lastLogout->diffForHumans()).')';
-                                }
+                        $pppOnline = $c->isPppOnline();
+                        $onu = $c->primaryOnu();
+                        $onuOper = strtolower((string) ($onu?->onu_oper_status ?? ''));
+                        $onuOnline = $onu === null
+                            ? null
+                            : in_array($onuOper, ['online', 'active', 'up', 'working'], true);
+                        $lastLogout = $c->lastEndedPppSession?->ended_at ?? $c->ppp_last_seen_at;
+                        $radius = filled($c->radius_username) ? $c->radius_username : '(defaults to subscriber code)';
+                        $lines = [
+                            '<strong>PPP</strong>: <span style="color:'.($pppOnline ? '#16a34a' : '#dc2626').';font-weight:700;">'.($pppOnline ? 'Online' : 'Offline').'</span>',
+                            '<strong>ONU</strong>: '.($onuOnline === null ? 'Not mapped' : ($onuOnline ? '<span style="color:#16a34a;font-weight:700;">Online</span>' : '<span style="color:#dc2626;font-weight:700;">Offline</span>')),
+                            '<strong>Code</strong>: '.e($c->customer_code),
+                            '<strong>RADIUS user</strong>: '.e((string) $radius),
+                            '<strong>Access</strong>: '.e((string) $c->network_access_state),
+                            '<strong>Area</strong>: '.e((string) ($c->area?->name ?? '—')),
+                        ];
 
-                                if ($onu !== null && ! $onuOnline && filled($onu->offline_reason)) {
-                                    $lines[] = '<strong>ONU reason</strong>: '.e((string) $onu->offline_reason);
-                                }
+                        if (! $pppOnline && $lastLogout) {
+                            $lines[] = '<strong>Last logout</strong>: '.e($lastLogout->format('d M Y, h:i A')).' ('.e($lastLogout->diffForHumans()).')';
+                        }
 
-                                return new HtmlString('<div class="prose prose-sm dark:prose-invert">'.implode('<br>', $lines).'</div>');
-                            }),
-                    ])
-                    ->collapsed()
-                    ->visibleOn('edit'),
-            ]);
+                        if ($onu !== null && ! $onuOnline && filled($onu->offline_reason)) {
+                            $lines[] = '<strong>ONU reason</strong>: '.e((string) $onu->offline_reason);
+                        }
+
+                        return new HtmlString('<div class="prose prose-sm dark:prose-invert">'.implode('<br>', $lines).'</div>');
+                    }),
+            ])
+            ->collapsed()
+            ->visibleOn('edit');
+
+        return $form->schema($schema);
     }
 
     public static function table(Table $table): Table
@@ -257,6 +297,21 @@ class SupportTicketResource extends Resource
                     ->options(SupportTicket::DEPARTMENTS),
                 Tables\Filters\SelectFilter::make('priority')
                     ->options(SupportTicket::PRIORITIES),
+                Tables\Filters\SelectFilter::make('customer_id')
+                    ->label('Customer')
+                    ->relationship('customer', 'name')
+                    ->searchable()
+                    ->preload(),
+                Tables\Filters\SelectFilter::make('assigned_to')
+                    ->label('Assignee')
+                    ->relationship('assignee', 'name')
+                    ->searchable()
+                    ->preload(),
+                Tables\Filters\SelectFilter::make('channel')
+                    ->options(SupportTicket::CHANNELS),
+                Tables\Filters\SelectFilter::make('issue_type')
+                    ->label('Issue category')
+                    ->options(SupportTicket::ISSUE_TYPES),
             ])
             ->recordUrl(fn (SupportTicket $record): string => static::getUrl('edit', ['record' => $record]))
             ->actions([

@@ -72,6 +72,30 @@ class SupportTicketWorkspaceService
         ];
     }
 
+    /**
+     * Customer 360 preview for ticket create (no saved ticket yet).
+     *
+     * @return array<string, mixed>
+     */
+    public function previewCustomer(int $customerId): array
+    {
+        $customer = Customer::query()
+            ->with(['package', 'area', 'zone', 'mikrotikServer', 'onuDevice.olt', 'lastEndedPppSession'])
+            ->find($customerId);
+
+        if ($customer === null) {
+            return ['linked' => false];
+        }
+
+        $ticket = new SupportTicket([
+            'tenant_id' => $customer->tenant_id,
+            'customer_id' => $customer->id,
+        ]);
+        $ticket->setRelation('customer', $customer);
+
+        return $this->customer360($ticket, $customer);
+    }
+
     public function liveStatusHtml(mixed $customerId): HtmlString
     {
         if (! $customerId) {

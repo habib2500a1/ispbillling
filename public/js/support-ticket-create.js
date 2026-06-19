@@ -1,5 +1,5 @@
 /**
- * Support ticket create — close mobile drawer, keep search usable.
+ * Support ticket create — mobile drawer, search UX, keyboard on results.
  */
 (function () {
     'use strict';
@@ -43,9 +43,45 @@
         });
     }
 
+    function bindResultKeyboard() {
+        const list = document.querySelector('.sp-create-search .isp-collection-results ul[role="listbox"]');
+        if (!list || list.dataset.keyboardBound === '1') {
+            return;
+        }
+
+        list.dataset.keyboardBound = '1';
+        const input = document.getElementById('support-ticket-subscriber-search');
+        if (!input) {
+            return;
+        }
+
+        input.addEventListener('keydown', function (event) {
+            const items = Array.from(list.querySelectorAll('[role="option"] button'));
+            if (items.length === 0) {
+                return;
+            }
+
+            const active = list.querySelector('.sp-create-result-card--active');
+            let index = active ? items.indexOf(active) : -1;
+
+            if (event.key === 'ArrowDown') {
+                event.preventDefault();
+                index = Math.min(items.length - 1, index + 1);
+                items[index]?.click();
+                items[index]?.scrollIntoView({ block: 'nearest' });
+            } else if (event.key === 'ArrowUp') {
+                event.preventDefault();
+                index = Math.max(0, index <= 0 ? 0 : index - 1);
+                items[index]?.click();
+                items[index]?.scrollIntoView({ block: 'nearest' });
+            }
+        });
+    }
+
     function init() {
         closeMobileSidebar();
         bindSearchEnter();
+        bindResultKeyboard();
     }
 
     if (document.readyState === 'loading') {
@@ -55,4 +91,12 @@
     }
 
     document.addEventListener('livewire:navigated', init);
+    document.addEventListener('livewire:initialized', function () {
+        if (window.Livewire) {
+            Livewire.hook('morph.updated', function () {
+                bindSearchEnter();
+                bindResultKeyboard();
+            });
+        }
+    });
 })();
