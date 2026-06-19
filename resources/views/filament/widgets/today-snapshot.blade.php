@@ -29,5 +29,17 @@
                 @endif
             @endforeach
         </div>
+
+        @if (($legacy_portal ?? false) && ($collected_today_raw ?? 0) <= 0.009)
+            <p class="mt-2 flex flex-wrap items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+                <span>No local payments recorded today. Collections on {{ $portal_label }} sync every {{ (int) config('legacy_portal.collections_sync_every_minutes', 15) }} minutes.</span>
+                <button type="button" wire:click="syncLegacyCollections" class="font-semibold text-primary-600 hover:underline dark:text-primary-400">
+                    Sync now
+                </button>
+                @if ($staff_performance_url)
+                    <a href="{{ $staff_performance_url }}" class="font-semibold text-primary-600 hover:underline dark:text-primary-400">Staff performance →</a>
+                @endif
+            </p>
+        @endif
     </div>
 </x-filament-widgets::widget>

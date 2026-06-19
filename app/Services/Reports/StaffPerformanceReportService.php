@@ -55,6 +55,15 @@ final class StaffPerformanceReportService
         ];
     }
 
+    public function todayCollectionTotal(int $tenantId): float
+    {
+        return $this->collectionSummary(
+            $tenantId,
+            now()->startOfDay(),
+            now()->endOfDay(),
+        )['total'];
+    }
+
     /**
      * @return array{total: float, count: int, by_staff: list<array{staff_id: int|null, name: string, total: float, count: int}>}
      */

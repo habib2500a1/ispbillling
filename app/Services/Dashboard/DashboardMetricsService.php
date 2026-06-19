@@ -432,12 +432,7 @@ class DashboardMetricsService
 
     private function collectedToday(int $tenantId): float
     {
-        return (float) Payment::withoutGlobalScopes()
-            ->where('tenant_id', $tenantId)
-            ->where('status', 'completed')
-            ->where('payment_type', PaymentType::PAYMENT)
-            ->whereDate('paid_at', today())
-            ->sum('amount');
+        return app(StaffPerformanceReportService::class)->todayCollectionTotal($tenantId);
     }
 
     /**

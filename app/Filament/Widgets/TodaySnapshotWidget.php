@@ -4,15 +4,18 @@ namespace App\Filament\Widgets;
 
 use App\Filament\Concerns\HasDashboardLazySkeleton;
 use App\Models\Customer;
-use App\Models\Invoice;
-use App\Models\Payment;
 use App\Models\SupportTicket;
+use App\Services\Import\LegacyPortalDashboardSummaryProvider;
+use App\Services\Reports\StaffPerformanceReportService;
+use App\Support\BillingPortalLabel;
 use App\Support\CustomerBalanceDue;
 use App\Support\CustomerStatus;
-use App\Support\PaymentType;
 use App\Support\TenantResolver;
+use Filament\Notifications\Notification;
 use Filament\Widgets\Widget;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Cache;
+use App\Support\LegacyPortalPassword;
 
 /**
  * "Today" snapshot strip shown at the very top of the dashboard.
@@ -34,9 +37,41 @@ class TodaySnapshotWidget extends Widget
     /** @return array<string, mixed> */
     protected function getViewData(): array
     {
+        $snapshot = $this->snapshot();
+        $tenantId = TenantResolver::requiredTenantId();
+
         return [
-            'tiles' => $this->tiles($this->snapshot()),
+            'tiles' => $this->tiles($snapshot),
+            'legacy_portal' => app(LegacyPortalDashboardSummaryProvider::class)->tenantUsesLegacyPortal($tenantId),
+            'portal_label' => BillingPortalLabel::name(),
+            'collected_today_raw' => (float) ($snapshot['collected_today'] ?? 0),
+            'staff_performance_url' => \App\Filament\Pages\StaffPerformanceReport::canAccess()
+                ? \App\Filament\Pages\StaffPerformanceReport::getUrl(['preset' => 'today'])
+                : null,
         ];
+    }
+
+    public function syncLegacyCollections(): void
+    {
+        if (LegacyPortalPassword::resolve() === '') {
+            Notification::make()->title('Legacy portal password not configured')->danger()->send();
+
+            return;
+        }
+
+        Artisan::queue('isp:sync-legacy-portal-collections', array_filter([
+            '--void-orphans' => (bool) config('legacy_portal.sync_collections_void_orphans', true),
+            '--password' => LegacyPortalPassword::resolve(),
+        ]));
+
+        $tenantId = TenantResolver::requiredTenantId();
+        Cache::forget('dashboard:today-snapshot:'.$tenantId);
+        Cache::forget('dashboard:snapshot:'.$tenantId);
+
+        Notification::make()
+            ->title('Syncing collections from '.BillingPortalLabel::name())
+            ->success()
+            ->send();
     }
 
     /** @param  array<string, mixed>  $snapshot
@@ -47,8 +82,11 @@ class TodaySnapshotWidget extends Widget
         $currency = fn ($v) => number_format((float) $v, 0).' ৳';
         $custIndex = \Illuminate\Support\Facades\Route::has('filament.admin.resources.customers.index')
             ? route('filament.admin.resources.customers.index') : null;
-        $collectRoute = \Illuminate\Support\Facades\Route::has('filament.admin.pages.bill-collection-desk')
-            ? route('filament.admin.pages.bill-collection-desk') : $custIndex;
+        $collectRoute = \Illuminate\Support\Facades\Route::has('filament.admin.pages.staff-performance-report')
+            ? route('filament.admin.pages.staff-performance-report')
+            : (\Illuminate\Support\Facades\Route::has('filament.admin.pages.bill-collection-desk')
+                ? route('filament.admin.pages.bill-collection-desk')
+                : $custIndex);
         $ticketRoute = \Illuminate\Support\Facades\Route::has('filament.admin.pages.support-hub')
             ? route('filament.admin.pages.support-hub') : null;
 
@@ -79,12 +117,7 @@ class TodaySnapshotWidget extends Widget
         $today = today();
         $tomorrow = today()->addDay();
 
-        $collectedToday = (float) Payment::withoutGlobalScopes()
-            ->where('tenant_id', $tenantId)
-            ->where('status', 'completed')
-            ->where('payment_type', PaymentType::PAYMENT)
-            ->whereDate('paid_at', $today)
-            ->sum('amount');
+        $collectedToday = app(StaffPerformanceReportService::class)->todayCollectionTotal($tenantId);
 
         $dueCustomers = Customer::withoutGlobalScopes()
             ->where('tenant_id', $tenantId)

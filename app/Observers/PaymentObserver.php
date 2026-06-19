@@ -44,5 +44,11 @@ class PaymentObserver
         app(CollectorSettlementService::class)->recordCollectionFromPayment($payment->fresh());
         app(PaymentLinkService::class)->markConverted($payment->invoice_id, (int) $payment->id);
         app(MobileBroadcastService::class)->paymentReceived($payment->fresh());
+
+        $tenantId = (int) ($payment->tenant_id ?? 0);
+        if ($tenantId > 0) {
+            \Illuminate\Support\Facades\Cache::forget('dashboard:today-snapshot:'.$tenantId);
+            \Illuminate\Support\Facades\Cache::forget('dashboard:snapshot:'.$tenantId);
+        }
     }
 }
