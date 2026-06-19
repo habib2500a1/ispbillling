@@ -55,6 +55,7 @@ class SupportTicketCreatePageTest extends TestCase
         Livewire::actingAs($user)
             ->test(\App\Filament\Resources\SupportTicketResource\Pages\CreateSupportTicket::class)
             ->set('subscriberSearch', 'TST0099')
+            ->assertSet('subscriberResults.0.customer_code', 'TST0099')
             ->call('runSubscriberSearch')
             ->assertSet('subscriberResults.0.customer_code', 'TST0099')
             ->call('selectSubscriber', (int) $customer->id)

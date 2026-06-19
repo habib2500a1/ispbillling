@@ -6,12 +6,14 @@ use App\Services\Billing\BillCollectionSearchService;
 use App\Services\Support\SupportTicketWorkspaceService;
 use Illuminate\Support\Collection;
 use Livewire\Attributes\Computed;
+use Livewire\Attributes\Url;
 
 /**
  * Bill-collection-style subscriber search for support ticket create (reliable vs Filament Select AJAX).
  */
 trait ProvidesSupportTicketCustomerSearch
 {
+    #[Url(as: 'q', except: '', history: true)]
     public string $subscriberSearch = '';
 
     public bool $subscriberSearching = false;
@@ -27,6 +29,10 @@ trait ProvidesSupportTicketCustomerSearch
     public function mountSubscriberSearch(): void
     {
         $this->subscriberResults = collect();
+
+        if (mb_strlen(trim($this->subscriberSearch)) >= 2) {
+            $this->runSubscriberSearch();
+        }
     }
 
     public function mountSubscriberFromRequest(): void

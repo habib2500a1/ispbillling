@@ -86,22 +86,26 @@ final class BillCollectionSearchService
     {
         $scoutIds = $this->scoutSearch->searchIds($query, $limit * 3);
 
-        if ($scoutIds !== null) {
-            if ($scoutIds === []) {
-                return collect();
-            }
-
+        if ($scoutIds !== null && $scoutIds !== []) {
             $order = array_flip($scoutIds);
 
-            return Customer::query()
+            $customers = Customer::query()
                 ->with(['area', 'zone', 'subzone', 'package'])
                 ->whereIn('id', $scoutIds)
                 ->get()
                 ->sortBy(fn (Customer $c): int => $order[$c->id] ?? 9999)
                 ->values();
+
+            if ($customers->isNotEmpty()) {
+                return $customers;
+            }
         }
 
-        return $this->resolveCustomersViaSql($query, $limit);
+        if ($scoutIds === null || config('customer_search.sql_fallback', true)) {
+            return $this->resolveCustomersViaSql($query, $limit);
+        }
+
+        return collect();
     }
 
     /**

@@ -21,6 +21,38 @@
         document.body.classList.remove('isp-admin-sidebar-open');
     }
 
+    function bindLiveSearch() {
+        const root = document.querySelector('.sp-create-search');
+        const input = document.getElementById('support-ticket-subscriber-search');
+        if (!root || !input || input.dataset.liveSearchBound === '1') {
+            return;
+        }
+
+        input.dataset.liveSearchBound = '1';
+
+        let debounceTimer = null;
+        input.addEventListener('input', function () {
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(function () {
+                const wireRoot = root.closest('[wire\\:id]');
+                if (!wireRoot || !window.Livewire) {
+                    return;
+                }
+
+                const component = Livewire.find(wireRoot.getAttribute('wire:id'));
+                if (!component) {
+                    return;
+                }
+
+                const value = input.value.trim();
+                if (value.length >= 2 || value === '') {
+                    component.set('subscriberSearch', value);
+                    component.call('runSubscriberSearch');
+                }
+            }, 320);
+        });
+    }
+
     function bindSearchEnter() {
         const root = document.querySelector('.isp-support-subscriber-search');
         const input = document.getElementById('support-ticket-subscriber-search');
@@ -80,6 +112,7 @@
 
     function init() {
         closeMobileSidebar();
+        bindLiveSearch();
         bindSearchEnter();
         bindResultKeyboard();
     }
@@ -94,6 +127,7 @@
     document.addEventListener('livewire:initialized', function () {
         if (window.Livewire) {
             Livewire.hook('morph.updated', function () {
+                bindLiveSearch();
                 bindSearchEnter();
                 bindResultKeyboard();
             });

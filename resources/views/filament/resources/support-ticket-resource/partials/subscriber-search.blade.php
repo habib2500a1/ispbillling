@@ -1,4 +1,7 @@
-<div class="isp-support-subscriber-search isp-collection-search-wrap sp-create-search">
+<div
+    class="isp-support-subscriber-search isp-collection-search-wrap sp-create-search"
+    x-data="{ q: @entangle('subscriberSearch').live }"
+>
     <div class="sp-create-search__head">
         <label for="support-ticket-subscriber-search" class="isp-collection-search-label">
             Find subscriber
@@ -11,7 +14,7 @@
             <input
                 id="support-ticket-subscriber-search"
                 type="search"
-                wire:model.live.debounce.350ms="subscriberSearch"
+                x-model.debounce.300ms="q"
                 placeholder="ID, phone, name, PPP username, address, invoice #…"
                 class="isp-collection-search-input"
                 autocomplete="off"
@@ -30,12 +33,18 @@
     </div>
 
     <p class="isp-collection-search-hint">
-        Type at least 2 characters — customer code, mobile, name, MikroTik/RADIUS username, or address.
+        Type at least 2 characters — results update as you type.
         @if (\App\Support\CustomerSearchSettings::useScout())
             <span class="text-emerald-700 dark:text-emerald-400">Meilisearch — fast, typo-tolerant.</span>
         @endif
-        <span class="isp-collection-search-hint__links">Press <kbd>Enter</kbd> to search.</span>
+        <span class="isp-collection-search-hint__links">Press <kbd>Enter</kbd> for instant search.</span>
     </p>
+
+    @if ($this->subscriberSearch !== '')
+        <p class="isp-collection-search-active mt-2 text-xs text-gray-500 dark:text-gray-400" role="status">
+            Showing results for “{{ $this->subscriberSearch }}”
+        </p>
+    @endif
 
     @if ($this->subscriberSearching)
         <p class="mt-3 text-sm text-gray-500 dark:text-gray-400" wire:loading wire:target="subscriberSearch,runSubscriberSearch">
@@ -123,7 +132,7 @@
                 </button>
             </div>
         </div>
-    @elseif ($this->subscriberSearch === '')
+    @elseif (mb_strlen(trim($this->subscriberSearch)) < 2)
         <p class="mt-3 text-sm text-amber-700 dark:text-amber-300">
             Search and pick a subscriber before saving the ticket.
         </p>
