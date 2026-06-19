@@ -5,7 +5,9 @@ namespace App\Services\Network;
 use App\Models\Device;
 use App\Models\SnmpPollLog;
 use App\Services\Olt\OltHealthProbeService;
+use App\Services\Olt\OltOnuSnapshotCacheService;
 use App\Services\Olt\OltSnmpProbeService;
+use App\Services\Olt\OltTrafficProbeService;
 use App\Support\SnmpClient;
 use Illuminate\Support\Facades\Log;
 
@@ -19,6 +21,8 @@ class OltSnmpMonitorService
         private readonly HuaweiGponOnuSyncService $huaweiGpon,
         private readonly AveisGponOnuSyncService $aveisGpon,
         private readonly OltOnuSyncCoordinator $onuSync,
+        private readonly OltTrafficProbeService $trafficProbe,
+        private readonly OltOnuSnapshotCacheService $onuSnapshotCache,
     ) {}
 
     /**
@@ -157,6 +161,15 @@ class OltSnmpMonitorService
             $this->healthProbe->probeAndPersist($olt, $healthContext);
             $olt->refresh();
         }
+
+        if ($result['success'] && config('network.olt_traffic_poll_enabled', true)) {
+            $traffic = $this->trafficProbe->probe($olt->fresh());
+            $result['traffic_download_mbps'] = $traffic['download_mbps'];
+            $result['traffic_upload_mbps'] = $traffic['upload_mbps'];
+            $this->trafficProbe->persistToHealthLog($olt->fresh(), $traffic);
+        }
+
+        $this->onuSnapshotCache->forget($olt->id);
 
         $health = array_merge(is_array($olt->olt_health) ? $olt->olt_health : [], [
             'last_poll' => now()->toIso8601String(),

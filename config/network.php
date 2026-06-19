@@ -44,6 +44,10 @@ return [
 
     'olt_snmp_poll_enabled' => (bool) env('NETWORK_OLT_SNMP_POLL_ENABLED', true),
 
+    'olt_health_poll_enabled' => (bool) env('NETWORK_OLT_HEALTH_POLL_ENABLED', true),
+
+    'olt_traffic_poll_enabled' => (bool) env('NETWORK_OLT_TRAFFIC_POLL_ENABLED', true),
+
     'mikrotik' => [
         'base_url' => rtrim((string) env('MIKROTIK_API_URL', ''), '/'),
         'user' => env('MIKROTIK_API_USER'),

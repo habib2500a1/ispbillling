@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -116,7 +117,56 @@ class _TechnicianHomeScreenState extends ConsumerState<TechnicianHomeScreen> {
     );
   }
 
+  Future<Position?> _currentPosition() async {
+    if (!await Geolocator.isLocationServiceEnabled()) {
+      return null;
+    }
+    var permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+    }
+    if (permission == LocationPermission.denied || permission == LocationPermission.deniedForever) {
+      return null;
+    }
+    try {
+      return await Geolocator.getCurrentPosition(locationSettings: const LocationSettings(accuracy: LocationAccuracy.high));
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<void> _pingGps() async {
+    final pos = await _currentPosition();
+    if (pos == null) return;
+    try {
+      await widget.api.technicianPingLocation(
+        latitude: pos.latitude,
+        longitude: pos.longitude,
+        accuracyMeters: pos.accuracy.round(),
+        headingDeg: pos.heading >= 0 ? pos.heading : null,
+        speedKmh: pos.speed >= 0 ? pos.speed * 3.6 : null,
+      );
+    } catch (_) {}
+  }
+
   Future<void> _openMaps(Map<String, dynamic> visit) async {
+    final visitId = (visit['id'] as num?)?.toInt();
+    final pos = await _currentPosition();
+    try {
+      final route = await widget.api.technicianNavigate(
+        visitId: visitId,
+        fromLat: pos?.latitude,
+        fromLng: pos?.longitude,
+      );
+      final mapsUrl = route['maps_url']?.toString();
+      if (mapsUrl != null && mapsUrl.isNotEmpty) {
+        await launchUrl(Uri.parse(mapsUrl), mode: LaunchMode.externalApplication);
+        return;
+      }
+    } catch (_) {
+      /* fallback below */
+    }
+
     final lat = visit['latitude'] as num?;
     final lng = visit['longitude'] as num?;
     if (lat == null || lng == null) {
@@ -137,7 +187,17 @@ class _TechnicianHomeScreenState extends ConsumerState<TechnicianHomeScreen> {
   Future<void> _updateVisitStatus(Map<String, dynamic> visit, String status) async {
     final id = (visit['id'] as num).toInt();
     try {
-      await widget.api.technicianUpdateFieldVisit(id, status: status);
+      Position? pos;
+      if (status == 'in_progress') {
+        pos = await _currentPosition();
+        await _pingGps();
+      }
+      await widget.api.technicianUpdateFieldVisit(
+        id,
+        status: status,
+        latitude: pos?.latitude,
+        longitude: pos?.longitude,
+      );
       await _loadVisits();
       if (mounted) showSnack(context, 'Visit updated');
     } on ApiException catch (e) {

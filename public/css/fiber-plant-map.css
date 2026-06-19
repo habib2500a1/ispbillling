@@ -1182,3 +1182,47 @@
     background: rgba(51, 65, 85, 0.65);
     color: #cbd5e1;
 }
+
+/* ── Mobile polish (ops bar, OLT strip, touch) ── */
+@media (max-width: 640px) {
+    .fpm-olt-strip {
+        display: flex;
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        gap: 0.5rem;
+        padding-bottom: 0.25rem;
+        scrollbar-width: none;
+    }
+
+    .fpm-olt-strip::-webkit-scrollbar {
+        display: none;
+    }
+
+    .fpm-olt-chip {
+        flex: 0 0 auto;
+    }
+
+    .fpm-panel {
+        max-height: 45vh;
+    }
+
+    .fpm-toolbar .fpm-tool {
+        min-height: 2.5rem;
+    }
+
+    .fpm-btn {
+        min-height: 2.5rem;
+    }
+}
+
+/* Light mode: ensure readable map tool labels */
+.isp-fiber-plant-page:not(.dark) .fpm-map-tool,
+html:not(.dark) .isp-fiber-plant-page .fpm-map-tool {
+    color: #0f172a;
+}
+
+.dark .isp-fiber-plant-page .fpm-hero,
+[data-theme='dark'] .isp-fiber-plant-page .fpm-hero {
+    filter: brightness(0.92);
+}

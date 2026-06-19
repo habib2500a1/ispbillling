@@ -4,6 +4,9 @@ return [
 
     'default' => env('BROADCAST_CONNECTION', 'log'),
 
+    /** Browser WebSocket path when using Soketi behind nginx (e.g. /ws). */
+    'admin_ws_path' => env('PUSHER_WS_PATH', '/ws'),
+
     'connections' => [
 
         'reverb' => [
@@ -26,11 +29,11 @@ return [
             'app_id' => env('PUSHER_APP_ID'),
             'options' => [
                 'cluster' => env('PUSHER_APP_CLUSTER', 'mt1'),
-                'host' => env('PUSHER_HOST') ?: 'api-'.env('PUSHER_APP_CLUSTER', 'mt1').'.pusher.com',
-                'port' => env('PUSHER_PORT', 443),
-                'scheme' => env('PUSHER_SCHEME', 'https'),
-                'encrypted' => true,
-                'useTLS' => env('PUSHER_SCHEME', 'https') === 'https',
+                'host' => env('PUSHER_HOST', '127.0.0.1'),
+                'port' => (int) env('PUSHER_PORT', 6001),
+                'scheme' => env('PUSHER_SCHEME', 'http'),
+                'encrypted' => env('PUSHER_SCHEME', 'http') === 'https',
+                'useTLS' => env('PUSHER_SCHEME', 'http') === 'https',
             ],
         ],
 

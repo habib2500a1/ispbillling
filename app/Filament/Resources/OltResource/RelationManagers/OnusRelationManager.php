@@ -7,11 +7,14 @@ use App\Models\Device;
 use App\Models\OltPort;
 use App\Services\Network\AveisGponOnuSyncService;
 use App\Services\Network\BdcomEponOnuSyncService;
+use App\Services\Olt\OltOnuSnapshotCacheService;
 use App\Services\Olt\OltSnmpProbeService;
 use App\Support\OltManagementHelper;
 use App\Services\Network\GponIntelligenceService;
+use App\Services\Optical\OnuBulkOperationsService;
 use App\Services\Optical\OnuBulkTicketService;
 use App\Services\Optical\OnuSignalCollectionService;
+use App\Services\Optical\UnauthorizedOnuApprovalService;
 use App\Support\OnuSignalLevel;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -20,6 +23,7 @@ use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
 
 class OnusRelationManager extends RelationManager
 {
@@ -127,20 +131,32 @@ class OnusRelationManager extends RelationManager
         return $table
             ->recordTitleAttribute('serial_number')
             ->heading('ONU inventory — optical power')
-            ->description('SNMP sync: MAC, receive power (RX dBm), online/offline. Search by ONU name (ONU07/05), MAC, or subscriber.')
+            ->description(function (): string {
+                $counts = app(OltOnuSnapshotCacheService::class)->counts($this->getOwnerRecord());
+                $base = 'SNMP sync: MAC, receive power (RX dBm), online/offline. Search by ONU name (ONU07/05), MAC, or subscriber.';
+
+                return $base.sprintf(
+                    ' · %d total · %d online · %d offline · %d unauthorized',
+                    $counts['total'] ?? 0,
+                    $counts['online'] ?? 0,
+                    $counts['offline'] ?? 0,
+                    $counts['unauthorized'] ?? 0,
+                );
+            })
             ->searchPlaceholder('ONU07/05, MAC, client, PPP login…')
             ->modifyQueryUsing(fn (Builder $query) => $query
                 ->where('type', 'onu')
                 ->select([
                     'id', 'tenant_id', 'olt_id', 'customer_id', 'type', 'display_name', 'serial_number',
                     'mac_address', 'card_no', 'pon_no', 'onu_index', 'rx_power_dbm', 'tx_power_dbm',
-                    'onu_oper_status', 'status', 'last_polled_at',
+                    'onu_oper_status', 'status', 'last_polled_at', 'meta',
                 ])
                 ->with([
                     'customer:id,customer_code,name,phone,mikrotik_secret_name,radius_username',
                     'onuHealthScore:device_id,health_score',
                 ]))
             ->defaultSort('rx_power_dbm', 'asc')
+            ->poll('30s')
             ->columns([
                 Tables\Columns\TextColumn::make('display_name')
                     ->label('ONU')
@@ -251,17 +267,30 @@ class OnusRelationManager extends RelationManager
                         '/',
                     ) ?: '—')
                     ->alignCenter(),
+                Tables\Columns\TextColumn::make('distance_m')
+                    ->label('Distance')
+                    ->state(function (Device $record): string {
+                        $meta = is_array($record->meta) ? $record->meta : [];
+                        $m = $meta['distance_m'] ?? $meta['bdcom_distance'] ?? null;
+
+                        return $m !== null ? ((int) round((float) $m)).' m' : '—';
+                    })
+                    ->alignEnd()
+                    ->toggleable(),
                 Tables\Columns\TextColumn::make('serial_number')
                     ->label('ONU serial')
                     ->searchable()
                     ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\TextColumn::make('last_polled_at')
-                    ->label('Updated')
+                    ->label('Last seen')
                     ->since()
                     ->placeholder('—')
-                    ->toggleable(isToggledHiddenByDefault: true),
+                    ->sortable(),
             ])
             ->filters([
+                Tables\Filters\Filter::make('unauthorized_only')
+                    ->label('Unauthorized only')
+                    ->query(fn (Builder $query): Builder => $query->whereIn('onu_oper_status', ['unauthorized', 'auth_fail', 'illegal'])),
                 Tables\Filters\Filter::make('has_rx')
                     ->label('Has RX data')
                     ->query(fn (Builder $query): Builder => $query->whereNotNull('rx_power_dbm')),
@@ -394,6 +423,48 @@ class OnusRelationManager extends RelationManager
                     }),
             ])
             ->actions([
+                Tables\Actions\Action::make('approve_unauthorized')
+                    ->label('Approve & bind')
+                    ->icon('heroicon-o-check-badge')
+                    ->color('success')
+                    ->visible(fn (Device $record): bool => in_array(
+                        strtolower((string) $record->onu_oper_status),
+                        ['unauthorized', 'auth_fail', 'illegal'],
+                        true,
+                    ) && $record->customer_id === null)
+                    ->form([
+                        Forms\Components\Select::make('customer_id')
+                            ->label('Subscriber')
+                            ->searchable()
+                            ->getSearchResultsUsing(function (string $search): array {
+                                return \App\Models\Customer::query()
+                                    ->where('tenant_id', $this->getOwnerRecord()->tenant_id)
+                                    ->where(function (Builder $q) use ($search): void {
+                                        $q->where('name', 'ilike', "%{$search}%")
+                                            ->orWhere('customer_code', 'ilike', "%{$search}%")
+                                            ->orWhere('phone', 'ilike', "%{$search}%");
+                                    })
+                                    ->orderBy('name')
+                                    ->limit(25)
+                                    ->pluck('name', 'id')
+                                    ->all();
+                            })
+                            ->getOptionLabelUsing(fn ($value): ?string => \App\Models\Customer::query()->find($value)?->name)
+                            ->required(),
+                    ])
+                    ->action(function (Device $record, array $data): void {
+                        $customer = \App\Models\Customer::query()->find($data['customer_id']);
+                        if (! $customer) {
+                            Notification::make()->title('Customer not found')->danger()->send();
+
+                            return;
+                        }
+                        $result = app(UnauthorizedOnuApprovalService::class)->approveAndBind($record, $customer);
+                        app(OltOnuSnapshotCacheService::class)->forget((int) $record->olt_id);
+                        $n = Notification::make()->title($result['ok'] ? 'ONU approved' : 'Approval failed')->body($result['message']);
+                        $result['ok'] ? $n->success() : $n->danger();
+                        $n->send();
+                    }),
                 Tables\Actions\Action::make('subscriber')
                     ->label('Subscriber')
                     ->icon('heroicon-o-user')
@@ -404,6 +475,66 @@ class OnusRelationManager extends RelationManager
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
+                    Tables\Actions\BulkAction::make('bulk_reboot')
+                        ->label('Reboot (ticket queue)')
+                        ->icon('heroicon-o-arrow-path')
+                        ->requiresConfirmation()
+                        ->action(function (Collection $records): void {
+                            $result = app(OnuBulkOperationsService::class)->reboot($records);
+                            Notification::make()
+                                ->title('Reboot queued')
+                                ->body("Processed {$result['processed']} ONU(s) via support tickets.")
+                                ->success()
+                                ->send();
+                        }),
+                    Tables\Actions\BulkAction::make('bulk_authorize')
+                        ->label('Authorize selected')
+                        ->icon('heroicon-o-check-circle')
+                        ->color('success')
+                        ->requiresConfirmation()
+                        ->action(function (Collection $records): void {
+                            $result = app(OnuBulkOperationsService::class)->authorize($records);
+                            app(OltOnuSnapshotCacheService::class)->forget((int) $this->getOwnerRecord()->getKey());
+                            Notification::make()
+                                ->title('ONUs authorized')
+                                ->body("Updated {$result['processed']} ONU(s).")
+                                ->success()
+                                ->send();
+                        }),
+                    Tables\Actions\BulkAction::make('bulk_disable')
+                        ->label('Disable subscribers (suspend PPP)')
+                        ->icon('heroicon-o-no-symbol')
+                        ->color('danger')
+                        ->requiresConfirmation()
+                        ->modalDescription('Suspends PPP/network for linked subscribers. Does not delete ONU MAC rows.')
+                        ->action(function (Collection $records): void {
+                            $result = app(OnuBulkOperationsService::class)->disable($records);
+                            Notification::make()
+                                ->title('Subscribers suspended')
+                                ->body("Processed {$result['processed']} · suspended {$result['suspended']}.")
+                                ->success()
+                                ->send();
+                        }),
+                    Tables\Actions\BulkAction::make('bulk_move_pon')
+                        ->label('Move PON port')
+                        ->icon('heroicon-o-arrows-right-left')
+                        ->form([
+                            Forms\Components\TextInput::make('card_no')->label('Line card #')->numeric()->default(0)->required(),
+                            Forms\Components\TextInput::make('pon_no')->label('PON #')->numeric()->required(),
+                        ])
+                        ->action(function (Collection $records, array $data): void {
+                            $result = app(OnuBulkOperationsService::class)->movePon(
+                                $records,
+                                (int) $data['card_no'],
+                                (int) $data['pon_no'],
+                            );
+                            app(OltOnuSnapshotCacheService::class)->forget((int) $this->getOwnerRecord()->getKey());
+                            Notification::make()
+                                ->title('PON updated')
+                                ->body("Moved {$result['processed']} ONU(s).")
+                                ->success()
+                                ->send();
+                        }),
                     Tables\Actions\BulkAction::make('create_tickets_weak')
                         ->label('Create support tickets (weak signal)')
                         ->icon('heroicon-o-lifebuoy')

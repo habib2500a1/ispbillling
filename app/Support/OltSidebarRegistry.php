@@ -3,7 +3,9 @@
 namespace App\Support;
 
 use App\Filament\Pages\ManageOpticalLaserSettings;
+use App\Filament\Pages\OltAlarmCenter;
 use App\Filament\Pages\OltHub;
+use App\Filament\Pages\OltLiveTraffic;
 use App\Filament\Pages\OltVpnManagementPage;
 use App\Filament\Pages\OltMacTable;
 use App\Filament\Pages\OpticalMonitoringHub;
@@ -60,10 +62,26 @@ final class OltSidebarRegistry
                 'active_routes' => ['filament.admin.pages.optical-noc'],
             ],
             [
+                'key' => 'alarm_center',
+                'label' => 'Alarm Center',
+                'icon' => 'heroicon-o-bell-alert',
+                'sort' => 4,
+                'url' => OltAlarmCenter::getUrl(),
+                'active_routes' => ['filament.admin.pages.olt-alarm-center'],
+            ],
+            [
+                'key' => 'live_traffic',
+                'label' => 'Live traffic',
+                'icon' => 'heroicon-o-chart-bar',
+                'sort' => 5,
+                'url' => OltLiveTraffic::getUrl(),
+                'active_routes' => ['filament.admin.pages.olt-live-traffic'],
+            ],
+            [
                 'key' => 'topology',
                 'label' => 'Topology',
                 'icon' => 'heroicon-o-share',
-                'sort' => 4,
+                'sort' => 6,
                 'url' => NetworkTopology::getUrl(),
                 'active_routes' => ['filament.admin.pages.network-topology'],
             ],
@@ -71,7 +89,7 @@ final class OltSidebarRegistry
                 'key' => 'mac_table',
                 'label' => 'PON MAC table',
                 'icon' => 'heroicon-o-table-cells',
-                'sort' => 6,
+                'sort' => 7,
                 'url' => OltMacTable::getUrl(),
                 'active_routes' => ['filament.admin.pages.olt-mac-table'],
             ],
@@ -79,7 +97,7 @@ final class OltSidebarRegistry
                 'key' => 'laser_thresholds',
                 'label' => 'Laser thresholds',
                 'icon' => 'heroicon-o-adjustments-vertical',
-                'sort' => 7,
+                'sort' => 8,
                 'url' => ManageOpticalLaserSettings::getUrl(),
                 'active_routes' => ['filament.admin.pages.optical-laser-settings'],
             ],
@@ -140,6 +158,8 @@ final class OltSidebarRegistry
             'olt_manage' => OltResource::canViewAny(),
             'olt_vpn' => OltVpnManagementPage::canAccess(),
             'optical_noc' => OpticalMonitoringHub::canAccess(),
+            'alarm_center' => OltAlarmCenter::canAccess(),
+            'live_traffic' => OltLiveTraffic::canAccess(),
             'topology' => NetworkTopology::canAccess(),
             'laser_thresholds' => ManageOpticalLaserSettings::canAccess(),
             default => false,

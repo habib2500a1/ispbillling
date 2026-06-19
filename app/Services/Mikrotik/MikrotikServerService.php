@@ -529,6 +529,44 @@ final class MikrotikServerService
         }
     }
 
+    /**
+     * Remove PPP secret from router (terminated customer cleanup).
+     */
+    public function removePppSecret(MikrotikServer $server, string $secretName): bool
+    {
+        if (! $server->is_enabled) {
+            return false;
+        }
+
+        $secretName = trim($secretName);
+        if ($secretName === '') {
+            return false;
+        }
+
+        try {
+            $client = $this->makeClient($server);
+            $query = new Query('/ppp/secret/print');
+            $query->where('name', $secretName);
+            $rows = $client->query($query)->read();
+            if (! is_array($rows)) {
+                return false;
+            }
+
+            foreach ($rows as $row) {
+                if (! is_array($row) || ! isset($row['.id'])) {
+                    continue;
+                }
+                $remove = new Query('/ppp/secret/remove');
+                $remove->equal('.id', (string) $row['.id']);
+                $client->query($remove)->read();
+            }
+
+            return true;
+        } catch (\Throwable) {
+            return false;
+        }
+    }
+
     public function kickPppoeActiveSessionsForCustomer(Customer $customer): int
     {
         $secretName = $customer->pppLoginName();

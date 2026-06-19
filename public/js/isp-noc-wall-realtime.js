@@ -6,10 +6,7 @@
         if (key === 'wan_download_mbps' || key === 'wan_upload_mbps') {
             return Number(value).toFixed(2) + ' Mbps';
         }
-        if (key === 'users_bandwidth') {
-            return value;
-        }
-        if (key === 'olt_impact') {
+        if (key === 'users_bandwidth' || key === 'olt_impact') {
             return value;
         }
 
@@ -61,31 +58,46 @@
     }
 
     function connectEcho() {
-        if (typeof window.Echo === 'undefined' || !window.ISP_BROADCAST) {
-            return;
-        }
-
         const cfg = window.ISP_BROADCAST;
-        const tenantId = cfg.tenantId;
-        if (!tenantId) {
+        if (!cfg?.enabled || typeof window.Pusher === 'undefined' || typeof window.Echo === 'undefined') {
             return;
         }
 
-        window.Echo.channel('tenant.' + tenantId + '.noc').listen('.noc.updated', function (payload) {
+        window.Pusher = window.Pusher || Pusher;
+        const wsPath = cfg.wsPath || '/ws';
+        const echoOpts = {
+            broadcaster: 'pusher',
+            key: cfg.key,
+            cluster: cfg.cluster || 'mt1',
+            wsHost: cfg.wsHost || window.location.hostname,
+            wsPort: cfg.wsPort || 6001,
+            wssPort: cfg.wssPort || cfg.wsPort || 443,
+            forceTLS: cfg.forceTLS === true,
+            disableStats: true,
+            enabledTransports: ['ws', 'wss'],
+            authEndpoint: cfg.authEndpoint || '/broadcasting/auth',
+        };
+
+        if (wsPath) {
+            echoOpts.wsPath = wsPath;
+        }
+
+        window.Echo = new Echo(echoOpts);
+
+        window.Echo.channel('tenant.' + cfg.tenantId + '.noc').listen('.noc.updated', function (payload) {
             applyKpis(payload.kpis);
             window.dispatchEvent(new CustomEvent('isp-noc-wall-update', { detail: payload }));
         });
     }
 
+    function boot() {
+        connectSse();
+        connectEcho();
+    }
+
     if (typeof requestIdleCallback === 'function') {
-        requestIdleCallback(function () {
-            connectSse();
-            connectEcho();
-        }, { timeout: 3000 });
+        requestIdleCallback(boot, { timeout: 3000 });
     } else {
-        window.setTimeout(function () {
-            connectSse();
-            connectEcho();
-        }, 1500);
+        window.setTimeout(boot, 1500);
     }
 })();

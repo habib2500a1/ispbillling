@@ -19,6 +19,7 @@
         "mpdf/mpdf": "^8.3",
         "phpoffice/phpspreadsheet": "^2.0",
         "pragmarx/google2fa": "^9.0",
+        "pusher/pusher-php-server": "^7.2",
         "sentry/sentry-laravel": "^4.25",
         "spatie/laravel-permission": "^6.25"
     },

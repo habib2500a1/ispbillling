@@ -1,8 +1,13 @@
 @php
     /** @var \App\Models\Device $record */
     $record = $this->record;
-    $onusOnline = (int) $record->onus()->whereIn('onu_oper_status', ['online', 'active', 'up'])->count();
-    $onusTotal = (int) $record->onus()->count();
+    $onuCounts = app(\App\Services\Olt\OltOnuSnapshotCacheService::class)->counts($record);
+    $onusOnline = (int) ($onuCounts['online'] ?? 0);
+    $onusTotal = (int) ($onuCounts['total'] ?? 0);
+    $impact = app(\App\Services\Olt\OltImpactAnalysisService::class)->forOlt($record);
+    $meta = is_array($record->meta) ? $record->meta : [];
+    $trafficDl = $meta['traffic_download_mbps'] ?? null;
+    $trafficUl = $meta['traffic_upload_mbps'] ?? null;
     $health = is_array($record->olt_health) ? $record->olt_health : [];
     $cpu = $health['cpu_percent'] ?? null;
     $memory = $health['memory_percent'] ?? null;
@@ -66,8 +71,28 @@
                         <span>Uptime</span>
                     </div>
                 @endif
+                @if ($trafficDl !== null || $trafficUl !== null)
+                    <div class="olt-profile-metric">
+                        <strong>{{ $trafficDl !== null ? number_format((float) $trafficDl, 1) : '—' }} ↓</strong>
+                        <span>{{ $trafficUl !== null ? number_format((float) $trafficUl, 1).' ↑ Mbps' : 'Traffic Mbps' }}</span>
+                    </div>
+                @endif
             </div>
         </header>
+
+        <section class="olt-oc-panel" style="margin-bottom:1rem;">
+            <div class="olt-oc-panel__head">Revenue impact &amp; ONU snapshot</div>
+            <div style="padding:0.85rem 1rem;display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:1rem;font-size:0.875rem;">
+                <div><strong>{{ number_format($impact['affected_customers'] ?? 0) }}</strong><br><span class="text-gray-500">Subscribers on OLT</span></div>
+                <div><strong>{{ number_format($impact['offline_customers'] ?? 0) }}</strong><br><span class="text-gray-500">PPP offline</span></div>
+                <div><strong>{{ number_format($impact['monthly_revenue_tk'] ?? 0, 0) }} BDT</strong><br><span class="text-gray-500">Monthly revenue</span></div>
+                <div><strong>{{ number_format($impact['at_risk_revenue_tk'] ?? 0, 0) }} BDT</strong><br><span class="text-gray-500">At-risk (offline ONU)</span></div>
+                <div><strong>{{ number_format($onuCounts['unauthorized'] ?? 0) }}</strong><br><span class="text-gray-500">Unauthorized ONUs</span></div>
+                <div>
+                    <a href="{{ \App\Filament\Pages\OltLiveTraffic::getUrl() }}?filterOlt={{ $record->id }}" class="text-primary-600 hover:underline dark:text-primary-400">Live traffic →</a>
+                </div>
+            </div>
+        </section>
 
         @if ($fan !== null || $power !== null)
             <section class="olt-oc-panel" style="margin-bottom:1rem;">

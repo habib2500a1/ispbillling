@@ -184,6 +184,20 @@ final class SnmpClient
         return is_numeric($value) ? (int) $value : null;
     }
 
+    public static function parseCounter64(?string $value): ?int
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        $clean = self::cleanScalar($value);
+        if ($clean === '' || ! is_numeric($clean)) {
+            return null;
+        }
+
+        return (int) $clean;
+    }
+
     private static function cleanScalar(string $raw): string
     {
         $raw = trim($raw, " \t\n\r\0\x0B\"");

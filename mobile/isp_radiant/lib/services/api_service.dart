@@ -915,6 +915,41 @@ class ApiService {
         if (report != null) 'report': report,
       });
 
+  Future<void> technicianPingLocation({
+    required double latitude,
+    required double longitude,
+    int? accuracyMeters,
+    double? headingDeg,
+    double? speedKmh,
+  }) async {
+    await _post('/technician/location', {
+      'latitude': latitude,
+      'longitude': longitude,
+      if (accuracyMeters != null) 'accuracy_meters': accuracyMeters,
+      if (headingDeg != null) 'heading_deg': headingDeg,
+      if (speedKmh != null) 'speed_kmh': speedKmh,
+    });
+  }
+
+  Future<Map<String, dynamic>> technicianNavigate({
+    int? visitId,
+    int? customerId,
+    double? destinationLat,
+    double? destinationLng,
+    double? fromLat,
+    double? fromLng,
+  }) async {
+    final params = <String, String>{};
+    if (visitId != null) params['visit_id'] = '$visitId';
+    if (customerId != null) params['customer_id'] = '$customerId';
+    if (destinationLat != null) params['destination_lat'] = '$destinationLat';
+    if (destinationLng != null) params['destination_lng'] = '$destinationLng';
+    if (fromLat != null) params['from_lat'] = '$fromLat';
+    if (fromLng != null) params['from_lng'] = '$fromLng';
+    final q = params.isEmpty ? '' : '?${params.entries.map((e) => '${e.key}=${Uri.encodeQueryComponent(e.value)}').join('&')}';
+    return _get('/technician/navigate$q');
+  }
+
   Future<Map<String, dynamic>> resellerDashboard() => _get('/reseller/dashboard');
 
   Future<Map<String, dynamic>> resellerDueAccount() => _get('/reseller/due-account');

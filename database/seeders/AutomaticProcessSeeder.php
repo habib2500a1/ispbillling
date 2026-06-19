@@ -235,6 +235,18 @@ class AutomaticProcessSeeder extends Seeder
                 'sort_order' => 68,
             ],
             [
+                'slug' => 'network-cleanup',
+                'name' => 'Network cleanup (suspended / terminated)',
+                'description' => 'Safe MAC workflow: suspended 24h+ offline → PPP kick; terminated 30d+ → full teardown. Never on simple ONU offline.',
+                'artisan_command' => 'isp:network-cleanup',
+                'command_options' => [],
+                'execute_at' => '02:15',
+                'interval' => 'hourly',
+                'when_config_key' => 'network_cleanup.enabled',
+                'without_overlapping_minutes' => 45,
+                'sort_order' => 69,
+            ],
+            [
                 'slug' => 'refresh-customer-due-balances',
                 'name' => 'Refresh customer due balances',
                 'description' => 'Sync collection search due from paid/open invoices (fixes stale 500 BDT after payment).',
@@ -242,7 +254,7 @@ class AutomaticProcessSeeder extends Seeder
                 'command_options' => [],
                 'execute_at' => '00:00',
                 'interval' => 'every_minute',
-                'sort_order' => 69,
+                'sort_order' => 70,
             ],
             [
                 'slug' => 'disable-unpaid-customers',
@@ -253,7 +265,7 @@ class AutomaticProcessSeeder extends Seeder
                 'execute_at' => '11:00',
                 'interval' => 'daily',
                 'when_config_key' => 'network.auto_suspend_enabled',
-                'sort_order' => 70,
+                'sort_order' => 71,
             ],
             [
                 'slug' => 'mikrotik-session-integrity',

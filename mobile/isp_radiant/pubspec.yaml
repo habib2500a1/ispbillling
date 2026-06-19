@@ -24,6 +24,7 @@ dependencies:
   telephony: ^0.2.0
   permission_handler: ^11.3.1
   url_launcher: ^6.3.1
+  geolocator: ^13.0.2
   share_plus: ^10.1.4
   path_provider: ^2.1.5
   flutter_map: ^7.0.2
