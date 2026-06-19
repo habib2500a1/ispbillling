@@ -19,7 +19,7 @@
                     Portal tickets · call center · SLA tracking · technician assignment · live chat — enterprise ISP service desk.
                 </p>
                 <div class="sh-hero__actions">
-                    <a href="{{ \App\Filament\Resources\SupportTicketResource::getUrl('create') }}" class="sh-btn sh-btn--white">
+                    <a href="{{ \App\Filament\Resources\SupportTicketResource::getUrl('create') }}" class="sh-btn sh-btn--white" data-navigate="false">
                         <x-filament::icon icon="heroicon-m-plus-circle" class="h-4 w-4" />
                         New ticket
                     </a>
@@ -324,7 +324,11 @@
         <div class="sh-tab-panel" data-sh-panel="tools" hidden>
             <div class="sh-bento">
                 @foreach ($this->getToolCards() as $card)
-                    <a href="{{ $card['url'] }}" @class(['sh-tile', 'sh-tile--featured' => ! empty($card['featured'])])>
+                    <a
+                        href="{{ $card['url'] }}"
+                        @class(['sh-tile', 'sh-tile--featured' => ! empty($card['featured'])])
+                        @if (str_contains($card['url'], '/create')) data-navigate="false" @endif
+                    >
                         <x-filament::icon :icon="$card['icon']" class="h-6 w-6" style="color:var(--sp-amber);" />
                         <span class="sh-tile__title">{{ $card['title'] }}</span>
                         <span class="sh-tile__desc">{{ $card['desc'] }}</span>

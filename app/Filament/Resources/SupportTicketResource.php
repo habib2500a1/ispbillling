@@ -296,6 +296,63 @@ class SupportTicketResource extends Resource
         return $form->schema($schema);
     }
 
+    /**
+     * Compact flat form for enterprise create page (no Filament section boxes).
+     */
+    public static function createForm(Form $form): Form
+    {
+        return $form->schema([
+            static::customerIdField(true),
+            Forms\Components\Hidden::make('issue_type'),
+            Forms\Components\Hidden::make('status')->default('open'),
+            Forms\Components\Hidden::make('department')->default('technical_support'),
+            Forms\Components\Grid::make(['default' => 1, 'md' => 3])->schema([
+                static::assigneeSelectField(),
+                Forms\Components\Select::make('channel')
+                    ->label('Source channel')
+                    ->options(SupportTicket::CHANNELS)
+                    ->required()
+                    ->default('call_center')
+                    ->native(false),
+                Forms\Components\Select::make('priority')
+                    ->label('Priority override')
+                    ->options([
+                        'critical' => 'P1 Critical',
+                        'high' => 'P2 High',
+                        'medium' => 'P3 Medium',
+                        'low' => 'P4 Low',
+                    ])
+                    ->default('medium')
+                    ->live()
+                    ->native(false),
+            ])->extraAttributes(['class' => 'sp-create-form-grid']),
+            Forms\Components\TextInput::make('subject')
+                ->label('Ticket subject')
+                ->required()
+                ->maxLength(255)
+                ->columnSpanFull(),
+            Forms\Components\Textarea::make('description')
+                ->label('Complaint details')
+                ->required()
+                ->rows(4)
+                ->live(debounce: 600)
+                ->placeholder('Customer reported… technician notes… on-site findings…')
+                ->columnSpanFull(),
+            Forms\Components\FileUpload::make('create_attachment')
+                ->label('Photo / PDF / ONU screenshot')
+                ->disk('public')
+                ->directory(fn (): string => 'ticket-uploads/'.(auth()->user()?->tenant_id ?? '0'))
+                ->acceptedFileTypes([
+                    'image/jpeg', 'image/png', 'image/gif', 'image/webp',
+                    'application/pdf',
+                ])
+                ->maxSize(5120)
+                ->downloadable()
+                ->openable()
+                ->columnSpanFull(),
+        ])->columns(1);
+    }
+
     public static function table(Table $table): Table
     {
         return $table

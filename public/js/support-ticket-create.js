@@ -100,6 +100,14 @@
                 submitTicketSearch();
             });
 
+            searchInput.addEventListener('keydown', function (event) {
+                if (event.key === 'Enter') {
+                    event.preventDefault();
+                    window.clearTimeout(timer);
+                    submitTicketSearch();
+                }
+            });
+
             searchForm.addEventListener('submit', function (event) {
                 event.preventDefault();
                 window.clearTimeout(timer);

@@ -2,17 +2,17 @@
 
 namespace App\Filament\Resources\SupportTicketResource\Pages;
 
-use App\Filament\Pages\SupportHub;
 use App\Filament\Resources\SupportTicketResource;
 use App\Filament\Resources\SupportTicketResource\Pages\Concerns\ProvidesSupportTicketCustomerSearch;
 use App\Services\Support\SupportSlaService;
 use App\Services\Support\SupportTicketIntelligenceService;
 use App\Support\SupportCategories;
-use Filament\Actions;
 use Filament\Actions\Action;
 use Filament\Forms\Form;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\CreateRecord;
+use Filament\Support\Enums\MaxWidth;
+use Illuminate\Contracts\Support\Htmlable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Computed;
@@ -25,13 +25,38 @@ class CreateSupportTicket extends CreateRecord
 
     protected static string $view = 'filament.resources.support-ticket-resource.pages.create-support-ticket';
 
+    public function getHeading(): string|Htmlable
+    {
+        return '';
+    }
+
+    public function getTitle(): string
+    {
+        return '';
+    }
+
+    public function getSubheading(): ?string
+    {
+        return null;
+    }
+
+    public function getMaxContentWidth(): MaxWidth
+    {
+        return MaxWidth::Full;
+    }
+
+    protected function getHeaderActions(): array
+    {
+        return [];
+    }
+
     /**
      * @return array<string, string|bool>
      */
     public function getExtraBodyAttributes(): array
     {
         return [
-            'class' => 'isp-support-module isp-support-ticket-create',
+            'class' => 'isp-support-module isp-support-ticket-create isp-support-create-v4',
         ];
     }
 
@@ -42,10 +67,24 @@ class CreateSupportTicket extends CreateRecord
         ]);
     }
 
+    public function form(Form $form): Form
+    {
+        return SupportTicketResource::createForm($form);
+    }
+
+    protected function getFormActions(): array
+    {
+        return [
+            $this->getCreateFormAction(),
+        ];
+    }
+
     protected function getCreateFormAction(): Action
     {
         return parent::getCreateFormAction()
-            ->label('Create ticket')
+            ->label('Create ticket → Queue')
+            ->icon('heroicon-o-paper-airplane')
+            ->size('lg')
             ->submit('createTicket');
     }
 
@@ -128,7 +167,7 @@ class CreateSupportTicket extends CreateRecord
 
         if (empty($data['customer_id'])) {
             throw ValidationException::withMessages([
-                'data.customer_id' => 'Pick a subscriber from the search dropdown before saving.',
+                'data.customer_id' => 'Pick a subscriber from search before saving.',
             ]);
         }
 
@@ -148,16 +187,6 @@ class CreateSupportTicket extends CreateRecord
         }
 
         return parent::handleRecordCreation($data);
-    }
-
-    public function getTitle(): string
-    {
-        return '';
-    }
-
-    public function getSubheading(): ?string
-    {
-        return null;
     }
 
     public function pickCategory(string $issueType): void
@@ -207,21 +236,6 @@ class CreateSupportTicket extends CreateRecord
         unset($this->createAiSuggestions);
     }
 
-    public function updatedDataIssueType(): void
-    {
-        $issueType = (string) ($this->data['issue_type'] ?? '');
-        if ($issueType === '') {
-            return;
-        }
-
-        $customer = filled($this->data['customer_id'] ?? null)
-            ? \App\Models\Customer::query()->find($this->data['customer_id'])
-            : null;
-
-        $this->data['priority'] = SupportCategories::defaultPriority($issueType, $customer);
-        $this->form->fill($this->data);
-    }
-
     protected function afterCreate(): void
     {
         session()->flash('support_ticket_created', $this->record->ticket_number);
@@ -268,46 +282,13 @@ class CreateSupportTicket extends CreateRecord
     }
 
     /**
+     * GET ?q= / ?customer_id= handled by mount + search JS — avoid Livewire URL sync clashes.
+     *
      * @return array<string, mixed>
      */
     protected function queryString(): array
     {
-        return array_merge(
-            $this->queryStringWithSubscriberSearch(),
-            [],
-        );
-    }
-
-    public function form(Form $form): Form
-    {
-        return SupportTicketResource::form($form, useSubscriberSearchPicker: true);
-    }
-
-    protected function getHeaderActions(): array
-    {
-        return [
-            Actions\Action::make('assignToMe')
-                ->label('Assign to me')
-                ->icon('heroicon-o-user-circle')
-                ->color('gray')
-                ->action(function (): void {
-                    $this->assignTicketToMe();
-                    Notification::make()
-                        ->title('Assigned to you')
-                        ->success()
-                        ->send();
-                }),
-            Actions\Action::make('queue')
-                ->label('Ticket queue')
-                ->icon('heroicon-o-queue-list')
-                ->url(SupportTicketResource::getUrl('index'))
-                ->color('gray'),
-            Actions\Action::make('hub')
-                ->label('Support center')
-                ->icon('heroicon-o-lifebuoy')
-                ->url(SupportHub::getUrl())
-                ->color('gray'),
-        ];
+        return [];
     }
 
     public function slaPreviewLabel(): string
