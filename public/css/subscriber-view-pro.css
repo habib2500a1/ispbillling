@@ -2913,35 +2913,6 @@ body.isp-cv-map-modal-open {
     padding: 0;
 }
 
-.sub-cc-timeline-wrap {
-    overflow: visible;
-    margin: 0 -0.15rem;
-    padding: 0 0.15rem 0.1rem;
-}
-
-/* Desktop/tablet only — cap long timelines; mobile shows full list (no inner scroll gap) */
-@media (min-width: 641px) {
-    .isp-sub-view-page .sub-pro .sub-cc-panel--timeline .sub-cc-timeline-wrap--scroll .sub-cc-timeline,
-    .isp-subscriber-record-page .sub-pro .sub-cc-panel--timeline .sub-cc-timeline-wrap--scroll .sub-cc-timeline {
-        max-height: 18rem;
-        overflow-x: hidden;
-        overflow-y: auto;
-        -webkit-overflow-scrolling: touch;
-        overscroll-behavior-y: contain;
-        scrollbar-width: thin;
-        scrollbar-color: rgba(100, 116, 139, 0.45) transparent;
-    }
-
-    .sub-cc-timeline-wrap--scroll .sub-cc-timeline::-webkit-scrollbar {
-        width: 0.35rem;
-    }
-
-    .sub-cc-timeline-wrap--scroll .sub-cc-timeline::-webkit-scrollbar-thumb {
-        border-radius: 999px;
-        background: rgba(100, 116, 139, 0.45);
-    }
-}
-
 .sub-cc-timeline__item {
     display: grid;
     grid-template-columns: auto minmax(0, 1fr);
@@ -3278,20 +3249,6 @@ body.isp-cv-map-modal-open {
         max-width: calc(100vw - 2rem);
     }
 
-    .sub-pro .sub-cc-timeline-wrap,
-    .sub-pro .sub-cc-timeline-wrap--scroll,
-    .sub-pro .sub-cc-timeline-wrap--scroll .sub-cc-timeline {
-        max-height: none !important;
-        min-height: 0 !important;
-        height: auto !important;
-        overflow: visible !important;
-    }
-
-    .sub-pro .sub-cc-timeline-wrap {
-        margin: 0;
-        padding: 0;
-    }
-
     .sub-pro .sub-cc-panel--timeline .isp-cv-card__head {
         margin-bottom: 0.45rem;
     }
@@ -3429,4 +3386,25 @@ body.isp-cv-map-modal-open {
 [data-theme='dark'] .sub-pro .sub-cc-panel .sub-cc-pon-impact,
 [data-theme='dark'] .sub-pro .sub-cc-panel .sub-cc-nearby {
     color: #94a3b8;
+}
+
+/* Timeline — no inner scroll box; list starts directly under header */
+.sub-cc-panel--timeline,
+.sub-cc-panel--timeline .sub-cc-timeline,
+.sub-cc-panel--timeline .sub-cc-timeline-wrap {
+    display: block !important;
+    max-height: none !important;
+    min-height: 0 !important;
+    height: auto !important;
+    overflow: visible !important;
+    margin-top: 0 !important;
+    padding-top: 0 !important;
+}
+
+.sub-cc-panel--timeline .isp-cv-card__head {
+    margin-bottom: 0.5rem !important;
+}
+
+.sub-cc-panel--timeline .sub-cc-timeline__item:first-child {
+    margin-top: 0 !important;
 }
