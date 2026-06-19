@@ -73,14 +73,16 @@ final class TenantResolver
             return self::$fakeTenantId;
         }
 
-        if (auth('customer')->hasUser()) {
-            $tid = auth('customer')->user()->tenant_id;
+        if (self::canUseCustomerGuard()) {
+            if (auth('customer')->hasUser()) {
+                $tid = auth('customer')->user()->tenant_id;
 
-            return $tid !== null ? (int) $tid : null;
-        }
+                return $tid !== null ? (int) $tid : null;
+            }
 
-        if (auth('customer')->check()) {
-            return self::resolveCustomerTenantIdFromSession();
+            if (auth('customer')->check()) {
+                return self::resolveCustomerTenantIdFromSession();
+            }
         }
 
         $user = auth('web')->user() ?? auth()->user();
@@ -130,5 +132,20 @@ final class TenantResolver
         self::$customerTenantIdCache = $tid !== null ? (int) $tid : null;
 
         return self::$customerTenantIdCache;
+    }
+
+    private static function canUseCustomerGuard(): bool
+    {
+        if (! app()->isBooted()) {
+            return false;
+        }
+
+        try {
+            app('auth')->createUserProvider('customers');
+
+            return true;
+        } catch (\Throwable) {
+            return false;
+        }
     }
 }

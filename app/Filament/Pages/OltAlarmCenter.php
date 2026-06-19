@@ -38,6 +38,22 @@ class OltAlarmCenter extends Page
      */
     public function getAlarmPayload(): array
     {
-        return app(OltAlarmCenterService::class)->snapshot(TenantResolver::requiredTenantId());
+        try {
+            return app(OltAlarmCenterService::class)->snapshot(TenantResolver::requiredTenantId());
+        } catch (\Throwable $e) {
+            report($e);
+
+            return [
+                'summary' => [
+                    'total' => 0,
+                    'critical' => 0,
+                    'warning' => 0,
+                    'pon_down' => 0,
+                    'fiber_cut' => 0,
+                    'temperature' => 0,
+                ],
+                'alarms' => [],
+            ];
+        }
     }
 }
