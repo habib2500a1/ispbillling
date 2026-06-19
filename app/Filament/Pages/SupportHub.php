@@ -8,6 +8,7 @@ use App\Filament\Pages\Concerns\ProvidesSupportAnalytics;
 use App\Filament\Resources\KnowledgeArticleResource;
 use App\Filament\Resources\OutageResource;
 use App\Filament\Resources\SupportAssignmentRuleResource;
+use App\Filament\Resources\SupportRootIncidentResource;
 use App\Filament\Resources\SupportTicketResource;
 use App\Models\SupportRootIncident;
 use App\Models\SupportTicket;
@@ -185,7 +186,7 @@ class SupportHub extends Page
                 'number' => $inc->incident_number,
                 'title' => $inc->title,
                 'count' => (int) $inc->ticket_count,
-                'url' => SupportNocTicketWall::getUrl(),
+                'url' => SupportRootIncidentResource::getUrl('edit', ['record' => $inc]),
                 'detected' => $inc->detected_at?->diffForHumans() ?? '—',
             ])
             ->all();
@@ -374,6 +375,12 @@ class SupportHub extends Page
                 'desc' => 'OLT complaints · root incidents · map',
                 'url' => SupportNocTicketWall::getUrl(),
                 'icon' => 'heroicon-o-map',
+            ],
+            [
+                'title' => 'Root incidents',
+                'desc' => 'Mass outage · linked tickets · resolve',
+                'url' => SupportRootIncidentResource::getUrl('index'),
+                'icon' => 'heroicon-o-exclamation-triangle',
             ],
             [
                 'title' => 'Call center',

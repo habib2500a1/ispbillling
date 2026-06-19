@@ -17,6 +17,17 @@ final class SupportTicketSearchService
             return $query;
         }
 
+        if ($this->scoutAvailable()) {
+            try {
+                $ids = SupportTicket::search($term)->take(250)->keys()->all();
+                if ($ids !== []) {
+                    return $query->whereIn('support_tickets.id', $ids);
+                }
+            } catch (\Throwable) {
+                // Fall back to SQL search.
+            }
+        }
+
         $like = '%'.$term.'%';
 
         return $query->where(function (Builder $q) use ($term, $like): void {
@@ -69,5 +80,11 @@ final class SupportTicketSearchService
                 'url' => \App\Filament\Resources\SupportTicketResource::getUrl('edit', ['record' => $t]),
             ])
             ->all();
+    }
+
+    private function scoutAvailable(): bool
+    {
+        return config('scout.driver') !== null
+            && (bool) config('support.scout_search_enabled', true);
     }
 }

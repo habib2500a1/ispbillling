@@ -6,6 +6,14 @@
 @endphp
 
 <x-filament-panels::page>
+    @php $tenantId = auth()->user()?->tenant_id; @endphp
+    @if ($tenantId)
+        <script>
+            window.ISP_BROADCAST = window.ISP_BROADCAST || {};
+            window.ISP_BROADCAST.tenantId = {{ (int) $tenantId }};
+        </script>
+        <script src="{{ asset('js/support-realtime.js') }}?v={{ @filemtime(public_path('js/support-realtime.js')) ?: 1 }}" defer></script>
+    @endif
     <div class="sp-noc-wall" wire:poll.visible.60s="refreshSnapshot">
         <header class="sp-noc-wall__hero">
             <div>

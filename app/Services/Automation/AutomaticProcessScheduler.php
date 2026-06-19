@@ -88,11 +88,22 @@ final class AutomaticProcessScheduler
 
         try {
             try {
-                $exitCode = Artisan::call(
-                    $process->artisan_command,
-                    $process->command_options ?? [],
-                    $output,
-                );
+                if ((bool) config('support.use_queue', false) && in_array($process->artisan_command, ['isp:support-check-sla', 'isp:support-detect-mass-outage'], true)) {
+                    match ($process->artisan_command) {
+                        'isp:support-check-sla' => \App\Jobs\Support\ProcessSupportSlaCheckJob::dispatch(),
+                        'isp:support-detect-mass-outage' => \App\Jobs\Support\DetectSupportMassOutageJob::dispatch(),
+                        default => null,
+                    };
+                    $exitCode = 0;
+                    $body = 'Dispatched to queue';
+                } else {
+                    $exitCode = Artisan::call(
+                        $process->artisan_command,
+                        $process->command_options ?? [],
+                        $output,
+                    );
+                    $body = trim($output->fetch());
+                }
             } catch (\Throwable $e) {
                 Log::error('Automatic process failed', [
                     'process' => $process->slug,
@@ -104,7 +115,9 @@ final class AutomaticProcessScheduler
                 return false;
             }
 
-            $body = trim($output->fetch());
+            if (! isset($body)) {
+                $body = trim($output->fetch());
+            }
             $status = $exitCode === 0 ? 'success' : 'failed';
             $this->finishRun(
                 $process,

@@ -117,7 +117,9 @@ class StaffTicketsController extends Controller
             );
         }
 
-        app(SupportSlaService::class)->markFirstResponse($model);
+        if (! (bool) ($data['is_internal'] ?? false)) {
+            app(SupportSlaService::class)->markFirstResponse($model);
+        }
 
         if (in_array($model->status, ['open', 'assigned', 'pending_customer', 'pending_vendor', 'pending'], true)) {
             $model->update(['status' => 'in_progress']);

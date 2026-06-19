@@ -8,10 +8,11 @@ use App\Support\SupportCategories;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Laravel\Scout\Searchable;
 
 class SupportTicket extends Model
 {
-    use BelongsToTenant;
+    use BelongsToTenant, Searchable;
 
     public const CHANNELS = [
         'web' => 'Web',
@@ -292,5 +293,38 @@ class SupportTicket extends Model
         $name = self::PRIORITIES[$this->priority] ?? ucfirst((string) $this->priority);
 
         return $code.' '.$name;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function toSearchableArray(): array
+    {
+        $this->loadMissing(['customer.onuDevice.olt']);
+
+        $customer = $this->customer;
+        $onu = $customer?->primaryOnu();
+        $olt = $onu?->olt ?? $this->olt;
+
+        return [
+            'id' => $this->id,
+            'tenant_id' => $this->tenant_id,
+            'ticket_number' => $this->ticket_number,
+            'subject' => $this->subject,
+            'description' => $this->description,
+            'customer_code' => $customer?->customer_code,
+            'customer_name' => $customer?->name,
+            'phone' => $customer?->phone,
+            'onu_serial' => $onu?->serial_number,
+            'mac_address' => $onu?->mac_address,
+            'olt_name' => $olt?->display_name ?? $olt?->hostname,
+            'status' => $this->status,
+            'priority' => $this->priority,
+        ];
+    }
+
+    public function searchableAs(): string
+    {
+        return 'support_tickets';
     }
 }

@@ -85,20 +85,54 @@ class TicketController extends Controller
         $customer = $request->user();
         abort_unless((int) $ticket->customer_id === (int) $customer->id, 404);
 
-        $data = $request->validate(['body' => ['required', 'string', 'max:5000']]);
+        $data = $request->validate([
+            'body' => ['required', 'string', 'max:5000'],
+            'attachments' => ['nullable', 'array', 'max:3'],
+            'attachments.*' => ['file', 'max:5120', 'mimes:jpg,jpeg,png,gif,webp,pdf'],
+        ]);
 
-        SupportTicketMessage::query()->create([
+        $message = SupportTicketMessage::query()->create([
             'support_ticket_id' => $ticket->id,
             'customer_id' => $customer->id,
             'body' => $data['body'],
             'is_internal' => false,
         ]);
 
+        if ($request->hasFile('attachments')) {
+            app(\App\Services\Support\SupportTicketAttachmentService::class)->attachUploadsToMessage(
+                $message,
+                $request->file('attachments'),
+            );
+        }
+
         if ($ticket->status === 'open') {
             $ticket->update(['status' => 'in_progress']);
         }
 
         return response()->json(['message' => 'Reply sent.']);
+    }
+
+    public function rate(Request $request, SupportTicket $ticket): JsonResponse
+    {
+        /** @var Customer $customer */
+        $customer = $request->user();
+        abort_unless((int) $ticket->customer_id === (int) $customer->id, 404);
+
+        if (! in_array($ticket->status, ['resolved', 'closed'], true)) {
+            return response()->json(['message' => 'Ticket must be resolved before rating.'], 422);
+        }
+
+        $data = $request->validate([
+            'rating' => ['required', 'integer', 'min:1', 'max:5'],
+            'comment' => ['nullable', 'string', 'max:1000'],
+        ]);
+
+        $ticket->update([
+            'customer_rating' => $data['rating'],
+            'customer_rating_comment' => $data['comment'] ?? null,
+        ]);
+
+        return response()->json(['message' => 'Thank you for your feedback.']);
     }
 
     /**

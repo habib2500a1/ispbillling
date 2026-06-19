@@ -6,6 +6,8 @@ use App\Filament\Pages\SupportHub;
 use App\Filament\Resources\SupportTicketResource;
 use App\Filament\Resources\SupportTicketResource\Pages\Concerns\ProvidesSupportTicketCustomerSearch;
 use App\Services\Support\SupportSlaService;
+use App\Services\Support\SupportTicketIntelligenceService;
+use App\Support\SupportCategories;
 use Filament\Actions;
 use Filament\Actions\Action;
 use Filament\Forms\Form;
@@ -13,6 +15,7 @@ use Filament\Notifications\Notification;
 use Filament\Resources\Pages\CreateRecord;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Validation\ValidationException;
+use Livewire\Attributes\Computed;
 
 class CreateSupportTicket extends CreateRecord
 {
@@ -53,8 +56,8 @@ class CreateSupportTicket extends CreateRecord
 
         if (! filled($this->data['customer_id'] ?? null)) {
             Notification::make()
-                ->title('Subscriber not found')
-                ->body('Type username (ID) like habib3.kp (0603) and press Enter first.')
+                ->title('Link a subscriber first')
+                ->body('Search on the left, then tap a result to link before creating the ticket.')
                 ->warning()
                 ->send();
 
@@ -72,17 +75,35 @@ class CreateSupportTicket extends CreateRecord
             }
         }
 
+        if (blank($this->data['issue_type'] ?? null)) {
+            $this->applySmartDefaultsFromSelection();
+        }
+
         if (blank($this->data['subject'] ?? null) && $this->selectedSubscriber !== null) {
             $name = (string) ($this->selectedSubscriber['name'] ?? 'Subscriber');
             $code = (string) ($this->selectedSubscriber['customer_code'] ?? '');
+            $issue = SupportCategories::label($this->data['issue_type'] ?? null);
             $this->data['subject'] = $code !== ''
-                ? "Support — {$name} (#{$code})"
-                : "Support — {$name}";
+                ? "{$issue} — {$name} (#{$code})"
+                : "{$issue} — {$name}";
         }
 
         $this->form->fill($this->data);
 
-        $this->create();
+        try {
+            $this->create();
+        } catch (ValidationException $e) {
+            throw $e;
+        }
+    }
+
+    protected function applySmartDefaultsFromSelection(): void
+    {
+        if ($this->selectedSubscriber === null) {
+            return;
+        }
+
+        $this->applySmartTicketDefaults($this->selectedSubscriber);
     }
 
     protected function syncCustomerIdFromSelection(): void
@@ -127,9 +148,101 @@ class CreateSupportTicket extends CreateRecord
         return parent::handleRecordCreation($data);
     }
 
+    public function getTitle(): string
+    {
+        return '';
+    }
+
+    public function getSubheading(): ?string
+    {
+        return null;
+    }
+
+    public function pickCategory(string $issueType): void
+    {
+        $this->data['issue_type'] = $issueType;
+        $customer = filled($this->data['customer_id'] ?? null)
+            ? \App\Models\Customer::query()->find($this->data['customer_id'])
+            : null;
+
+        $this->data['priority'] = SupportCategories::defaultPriority($issueType, $customer);
+        $this->data['department'] = SupportCategories::groupLabel($issueType) === 'Billing'
+            ? 'billing'
+            : 'technical_support';
+
+        $this->form->fill($this->data);
+    }
+
+    /**
+     * @return list<array{group: string, group_key: string, key: string, label: string, default_priority: string}>
+     */
+    public function getCategoryPickerItems(): array
+    {
+        return SupportCategories::allItems();
+    }
+
+    /**
+     * @return list<array{label: string, detail: string, tone: string}>
+     */
+    #[Computed]
+    public function createAiSuggestions(): array
+    {
+        if ($this->selectedSubscriberId === null) {
+            return [];
+        }
+
+        $customer = \App\Models\Customer::query()->find($this->selectedSubscriberId);
+
+        return app(SupportTicketIntelligenceService::class)->analyze(
+            $customer,
+            (string) ($this->data['description'] ?? ''),
+            null,
+        );
+    }
+
+    public function updatedDataDescription(): void
+    {
+        unset($this->createAiSuggestions);
+    }
+
+    public function updatedDataIssueType(): void
+    {
+        $issueType = (string) ($this->data['issue_type'] ?? '');
+        if ($issueType === '') {
+            return;
+        }
+
+        $customer = filled($this->data['customer_id'] ?? null)
+            ? \App\Models\Customer::query()->find($this->data['customer_id'])
+            : null;
+
+        $this->data['priority'] = SupportCategories::defaultPriority($issueType, $customer);
+        $this->form->fill($this->data);
+    }
+
     protected function afterCreate(): void
     {
         session()->flash('support_ticket_created', $this->record->ticket_number);
+
+        $attachment = $this->data['create_attachment'] ?? null;
+        if (filled($attachment)) {
+            $paths = is_array($attachment) ? $attachment : [$attachment];
+            foreach ($paths as $path) {
+                if (! is_string($path) || $path === '') {
+                    continue;
+                }
+                \App\Models\SupportTicketUpload::query()->create([
+                    'tenant_id' => $this->record->tenant_id,
+                    'support_ticket_id' => $this->record->id,
+                    'disk' => 'public',
+                    'path' => $path,
+                    'original_name' => basename($path),
+                    'size' => (int) (\Illuminate\Support\Facades\Storage::disk('public')->size($path) ?: 0),
+                ]);
+            }
+        }
+
+        $this->redirect($this->getRedirectUrl(), navigate: false);
     }
 
     protected function getCreatedNotification(): ?Notification
@@ -210,8 +323,29 @@ class CreateSupportTicket extends CreateRecord
         $priority = (string) ($this->data['priority'] ?? 'medium');
         $customerId = $this->data['customer_id'] ?? $this->selectedSubscriberId;
         $customer = filled($customerId) ? \App\Models\Customer::query()->find($customerId) : null;
+        $sla = app(SupportSlaService::class);
+        $code = match ($priority) {
+            'critical' => 'P1',
+            'high' => 'P2',
+            'medium' => 'P3',
+            'low' => 'P4',
+            default => 'P3',
+        };
 
-        return app(SupportSlaService::class)->previewLabel($customer, $priority);
+        return $code.' · '.$sla->previewLabel($customer, $priority);
+    }
+
+    public function priorityCodeLabel(): string
+    {
+        $priority = (string) ($this->data['priority'] ?? 'medium');
+
+        return match ($priority) {
+            'critical' => 'P1 Critical',
+            'high' => 'P2 High',
+            'medium' => 'P3 Medium',
+            'low' => 'P4 Low',
+            default => 'P3 Medium',
+        };
     }
 
     public function canSaveTicket(): bool

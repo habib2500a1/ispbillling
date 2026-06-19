@@ -11,7 +11,6 @@ use App\Services\Support\SupportTicketAttachmentService;
 use App\Services\Support\SupportTicketWorkspaceService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
 
 class TechnicianTicketsController extends Controller
 {

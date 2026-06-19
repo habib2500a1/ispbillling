@@ -92,6 +92,17 @@ final class SupportSidebarRegistry
                 'active_routes' => ['filament.admin.pages.support-noc-ticket-wall'],
             ],
             [
+                'key' => 'root_incidents',
+                'label' => 'Root incidents',
+                'icon' => 'heroicon-o-exclamation-triangle',
+                'sort' => 3.6,
+                'url' => \App\Filament\Resources\SupportRootIncidentResource::getUrl('index'),
+                'active_routes' => [
+                    'filament.admin.resources.support-root-incidents.index',
+                    'filament.admin.resources.support-root-incidents.edit',
+                ],
+            ],
+            [
                 'key' => 'broadcast_outage',
                 'label' => 'Broadcast outage',
                 'icon' => 'heroicon-o-megaphone',
@@ -206,6 +217,7 @@ final class SupportSidebarRegistry
             'call_center' => CallCenterHub::canAccess(),
             'tickets' => SupportPanelAccess::viewTickets($user),
             'ticket_noc_wall' => SupportNocTicketWall::canAccess(),
+            'root_incidents' => SupportPanelAccess::viewTickets($user),
             'pipeline', 'leads' => SalesLeadPanelAccess::canView(),
             'broadcast_outage' => BroadcastOutage::canAccess(),
             'outages' => OutageResource::canViewAny(),

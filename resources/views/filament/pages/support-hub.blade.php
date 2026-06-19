@@ -243,13 +243,16 @@
 
                 @if (count($techs = $this->getTechnicianPerformance()) > 0)
                     <div style="padding:0.85rem;border-radius:var(--sp-radius-sm);background:var(--sp-card);border:1px solid var(--sp-border);">
-                        <h3 style="margin:0 0 0.65rem;font-size:0.85rem;font-weight:800;">Technician performance (30d)</h3>
+                        <h3 style="margin:0 0 0.65rem;font-size:0.85rem;font-weight:800;">Technician ranking (30d)</h3>
                         <table class="sh-sla-table">
                             <thead>
                                 <tr>
                                     <th>Technician</th>
                                     <th style="text-align:right;">Resolved</th>
                                     <th style="text-align:right;">Open</th>
+                                    <th style="text-align:right;">Avg h</th>
+                                    <th style="text-align:right;">SLA %</th>
+                                    <th style="text-align:right;">CSAT</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -258,6 +261,57 @@
                                         <td>{{ $row['name'] }}</td>
                                         <td style="text-align:right;">{{ $row['resolved'] }}</td>
                                         <td style="text-align:right;">{{ $row['open'] }}</td>
+                                        <td style="text-align:right;">{{ $row['avg_hours'] }}</td>
+                                        <td style="text-align:right;">{{ $row['sla_pct'] }}%</td>
+                                        <td style="text-align:right;">{{ $row['csat'] > 0 ? $row['csat'].'/5' : '—' }}</td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                @endif
+
+                @if (count($areas = $this->getAreaComplaints()) > 0)
+                    <div style="padding:0.85rem;border-radius:var(--sp-radius-sm);background:var(--sp-card);border:1px solid var(--sp-border);">
+                        <h3 style="margin:0 0 0.65rem;font-size:0.85rem;font-weight:800;">Area-wise complaints</h3>
+                        <table class="sh-sla-table">
+                            <thead>
+                                <tr>
+                                    <th>Area</th>
+                                    <th style="text-align:right;">Open</th>
+                                    <th style="text-align:right;">30d total</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach ($areas as $row)
+                                    <tr>
+                                        <td>{{ $row['area'] }}</td>
+                                        <td style="text-align:right;">{{ $row['open'] }}</td>
+                                        <td style="text-align:right;">{{ $row['total_30d'] }}</td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                @endif
+
+                @if (count($olts = $this->getOltComplaints()) > 0)
+                    <div style="padding:0.85rem;border-radius:var(--sp-radius-sm);background:var(--sp-card);border:1px solid var(--sp-border);">
+                        <h3 style="margin:0 0 0.65rem;font-size:0.85rem;font-weight:800;">OLT-wise complaints (open)</h3>
+                        <table class="sh-sla-table">
+                            <thead>
+                                <tr>
+                                    <th>OLT</th>
+                                    <th style="text-align:right;">Open</th>
+                                    <th style="text-align:right;">Critical</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach ($olts as $row)
+                                    <tr>
+                                        <td>{{ $row['olt'] }}</td>
+                                        <td style="text-align:right;">{{ $row['open'] }}</td>
+                                        <td style="text-align:right;">{{ $row['critical'] }}</td>
                                     </tr>
                                 @endforeach
                             </tbody>

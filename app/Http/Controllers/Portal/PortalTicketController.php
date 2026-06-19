@@ -100,14 +100,23 @@ class PortalTicketController extends Controller
 
         $data = $request->validate([
             'body' => ['required', 'string', 'max:5000'],
+            'attachments' => ['nullable', 'array', 'max:3'],
+            'attachments.*' => ['file', 'max:5120', 'mimes:jpg,jpeg,png,gif,webp,pdf'],
         ]);
 
-        SupportTicketMessage::create([
+        $message = SupportTicketMessage::create([
             'support_ticket_id' => $ticket->id,
             'customer_id' => $customer->id,
             'body' => $data['body'],
             'is_internal' => false,
         ]);
+
+        if ($request->hasFile('attachments')) {
+            app(\App\Services\Support\SupportTicketAttachmentService::class)->attachUploadsToMessage(
+                $message,
+                $request->file('attachments'),
+            );
+        }
 
         if ($ticket->status === 'open') {
             $ticket->update(['status' => 'in_progress']);

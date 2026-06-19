@@ -3,14 +3,18 @@
 namespace App\Filament\Pages\Concerns;
 
 use App\Models\SupportTicket;
-use App\Models\User;
-use Illuminate\Support\Facades\DB;
+use App\Services\Support\SupportAnalyticsService;
 
 /**
  * Read-only support analytics for hub UI.
  */
 trait ProvidesSupportAnalytics
 {
+    protected function analyticsService(): SupportAnalyticsService
+    {
+        return app(SupportAnalyticsService::class);
+    }
+
     /**
      * @return list<array{label: string, value: string, hint: string}>
      */
@@ -45,23 +49,15 @@ trait ProvidesSupportAnalytics
 
         $slaPerformance = $slaTotal > 0 ? round(($slaMet / $slaTotal) * 100, 1) : 0;
 
-        $resolvedTickets = SupportTicket::query()
-            ->where('resolved_at', '>=', $since)
-            ->whereNotNull('resolved_at')
-            ->get(['created_at', 'resolved_at']);
-
-        $avgHours = 0.0;
-        if ($resolvedTickets->isNotEmpty()) {
-            $avgHours = round(
-                $resolvedTickets->avg(fn (SupportTicket $t): float => (float) $t->created_at?->diffInMinutes($t->resolved_at) / 60),
-                1,
-            );
-        }
+        $mttr = $this->analyticsService()->mttrStats(30);
+        $csat = $this->analyticsService()->csatSummary(30);
 
         return [
-            ['label' => 'Resolution rate (30d)', 'value' => $resolutionRate.'%', 'hint' => $resolved.' / '.$created.' tickets'],
+            ['label' => 'MTTR (30d)', 'value' => $mttr[0]['value'], 'hint' => $mttr[0]['hint']],
+            ['label' => 'MTFR (30d)', 'value' => $mttr[1]['value'], 'hint' => $mttr[1]['hint']],
             ['label' => 'SLA performance (30d)', 'value' => $slaPerformance.'%', 'hint' => 'Resolved within SLA'],
-            ['label' => 'Avg resolution', 'value' => $avgHours.'h', 'hint' => 'Last 30 days'],
+            ['label' => 'CSAT avg (30d)', 'value' => $csat['avg'] > 0 ? $csat['avg'].'/5' : '—', 'hint' => $csat['count'].' ratings ('.$csat['rate'].'%)'],
+            ['label' => 'Resolution rate (30d)', 'value' => $resolutionRate.'%', 'hint' => $resolved.' / '.$created.' tickets'],
             ['label' => 'Open now', 'value' => number_format($open), 'hint' => $breached.' SLA breach'],
         ];
     }
@@ -71,57 +67,30 @@ trait ProvidesSupportAnalytics
      */
     public function getCategoryTrends(): array
     {
-        $since = now()->subDays(30);
-        $rows = SupportTicket::query()
-            ->where('created_at', '>=', $since)
-            ->select('issue_type', DB::raw('COUNT(*) as total'))
-            ->groupBy('issue_type')
-            ->orderByDesc('total')
-            ->limit(8)
-            ->get();
-
-        $sum = max(1, (int) $rows->sum('total'));
-
-        return $rows->map(function ($row) use ($sum): array {
-            $type = (string) ($row->issue_type ?? 'other');
-            $count = (int) $row->total;
-
-            return [
-                'label' => SupportTicket::ISSUE_TYPES[$type] ?? ucfirst($type),
-                'count' => $count,
-                'percent' => round(($count / $sum) * 100, 1),
-            ];
-        })->all();
+        return $this->analyticsService()->categoryTrends(30, 10);
     }
 
     /**
-     * @return list<array{name: string, resolved: int, open: int}>
+     * @return list<array{name: string, resolved: int, open: int, avg_hours: float, sla_pct: float, csat: float}>
      */
     public function getTechnicianPerformance(): array
     {
-        $since = now()->subDays(30);
+        return $this->analyticsService()->technicianRanking(30, 12);
+    }
 
-        return User::query()
-            ->whereIn('id', function ($q) use ($since): void {
-                $q->select('assigned_to')
-                    ->from('support_tickets')
-                    ->whereNotNull('assigned_to')
-                    ->where('updated_at', '>=', $since);
-            })
-            ->orderBy('name')
-            ->limit(12)
-            ->get(['id', 'name'])
-            ->map(function (User $user) use ($since): array {
-                $base = SupportTicket::query()->where('assigned_to', $user->id);
+    /**
+     * @return list<array{area: string, open: int, total_30d: int}>
+     */
+    public function getAreaComplaints(): array
+    {
+        return $this->analyticsService()->areaComplaintRows(10);
+    }
 
-                return [
-                    'name' => $user->name,
-                    'resolved' => (clone $base)->where('resolved_at', '>=', $since)->count(),
-                    'open' => (clone $base)->whereNotIn('status', ['resolved', 'closed'])->count(),
-                ];
-            })
-            ->sortByDesc('resolved')
-            ->values()
-            ->all();
+    /**
+     * @return list<array{olt: string, open: int, critical: int}>
+     */
+    public function getOltComplaints(): array
+    {
+        return $this->analyticsService()->oltComplaintRows(10);
     }
 }

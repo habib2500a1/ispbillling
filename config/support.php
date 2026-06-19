@@ -73,4 +73,13 @@ return [
      * Shared secret for POST /api/webhooks/support-ticket-ingest (X-ISP-Webhook-Secret header).
      */
     'webhook_secret' => env('ISP_SUPPORT_WEBHOOK_SECRET'),
+
+    /** WebSocket live updates for support desk (Pusher/Echo). */
+    'broadcast_enabled' => (bool) env('SUPPORT_BROADCAST_ENABLED', true),
+
+    /** Dispatch SLA/mass-outage checks via Laravel queue when true. */
+    'use_queue' => (bool) env('SUPPORT_USE_QUEUE', false),
+
+    /** Meilisearch/Scout global ticket search (requires scout:import support_tickets). */
+    'scout_search_enabled' => (bool) env('SUPPORT_SCOUT_SEARCH', true),
 ];
