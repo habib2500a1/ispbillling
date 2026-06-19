@@ -2914,36 +2914,32 @@ body.isp-cv-map-modal-open {
 }
 
 .sub-cc-timeline-wrap {
-    --sub-cc-timeline-visible: 4;
     overflow: visible;
     margin: 0 -0.15rem;
     padding: 0 0.15rem 0.1rem;
 }
 
-/* Height cap is applied by subscriber-view-tabs.js after measuring real card sizes */
-.isp-sub-view-page .sub-pro .sub-cc-panel--timeline .sub-cc-timeline-wrap--scroll .sub-cc-timeline,
-.isp-subscriber-record-page .sub-pro .sub-cc-panel--timeline .sub-cc-timeline-wrap--scroll .sub-cc-timeline {
-    overflow-x: hidden;
-    overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
-    overscroll-behavior-y: contain;
-    touch-action: pan-y;
-    scrollbar-width: thin;
-    scrollbar-color: rgba(100, 116, 139, 0.45) transparent;
-}
+/* Desktop/tablet only — cap long timelines; mobile shows full list (no inner scroll gap) */
+@media (min-width: 641px) {
+    .isp-sub-view-page .sub-pro .sub-cc-panel--timeline .sub-cc-timeline-wrap--scroll .sub-cc-timeline,
+    .isp-subscriber-record-page .sub-pro .sub-cc-panel--timeline .sub-cc-timeline-wrap--scroll .sub-cc-timeline {
+        max-height: 18rem;
+        overflow-x: hidden;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+        overscroll-behavior-y: contain;
+        scrollbar-width: thin;
+        scrollbar-color: rgba(100, 116, 139, 0.45) transparent;
+    }
 
-.sub-cc-timeline-wrap--scroll .sub-cc-timeline__item {
-    box-sizing: border-box;
-    flex-shrink: 0;
-}
+    .sub-cc-timeline-wrap--scroll .sub-cc-timeline::-webkit-scrollbar {
+        width: 0.35rem;
+    }
 
-.sub-cc-timeline-wrap--scroll .sub-cc-timeline::-webkit-scrollbar {
-    width: 0.35rem;
-}
-
-.sub-cc-timeline-wrap--scroll .sub-cc-timeline::-webkit-scrollbar-thumb {
-    border-radius: 999px;
-    background: rgba(100, 116, 139, 0.45);
+    .sub-cc-timeline-wrap--scroll .sub-cc-timeline::-webkit-scrollbar-thumb {
+        border-radius: 999px;
+        background: rgba(100, 116, 139, 0.45);
+    }
 }
 
 .sub-cc-timeline__item {
@@ -3282,9 +3278,22 @@ body.isp-cv-map-modal-open {
         max-width: calc(100vw - 2rem);
     }
 
+    .sub-pro .sub-cc-timeline-wrap,
+    .sub-pro .sub-cc-timeline-wrap--scroll,
+    .sub-pro .sub-cc-timeline-wrap--scroll .sub-cc-timeline {
+        max-height: none !important;
+        min-height: 0 !important;
+        height: auto !important;
+        overflow: visible !important;
+    }
+
     .sub-pro .sub-cc-timeline-wrap {
         margin: 0;
         padding: 0;
+    }
+
+    .sub-pro .sub-cc-panel--timeline .isp-cv-card__head {
+        margin-bottom: 0.45rem;
     }
 
     .sub-pro .sub-cc-timeline__item {
