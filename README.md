@@ -118,6 +118,7 @@ composer run dev
 | Env template for NextDeploy | [`deploy/.env.nextdeploy.example`](deploy/.env.nextdeploy.example) |
 | Env template for cPanel | [`deploy/.env.cpanel.example`](deploy/.env.cpanel.example) |
 | Production checklist | [`deploy/PRODUCTION_CHECKLIST.md`](deploy/PRODUCTION_CHECKLIST.md) |
+| Legacy portal cutover | [`docs/LEGACY_PORTAL_CUTOVER.md`](docs/LEGACY_PORTAL_CUTOVER.md) |
 
 **cPanel / Webuzo ZIP + wizard** (download from GitHub Releases):
 
@@ -216,6 +217,14 @@ Examples of important automation commands already present:
 - `php artisan isp:send-invoice-due-reminders`
 
 Use Laravel scheduler and Redis/Horizon for production workloads.
+
+### Legacy portal cutover
+
+When billing no longer depends on `pay.anetbd.com`, remove all sync/import code in one step:
+
+- Guide: [`docs/LEGACY_PORTAL_CUTOVER.md`](docs/LEGACY_PORTAL_CUTOVER.md)
+- Preview: `php artisan isp:remove-legacy-portal`
+- Apply: `php artisan isp:remove-legacy-portal --force`
 
 ## Key Areas In Code
 
