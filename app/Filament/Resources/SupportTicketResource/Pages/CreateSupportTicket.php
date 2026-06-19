@@ -44,12 +44,13 @@ class CreateSupportTicket extends CreateRecord
         return parent::getCreateFormAction()
             ->label('Create ticket')
             ->before(function (): void {
+                $this->selectSubscriberFromTypedQuery();
                 $this->syncCustomerIdFromSelection();
 
                 if (! filled($this->data['customer_id'] ?? null)) {
                     Notification::make()
-                        ->title('Pick a subscriber first')
-                        ->body('Click a name in the dropdown list — typing alone is not enough.')
+                        ->title('Subscriber not found')
+                        ->body('Type username (ID) like habib3.kp (0603) or pick from the list.')
                         ->warning()
                         ->send();
 
@@ -91,6 +92,10 @@ class CreateSupportTicket extends CreateRecord
 
     protected function handleRecordCreation(array $data): Model
     {
+        if (empty($data['customer_id'])) {
+            $this->selectSubscriberFromTypedQuery();
+        }
+
         if (empty($data['customer_id']) && $this->selectedSubscriberId !== null) {
             $data['customer_id'] = $this->selectedSubscriberId;
         }

@@ -232,7 +232,7 @@ body.isp-support-ticket-create .fi-main {
 /* Legacy-style subscriber combobox dropdown */
 .sp-create-combobox {
     position: relative;
-    z-index: 40;
+    z-index: 200;
 }
 
 .sp-create-combobox__field {
@@ -294,6 +294,7 @@ body.isp-support-ticket-create .fi-main {
     border: 1px solid #94a3b8;
     border-radius: 0 0 0.35rem 0.35rem;
     box-shadow: 0 8px 24px rgba(15, 23, 42, 0.18);
+    z-index: 201;
 }
 
 .sp-create-combobox__option {
