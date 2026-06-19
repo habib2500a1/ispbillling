@@ -1,6 +1,7 @@
 (function () {
     var activeUsagePeriod = 'day';
     var resizeTimer = null;
+    var timelineVisibleDefault = 4;
 
     function parseJson(id) {
         var el = document.getElementById(id);
@@ -113,7 +114,53 @@
 
     function scheduleRedraw() {
         if (resizeTimer) window.clearTimeout(resizeTimer);
-        resizeTimer = window.setTimeout(redrawCharts, 120);
+        resizeTimer = window.setTimeout(function () {
+            redrawCharts();
+            capTimelineScroll();
+        }, 120);
+    }
+
+    function capTimelineScroll() {
+        document.querySelectorAll('[data-sub-timeline-wrap]').forEach(function (wrap) {
+            var list = wrap.querySelector('.sub-cc-timeline');
+            var items = list ? list.querySelectorAll('.sub-cc-timeline__item') : [];
+            var visible = parseInt(wrap.getAttribute('data-sub-timeline-visible') || String(timelineVisibleDefault), 10);
+
+            if (!list || items.length === 0) {
+                wrap.classList.remove('sub-cc-timeline-wrap--scroll');
+                wrap.style.maxHeight = '';
+                return;
+            }
+
+            if (items.length <= visible) {
+                wrap.classList.remove('sub-cc-timeline-wrap--scroll');
+                wrap.style.maxHeight = '';
+                return;
+            }
+
+            wrap.classList.add('sub-cc-timeline-wrap--scroll');
+
+            var total = 0;
+            for (var i = 0; i < visible; i++) {
+                total += items[i].getBoundingClientRect().height;
+            }
+
+            var listStyles = window.getComputedStyle(list);
+            var gap = parseFloat(listStyles.rowGap || listStyles.gap || '0');
+            if (!isNaN(gap) && gap > 0) {
+                total += gap * (visible - 1);
+            }
+
+            var wrapStyles = window.getComputedStyle(wrap);
+            total += parseFloat(wrapStyles.paddingTop) + parseFloat(wrapStyles.paddingBottom);
+
+            wrap.style.maxHeight = Math.ceil(total) + 'px';
+        });
+    }
+
+    function scheduleTimelineCap() {
+        window.requestAnimationFrame(capTimelineScroll);
+        window.setTimeout(capTimelineScroll, 120);
     }
 
     function init() {
@@ -124,6 +171,7 @@
         }
         redrawCharts();
         bindUsageTabs();
+        scheduleTimelineCap();
     }
 
     if (document.readyState === 'loading') {

@@ -109,7 +109,13 @@
         @if ($timeline === [])
             <p class="isp-cv-muted text-sm">No activity yet.</p>
         @else
-            <div class="sub-cc-timeline-wrap" tabindex="0" aria-label="Activity timeline, scroll for more events">
+            <div
+                class="sub-cc-timeline-wrap"
+                data-sub-timeline-wrap
+                data-sub-timeline-visible="4"
+                tabindex="0"
+                aria-label="Activity timeline, scroll for more events"
+            >
                 <ol class="sub-cc-timeline">
                 @foreach ($timeline as $event)
                     <li class="sub-cc-timeline__item sub-cc-timeline__item--{{ $event['tone'] ?? 'slate' }}">
