@@ -171,7 +171,7 @@ final class StaffPerformanceReportService
 
         foreach ($payments as $payment) {
             $staffId = $this->collectorResolver->resolveCollectorUserIdFromPayment($payment);
-            $name = $this->collectorResolver->resolveStaffDisplayNameFromPayment($payment, $tenantId);
+            $name = $this->paymentStaffDisplayName($payment, $staffId);
 
             if ($name === null || $name === '') {
                 $name = 'Online / unassigned';
@@ -193,6 +193,32 @@ final class StaffPerformanceReportService
 
             return $row;
         });
+    }
+
+    /**
+     * Inline staff label resolution — avoids depending on CollectorStaffResolver
+     * methods that may be missing in stale PHP-FPM opcache after deploy.
+     */
+    private function paymentStaffDisplayName(Payment $payment, ?int $staffId): ?string
+    {
+        if ($staffId !== null) {
+            $name = User::query()->find($staffId)?->name;
+            if ($name !== null && $name !== '') {
+                return $name;
+            }
+        }
+
+        $meta = is_array($payment->meta) ? $payment->meta : [];
+        $receivedBy = trim((string) ($meta['received_by'] ?? ''));
+        if ($receivedBy !== '') {
+            return $receivedBy;
+        }
+
+        if ($payment->recorded_by !== null) {
+            return User::query()->find((int) $payment->recorded_by)?->name;
+        }
+
+        return null;
     }
 
     /**
