@@ -290,10 +290,6 @@
         grid-template-columns: 280px 1fr;
     }
 
-    .sub-pro .sub-rail--dates {
-        display: none;
-    }
-
     .sub-pro .sub-quickbar {
         display: flex;
     }
@@ -799,10 +795,6 @@
 
     .sub-pro .isp-cv-more-grid {
         grid-template-columns: 280px 1fr;
-    }
-
-    .sub-pro .sub-rail--dates {
-        display: none;
     }
 
     .sub-pro .sub-quickbar {
@@ -1921,10 +1913,6 @@
 
     .sub-pro .isp-cv-more-grid {
         grid-template-columns: 280px 1fr;
-    }
-
-    .sub-pro .sub-rail--dates {
-        display: none;
     }
 
     .sub-pro .sub-quickbar {

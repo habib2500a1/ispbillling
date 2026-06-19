@@ -60,6 +60,7 @@
                         · <a href="tel:{{ preg_replace('/\D+/', '', $h['phone']) }}" class="underline decoration-white/30 hover:decoration-white">{{ $h['phone'] }}</a>
                     @endif
                     · PPPoE <span class="font-mono">{{ $h['username'] }}</span>
+                    · Joined <span class="font-semibold">{{ $h['activation_date'] }}</span>
                 </p>
                 <div class="sub-hero__pills">
                     @if (! empty($strip['is_vip']))
@@ -130,7 +131,7 @@
 
         <div class="sub-rail sub-rail--dates">
             <div class="sub-rail__item">
-                <span class="sub-rail__label">Activated</span>
+                <span class="sub-rail__label">Joining date</span>
                 <strong class="sub-rail__value">{{ $h['activation_date'] }}</strong>
             </div>
             <div class="sub-rail__item">

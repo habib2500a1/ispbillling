@@ -265,6 +265,7 @@ final class SubscriberClientDetailsPresenter
                 'Open due' => $openBalance > 0 ? number_format($openBalance, 2).' BDT' : null,
                 'Wallet' => number_format((float) $customer->account_balance, 2).' BDT',
                 'Service expires' => $customer->service_expires_at?->format('d M Y'),
+                'Joining date' => $customer->joined_at?->format('d M Y') ?? '—',
                 'Billing day' => $customer->billing_day ? 'Day '.$customer->billing_day : null,
                 'Last payment' => $lastPayment
                     ? number_format((float) $lastPayment->amount, 2).' BDT · '.$lastPayment->paid_at?->format('d M Y')
@@ -392,7 +393,7 @@ final class SubscriberClientDetailsPresenter
             'Setup Fee' => $pkg?->setup_fee !== null ? number_format((float) $pkg->setup_fee, 2).' BDT' : '—',
             'Billing Mode' => ucfirst((string) ($customer->billing_mode ?? 'postpaid')),
             'Bill Generate Day' => (string) ($customer->billing_day ?? '—'),
-            'Activation Date' => $customer->joined_at?->format('d-M-Y') ?? '—',
+            'Joining date' => $customer->joined_at?->format('d-M-Y') ?? '—',
             'Expire Date' => $customer->service_expires_at?->format('d-M-Y') ?? '—',
             'Expire Day (month)' => $customer->service_expires_at
                 ? (string) \App\Support\BillingDefaults::expireDayFromDate($customer->service_expires_at)
