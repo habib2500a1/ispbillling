@@ -59,7 +59,20 @@ class SupportTicketCreatePageTest extends TestCase
             ->call('runSubscriberSearch')
             ->assertSet('subscriberResults.0.customer_code', 'TST0099')
             ->call('selectSubscriber', (int) $customer->id)
-            ->assertSet('data.customer_id', $customer->id);
+            ->assertSet('data.customer_id', $customer->id)
+            ->set('data.subject', 'Test ticket from feature test')
+            ->set('data.description', 'Subscriber reported no internet.')
+            ->set('data.department', 'technical_support')
+            ->set('data.priority', 'medium')
+            ->set('data.status', 'open')
+            ->set('data.channel', 'call_center')
+            ->call('create')
+            ->assertHasNoErrors();
+
+        $this->assertDatabaseHas('support_tickets', [
+            'customer_id' => $customer->id,
+            'subject' => 'Test ticket from feature test',
+        ]);
     }
 
     public function test_create_page_prefills_customer_from_query_string(): void

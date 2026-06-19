@@ -5,12 +5,13 @@ namespace App\Filament\Resources\SupportTicketResource\Pages;
 use App\Filament\Pages\SupportHub;
 use App\Filament\Resources\SupportTicketResource;
 use App\Filament\Resources\SupportTicketResource\Pages\Concerns\ProvidesSupportTicketCustomerSearch;
-use App\Models\SupportTicket;
 use App\Services\Support\SupportSlaService;
 use Filament\Actions;
+use Filament\Actions\Action;
 use Filament\Forms\Form;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\CreateRecord;
+use Illuminate\Validation\ValidationException;
 
 class CreateSupportTicket extends CreateRecord
 {
@@ -32,7 +33,71 @@ class CreateSupportTicket extends CreateRecord
 
     protected function getRedirectUrl(): string
     {
-        return $this->getResource()::getUrl('edit', ['record' => $this->getRecord()]);
+        return $this->getResource()::getUrl('index');
+    }
+
+    protected function getCreateFormAction(): Action
+    {
+        return parent::getCreateFormAction()
+            ->label('Create ticket')
+            ->disabled(fn (): bool => ! $this->canSaveTicket())
+            ->before(function (): void {
+                $this->syncCustomerIdFromSelection();
+
+                if (! filled($this->data['customer_id'] ?? null)) {
+                    Notification::make()
+                        ->title('Pick a subscriber first')
+                        ->body('Search and select a user from the dropdown before creating the ticket.')
+                        ->warning()
+                        ->send();
+
+                    throw ValidationException::withMessages([
+                        'data.customer_id' => 'Pick a subscriber from the search dropdown before saving.',
+                    ]);
+                }
+            });
+    }
+
+    protected function syncCustomerIdFromSelection(): void
+    {
+        if ($this->selectedSubscriberId === null) {
+            return;
+        }
+
+        $this->data['customer_id'] = $this->selectedSubscriberId;
+        $this->form->fill($this->data);
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    protected function mutateFormDataBeforeCreate(array $data): array
+    {
+        if (empty($data['customer_id']) && $this->selectedSubscriberId !== null) {
+            $data['customer_id'] = $this->selectedSubscriberId;
+        }
+
+        if (empty($data['customer_id'])) {
+            throw ValidationException::withMessages([
+                'data.customer_id' => 'Pick a subscriber from the search dropdown before saving.',
+            ]);
+        }
+
+        return $data;
+    }
+
+    protected function getCreatedNotification(): ?Notification
+    {
+        return Notification::make()
+            ->success()
+            ->title('Ticket created')
+            ->body($this->record->ticket_number.' is now in the queue.');
+    }
+
+    protected function getCreatedNotificationTitle(): ?string
+    {
+        return null;
     }
 
     public function getTitle(): string
@@ -95,20 +160,10 @@ class CreateSupportTicket extends CreateRecord
         ];
     }
 
-    protected function mutateFormDataBeforeCreate(array $data): array
-    {
-        return $data;
-    }
-
-    protected function getCreatedNotificationTitle(): ?string
-    {
-        return 'Ticket created — opening workspace';
-    }
-
     public function slaPreviewLabel(): string
     {
         $priority = (string) ($this->data['priority'] ?? 'medium');
-        $customerId = $this->data['customer_id'] ?? null;
+        $customerId = $this->data['customer_id'] ?? $this->selectedSubscriberId;
         $customer = filled($customerId) ? \App\Models\Customer::query()->find($customerId) : null;
 
         return app(SupportSlaService::class)->previewLabel($customer, $priority);
@@ -116,6 +171,7 @@ class CreateSupportTicket extends CreateRecord
 
     public function canSaveTicket(): bool
     {
-        return filled($this->data['customer_id'] ?? null);
+        return filled($this->data['customer_id'] ?? null)
+            || $this->selectedSubscriberId !== null;
     }
 }
