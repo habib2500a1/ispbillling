@@ -199,7 +199,7 @@
     max-height: 22rem;
     overflow: auto;
     -webkit-overflow-scrolling: touch;
-    overscroll-behavior: contain;
+    overscroll-behavior-y: auto;
     margin: 0 -0.15rem;
     padding: 0 0.15rem;
 }
@@ -541,6 +541,7 @@
     .sub-pro .sub-cc-timeline-wrap {
         max-height: none;
         overflow: visible;
+        overscroll-behavior: auto;
         margin: 0;
         padding: 0;
     }
@@ -619,6 +620,13 @@
 
     .sub-pro .sub-cc-usage-tabs button {
         flex: 0 1 auto;
+    }
+
+    /* Timeline grows with page on tablet — avoids nested scroll traps */
+    .sub-pro .sub-cc-timeline-wrap {
+        max-height: none;
+        overflow: visible;
+        overscroll-behavior: auto;
     }
 }
 

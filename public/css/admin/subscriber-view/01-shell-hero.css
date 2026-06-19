@@ -420,11 +420,22 @@
 /* ===== Mobile layout — subscriber 360 (/admin/subscribers/{id}) ===== */
 @media (max-width: 640px) {
     .isp-sub-view-page .fi-main-ctn,
-    .isp-subscriber-record-page .fi-page {
+    .isp-subscriber-record-page .fi-page,
+    .isp-sub-view-page .fi-main,
+    .isp-sub-view-page .sub-pro,
+    .isp-subscriber-record-page {
+        max-width: 100%;
+        min-width: 0;
         padding-left: 0.5rem !important;
         padding-right: 0.5rem !important;
-        overflow-x: hidden;
-        max-width: 100%;
+    }
+
+    /* Horizontal scroll regions — keep touch scrolling */
+    .sub-pro .sub-tabs,
+    .sub-pro .isp-cv-table-wrap {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        touch-action: pan-x pan-y;
     }
 
     .sub-pro {

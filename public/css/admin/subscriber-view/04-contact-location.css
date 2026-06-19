@@ -524,10 +524,11 @@
  * Added: 2026-05-30 — stack grids, wrap buttons, readable spacing
  * ============================================================ */
 @media (max-width: 640px) {
-    /* Prevent horizontal scroll */
-    .sub-pro, .isp-subscriber-record-page {
-        overflow-x: hidden;
-        max-width: 100vw;
+    /* Fit viewport without trapping vertical scroll (iOS breaks on overflow-x:hidden) */
+    .sub-pro,
+    .isp-subscriber-record-page {
+        max-width: 100%;
+        min-width: 0;
     }
     
     /* Hero: stack title + actions, reduce padding */
