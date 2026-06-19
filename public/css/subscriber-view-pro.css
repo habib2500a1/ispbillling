@@ -1120,6 +1120,120 @@
         font-size: 0.75rem;
         padding: 0.3rem 0.65rem;
     }
+
+    /* Recent payments/invoices + billing tab tables */
+    .sub-pro .isp-cv-recent,
+    .sub-pro .isp-cv-split {
+        grid-template-columns: 1fr !important;
+        gap: 0.75rem;
+    }
+
+    .sub-pro .isp-cv-recent .isp-cv-card,
+    .sub-pro .isp-cv-split .isp-cv-card {
+        padding: 0.75rem 0.85rem;
+        min-width: 0;
+    }
+
+    .sub-pro .isp-cv-card__head {
+        flex-wrap: wrap;
+        align-items: flex-start;
+        gap: 0.35rem;
+        margin-bottom: 0.55rem;
+    }
+
+    .sub-pro .isp-cv-card__title {
+        font-size: 0.9rem;
+        line-height: 1.25;
+        min-width: 0;
+    }
+
+    .sub-pro .isp-cv-recent .isp-cv-table-wrap,
+    .sub-pro .isp-cv-split .isp-cv-table-wrap {
+        margin: 0;
+        overflow: visible;
+        border: none;
+        padding-bottom: 0;
+    }
+
+    .sub-pro .isp-cv-recent .isp-cv-table,
+    .sub-pro .isp-cv-split .isp-cv-table,
+    .sub-pro .isp-cv-recent .isp-cv-table--head,
+    .sub-pro .isp-cv-split .isp-cv-table--head {
+        min-width: 0;
+    }
+
+    .sub-pro .isp-cv-recent .isp-cv-table thead,
+    .sub-pro .isp-cv-split .isp-cv-table thead {
+        display: none;
+    }
+
+    .sub-pro .isp-cv-recent .isp-cv-table tbody,
+    .sub-pro .isp-cv-split .isp-cv-table tbody {
+        display: block;
+    }
+
+    .sub-pro .isp-cv-recent .isp-cv-table tbody tr,
+    .sub-pro .isp-cv-split .isp-cv-table tbody tr {
+        display: block;
+        margin-bottom: 0.5rem;
+        padding: 0.55rem 0.65rem;
+        border: 1px solid var(--olt-border, #e2e8f0);
+        border-radius: 0.65rem;
+        background: color-mix(in srgb, var(--olt-card, #fff) 96%, #6366f1 4%);
+    }
+
+    .sub-pro .isp-cv-recent .isp-cv-table tbody tr:last-child,
+    .sub-pro .isp-cv-split .isp-cv-table tbody tr:last-child {
+        margin-bottom: 0;
+    }
+
+    .sub-pro .isp-cv-recent .isp-cv-table td,
+    .sub-pro .isp-cv-split .isp-cv-table td {
+        display: grid;
+        grid-template-columns: minmax(5.25rem, 36%) minmax(0, 1fr);
+        gap: 0.25rem 0.55rem;
+        align-items: center;
+        padding: 0.32rem 0;
+        border-bottom: 1px dashed color-mix(in srgb, var(--olt-border, #e2e8f0) 75%, transparent);
+        white-space: normal;
+        text-align: left !important;
+        font-size: 0.8rem;
+    }
+
+    .sub-pro .isp-cv-recent .isp-cv-table td:last-child,
+    .sub-pro .isp-cv-split .isp-cv-table td:last-child {
+        border-bottom: none;
+        padding-bottom: 0;
+    }
+
+    .sub-pro .isp-cv-recent .isp-cv-table td::before,
+    .sub-pro .isp-cv-split .isp-cv-table td::before {
+        content: attr(data-label);
+        font-size: 0.64rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+        color: var(--olt-muted, #64748b);
+    }
+
+    .sub-pro .isp-cv-invoice-actions {
+        justify-content: flex-start;
+        flex-wrap: wrap;
+        gap: 0.3rem;
+    }
+
+    .sub-pro .isp-cv-invoice-actions__btn {
+        font-size: 0.64rem;
+        padding: 0.25rem 0.4rem;
+    }
+}
+
+.dark .sub-pro .isp-cv-recent .isp-cv-table tbody tr,
+.dark .sub-pro .isp-cv-split .isp-cv-table tbody tr,
+[data-theme='dark'] .sub-pro .isp-cv-recent .isp-cv-table tbody tr,
+[data-theme='dark'] .sub-pro .isp-cv-split .isp-cv-table tbody tr {
+    background: rgba(255, 255, 255, 0.04);
+    border-color: rgba(148, 163, 184, 0.18);
 }
 
 /* Tablet (641px - 1023px): 2-column grids */

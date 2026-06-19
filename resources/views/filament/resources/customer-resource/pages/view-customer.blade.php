@@ -211,17 +211,19 @@
                                 <h3 class="isp-cv-card__title">Recent payments</h3>
                                 <button type="button" class="isp-cv-link" @click="tab = 'billing'">All →</button>
                             </div>
+                            <div class="isp-cv-table-wrap">
                             <table class="isp-cv-table">
                                 <tbody>
                                     @foreach ($details['recent_payments']->take(3) as $pay)
                                         <tr>
-                                            <td>{{ $pay->paid_at?->format('d M Y') }}</td>
-                                            <td>{{ ucfirst((string) $pay->method) }}</td>
-                                            <td class="text-right font-mono font-semibold">{{ number_format((float) $pay->amount, 2) }}</td>
+                                            <td data-label="Date">{{ $pay->paid_at?->format('d M Y') }}</td>
+                                            <td data-label="Method">{{ ucfirst((string) $pay->method) }}</td>
+                                            <td class="text-right font-mono font-semibold" data-label="Amount">{{ number_format((float) $pay->amount, 2) }}</td>
                                         </tr>
                                     @endforeach
                                 </tbody>
                             </table>
+                            </div>
                         </section>
                     @endif
                     @if ($details['recent_invoices']->isNotEmpty())
@@ -230,21 +232,23 @@
                                 <h3 class="isp-cv-card__title">Recent invoices</h3>
                                 <button type="button" class="isp-cv-link" @click="tab = 'billing'">All →</button>
                             </div>
+                            <div class="isp-cv-table-wrap">
                             <table class="isp-cv-table">
                                 <tbody>
                                     @foreach ($details['recent_invoices']->take(3) as $inv)
                                         <tr>
-                                            <td class="font-mono text-xs">#{{ $inv->id }}</td>
-                                            <td>{{ $inv->issue_date?->format('d M Y') }}</td>
-                                            <td class="text-right font-mono">{{ number_format((float) $inv->total, 2) }}</td>
-                                            <td><span class="isp-cv-pill isp-cv-pill--muted text-xs">{{ ucfirst((string) $inv->status) }}</span></td>
-                                            <td class="text-right">
+                                            <td class="font-mono text-xs" data-label="Invoice">#{{ $inv->id }}</td>
+                                            <td data-label="Issue">{{ $inv->issue_date?->format('d M Y') }}</td>
+                                            <td class="text-right font-mono" data-label="Total">{{ number_format((float) $inv->total, 2) }}</td>
+                                            <td data-label="Status"><span class="isp-cv-pill isp-cv-pill--muted text-xs">{{ ucfirst((string) $inv->status) }}</span></td>
+                                            <td class="text-right" data-label="Actions">
                                                 @include('filament.resources.customer-resource.partials.client-invoice-actions', ['invoice' => $inv])
                                             </td>
                                         </tr>
                                     @endforeach
                                 </tbody>
                             </table>
+                            </div>
                         </section>
                     @endif
                 </div>
@@ -271,10 +275,10 @@
                                 <tbody>
                                     @foreach ($details['recent_payments'] as $pay)
                                         <tr>
-                                            <td>{{ $pay->paid_at?->format('d M Y H:i') }}</td>
-                                            <td>{{ $pay->recorder?->name ?? 'Online' }}</td>
-                                            <td>{{ ucfirst((string) $pay->method) }}</td>
-                                            <td class="text-right font-mono font-semibold">{{ number_format((float) $pay->amount, 2) }}</td>
+                                            <td data-label="Date">{{ $pay->paid_at?->format('d M Y H:i') }}</td>
+                                            <td data-label="By">{{ $pay->recorder?->name ?? 'Online' }}</td>
+                                            <td data-label="Method">{{ ucfirst((string) $pay->method) }}</td>
+                                            <td class="text-right font-mono font-semibold" data-label="Amount">{{ number_format((float) $pay->amount, 2) }}</td>
                                         </tr>
                                     @endforeach
                                 </tbody>
@@ -302,12 +306,12 @@
                                 <tbody>
                                     @foreach ($details['recent_invoices'] as $inv)
                                         <tr>
-                                            <td class="font-mono text-xs">{{ $inv->id }}</td>
-                                            <td>{{ $inv->issue_date?->format('d M Y') }}</td>
-                                            <td>{{ $inv->due_date?->format('d M Y') }}</td>
-                                            <td class="text-right font-mono">{{ number_format((float) $inv->total, 2) }}</td>
-                                            <td>{{ ucfirst((string) $inv->status) }}</td>
-                                            <td class="text-right">
+                                            <td class="font-mono text-xs" data-label="Invoice">{{ $inv->id }}</td>
+                                            <td data-label="Issue">{{ $inv->issue_date?->format('d M Y') }}</td>
+                                            <td data-label="Due">{{ $inv->due_date?->format('d M Y') }}</td>
+                                            <td class="text-right font-mono" data-label="Total">{{ number_format((float) $inv->total, 2) }}</td>
+                                            <td data-label="Status">{{ ucfirst((string) $inv->status) }}</td>
+                                            <td class="text-right" data-label="Actions">
                                                 @include('filament.resources.customer-resource.partials.client-invoice-actions', ['invoice' => $inv])
                                             </td>
                                         </tr>
