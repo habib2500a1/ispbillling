@@ -3,10 +3,13 @@
     $listUrl = \App\Filament\Resources\SupportTicketResource::getUrl('index');
     $preview = $this->customerPreview;
     $live = $preview['live'] ?? [];
+    $ticketCreateJs = public_path('js/support-ticket-create.js');
+    $ticketCreateJsVer = file_exists($ticketCreateJs) ? (int) filemtime($ticketCreateJs) : 1;
 @endphp
 
 {!! \App\Support\SupportStyles::html() !!}
 {!! \App\Support\SupportStyles::navigatedScript() !!}
+<script src="{{ asset('js/support-ticket-create.js') }}?v={{ $ticketCreateJsVer }}" defer data-cfasync="false"></script>
 
 <x-filament-panels::page
     @class([
@@ -14,7 +17,6 @@
         'fi-resource-' . str_replace('/', '-', $this->getResource()::getSlug()),
         'isp-support-ticket-create',
     ])
-    data-ticket-create-component="{{ $this->getId() }}"
 >
     <div class="sp-pro sp-create-pro">
         <header class="sp-ticket-hero sp-create-hero">
@@ -25,7 +27,7 @@
                     <p class="sp-create-hero__sub">Link subscriber, check PPP/ONU, assign technician, save to queue.</p>
                 </div>
                 <div class="sp-create-hero__links">
-                    <a href="{{ $listUrl }}" class="sp-360__link">← Queue</a>
+                    <a href="{{ $listUrl }}" class="sp-360__link" data-navigate="false">← Queue</a>
                     <a href="{{ $hubUrl }}" class="sp-360__link">Center</a>
                 </div>
             </div>
@@ -59,14 +61,9 @@
                     <div class="sp-create-form-footer">
                         @unless ($this->canSaveTicket())
                             <p class="sp-create-form-footer__warn">
-                                Type username (ID) and press Enter — e.g. habib3.kp (0603).
+                                Pick a subscriber on the left before saving.
                             </p>
                         @endunless
-                        @if (blank($this->data['description'] ?? null))
-                            <p class="sp-create-form-footer__warn">
-                                Problem details (description) is required before saving.
-                            </p>
-                        @endif
                         <x-filament-panels::form.actions
                             :actions="$this->getCachedFormActions()"
                             :full-width="$this->hasFullWidthFormActions()"

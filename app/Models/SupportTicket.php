@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Models\Concerns\BelongsToTenant;
 use App\Services\Support\SupportSlaService;
+use App\Support\SupportCategories;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -254,5 +255,42 @@ class SupportTicket extends Model
     public function statusLabel(): string
     {
         return self::STATUSES[$this->status] ?? (string) $this->status;
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public static function issueTypeOptions(): array
+    {
+        return array_merge(self::ISSUE_TYPES, SupportCategories::flatOptions());
+    }
+
+    public function issueTypeLabel(): string
+    {
+        return SupportCategories::label($this->issue_type);
+    }
+
+    public function categoryGroupLabel(): string
+    {
+        return SupportCategories::groupLabel($this->issue_type);
+    }
+
+    public function priorityCode(): string
+    {
+        return match ($this->priority) {
+            'critical' => 'P1',
+            'high' => 'P2',
+            'medium' => 'P3',
+            'low' => 'P4',
+            default => 'P3',
+        };
+    }
+
+    public function priorityLabel(): string
+    {
+        $code = $this->priorityCode();
+        $name = self::PRIORITIES[$this->priority] ?? ucfirst((string) $this->priority);
+
+        return $code.' '.$name;
     }
 }

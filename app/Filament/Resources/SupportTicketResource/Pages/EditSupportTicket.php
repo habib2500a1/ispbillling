@@ -5,6 +5,7 @@ namespace App\Filament\Resources\SupportTicketResource\Pages;
 use App\Filament\Resources\SupportTicketResource;
 use App\Filament\Resources\SupportTicketResource\Pages\Concerns\ProvidesSupportTicketWorkspace;
 use App\Models\SupportTicket;
+use App\Services\Support\SupportSlaService;
 use App\Services\Support\SupportTicketWorkspaceService;
 use App\Support\SupportPanelAccess;
 use Filament\Actions;
@@ -82,6 +83,7 @@ class EditSupportTicket extends EditRecord
             'c360' => ['linked' => false],
             'timeline' => [],
             'hints' => [],
+            'ai_suggestions' => [],
             'gis' => ['available' => false],
             'network' => [],
             'live' => ['linked' => false],
@@ -124,6 +126,7 @@ class EditSupportTicket extends EditRecord
             'customer.onuDevice.olt',
             'customer.lastEndedPppSession',
             'assignee',
+            'rootIncident',
             'messages.user',
             'messages.customer',
             'fieldVisits.assignee',
@@ -133,6 +136,58 @@ class EditSupportTicket extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
+            Actions\Action::make('escalate')
+                ->label(fn (): string => 'Escalate (L'.(int) $this->record->escalation_level.')')
+                ->icon('heroicon-o-arrow-trending-up')
+                ->color('danger')
+                ->visible(fn (): bool => SupportPanelAccess::escalateTickets(auth()->user())
+                    && ! in_array($this->record->status, ['resolved', 'closed'], true)
+                    && (int) $this->record->escalation_level < 3)
+                ->form(function (): array {
+                    $sla = app(SupportSlaService::class);
+                    $options = collect($sla->escalationOptions($this->record))
+                        ->mapWithKeys(fn (array $o): array => [(string) $o['level'] => $o['label']])
+                        ->all();
+
+                    if ($options === []) {
+                        $options = ['1' => 'Senior Support', '2' => 'NOC Engineer', '3' => 'Manager'];
+                    }
+
+                    return [
+                        Forms\Components\Select::make('level')
+                            ->label('Escalate to')
+                            ->options($options)
+                            ->required()
+                            ->native(false),
+                        Forms\Components\Textarea::make('note')
+                            ->label('Internal note (optional)')
+                            ->rows(2),
+                    ];
+                })
+                ->action(function (array $data): void {
+                    $level = app(SupportSlaService::class)->escalateManually(
+                        $this->record,
+                        (int) $data['level'],
+                        auth()->user(),
+                    );
+
+                    if (filled($data['note'] ?? null)) {
+                        \App\Models\SupportTicketMessage::query()->create([
+                            'tenant_id' => $this->record->tenant_id,
+                            'support_ticket_id' => $this->record->id,
+                            'user_id' => auth()->id(),
+                            'body' => (string) $data['note'],
+                            'is_internal' => true,
+                        ]);
+                    }
+
+                    $this->record->refresh();
+                    $this->ticketWorkspace = null;
+                    Notification::make()
+                        ->title('Escalated to level '.$level)
+                        ->success()
+                        ->send();
+                }),
             Actions\Action::make('assignStaff')
                 ->label(fn (): string => $this->record->assignee
                     ? 'Assigned: '.$this->record->assignee->name

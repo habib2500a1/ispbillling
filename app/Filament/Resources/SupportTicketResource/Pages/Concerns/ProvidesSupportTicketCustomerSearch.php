@@ -53,7 +53,7 @@ trait ProvidesSupportTicketCustomerSearch
             return;
         }
 
-        $this->selectSubscriber($customerId);
+        $this->applySubscriberSelection($customerId, notify: false);
 
         $q = trim((string) request()->query('q', ''));
         if ($q !== '') {
@@ -98,7 +98,7 @@ trait ProvidesSupportTicketCustomerSearch
 
     public function runSubscriberSearch(): void
     {
-        $query = trim($this->subscriberSearch);
+        $query = $this->searchTermsForQuery(trim($this->subscriberSearch));
 
         if (mb_strlen($query) < 2) {
             $this->subscriberResults = [];

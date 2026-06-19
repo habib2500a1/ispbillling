@@ -113,4 +113,66 @@ final class SupportSlaService
 
         return 'First response in '.$ticket->first_response_due_at->diffForHumans(now(), true);
     }
+
+    public function escalateManually(SupportTicket $ticket, ?int $targetLevel, \App\Models\User $actor): int
+    {
+        $maxLevel = 3;
+        $current = (int) $ticket->escalation_level;
+        $next = $targetLevel ?? min($maxLevel, $current + 1);
+        $next = max(1, min($maxLevel, $next));
+
+        if ($next <= $current && $current < $maxLevel) {
+            $next = $current + 1;
+        }
+
+        $updates = [
+            'escalation_level' => $next,
+            'escalated_at' => now(),
+        ];
+
+        if ($next >= 2 && in_array($ticket->priority, ['low', 'medium'], true)) {
+            $updates['priority'] = $next >= 3 ? 'critical' : 'high';
+        }
+
+        $ticket->forceFill($updates)->save();
+
+        $ladder = collect((array) config('support.escalation_ladder', []))
+            ->firstWhere('level', $next);
+        $label = is_array($ladder) ? ($ladder['label'] ?? 'Level '.$next) : 'Level '.$next;
+
+        \App\Models\SupportTicketMessage::query()->create([
+            'tenant_id' => $ticket->tenant_id,
+            'support_ticket_id' => $ticket->id,
+            'user_id' => $actor->id,
+            'body' => 'Manual escalation to '.$label.' (level '.$next.') by '.$actor->name.'.',
+            'is_internal' => true,
+        ]);
+
+        app(SupportTicketNotifier::class)->notifySlaEscalation($ticket->fresh(), $next);
+
+        return $next;
+    }
+
+    /**
+     * @return list<array{level: int, label: string}>
+     */
+    public function escalationOptions(SupportTicket $ticket): array
+    {
+        $current = (int) $ticket->escalation_level;
+        $ladder = (array) config('support.escalation_ladder', []);
+        $options = [];
+
+        foreach ($ladder as $step) {
+            $level = (int) ($step['level'] ?? 0);
+            if ($level <= $current || $level === 0) {
+                continue;
+            }
+            $options[] = [
+                'level' => $level,
+                'label' => (string) ($step['label'] ?? 'Level '.$level),
+            ];
+        }
+
+        return $options;
+    }
 }

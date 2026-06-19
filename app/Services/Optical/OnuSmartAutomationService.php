@@ -70,7 +70,7 @@ final class OnuSmartAutomationService
 
         return ! SupportTicket::query()
             ->where('customer_id', $customer->id)
-            ->where('issue_type', 'equipment')
+            ->whereIn('issue_type', ['onu_offline', 'equipment'])
             ->whereNotIn('status', ['resolved', 'closed'])
             ->where('created_at', '>=', Carbon::parse($offlineSince))
             ->exists();
@@ -89,8 +89,8 @@ final class OnuSmartAutomationService
                 'customer_id' => $customer->id,
                 'channel' => 'system',
                 'department' => 'technical_support',
-                'priority' => (string) config('onu_management.smart_automation.offline_ticket_priority', 'medium'),
-                'issue_type' => 'equipment',
+                'priority' => (string) config('onu_management.smart_automation.offline_ticket_priority', 'high'),
+                'issue_type' => 'onu_offline',
                 'subject' => '[Auto] ONU offline '.$hours.'h+ · zero due',
                 'description' => $this->offlineHandling->customerWarning($customer)['message']
                     ?? 'ONU has been offline beyond SLA with no outstanding balance.',

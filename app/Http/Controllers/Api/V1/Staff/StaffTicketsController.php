@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\SupportTicket;
 use App\Models\SupportTicketMessage;
 use App\Models\User;
+use App\Services\Support\SupportSlaService;
+use App\Services\Support\SupportTicketAttachmentService;
 use App\Support\Rbac\StaffCapability;
 use App\Support\StaffTenantScope;
 use Illuminate\Http\JsonResponse;
@@ -67,7 +69,7 @@ class StaffTicketsController extends Controller
         $model->load([
             'customer:id,name,customer_code,phone',
             'assignee:id,name',
-            'messages' => fn ($q) => $q->with(['user:id,name', 'customer:id,name'])->orderBy('created_at'),
+            'messages' => fn ($q) => $q->with(['user:id,name', 'customer:id,name', 'attachments'])->orderBy('created_at'),
         ]);
 
         return response()->json([
@@ -79,6 +81,11 @@ class StaffTicketsController extends Controller
                 'from_staff' => $m->user_id !== null,
                 'author' => $m->user?->name ?? $m->customer?->name ?? 'Customer',
                 'created_at' => $m->created_at?->toIso8601String(),
+                'attachments' => $m->attachments->map(fn ($a) => [
+                    'name' => $a->original_name,
+                    'url' => $a->url(),
+                    'mime' => $a->mime,
+                ])->values(),
             ]),
         ]);
     }
@@ -91,9 +98,11 @@ class StaffTicketsController extends Controller
         $data = $request->validate([
             'body' => ['required', 'string', 'max:5000'],
             'is_internal' => ['nullable', 'boolean'],
+            'attachments' => ['nullable', 'array', 'max:5'],
+            'attachments.*' => ['file', 'max:10240', 'mimes:jpg,jpeg,png,gif,webp,pdf,mp4,mov,webm'],
         ]);
 
-        SupportTicketMessage::query()->create([
+        $message = SupportTicketMessage::query()->create([
             'tenant_id' => $model->tenant_id,
             'support_ticket_id' => $model->id,
             'user_id' => $user->id,
@@ -101,11 +110,41 @@ class StaffTicketsController extends Controller
             'is_internal' => (bool) ($data['is_internal'] ?? false),
         ]);
 
+        if ($request->hasFile('attachments')) {
+            app(SupportTicketAttachmentService::class)->attachUploadsToMessage(
+                $message,
+                $request->file('attachments'),
+            );
+        }
+
+        app(SupportSlaService::class)->markFirstResponse($model);
+
         if (in_array($model->status, ['open', 'assigned', 'pending_customer', 'pending_vendor', 'pending'], true)) {
             $model->update(['status' => 'in_progress']);
         }
 
         return response()->json(['message' => 'Reply sent.']);
+    }
+
+    public function escalate(Request $request, int $ticket): JsonResponse
+    {
+        $user = $this->staffUser($request);
+        $model = $this->findTicket($user, $ticket);
+
+        $data = $request->validate([
+            'level' => ['nullable', 'integer', 'min:1', 'max:3'],
+        ]);
+
+        $level = app(SupportSlaService::class)->escalateManually(
+            $model,
+            isset($data['level']) ? (int) $data['level'] : null,
+            $user,
+        );
+
+        return response()->json([
+            'message' => 'Ticket escalated to level '.$level.'.',
+            'ticket' => $this->detailRow($model->fresh()->load(['customer:id,name,customer_code,phone', 'assignee:id,name'])),
+        ]);
     }
 
     public function store(Request $request): JsonResponse

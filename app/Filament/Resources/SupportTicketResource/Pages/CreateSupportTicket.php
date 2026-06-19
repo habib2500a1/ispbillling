@@ -42,7 +42,8 @@ class CreateSupportTicket extends CreateRecord
     protected function getCreateFormAction(): Action
     {
         return parent::getCreateFormAction()
-            ->label('Create ticket');
+            ->label('Create ticket')
+            ->submit('createTicket');
     }
 
     public function createTicket(): void
@@ -123,7 +124,12 @@ class CreateSupportTicket extends CreateRecord
             $data['customer_id'] = $this->selectedSubscriberId;
         }
 
-        return static::getModel()::create($data);
+        return parent::handleRecordCreation($data);
+    }
+
+    protected function afterCreate(): void
+    {
+        session()->flash('support_ticket_created', $this->record->ticket_number);
     }
 
     protected function getCreatedNotification(): ?Notification

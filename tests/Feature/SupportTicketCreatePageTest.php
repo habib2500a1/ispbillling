@@ -105,6 +105,79 @@ class SupportTicketCreatePageTest extends TestCase
         ]);
     }
 
+    public function test_create_page_auto_links_subscriber_from_query_string(): void
+    {
+        Role::findOrCreate('isp-admin');
+        $user = User::factory()->create();
+        $user->assignRole('isp-admin');
+
+        \App\Models\Package::query()->create([
+            'tenant_id' => 1,
+            'name' => 'Demo 10 Mbps',
+            'type' => 'residential',
+            'download_mbps' => 10,
+            'upload_mbps' => 10,
+            'price_monthly' => 500,
+            'setup_fee' => 0,
+            'vat_percent' => 0,
+            'billing_cycle_days' => 30,
+            'is_active' => true,
+        ]);
+
+        \App\Models\Customer::query()->create([
+            'tenant_id' => 1,
+            'customer_code' => '0603',
+            'name' => 'Habib Three',
+            'phone' => '01710000603',
+            'username' => 'habib3.kp',
+            'status' => 'active',
+            'billing_day' => 1,
+            'package_id' => 1,
+        ]);
+
+        Livewire::actingAs($user)
+            ->withQueryParams(['q' => 'habib3.kp (0603)', 'customer_id' => 1])
+            ->test(\App\Filament\Resources\SupportTicketResource\Pages\CreateSupportTicket::class)
+            ->assertSet('selectedSubscriberId', 1)
+            ->assertSet('data.customer_id', 1);
+    }
+
+    public function test_create_page_redirects_after_auto_link_from_query_only(): void
+    {
+        Role::findOrCreate('isp-admin');
+        $user = User::factory()->create();
+        $user->assignRole('isp-admin');
+
+        \App\Models\Package::query()->create([
+            'tenant_id' => 1,
+            'name' => 'Demo 10 Mbps',
+            'type' => 'residential',
+            'download_mbps' => 10,
+            'upload_mbps' => 10,
+            'price_monthly' => 500,
+            'setup_fee' => 0,
+            'vat_percent' => 0,
+            'billing_cycle_days' => 30,
+            'is_active' => true,
+        ]);
+
+        \App\Models\Customer::query()->create([
+            'tenant_id' => 1,
+            'customer_code' => '0603',
+            'name' => 'Habib Three',
+            'phone' => '01710000603',
+            'username' => 'habib3.kp',
+            'status' => 'active',
+            'billing_day' => 1,
+            'package_id' => 1,
+        ]);
+
+        Livewire::actingAs($user)
+            ->withQueryParams(['q' => 'habib3.kp (0603)'])
+            ->test(\App\Filament\Resources\SupportTicketResource\Pages\CreateSupportTicket::class)
+            ->assertRedirect(fn (string $url): bool => str_contains($url, 'customer_id=1'));
+    }
+
     public function test_create_page_prefills_customer_from_query_string(): void
     {
         Role::findOrCreate('isp-admin');

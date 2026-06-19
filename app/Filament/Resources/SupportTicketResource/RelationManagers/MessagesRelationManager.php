@@ -2,6 +2,8 @@
 
 namespace App\Filament\Resources\SupportTicketResource\RelationManagers;
 
+use App\Services\Support\SupportSlaService;
+use App\Services\Support\SupportTicketAttachmentService;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\RelationManagers\RelationManager;
@@ -16,18 +18,40 @@ class MessagesRelationManager extends RelationManager
 
     protected static ?string $icon = 'heroicon-o-chat-bubble-left-right';
 
+    /**
+     * @return list<\Filament\Forms\Components\Component>
+     */
+    protected function messageFormFields(bool $internal = false): array
+    {
+        return [
+            Forms\Components\Textarea::make('body')
+                ->required()
+                ->rows(4)
+                ->columnSpanFull(),
+            Forms\Components\FileUpload::make('attachments')
+                ->label('Attachments (photo, video, PDF)')
+                ->multiple()
+                ->disk('public')
+                ->directory(fn (): string => 'ticket-messages/'.$this->getOwnerRecord()->tenant_id.'/'.$this->getOwnerRecord()->getKey())
+                ->acceptedFileTypes([
+                    'image/jpeg', 'image/png', 'image/gif', 'image/webp',
+                    'application/pdf',
+                    'video/mp4', 'video/quicktime', 'video/webm',
+                ])
+                ->maxSize(SupportTicketAttachmentService::MAX_SIZE_KB)
+                ->downloadable()
+                ->openable()
+                ->columnSpanFull(),
+            Forms\Components\Toggle::make('is_internal')
+                ->label('Internal note (hidden from customer)')
+                ->default($internal)
+                ->visible(! $internal),
+        ];
+    }
+
     public function form(Form $form): Form
     {
-        return $form
-            ->schema([
-                Forms\Components\Textarea::make('body')
-                    ->required()
-                    ->rows(4)
-                    ->columnSpanFull(),
-                Forms\Components\Toggle::make('is_internal')
-                    ->label('Internal note (hidden from customer)')
-                    ->default(false),
-            ]);
+        return $form->schema($this->messageFormFields());
     }
 
     public function table(Table $table): Table
@@ -57,38 +81,55 @@ class MessagesRelationManager extends RelationManager
                     ->wrap()
                     ->html()
                     ->formatStateUsing(fn (string $state): string => nl2br(e($state))),
+                Tables\Columns\TextColumn::make('attachments_list')
+                    ->label('Files')
+                    ->state(function ($record): string {
+                        $record->loadMissing('attachments');
+                        if ($record->attachments->isEmpty()) {
+                            return '—';
+                        }
+
+                        return $record->attachments->map(
+                            fn ($a): string => '<a href="'.e($a->url()).'" target="_blank" rel="noopener">'.e($a->original_name).'</a>',
+                        )->implode('<br>');
+                    })
+                    ->html(),
             ])
             ->defaultSort('created_at', 'asc')
             ->headerActions([
                 Tables\Actions\CreateAction::make()
                     ->label('Public reply')
                     ->icon('heroicon-o-chat-bubble-left')
+                    ->form($this->messageFormFields(false))
                     ->mutateFormDataUsing(function (array $data): array {
                         $data['user_id'] = auth()->id();
                         $data['customer_id'] = null;
                         $data['is_internal'] = false;
 
                         return $data;
+                    })
+                    ->after(function ($record, array $data): void {
+                        app(SupportTicketAttachmentService::class)->attachPathsToMessage($record, $data['attachments'] ?? null);
+                        app(SupportSlaService::class)->markFirstResponse($this->getOwnerRecord());
                     }),
                 Tables\Actions\CreateAction::make('internalNote')
                     ->label('Internal note')
                     ->icon('heroicon-o-lock-closed')
                     ->color('gray')
-                    ->form([
-                        Forms\Components\Textarea::make('body')
-                            ->required()
-                            ->rows(4),
-                    ])
+                    ->form($this->messageFormFields(true))
                     ->mutateFormDataUsing(function (array $data): array {
                         $data['user_id'] = auth()->id();
                         $data['customer_id'] = null;
                         $data['is_internal'] = true;
 
                         return $data;
+                    })
+                    ->after(function ($record, array $data): void {
+                        app(SupportTicketAttachmentService::class)->attachPathsToMessage($record, $data['attachments'] ?? null);
                     }),
             ])
             ->actions([
-                Tables\Actions\EditAction::make(),
+                Tables\Actions\ViewAction::make(),
                 Tables\Actions\DeleteAction::make(),
             ])
             ->bulkActions([

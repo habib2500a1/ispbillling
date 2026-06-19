@@ -5,6 +5,7 @@ namespace App\Filament\Resources\SupportTicketResource\Pages;
 use App\Filament\Resources\SupportTicketResource;
 use App\Filament\Resources\SupportTicketResource\Pages\Concerns\UsesSupportTicketLayout;
 use App\Models\SupportTicket;
+use App\Services\Support\SupportTicketSearchService;
 use Filament\Actions;
 use Filament\Resources\Components\Tab;
 use Filament\Resources\Pages\ListRecords;
@@ -22,6 +23,24 @@ class ListSupportTickets extends ListRecords
     {
         parent::mount();
         $this->mountSupportTicketLayout();
+    }
+
+    protected function getTableQuery(): Builder
+    {
+        $query = parent::getTableQuery();
+        $term = trim((string) request()->query('search', ''));
+        if ($term !== '') {
+            app(SupportTicketSearchService::class)->apply($query, $term);
+        }
+
+        return $query;
+    }
+
+    public function getTableSearchTerm(): ?string
+    {
+        $term = trim((string) request()->query('search', ''));
+
+        return $term !== '' ? $term : null;
     }
 
     public function getTabs(): array
@@ -55,7 +74,11 @@ class ListSupportTickets extends ListRecords
     protected function getHeaderActions(): array
     {
         return [
-            Actions\CreateAction::make(),
+            Actions\Action::make('create')
+                ->label('New ticket')
+                ->icon('heroicon-o-plus')
+                ->url(SupportTicketResource::getUrl('create'))
+                ->extraAttributes(['data-navigate' => 'false']),
         ];
     }
 }

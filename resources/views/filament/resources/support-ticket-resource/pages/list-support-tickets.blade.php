@@ -22,12 +22,46 @@
                     <x-filament::icon icon="heroicon-m-lifebuoy" class="h-4 w-4" />
                     Center
                 </a>
-                <a href="{{ $createUrl }}" style="display:inline-flex;align-items:center;gap:0.35rem;min-height:2.25rem;padding:0.35rem 0.65rem;border-radius:8px;background:var(--sp-amber);font-size:0.72rem;font-weight:700;text-decoration:none;color:#fff;">
+                <a href="{{ $createUrl }}" data-navigate="false" style="display:inline-flex;align-items:center;gap:0.35rem;min-height:2.25rem;padding:0.35rem 0.65rem;border-radius:8px;background:var(--sp-amber);font-size:0.72rem;font-weight:700;text-decoration:none;color:#fff;">
                     <x-filament::icon icon="heroicon-m-plus" class="h-4 w-4" />
                     New ticket
                 </a>
             </div>
         </header>
+
+        @if (session('support_ticket_created'))
+            <p class="mb-3 rounded-lg border border-emerald-300 bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-800 dark:border-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-200" role="status">
+                Ticket {{ session('support_ticket_created') }} created — now in queue.
+            </p>
+        @endif
+
+        @php $searchTerm = $this->getTableSearchTerm(); @endphp
+        <form method="get" action="{{ \App\Filament\Resources\SupportTicketResource::getUrl('index') }}" class="sp-global-search" role="search">
+            @if (request()->query('activeTab'))
+                <input type="hidden" name="activeTab" value="{{ request()->query('activeTab') }}">
+            @endif
+            <input
+                type="search"
+                name="search"
+                value="{{ $searchTerm }}"
+                class="sp-global-search__input"
+                placeholder="Search ticket ID, CID, mobile, ONU serial, MAC, OLT…"
+                autocomplete="off"
+            >
+            <button type="submit" style="min-height:2.35rem;padding:0.4rem 0.85rem;border-radius:8px;border:0;background:var(--sp-amber);font-size:0.72rem;font-weight:800;color:#fff;cursor:pointer;">
+                Search
+            </button>
+            @if ($searchTerm)
+                <a href="{{ \App\Filament\Resources\SupportTicketResource::getUrl('index') }}" class="sp-global-search__hint" style="text-decoration:underline;">Clear</a>
+            @endif
+            <span class="sp-global-search__hint">Ticket · CID · Mobile · ONU · MAC · OLT</span>
+        </form>
+
+        @if ($searchTerm)
+            <p style="margin:0 0 0.65rem;font-size:0.72rem;font-weight:700;color:var(--sp-muted);">
+                Results for “{{ $searchTerm }}”
+            </p>
+        @endif
 
         <div class="sh-stats" style="margin-bottom:0.65rem;">
             @foreach ($stats as $stat)
@@ -76,7 +110,11 @@
             <div class="sh-dock__inner">
                 @foreach ($dockLinks as $link)
                     @if (filled($link['url'] ?? null))
-                        <a href="{{ $link['url'] }}" @class(['sh-dock__link', 'sh-dock__link--active' => ! empty($link['active'])])>
+                        <a
+                            href="{{ $link['url'] }}"
+                            @class(['sh-dock__link', 'sh-dock__link--active' => ! empty($link['active'])])
+                            @if (! empty($link['fullReload'])) data-navigate="false" @endif
+                        >
                             <x-filament::icon :icon="$link['icon']" class="h-5 w-5" />
                             <span>{{ $link['label'] }}</span>
                         </a>

@@ -50,6 +50,95 @@
         </nav>
 
         <div class="sh-tab-panel" data-sh-panel="overview">
+            <section class="enoc-dashboard" aria-label="NOC ticket dashboard">
+                <div class="enoc-kpi-row">
+                    @foreach ($this->getNocDashboardKpis() as $kpi)
+                        <a href="{{ $kpi['url'] }}" @class(['enoc-kpi', 'enoc-kpi--'.$kpi['tone']])>
+                            <span class="enoc-kpi__label">{{ $kpi['label'] }}</span>
+                            <strong class="enoc-kpi__value">{{ $kpi['value'] }}</strong>
+                        </a>
+                    @endforeach
+                </div>
+
+                <div class="enoc-grid-2">
+                    <div class="enoc-panel">
+                        <h3 class="enoc-panel__title">Open tickets by category</h3>
+                        @php $catRows = $this->getCategoryBreakdown(); @endphp
+                        @if ($catRows === [])
+                            <p style="margin:0;font-size:0.72rem;color:var(--sp-muted);">No open tickets in queue.</p>
+                        @else
+                            <div class="enoc-cat-grid">
+                                @foreach ($catRows as $row)
+                                    <div class="enoc-cat">
+                                        <span class="enoc-cat__count">{{ number_format($row['count']) }}</span>
+                                        <span class="enoc-cat__group">{{ $row['group'] }}</span>
+                                        <span class="enoc-cat__label">{{ $row['label'] }}</span>
+                                    </div>
+                                @endforeach
+                            </div>
+                        @endif
+                    </div>
+
+                    <div class="enoc-panel">
+                        <h3 class="enoc-panel__title">Active mass incidents</h3>
+                        @php $incidents = $this->getActiveIncidents(); @endphp
+                        @if ($incidents === [])
+                            <p style="margin:0;font-size:0.72rem;color:var(--sp-muted);">No active root incidents — mass outage engine idle.</p>
+                        @else
+                            @foreach ($incidents as $inc)
+                                <div class="enoc-incident">
+                                    <div>
+                                        <span class="enoc-incident__badge">{{ $inc['number'] }}</span>
+                                        <strong style="margin-left:0.35rem;">{{ $inc['title'] }}</strong><br>
+                                        <span style="color:var(--sp-muted);font-size:0.65rem;">Affected: {{ number_format($inc['count']) }} · {{ $inc['detected'] }}</span>
+                                    </div>
+                                    <a href="{{ $inc['url'] }}" class="sp-360__link">NOC wall →</a>
+                                </div>
+                            @endforeach
+                        @endif
+                    </div>
+                </div>
+
+                <div class="enoc-grid-2">
+                    <div class="enoc-panel">
+                        <h3 class="enoc-panel__title">SLA targets (standard profile)</h3>
+                        <table class="enoc-sla-table">
+                            <thead>
+                                <tr>
+                                    <th>Priority</th>
+                                    <th>Response</th>
+                                    <th>Resolution</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach ($this->getSlaMatrix() as $row)
+                                    <tr>
+                                        <td><span class="enoc-priority-pill enoc-priority-pill--{{ strtolower($row['priority']) }}">{{ $row['code'] }} {{ $row['priority'] }}</span></td>
+                                        <td>{{ $row['response'] }}</td>
+                                        <td>{{ $row['resolution'] }}</td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="enoc-panel">
+                        <h3 class="enoc-panel__title">Escalation flow (SLA breach)</h3>
+                        <div class="enoc-escalation">
+                            @foreach ($this->getEscalationLadder() as $i => $step)
+                                @if ($i > 0)
+                                    <span class="enoc-escalation__arrow">↓</span>
+                                @endif
+                                <span class="enoc-escalation__step">{{ $step['label'] }}</span>
+                            @endforeach
+                        </div>
+                        <p style="margin:0.65rem 0 0;font-size:0.65rem;color:var(--sp-muted);">
+                            Auto-tickets: ONU offline &gt;24h · OLT PON down · RX &lt; -30 dBm · mass outage merges into one incident.
+                        </p>
+                    </div>
+                </div>
+            </section>
+
             @if ($inbox !== [])
                 <section class="sh-inbox" aria-label="Action inbox">
                     <h2 class="text-sm font-extrabold text-gray-900 dark:text-white" style="margin:0 0 0.5rem;">Action inbox</h2>

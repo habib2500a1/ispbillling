@@ -57,9 +57,10 @@ trait UsesSupportTicketLayout
 
         return [
             ['label' => 'Open', 'value' => number_format((clone $base)->whereNotIn('status', ['resolved', 'closed'])->count()), 'hint' => 'Active queue'],
-            ['label' => 'SLA overdue', 'value' => number_format((clone $base)->whereNotIn('status', ['resolved', 'closed'])->whereNotNull('sla_resolve_due_at')->where('sla_resolve_due_at', '<', now())->count()), 'hint' => 'Needs action'],
-            ['label' => 'Critical', 'value' => number_format((clone $base)->where('priority', 'critical')->whereNotIn('status', ['resolved', 'closed'])->count()), 'hint' => 'Priority'],
-            ['label' => 'Escalated', 'value' => number_format((clone $base)->where('escalation_level', '>', 0)->whereNotIn('status', ['resolved', 'closed'])->count()), 'hint' => 'Level > 0'],
+            ['label' => 'In progress', 'value' => number_format((clone $base)->where('status', 'in_progress')->count()), 'hint' => 'Field / NOC'],
+            ['label' => 'Resolved today', 'value' => number_format((clone $base)->whereDate('resolved_at', today())->count()), 'hint' => 'Today'],
+            ['label' => 'Critical', 'value' => number_format((clone $base)->where('priority', 'critical')->whereNotIn('status', ['resolved', 'closed'])->count()), 'hint' => 'P1'],
+            ['label' => 'SLA breached', 'value' => number_format((clone $base)->whereNotIn('status', ['resolved', 'closed'])->whereNotNull('sla_resolve_due_at')->where('sla_resolve_due_at', '<', now())->count()), 'hint' => 'Overdue'],
         ];
     }
 
@@ -71,7 +72,7 @@ trait UsesSupportTicketLayout
         return [
             ['url' => SupportHub::getUrl(), 'label' => 'Center', 'icon' => 'heroicon-o-lifebuoy'],
             ['url' => SupportTicketResource::getUrl('index'), 'label' => 'Tickets', 'icon' => 'heroicon-o-ticket', 'active' => true],
-            ['url' => SupportTicketResource::getUrl('create'), 'label' => 'New', 'icon' => 'heroicon-o-plus-circle'],
+            ['url' => SupportTicketResource::getUrl('create'), 'label' => 'New', 'icon' => 'heroicon-o-plus-circle', 'fullReload' => true],
             ['url' => SupportHub::getUrl(['tab' => 'tools']), 'label' => 'Tools', 'icon' => 'heroicon-o-wrench-screwdriver'],
         ];
     }

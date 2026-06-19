@@ -22,6 +22,13 @@ final class SupportTicketSubscriberSearchController extends Controller
             return response()->json(['data' => []]);
         }
 
+        if (preg_match('/\(([^)]+)\)\s*$/u', $query, $m)) {
+            $code = trim($m[1]);
+            if (mb_strlen($code) >= 2) {
+                $query = $code;
+            }
+        }
+
         return response()->json([
             'data' => $search->search($query, 25)->values(),
         ]);

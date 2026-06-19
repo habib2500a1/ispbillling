@@ -94,6 +94,26 @@ final class SupportPanelAccess
         ]);
     }
 
+    public static function escalateTickets(?User $user): bool
+    {
+        if (! $user) {
+            return false;
+        }
+
+        if ($user->hasRole(StaffCapability::FULL_ACCESS_ROLES)) {
+            return true;
+        }
+
+        return $user->hasAnyRole([
+            'super-admin',
+            'isp-admin',
+            'admin',
+            'isp-manager',
+            'noc-engineer',
+            'isp-support',
+        ]) || $user->can('tickets.escalate') || $user->can('support.manage');
+    }
+
     public static function manageKnowledge(?User $user): bool
     {
         if (! $user) {

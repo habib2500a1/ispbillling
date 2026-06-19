@@ -170,7 +170,7 @@ class SupportTicketResource extends Resource
                         ->native(false),
                     Forms\Components\Select::make('issue_type')
                         ->label('Issue category')
-                        ->options(SupportTicket::ISSUE_TYPES)
+                        ->options(SupportTicket::issueTypeOptions())
                         ->searchable()
                         ->nullable()
                         ->native(false),
@@ -346,7 +346,7 @@ class SupportTicketResource extends Resource
                     ->options(SupportTicket::CHANNELS),
                 Tables\Filters\SelectFilter::make('issue_type')
                     ->label('Issue category')
-                    ->options(SupportTicket::ISSUE_TYPES),
+                    ->options(SupportTicket::issueTypeOptions()),
             ])
             ->recordUrl(fn (SupportTicket $record): string => static::getUrl('edit', ['record' => $record]))
             ->actions([

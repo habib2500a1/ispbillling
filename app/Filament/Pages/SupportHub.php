@@ -9,7 +9,9 @@ use App\Filament\Resources\KnowledgeArticleResource;
 use App\Filament\Resources\OutageResource;
 use App\Filament\Resources\SupportAssignmentRuleResource;
 use App\Filament\Resources\SupportTicketResource;
+use App\Models\SupportRootIncident;
 use App\Models\SupportTicket;
+use App\Support\SupportCategories;
 use App\Support\SupportPanelAccess;
 use Filament\Pages\Page;
 
@@ -62,6 +64,8 @@ class SupportHub extends Page
 
             return [
                 'open' => (clone $open)->count(),
+                'in_progress' => (clone $open)->where('status', 'in_progress')->count(),
+                'resolved_today' => (clone $base)->whereDate('resolved_at', today())->count(),
                 'pending' => (clone $open)->whereIn('status', ['pending_customer', 'pending_vendor', 'pending'])->count(),
                 'closed' => (clone $base)->whereIn('status', ['resolved', 'closed'])->count(),
                 'breached' => (clone $open)->whereNotNull('sla_resolve_due_at')->where('sla_resolve_due_at', '<', now())->count(),
@@ -77,6 +81,143 @@ class SupportHub extends Page
 
     /**
      * @return list<array{label: string, value: string, hint: string, url: string, tone: string}>
+     */
+    public function getNocDashboardKpis(): array
+    {
+        $s = $this->getStats();
+        $ticketsUrl = SupportTicketResource::getUrl('index');
+
+        return [
+            [
+                'label' => 'Open tickets',
+                'value' => number_format($s['open']),
+                'hint' => 'Active queue',
+                'url' => $ticketsUrl.'?'.http_build_query(['activeTab' => 'open']),
+                'tone' => 'open',
+            ],
+            [
+                'label' => 'In progress',
+                'value' => number_format($s['in_progress']),
+                'hint' => 'Technician working',
+                'url' => $ticketsUrl,
+                'tone' => 'chat',
+            ],
+            [
+                'label' => 'Resolved today',
+                'value' => number_format($s['resolved_today']),
+                'hint' => 'Closed today',
+                'url' => $ticketsUrl,
+                'tone' => 'open',
+            ],
+            [
+                'label' => 'Critical',
+                'value' => number_format($s['critical']),
+                'hint' => 'P1 priority',
+                'url' => $ticketsUrl,
+                'tone' => 'critical',
+            ],
+            [
+                'label' => 'SLA breached',
+                'value' => number_format($s['breached']),
+                'hint' => 'Past deadline',
+                'url' => $ticketsUrl.'?'.http_build_query(['activeTab' => 'sla']),
+                'tone' => 'breach',
+            ],
+        ];
+    }
+
+    /**
+     * @return list<array{group: string, label: string, count: int, priority: string}>
+     */
+    public function getCategoryBreakdown(): array
+    {
+        $counts = SupportTicket::query()
+            ->whereNotIn('status', ['resolved', 'closed'])
+            ->selectRaw('issue_type, COUNT(*) as total')
+            ->groupBy('issue_type')
+            ->pluck('total', 'issue_type');
+
+        $knownKeys = collect(SupportCategories::allItems())->pluck('key')->all();
+        $rows = [];
+
+        foreach (SupportCategories::allItems() as $item) {
+            $count = (int) ($counts[$item['key']] ?? 0);
+            if ($count === 0) {
+                continue;
+            }
+            $rows[] = [
+                'group' => $item['group'],
+                'label' => $item['label'],
+                'count' => $count,
+                'priority' => $item['default_priority'],
+            ];
+        }
+
+        foreach ($counts as $key => $count) {
+            if (in_array($key, $knownKeys, true) || (int) $count === 0) {
+                continue;
+            }
+            $rows[] = [
+                'group' => 'Legacy',
+                'label' => SupportCategories::label((string) $key),
+                'count' => (int) $count,
+                'priority' => 'medium',
+            ];
+        }
+
+        usort($rows, fn (array $a, array $b): int => $b['count'] <=> $a['count']);
+
+        return array_slice($rows, 0, 12);
+    }
+
+    /**
+     * @return list<array{number: string, title: string, count: int, url: string, detected: string}>
+     */
+    public function getActiveIncidents(): array
+    {
+        return SupportRootIncident::query()
+            ->where('status', 'active')
+            ->with('olt:id,display_name')
+            ->orderByDesc('detected_at')
+            ->limit(6)
+            ->get()
+            ->map(fn (SupportRootIncident $inc): array => [
+                'number' => $inc->incident_number,
+                'title' => $inc->title,
+                'count' => (int) $inc->ticket_count,
+                'url' => SupportNocTicketWall::getUrl(),
+                'detected' => $inc->detected_at?->diffForHumans() ?? '—',
+            ])
+            ->all();
+    }
+
+    /**
+     * @return list<array{priority: string, code: string, response: string, resolution: string}>
+     */
+    public function getSlaMatrix(): array
+    {
+        $profile = (array) config('support.sla_profiles.standard', []);
+        $fr = (array) ($profile['first_response_minutes'] ?? []);
+        $rh = (array) ($profile['resolve_hours'] ?? []);
+
+        return [
+            ['priority' => 'Critical', 'code' => 'P1', 'response' => ($fr['critical'] ?? 5).' min', 'resolution' => ($rh['critical'] ?? 1).' hour'],
+            ['priority' => 'High', 'code' => 'P2', 'response' => ($fr['high'] ?? 15).' min', 'resolution' => ($rh['high'] ?? 4).' hours'],
+            ['priority' => 'Medium', 'code' => 'P3', 'response' => ($fr['medium'] ?? 30).' min', 'resolution' => ($rh['medium'] ?? 8).' hours'],
+            ['priority' => 'Low', 'code' => 'P4', 'response' => ($fr['low'] ?? 60).' min', 'resolution' => ($rh['low'] ?? 24).' hours'],
+        ];
+    }
+
+    /**
+     * @return list<array{level: int, label: string}>
+     */
+    public function getEscalationLadder(): array
+    {
+        return (array) config('support.escalation_ladder', []);
+    }
+
+    /**
+     * @return list<array{label: string, value: string, hint?: string}>
      */
     public function getKpiCards(): array
     {

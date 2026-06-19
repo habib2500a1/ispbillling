@@ -5,6 +5,7 @@
     $c360 = $workspace['c360'];
     $timeline = $workspace['timeline'];
     $hints = $workspace['hints'];
+    $aiSuggestions = $workspace['ai_suggestions'] ?? [];
     $gis = $workspace['gis'];
     $network = $workspace['network'];
     $live = $workspace['live'];
@@ -28,9 +29,9 @@
                     <span class="sp-ticket-hero__number">{{ $record->ticket_number }}</span>
                     <h1 class="sp-ticket-hero__subject">{{ $record->subject }}</h1>
                     <p style="margin:0.35rem 0 0;font-size:0.72rem;color:var(--sp-muted);">
-                        {{ \App\Models\SupportTicket::DEPARTMENTS[$record->department] ?? $record->department }}
-                        · {{ \App\Models\SupportTicket::PRIORITIES[$record->priority] ?? $record->priority }}
-                        · {{ \App\Models\SupportTicket::STATUSES[$record->status] ?? $record->status }}
+                        {{ $record->categoryGroupLabel() }} · {{ $record->issueTypeLabel() }}
+                        · {{ $record->priorityLabel() }}
+                        · {{ $record->statusLabel() }}
                         · SLA {{ $record->slaRemainingLabel() }}
                         · Technician: <strong style="color:var(--sp-text);">{{ $assignment['name'] }}</strong>
                     </p>
@@ -40,7 +41,60 @@
                     <a href="{{ $hubUrl }}" class="sp-360__link">Center</a>
                 </div>
             </div>
+
+            @if (! empty($c360['linked']))
+                <div class="sp-ticket-summary" aria-label="Ticket summary">
+                    <div class="sp-ticket-summary__item">
+                        <span class="sp-ticket-summary__label">Ticket ID</span>
+                        <span class="sp-ticket-summary__value">{{ $record->ticket_number }}</span>
+                    </div>
+                    <div class="sp-ticket-summary__item">
+                        <span class="sp-ticket-summary__label">Customer</span>
+                        <span class="sp-ticket-summary__value">{{ $c360['name'] }}</span>
+                    </div>
+                    <div class="sp-ticket-summary__item">
+                        <span class="sp-ticket-summary__label">CID</span>
+                        <span class="sp-ticket-summary__value">{{ $c360['code'] }}</span>
+                    </div>
+                    <div class="sp-ticket-summary__item">
+                        <span class="sp-ticket-summary__label">Mobile</span>
+                        <span class="sp-ticket-summary__value">{{ $c360['phone'] }}</span>
+                    </div>
+                    <div class="sp-ticket-summary__item">
+                        <span class="sp-ticket-summary__label">Package</span>
+                        <span class="sp-ticket-summary__value">{{ $c360['package'] }}</span>
+                    </div>
+                    <div class="sp-ticket-summary__item">
+                        <span class="sp-ticket-summary__label">Priority</span>
+                        <span class="sp-ticket-summary__value">{{ $record->priorityLabel() }}</span>
+                    </div>
+                    <div class="sp-ticket-summary__item">
+                        <span class="sp-ticket-summary__label">Status</span>
+                        <span class="sp-ticket-summary__value">{{ $record->statusLabel() }}</span>
+                    </div>
+                    @if ($record->rootIncident)
+                        <div class="sp-ticket-summary__item">
+                            <span class="sp-ticket-summary__label">Incident</span>
+                            <span class="sp-ticket-summary__value">{{ $record->rootIncident->incident_number }}</span>
+                        </div>
+                    @endif
+                </div>
+            @endif
         </header>
+
+        @if ($aiSuggestions !== [])
+            <section class="sp-ai-panel" aria-label="AI ticket analysis">
+                <h2 class="sp-ai-panel__title">AI ticket analysis</h2>
+                <ul class="sp-ai-panel__list">
+                    @foreach ($aiSuggestions as $suggestion)
+                        <li @class(['sp-ai-panel__item', 'sp-ai-panel__item--'.$suggestion['tone']])>
+                            <strong>{{ $suggestion['label'] }}</strong>
+                            <span>{{ $suggestion['detail'] }}</span>
+                        </li>
+                    @endforeach
+                </ul>
+            </section>
+        @endif
 
         @if (! empty($c360['linked']))
             <section

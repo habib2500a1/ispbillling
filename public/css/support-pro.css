@@ -1383,6 +1383,21 @@ body.isp-support-ticket-create .fi-main {
     position: relative;
     display: flex;
     align-items: center;
+    gap: 0.35rem;
+}
+
+.sp-create-combobox__field .sp-create-combobox__input {
+    flex: 1;
+    min-width: 0;
+}
+
+.sp-create-combobox__link {
+    flex-shrink: 0;
+    white-space: nowrap;
+}
+
+.sp-create-combobox__field:has(.sp-create-combobox__link) .sp-create-combobox__spinner {
+    right: 5.25rem;
 }
 
 .sp-create-combobox__icon {
@@ -1451,6 +1466,8 @@ body.isp-support-ticket-create .fi-main {
     font-size: 0.875rem;
     color: #1e293b;
     cursor: pointer;
+    text-decoration: none;
+    font: inherit;
 }
 
 .sp-create-combobox__option:hover,

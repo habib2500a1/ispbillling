@@ -60,6 +60,7 @@ class SupportTicketWorkspaceService
             'c360' => $c360,
             'timeline' => $this->timeline($ticket),
             'hints' => $this->rootCauseHints($ticket, $customer),
+            'ai_suggestions' => app(SupportTicketIntelligenceService::class)->analyze($customer, $ticket->description, $ticket),
             'gis' => $this->gisPreview($ticket, $customer),
             'network' => $this->networkRail($c360, $live),
             'live' => $live,

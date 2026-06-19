@@ -10,10 +10,10 @@ return [
      * Target resolution time from ticket creation (legacy fallback).
      */
     'sla_resolve_hours' => [
-        'low' => 72,
-        'medium' => 48,
-        'high' => 24,
-        'critical' => 4,
+        'critical' => 1,
+        'high' => 4,
+        'medium' => 8,
+        'low' => 24,
     ],
 
     /**
@@ -22,16 +22,16 @@ return [
     'sla_profiles' => [
         'standard' => [
             'first_response_minutes' => [
-                'low' => 240,
-                'medium' => 120,
-                'high' => 60,
-                'critical' => 15,
+                'critical' => 5,
+                'high' => 15,
+                'medium' => 30,
+                'low' => 60,
             ],
             'resolve_hours' => [
-                'low' => 72,
-                'medium' => 48,
-                'high' => 24,
-                'critical' => 4,
+                'critical' => 1,
+                'high' => 4,
+                'medium' => 8,
+                'low' => 24,
             ],
         ],
         'corporate' => [
@@ -54,7 +54,19 @@ return [
         'enabled' => (bool) env('SUPPORT_MASS_OUTAGE_ENABLED', true),
         'window_hours' => (int) env('SUPPORT_MASS_OUTAGE_WINDOW_HOURS', 4),
         'ticket_threshold' => (int) env('SUPPORT_MASS_OUTAGE_THRESHOLD', 5),
-        'issue_types' => ['connection', 'outage', 'speed', 'fiber'],
+        'issue_types' => [
+            'network_no_internet', 'network_slow_speed', 'network_packet_loss',
+            'fiber_cut', 'fiber_los', 'fiber_low_signal', 'onu_offline',
+            'connection', 'outage', 'speed', 'fiber',
+        ],
+    ],
+
+    /** Escalation ladder when SLA breaches — level maps to role tier. */
+    'escalation_ladder' => [
+        ['level' => 0, 'label' => 'Support', 'role' => 'support'],
+        ['level' => 1, 'label' => 'Senior Support', 'role' => 'senior_support'],
+        ['level' => 2, 'label' => 'NOC Engineer', 'role' => 'noc_engineer'],
+        ['level' => 3, 'label' => 'Manager', 'role' => 'manager'],
     ],
 
     /**

@@ -2,6 +2,7 @@
 
 namespace App\Observers;
 
+use App\Events\SupportTicketUpdated;
 use App\Models\SupportTicket;
 use App\Services\Notifications\OpsNotificationService;
 use App\Services\Sms\AutomatedSmsNotifier;
@@ -31,6 +32,8 @@ class SupportTicketObserver
 
             app(AutomatedSmsNotifier::class)->onSupportTicketCreated($ticket);
             app(OpsNotificationService::class)->onSupportTicketCreated($ticket);
+
+            $this->broadcastTicket($ticket, 'created');
         } catch (Throwable $e) {
             Log::error('support_ticket_observer.created', [
                 'ticket_id' => $ticket->id,
@@ -57,9 +60,6 @@ class SupportTicketObserver
                     $ticket->closed_at = null;
                 }
             }
-            if ($ticket->status === 'assigned' && $ticket->assigned_to !== null && $ticket->getOriginal('status') === 'open') {
-                // keep explicit assigned status
-            }
         }
 
         if ($ticket->isDirty('assigned_to') && $ticket->assigned_to !== null && $ticket->status === 'open') {
@@ -81,12 +81,38 @@ class SupportTicketObserver
                 app(AutomatedSmsNotifier::class)->onSupportTicketResolved($ticket);
                 app(OpsNotificationService::class)->onSupportTicketResolved($ticket);
             }
+
+            $this->broadcastTicket($ticket, 'updated');
         } catch (Throwable $e) {
             Log::error('support_ticket_observer.updated', [
                 'ticket_id' => $ticket->id,
                 'message' => $e->getMessage(),
                 'exception' => $e,
             ]);
+        }
+    }
+
+    private function broadcastTicket(SupportTicket $ticket, string $event): void
+    {
+        if (! (bool) config('support.broadcast_enabled', true)) {
+            return;
+        }
+
+        try {
+            event(new SupportTicketUpdated(
+                (int) $ticket->tenant_id,
+                (int) $ticket->id,
+                [
+                    'event' => $event,
+                    'status' => $ticket->status,
+                    'priority' => $ticket->priority,
+                    'assigned_to' => $ticket->assigned_to,
+                    'escalation_level' => $ticket->escalation_level,
+                    'ticket_number' => $ticket->ticket_number,
+                ],
+            ));
+        } catch (Throwable) {
+            // Broadcast is optional — polling fallback remains.
         }
     }
 }
