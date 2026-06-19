@@ -143,6 +143,7 @@ Route::prefix('v1')->group(function (): void {
         Route::post('/staff/tickets', [StaffTicketsController::class, 'store']);
         Route::get('/staff/tickets/{ticket}', [StaffTicketsController::class, 'show'])->whereNumber('ticket');
         Route::post('/staff/tickets/{ticket}/reply', [StaffTicketsController::class, 'reply'])->whereNumber('ticket');
+        Route::post('/staff/tickets/{ticket}/escalate', [StaffTicketsController::class, 'escalate'])->whereNumber('ticket');
         Route::patch('/staff/tickets/{ticket}', [StaffTicketsController::class, 'update'])->whereNumber('ticket');
         Route::get('/staff/tasks', [StaffTasksController::class, 'index']);
         Route::patch('/staff/tasks/{task}', [StaffTasksController::class, 'update'])->whereNumber('task');
@@ -201,6 +202,10 @@ Route::prefix('v1')->group(function (): void {
 
         Route::middleware(EnsureSanctumTechnician::class)->prefix('technician')->group(function (): void {
             Route::get('/jobs/today', [TechnicianTicketsController::class, 'today']);
+            Route::post('/tickets/{ticket}/accept', [TechnicianTicketsController::class, 'accept'])->whereNumber('ticket');
+            Route::post('/tickets/{ticket}/close', [TechnicianTicketsController::class, 'close'])->whereNumber('ticket');
+            Route::post('/tickets/{ticket}/note', [TechnicianTicketsController::class, 'addNote'])->whereNumber('ticket');
+            Route::post('/tickets/{ticket}/photo', [TechnicianTicketsController::class, 'uploadPhoto'])->whereNumber('ticket');
             Route::get('/customers/{customer}/onu-panel', [TechnicianTicketsController::class, 'onuPanel'])->whereNumber('customer');
             Route::get('/field-visits', [FieldVisitController::class, 'index']);
             Route::get('/field-visits/{fieldVisit}', [FieldVisitController::class, 'show']);
@@ -387,6 +392,7 @@ Route::prefix('v1')->group(function (): void {
             Route::post('/tickets', [CustomerTicketController::class, 'store']);
             Route::get('/tickets/{ticket}', [CustomerTicketController::class, 'show']);
             Route::post('/tickets/{ticket}/reply', [CustomerTicketController::class, 'reply']);
+            Route::post('/tickets/{ticket}/rate', [CustomerTicketController::class, 'rate']);
             Route::post('/devices', [CustomerDeviceController::class, 'register']);
             Route::delete('/devices', [CustomerDeviceController::class, 'unregister']);
         });
