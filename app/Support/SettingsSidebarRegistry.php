@@ -2,6 +2,7 @@
 
 namespace App\Support;
 
+use App\Filament\Pages\ManageAiSettings;
 use App\Filament\Pages\ManageApiConfiguration;
 use App\Filament\Pages\ManagePlatformDeployment;
 use App\Filament\Pages\ManageCompanySetup;
@@ -71,6 +72,14 @@ final class SettingsSidebarRegistry
                 'sort' => 5,
                 'url' => ManageCompanySetup::getUrl(),
                 'active_routes' => ['filament.admin.pages.company-setup'],
+            ],
+            [
+                'key' => 'ai_settings',
+                'label' => 'AI & Copilot',
+                'icon' => 'heroicon-o-sparkles',
+                'sort' => 58,
+                'url' => ManageAiSettings::getUrl(),
+                'active_routes' => ['filament.admin.pages.ai-settings', 'filament.admin.pages.ai-action-approvals'],
             ],
             [
                 'key' => 'performance',

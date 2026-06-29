@@ -7,6 +7,8 @@ use App\Models\Invoice;
 use App\Models\Package;
 use App\Models\SalesLead;
 use App\Models\SupportTicket;
+use App\Services\Ai\AiMessagingBridgeService;
+use App\Services\Ai\AiSettingsService;
 use App\Services\BillPayment\PaymentLinkService;
 use App\Support\CustomerStatus;
 
@@ -86,7 +88,9 @@ final class WhatsAppBotService
                 return $this->openAnonymousLead($phoneDigits, $this->extractSupportBody($text));
             }
 
-            return __('whatsapp.unknown_customer');
+            $aiReply = $this->tryAiReply($phoneDigits, $text);
+
+            return $aiReply ?? __('whatsapp.unknown_customer');
         }
 
         return match (true) {
@@ -96,8 +100,21 @@ final class WhatsAppBotService
             in_array($normalized, ['PACKAGES', 'PACKAGE', 'প্যাকেজ'], true) => $this->replyPackages(),
             in_array($normalized, ['TICKET', 'TICKETS', 'টিকেট'], true) => $this->replyTickets($customer),
             str_starts_with($normalized, 'SUPPORT') => $this->replySupport($customer, $this->extractSupportBody($text)),
-            default => __('whatsapp.help'),
+            default => $this->tryAiReply($phoneDigits, $text) ?? __('whatsapp.help'),
         };
+    }
+
+    private function tryAiReply(string $phoneDigits, string $text): ?string
+    {
+        if (! config('ai.enabled', true)) {
+            return null;
+        }
+
+        if (! app(AiSettingsService::class)->customerAiEnabled()) {
+            return null;
+        }
+
+        return app(AiMessagingBridgeService::class)->handleWhatsAppText($phoneDigits, $text);
     }
 
     private function normalizeCommand(string $text): string

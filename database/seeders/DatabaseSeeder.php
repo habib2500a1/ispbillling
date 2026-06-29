@@ -29,5 +29,6 @@ class DatabaseSeeder extends Seeder
         }
 
         $this->call(AutomaticProcessSeeder::class);
+        $this->call(AiKnowledgeDocumentSeeder::class);
     }
 }
