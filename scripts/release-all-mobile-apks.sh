@@ -5,7 +5,7 @@
 set -euo pipefail
 
 APP_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-BASE_URL="${1:-https://bill.flixbd.xyz}"
+BASE_URL="${1:-https://anetbd.com}"
 
 export UPLOAD_GITHUB=1
 export COPY_LOCAL=0

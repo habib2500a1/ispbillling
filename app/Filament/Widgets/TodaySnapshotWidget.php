@@ -80,8 +80,8 @@ class TodaySnapshotWidget extends Widget
     protected function tiles(array $snapshot): array
     {
         $currency = fn ($v) => number_format((float) $v, 0).' ৳';
-        $custIndex = \Illuminate\Support\Facades\Route::has('filament.admin.resources.customers.index')
-            ? route('filament.admin.resources.customers.index') : null;
+        $custIndex = \Illuminate\Support\Facades\Route::has('filament.admin.resources.subscribers.index')
+            ? route('filament.admin.resources.subscribers.index') : null;
         $collectRoute = \Illuminate\Support\Facades\Route::has('filament.admin.pages.staff-performance-report')
             ? route('filament.admin.pages.staff-performance-report')
             : (\Illuminate\Support\Facades\Route::has('filament.admin.pages.bill-collection-desk')

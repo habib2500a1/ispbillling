@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1\Staff;
 use App\Http\Controllers\Controller;
 use App\Models\Customer;
 use App\Models\User;
+use App\Support\Rbac\StaffCapability;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -12,8 +13,7 @@ class StaffOnuController extends Controller
 {
     public function show(Request $request, int $customer): JsonResponse
     {
-        $user = $request->user();
-        abort_unless($user instanceof User, 403);
+        $user = $this->networkUser($request);
 
         $model = Customer::withoutGlobalScopes()
             ->where('tenant_id', $user->tenant_id)
@@ -32,8 +32,7 @@ class StaffOnuController extends Controller
 
     public function update(Request $request, int $customer): JsonResponse
     {
-        $user = $request->user();
-        abort_unless($user instanceof User, 403);
+        $user = $this->networkUser($request);
 
         $model = Customer::withoutGlobalScopes()
             ->where('tenant_id', $user->tenant_id)
@@ -60,5 +59,18 @@ class StaffOnuController extends Controller
             'mac_binding' => $meta['mac_binding'] ?? null,
             'epon_port' => $meta['epon_port'] ?? null,
         ]]);
+    }
+
+    private function networkUser(Request $request): User
+    {
+        $user = $request->user();
+        abort_unless($user instanceof User, 403);
+        abort_unless(
+            StaffCapability::for($user)->canNetwork() || StaffCapability::for($user)->canSupport(),
+            403,
+            'Network access required.',
+        );
+
+        return $user;
     }
 }

@@ -196,7 +196,6 @@ final class StaffCustomerFormService
             'provision_mikrotik' => ['nullable', 'boolean'],
             'first_bill_cycle' => ['nullable', 'in:this_month,next_month'],
             'apply_line_charges' => ['nullable', 'boolean'],
-            'account_balance' => ['nullable', 'numeric', 'min:0'],
             'installation_charge' => ['nullable', 'numeric', 'min:0'],
             'line_charge' => ['nullable', 'numeric', 'min:0'],
             'device_charge' => ['nullable', 'numeric', 'min:0'],
@@ -277,7 +276,6 @@ final class StaffCustomerFormService
             'kyc_status' => 'pending',
             'notes' => trim(($data['notes'] ?? '')."\n\nCreated via mobile app by {$user->name}"),
             'meta' => $meta,
-            'account_balance' => (float) ($data['account_balance'] ?? 0),
         ];
 
         if (filled($data['customer_code'] ?? null)) {

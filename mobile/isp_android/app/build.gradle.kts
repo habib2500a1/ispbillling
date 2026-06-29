@@ -13,7 +13,7 @@ android {
         targetSdk = 35
         versionCode = 1
         versionName = "1.0.0"
-        buildConfigField("String", "API_BASE_URL", "\"https://bill.flixbd.xyz/api/v1/\"")
+        buildConfigField("String", "API_BASE_URL", "\"https://anetbd.com/api/v1/\"")
     }
 
     signingConfigs {
@@ -32,7 +32,7 @@ android {
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
         debug {
-            buildConfigField("String", "API_BASE_URL", "\"https://bill.flixbd.xyz/api/v1/\"")
+            buildConfigField("String", "API_BASE_URL", "\"https://anetbd.com/api/v1/\"")
         }
     }
 

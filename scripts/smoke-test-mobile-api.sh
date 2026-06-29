@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Smoke test mobile API endpoints (production or local BASE_URL).
 set -euo pipefail
-BASE="${1:-https://bill.flixbd.xyz/api/v1}"
+BASE="${1:-https://anetbd.com/api/v1}"
 EMAIL="${ISP_ADMIN_EMAIL:-admin@isp.local}"
 PASS="${ISP_ADMIN_PASSWORD:-changeme123!}"
 

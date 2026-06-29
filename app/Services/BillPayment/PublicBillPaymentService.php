@@ -7,6 +7,7 @@ use App\Models\Invoice;
 use App\Models\Payment;
 use App\Support\CustomerBalanceDue;
 use App\Support\CustomerStatus;
+use App\Support\PublicTenantContext;
 use App\Support\TenantResolver;
 use Illuminate\Support\Collection;
 
@@ -19,12 +20,12 @@ class PublicBillPaymentService
             return null;
         }
 
-        $tenantId = TenantResolver::currentTenantId();
+        $tenantId = TenantResolver::currentTenantId() ?? PublicTenantContext::tenantId();
 
         return Customer::query()
             ->withoutGlobalScopes()
             ->with(['package:id,name,price_monthly'])
-            ->when($tenantId !== null, fn ($q) => $q->where('tenant_id', $tenantId))
+            ->where('tenant_id', $tenantId)
             ->where(function ($q) use ($code): void {
                 $q->where('customer_code', $code);
                 $digits = preg_replace('/\D+/', '', $code) ?? '';

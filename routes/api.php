@@ -58,6 +58,7 @@ use App\Http\Controllers\Api\V1\Technician\TechnicianTicketsController;
 use App\Http\Controllers\Api\V1\Collector\CollectorController;
 use App\Http\Middleware\EnsureSanctumCollector;
 use App\Http\Middleware\EnsureSanctumCustomer;
+use App\Http\Middleware\EnsureSanctumStaff;
 use App\Http\Middleware\EnsureSanctumTechnician;
 use Illuminate\Support\Facades\Route;
 
@@ -84,8 +85,10 @@ Route::middleware('throttle:webhooks')->group(function (): void {
 });
 
 Route::prefix('v1')->group(function (): void {
-    Route::get('/health', [ApiIndexController::class, 'show']);
-    Route::get('/mobile/config', [MobileConfigController::class, 'show']);
+    Route::middleware('throttle:60,1')->group(function (): void {
+        Route::get('/health', [ApiIndexController::class, 'show']);
+        Route::get('/mobile/config', [MobileConfigController::class, 'show']);
+    });
 
     Route::post('/mfs/sms/ingest', [\App\Http\Controllers\Api\V1\MfsSmsIngestController::class, 'ingest'])
         ->middleware('throttle:120,1')
@@ -96,7 +99,7 @@ Route::prefix('v1')->group(function (): void {
     // Staff (legacy + technician)
     Route::post('/auth/login', [StaffAuthController::class, 'login'])->middleware('throttle:15,1');
 
-    Route::middleware(['auth:sanctum', 'throttle:api'])->group(function (): void {
+    Route::middleware(['auth:sanctum', EnsureSanctumStaff::class, 'throttle:api'])->group(function (): void {
         Route::get('/me', [MeController::class, 'show']);
         Route::get('/staff/dashboard', [StaffDashboardController::class, 'show']);
         Route::post('/staff/mfs/sms/ingest', [\App\Http\Controllers\Api\V1\MfsSmsIngestController::class, 'ingestStaff']);
@@ -370,7 +373,7 @@ Route::prefix('v1')->group(function (): void {
     Route::prefix('customer')->group(function (): void {
         Route::post('/login', [CustomerAuthController::class, 'login'])->middleware('throttle:15,1');
 
-        Route::middleware(['auth:sanctum', EnsureSanctumCustomer::class])->group(function (): void {
+        Route::middleware(['auth:sanctum', EnsureSanctumCustomer::class, 'throttle:api'])->group(function (): void {
             Route::post('/auth/refresh', [TokenRefreshController::class, 'refreshCustomer']);
             Route::post('/logout', [CustomerAuthController::class, 'logout']);
             Route::get('/me', [CustomerAuthController::class, 'me']);

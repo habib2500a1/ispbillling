@@ -43,7 +43,6 @@ final class ResellerStaffService
             'phone' => $validated['phone'] ?? null,
             'password' => $plain,
             'portal_permissions' => $this->normalizePermissions($reseller, $validated['portal_permissions'] ?? []),
-            'meta' => ['portal_password_plain' => $plain],
             'is_active' => (bool) ($validated['is_active'] ?? true),
         ]);
 
