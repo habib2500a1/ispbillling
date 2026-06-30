@@ -13,6 +13,7 @@ use App\Models\PaymentLink;
 use App\Services\BillPayment\PaymentLinkService;
 use App\Support\CustomerStatus;
 use App\Support\OpticalCustomerSync;
+use App\Services\Network\SubscriberNetworkPathService;
 use App\Services\Optical\CustomerOnuAutoProvisionService;
 use App\Services\Optical\CustomerOnuMatcher;
 use App\Services\Optical\LegacyPortalOnuPipelineService;
@@ -109,6 +110,37 @@ class ViewCustomer extends ViewRecord
             SyncCustomerNetworkAccessJob::dispatchSync((int) $record->tenant_id, (int) $record->id);
         }
         $this->record->refresh();
+    }
+
+    public function syncNetworkPath(): void
+    {
+        /** @var Customer $record */
+        $record = $this->record;
+        $path = app(SubscriberNetworkPathService::class)->syncAndRefresh($record);
+        $this->record->refresh();
+
+        Notification::make()
+            ->title('MikroTik → ONU auto-detect complete')
+            ->body((string) ($path['path_label'] ?? 'Synced'))
+            ->success()
+            ->send();
+    }
+
+    public function openHomeRouterLogin(): void
+    {
+        $this->mountAction('set_home_router');
+    }
+
+    public function notifyRouterLoginReady(bool $passwordCopied = false, string $user = 'admin'): void
+    {
+        Notification::make()
+            ->title('Router admin খোলা হচ্ছে')
+            ->body(
+                'Login: '.$user
+                .($passwordCopied ? ' · Password clipboard-এ কপি হয়েছে — paste করুন' : ' · Password সেভ নেই — Set router login')
+            )
+            ->success()
+            ->send();
     }
 
     public function mount(int|string $record): void
@@ -231,6 +263,50 @@ class ViewCustomer extends ViewRecord
     protected function subscriberToolsHeaderActions(): array
     {
         return [
+            Actions\Action::make('set_home_router')
+                ->label('Home router login')
+                ->icon('heroicon-o-wifi')
+                ->color('gray')
+                ->modalHeading('Home router LAN admin')
+                ->modalDescription('টেকনিশিয়ান ইনস্টলের সময় WiFi/router password এখানে সেভ করুন। Subscriber profile → MikroTik → ONU প্যানেলে দেখা যাবে।')
+                ->fillForm(function (): array {
+                    /** @var Customer $record */
+                    $record = $this->record;
+                    $meta = is_array($record->meta) ? $record->meta : [];
+
+                    return [
+                        'home_router_ip' => $meta['home_router_ip'] ?? '192.168.0.1',
+                        'home_router_user' => $meta['home_router_user'] ?? 'admin',
+                        'home_router_password' => '',
+                    ];
+                })
+                ->form([
+                    Forms\Components\TextInput::make('home_router_ip')
+                        ->label('Router LAN IP')
+                        ->default('192.168.0.1')
+                        ->required(),
+                    Forms\Components\TextInput::make('home_router_user')
+                        ->label('Admin username')
+                        ->default('admin')
+                        ->required(),
+                    Forms\Components\TextInput::make('home_router_password')
+                        ->label('Admin / WiFi password')
+                        ->password()
+                        ->revealable()
+                        ->helperText('খালি রাখলে আগের password থাকবে'),
+                ])
+                ->action(function (array $data): void {
+                    /** @var Customer $record */
+                    $record = $this->record;
+                    app(SubscriberNetworkPathService::class)->saveHomeRouterCredentials(
+                        $record,
+                        (string) ($data['home_router_ip'] ?? '192.168.0.1'),
+                        (string) ($data['home_router_user'] ?? 'admin'),
+                        filled($data['home_router_password'] ?? null) ? (string) $data['home_router_password'] : null,
+                    );
+                    $this->record->refresh();
+                    Notification::make()->title('Home router login saved')->success()->send();
+                }),
             Actions\Action::make('assign_line')
                 ->label('নতুন লাইন / চার্জ')
                 ->icon('heroicon-o-bolt')

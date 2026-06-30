@@ -56,6 +56,14 @@ return [
     /** Default customer portal password for new subscribers (user can change later). */
     'default_password' => (string) env('PORTAL_DEFAULT_PASSWORD', '123456'),
 
+    /**
+     * Mini portal for customer home router admin pages (iframe / bookmark).
+     * URL: /router — auto-identifies by PPP public IP when online.
+     */
+    'router_home' => [
+        'enabled' => (bool) env('PORTAL_ROUTER_HOME_ENABLED', true),
+    ],
+
     'env_defaults' => [
         'enabled' => (bool) env('PORTAL_ENABLED', true),
         'otp_enabled' => (bool) env('PORTAL_OTP_ENABLED', false),
