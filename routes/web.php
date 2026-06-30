@@ -34,6 +34,7 @@ use App\Http\Controllers\Staff\StaffResellerPortalController;
 use App\Http\Controllers\Portal\PortalSignupController;
 use App\Http\Controllers\Portal\PortalPaymentController;
 use App\Http\Controllers\Portal\PortalTicketController;
+use App\Http\Controllers\Portal\RouterHomePortalController;
 use App\Http\Controllers\Reseller\ResellerCommissionController;
 use App\Http\Controllers\Reseller\ResellerCommissionPdfController;
 use App\Http\Controllers\Reseller\ResellerCustomerActionController;
@@ -451,6 +452,12 @@ Route::redirect('/login/otp', '/login/customer/otp', 301);
 Route::middleware('throttle:30,1')->prefix('hotspot')->name('hotspot.')->group(function (): void {
     Route::get('/', [HotspotPortalController::class, 'index'])->name('index');
     Route::post('/redeem', [HotspotPortalController::class, 'redeem'])->name('redeem');
+});
+
+Route::middleware('throttle:40,1')->group(function (): void {
+    Route::get('/router', [RouterHomePortalController::class, 'index'])->name('portal.router-home');
+    Route::post('/router/identify', [RouterHomePortalController::class, 'identify'])->name('portal.router-home.identify');
+    Route::post('/router/ask', [RouterHomePortalController::class, 'ask'])->name('portal.router-home.ask');
 });
 
 Route::middleware(['portal.enabled', 'auth:customer'])->group(function () {

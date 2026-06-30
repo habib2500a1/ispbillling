@@ -13,6 +13,9 @@
             @endif
         </p>
         <p class="mt-2 text-xs text-gray-500">Portal URL: <a href="{{ route('portal.login') }}" class="text-primary-600 underline" target="_blank" rel="noopener">{{ route('portal.login') }}</a></p>
+        @if (config('portal.router_home.enabled', true))
+            <p class="mt-1 text-xs text-gray-500">Home router mini portal: <a href="{{ route('portal.router-home') }}" class="text-primary-600 underline" target="_blank" rel="noopener">{{ route('portal.router-home') }}</a> — router admin page বা WiFi sticker-এ লাগান।</p>
+        @endif
     </div>
 
     <div class="rounded-lg border border-amber-200 bg-amber-50 p-4 dark:border-amber-800 dark:bg-amber-950/40">
