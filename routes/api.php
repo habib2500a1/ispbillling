@@ -313,6 +313,10 @@ Route::prefix('v1')->group(function (): void {
         Route::get('/reports/export', [\App\Http\Controllers\Api\V1\Reseller\ResellerApiReportController::class, 'export'])
             ->middleware('reseller.api.permission:'.ResellerPortalPermission::REPORTS_VIEW);
 
+        Route::middleware('throttle:20,1')->group(function (): void {
+            Route::post('/ai/ask', [\App\Http\Controllers\Api\V1\Reseller\ResellerAiController::class, 'ask']);
+        });
+
         Route::get('/network/{customer}/session', [\App\Http\Controllers\Api\V1\Reseller\ResellerApiNetworkController::class, 'session'])
             ->whereNumber('customer')
             ->middleware('reseller.api.permission:'.ResellerPortalPermission::NETWORK_VIEW);

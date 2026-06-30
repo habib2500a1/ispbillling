@@ -143,10 +143,12 @@ Route::middleware(['web', 'auth'])->prefix('admin')->group(function (): void {
     Route::get('/command-palette-items', \App\Http\Controllers\Admin\CommandPaletteItemsController::class)->name('admin.command-palette.items');
     Route::get('/dashboard-stream', \App\Http\Controllers\Admin\DashboardStreamController::class)->name('admin.dashboard-stream');
     Route::get('/noc-wall-stream', \App\Http\Controllers\Admin\NocWallStreamController::class)->name('admin.noc-wall-stream');
-    Route::middleware('throttle:40,1')->group(function (): void {
-        Route::get('/ai-copilot/dashboard', [\App\Http\Controllers\Admin\AiCopilotController::class, 'dashboard'])->name('admin.ai-copilot.dashboard');
-        Route::post('/ai-copilot/ask', [\App\Http\Controllers\Admin\AiCopilotController::class, 'ask'])->name('admin.ai-copilot.ask');
-    });
+        Route::middleware('throttle:40,1')->group(function (): void {
+            Route::get('/ai-copilot/dashboard', [\App\Http\Controllers\Admin\AiCopilotController::class, 'dashboard'])->name('admin.ai-copilot.dashboard');
+            Route::post('/ai-copilot/ask', [\App\Http\Controllers\Admin\AiCopilotController::class, 'ask'])->name('admin.ai-copilot.ask');
+            Route::post('/ai-actions/{action}/approve', [\App\Http\Controllers\Admin\AiActionController::class, 'approve'])->whereNumber('action')->name('admin.ai-actions.approve');
+            Route::post('/ai-actions/{action}/reject', [\App\Http\Controllers\Admin\AiActionController::class, 'reject'])->whereNumber('action')->name('admin.ai-actions.reject');
+        });
 });
 
 Route::middleware('auth')->get('/admin/reseller-commissions/{commission}/statement', [\App\Http\Controllers\ResellerCommissionStatementController::class, 'show'])
