@@ -359,7 +359,7 @@ final class PaymentProcessor
             return;
         }
 
-        BillingDueRealtimeSync::afterPayment($customer, queueNetwork: true);
+        BillingDueRealtimeSync::afterPayment($customer, queueNetwork: true, payment: $payment);
     }
 
     private static function shouldRefreshBillingWorkflow(Payment $payment): bool
