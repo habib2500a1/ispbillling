@@ -15,6 +15,7 @@ use App\Models\SupportTicket;
 use App\Models\User;
 use App\Services\Billing\CustomerPrepayService;
 use App\Services\Network\CustomerConnectionStatusService;
+use App\Services\Network\SubscriberNetworkPathService;
 use App\Services\Optical\OpticalSignalHistoryService;
 use App\Services\Optical\SubscriberOnuOpsPresenter;
 use App\Support\MacAddress;
@@ -58,6 +59,7 @@ final class SubscriberCommandCenterService
             'tickets' => $tickets,
             'timeline' => $this->activityTimeline($customer),
             'live_session' => $this->liveSessionPanel($customer, $conn),
+            'network_path' => app(SubscriberNetworkPathService::class)->path($customer),
             'usage' => $this->usageCharts($customer),
             'onu_sparkline' => $this->onuSparkline($onu),
             'onu_ops' => app(SubscriberOnuOpsPresenter::class)->forCustomer($customer),

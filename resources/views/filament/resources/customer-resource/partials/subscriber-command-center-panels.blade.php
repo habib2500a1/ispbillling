@@ -11,6 +11,9 @@
 @endphp
 
 <div class="sub-cc-grid">
+    @include('filament.resources.customer-resource.partials.subscriber-network-path-panel', [
+        'networkPath' => $cc['network_path'] ?? [],
+    ])
     <section class="isp-cv-card sub-cc-panel sub-cc-panel--live">
         <div class="isp-cv-card__head">
             <h3 class="isp-cv-card__title">Live PPP session</h3>
