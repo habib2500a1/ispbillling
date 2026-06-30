@@ -4,6 +4,8 @@ namespace App\Services\Network;
 
 use App\Models\Customer;
 use App\Models\Device;
+use App\Models\MikrotikServer;
+use App\Services\Mikrotik\MikrotikCustomerLanResolver;
 use App\Services\Optical\MikrotikOpticalBridgeService;
 use App\Services\Portal\CustomerPortalAccessService;
 use App\Support\MacAddress;
@@ -46,6 +48,7 @@ final class SubscriberNetworkPathService
         $homePass = $this->decryptHomePassword($meta);
 
         $portal = app(CustomerPortalAccessService::class);
+        $access = $this->mikrotikAccessHints($mt, $customer, $callerId);
 
         return [
             'mikrotik' => [
@@ -76,8 +79,9 @@ final class SubscriberNetworkPathService
             'links' => [
                 'billing_router_portal' => route('portal.router-home'),
                 'portal_token' => $portal->accessTokenUrl($customer),
-                'wan_try_url' => filled($ppp?->framed_ip) ? 'http://'.$ppp->framed_ip : null,
+                'wan_try_url' => $access['wan_admin_url'] ?? (filled($ppp?->framed_ip) ? 'http://'.$ppp->framed_ip : null),
             ],
+            'office_access' => $access,
         ];
     }
 
@@ -131,5 +135,28 @@ final class SubscriberNetworkPathService
         ]);
 
         return $parts !== [] ? implode(' → ', $parts) : 'No path — run auto-detect';
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function mikrotikAccessHints(?MikrotikServer $server, Customer $customer, ?string $callerId): array
+    {
+        if ($server === null) {
+            return [
+                'online' => false,
+                'wan_ip' => null,
+                'lan_ip' => null,
+                'wan_admin_url' => null,
+                'lan_admin_url' => null,
+                'same_network' => false,
+            ];
+        }
+
+        return app(MikrotikCustomerLanResolver::class)->hints(
+            $server,
+            $customer->pppLoginName(),
+            $callerId !== null ? (string) $callerId : null,
+        );
     }
 }

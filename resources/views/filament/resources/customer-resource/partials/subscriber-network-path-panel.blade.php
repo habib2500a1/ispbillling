@@ -5,6 +5,7 @@
     $onu = $path['onu'] ?? [];
     $home = $path['home_router'] ?? [];
     $links = $path['links'] ?? [];
+    $office = $path['office_access'] ?? [];
 @endphp
 
 <section class="isp-cv-card sub-cc-panel sub-cc-panel--path">
@@ -28,7 +29,37 @@
     </dl>
 
     <div class="mt-3 pt-3 border-t border-slate-200 dark:border-slate-700">
-        <h4 class="text-sm font-semibold mb-2">Home router (LAN)</h4>
+        <h4 class="text-sm font-semibold mb-2">Office — same MikroTik network</h4>
+        @if ($office['online'] ?? false)
+            <p class="text-xs text-emerald-700 dark:text-emerald-300 mb-2">Subscriber online on this MikroTik — office/LAN থেকে WAN IP দিয়ে router admin try করা যায় (router-এ remote admin ON থাকলে)।</p>
+            <dl class="sub-cc-kv">
+                <div><dt>Live WAN (MT)</dt><dd class="font-mono">{{ $office['wan_ip'] ?? '—' }}</dd></div>
+                @if (! empty($office['lan_ip']))
+                    <div><dt>LAN (ARP/DHCP)</dt><dd class="font-mono">{{ $office['lan_ip'] }}</dd></div>
+                @endif
+            </dl>
+            <div class="flex flex-wrap gap-2 mt-2">
+                @if (! empty($office['wan_admin_url']))
+                    <a href="{{ $office['wan_admin_url'] }}" target="_blank" rel="noopener" class="sub-cc-nearby-chip">Open WAN router</a>
+                @endif
+                @if (! empty($office['lan_admin_url']))
+                    <a href="{{ $office['lan_admin_url'] }}" target="_blank" rel="noopener" class="sub-cc-nearby-chip">Open LAN IP</a>
+                @endif
+            </div>
+        @else
+            <p class="text-xs text-slate-500">PPP offline — online হলে MikroTik থেকে live WAN IP দেখাবে।</p>
+        @endif
+    </div>
+
+    <div class="mt-3 pt-3 border-t border-slate-200 dark:border-slate-700">
+        <h4 class="text-sm font-semibold mb-2">Home user login (billing)</h4>
+        <p class="text-xs text-slate-500 mb-2">Customer WiFi থেকে বিল/AI — <code class="text-xs">{{ $links['billing_router_portal'] ?? '/router' }}</code></p>
+        <a href="{{ $links['billing_router_portal'] ?? '#' }}" target="_blank" rel="noopener" class="sub-cc-nearby-chip">Home user portal (/router)</a>
+        <a href="{{ $links['portal_token'] ?? '#' }}" target="_blank" rel="noopener" class="sub-cc-nearby-chip">Full portal token</a>
+    </div>
+
+    <div class="mt-3 pt-3 border-t border-slate-200 dark:border-slate-700">
+        <h4 class="text-sm font-semibold mb-2">Home router (LAN — on-site)</h4>
         <dl class="sub-cc-kv">
             <div><dt>Admin URL</dt><dd><a href="{{ $home['lan_url'] ?? '#' }}" target="_blank" rel="noopener" class="isp-cv-link font-mono text-xs">{{ $home['lan_url'] ?? '—' }}</a></dd></div>
             <div><dt>User</dt><dd class="font-mono">{{ $home['user'] ?? 'admin' }}</dd></div>
@@ -45,14 +76,12 @@
                 </dd>
             </div>
         </dl>
-        <p class="text-xs text-amber-700 dark:text-amber-300 mt-2">LAN admin শুধু টেকনিশিয়ান on-site বা customer WiFi থেকে খুলুন। Remote WAN IP থেকে সাধারণত খোলা যায় না।</p>
+        <p class="text-xs text-amber-700 dark:text-amber-300 mt-2">LAN admin (192.168.x) — customer বাড়িতে বা same WiFi। Office থেকে WAN IP কাজ করলে উপরের Open WAN ব্যবহার করুন।</p>
     </div>
 
     <div class="flex flex-wrap gap-2 mt-3">
         @if (! empty($mt['admin_url']))
             <a href="{{ $mt['admin_url'] }}" target="_blank" rel="noopener" class="sub-cc-nearby-chip">ISP MikroTik</a>
         @endif
-        <a href="{{ $links['billing_router_portal'] ?? '#' }}" target="_blank" rel="noopener" class="sub-cc-nearby-chip">Billing /router</a>
-        <a href="{{ $links['portal_token'] ?? '#' }}" target="_blank" rel="noopener" class="sub-cc-nearby-chip">Portal token</a>
     </div>
 </section>

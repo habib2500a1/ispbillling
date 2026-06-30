@@ -256,7 +256,6 @@ class ViewCustomer extends ViewRecord
                     /** @var Customer $record */
                     $record = $this->record;
                     $meta = is_array($record->meta) ? $record->meta : [];
-                    $path = app(SubscriberNetworkPathService::class)->path($record);
 
                     return [
                         'home_router_ip' => $meta['home_router_ip'] ?? '192.168.0.1',
