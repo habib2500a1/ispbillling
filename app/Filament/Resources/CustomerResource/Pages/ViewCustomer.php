@@ -126,6 +126,11 @@ class ViewCustomer extends ViewRecord
             ->send();
     }
 
+    public function openHomeRouterLogin(): void
+    {
+        $this->mountAction('set_home_router');
+    }
+
     public function mount(int|string $record): void
     {
         parent::mount($record);

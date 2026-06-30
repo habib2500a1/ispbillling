@@ -3408,3 +3408,109 @@ body.isp-cv-map-modal-open {
 .sub-cc-panel--timeline .sub-cc-timeline__item:first-child {
     margin-top: 0 !important;
 }
+
+/* Router / portal access strip (all tabs) */
+.sub-router-access {
+    margin: 0 0 0.85rem;
+    padding: 0.75rem 0.9rem;
+    border-radius: 0.9rem;
+    background: linear-gradient(135deg, rgba(15, 23, 42, 0.96), rgba(30, 41, 59, 0.92));
+    border: 1px solid rgba(148, 163, 184, 0.28);
+    box-shadow: 0 10px 28px rgba(15, 23, 42, 0.14);
+}
+
+.sub-router-access__head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.5rem;
+    margin-bottom: 0.65rem;
+}
+
+.sub-router-access__title {
+    margin: 0;
+    font-size: 0.82rem;
+    font-weight: 800;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    color: #f8fafc;
+}
+
+.sub-router-access__hint {
+    margin: 0.2rem 0 0;
+    font-size: 0.72rem;
+    color: #94a3b8;
+}
+
+.sub-router-access__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+}
+
+.sub-router-access__btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    min-height: 2rem;
+    padding: 0.35rem 0.7rem;
+    border-radius: 0.55rem;
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: #e2e8f0;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    text-decoration: none;
+    cursor: pointer;
+    transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.sub-router-access__btn:hover {
+    background: rgba(255, 255, 255, 0.14);
+    border-color: rgba(255, 255, 255, 0.22);
+}
+
+.sub-router-access__btn--primary {
+    background: rgba(16, 185, 129, 0.22);
+    border-color: rgba(110, 231, 183, 0.4);
+    color: #d1fae5;
+}
+
+.sub-router-access__btn--wan {
+    background: rgba(56, 189, 248, 0.2);
+    border-color: rgba(125, 211, 252, 0.45);
+    color: #e0f2fe;
+}
+
+.sub-router-access__btn--ghost {
+    background: transparent;
+}
+
+.sub-router-access__creds {
+    margin: 0.55rem 0 0;
+    padding-top: 0.55rem;
+    border-top: 1px solid rgba(148, 163, 184, 0.2);
+    color: #cbd5e1;
+}
+
+.sub-pro .sub-quickbar__btn--wan {
+    background: rgba(56, 189, 248, 0.15);
+    border-color: rgba(56, 189, 248, 0.35);
+    color: #0369a1;
+}
+
+.dark .sub-pro .sub-quickbar__btn--wan {
+    color: #7dd3fc;
+}
+
+@media (max-width: 640px) {
+    .sub-router-access__actions {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .sub-router-access__btn {
+        justify-content: center;
+    }
+}

@@ -599,17 +599,43 @@ final class SubscriberCommandCenterService
      */
     private function fabActions(Customer $customer): array
     {
-        $meta = is_array($customer->meta) ? $customer->meta : [];
         $suspended = ($customer->network_access_state ?? 'active') === 'suspended';
+        $path = app(SubscriberNetworkPathService::class)->path($customer);
+        $office = $path['office_access'] ?? [];
+        $links = $path['links'] ?? [];
 
-        return [
+        $actions = [
             ['key' => 'collect', 'label' => 'Collect', 'icon' => 'heroicon-o-banknotes', 'url' => \App\Filament\Pages\BillCollectionDesk::getUrl(['customer' => $customer->id]), 'type' => 'link'],
+            ['key' => 'portal', 'label' => 'Customer portal', 'icon' => 'heroicon-o-arrow-right-on-rectangle', 'url' => route('staff.subscribers.portal-login', ['customer' => $customer->getKey()]), 'type' => 'external'],
+        ];
+
+        if (! empty($office['online']) && ! empty($office['wan_admin_url'])) {
+            $actions[] = [
+                'key' => 'wan_router',
+                'label' => 'WAN router',
+                'icon' => 'heroicon-o-globe-alt',
+                'url' => $office['wan_admin_url'],
+                'type' => 'external',
+            ];
+        }
+
+        if (! empty($links['billing_router_portal'])) {
+            $actions[] = [
+                'key' => 'router_portal',
+                'label' => '/router billing',
+                'icon' => 'heroicon-o-home',
+                'url' => $links['billing_router_portal'],
+                'type' => 'external',
+            ];
+        }
+
+        return array_merge($actions, [
             ['key' => 'sms', 'label' => 'SMS', 'icon' => 'heroicon-o-device-phone-mobile', 'url' => SendSms::getUrl(['customer_id' => $customer->id]), 'type' => 'link'],
             ['key' => 'whatsapp', 'label' => 'WhatsApp', 'icon' => 'heroicon-o-chat-bubble-oval-left-ellipsis', 'url' => filled($customer->phone) ? 'https://wa.me/'.preg_replace('/\D+/', '', (string) $customer->phone) : '#', 'type' => 'external', 'disabled' => ! filled($customer->phone)],
             ['key' => 'ticket', 'label' => 'New ticket', 'icon' => 'heroicon-o-lifebuoy', 'url' => SupportTicketResource::getUrl('create', ['customer_id' => $customer->id]), 'type' => 'link'],
             ['key' => 'invoice', 'label' => 'Invoices', 'icon' => 'heroicon-o-document-text', 'url' => \App\Filament\Resources\InvoiceResource::getUrl('index', ['tableFilters' => ['customer_id' => ['value' => (string) $customer->id]]]), 'type' => 'link'],
             ['key' => 'net', 'label' => $suspended ? 'Net ON' : 'Net OFF', 'icon' => 'heroicon-o-signal-slash', 'type' => 'wire', 'action' => 'toggleNetworkAccess'],
-        ];
+        ]);
     }
 
     private function lastSmsLabel(Customer $customer): string
