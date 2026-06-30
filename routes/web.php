@@ -34,6 +34,7 @@ use App\Http\Controllers\Staff\StaffResellerPortalController;
 use App\Http\Controllers\Portal\PortalSignupController;
 use App\Http\Controllers\Portal\PortalPaymentController;
 use App\Http\Controllers\Portal\PortalTicketController;
+use App\Http\Controllers\Portal\RouterHomePortalController;
 use App\Http\Controllers\Reseller\ResellerCommissionController;
 use App\Http\Controllers\Reseller\ResellerCommissionPdfController;
 use App\Http\Controllers\Reseller\ResellerCustomerActionController;
@@ -122,7 +123,7 @@ Route::middleware('throttle:60,1')->prefix('shop')->name('shop.')->group(functio
     Route::post('/checkout', [InventoryShopController::class, 'checkout'])->name('checkout');
 });
 
-Route::get('/webhooks/sms/khudebarta/dlr', KhudeBartaDlrController::class)
+Route::middleware('throttle:120,1')->get('/webhooks/sms/khudebarta/dlr', KhudeBartaDlrController::class)
     ->name('webhooks.sms.khudebarta.dlr');
 
 Route::middleware('throttle:30,1')->prefix('rocket')->name('rocket.')->group(function (): void {
@@ -142,10 +143,12 @@ Route::middleware(['web', 'auth'])->prefix('admin')->group(function (): void {
     Route::get('/command-palette-items', \App\Http\Controllers\Admin\CommandPaletteItemsController::class)->name('admin.command-palette.items');
     Route::get('/dashboard-stream', \App\Http\Controllers\Admin\DashboardStreamController::class)->name('admin.dashboard-stream');
     Route::get('/noc-wall-stream', \App\Http\Controllers\Admin\NocWallStreamController::class)->name('admin.noc-wall-stream');
-    Route::middleware('throttle:40,1')->group(function (): void {
-        Route::get('/ai-copilot/dashboard', [\App\Http\Controllers\Admin\AiCopilotController::class, 'dashboard'])->name('admin.ai-copilot.dashboard');
-        Route::post('/ai-copilot/ask', [\App\Http\Controllers\Admin\AiCopilotController::class, 'ask'])->name('admin.ai-copilot.ask');
-    });
+        Route::middleware('throttle:40,1')->group(function (): void {
+            Route::get('/ai-copilot/dashboard', [\App\Http\Controllers\Admin\AiCopilotController::class, 'dashboard'])->name('admin.ai-copilot.dashboard');
+            Route::post('/ai-copilot/ask', [\App\Http\Controllers\Admin\AiCopilotController::class, 'ask'])->name('admin.ai-copilot.ask');
+            Route::post('/ai-actions/{action}/approve', [\App\Http\Controllers\Admin\AiActionController::class, 'approve'])->whereNumber('action')->name('admin.ai-actions.approve');
+            Route::post('/ai-actions/{action}/reject', [\App\Http\Controllers\Admin\AiActionController::class, 'reject'])->whereNumber('action')->name('admin.ai-actions.reject');
+        });
 });
 
 Route::middleware('auth')->get('/admin/reseller-commissions/{commission}/statement', [\App\Http\Controllers\ResellerCommissionStatementController::class, 'show'])
@@ -451,6 +454,12 @@ Route::redirect('/login/otp', '/login/customer/otp', 301);
 Route::middleware('throttle:30,1')->prefix('hotspot')->name('hotspot.')->group(function (): void {
     Route::get('/', [HotspotPortalController::class, 'index'])->name('index');
     Route::post('/redeem', [HotspotPortalController::class, 'redeem'])->name('redeem');
+});
+
+Route::middleware('throttle:40,1')->group(function (): void {
+    Route::get('/router', [RouterHomePortalController::class, 'index'])->name('portal.router-home');
+    Route::post('/router/identify', [RouterHomePortalController::class, 'identify'])->name('portal.router-home.identify');
+    Route::post('/router/ask', [RouterHomePortalController::class, 'ask'])->name('portal.router-home.ask');
 });
 
 Route::middleware(['portal.enabled', 'auth:customer'])->group(function () {

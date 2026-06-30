@@ -39,7 +39,7 @@ final class ResellerPortalAccessService
     public function setPortalPassword(Reseller $reseller, string $plain): void
     {
         $meta = is_array($reseller->meta) ? $reseller->meta : [];
-        $meta['portal_password_plain'] = $plain;
+        unset($meta['portal_password_plain']);
 
         $reseller->forceFill([
             'portal_password' => Hash::make($plain),
@@ -49,10 +49,7 @@ final class ResellerPortalAccessService
 
     public function storePlainPasswordIfKnown(Reseller $reseller, string $plain): void
     {
-        $meta = is_array($reseller->meta) ? $reseller->meta : [];
-        $meta['portal_password_plain'] = $plain;
-
-        $reseller->forceFill(['meta' => $meta])->saveQuietly();
+        unset($plain);
     }
 
     public function portalPasswordPlain(Reseller $reseller): ?string
@@ -69,9 +66,8 @@ final class ResellerPortalAccessService
 
     public function ensureAccessToken(Reseller $reseller): string
     {
-        $plain = $this->accessTokenPlain($reseller);
-        if ($plain !== null && $this->hasAccessToken($reseller)) {
-            return $plain;
+        if ($this->hasAccessToken($reseller)) {
+            return '';
         }
 
         return $this->regenerateAccessToken($reseller);
@@ -81,7 +77,7 @@ final class ResellerPortalAccessService
     {
         $plain = $reseller->getKey().'-'.Str::lower(Str::random(32));
         $meta = is_array($reseller->meta) ? $reseller->meta : [];
-        $meta['portal_access_token'] = $plain;
+        unset($meta['portal_access_token']);
         $meta['portal_access_token_hash'] = Hash::make($plain);
         $meta['portal_access_token_at'] = now()->toIso8601String();
 
@@ -90,9 +86,12 @@ final class ResellerPortalAccessService
         return $plain;
     }
 
-    public function accessTokenUrl(Reseller $reseller): string
+    public function accessTokenUrl(Reseller $reseller): ?string
     {
         $token = $this->ensureAccessToken($reseller);
+        if ($token === '') {
+            return null;
+        }
 
         return route('reseller.access.token', ['token' => $token]);
     }
@@ -128,9 +127,7 @@ final class ResellerPortalAccessService
 
     public function accessTokenPlain(Reseller $reseller): ?string
     {
-        $plain = Arr::get($reseller->meta ?? [], 'portal_access_token');
-
-        return is_string($plain) && $plain !== '' ? $plain : null;
+        return null;
     }
 
     public function recordPortalLogin(Reseller $reseller): void

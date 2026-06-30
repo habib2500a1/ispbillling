@@ -122,7 +122,7 @@ class ResellerStaff extends Model
     public function setPassword(string $plain): void
     {
         $meta = is_array($this->meta) ? $this->meta : [];
-        $meta['portal_password_plain'] = $plain;
+        unset($meta['portal_password_plain']);
 
         $this->forceFill([
             'password' => $plain,

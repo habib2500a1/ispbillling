@@ -14,6 +14,7 @@ use App\Support\CustomerBalanceDue;
 use App\Support\NotificationEvent;
 use Carbon\Carbon;
 use Carbon\CarbonInterface;
+use Illuminate\Support\Facades\DB;
 
 final class InvoiceGenerator
 {
@@ -65,39 +66,62 @@ final class InvoiceGenerator
 
         $date = Carbon::parse($referenceDate)->startOfDay();
         [$periodStart, $periodEnd] = BillingPeriodResolver::resolve($package, $date);
+        $cycleType = $package->billing_cycle_type ?? BillingCycleType::MONTHLY;
 
-        $exists = Invoice::query()
-            ->where('customer_id', $customer->id)
-            ->whereNotIn('status', ['void', 'cancelled'])
-            ->where(function ($q) use ($periodStart, $periodEnd, $date): void {
-                $q->where(function ($q2) use ($periodStart, $periodEnd): void {
-                    $q2->whereDate('period_start', $periodStart->toDateString())
-                        ->whereDate('period_end', $periodEnd->toDateString());
-                })->orWhere(function ($q2) use ($date): void {
-                    $q2->whereYear('issue_date', $date->year)
-                        ->whereMonth('issue_date', $date->month);
-                });
-            })
-            ->exists();
+        return DB::transaction(function () use ($customer, $package, $date, $periodStart, $periodEnd, $cycleType, $noProrate, $couponCode): ?Invoice {
+            Customer::query()->whereKey($customer->id)->lockForUpdate()->first();
 
-        if ($exists) {
-            return null;
-        }
-
-        if (\App\Support\LegacyPortalSource::isImportedSource($customer->import_source)) {
-            $hasImported = Invoice::query()
+            $exists = Invoice::query()
                 ->where('customer_id', $customer->id)
-                ->where('invoice_number', 'like', 'ISD-%')
                 ->whereNotIn('status', ['void', 'cancelled'])
-                ->whereYear('issue_date', $date->year)
-                ->whereMonth('issue_date', $date->month)
+                ->where(function ($q) use ($periodStart, $periodEnd, $date, $cycleType): void {
+                    $q->where(function ($q2) use ($periodStart, $periodEnd): void {
+                        $q2->whereDate('period_start', $periodStart->toDateString())
+                            ->whereDate('period_end', $periodEnd->toDateString());
+                    });
+                    if (! in_array($cycleType, [BillingCycleType::HOURLY, BillingCycleType::DAILY], true)) {
+                        $q->orWhere(function ($q2) use ($date): void {
+                            $q2->whereYear('issue_date', $date->year)
+                                ->whereMonth('issue_date', $date->month);
+                        });
+                    }
+                })
                 ->exists();
 
-            if ($hasImported) {
+            if ($exists) {
                 return null;
             }
-        }
 
+            if (\App\Support\LegacyPortalSource::isImportedSource($customer->import_source)) {
+                $hasImported = Invoice::query()
+                    ->where('customer_id', $customer->id)
+                    ->where('invoice_number', 'like', 'ISD-%')
+                    ->whereNotIn('status', ['void', 'cancelled'])
+                    ->whereYear('issue_date', $date->year)
+                    ->whereMonth('issue_date', $date->month)
+                    ->exists();
+
+                if ($hasImported) {
+                    return null;
+                }
+            }
+
+            return static::createInvoiceForPeriod($customer, $package, $date, $periodStart, $periodEnd, $noProrate, $couponCode);
+        });
+    }
+
+    /**
+     * @return Invoice|null Created invoice, or null if skipped
+     */
+    private static function createInvoiceForPeriod(
+        Customer $customer,
+        Package $package,
+        CarbonInterface $date,
+        CarbonInterface $periodStart,
+        CarbonInterface $periodEnd,
+        bool $noProrate,
+        ?string $couponCode,
+    ): ?Invoice {
         $basePrice = PackagePriceResolver::resolveCyclePrice($package, $customer, $date);
 
         $billingEngine = app(\App\Services\Resellers\ResellerCustomerBillingEngine::class);

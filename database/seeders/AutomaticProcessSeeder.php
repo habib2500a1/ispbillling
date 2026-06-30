@@ -571,6 +571,28 @@ class AutomaticProcessSeeder extends Seeder
                 'enabled' => true,
                 'sort_order' => 202,
             ],
+            [
+                'slug' => 'ai-proactive-digest',
+                'name' => 'AI proactive operations digest',
+                'description' => 'Daily Telegram digest with billing, NOC, churn, and recommendations.',
+                'artisan_command' => 'isp:ai-proactive-digest',
+                'command_options' => [],
+                'execute_at' => '09:00',
+                'interval' => 'daily',
+                'when_config_key' => 'ai.proactive_digest_enabled',
+                'sort_order' => 203,
+            ],
+            [
+                'slug' => 'ai-prune-logs',
+                'name' => 'Prune AI interaction audit logs',
+                'description' => 'Deletes ai_interaction_logs older than retention window.',
+                'artisan_command' => 'isp:ai-prune-logs',
+                'command_options' => [],
+                'execute_at' => '03:15',
+                'interval' => 'daily',
+                'when_config_key' => 'ai.enabled',
+                'sort_order' => 204,
+            ],
         ];
     }
 }

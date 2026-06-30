@@ -4,6 +4,7 @@ namespace App\Services\Billing;
 
 use App\Support\CustomerNetworkSyncDispatcher;
 use App\Models\Customer;
+use App\Models\Payment;
 use App\Support\BillingMetricsCache;
 use App\Support\CustomerBalanceDue;
 use Illuminate\Support\Facades\Cache;
@@ -14,7 +15,7 @@ use Illuminate\Support\Facades\Cache;
  */
 final class BillingDueRealtimeSync
 {
-    public static function afterPayment(Customer $customer, bool $queueNetwork = true): float
+    public static function afterPayment(Customer $customer, bool $queueNetwork = true, ?Payment $payment = null): float
     {
         $customer = $customer->fresh() ?? $customer;
 
@@ -25,7 +26,10 @@ final class BillingDueRealtimeSync
         $due = CustomerBalanceDue::amount($customer);
 
         if ($due <= 0.009) {
-            app(ServiceExpiryExtensionService::class)->extendForPaidCycle($customer->fresh() ?? $customer);
+            app(ServiceExpiryExtensionService::class)->extendForPaidCycle(
+                $customer->fresh() ?? $customer,
+                $payment,
+            );
             $customer = $customer->fresh() ?? $customer;
         }
 
@@ -44,6 +48,7 @@ final class BillingDueRealtimeSync
     {
         BillingMetricsCache::flush($tenantId);
         Cache::forget('dashboard:snapshot:'.$tenantId);
+        Cache::forget('dashboard:today-snapshot:'.$tenantId);
 
         \App\Services\Clients\ClientsDashboardService::flushSummaryCache($tenantId);
     }

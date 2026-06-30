@@ -2,6 +2,9 @@
     $kpis = $kpis ?? [];
     $source_notice = $source_notice ?? null;
     $growth = $growth ?? ['labels' => [], 'values' => [], 'max' => 1, 'months' => 6, 'range_label' => ''];
+    $lifecycle = $subscriber_lifecycle ?? [];
+    $newLines = $lifecycle['new_lines'] ?? ['labels' => [], 'values' => [], 'max' => 1];
+    $renewals = $lifecycle['renewals'] ?? ['labels' => [], 'values' => [], 'max' => 1];
     $clients = $clients ?? [];
     $max = max(1, (float) ($growth['max'] ?? 1));
     $monthCount = (int) ($growth['months'] ?? count($growth['labels'] ?? []));
@@ -13,6 +16,13 @@
 
         return number_format($value, 0);
     };
+    $formatCount = static fn (int $value): string => number_format($value);
+    $newLinesMax = max(1, (int) ($newLines['max'] ?? 1));
+    $renewalsMax = max(1, (int) ($renewals['max'] ?? 1));
+    $lifecycleMonths = (int) ($lifecycle['months'] ?? count($newLines['labels'] ?? []));
+    $staffReportUrl = \App\Filament\Pages\StaffPerformanceReport::canAccess()
+        ? \App\Filament\Pages\StaffPerformanceReport::getUrl(['preset' => 'month'])
+        : null;
 @endphp
 
 <x-filament-widgets::widget>
@@ -147,6 +157,80 @@
                             </tbody>
                         </table>
                     </div>
+                </article>
+            </div>
+
+            <div class="isp-billing-dash__lifecycle">
+                <article class="isp-billing-dash__chart-card isp-billing-dash__chart-card--lifecycle">
+                    <div class="isp-billing-dash__chart-head">
+                        <div>
+                            <h3 class="isp-billing-dash__card-title">New lines</h3>
+                            <p class="isp-billing-dash__chart-range">
+                                {{ $lifecycle['range_label'] ?? '' }}
+                                · এই মাসে <strong>{{ $formatCount((int) ($lifecycle['mtd_new_lines'] ?? 0)) }}</strong>
+                                · আজ <strong>{{ $formatCount((int) ($lifecycle['today_new_lines'] ?? 0)) }}</strong>
+                            </p>
+                        </div>
+                        <span class="isp-billing-dash__chart-badge isp-billing-dash__chart-badge--emerald">{{ $lifecycleMonths }} months</span>
+                    </div>
+                    <div class="isp-billing-dash__chart isp-billing-dash__chart--six" role="img" aria-label="Monthly new lines">
+                        @foreach ($newLines['labels'] as $i => $label)
+                            @php
+                                $value = (int) ($newLines['values'][$i] ?? 0);
+                                $isZero = $value <= 0;
+                                $height = ! $isZero ? max(6, ($value / $newLinesMax) * 100) : 0;
+                                $color = '#10b981';
+                                $isLatest = $i === count($newLines['labels']) - 1;
+                            @endphp
+                            <div @class(['isp-billing-dash__bar-col', 'isp-billing-dash__bar-col--latest' => $isLatest && ! $isZero, 'isp-billing-dash__bar-col--zero' => $isZero])>
+                                <span @class(['isp-billing-dash__bar-val', 'isp-billing-dash__bar-val--zero' => $isZero])>{{ $formatCount($value) }}</span>
+                                <div class="isp-billing-dash__bar-wrap">
+                                    <div @class(['isp-billing-dash__bar', 'isp-billing-dash__bar--zero' => $isZero]) @if (! $isZero) style="height: {{ $height }}%; background: {{ $color }};" @else style="background: {{ $color }};" @endif></div>
+                                </div>
+                                <span class="isp-billing-dash__bar-label">{{ $label }}</span>
+                            </div>
+                        @endforeach
+                    </div>
+                    @if ($staffReportUrl)
+                        <footer class="isp-billing-dash__lifecycle-foot">
+                            <a href="{{ $staffReportUrl }}" class="isp-billing-dash__link">Staff new-line report →</a>
+                        </footer>
+                    @endif
+                </article>
+
+                <article class="isp-billing-dash__chart-card isp-billing-dash__chart-card--lifecycle">
+                    <div class="isp-billing-dash__chart-head">
+                        <div>
+                            <h3 class="isp-billing-dash__card-title">Renewals</h3>
+                            <p class="isp-billing-dash__chart-range">
+                                {{ $lifecycle['range_label'] ?? '' }}
+                                · এই মাসে <strong>{{ $formatCount((int) ($lifecycle['mtd_renewals'] ?? 0)) }}</strong>
+                                · আজ <strong>{{ $formatCount((int) ($lifecycle['today_renewals'] ?? 0)) }}</strong>
+                            </p>
+                        </div>
+                        <span class="isp-billing-dash__chart-badge isp-billing-dash__chart-badge--cyan">{{ $lifecycleMonths }} months</span>
+                    </div>
+                    <div class="isp-billing-dash__chart isp-billing-dash__chart--six" role="img" aria-label="Monthly renewals">
+                        @foreach ($renewals['labels'] as $i => $label)
+                            @php
+                                $value = (int) ($renewals['values'][$i] ?? 0);
+                                $isZero = $value <= 0;
+                                $height = ! $isZero ? max(6, ($value / $renewalsMax) * 100) : 0;
+                                $color = '#06b6d4';
+                                $isLatest = $i === count($renewals['labels']) - 1;
+                            @endphp
+                            <div @class(['isp-billing-dash__bar-col', 'isp-billing-dash__bar-col--latest' => $isLatest && ! $isZero, 'isp-billing-dash__bar-col--zero' => $isZero])>
+                                <span @class(['isp-billing-dash__bar-val', 'isp-billing-dash__bar-val--zero' => $isZero])>{{ $formatCount($value) }}</span>
+                                <div class="isp-billing-dash__bar-wrap">
+                                    <div @class(['isp-billing-dash__bar', 'isp-billing-dash__bar--zero' => $isZero]) @if (! $isZero) style="height: {{ $height }}%; background: {{ $color }};" @else style="background: {{ $color }};" @endif></div>
+                                </div>
+                                <span class="isp-billing-dash__bar-label">{{ $label }}</span>
+                            </div>
+                        @endforeach
+                    </div>
+                    <footer class="isp-billing-dash__lifecycle-foot">
+                        <span class="isp-billing-dash__chart-range">বিল কালেক্ট / renew হলে এখানে গণনা হয়</span>
+                    </footer>
                 </article>
             </div>
 

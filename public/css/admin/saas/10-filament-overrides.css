@@ -1839,6 +1839,41 @@ button.isp-rbac-check { padding: 0; }
     }
 }
 
+.isp-billing-dash__lifecycle {
+    display: grid;
+    gap: 1rem;
+    grid-template-columns: 1fr;
+    margin-top: 1rem;
+}
+
+@media (min-width: 900px) {
+    .isp-billing-dash__lifecycle {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+.isp-billing-dash__chart-card--lifecycle {
+    min-width: 0;
+}
+
+.isp-billing-dash__chart-badge--emerald {
+    color: #059669;
+    background: color-mix(in srgb, #10b981 14%, var(--isp-card-bg));
+    border-color: color-mix(in srgb, #10b981 28%, var(--isp-card-border));
+}
+
+.isp-billing-dash__chart-badge--cyan {
+    color: #0891b2;
+    background: color-mix(in srgb, #06b6d4 14%, var(--isp-card-bg));
+    border-color: color-mix(in srgb, #06b6d4 28%, var(--isp-card-border));
+}
+
+.isp-billing-dash__lifecycle-foot {
+    margin-top: .65rem;
+    font-size: .68rem;
+    color: var(--isp-muted);
+}
+
 .isp-billing-dash__chart-card,
 .isp-billing-dash__table-card {
     border-radius: var(--isp-radius-lg);

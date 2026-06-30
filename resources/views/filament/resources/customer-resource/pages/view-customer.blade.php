@@ -31,6 +31,31 @@
             ['label' => 'Invoices', 'url' => $details['urls']['invoices'], 'icon' => 'heroicon-o-document-text', 'btn' => 'glass'],
             ['label' => 'New ticket', 'url' => $cc['tickets']['create_url'] ?? '#', 'icon' => 'heroicon-o-lifebuoy', 'btn' => 'glass'],
         ];
+        $networkPath = $cc['network_path'] ?? [];
+        $officeAccess = $networkPath['office_access'] ?? [];
+        $oneClickRouter = $networkPath['one_click_router'] ?? [];
+        if (! empty($oneClickRouter['available'])) {
+            $quickLinks[] = [
+                'label' => 'Router login',
+                'url' => $oneClickRouter['url'],
+                'icon' => 'heroicon-o-bolt',
+                'btn' => 'white',
+                'external' => true,
+                'class' => 'sub-hero-router-login',
+                'one_click' => true,
+                'router_user' => $oneClickRouter['user'] ?? 'admin',
+                'router_password' => $oneClickRouter['password'] ?? null,
+            ];
+        } elseif (! empty($officeAccess['online']) && ! empty($officeAccess['wan_admin_url'])) {
+            $quickLinks[] = [
+                'label' => 'WAN router',
+                'url' => $officeAccess['wan_admin_url'],
+                'icon' => 'heroicon-o-globe-alt',
+                'btn' => 'glass',
+                'external' => true,
+                'class' => 'sub-hero-wan-link',
+            ];
+        }
         $onuOwnership = $details['connection_link']['onu_ownership'] ?? 'company';
         $onuOwnershipLabel = $details['connection_link']['onu_ownership_label'] ?? 'Company ONU';
     @endphp
@@ -84,6 +109,20 @@
                             href="{{ $link['url'] }}"
                             @class(array_filter(['olt-btn', 'olt-btn--' . $link['btn'], $link['class'] ?? null]))
                             @if (! empty($link['external'])) target="_blank" rel="noopener" @endif
+                            @if (! empty($link['one_click']))
+                                x-data="{
+                                    openRouterLogin() {
+                                        const pass = @js($link['router_password'] ?? null);
+                                        const user = @js($link['router_user'] ?? 'admin');
+                                        if (pass) {
+                                            navigator.clipboard.writeText(pass).catch(() => {});
+                                        }
+                                        window.open(@js($link['url']), '_blank', 'noopener');
+                                        $wire.notifyRouterLoginReady(!!pass, user);
+                                    }
+                                }"
+                                @click.prevent="openRouterLogin()"
+                            @endif
                         >
                             <x-filament::icon :icon="$link['icon']" class="h-4 w-4" />
                             {{ $link['label'] }}
@@ -157,6 +196,40 @@
                 <x-filament::icon icon="heroicon-o-arrow-right-on-rectangle" class="h-4 w-4" />
                 Portal
             </a>
+            @if (! empty($oneClickRouter['available']))
+                <a
+                    href="{{ $oneClickRouter['url'] }}"
+                    class="sub-quickbar__btn sub-quickbar__btn--oneclick"
+                    target="_blank"
+                    rel="noopener"
+                    x-data="{
+                        openRouterLogin() {
+                            const pass = @js($oneClickRouter['password'] ?? null);
+                            const user = @js($oneClickRouter['user'] ?? 'admin');
+                            if (pass) {
+                                navigator.clipboard.writeText(pass).catch(() => {});
+                            }
+                            window.open(@js($oneClickRouter['url']), '_blank', 'noopener');
+                            $wire.notifyRouterLoginReady(!!pass, user);
+                        }
+                    }"
+                    @click.prevent="openRouterLogin()"
+                >
+                    <x-filament::icon icon="heroicon-o-bolt" class="h-4 w-4" />
+                    Router
+                </a>
+            @elseif (! empty($officeAccess['online']) && ! empty($officeAccess['wan_admin_url']))
+                <a href="{{ $officeAccess['wan_admin_url'] }}" class="sub-quickbar__btn sub-quickbar__btn--wan" target="_blank" rel="noopener">
+                    <x-filament::icon icon="heroicon-o-globe-alt" class="h-4 w-4" />
+                    WAN
+                </a>
+            @endif
+            @if (! empty($networkPath['links']['billing_router_portal']))
+                <a href="{{ $networkPath['links']['billing_router_portal'] }}" class="sub-quickbar__btn" target="_blank" rel="noopener">
+                    <x-filament::icon icon="heroicon-o-home" class="h-4 w-4" />
+                    /router
+                </a>
+            @endif
             <button type="button" class="sub-quickbar__btn" wire:click="extendDaysLive(5)" wire:loading.attr="disabled">
                 <x-filament::icon icon="heroicon-o-calendar" class="h-4 w-4" />
                 +5d
@@ -174,6 +247,11 @@
                 Edit
             </a>
         </nav>
+
+        @include('filament.resources.customer-resource.partials.subscriber-router-access-strip', [
+            'networkPath' => $cc['network_path'] ?? [],
+            'portalLoginUrl' => $details['urls']['portal_login'] ?? '#',
+        ])
 
         <nav class="sub-tabs no-print" role="tablist" aria-label="Client sections">
             @foreach ($tabItems as $item)
@@ -326,6 +404,9 @@
         </div>
 
         <div x-show="tab === 'network'" x-cloak class="sub-pane" data-sub-pane="network" hidden>
+            @include('filament.resources.customer-resource.partials.subscriber-network-path-panel', [
+                'networkPath' => $cc['network_path'] ?? [],
+            ])
             @include('filament.resources.customer-resource.partials.subscriber-onu-ops-panel', [
                 'onuOps' => $details['onu_ops'] ?? [],
             ])

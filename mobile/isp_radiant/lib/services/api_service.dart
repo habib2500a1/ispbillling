@@ -86,9 +86,9 @@ class ApiService {
         await clearSession();
         return false;
       }
-      return true;
+      return false;
     } catch (_) {
-      return true;
+      return false;
     }
   }
 
@@ -491,7 +491,7 @@ class ApiService {
       });
 
   Future<List<Map<String, dynamic>>> collectorExpenseCategories() async {
-    final body = await _get('/staff/expense-categories');
+    final body = await _get('/collector/expense-categories');
     return _listFrom(body['data']);
   }
 
@@ -507,8 +507,7 @@ class ApiService {
     String? description,
     String? expenseDate,
   }) =>
-      _post('/staff/expenses', {
-        'expense_source': expenseSource,
+      _post('/collector/expenses', {
         'amount': amount,
         'category_id': categoryId,
         if (description != null) 'description': description,

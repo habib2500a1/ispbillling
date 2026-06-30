@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\InternalTask;
 use App\Models\User;
 use App\Support\InternalTaskStatus;
+use App\Support\Rbac\StaffCapability;
 use App\Support\StaffTenantScope;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -17,6 +18,7 @@ class StaffTasksController extends Controller
     {
         /** @var User $user */
         $user = $request->user();
+        $this->authorizeTaskAccess($user);
         $tenantId = StaffTenantScope::tenantIdFor($user);
 
         $tasks = InternalTask::withoutGlobalScopes()
@@ -38,6 +40,7 @@ class StaffTasksController extends Controller
     {
         /** @var User $user */
         $user = $request->user();
+        $this->authorizeTaskAccess($user);
 
         $model = InternalTask::withoutGlobalScopes()
             ->where('tenant_id', StaffTenantScope::tenantIdFor($user))
@@ -75,5 +78,16 @@ class StaffTasksController extends Controller
             'completed_at' => $t->completed_at?->toIso8601String(),
             'created_at' => $t->created_at?->toIso8601String(),
         ];
+    }
+
+    private function authorizeTaskAccess(User $user): void
+    {
+        abort_unless($user instanceof User, 403);
+        $cap = StaffCapability::for($user);
+        abort_unless(
+            $cap->canHrm() || $cap->canReports() || $user->hasAnyRole(['super-admin', 'isp-admin', 'isp-manager']),
+            403,
+            'Task management access required.',
+        );
     }
 }

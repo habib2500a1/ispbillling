@@ -13,12 +13,19 @@
             @endif
         </p>
         <p class="mt-2 text-xs text-gray-500">Portal URL: <a href="{{ route('portal.login') }}" class="text-primary-600 underline" target="_blank" rel="noopener">{{ route('portal.login') }}</a></p>
+        @if (config('portal.router_home.enabled', true))
+            <p class="mt-1 text-xs text-gray-500">Home router mini portal: <a href="{{ route('portal.router-home') }}" class="text-primary-600 underline" target="_blank" rel="noopener">{{ route('portal.router-home') }}</a> — router admin page বা WiFi sticker-এ লাগান।</p>
+        @endif
     </div>
 
     <div class="rounded-lg border border-amber-200 bg-amber-50 p-4 dark:border-amber-800 dark:bg-amber-950/40">
         <p class="font-semibold text-amber-900 dark:text-amber-100">Token login (one-click)</p>
-        <p class="mt-1 break-all font-mono text-xs text-amber-950 dark:text-amber-50">{{ $token }}</p>
-        <p class="mt-2 break-all text-xs text-amber-800 dark:text-amber-200">{{ $link }}</p>
-        <p class="mt-2 text-xs text-amber-700 dark:text-amber-300">Share this link with the customer — no password needed. Regenerate token from the row menu if compromised.</p>
+        @if ($token !== '')
+            <p class="mt-1 break-all font-mono text-xs text-amber-950 dark:text-amber-50">{{ $token }}</p>
+            <p class="mt-2 break-all text-xs text-amber-800 dark:text-amber-200">{{ $link }}</p>
+            <p class="mt-2 text-xs text-amber-700 dark:text-amber-300">Share this link with the customer — no password needed. Regenerate token from the row menu if compromised.</p>
+        @else
+            <p class="mt-2 text-xs text-amber-800 dark:text-amber-200">A magic link is already active. Use <strong>Regenerate token</strong> to issue a new one-time URL (previous links stop working).</p>
+        @endif
     </div>
 </div>

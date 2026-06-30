@@ -29,7 +29,7 @@ final class BillingDashboardMetricsService
         $tenantId = $tenantId ?? TenantResolver::requiredTenantId();
 
         return Cache::remember(
-            "billing_dashboard:v4:{$tenantId}:".now()->format('Y-m-d-H'),
+            "billing_dashboard:v5:{$tenantId}:".now()->format('Y-m-d-H'),
             now()->addMinutes(3),
             fn (): array => $this->build($tenantId),
         );
@@ -52,6 +52,7 @@ final class BillingDashboardMetricsService
             'source_notice' => $this->sourceNotice($fromLegacyPortal),
             'kpis' => $this->kpis($tenantId, $from, $to, $pl, $billing),
             'growth' => $this->monthlyGrowthChart($tenantId, self::GROWTH_CHART_MONTHS),
+            'subscriber_lifecycle' => app(SubscriberLifecycleDashboardService::class)->payload($tenantId),
             'clients' => $this->topDueClients($tenantId, 12),
         ];
     }

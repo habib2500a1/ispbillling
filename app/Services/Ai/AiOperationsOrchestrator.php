@@ -71,8 +71,14 @@ final class AiOperationsOrchestrator
     public function ask(string $query, array $sessionState = [], ?int $tenantId = null): array
     {
         $tenantId = $tenantId ?? TenantResolver::requiredTenantId();
+        $settings = app(AiSettingsService::class);
+        abort_unless($settings->isEnabled($tenantId), 503, 'AI Copilot is disabled for this tenant.');
+        abort_unless($settings->withinDailyQuota($tenantId), 429, 'Daily AI query limit reached.');
+
+        $started = microtime(true);
         $context = new AiSessionContext;
         $context->hydrate($sessionState);
+        $llmUsed = false;
 
         $followUp = $this->intents->parseFollowUpFilters($query);
         if (! empty($followUp['_clear'])) {
@@ -86,14 +92,28 @@ final class AiOperationsOrchestrator
         $tool = $this->intents->resolve($query);
         $lastTool = (string) ($sessionState['last_tool'] ?? '');
 
+        if ($tool === null) {
+            $tool = app(AiLlmGateway::class)->resolveTool($query, $tenantId);
+            $llmUsed = $tool !== null;
+        }
+
         if ($tool === null && $followUp !== [] && $lastTool !== '') {
             $tool = $lastTool;
         }
 
+        $bn = $settings->bengaliReplies($tenantId) && preg_match('/[\x{0980}-\x{09FF}]/u', $query);
+
         if ($tool === null) {
-            $reply = 'I can help with billing, NOC, tickets, inventory, HR, and GIS. Try: "Show offline ONUs", "Show due customers", or "Operational summary".';
+            $rag = app(AiRagService::class)->contextBlock($query, $tenantId);
+            $reply = $bn
+                ? 'আমি বিলিং, NOC, টিকেট, ইনভেন্টরি, HR ও GIS-এ সাহায্য করতে পারি। চেষ্টা করুন: "বকেয়া কাস্টমার", "অফলাইন ONU", "অপারেশন সারাংশ"।'
+                : 'I can help with billing, NOC, tickets, inventory, HR, and GIS. Try: "Show offline ONUs", "Show due customers", or "Operational summary".';
+            if ($rag !== '') {
+                $reply .= "\n\n".$rag;
+            }
             $context->addMessage('user', $query);
             $context->addMessage('assistant', $reply);
+            $this->logInteraction($query, $reply, null, 'general', $llmUsed, $started);
 
             return [
                 'reply' => $reply,
@@ -101,18 +121,48 @@ final class AiOperationsOrchestrator
                 'table' => null,
                 'links' => [['label' => 'AI recommendations', 'url' => \App\Filament\Pages\AiOperationsCopilotHub::getUrl()]],
                 'session' => array_merge($context->toArray(), ['last_tool' => null]),
+                'advisory' => true,
             ];
         }
+
+        $user = auth()->user();
+        if ($user instanceof User) {
+            app(AiToolPermissionGuard::class)->assertCanRunTool($tool, $user);
+        }
+        abort_unless($settings->toolAllowed($tool, $tenantId), 403, 'This AI tool is disabled.');
 
         $payload = $this->runToolCached($tool, $context->filters(), $tenantId);
         $composed = $this->composer->compose($tool, $payload);
 
+        $summary = app(AiLlmGateway::class)->summarizeToolResult($tool, $query, $payload, $tenantId);
+        if (is_string($summary) && $summary !== '') {
+            $composed['reply'] = $summary;
+            $llmUsed = true;
+        }
+
         $context->addMessage('user', $query);
         $context->addMessage('assistant', $composed['reply']);
+        $this->logInteraction($query, $composed['reply'], $tool, (string) ($composed['domain'] ?? 'general'), $llmUsed, $started);
 
         return array_merge($composed, [
             'session' => array_merge($context->toArray(), ['last_tool' => $tool]),
+            'advisory' => true,
         ]);
+    }
+
+    private function logInteraction(string $query, string $reply, ?string $tool, string $domain, bool $llmUsed, float $started): void
+    {
+        $actor = auth()->user();
+        app(AiAuditLogger::class)->log(
+            channel: 'staff',
+            query: $query,
+            reply: $reply,
+            tool: $tool,
+            domain: $domain,
+            llmUsed: $llmUsed,
+            latencyMs: (int) round((microtime(true) - $started) * 1000),
+            actor: is_object($actor) ? $actor : null,
+        );
     }
 
     /**
@@ -149,6 +199,7 @@ final class AiOperationsOrchestrator
             'network.rca' => $this->toolRca($tenantId),
             'support.open_tickets' => $this->toolOpenTickets($filters, $tenantId),
             'support.complaint_trends' => $this->toolComplaintTrends($tenantId),
+            'support.ticket_triage' => $this->toolTicketTriage($tenantId),
             'gis.complaint_density' => $this->toolComplaintDensity($tenantId),
             'inventory.low_stock' => $this->toolLowStock($tenantId),
             'inventory.warranty_expiring' => $this->toolWarrantyExpiring($tenantId),
@@ -156,7 +207,9 @@ final class AiOperationsOrchestrator
             'hr.attendance' => $this->toolAttendance($tenantId),
             'bi.recommendations' => $this->toolRecommendations($tenantId),
             'bi.churn' => $this->toolChurn($tenantId),
+            'bi.churn_scored' => $this->toolChurnScored($tenantId),
             'bi.summary' => $this->toolExecutiveSummary($tenantId),
+            'actions.propose_suspend_defaulters' => $this->toolProposeSuspendDefaulters($tenantId),
             default => [
                 'summary' => 'Tool not available.',
                 'domain' => 'general',
@@ -647,6 +700,87 @@ final class AiOperationsOrchestrator
                 ['title' => 'Payment risk', 'value' => (string) ($ai['payment_risk_invoices'] ?? 0), 'tone' => 'amber'],
             ],
             'links' => [['label' => 'Churn reports', 'url' => \App\Filament\Pages\ChurnZoneReports::getUrl()]],
+        ];
+    }
+
+    private function toolChurnScored(int $tenantId): array
+    {
+        $this->guardBilling();
+        $rows = app(AiChurnScoringService::class)->scoredCustomers($tenantId, 15);
+        $tableRows = array_map(
+            fn (array $r): array => [
+                (string) ($r['customer_code'] ?? $r['customer_id']),
+                (string) $r['name'],
+                (string) $r['score'],
+                (string) $r['risk'],
+            ],
+            $rows,
+        );
+
+        return [
+            'domain' => 'bi',
+            'summary' => count($rows).' subscriber(s) with elevated churn score (40+).',
+            'table' => $this->composer->table(['Code', 'Name', 'Score', 'Risk'], $tableRows),
+            'links' => [['label' => 'Churn reports', 'url' => \App\Filament\Pages\ChurnZoneReports::getUrl()]],
+        ];
+    }
+
+    private function toolTicketTriage(int $tenantId): array
+    {
+        $this->guardSupport();
+        $ticket = SupportTicket::withoutGlobalScopes()
+            ->where('tenant_id', $tenantId)
+            ->whereNotIn('status', ['resolved', 'closed'])
+            ->latest('id')
+            ->first();
+
+        if ($ticket === null) {
+            return [
+                'domain' => 'support',
+                'summary' => 'No open tickets to triage.',
+                'cards' => [],
+                'links' => [['label' => 'Support hub', 'url' => \App\Filament\Pages\SupportHub::getUrl()]],
+            ];
+        }
+
+        $triage = app(AiTicketTriageService::class)->triageTicket($ticket);
+
+        return [
+            'domain' => 'support',
+            'summary' => "Ticket #{$ticket->ticket_number}: suggest {$triage['priority']} priority, {$triage['issue_type']}, dept {$triage['department']}.",
+            'cards' => [
+                ['title' => 'Priority', 'value' => (string) $triage['priority'], 'tone' => 'amber'],
+                ['title' => 'Issue', 'value' => (string) $triage['issue_type'], 'tone' => 'cyan'],
+            ],
+            'table' => $this->composer->table(
+                ['Field', 'Suggestion'],
+                [
+                    ['Assignee', (string) data_get($triage, 'suggested_assignee.name', '—')],
+                    ['Reply (BN)', (string) $triage['suggested_reply_bn']],
+                ],
+            ),
+            'links' => [['label' => 'Open ticket', 'url' => SupportTicketResource::getUrl('edit', ['record' => $ticket])]],
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function toolProposeSuspendDefaulters(int $tenantId): array
+    {
+        $this->guardBilling();
+        $user = auth()->user();
+        abort_unless($user instanceof User, 403);
+        $result = app(AiActionApprovalService::class)->proposeSuspendChronicDefaulters($tenantId, $user);
+
+        return [
+            'domain' => 'actions',
+            'summary' => (string) $result['summary'],
+            'cards' => [
+                ['title' => 'Pending approval', 'value' => (string) count($result['preview']['customers'] ?? []), 'tone' => 'rose'],
+            ],
+            'links' => [['label' => 'AI action queue', 'url' => \App\Filament\Pages\AiActionApprovalHub::getUrl()]],
+            'action_request_id' => $result['action_request_id'] ?? null,
         ];
     }
 
