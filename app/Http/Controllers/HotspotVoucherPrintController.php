@@ -4,10 +4,10 @@ namespace App\Http\Controllers;
 
 use App\Models\HotspotVoucher;
 use App\Support\CompanyBranding;
+use App\Support\Rbac\StaffCapability;
 use App\Support\TenantResolver;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
-use Illuminate\Support\Facades\Auth;
 use Mpdf\Mpdf;
 use Mpdf\Output\Destination;
 
@@ -15,7 +15,13 @@ class HotspotVoucherPrintController extends Controller
 {
     public function show(Request $request): Response
     {
-        abort_unless(Auth::check(), 401);
+        $user = $request->user();
+        abort_unless($user instanceof \App\Models\User, 401);
+        abort_unless(
+            StaffCapability::for($user)->canNetwork() || StaffCapability::for($user)->canBilling(),
+            403,
+            'Network or billing access required to print vouchers.',
+        );
 
         $tenantId = TenantResolver::requiredTenantId();
         $query = HotspotVoucher::query()->where('tenant_id', $tenantId);

@@ -10,7 +10,7 @@ MVVM + Retrofit + Material 3 app for **Client** and **Admin** panels.
 
 ## API base URL
 
-Default: `https://bill.flixbd.xyz/api/v1/`
+Default: `https://anetbd.com/api/v1/`
 
 Change in `app/build.gradle.kts` → `buildConfigField("API_BASE_URL", ...)`.
 

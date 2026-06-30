@@ -26,12 +26,17 @@ final class ServiceExpiryExtensionService
             return;
         }
 
+        $type = $package->billing_cycle_type ?? BillingCycleType::MONTHLY;
         $base = $customer->service_expires_at && $customer->service_expires_at->isFuture()
             ? $customer->service_expires_at->copy()->startOfDay()
             : now()->startOfDay();
 
+        $expiresAt = $type === BillingCycleType::HOURLY
+            ? $base->addHour()
+            : $base->addDays($days);
+
         $customer->forceFill([
-            'service_expires_at' => $base->addDays($days)->toDateString(),
+            'service_expires_at' => $expiresAt->toDateString(),
             'status' => CustomerStatus::ACTIVE,
             'network_access_state' => 'active',
         ])->saveQuietly();

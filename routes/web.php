@@ -123,7 +123,7 @@ Route::middleware('throttle:60,1')->prefix('shop')->name('shop.')->group(functio
     Route::post('/checkout', [InventoryShopController::class, 'checkout'])->name('checkout');
 });
 
-Route::get('/webhooks/sms/khudebarta/dlr', KhudeBartaDlrController::class)
+Route::middleware('throttle:120,1')->get('/webhooks/sms/khudebarta/dlr', KhudeBartaDlrController::class)
     ->name('webhooks.sms.khudebarta.dlr');
 
 Route::middleware('throttle:30,1')->prefix('rocket')->name('rocket.')->group(function (): void {

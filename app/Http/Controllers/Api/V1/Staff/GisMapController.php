@@ -3,9 +3,11 @@
 namespace App\Http\Controllers\Api\V1\Staff;
 
 use App\Http\Controllers\Controller;
+use App\Models\User;
 use App\Services\Network\FiberPlantMapService;
 use App\Services\Network\GisClusterService;
 use App\Services\Network\GisIntelligenceOpsService;
+use App\Support\Rbac\StaffCapability;
 use App\Support\TenantResolver;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -14,6 +16,7 @@ class GisMapController extends Controller
 {
     public function map(Request $request, FiberPlantMapService $mapService): JsonResponse
     {
+        $this->authorizeGisAccess($request);
         $customerId = $request->integer('customer');
         $payload = $mapService->buildPayload($customerId > 0 ? $customerId : null);
 
@@ -35,6 +38,7 @@ class GisMapController extends Controller
 
     public function search(Request $request): JsonResponse
     {
+        $this->authorizeGisAccess($request);
         $q = trim((string) $request->query('q', ''));
         if (strlen($q) < 2) {
             return response()->json(['ok' => true, 'results' => []]);
@@ -108,6 +112,7 @@ class GisMapController extends Controller
 
     public function clusters(Request $request, GisClusterService $clusters): JsonResponse
     {
+        $this->authorizeGisAccess($request);
         $north = $request->input('north');
         $south = $request->input('south');
         $east = $request->input('east');
@@ -129,6 +134,7 @@ class GisMapController extends Controller
 
     public function dependency(int $customerId, GisIntelligenceOpsService $gis): JsonResponse
     {
+        $this->authorizeGisAccess(request());
         TenantResolver::requiredTenantId();
 
         return response()->json($gis->dependencyTree($customerId));
@@ -136,9 +142,22 @@ class GisMapController extends Controller
 
     public function rca(int $customerId, GisIntelligenceOpsService $gis): JsonResponse
     {
+        $this->authorizeGisAccess(request());
         TenantResolver::requiredTenantId();
 
         return response()->json($gis->rcaForCustomer($customerId));
+    }
+
+    private function authorizeGisAccess(Request $request): void
+    {
+        $user = $request->user();
+        abort_unless($user instanceof User, 403);
+        $cap = StaffCapability::for($user);
+        abort_unless(
+            $cap->canNetwork() || $cap->canSupport() || $cap->canReports(),
+            403,
+            'GIS map access requires network, support, or reports permission.',
+        );
     }
 
     /**

@@ -55,9 +55,8 @@ final class CustomerPortalAccessService
 
     public function ensureAccessToken(Customer $customer): string
     {
-        $plain = $this->accessTokenPlain($customer);
-        if ($plain !== null && $this->hasAccessToken($customer)) {
-            return $plain;
+        if ($this->hasAccessToken($customer)) {
+            return '';
         }
 
         return $this->regenerateAccessToken($customer);
@@ -67,7 +66,7 @@ final class CustomerPortalAccessService
     {
         $plain = $customer->getKey().'-'.Str::lower(Str::random(32));
         $meta = is_array($customer->meta) ? $customer->meta : [];
-        $meta['portal_access_token'] = $plain;
+        unset($meta['portal_access_token']);
         $meta['portal_access_token_hash'] = Hash::make($plain);
         $meta['portal_access_token_at'] = now()->toIso8601String();
 
@@ -76,9 +75,12 @@ final class CustomerPortalAccessService
         return $plain;
     }
 
-    public function accessTokenUrl(Customer $customer): string
+    public function accessTokenUrl(Customer $customer): ?string
     {
         $token = $this->ensureAccessToken($customer);
+        if ($token === '') {
+            return null;
+        }
 
         return route('portal.access.token', ['token' => $token]);
     }
@@ -118,9 +120,7 @@ final class CustomerPortalAccessService
 
     public function accessTokenPlain(Customer $customer): ?string
     {
-        $plain = Arr::get($customer->meta ?? [], 'portal_access_token');
-
-        return is_string($plain) && $plain !== '' ? $plain : null;
+        return null;
     }
 
     public function portalCredentialsSummary(Customer $customer): string

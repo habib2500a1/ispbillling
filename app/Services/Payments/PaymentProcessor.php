@@ -10,6 +10,7 @@ use App\Services\Billing\BillingDueRealtimeSync;
 use App\Services\Billing\InvoiceCalculator;
 use App\Support\PaymentGateway;
 use App\Support\PaymentType;
+use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -60,38 +61,53 @@ final class PaymentProcessor
         array $meta = [],
         string $paymentType = PaymentType::PAYMENT,
     ): Payment {
-        $existing = Payment::query()
-            ->withoutGlobalScopes()
-            ->where('gateway', $gateway)
-            ->where('gateway_transaction_id', $transactionId)
-            ->first();
+        return DB::transaction(function () use ($gateway, $transactionId, $customerId, $invoiceId, $amount, $reference, $meta, $paymentType): Payment {
+            $existing = Payment::query()
+                ->withoutGlobalScopes()
+                ->where('gateway', $gateway)
+                ->where('gateway_transaction_id', $transactionId)
+                ->lockForUpdate()
+                ->first();
 
-        if ($existing !== null) {
-            if ($existing->status !== 'completed') {
-                $existing->update(['status' => 'completed', 'paid_at' => $existing->paid_at ?? now()]);
+            if ($existing !== null) {
+                if ($existing->status !== 'completed') {
+                    $existing->update(['status' => 'completed', 'paid_at' => $existing->paid_at ?? now()]);
+                }
+
+                return $existing->fresh();
             }
 
-            return $existing->fresh();
-        }
+            try {
+                $payment = Payment::createTrusted([
+                    'customer_id' => $customerId,
+                    'invoice_id' => $invoiceId,
+                    'amount' => round($amount, 2),
+                    'method' => $gateway,
+                    'gateway' => $gateway,
+                    'gateway_transaction_id' => $transactionId,
+                    'reference' => $reference,
+                    'status' => 'completed',
+                    'paid_at' => now(),
+                    'payment_type' => $paymentType,
+                    'receipt_number' => Payment::generateReceiptNumber(
+                        (int) (Customer::withoutGlobalScopes()->whereKey($customerId)->value('tenant_id') ?? 1)
+                    ),
+                    'meta' => array_merge($meta, ['source' => 'gateway_webhook']),
+                ]);
+            } catch (QueryException $e) {
+                if (! static::isDuplicateGatewayPaymentException($e)) {
+                    throw $e;
+                }
 
-        $payment = Payment::createTrusted([
-            'customer_id' => $customerId,
-            'invoice_id' => $invoiceId,
-            'amount' => round($amount, 2),
-            'method' => $gateway,
-            'gateway' => $gateway,
-            'gateway_transaction_id' => $transactionId,
-            'reference' => $reference,
-            'status' => 'completed',
-            'paid_at' => now(),
-            'payment_type' => $paymentType,
-            'receipt_number' => Payment::generateReceiptNumber(
-                (int) (Customer::withoutGlobalScopes()->whereKey($customerId)->value('tenant_id') ?? 1)
-            ),
-            'meta' => array_merge($meta, ['source' => 'gateway_webhook']),
-        ]);
+                $payment = Payment::query()
+                    ->withoutGlobalScopes()
+                    ->where('gateway', $gateway)
+                    ->where('gateway_transaction_id', $transactionId)
+                    ->firstOrFail();
+            }
 
-        return $payment->fresh();
+            return $payment->fresh();
+        });
     }
 
     public static function recordRefund(Payment $original, float $amount, ?string $notes = null): Payment
@@ -128,7 +144,7 @@ final class PaymentProcessor
     private static function processStandardPayment(Payment $payment): void
     {
         $amount = (float) $payment->amount;
-        $customer = $payment->customer;
+        $customer = static::lockedCustomer($payment->customer);
         if ($customer === null) {
             return;
         }
@@ -186,7 +202,10 @@ final class PaymentProcessor
             $invoice->forceFill(['amount_paid' => $newPaid])->save();
             InvoiceCalculator::recalculate($invoice->fresh());
         } elseif ($payment->customer) {
-            static::addWallet($payment->customer, $amount, $payment, 'refund_credit');
+            $customer = static::lockedCustomer($payment->customer);
+            if ($customer !== null) {
+                static::addWallet($customer, $amount, $payment, 'refund_credit');
+            }
         }
     }
 
@@ -196,7 +215,10 @@ final class PaymentProcessor
         $amount = (float) $payment->amount;
 
         if ($direction === 'credit_wallet' && $payment->customer) {
-            static::addWallet($payment->customer, $amount, $payment, 'adjustment');
+            $customer = static::lockedCustomer($payment->customer);
+            if ($customer !== null) {
+                static::addWallet($customer, $amount, $payment, 'adjustment');
+            }
 
             return;
         }
@@ -218,14 +240,15 @@ final class PaymentProcessor
 
     private static function processWalletDeposit(Payment $payment): void
     {
-        if ($payment->customer) {
-            static::addWallet($payment->customer, (float) $payment->amount, $payment, 'deposit');
+        $customer = static::lockedCustomer($payment->customer);
+        if ($customer !== null) {
+            static::addWallet($customer, (float) $payment->amount, $payment, 'deposit');
         }
     }
 
     private static function processWalletApply(Payment $payment): void
     {
-        $customer = $payment->customer;
+        $customer = static::lockedCustomer($payment->customer);
         if ($customer === null) {
             return;
         }
@@ -264,8 +287,13 @@ final class PaymentProcessor
             return;
         }
 
-        $customer->forceFill([
-            'account_balance' => round((float) $customer->account_balance + $amount, 2),
+        $locked = static::lockedCustomer($customer);
+        if ($locked === null) {
+            return;
+        }
+
+        $locked->forceFill([
+            'account_balance' => round((float) $locked->account_balance + $amount, 2),
         ])->saveQuietly();
 
         $meta = $payment->meta ?? [];
@@ -367,5 +395,25 @@ final class PaymentProcessor
         $walletCredit = (float) ($meta['wallet_credit'] ?? 0);
 
         return round((float) $payment->amount - $applied - $walletCredit, 2);
+    }
+
+    private static function lockedCustomer(?Customer $customer): ?Customer
+    {
+        if ($customer === null) {
+            return null;
+        }
+
+        return Customer::withoutGlobalScopes()
+            ->whereKey($customer->id)
+            ->lockForUpdate()
+            ->first();
+    }
+
+    private static function isDuplicateGatewayPaymentException(QueryException $e): bool
+    {
+        $message = strtolower($e->getMessage());
+
+        return str_contains($message, 'unique')
+            && (str_contains($message, 'gateway_transaction') || str_contains($message, 'payments_gateway'));
     }
 }

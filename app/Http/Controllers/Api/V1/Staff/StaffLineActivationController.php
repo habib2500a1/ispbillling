@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1\Staff;
 use App\Http\Controllers\Controller;
 use App\Models\Customer;
 use App\Services\Subscribers\CustomerLineActivationService;
+use App\Support\Rbac\StaffCapability;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -12,6 +13,13 @@ class StaffLineActivationController extends Controller
 {
     public function store(Request $request, Customer $customer, CustomerLineActivationService $service): JsonResponse
     {
+        $user = $request->user();
+        abort_unless($user instanceof \App\Models\User, 403);
+        abort_unless(
+            StaffCapability::for($user)->canBilling() || StaffCapability::for($user)->canCustomers(),
+            403,
+            'Billing access required to activate lines.',
+        );
         $validated = $request->validate([
             'line_charge' => ['nullable', 'numeric', 'min:0'],
             'device_id' => ['nullable', 'integer', 'exists:devices,id'],

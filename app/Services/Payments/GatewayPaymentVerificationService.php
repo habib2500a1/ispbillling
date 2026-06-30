@@ -3,6 +3,7 @@
 namespace App\Services\Payments;
 
 use App\Models\Customer;
+use App\Models\Invoice;
 use App\Models\MfsSmsRecord;
 use App\Models\Payment;
 use App\Models\PendingGatewayPayment;
@@ -61,6 +62,17 @@ final class GatewayPaymentVerificationService
         $customer = Customer::query()->withoutGlobalScopes()->find($customerId);
         if ($customer === null) {
             return ['status' => 'error', 'message' => 'Customer not found.'];
+        }
+
+        if ($invoiceId !== null) {
+            $invoiceOwned = Invoice::query()
+                ->withoutGlobalScopes()
+                ->whereKey($invoiceId)
+                ->where('customer_id', $customerId)
+                ->exists();
+            if (! $invoiceOwned) {
+                $invoiceId = null;
+            }
         }
 
         $checks = $this->runPersonalChecks($gateway, $trxId, $amount, $session, (int) $customer->tenant_id);
@@ -639,7 +651,7 @@ final class GatewayPaymentVerificationService
     {
         if (Payment::query()
             ->withoutGlobalScopes()
-            ->where('method', $gateway)
+            ->where('gateway', $gateway)
             ->where('gateway_transaction_id', $trxId)
             ->exists()) {
             return true;

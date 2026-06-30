@@ -48,7 +48,7 @@ class _StaffExpenseScreenState extends State<StaffExpenseScreen> {
     });
     try {
       final cats = await widget.api.collectorExpenseCategories();
-      final hist = await widget.api.staffExpenses();
+      final hist = await widget.api.collectorExpenses();
       if (mounted) {
         setState(() {
           _categories = cats;

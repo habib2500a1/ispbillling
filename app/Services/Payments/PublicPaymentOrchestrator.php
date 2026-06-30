@@ -23,6 +23,7 @@ final class PublicPaymentOrchestrator
         string $returnTo = 'bill_payment',
     ): RedirectResponse {
         $customer = $invoice->customer;
+        abort_if($customer === null, 404, 'Invoice customer not found.');
 
         return ResellerPaymentContext::usingCustomer($customer, fn (): RedirectResponse => $this->startInvoicePaymentResolved(
             $invoice,

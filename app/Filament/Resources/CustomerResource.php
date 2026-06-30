@@ -660,7 +660,9 @@ class CustomerResource extends Resource
                             $token = $portal->ensureAccessToken($record->fresh() ?? $record);
                             $login = $portal->portalLoginId($record);
                             $defaultPassword = $portal->defaultPassword();
-                            $link = $portal->accessTokenUrl($record->fresh() ?? $record);
+                            $link = $token !== ''
+                                ? route('portal.access.token', ['token' => $token])
+                                : null;
 
                             return view('filament.resources.customer-resource.portal-access-modal', [
                                 'login' => $login,
