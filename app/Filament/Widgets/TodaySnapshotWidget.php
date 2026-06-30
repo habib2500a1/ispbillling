@@ -5,6 +5,7 @@ namespace App\Filament\Widgets;
 use App\Filament\Concerns\HasDashboardLazySkeleton;
 use App\Models\Customer;
 use App\Models\SupportTicket;
+use App\Services\Dashboard\SubscriberLifecycleDashboardService;
 use App\Services\Import\LegacyPortalDashboardSummaryProvider;
 use App\Services\Reports\StaffPerformanceReportService;
 use App\Support\BillingPortalLabel;
@@ -92,6 +93,9 @@ class TodaySnapshotWidget extends Widget
 
         return [
             ['label' => 'Collected today', 'value' => $currency($snapshot['collected_today'] ?? 0), 'icon' => 'heroicon-m-banknotes', 'tone' => 'emerald', 'url' => $collectRoute],
+            ['label' => 'New lines (month)', 'value' => number_format($snapshot['mtd_new_lines'] ?? 0), 'icon' => 'heroicon-m-user-plus', 'tone' => ($snapshot['mtd_new_lines'] ?? 0) > 0 ? 'emerald' : 'slate', 'url' => $collectRoute],
+            ['label' => 'Renewed today', 'value' => number_format($snapshot['today_renewals'] ?? 0), 'icon' => 'heroicon-m-arrow-path', 'tone' => ($snapshot['today_renewals'] ?? 0) > 0 ? 'cyan' : 'slate', 'url' => $collectRoute],
+            ['label' => 'Renewals (month)', 'value' => number_format($snapshot['mtd_renewals'] ?? 0), 'icon' => 'heroicon-m-calendar-days', 'tone' => ($snapshot['mtd_renewals'] ?? 0) > 0 ? 'cyan' : 'slate', 'url' => $collectRoute],
             ['label' => 'Due customers', 'value' => number_format($snapshot['due_customers'] ?? 0), 'icon' => 'heroicon-m-exclamation-circle', 'tone' => ($snapshot['due_customers'] ?? 0) > 0 ? 'rose' : 'slate', 'url' => $collectRoute],
             ['label' => 'Open tickets', 'value' => number_format($snapshot['open_tickets'] ?? 0), 'icon' => 'heroicon-m-lifebuoy', 'tone' => ($snapshot['open_tickets'] ?? 0) > 0 ? 'amber' : 'slate', 'url' => $ticketRoute],
             ['label' => 'Expiring today', 'value' => number_format($snapshot['expiring_today'] ?? 0), 'icon' => 'heroicon-m-clock', 'tone' => ($snapshot['expiring_today'] ?? 0) > 0 ? 'rose' : 'slate', 'url' => $custIndex],
@@ -142,12 +146,18 @@ class TodaySnapshotWidget extends Widget
             ->whereDate('service_expires_at', $tomorrow)
             ->count();
 
+        $lifecycle = app(SubscriberLifecycleDashboardService::class)->payload($tenantId);
+
         return [
             'collected_today' => $collectedToday,
             'due_customers' => $dueCustomers,
             'open_tickets' => $openTickets,
             'expiring_today' => $expiringToday,
             'expiring_tomorrow' => $expiringTomorrow,
+            'mtd_new_lines' => (int) ($lifecycle['mtd_new_lines'] ?? 0),
+            'today_new_lines' => (int) ($lifecycle['today_new_lines'] ?? 0),
+            'mtd_renewals' => (int) ($lifecycle['mtd_renewals'] ?? 0),
+            'today_renewals' => (int) ($lifecycle['today_renewals'] ?? 0),
         ];
     }
 }

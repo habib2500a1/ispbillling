@@ -228,7 +228,7 @@
                 <header class="isp-dash-insights__head">
                     <div>
                         <h3 class="isp-dash-insights__title">Customer growth</h3>
-                        <p class="isp-dash-insights__sub">New signups · last 14 days</p>
+                        <p class="isp-dash-insights__sub">New signups · last 14 days (joined date)</p>
                     </div>
                     <div class="isp-dash-insights__kpis">
                         <div class="isp-dash-insights__kpi isp-dash-insights__kpi--cyan">

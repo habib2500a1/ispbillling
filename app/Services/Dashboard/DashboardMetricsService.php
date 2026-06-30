@@ -269,8 +269,8 @@ class DashboardMetricsService
         $counts = Customer::withoutGlobalScopes()
             ->where('tenant_id', $tenantId)
             ->where('status', '!=', CustomerStatus::TERMINATED)
-            ->where('created_at', '>=', $start)
-            ->select(DB::raw('DATE(created_at) as day'), DB::raw('COUNT(*) as total'))
+            ->where('joined_at', '>=', $start)
+            ->select(DB::raw('DATE(joined_at) as day'), DB::raw('COUNT(*) as total'))
             ->groupBy('day')
             ->pluck('total', 'day');
 
