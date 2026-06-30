@@ -75,6 +75,9 @@ class SubscriberNetworkPathServiceTest extends TestCase
         $this->assertSame('10.10.10.1', $path['mikrotik']['host']);
         $this->assertSame('103.25.10.50', $path['ppp']['framed_ip']);
         $this->assertSame('wifi-secret', $path['home_router']['password']);
+        $this->assertTrue($path['one_click_router']['available']);
+        $this->assertSame('http://103.25.10.50', $path['one_click_router']['url']);
+        $this->assertSame('wan', $path['one_click_router']['via']);
         $this->assertStringContainsString('MT 10.10.10.1', $path['path_label']);
     }
 }

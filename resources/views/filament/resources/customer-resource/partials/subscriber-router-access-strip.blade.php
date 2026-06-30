@@ -5,21 +5,28 @@
     $home = $path['home_router'] ?? [];
     $mt = $path['mikrotik'] ?? [];
     $ppp = $path['ppp'] ?? [];
+    $oneClick = $path['one_click_router'] ?? [];
     $online = (bool) ($office['online'] ?? $ppp['online'] ?? false);
+    $oneClickReady = (bool) ($oneClick['available'] ?? false);
 @endphp
 
-<section class="sub-router-access no-print" wire:key="router-access-{{ md5(json_encode([$office['wan_ip'] ?? '', $online])) }}">
+<section class="sub-router-access no-print" wire:key="router-access-{{ md5(json_encode([$office['wan_ip'] ?? '', $online, $oneClickReady])) }}">
     <div class="sub-router-access__head">
         <div>
             <h3 class="sub-router-access__title">Router &amp; portal login</h3>
             <p class="sub-router-access__hint">
-                @if ($online)
+                @if ($oneClickReady)
+                    {{ $oneClick['hint'] ?? 'একই MikroTik — এক ক্লিকে router admin' }}
+                    @if (! empty($oneClick['wan_ip']))
+                        · <span class="font-mono">{{ $oneClick['wan_ip'] }}</span>
+                    @endif
+                @elseif ($online)
                     PPPoE online
                     @if (! empty($office['wan_ip']))
                         · WAN <span class="font-mono">{{ $office['wan_ip'] }}</span>
                     @endif
                 @else
-                    PPPoE offline — WAN login online হলে দেখাবে
+                    PPPoE offline — online হলে এক ক্লিক router login দেখাবে
                 @endif
             </p>
         </div>
@@ -30,6 +37,31 @@
     </div>
 
     <div class="sub-router-access__actions">
+        @if ($oneClickReady)
+            <a
+                href="{{ $oneClick['url'] }}"
+                class="sub-router-access__btn sub-router-access__btn--oneclick"
+                target="_blank"
+                rel="noopener"
+                x-data="{
+                    openRouterLogin() {
+                        const pass = @js($oneClick['password'] ?? null);
+                        const user = @js($oneClick['user'] ?? 'admin');
+                        let copied = false;
+                        if (pass) {
+                            navigator.clipboard.writeText(pass).then(() => { copied = true; }).catch(() => {});
+                        }
+                        window.open(@js($oneClick['url']), '_blank', 'noopener');
+                        $wire.notifyRouterLoginReady(!!pass, user);
+                    }
+                }"
+                @click.prevent="openRouterLogin()"
+            >
+                <x-filament::icon icon="heroicon-o-bolt" class="h-4 w-4" />
+                Router login (1-click)
+            </a>
+        @endif
+
         <a href="{{ $portalLoginUrl ?? '#' }}" class="sub-router-access__btn sub-router-access__btn--primary" target="_blank" rel="noopener">
             <x-filament::icon icon="heroicon-o-arrow-right-on-rectangle" class="h-4 w-4" />
             Customer portal
@@ -49,21 +81,21 @@
             </a>
         @endif
 
-        @if ($online && ! empty($office['wan_admin_url']))
+        @if ($online && ! empty($office['wan_admin_url']) && ! $oneClickReady)
             <a href="{{ $office['wan_admin_url'] }}" class="sub-router-access__btn sub-router-access__btn--wan" target="_blank" rel="noopener">
                 <x-filament::icon icon="heroicon-o-globe-alt" class="h-4 w-4" />
                 Open WAN router
             </a>
         @endif
 
-        @if ($online && ! empty($office['lan_admin_url']))
+        @if ($online && ! empty($office['lan_admin_url']) && ($oneClick['via'] ?? '') !== 'lan_arp')
             <a href="{{ $office['lan_admin_url'] }}" class="sub-router-access__btn" target="_blank" rel="noopener">
                 <x-filament::icon icon="heroicon-o-wifi" class="h-4 w-4" />
                 LAN IP
             </a>
         @endif
 
-        @if (! empty($home['lan_url']))
+        @if (! empty($home['lan_url']) && ! $oneClickReady)
             <a href="{{ $home['lan_url'] }}" class="sub-router-access__btn" target="_blank" rel="noopener" title="On-site LAN admin">
                 <x-filament::icon icon="heroicon-o-cpu-chip" class="h-4 w-4" />
                 Home LAN
@@ -83,17 +115,28 @@
         </button>
     </div>
 
-    @if ($home['password_set'] ?? false)
+    @if ($oneClickReady || ($home['password_set'] ?? false))
         <p class="sub-router-access__creds text-xs">
-            Home router:
-            <span class="font-mono">{{ $home['user'] ?? 'admin' }}</span>
-            ·
-            <span class="isp-cv-password" x-data="{ show: false }">
-                <span class="font-mono" x-text="show ? @js($home['password'] ?? '') : '••••••'"></span>
-                <button type="button" class="isp-cv-password__toggle ml-1" @click="show = !show">👁</button>
-            </span>
-            @if (! empty($home['lan_url']))
-                · <a href="{{ $home['lan_url'] }}" target="_blank" rel="noopener" class="isp-cv-link font-mono">{{ parse_url($home['lan_url'], PHP_URL_HOST) ?: $home['lan_url'] }}</a>
+            @if ($oneClickReady)
+                Router login:
+                <span class="font-mono">{{ $oneClick['user'] ?? 'admin' }}</span>
+                @if ($oneClick['password_set'] ?? false)
+                    ·
+                    <span class="isp-cv-password" x-data="{ show: false }">
+                        <span class="font-mono" x-text="show ? @js($oneClick['password'] ?? '') : '••••••'"></span>
+                        <button type="button" class="isp-cv-password__toggle ml-1" @click="show = !show">👁</button>
+                    </span>
+                @else
+                    · <span class="text-amber-600">password সেভ করুন (Set router login)</span>
+                @endif
+            @elseif ($home['password_set'] ?? false)
+                Home router:
+                <span class="font-mono">{{ $home['user'] ?? 'admin' }}</span>
+                ·
+                <span class="isp-cv-password" x-data="{ show: false }">
+                    <span class="font-mono" x-text="show ? @js($home['password'] ?? '') : '••••••'"></span>
+                    <button type="button" class="isp-cv-password__toggle ml-1" @click="show = !show">👁</button>
+                </span>
             @endif
         </p>
     @endif

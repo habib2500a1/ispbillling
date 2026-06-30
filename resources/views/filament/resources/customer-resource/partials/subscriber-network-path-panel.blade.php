@@ -6,6 +6,7 @@
     $home = $path['home_router'] ?? [];
     $links = $path['links'] ?? [];
     $office = $path['office_access'] ?? [];
+    $oneClick = $path['one_click_router'] ?? [];
 @endphp
 
 <section class="isp-cv-card sub-cc-panel sub-cc-panel--path">
@@ -16,6 +17,33 @@
             <span wire:loading wire:target="syncNetworkPath">Syncing…</span>
         </button>
     </div>
+
+    @if ($oneClick['available'] ?? false)
+        <div class="sub-path-oneclick mb-3">
+            <a
+                href="{{ $oneClick['url'] }}"
+                class="sub-router-access__btn sub-router-access__btn--oneclick"
+                target="_blank"
+                rel="noopener"
+                x-data="{
+                    openRouterLogin() {
+                        const pass = @js($oneClick['password'] ?? null);
+                        const user = @js($oneClick['user'] ?? 'admin');
+                        if (pass) {
+                            navigator.clipboard.writeText(pass).catch(() => {});
+                        }
+                        window.open(@js($oneClick['url']), '_blank', 'noopener');
+                        $wire.notifyRouterLoginReady(!!pass, user);
+                    }
+                }"
+                @click.prevent="openRouterLogin()"
+            >
+                <x-filament::icon icon="heroicon-o-bolt" class="h-4 w-4" />
+                Router login (1-click) — same MikroTik
+            </a>
+            <p class="text-xs text-emerald-700 dark:text-emerald-300 mt-2">{{ $oneClick['hint'] ?? '' }}</p>
+        </div>
+    @endif
 
     <p class="text-xs text-slate-500 mb-3 font-mono">{{ $path['path_label'] ?? '—' }}</p>
 

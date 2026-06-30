@@ -5,6 +5,7 @@ namespace App\Services\Network;
 use App\Models\Customer;
 use App\Models\Device;
 use App\Models\MikrotikServer;
+use App\Models\PppSessionLog;
 use App\Services\Mikrotik\MikrotikCustomerLanResolver;
 use App\Services\Optical\MikrotikOpticalBridgeService;
 use App\Services\Portal\CustomerPortalAccessService;
@@ -49,6 +50,14 @@ final class SubscriberNetworkPathService
 
         $portal = app(CustomerPortalAccessService::class);
         $access = $this->mikrotikAccessHints($mt, $customer, $callerId);
+        $access = $this->mergeSessionFallback($access, $ppp, $mt !== null);
+
+        $homeRouter = [
+            'lan_url' => 'http://'.$homeIp,
+            'user' => $homeUser,
+            'password' => $homePass,
+            'password_set' => $homePass !== null,
+        ];
 
         return [
             'mikrotik' => [
@@ -70,12 +79,8 @@ final class SubscriberNetworkPathService
                 'olt' => $onu?->olt?->display_name,
             ],
             'path_label' => $this->pathLabel($mt?->host, $ppp?->framed_ip, $callerId, $onu),
-            'home_router' => [
-                'lan_url' => 'http://'.$homeIp,
-                'user' => $homeUser,
-                'password' => $homePass,
-                'password_set' => $homePass !== null,
-            ],
+            'home_router' => $homeRouter,
+            'one_click_router' => $this->oneClickRouter($access, $homeRouter, $mt !== null),
             'links' => [
                 'billing_router_portal' => route('portal.router-home'),
                 'portal_token' => $portal->accessTokenUrl($customer),
@@ -158,5 +163,72 @@ final class SubscriberNetworkPathService
             $customer->pppLoginName(),
             $callerId !== null ? (string) $callerId : null,
         );
+    }
+
+    /**
+     * @param  array<string, mixed>  $access
+     * @return array<string, mixed>
+     */
+    private function mergeSessionFallback(array $access, ?PppSessionLog $ppp, bool $hasMikrotik): array
+    {
+        if ($access['online'] ?? false) {
+            return $access;
+        }
+
+        if (! $hasMikrotik || $ppp === null || ! filled($ppp->framed_ip)) {
+            return $access;
+        }
+
+        $wanIp = trim((string) $ppp->framed_ip);
+
+        return [
+            ...$access,
+            'online' => true,
+            'wan_ip' => $wanIp,
+            'wan_admin_url' => 'http://'.$wanIp,
+            'same_network' => true,
+        ];
+    }
+
+    /**
+     * Same MikroTik: live PPP WAN (or ARP LAN) → one-click router admin from office.
+     *
+     * @param  array<string, mixed>  $access
+     * @param  array{lan_url: string, user: string, password: ?string, password_set: bool}  $home
+     * @return array<string, mixed>
+     */
+    private function oneClickRouter(array $access, array $home, bool $hasMikrotik): array
+    {
+        $url = null;
+        $via = null;
+
+        if ($hasMikrotik && ! empty($access['online'])) {
+            if (! empty($access['wan_admin_url'])) {
+                $url = $access['wan_admin_url'];
+                $via = 'wan';
+            } elseif (! empty($access['lan_admin_url'])) {
+                $url = $access['lan_admin_url'];
+                $via = 'lan_arp';
+            }
+        }
+
+        $available = $url !== null;
+
+        return [
+            'available' => $available,
+            'url' => $url,
+            'via' => $via,
+            'user' => $home['user'],
+            'password' => $home['password'],
+            'password_set' => $home['password_set'],
+            'wan_ip' => $access['wan_ip'] ?? null,
+            'hint' => match ($via) {
+                'wan' => 'একই MikroTik · live WAN IP — ক্লিক করলে admin খুলবে, password clipboard-এ',
+                'lan_arp' => 'একই MikroTik · ARP/DHCP LAN IP',
+                default => $hasMikrotik
+                    ? 'PPPoE offline — online হলে এক ক্লিক router login'
+                    : 'MikroTik লিংক নেই',
+            },
+        ];
     }
 }

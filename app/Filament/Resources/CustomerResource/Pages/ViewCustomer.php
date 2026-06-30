@@ -131,6 +131,18 @@ class ViewCustomer extends ViewRecord
         $this->mountAction('set_home_router');
     }
 
+    public function notifyRouterLoginReady(bool $passwordCopied = false, string $user = 'admin'): void
+    {
+        Notification::make()
+            ->title('Router admin খোলা হচ্ছে')
+            ->body(
+                'Login: '.$user
+                .($passwordCopied ? ' · Password clipboard-এ কপি হয়েছে — paste করুন' : ' · Password সেভ নেই — Set router login')
+            )
+            ->success()
+            ->send();
+    }
+
     public function mount(int|string $record): void
     {
         parent::mount($record);

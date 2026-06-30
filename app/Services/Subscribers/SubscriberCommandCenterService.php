@@ -603,13 +603,22 @@ final class SubscriberCommandCenterService
         $path = app(SubscriberNetworkPathService::class)->path($customer);
         $office = $path['office_access'] ?? [];
         $links = $path['links'] ?? [];
+        $oneClick = $path['one_click_router'] ?? [];
 
         $actions = [
             ['key' => 'collect', 'label' => 'Collect', 'icon' => 'heroicon-o-banknotes', 'url' => \App\Filament\Pages\BillCollectionDesk::getUrl(['customer' => $customer->id]), 'type' => 'link'],
             ['key' => 'portal', 'label' => 'Customer portal', 'icon' => 'heroicon-o-arrow-right-on-rectangle', 'url' => route('staff.subscribers.portal-login', ['customer' => $customer->getKey()]), 'type' => 'external'],
         ];
 
-        if (! empty($office['online']) && ! empty($office['wan_admin_url'])) {
+        if (! empty($oneClick['available'])) {
+            $actions[] = [
+                'key' => 'router_login',
+                'label' => 'Router login',
+                'icon' => 'heroicon-o-bolt',
+                'url' => $oneClick['url'],
+                'type' => 'external',
+            ];
+        } elseif (! empty($office['online']) && ! empty($office['wan_admin_url'])) {
             $actions[] = [
                 'key' => 'wan_router',
                 'label' => 'WAN router',

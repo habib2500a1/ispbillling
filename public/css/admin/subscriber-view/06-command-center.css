@@ -776,6 +776,30 @@
     color: #cbd5e1;
 }
 
+.sub-router-access__btn--oneclick {
+    background: linear-gradient(135deg, rgba(234, 179, 8, 0.35), rgba(245, 158, 11, 0.28));
+    border-color: rgba(252, 211, 77, 0.55);
+    color: #fef9c3;
+    font-size: 0.78rem;
+    padding: 0.45rem 0.85rem;
+}
+
+.sub-pro .sub-quickbar__btn--oneclick {
+    background: linear-gradient(135deg, rgba(234, 179, 8, 0.2), rgba(245, 158, 11, 0.15));
+    border-color: rgba(234, 179, 8, 0.45);
+    color: #a16207;
+    font-weight: 800;
+}
+
+.dark .sub-pro .sub-quickbar__btn--oneclick {
+    color: #fde047;
+}
+
+.sub-path-oneclick .sub-router-access__btn--oneclick {
+    width: 100%;
+    justify-content: center;
+}
+
 .sub-pro .sub-quickbar__btn--wan {
     background: rgba(56, 189, 248, 0.15);
     border-color: rgba(56, 189, 248, 0.35);
