@@ -143,7 +143,6 @@ class AppServiceProvider extends ServiceProvider
             if (
                 str_starts_with($appUrl, 'https://')
                 || $request->isSecure()
-                || $request->header('X-Forwarded-Proto') === 'https'
             ) {
                 URL::forceScheme('https');
             }

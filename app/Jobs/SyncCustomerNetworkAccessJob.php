@@ -52,6 +52,8 @@ class SyncCustomerNetworkAccessJob implements ShouldQueue
                 'message' => $e->getMessage(),
                 'exception' => $e::class,
             ]);
+
+            throw $e;
         }
     }
 }

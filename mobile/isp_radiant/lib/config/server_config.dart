@@ -38,7 +38,10 @@ class ServerConfig {
   static String normalizeApiBaseUrl(String input) {
     var url = input.trim();
     if (url.isEmpty) return AppConfig.defaultApiBaseUrl;
-    if (!url.startsWith('http://') && !url.startsWith('https://')) {
+    if (url.startsWith('http://')) {
+      url = 'https://${url.substring('http://'.length)}';
+    }
+    if (!url.startsWith('https://')) {
       url = 'https://$url';
     }
     url = url.replaceAll(RegExp(r'/+$'), '');

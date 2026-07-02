@@ -18,17 +18,22 @@ final class PaymentProcessor
 {
     public static function processCompletedPayment(Payment $payment): void
     {
-        if ($payment->status !== 'completed') {
-            return;
-        }
-
-        if (($payment->meta['processed'] ?? false) === true) {
-            return;
-        }
-
         DB::transaction(function () use ($payment): void {
-            $payment = $payment->fresh(['customer', 'invoice']);
+            $payment = Payment::query()
+                ->withoutGlobalScopes()
+                ->whereKey($payment->id)
+                ->lockForUpdate()
+                ->with(['customer', 'invoice'])
+                ->first();
             if ($payment === null) {
+                return;
+            }
+
+            if ($payment->status !== 'completed') {
+                return;
+            }
+
+            if (($payment->meta['processed'] ?? false) === true) {
                 return;
             }
 
@@ -60,10 +65,15 @@ final class PaymentProcessor
         string $reference,
         array $meta = [],
         string $paymentType = PaymentType::PAYMENT,
+        ?int $tenantId = null,
     ): Payment {
-        return DB::transaction(function () use ($gateway, $transactionId, $customerId, $invoiceId, $amount, $reference, $meta, $paymentType): Payment {
+        return DB::transaction(function () use ($gateway, $transactionId, $customerId, $invoiceId, $amount, $reference, $meta, $paymentType, $tenantId): Payment {
+            $resolvedTenantId = $tenantId
+                ?? (int) (Customer::withoutGlobalScopes()->whereKey($customerId)->value('tenant_id') ?? 1);
+
             $existing = Payment::query()
                 ->withoutGlobalScopes()
+                ->where('tenant_id', $resolvedTenantId)
                 ->where('gateway', $gateway)
                 ->where('gateway_transaction_id', $transactionId)
                 ->lockForUpdate()
@@ -79,6 +89,7 @@ final class PaymentProcessor
 
             try {
                 $payment = Payment::createTrusted([
+                    'tenant_id' => $resolvedTenantId,
                     'customer_id' => $customerId,
                     'invoice_id' => $invoiceId,
                     'amount' => round($amount, 2),
@@ -89,9 +100,7 @@ final class PaymentProcessor
                     'status' => 'completed',
                     'paid_at' => now(),
                     'payment_type' => $paymentType,
-                    'receipt_number' => Payment::generateReceiptNumber(
-                        (int) (Customer::withoutGlobalScopes()->whereKey($customerId)->value('tenant_id') ?? 1)
-                    ),
+                    'receipt_number' => Payment::generateReceiptNumber($resolvedTenantId),
                     'meta' => array_merge($meta, ['source' => 'gateway_webhook']),
                 ]);
             } catch (QueryException $e) {
@@ -101,6 +110,7 @@ final class PaymentProcessor
 
                 $payment = Payment::query()
                     ->withoutGlobalScopes()
+                    ->where('tenant_id', $resolvedTenantId)
                     ->where('gateway', $gateway)
                     ->where('gateway_transaction_id', $transactionId)
                     ->firstOrFail();

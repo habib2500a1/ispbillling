@@ -22,7 +22,10 @@ class RunMonthlyBillingJob implements ShouldQueue
 
     public function handle(): void
     {
-        Artisan::call('isp:generate-bills', self::artisanParameters($this->options));
+        $exit = Artisan::call('isp:generate-bills', self::artisanParameters($this->options));
+        if ($exit !== 0) {
+            throw new \RuntimeException("isp:generate-bills failed with exit code {$exit}");
+        }
     }
 
     /**

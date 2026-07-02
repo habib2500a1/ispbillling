@@ -67,16 +67,16 @@
 <script src="{{ asset('js/clients-directory-v2.js') }}?v={{ @filemtime(public_path('js/clients-directory-v2.js')) ?: 1 }}" defer></script>
 
 <x-filament-panels::page class="isp-clients-page">
-    <div class="cl-dir cl-dir-v2" data-view="table" wire:loading.class="cl-dir-loading">
+    <div class="cl-dir cl-dir-v2 cl-dir--classic" data-view="table" wire:loading.class="cl-dir-loading">
         <header class="cl-dir-hero">
             <div class="cl-dir-hero__body">
                 <span class="cl-dir-hero__badge">
                     <span class="cl-dir-hero__badge-dot" aria-hidden="true"></span>
-                    Clients directory
+                    Client Management
                 </span>
-                <h1 class="cl-dir-hero__title">{{ $heroTitle }}</h1>
+                <h1 class="cl-dir-hero__title">Active Clients</h1>
                 @if (filled($heroSubtitle))
-                    <p class="cl-dir-hero__sub">{{ $heroSubtitle }}</p>
+                    <p class="cl-dir-hero__sub">Desktop + mobile friendly client list with quick filters, search, status chips, and fast actions.</p>
                 @endif
             </div>
             <div class="cl-dir-hero__actions">

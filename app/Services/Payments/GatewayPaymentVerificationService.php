@@ -52,16 +52,16 @@ final class GatewayPaymentVerificationService
         $invoiceId = isset($session['invoice_id']) ? (int) $session['invoice_id'] : null;
         $trxId = PersonalMfsGateway::normalizeTrxId($transactionId);
 
-        if ($this->isDuplicateTransaction($gateway, $trxId)) {
+        $customer = Customer::query()->withoutGlobalScopes()->find($customerId);
+        if ($customer === null) {
+            return ['status' => 'error', 'message' => 'Customer not found.'];
+        }
+
+        if ($this->isDuplicateTransaction($gateway, $trxId, tenantId: (int) $customer->tenant_id)) {
             return [
                 'status' => 'duplicate',
                 'message' => 'This transaction ID was already used.',
             ];
-        }
-
-        $customer = Customer::query()->withoutGlobalScopes()->find($customerId);
-        if ($customer === null) {
-            return ['status' => 'error', 'message' => 'Customer not found.'];
         }
 
         if ($invoiceId !== null) {
@@ -204,9 +204,9 @@ final class GatewayPaymentVerificationService
         });
     }
 
-    public function isDuplicateGatewayTransaction(string $gateway, string $trxId): bool
+    public function isDuplicateGatewayTransaction(string $gateway, string $trxId, ?int $tenantId = null): bool
     {
-        return $this->isDuplicateTransaction($gateway, $trxId);
+        return $this->isDuplicateTransaction($gateway, $trxId, tenantId: $tenantId);
     }
 
     /**
@@ -357,7 +357,7 @@ final class GatewayPaymentVerificationService
             throw new \RuntimeException('Select a subscriber ID before approving this payment.');
         }
 
-        if ($this->isDuplicateTransaction($pending->gateway, $pending->transaction_id, $pending->id)) {
+        if ($this->isDuplicateTransaction($pending->gateway, $pending->transaction_id, $pending->id, (int) $pending->tenant_id)) {
             throw new \RuntimeException('Transaction ID already used on another payment.');
         }
 
@@ -381,6 +381,7 @@ final class GatewayPaymentVerificationService
                 amount: (float) $locked->amount,
                 reference: strtoupper($locked->gateway).' '.$locked->transaction_id,
                 meta: $paymentMeta,
+                tenantId: (int) $locked->tenant_id,
             );
 
             $locked->forceFill([
@@ -492,9 +493,10 @@ final class GatewayPaymentVerificationService
             $existingPending,
             $checkoutSession,
         ): array {
-            if ($this->isDuplicateTransaction($gateway, $trxId)) {
+            if ($this->isDuplicateTransaction($gateway, $trxId, tenantId: $tenantId)) {
                 $existing = Payment::query()
                     ->withoutGlobalScopes()
+                    ->where('tenant_id', $tenantId)
                     ->where('gateway', $gateway)
                     ->where('gateway_transaction_id', $trxId)
                     ->first();
@@ -518,6 +520,7 @@ final class GatewayPaymentVerificationService
                 if ($sms !== null && $sms->status === MfsSmsRecord::STATUS_USED) {
                     $existing = Payment::query()
                         ->withoutGlobalScopes()
+                        ->where('tenant_id', $tenantId)
                         ->where('gateway', $gateway)
                         ->where('gateway_transaction_id', $trxId)
                         ->first();
@@ -552,6 +555,7 @@ final class GatewayPaymentVerificationService
                     'reference_token' => $checks['reference_token'] ?? null,
                 ]),
                 paymentType: $paymentType,
+                tenantId: $tenantId,
             );
 
             if ($existingPending !== null) {
@@ -582,6 +586,7 @@ final class GatewayPaymentVerificationService
             // of trying to insert a second pending record.
             try {
                 $pending = PendingGatewayPayment::query()
+                    ->where('tenant_id', $tenantId)
                     ->where('gateway', $gateway)
                     ->where('transaction_id', $trxId)
                     ->lockForUpdate()
@@ -594,6 +599,7 @@ final class GatewayPaymentVerificationService
                 }
             } catch (QueryException $e) {
                 $pending = PendingGatewayPayment::query()
+                    ->where('tenant_id', $tenantId)
                     ->where('gateway', $gateway)
                     ->where('transaction_id', $trxId)
                     ->first();
@@ -647,13 +653,17 @@ final class GatewayPaymentVerificationService
         }
     }
 
-    private function isDuplicateTransaction(string $gateway, string $trxId, ?int $ignorePendingId = null): bool
+    private function isDuplicateTransaction(string $gateway, string $trxId, ?int $ignorePendingId = null, ?int $tenantId = null): bool
     {
-        if (Payment::query()
+        $paymentQuery = Payment::query()
             ->withoutGlobalScopes()
             ->where('gateway', $gateway)
-            ->where('gateway_transaction_id', $trxId)
-            ->exists()) {
+            ->where('gateway_transaction_id', $trxId);
+        if ($tenantId !== null && $tenantId > 0) {
+            $paymentQuery->where('tenant_id', $tenantId);
+        }
+
+        if ($paymentQuery->exists()) {
             return true;
         }
 
@@ -671,6 +681,9 @@ final class GatewayPaymentVerificationService
                         ->whereNotNull('customer_id');
                 });
             });
+        if ($tenantId !== null && $tenantId > 0) {
+            $pendingQuery->where('tenant_id', $tenantId);
+        }
 
         if ($ignorePendingId !== null) {
             $pendingQuery->where('id', '!=', $ignorePendingId);

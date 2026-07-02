@@ -15,10 +15,12 @@ class PaymentCheckoutScreen extends StatefulWidget {
 class _PaymentCheckoutScreenState extends State<PaymentCheckoutScreen> {
   late final WebViewController _controller;
   bool _loading = true;
+  late final Uri _initialUri;
 
   @override
   void initState() {
     super.initState();
+    _initialUri = Uri.parse(widget.paymentUrl);
     _controller = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
       ..setNavigationDelegate(
@@ -29,6 +31,9 @@ class _PaymentCheckoutScreenState extends State<PaymentCheckoutScreen> {
             _maybeComplete(url);
           },
           onNavigationRequest: (request) {
+            if (!_isAllowedUrl(request.url)) {
+              return NavigationDecision.prevent;
+            }
             if (_isPaymentDone(request.url)) {
               if (mounted) Navigator.pop(context, true);
               return NavigationDecision.prevent;
@@ -40,9 +45,30 @@ class _PaymentCheckoutScreenState extends State<PaymentCheckoutScreen> {
       ..loadRequest(Uri.parse(widget.paymentUrl));
   }
 
+  bool _isAllowedUrl(String url) {
+    final uri = Uri.tryParse(url);
+    if (uri == null) return false;
+    if (uri.scheme != 'https') return false;
+    if (uri.host.isEmpty) return false;
+
+    final host = uri.host.toLowerCase();
+    final originHost = _initialUri.host.toLowerCase();
+    final isSameHost = host == originHost || host.endsWith('.$originHost');
+
+    return isSameHost;
+  }
+
   bool _isPaymentDone(String url) {
-    final u = url.toLowerCase();
-    return u.contains('success') || u.contains('callback') || u.contains('complete') || u.contains('paid');
+    final uri = Uri.tryParse(url);
+    if (uri == null) return false;
+    if (!_isAllowedUrl(url)) return false;
+    final joined = '${uri.path}?${uri.query}'.toLowerCase();
+
+    return joined.contains('callback')
+        || joined.contains('return')
+        || joined.contains('payment-success')
+        || uri.queryParameters['status']?.toLowerCase() == 'success'
+        || uri.queryParameters['payment_status']?.toLowerCase() == 'success';
   }
 
   void _maybeComplete(String url) {

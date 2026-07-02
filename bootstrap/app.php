@@ -47,7 +47,7 @@ $app = Application::configure(basePath: $basePath)
         },
     )
     ->withSchedule(function (Schedule $schedule): void {
-        $schedule->useCache('file');
+        $schedule->useCache('redis');
 
         // Single entry point — schedules are defined in admin → Automatic process (DB).
         // Do not use runInBackground() here — mutex releases when the parent exits, so
@@ -114,7 +114,7 @@ $app = Application::configure(basePath: $basePath)
         $trusted = env('TRUSTED_PROXIES');
         $middleware->trustProxies(at: filled($trusted)
             ? array_values(array_filter(array_map(trim(...), explode(',', (string) $trusted))))
-            : '*');
+            : []);
 
         $middleware->alias([
             'portal.enabled' => EnsureCustomerPortalEnabled::class,

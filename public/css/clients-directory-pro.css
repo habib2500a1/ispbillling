@@ -1644,6 +1644,227 @@ html:not(.dark) .cl-dir-btn--active,
     transition: opacity 0.15s ease;
 }
 
+/* --- 09-classic-admin-style.css --- */
+/** Optional classic light admin look (matches Active Clients sample). */
+
+.cl-dir--classic {
+    --cl-dir-bg: #f3f6fb;
+    --cl-dir-card: #ffffff;
+    --cl-dir-card-2: #f8fafc;
+    --cl-dir-text: #0f172a;
+    --cl-dir-muted: #64748b;
+    --cl-dir-border: #dbe4ef;
+    --cl-dir-purple: #2563eb;
+}
+
+.cl-dir--classic .cl-dir-hero {
+    border: 1px solid var(--cl-dir-border);
+    background: #ffffff;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
+    padding: 0.9rem 1rem;
+}
+
+.cl-dir--classic .cl-dir-hero__badge {
+    color: #1d4ed8;
+}
+
+.cl-dir--classic .cl-dir-hero__title {
+    font-size: clamp(1.15rem, 2vw, 1.35rem);
+    letter-spacing: -0.01em;
+}
+
+.cl-dir--classic .cl-dir-hero__sub {
+    font-size: 0.8rem;
+}
+
+.cl-dir--classic .cl-dir-command {
+    border: 1px solid var(--cl-dir-border);
+    background: #ffffff;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+    backdrop-filter: none;
+    position: static;
+}
+
+.cl-dir--classic .cl-dir-command__search {
+    border-radius: 0.5rem;
+}
+
+.cl-dir--classic .cl-dir-table {
+    border: 1px solid var(--cl-dir-border);
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+.cl-dir--classic .cl-dir-table .fi-ta-header-cell {
+    background: #eef3f9 !important;
+    color: #475569 !important;
+    font-size: 0.62rem !important;
+}
+
+.cl-dir--classic .cl-dir-table .fi-ta-row > .fi-ta-cell {
+    background: #ffffff !important;
+    color: #0f172a !important;
+    border-bottom: 1px solid #e5edf6 !important;
+}
+
+.cl-dir--classic .cl-dir-table .fi-ta-row:nth-child(even) > .fi-ta-cell {
+    background: #fbfdff !important;
+}
+
+.cl-dir--classic .cl-dir-table .fi-ta-row:hover > .fi-ta-cell {
+    background: #f4f8ff !important;
+}
+
+.cl-dir--classic .cl-dir-kpi-strip .cl-dir-stat {
+    min-height: 4.1rem;
+    border-color: var(--cl-dir-border);
+}
+
+@media (max-width: 767px) {
+    .cl-dir--classic .cl-dir-kpi-strip {
+        grid-template-columns: 1fr !important;
+    }
+}
+
+/* Fine-tune pass: closer to provided Active Clients sample */
+.cl-dir--classic .cl-dir-actions {
+    gap: 0.45rem;
+}
+
+.cl-dir--classic .cl-dir-btn,
+.cl-dir--classic .cl-dir-actions .fi-btn {
+    border-radius: 0.45rem !important;
+    font-size: 0.72rem !important;
+    padding: 0.34rem 0.62rem !important;
+    line-height: 1.2 !important;
+    border-color: #cfdbe8 !important;
+    background: #ffffff !important;
+    color: #334155 !important;
+    box-shadow: none !important;
+}
+
+.cl-dir--classic .cl-dir-btn--primary {
+    background: #2563eb !important;
+    border-color: #2563eb !important;
+    color: #ffffff !important;
+}
+
+.cl-dir--classic .cl-dir-btn--ghost,
+.cl-dir--classic .cl-dir-btn--active {
+    background: #f8fbff !important;
+    color: #1d4ed8 !important;
+    border-color: #bfdbfe !important;
+}
+
+.cl-dir--classic .cl-dir-tabs {
+    gap: 0.3rem;
+}
+
+.cl-dir--classic .cl-dir-tab {
+    padding: 0.3rem 0.62rem;
+    border-radius: 0.45rem;
+    font-size: 0.7rem;
+    font-weight: 700;
+    background: #ffffff;
+    border-color: #d7e2ef;
+}
+
+.cl-dir--classic .cl-dir-tab--active {
+    background: #e8f1ff;
+    color: #1d4ed8;
+    border-color: #bfdbfe;
+}
+
+.cl-dir--classic .cl-dir-toolbar__result {
+    font-size: 0.7rem;
+}
+
+.cl-dir--classic .cl-dir-filter-grid {
+    gap: 0.45rem;
+}
+
+.cl-dir--classic .cl-dir-toolbar__field {
+    gap: 0.12rem;
+}
+
+.cl-dir--classic .cl-dir-toolbar__label {
+    font-size: 0.58rem;
+    letter-spacing: 0.04em;
+}
+
+.cl-dir--classic .cl-dir-toolbar__select,
+.cl-dir--classic .cl-dir-command__search input {
+    font-size: 0.76rem;
+}
+
+.cl-dir--classic .cl-dir-table .fi-ta-header-cell {
+    padding: 0.54rem 0.58rem !important;
+    font-size: 0.58rem !important;
+    letter-spacing: 0.06em !important;
+}
+
+.cl-dir--classic .cl-dir-table .fi-ta-row > .fi-ta-cell {
+    padding: 0.44rem 0.58rem !important;
+    font-size: 0.75rem !important;
+}
+
+.cl-dir--classic .cl-dir-table .fi-ta-text-item-description,
+.cl-dir--classic .cl-dir-client__ppp,
+.cl-dir--classic .cl-dir-client__phone {
+    font-size: 0.62rem !important;
+}
+
+.cl-dir--classic .cl-dir-client__name {
+    font-size: 0.78rem !important;
+}
+
+.cl-dir--classic .fi-badge {
+    border-radius: 0.35rem !important;
+    font-size: 0.56rem !important;
+    line-height: 1.1 !important;
+    font-weight: 800 !important;
+    padding: 0.14rem 0.38rem !important;
+}
+
+.cl-dir--classic .fi-color-success {
+    background: #16a34a !important;
+    color: #ffffff !important;
+}
+
+.cl-dir--classic .fi-color-danger {
+    background: #dc2626 !important;
+    color: #ffffff !important;
+}
+
+.cl-dir--classic .fi-color-warning {
+    background: #d97706 !important;
+    color: #ffffff !important;
+}
+
+.cl-dir--classic .cl-dir-table .fi-ta-actions-cell .fi-btn {
+    padding: 0.24rem 0.38rem !important;
+    min-height: 1.45rem !important;
+}
+
+@media (max-width: 767px) {
+    .cl-dir--classic .cl-dir-command {
+        padding: 0.7rem 0.72rem;
+    }
+
+    .cl-dir--classic .cl-dir-command__search {
+        padding: 0.36rem 0.52rem;
+    }
+
+    .cl-dir--classic .cl-dir-table .fi-ta-row {
+        border-radius: 0.68rem !important;
+    }
+
+    .cl-dir--classic .cl-dir-table .fi-ta-row > .fi-ta-cell,
+    .cl-dir--classic .cl-dir-table .fi-ta-row > .fi-ta-actions-cell,
+    .cl-dir--classic .cl-dir-table .fi-ta-row > .fi-ta-record-checkbox-cell {
+        padding: 0.52rem 0.64rem !important;
+    }
+}
+
 /* ONU ownership badge — create/edit + list */
 .isp-onu-badge,
 .isp-cv-onu-badge {

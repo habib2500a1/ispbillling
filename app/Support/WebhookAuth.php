@@ -28,7 +28,7 @@ final class WebhookAuth
             return;
         }
 
-        if ($request->header($headerName) !== $secret) {
+        if (! hash_equals($secret, (string) $request->header($headerName, ''))) {
             abort(401, 'Unauthorized');
         }
     }
@@ -45,7 +45,7 @@ final class WebhookAuth
             ?? $request->header('X-ISP-Webhook-Secret')
             ?? $request->input('secret');
 
-        if ($provided !== $secret) {
+        if (! is_string($provided) || ! hash_equals($secret, $provided)) {
             abort(401, 'Unauthorized — check X-Optical-Secret header');
         }
     }

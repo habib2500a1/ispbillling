@@ -29,6 +29,14 @@ class WhatsAppWebhookController extends Controller
             return response('disabled', 503);
         }
 
+        if (! $this->isValidSignature($request)) {
+            Log::warning('whatsapp.bot.invalid_signature', [
+                'ip' => $request->ip(),
+            ]);
+
+            return response('unauthorized', 401);
+        }
+
         try {
             $bot->handleWebhookPayload($request->all());
         } catch (\Throwable $e) {
@@ -36,5 +44,22 @@ class WhatsAppWebhookController extends Controller
         }
 
         return response('ok', 200);
+    }
+
+    private function isValidSignature(Request $request): bool
+    {
+        $secret = (string) config('whatsapp_bot.app_secret', '');
+        if ($secret === '') {
+            return ! app()->environment('production');
+        }
+
+        $header = (string) $request->header('X-Hub-Signature-256', '');
+        if (! str_starts_with($header, 'sha256=')) {
+            return false;
+        }
+
+        $expected = 'sha256='.hash_hmac('sha256', (string) $request->getContent(), $secret);
+
+        return hash_equals($expected, $header);
     }
 }

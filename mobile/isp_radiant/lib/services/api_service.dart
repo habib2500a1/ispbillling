@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../config/remote_config.dart';
 import '../config/server_config.dart';
@@ -996,6 +997,24 @@ class ApiService {
       } catch (_) {}
     }
     await clearSession();
+    await _clearDeviceScopedCaches();
+  }
+
+  Future<void> _clearDeviceScopedCaches() async {
+    final prefs = await SharedPreferences.getInstance();
+    final keys = <String>[
+      'cache_customer_profile',
+      'cache_customer_bills',
+      'cache_customer_tickets',
+      'cache_customer_notifications',
+      'cache_customer_dashboard',
+      'offline_sync_queue',
+      'device_uuid',
+      'push_device_token',
+    ];
+    for (final key in keys) {
+      await prefs.remove(key);
+    }
   }
 
   Future<Map<String, dynamic>> _get(String path, {bool retried = false, bool skipRefresh = false}) async {

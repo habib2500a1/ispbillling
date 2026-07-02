@@ -17,20 +17,39 @@ class ResellerWebPortalScreen extends StatefulWidget {
 class _ResellerWebPortalScreenState extends State<ResellerWebPortalScreen> {
   late final WebViewController _controller;
   bool _loading = true;
+  late final Uri _initialUri;
 
   @override
   void initState() {
     super.initState();
+    _initialUri = Uri.parse(widget.initialUrl);
     _controller = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
       ..setNavigationDelegate(
         NavigationDelegate(
+          onNavigationRequest: (request) {
+            if (!_isAllowedUrl(request.url)) {
+              return NavigationDecision.prevent;
+            }
+            return NavigationDecision.navigate;
+          },
           onPageFinished: (_) {
             if (mounted) setState(() => _loading = false);
           },
         ),
       )
       ..loadRequest(Uri.parse(widget.initialUrl));
+  }
+
+  bool _isAllowedUrl(String url) {
+    final uri = Uri.tryParse(url);
+    if (uri == null) return false;
+    if (uri.scheme != 'https') return false;
+    if (uri.host.isEmpty) return false;
+
+    final host = uri.host.toLowerCase();
+    final originHost = _initialUri.host.toLowerCase();
+    return host == originHost || host.endsWith('.$originHost');
   }
 
   @override
