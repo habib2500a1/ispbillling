@@ -1,69 +1,77 @@
 /**
- * Landing page — enterprise SaaS theme (light + dark)
+ * Landing page — galaxy theme (light + dark), lightweight CSS-only
  * Scoped to body.isp-landing-page only
  */
 
 /* ── Design tokens ─────────────────────────────────────────────── */
 
-/* Light — clean white, airy */
+/* Light — cosmic dawn */
 :root,
 html:not([data-theme]),
 [data-theme="light"] {
-    --lp-bg: #ffffff;
-    --lp-bg-subtle: #f8fafc;
-    --lp-surface: #ffffff;
-    --lp-surface-raised: #ffffff;
-    --lp-surface-hover: #f1f5f9;
-    --lp-border: #e2e8f0;
-    --lp-border-strong: #cbd5e1;
+    --lp-bg: rgba(255, 255, 255, 0.72);
+    --lp-bg-subtle: rgba(255, 255, 255, 0.55);
+    --lp-surface: rgba(255, 255, 255, 0.78);
+    --lp-surface-raised: rgba(255, 255, 255, 0.88);
+    --lp-surface-hover: rgba(255, 255, 255, 0.92);
+    --lp-border: rgba(99, 102, 241, 0.14);
+    --lp-border-strong: rgba(99, 102, 241, 0.28);
     --lp-text: #0f172a;
     --lp-text-secondary: #475569;
-    --lp-text-muted: #94a3b8;
-    --lp-accent: #4f46e5;
-    --lp-accent-hover: #4338ca;
-    --lp-accent-subtle: #eef2ff;
-    --lp-accent-glow: transparent;
-    --lp-cyan: #0e7490;
+    --lp-text-muted: #64748b;
+    --lp-accent: #6366f1;
+    --lp-accent-hover: #4f46e5;
+    --lp-accent-subtle: rgba(99, 102, 241, 0.12);
+    --lp-accent-glow: rgba(99, 102, 241, 0.22);
+    --lp-cyan: #0891b2;
     --lp-success: #059669;
     --lp-warning: #d97706;
     --lp-danger: #e11d48;
-    --lp-shadow-sm: none;
-    --lp-shadow-md: 0 1px 3px rgba(15, 23, 42, 0.06);
-    --lp-shadow-lg: 0 4px 20px rgba(15, 23, 42, 0.08);
-    --lp-page-bg: #ffffff;
-    --lp-header-bg: rgba(255, 255, 255, 0.92);
-    --lp-hero-bg: #f8fafc;
+    --lp-shadow-sm: 0 1px 2px rgba(79, 70, 229, 0.06);
+    --lp-shadow-md: 0 4px 24px rgba(79, 70, 229, 0.1);
+    --lp-shadow-lg: 0 8px 40px rgba(79, 70, 229, 0.14);
+    --lp-page-bg: #eef2ff;
+    --lp-header-bg: rgba(238, 242, 255, 0.82);
+    --lp-hero-bg: rgba(255, 255, 255, 0.65);
     --lp-link: #4f46e5;
+    --lp-nebula-1: rgba(129, 140, 248, 0.35);
+    --lp-nebula-2: rgba(167, 139, 250, 0.2);
+    --lp-nebula-3: rgba(56, 189, 248, 0.15);
+    --lp-stars-opacity: 0.35;
     color-scheme: light;
 }
 
-/* Dark — true black, clear contrast */
+/* Dark — deep space */
 [data-theme="dark"] {
-    --lp-bg: #09090b;
-    --lp-bg-subtle: #111113;
-    --lp-surface: #18181b;
-    --lp-surface-raised: #1f1f23;
-    --lp-surface-hover: #27272a;
-    --lp-border: #2e2e32;
-    --lp-border-strong: #3f3f46;
-    --lp-text: #fafafa;
-    --lp-text-secondary: #d4d4d8;
-    --lp-text-muted: #a1a1aa;
+    --lp-bg: rgba(24, 24, 35, 0.72);
+    --lp-bg-subtle: rgba(18, 18, 28, 0.65);
+    --lp-surface: rgba(24, 24, 38, 0.78);
+    --lp-surface-raised: rgba(30, 30, 48, 0.85);
+    --lp-surface-hover: rgba(38, 38, 58, 0.88);
+    --lp-border: rgba(139, 142, 248, 0.16);
+    --lp-border-strong: rgba(139, 142, 248, 0.3);
+    --lp-text: #f4f4f5;
+    --lp-text-secondary: #c4c4cc;
+    --lp-text-muted: #9494a8;
     --lp-accent: #8b8ef8;
     --lp-accent-hover: #a5b4fc;
-    --lp-accent-subtle: rgba(99, 102, 241, 0.15);
-    --lp-accent-glow: transparent;
+    --lp-accent-subtle: rgba(99, 102, 241, 0.18);
+    --lp-accent-glow: rgba(139, 142, 248, 0.35);
     --lp-cyan: #22d3ee;
     --lp-success: #34d399;
     --lp-warning: #fbbf24;
     --lp-danger: #fb7185;
-    --lp-shadow-sm: none;
-    --lp-shadow-md: 0 1px 3px rgba(0, 0, 0, 0.5);
-    --lp-shadow-lg: 0 8px 30px rgba(0, 0, 0, 0.6);
-    --lp-page-bg: #09090b;
-    --lp-header-bg: rgba(9, 9, 11, 0.94);
-    --lp-hero-bg: #111113;
+    --lp-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4);
+    --lp-shadow-md: 0 4px 28px rgba(0, 0, 0, 0.45);
+    --lp-shadow-lg: 0 8px 48px rgba(79, 70, 229, 0.2);
+    --lp-page-bg: #050510;
+    --lp-header-bg: rgba(5, 5, 16, 0.88);
+    --lp-hero-bg: rgba(18, 18, 32, 0.7);
     --lp-link: #a5b4fc;
+    --lp-nebula-1: rgba(99, 102, 241, 0.28);
+    --lp-nebula-2: rgba(139, 92, 246, 0.18);
+    --lp-nebula-3: rgba(6, 182, 212, 0.1);
+    --lp-stars-opacity: 0.65;
     color-scheme: dark;
 }
 
@@ -104,6 +112,43 @@ body.isp-landing-page {
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     transition: background-color 0.25s ease, color 0.25s ease;
+    position: relative;
+    isolation: isolate;
+}
+
+/* Galaxy backdrop — CSS only, no images/JS */
+body.isp-landing-page::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: -2;
+    pointer-events: none;
+    background:
+        radial-gradient(ellipse 90% 55% at 50% -15%, var(--lp-nebula-1), transparent 68%),
+        radial-gradient(ellipse 55% 45% at 95% 45%, var(--lp-nebula-2), transparent 58%),
+        radial-gradient(ellipse 50% 40% at 5% 85%, var(--lp-nebula-3), transparent 55%),
+        var(--lp-page-bg);
+}
+
+body.isp-landing-page::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    opacity: var(--lp-stars-opacity);
+    background-image:
+        radial-gradient(1px 1px at 12% 18%, rgba(255, 255, 255, 0.9), transparent),
+        radial-gradient(1px 1px at 28% 62%, rgba(255, 255, 255, 0.7), transparent),
+        radial-gradient(1.5px 1.5px at 45% 35%, rgba(255, 255, 255, 0.85), transparent),
+        radial-gradient(1px 1px at 62% 78%, rgba(255, 255, 255, 0.6), transparent),
+        radial-gradient(1px 1px at 78% 22%, rgba(255, 255, 255, 0.75), transparent),
+        radial-gradient(1.5px 1.5px at 88% 55%, rgba(255, 255, 255, 0.8), transparent),
+        radial-gradient(1px 1px at 35% 88%, rgba(255, 255, 255, 0.55), transparent),
+        radial-gradient(1px 1px at 55% 12%, rgba(255, 255, 255, 0.65), transparent),
+        radial-gradient(1px 1px at 92% 82%, rgba(255, 255, 255, 0.5), transparent),
+        radial-gradient(1px 1px at 8% 48%, rgba(255, 255, 255, 0.7), transparent);
+    background-size: 100% 100%;
 }
 
 body.isp-landing-page > * { position: relative; z-index: 1; }
@@ -162,8 +207,8 @@ body.isp-landing-page .wrap > header,
     margin: 0 -1rem;
     padding: 0.875rem 1rem;
     background: var(--lp-header-bg);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
     border-bottom: 1px solid var(--lp-border);
     transition: background-color 0.25s ease, border-color 0.25s ease;
 }
@@ -233,7 +278,7 @@ body.isp-landing-page .wrap > header:not(.landing-header) nav {
     gap: 0.5rem;
 }
 
-/* Theme switch — Light / Dark */
+/* Theme switch — compact on mobile */
 .theme-switch {
     display: inline-flex;
     padding: 0.1875rem;
@@ -241,10 +286,13 @@ body.isp-landing-page .wrap > header:not(.landing-header) nav {
     border: 1px solid var(--lp-border);
     background: var(--lp-bg-subtle);
     gap: 0.125rem;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
 }
 
 .theme-switch__btn {
-    padding: 0.3125rem 0.625rem;
+    padding: 0.375rem 0.625rem;
+    min-height: 2rem;
     border: none;
     border-radius: 999px;
     background: transparent;
@@ -261,19 +309,19 @@ body.isp-landing-page .wrap > header:not(.landing-header) nav {
 .theme-switch__btn:hover { color: var(--lp-text); }
 
 .theme-switch__btn.is-active {
-    background: var(--lp-surface);
+    background: var(--lp-surface-raised);
     color: var(--lp-text);
-    box-shadow: var(--lp-shadow-md);
+    box-shadow: var(--lp-shadow-sm), 0 0 12px var(--lp-accent-glow);
 }
 
 [data-theme="light"] .theme-switch__btn[data-theme-value="light"].is-active {
-    background: #ffffff;
+    background: rgba(255, 255, 255, 0.95);
     color: #4f46e5;
 }
 
 [data-theme="dark"] .theme-switch__btn[data-theme-value="dark"].is-active {
-    background: #262626;
-    color: #fafafa;
+    background: rgba(38, 38, 58, 0.95);
+    color: #e4e4e7;
 }
 
 .theme-switch__btn:focus-visible {
@@ -423,8 +471,11 @@ body.isp-landing-page .btn-app:hover {
     padding: 2rem 1rem 2.25rem;
     margin-top: 0.25rem;
     border: 1px solid var(--lp-border);
-    border-radius: 0.875rem;
+    border-radius: 1rem;
     background: var(--lp-hero-bg);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    box-shadow: var(--lp-shadow-md), 0 0 60px var(--lp-accent-glow);
 }
 
 @media (min-width: 768px) {
@@ -621,12 +672,15 @@ body.isp-landing-page .sign-in-hub__card:hover {
     border-radius: 0.875rem;
     border: 1px solid var(--lp-border);
     background: var(--lp-bg-subtle);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
     display: flex;
     flex-direction: column;
     align-items: stretch;
     gap: 1rem;
     width: 100%;
     box-sizing: border-box;
+    box-shadow: var(--lp-shadow-sm);
 }
 
 .app-banner__content {
@@ -683,8 +737,7 @@ body.isp-landing-page .sign-in-hub__card:hover {
 }
 
 .app-banner-actions .btn-lg {
-    flex: 1 1 calc(50% - 0.25rem);
-    min-width: 8rem;
+    width: 100%;
     text-align: center;
     justify-content: center;
 }
@@ -714,8 +767,8 @@ body.isp-landing-page .sign-in-hub__card:hover {
     }
 
     .app-banner-actions .btn-lg {
-        flex: 0 1 auto;
-        min-width: 0;
+        width: auto;
+        min-width: 10rem;
     }
 }
 
@@ -745,12 +798,14 @@ body.isp-landing-page .sign-in-hub__card:hover {
     border-radius: 0.875rem;
     background: var(--lp-surface);
     border: 1px solid var(--lp-border);
-    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .feature:hover {
     border-color: var(--lp-border-strong);
-    background: var(--lp-surface-hover);
+    box-shadow: var(--lp-shadow-sm), 0 0 20px var(--lp-accent-glow);
 }
 
 .feature__icon {
@@ -825,16 +880,19 @@ h2.section-title {
     padding: 1.5rem 1.25rem;
     display: flex;
     flex-direction: column;
-    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .pkg:hover {
     border-color: var(--lp-border-strong);
-    background: var(--lp-surface-hover);
+    box-shadow: var(--lp-shadow-sm), 0 0 24px var(--lp-accent-glow);
 }
 
 .pkg.popular {
     border-color: var(--lp-accent);
+    box-shadow: var(--lp-shadow-md), 0 0 32px var(--lp-accent-glow);
 }
 
 .pkg__badge {
@@ -1288,34 +1346,41 @@ footer a:hover { text-decoration: underline; }
 @media (max-width: 639px) {
     .hero {
         padding: 1.5rem 1rem 1.75rem;
+        border-radius: 0.875rem;
     }
 
     .hero-actions {
         flex-direction: column;
         align-items: stretch;
         width: 100%;
+        gap: 0.5rem;
     }
 
     .hero-actions .btn-lg {
         width: 100%;
         justify-content: center;
-    }
-
-    .sign-in-hub__card {
-        min-height: 0;
-    }
-
-    .sign-in-hub__grid {
-        grid-template-columns: 1fr;
+        min-height: 2.75rem;
     }
 
     .landing-header__actions {
         flex-shrink: 0;
+        gap: 0.375rem;
+    }
+
+    .theme-switch {
+        order: -1;
     }
 
     .theme-switch__btn {
-        padding: 0.3125rem 0.5rem;
+        padding: 0.375rem 0.5rem;
         font-size: 0.625rem;
+        min-height: 2.25rem;
+        min-width: 2.75rem;
+    }
+
+    .nav-toggle {
+        width: 2.75rem;
+        height: 2.75rem;
     }
 
     .brand h1 {
@@ -1328,8 +1393,19 @@ footer a:hover { text-decoration: underline; }
 
     .feature,
     .pkg,
-    .isp-movie-server-card {
+    .isp-movie-server-card,
+    .app-banner {
         min-width: 0;
+    }
+
+    body.isp-landing-page .wrap > header,
+    .landing-header {
+        padding: 0.75rem 1rem;
+        gap: 0.5rem 0.75rem;
+    }
+
+    .landing-nav a {
+        min-height: 2.75rem;
     }
 }
 

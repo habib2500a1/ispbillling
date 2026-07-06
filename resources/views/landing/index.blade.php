@@ -7,17 +7,11 @@
     <meta name="description" content="{{ $tagline }}">
     <meta name="color-scheme" content="light dark">
     <style>
-        html, body.isp-landing-page { margin: 0; background: #ffffff; color: #18181b; }
-        html[data-theme="dark"], html[data-theme="dark"] body.isp-landing-page { background: #09090b; color: #fafafa; }
+        html, body.isp-landing-page { margin: 0; background: #eef2ff; color: #0f172a; }
+        html[data-theme="dark"], html[data-theme="dark"] body.isp-landing-page { background: #050510; color: #f4f4f5; }
         body.isp-landing-page .skip-link,
         body.isp-landing-page > a[href="#main-content"] { display: none !important; }
         .wrap, body.isp-landing-page main { width: 100%; max-width: 100%; box-sizing: border-box; }
-        .app-banner { display: flex; flex-direction: column; align-items: stretch; gap: 1rem; width: 100%; box-sizing: border-box; }
-        .app-banner__content { display: flex; align-items: flex-start; gap: 1rem; width: 100%; min-width: 0; flex: none; }
-        .app-banner__text { flex: 1; min-width: 0; }
-        .app-banner__text p { margin: 0; line-height: 1.55; overflow-wrap: break-word; word-break: normal; }
-        .app-banner-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; width: 100%; }
-        .app-banner-actions .btn-lg { flex: 1 1 calc(50% - 0.25rem); min-width: 8rem; text-align: center; box-sizing: border-box; }
     </style>
     <script data-cfasync="false">
         (function () {
@@ -91,30 +85,13 @@
                 <h2 id="hero-title">Fast, reliable internet for home & business</h2>
                 <p class="lead">{{ $tagline }}. Choose a package, pay online, and manage your connection from our customer portal.</p>
                 <div class="hero-actions">
-                    @if ($loginHubUrl ?? $portalUrl)
-                        <a class="btn-primary btn-lg" href="{{ $loginHubUrl ?? $portalUrl }}">Sign in</a>
-                    @endif
-                    <a class="btn-app btn-lg" href="{{ $appDownloadUrl }}">Download mobile app</a>
-                    <a class="btn-ghost btn-lg" href="#packages">View packages</a>
+                    <a class="btn-primary btn-lg" href="#packages">View packages</a>
                     @if ($signupUrl ?? null)
-                        <a class="btn-ghost btn-lg" href="{{ $signupUrl }}">Request new connection</a>
+                        <a class="btn-ghost btn-lg" href="{{ $signupUrl }}">New connection</a>
                     @endif
-                    <a class="btn-ghost btn-lg" href="{{ $payUrl }}">Quick bill pay</a>
+                    <a class="btn-ghost btn-lg" href="{{ $payUrl }}">Pay bill</a>
                 </div>
             </section>
-
-            @if ($loginHubUrl ?? $portalUrl)
-                <section class="sign-in-hub sign-in-hub--single" id="sign-in" aria-label="Sign in">
-                    <header class="sign-in-hub__head">
-                        <p class="sign-in-hub__eyebrow">One sign-in</p>
-                        <h2 class="sign-in-hub__title">Customer, staff, or partner</h2>
-                        <p class="sign-in-hub__lead">Email, phone, or account ID — one form routes you to the right portal automatically.</p>
-                    </header>
-                    <div class="sign-in-hub__action">
-                        <a href="{{ $loginHubUrl ?? $portalUrl }}" class="btn-primary btn-lg">Sign in</a>
-                    </div>
-                </section>
-            @endif
 
             <section class="app-banner" aria-label="Mobile app">
                 <div class="app-banner__content">
@@ -128,9 +105,6 @@
                 </div>
                 <div class="app-banner-actions">
                     <a class="btn-app btn-lg" href="{{ $appDownloadUrl }}">Download APK</a>
-                    @if ($loginHubUrl ?? $portalUrl)
-                        <a class="btn-ghost btn-lg" href="{{ $loginHubUrl ?? $portalUrl }}">Sign in</a>
-                    @endif
                 </div>
             </section>
 
@@ -154,7 +128,7 @@
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><rect x="5" y="2" width="14" height="20" rx="2"/><path d="M12 18h.01"/></svg>
                     </span>
                     <h3>Mobile app</h3>
-                    <p>Android app for clients & staff. <a href="{{ $appDownloadUrl }}">Download APK</a>.</p>
+                    <p>Android app for clients & staff — bills, usage, tickets & collection on the go.</p>
                 </div>
                 <div class="feature" role="listitem">
                     <span class="feature__icon" aria-hidden="true">
@@ -214,8 +188,7 @@
             @if ($phone)<p>Phone: <a href="tel:{{ $phone }}">{{ $phone }}</a></p>@endif
             @if ($email)<p>Email: <a href="mailto:{{ $email }}">{{ $email }}</a></p>@endif
             <p class="footer-links">
-                @if ($loginHubUrl ?? $portalUrl)<a href="{{ $loginHubUrl ?? $portalUrl }}">Sign in</a> · @endif
-                <a href="{{ $appDownloadUrl }}">Mobile app (APK)</a> ·
+                @if ($loginHubUrl ?? $portalUrl)<a href="{{ $loginHubUrl ?? $portalUrl }}">Portal</a> · @endif
                 <a href="{{ $payUrl }}">Pay bill</a>
             </p>
         </footer>
