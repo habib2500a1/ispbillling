@@ -23,6 +23,7 @@ final class ClientsDirectoryStyles
             'admin/clients-directory/06-light-mode.css',
             'admin/clients-directory/07-page-extras.css',
             'admin/clients-directory/08-crm-v2.css',
+            'admin/clients-directory/09-galaxy-glass.css',
         ];
     }
 

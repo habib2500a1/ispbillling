@@ -299,13 +299,23 @@ final class BillingSidebarRegistry
                 });
 
             if ($count > 0 && isset($entry['count_key'])) {
-                $item->badge((string) $count);
+                $item->badge((string) $count, color: self::badgeColor($entry['key']));
             }
 
             $items[] = $item;
         }
 
         return $items;
+    }
+
+    private static function badgeColor(string $key): string
+    {
+        return match ($key) {
+            'due_bills', 'billing_notices', 'dunning_report' => 'danger',
+            'paid_bills' => 'success',
+            'collection_report', 'staff_performance' => 'info',
+            default => 'primary',
+        };
     }
 
     public static function canSeeEntry(string $key): bool

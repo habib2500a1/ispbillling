@@ -222,7 +222,7 @@ final class ClientsSidebarRegistry
             if (isset($entry['badge_key'])) {
                 $count = (int) ($counts[$entry['badge_key']] ?? 0);
                 if ($count > 0) {
-                    $item->badge((string) $count);
+                    $item->badge((string) $count, color: self::badgeColor($entry['badge_key']));
                 }
             }
 
@@ -244,6 +244,18 @@ final class ClientsSidebarRegistry
         }
 
         return $items;
+    }
+
+    private static function badgeColor(string $badgeKey): string
+    {
+        return match ($badgeKey) {
+            'active', 'online' => 'success',
+            'due_clients' => 'danger',
+            'expired', 'suspended', 'left' => 'warning',
+            'vip' => 'info',
+            'free' => 'gray',
+            default => 'primary',
+        };
     }
 
     public static function canSeeEntry(string $key): bool

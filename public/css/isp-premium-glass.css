@@ -21,9 +21,9 @@
     --premium-radius-lg: 1.35rem;
     --premium-radius-xl: 1.75rem;
 
-    --premium-glass-bg: rgba(255, 255, 255, 0.55);
-    --premium-glass-bg-strong: rgba(255, 255, 255, 0.72);
-    --premium-glass-border: rgba(255, 255, 255, 0.45);
+    --premium-glass-bg: rgba(255, 255, 255, 0.68);
+    --premium-glass-bg-strong: rgba(255, 255, 255, 0.84);
+    --premium-glass-border: rgba(99, 102, 241, 0.22);
     --premium-glass-shadow: 0 8px 32px -8px rgba(79, 70, 229, 0.18), 0 24px 64px -24px rgba(6, 182, 212, 0.12);
     --premium-glass-shadow-hover: 0 16px 48px -12px rgba(124, 58, 237, 0.28), 0 32px 80px -32px rgba(6, 182, 212, 0.18);
 
@@ -38,10 +38,13 @@
     --premium-neon-glow-hover: 0 0 28px rgba(139, 92, 246, 0.55), 0 0 56px rgba(6, 182, 212, 0.35);
 
     --premium-text: #0f172a;
-    --premium-text-muted: #64748b;
+    --premium-text-muted: #475569;
     --premium-transition: 0.28s cubic-bezier(0.4, 0, 0.2, 1);
 
     /* Override admin tokens */
+    --isp-text: #0f172a;
+    --isp-text-muted: #475569;
+    --isp-card-muted: rgba(255, 255, 255, 0.9);
     --isp-primary: #6366f1;
     --isp-primary-dark: #4f46e5;
     --isp-primary-light: #a5b4fc;

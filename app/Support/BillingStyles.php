@@ -25,6 +25,7 @@ final class BillingStyles
             'admin/billing/08-light-mode.css',
             'admin/billing/09-dark-mode.css',
             'admin/billing/10-hub-v3.css',
+            'admin/billing/11-collection-desk-v3.css',
         ];
     }
 

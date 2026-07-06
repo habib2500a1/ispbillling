@@ -104,28 +104,28 @@
             </a>
         @endif
         @if ($cap->canCollect() || $cap->canPayments())
-            <a href="{{ BillCollectionDesk::getUrl() }}" class="isp-quick-pill">Collection desk</a>
+            <a href="{{ BillCollectionDesk::getUrl() }}" class="isp-quick-pill isp-quick-pill--collection">Collection desk</a>
         @endif
         @if ($cap->canMikrotik())
-            <a href="{{ OnlineClientsMonitoring::getUrl() }}" class="isp-quick-pill">Online users</a>
+            <a href="{{ OnlineClientsMonitoring::getUrl() }}" class="isp-quick-pill isp-quick-pill--online">Online users</a>
         @endif
         @if ($cap->canBilling() && InvoiceResource::canCreate())
-            <a href="{{ InvoiceResource::getUrl('create') }}" class="isp-quick-pill isp-dash-header__action--desktop">Create invoice</a>
+            <a href="{{ InvoiceResource::getUrl('create') }}" class="isp-quick-pill isp-quick-pill--invoice isp-dash-header__action--desktop">Create invoice</a>
         @endif
         @if ($cap->canPayments())
-            <a href="{{ PaymentResource::getUrl('index') }}" class="isp-quick-pill isp-dash-header__action--desktop">Payments</a>
+            <a href="{{ PaymentResource::getUrl('index') }}" class="isp-quick-pill isp-quick-pill--payments isp-dash-header__action--desktop">Payments</a>
         @endif
         @if ($cap->canMikrotik() && MikrotikDashboard::canAccess())
-            <a href="{{ MikrotikDashboard::getUrl() }}" class="isp-quick-pill isp-dash-header__action--desktop">Routers</a>
+            <a href="{{ MikrotikDashboard::getUrl() }}" class="isp-quick-pill isp-quick-pill--network isp-dash-header__action--desktop">Routers</a>
         @endif
         @if ($cap->canReports() && ReportsHub::canAccess())
-            <a href="{{ ReportsHub::getUrl() }}" class="isp-quick-pill isp-dash-header__action--desktop">Reports</a>
+            <a href="{{ ReportsHub::getUrl() }}" class="isp-quick-pill isp-quick-pill--reports isp-dash-header__action--desktop">Reports</a>
         @endif
         @if ($cap->canSms() && SmsGatewaySetup::canAccess())
-            <a href="{{ SmsGatewaySetup::getUrl() }}" class="isp-quick-pill isp-dash-header__action--desktop">SMS</a>
+            <a href="{{ SmsGatewaySetup::getUrl() }}" class="isp-quick-pill isp-quick-pill--sms isp-dash-header__action--desktop">SMS</a>
         @endif
         @if ($cap->canCustomers())
-            <a href="{{ ListSuspendedCustomers::getUrl() }}" class="isp-quick-pill isp-dash-header__action--desktop">Suspended</a>
+            <a href="{{ ListSuspendedCustomers::getUrl() }}" class="isp-quick-pill isp-quick-pill--warning isp-dash-header__action--desktop">Suspended</a>
         @endif
 
         @if ($moreLinks !== [])

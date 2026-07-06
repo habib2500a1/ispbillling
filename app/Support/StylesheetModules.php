@@ -18,7 +18,7 @@ final class StylesheetModules
     public static function version(array $modules, ?string $bundleFile = null): int
     {
         if ($bundleFile !== null && self::shouldBundle() && is_file(public_path('css/'.$bundleFile))) {
-            return (int) (@filemtime(public_path('css/'.$bundleFile)) ?: 1);
+            return (int) ((@filemtime(public_path('css/'.$bundleFile)) ?: 1) + (int) config('isp.assets.version_salt', 0) * 1_000_000);
         }
 
         $max = 0;
@@ -27,7 +27,7 @@ final class StylesheetModules
             $max = max($max, (int) (@filemtime(public_path('css/'.$file)) ?: 0));
         }
 
-        return $max > 0 ? $max : 1;
+        return $max > 0 ? $max + (int) config('isp.assets.version_salt', 0) * 1_000_000 : 1;
     }
 
     /**

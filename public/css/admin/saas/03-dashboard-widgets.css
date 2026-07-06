@@ -269,7 +269,22 @@
     background: rgba(255, 255, 255, 0.12);
     border: 1px solid rgba(255, 255, 255, 0.2);
     color: #fff;
-    transition: background 0.15s;
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+/* Light mode — dark readable text (dark hero styles above are for legacy dark headers) */
+html[data-theme='light'] .isp-quick-pill:not(.isp-quick-pill-primary),
+html:not(.dark) .isp-quick-pill:not(.isp-quick-pill-primary) {
+    color: #1e293b;
+    background: rgba(255, 255, 255, 0.94);
+    border-color: rgba(99, 102, 241, 0.3);
+}
+
+html[data-theme='light'] .isp-quick-pill-primary,
+html:not(.dark) .isp-quick-pill-primary {
+    background: linear-gradient(135deg, #4f46e5, #6366f1);
+    color: #fff;
+    border-color: transparent;
 }
 
 .isp-quick-pill:hover {

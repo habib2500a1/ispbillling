@@ -74,7 +74,7 @@
                     <span class="cl-dir-hero__badge-dot" aria-hidden="true"></span>
                     Client Management
                 </span>
-                <h1 class="cl-dir-hero__title">Active Clients</h1>
+                <h1 class="cl-dir-hero__title">{{ $heroTitle }}</h1>
                 @if (filled($heroSubtitle))
                     <p class="cl-dir-hero__sub">Desktop + mobile friendly client list with quick filters, search, status chips, and fast actions.</p>
                 @endif

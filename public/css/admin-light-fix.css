@@ -1,0 +1,255 @@
+/**
+ * Admin light mode — final override layer (loads last).
+ * Filament 3 sidebar badges use .fi-badge, not .fi-sidebar-item-badge.
+ */
+
+/* ── Sidebar badges (Filament 3) ── */
+.fi-sidebar-item-button .fi-badge {
+    font-size: 0.65rem !important;
+    font-weight: 800 !important;
+    border-radius: 999px !important;
+    padding: 0.15rem 0.5rem !important;
+    min-width: 1.35rem !important;
+    text-align: center !important;
+    color: #fff !important;
+    --tw-ring-shadow: 0 0 #0000 !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.22) !important;
+}
+
+.fi-sidebar-item-button .fi-badge.fi-color-primary,
+.fi-sidebar-item-button .fi-badge.fi-color-custom {
+    background: linear-gradient(135deg, #6366f1, #7c3aed) !important;
+    color: #fff !important;
+}
+
+.fi-sidebar-item-button .fi-badge.fi-color-success {
+    background: linear-gradient(135deg, #059669, #10b981) !important;
+    color: #fff !important;
+    box-shadow: 0 2px 8px rgba(16, 185, 129, 0.45) !important;
+}
+
+.fi-sidebar-item-button .fi-badge.fi-color-danger {
+    background: linear-gradient(135deg, #dc2626, #f43f5e) !important;
+    color: #fff !important;
+    box-shadow: 0 2px 8px rgba(244, 63, 94, 0.45) !important;
+}
+
+.fi-sidebar-item-button .fi-badge.fi-color-warning {
+    background: linear-gradient(135deg, #d97706, #f59e0b) !important;
+    color: #fff !important;
+    box-shadow: 0 2px 8px rgba(245, 158, 11, 0.4) !important;
+}
+
+.fi-sidebar-item-button .fi-badge.fi-color-info {
+    background: linear-gradient(135deg, #2563eb, #6366f1) !important;
+    color: #fff !important;
+}
+
+.fi-sidebar-item-button .fi-badge.fi-color-gray {
+    background: linear-gradient(135deg, #64748b, #94a3b8) !important;
+    color: #fff !important;
+}
+
+/* Href fallbacks when badge has no color class */
+.fi-sidebar-item-button[href*='active'] .fi-badge,
+.fi-sidebar-item-button[href*='preset=online'] .fi-badge,
+.fi-sidebar-item-button[href*='paid'] .fi-badge {
+    background: linear-gradient(135deg, #059669, #10b981) !important;
+    color: #fff !important;
+}
+
+.fi-sidebar-item-button[href*='due'] .fi-badge,
+.fi-sidebar-item-button[href*='billing-notices'] .fi-badge,
+.fi-sidebar-item-button[href*='dunning'] .fi-badge {
+    background: linear-gradient(135deg, #dc2626, #f43f5e) !important;
+    color: #fff !important;
+}
+
+.fi-sidebar-item-button[href*='expired'] .fi-badge,
+.fi-sidebar-item-button[href*='suspended'] .fi-badge,
+.fi-sidebar-item-button[href*='expire'] .fi-badge,
+.fi-sidebar-item-button[href*='pending'] .fi-badge,
+.fi-sidebar-item-button[href*='left'] .fi-badge {
+    background: linear-gradient(135deg, #d97706, #f59e0b) !important;
+    color: #fff !important;
+}
+
+.fi-sidebar-item-button[href*='vip'] .fi-badge {
+    background: linear-gradient(135deg, #2563eb, #6366f1) !important;
+    color: #fff !important;
+}
+
+/* ── Dashboard quick pills (light) — class-based, always readable text ── */
+html[data-theme='light'] .isp-dash-header .isp-quick-pill:not(.isp-quick-pill-primary),
+html:not(.dark) .isp-dash-header .isp-quick-pill:not(.isp-quick-pill-primary) {
+    color: #1e293b !important;
+    -webkit-text-fill-color: #1e293b !important;
+    background: rgba(255, 255, 255, 0.96) !important;
+    border: 1px solid rgba(99, 102, 241, 0.32) !important;
+    box-shadow: 0 2px 10px rgba(15, 23, 42, 0.08) !important;
+}
+
+html[data-theme='light'] .isp-dash-header .isp-quick-pill:not(.isp-quick-pill-primary) svg,
+html:not(.dark) .isp-dash-header .isp-quick-pill:not(.isp-quick-pill-primary) svg {
+    color: currentColor !important;
+    fill: currentColor !important;
+}
+
+html[data-theme='light'] .isp-dash-header .isp-quick-pill-primary,
+html:not(.dark) .isp-dash-header .isp-quick-pill-primary {
+    background: linear-gradient(135deg, #4f46e5, #6366f1) !important;
+    color: #fff !important;
+    -webkit-text-fill-color: #fff !important;
+    border: 1px solid rgba(79, 70, 229, 0.55) !important;
+    box-shadow: 0 4px 18px rgba(99, 102, 241, 0.45) !important;
+}
+
+html[data-theme='light'] .isp-quick-pill--collection,
+html:not(.dark) .isp-quick-pill--collection {
+    background: rgba(16, 185, 129, 0.16) !important;
+    border-color: rgba(16, 185, 129, 0.5) !important;
+    color: #047857 !important;
+    -webkit-text-fill-color: #047857 !important;
+}
+
+html[data-theme='light'] .isp-quick-pill--online,
+html:not(.dark) .isp-quick-pill--online {
+    background: rgba(6, 182, 212, 0.16) !important;
+    border-color: rgba(6, 182, 212, 0.5) !important;
+    color: #0e7490 !important;
+    -webkit-text-fill-color: #0e7490 !important;
+}
+
+html[data-theme='light'] .isp-quick-pill--invoice,
+html:not(.dark) .isp-quick-pill--invoice {
+    background: rgba(124, 58, 237, 0.14) !important;
+    border-color: rgba(124, 58, 237, 0.45) !important;
+    color: #6d28d9 !important;
+    -webkit-text-fill-color: #6d28d9 !important;
+}
+
+html[data-theme='light'] .isp-quick-pill--payments,
+html:not(.dark) .isp-quick-pill--payments {
+    background: rgba(37, 99, 235, 0.14) !important;
+    border-color: rgba(37, 99, 235, 0.45) !important;
+    color: #1d4ed8 !important;
+    -webkit-text-fill-color: #1d4ed8 !important;
+}
+
+html[data-theme='light'] .isp-quick-pill--network,
+html:not(.dark) .isp-quick-pill--network {
+    background: rgba(14, 116, 144, 0.14) !important;
+    border-color: rgba(14, 116, 144, 0.45) !important;
+    color: #0f766e !important;
+    -webkit-text-fill-color: #0f766e !important;
+}
+
+html[data-theme='light'] .isp-quick-pill--reports,
+html:not(.dark) .isp-quick-pill--reports {
+    background: rgba(99, 102, 241, 0.14) !important;
+    border-color: rgba(99, 102, 241, 0.45) !important;
+    color: #4338ca !important;
+    -webkit-text-fill-color: #4338ca !important;
+}
+
+html[data-theme='light'] .isp-quick-pill--sms,
+html:not(.dark) .isp-quick-pill--sms {
+    background: rgba(217, 70, 239, 0.12) !important;
+    border-color: rgba(217, 70, 239, 0.4) !important;
+    color: #a21caf !important;
+    -webkit-text-fill-color: #a21caf !important;
+}
+
+html[data-theme='light'] .isp-quick-pill--warning,
+html:not(.dark) .isp-quick-pill--warning {
+    background: rgba(245, 158, 11, 0.16) !important;
+    border-color: rgba(245, 158, 11, 0.5) !important;
+    color: #b45309 !important;
+    -webkit-text-fill-color: #b45309 !important;
+}
+
+/* Dark mode — keep white text on translucent pills */
+html[data-theme='dark'] .isp-quick-pill:not(.isp-quick-pill-primary),
+html.dark .isp-quick-pill:not(.isp-quick-pill-primary) {
+    color: #fff !important;
+    -webkit-text-fill-color: #fff !important;
+}
+
+/* ── KPI cards — colored glass (wins over dashboard-home white override) ── */
+html[data-theme='light'] .fi-dashboard-page .isp-cmd-primary__card::before,
+html:not(.dark) .fi-dashboard-page .isp-cmd-primary__card::before {
+    height: 4px !important;
+    opacity: 1 !important;
+}
+
+html[data-theme='light'] .fi-dashboard-page .isp-cmd-primary__card--green,
+html:not(.dark) .fi-dashboard-page .isp-cmd-primary__card--green {
+    background: linear-gradient(180deg, rgba(16, 185, 129, 0.14), rgba(255, 255, 255, 0.9)) !important;
+    border-color: rgba(16, 185, 129, 0.4) !important;
+}
+
+html[data-theme='light'] .fi-dashboard-page .isp-cmd-primary__card--rose,
+html:not(.dark) .fi-dashboard-page .isp-cmd-primary__card--rose {
+    background: linear-gradient(180deg, rgba(244, 63, 94, 0.14), rgba(255, 255, 255, 0.9)) !important;
+    border-color: rgba(244, 63, 94, 0.4) !important;
+}
+
+html[data-theme='light'] .fi-dashboard-page .isp-cmd-primary__card--amber,
+html:not(.dark) .fi-dashboard-page .isp-cmd-primary__card--amber {
+    background: linear-gradient(180deg, rgba(245, 158, 11, 0.16), rgba(255, 255, 255, 0.9)) !important;
+    border-color: rgba(245, 158, 11, 0.42) !important;
+}
+
+html[data-theme='light'] .fi-dashboard-page .isp-cmd-primary__card--teal,
+html:not(.dark) .fi-dashboard-page .isp-cmd-primary__card--teal {
+    background: linear-gradient(180deg, rgba(13, 148, 136, 0.14), rgba(255, 255, 255, 0.9)) !important;
+    border-color: rgba(13, 148, 136, 0.4) !important;
+}
+
+html[data-theme='light'] .fi-dashboard-page .isp-cmd-primary__card--sky,
+html:not(.dark) .fi-dashboard-page .isp-cmd-primary__card--sky {
+    background: linear-gradient(180deg, rgba(2, 132, 199, 0.14), rgba(255, 255, 255, 0.9)) !important;
+    border-color: rgba(2, 132, 199, 0.4) !important;
+}
+
+html[data-theme='light'] .fi-dashboard-page .isp-cmd-primary__card--violet,
+html:not(.dark) .fi-dashboard-page .isp-cmd-primary__card--violet {
+    background: linear-gradient(180deg, rgba(124, 58, 237, 0.14), rgba(255, 255, 255, 0.9)) !important;
+    border-color: rgba(124, 58, 237, 0.4) !important;
+}
+
+html[data-theme='light'] .fi-dashboard-page .isp-cmd-primary__card--green .isp-cmd-primary__value,
+html:not(.dark) .fi-dashboard-page .isp-cmd-primary__card--green .isp-cmd-primary__value { color: #047857 !important; }
+
+html[data-theme='light'] .fi-dashboard-page .isp-cmd-primary__card--rose .isp-cmd-primary__value,
+html:not(.dark) .fi-dashboard-page .isp-cmd-primary__card--rose .isp-cmd-primary__value { color: #be123c !important; }
+
+html[data-theme='light'] .fi-dashboard-page .isp-cmd-primary__card--amber .isp-cmd-primary__value,
+html:not(.dark) .fi-dashboard-page .isp-cmd-primary__card--amber .isp-cmd-primary__value { color: #b45309 !important; }
+
+/* ── Header / ghost buttons (light) ── */
+html[data-theme='light'] .fi-header-actions .fi-btn.fi-color-gray,
+html[data-theme='light'] .fi-header-actions .fi-btn.fi-btn-outlined,
+html:not(.dark) .fi-header-actions .fi-btn.fi-color-gray,
+html:not(.dark) .fi-header-actions .fi-btn.fi-btn-outlined {
+    background: rgba(255, 255, 255, 0.96) !important;
+    border: 1px solid rgba(99, 102, 241, 0.35) !important;
+    color: #312e81 !important;
+    font-weight: 600 !important;
+    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.07) !important;
+}
+
+/* Glass cards */
+html[data-theme='light'] .fi-section,
+html[data-theme='light'] .fi-ta-ctn,
+html[data-theme='light'] .fi-wi-stats-overview-stat,
+html[data-theme='light'] .fi-wi-widget > div,
+html:not(.dark) .fi-section,
+html:not(.dark) .fi-ta-ctn,
+html:not(.dark) .fi-wi-widget > div {
+    background: rgba(255, 255, 255, 0.86) !important;
+    backdrop-filter: blur(16px) saturate(1.08) !important;
+    -webkit-backdrop-filter: blur(16px) saturate(1.08) !important;
+    border: 1px solid rgba(99, 102, 241, 0.22) !important;
+    box-shadow: 0 4px 24px -8px rgba(79, 70, 229, 0.14), inset 0 1px 0 rgba(255, 255, 255, 0.75) !important;
+}

@@ -129,6 +129,8 @@ class AdminPanelProvider extends PanelProvider
                         $html .= view('filament.hooks.auth-head')->render();
                     } else {
                         $html .= AdminRouteAssets::headLinks();
+                        $lightFixV = (int) ((@filemtime(public_path('css/admin-light-fix.css')) ?: 1) + (int) config('isp.assets.version_salt', 0) * 1_000_000);
+                        $html .= '<link rel="stylesheet" href="'.e(asset('css/admin-light-fix.css').'?v='.$lightFixV).'" data-isp-light-fix="1">'."\n";
                     }
 
                     return $html;

@@ -1,0 +1,386 @@
+/**
+ * Light mode — glass surfaces, readable buttons, status-colored badges
+ * @module admin/saas/17-light-glass-status.css
+ */
+
+html:not(.dark),
+[data-theme='light'] {
+    --isp-card-muted: rgba(255, 255, 255, 0.9);
+    --isp-surface-elevated: rgba(255, 255, 255, 0.94);
+    --isp-status-active: #059669;
+    --isp-status-active-bg: rgba(16, 185, 129, 0.14);
+    --isp-status-due: #dc2626;
+    --isp-status-due-bg: rgba(244, 63, 94, 0.12);
+    --isp-status-warning: #d97706;
+    --isp-status-warning-bg: rgba(245, 158, 11, 0.14);
+    --isp-status-info: #2563eb;
+    --isp-status-info-bg: rgba(37, 99, 235, 0.12);
+}
+
+/* Glass cards — visible edge on gradient background */
+html:not(.dark) .fi-section,
+html:not(.dark) .fi-ta-ctn,
+html:not(.dark) .fi-wi-stats-overview-stat,
+html:not(.dark) .fi-wi-widget > div,
+html:not(.dark) .fi-wi-chart > div,
+html:not(.dark) .isp-hub-section,
+html:not(.dark) .isp-hub-hero,
+[data-theme='light'] .fi-section,
+[data-theme='light'] .fi-ta-ctn,
+[data-theme='light'] .fi-wi-stats-overview-stat,
+[data-theme='light'] .fi-wi-widget > div,
+[data-theme='light'] .fi-wi-chart > div,
+[data-theme='light'] .isp-hub-section,
+[data-theme='light'] .isp-hub-hero {
+    background: rgba(255, 255, 255, 0.82) !important;
+    backdrop-filter: blur(16px) saturate(1.08) !important;
+    -webkit-backdrop-filter: blur(16px) saturate(1.08) !important;
+    border: 1px solid rgba(99, 102, 241, 0.2) !important;
+    box-shadow:
+        0 4px 24px -8px rgba(79, 70, 229, 0.12),
+        inset 0 1px 0 rgba(255, 255, 255, 0.7) !important;
+}
+
+html:not(.dark) .fi-main,
+html:not(.dark) .fi-page,
+[data-theme='light'] .fi-main,
+[data-theme='light'] .fi-page {
+    color: #0f172a !important;
+}
+
+/* Ghost / gray / outlined — must not vanish on light bg */
+html:not(.dark) .fi-btn.fi-btn-outlined,
+html:not(.dark) .fi-btn.fi-color-gray,
+html:not(.dark) .fi-ac-btn-action.fi-color-gray,
+html:not(.dark) .fi-ac-icon-btn.fi-color-gray,
+[data-theme='light'] .fi-btn.fi-btn-outlined,
+[data-theme='light'] .fi-btn.fi-color-gray,
+[data-theme='light'] .fi-ac-btn-action.fi-color-gray,
+[data-theme='light'] .fi-ac-icon-btn.fi-color-gray {
+    background: rgba(255, 255, 255, 0.92) !important;
+    border-color: rgba(99, 102, 241, 0.32) !important;
+    color: #1e293b !important;
+    box-shadow: 0 1px 4px rgba(15, 23, 42, 0.08) !important;
+}
+
+html:not(.dark) .fi-btn.fi-btn-outlined:hover:not(:disabled),
+html:not(.dark) .fi-btn.fi-color-gray:hover:not(:disabled),
+[data-theme='light'] .fi-btn.fi-btn-outlined:hover:not(:disabled),
+[data-theme='light'] .fi-btn.fi-color-gray:hover:not(:disabled) {
+    background: rgba(238, 242, 255, 0.98) !important;
+    border-color: rgba(99, 102, 241, 0.5) !important;
+    color: #4338ca !important;
+}
+
+/* Semantic action buttons */
+html:not(.dark) .fi-btn.fi-color-success,
+[data-theme='light'] .fi-btn.fi-color-success {
+    background: linear-gradient(135deg, #059669, #10b981) !important;
+    border-color: #059669 !important;
+    color: #fff !important;
+    box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35) !important;
+}
+
+html:not(.dark) .fi-btn.fi-color-danger,
+[data-theme='light'] .fi-btn.fi-color-danger {
+    background: linear-gradient(135deg, #dc2626, #f43f5e) !important;
+    border-color: #dc2626 !important;
+    color: #fff !important;
+    box-shadow: 0 4px 14px rgba(244, 63, 94, 0.3) !important;
+}
+
+html:not(.dark) .fi-btn.fi-color-warning,
+[data-theme='light'] .fi-btn.fi-color-warning {
+    background: linear-gradient(135deg, #d97706, #f59e0b) !important;
+    border-color: #d97706 !important;
+    color: #fff !important;
+    box-shadow: 0 4px 14px rgba(245, 158, 11, 0.3) !important;
+}
+
+html:not(.dark) .fi-btn.fi-color-info,
+[data-theme='light'] .fi-btn.fi-color-info {
+    background: linear-gradient(135deg, #2563eb, #3b82f6) !important;
+    border-color: #2563eb !important;
+    color: #fff !important;
+    box-shadow: 0 4px 14px rgba(37, 99, 235, 0.28) !important;
+}
+
+/* Page header (+ New subscriber, export, etc.) */
+html:not(.dark) .fi-header-actions .fi-btn:not(.fi-color-primary):not(.fi-color-success):not(.fi-color-danger):not(.fi-color-warning):not(.fi-color-info),
+[data-theme='light'] .fi-header-actions .fi-btn:not(.fi-color-primary):not(.fi-color-success):not(.fi-color-danger):not(.fi-color-warning):not(.fi-color-info) {
+    background: rgba(255, 255, 255, 0.94) !important;
+    border: 1px solid rgba(99, 102, 241, 0.32) !important;
+    color: #312e81 !important;
+    font-weight: 600 !important;
+}
+
+/* Table / inline status badges */
+html:not(.dark) .fi-badge.fi-color-success,
+[data-theme='light'] .fi-badge.fi-color-success {
+    background: var(--isp-status-active-bg) !important;
+    color: #047857 !important;
+    border: 1px solid rgba(16, 185, 129, 0.35) !important;
+}
+
+html:not(.dark) .fi-badge.fi-color-danger,
+[data-theme='light'] .fi-badge.fi-color-danger {
+    background: var(--isp-status-due-bg) !important;
+    color: #b91c1c !important;
+    border: 1px solid rgba(244, 63, 94, 0.35) !important;
+}
+
+html:not(.dark) .fi-badge.fi-color-warning,
+[data-theme='light'] .fi-badge.fi-color-warning {
+    background: var(--isp-status-warning-bg) !important;
+    color: #b45309 !important;
+    border: 1px solid rgba(245, 158, 11, 0.35) !important;
+}
+
+html:not(.dark) .fi-badge.fi-color-info,
+[data-theme='light'] .fi-badge.fi-color-info {
+    background: var(--isp-status-info-bg) !important;
+    color: #1d4ed8 !important;
+    border: 1px solid rgba(37, 99, 235, 0.3) !important;
+}
+
+html:not(.dark) .fi-badge.fi-color-primary,
+[data-theme='light'] .fi-badge.fi-color-primary {
+    background: rgba(99, 102, 241, 0.12) !important;
+    color: #4338ca !important;
+    border: 1px solid rgba(99, 102, 241, 0.28) !important;
+}
+
+/* ── Sidebar badges — status colors site-wide ── */
+.fi-sidebar-item-badge {
+    font-size: 0.65rem !important;
+    font-weight: 800 !important;
+    padding: 0.15rem 0.45rem !important;
+    border-radius: 999px !important;
+    color: #fff !important;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.18) !important;
+}
+
+.fi-sidebar-item-button .fi-sidebar-item-badge {
+    background: linear-gradient(135deg, #6366f1, #7c3aed) !important;
+}
+
+.fi-sidebar-item-button[href*='active'] .fi-sidebar-item-badge,
+.fi-sidebar-item-button[href*='preset=online'] .fi-sidebar-item-badge,
+.fi-sidebar-item-button[href*='paid'] .fi-sidebar-item-badge,
+.fi-sidebar-item-button[href*='/online'] .fi-sidebar-item-badge {
+    background: linear-gradient(135deg, #059669, #10b981) !important;
+    box-shadow: 0 2px 8px rgba(16, 185, 129, 0.4) !important;
+}
+
+.fi-sidebar-item-button[href*='due'] .fi-sidebar-item-badge,
+.fi-sidebar-item-button[href*='billing-notices'] .fi-sidebar-item-badge,
+.fi-sidebar-item-button[href*='overdue'] .fi-sidebar-item-badge,
+.fi-sidebar-item-button[href*='dunning'] .fi-sidebar-item-badge {
+    background: linear-gradient(135deg, #dc2626, #f43f5e) !important;
+    box-shadow: 0 2px 8px rgba(244, 63, 94, 0.4) !important;
+}
+
+.fi-sidebar-item-button[href*='expired'] .fi-sidebar-item-badge,
+.fi-sidebar-item-button[href*='suspended'] .fi-sidebar-item-badge,
+.fi-sidebar-item-button[href*='expire'] .fi-sidebar-item-badge,
+.fi-sidebar-item-button[href*='pending'] .fi-sidebar-item-badge,
+.fi-sidebar-item-button[href*='left'] .fi-sidebar-item-badge {
+    background: linear-gradient(135deg, #d97706, #f59e0b) !important;
+    box-shadow: 0 2px 8px rgba(245, 158, 11, 0.35) !important;
+}
+
+.fi-sidebar-item-button[href*='vip'] .fi-sidebar-item-badge {
+    background: linear-gradient(135deg, #2563eb, #6366f1) !important;
+}
+
+.fi-sidebar-item-button[href*='free'] .fi-sidebar-item-badge {
+    background: linear-gradient(135deg, #64748b, #94a3b8) !important;
+}
+
+.fi-sidebar-item-button[href*='ticket'] .fi-sidebar-item-badge,
+.fi-sidebar-item-button[href*='support'] .fi-sidebar-item-badge {
+    background: linear-gradient(135deg, #d97706, #fbbf24) !important;
+}
+
+.fi-sidebar-item-badge.fi-color-success {
+    background: linear-gradient(135deg, #059669, #10b981) !important;
+}
+
+.fi-sidebar-item-badge.fi-color-danger {
+    background: linear-gradient(135deg, #dc2626, #f43f5e) !important;
+}
+
+.fi-sidebar-item-badge.fi-color-warning {
+    background: linear-gradient(135deg, #d97706, #f59e0b) !important;
+}
+
+.fi-sidebar-item-badge.fi-color-info {
+    background: linear-gradient(135deg, #2563eb, #6366f1) !important;
+}
+
+.fi-sidebar-item-badge.fi-color-gray {
+    background: linear-gradient(135deg, #64748b, #94a3b8) !important;
+}
+
+/* Dashboard command center chips */
+html:not(.dark) .fi-dashboard-page .isp-cmd-chip,
+[data-theme='light'] .fi-dashboard-page .isp-cmd-chip {
+    background: rgba(255, 255, 255, 0.88) !important;
+    border: 1px solid rgba(99, 102, 241, 0.22) !important;
+    color: #0f172a !important;
+    backdrop-filter: blur(8px);
+}
+
+html:not(.dark) .fi-dashboard-page .isp-cmd-primary__card,
+[data-theme='light'] .fi-dashboard-page .isp-cmd-primary__card {
+    background: rgba(255, 255, 255, 0.85) !important;
+    border: 1px solid rgba(99, 102, 241, 0.18) !important;
+    backdrop-filter: blur(10px);
+}
+
+/* Portal light — glass cards & readable secondary actions */
+html:not(.portal-dark) .portal-summary-card,
+html:not(.portal-dark) .portal-panel,
+html:not(.portal-dark) .portal-pro-card {
+    background: rgba(255, 255, 255, 0.82) !important;
+    backdrop-filter: blur(16px) saturate(1.08) !important;
+    -webkit-backdrop-filter: blur(16px) saturate(1.08) !important;
+    border: 1px solid rgba(99, 102, 241, 0.2) !important;
+    box-shadow: 0 4px 24px -8px rgba(79, 70, 229, 0.12) !important;
+}
+
+html:not(.portal-dark) .portal-pro-value-due,
+html:not(.portal-dark) .portal-summary-card--due .portal-summary-card__value {
+    color: #dc2626 !important;
+}
+
+html:not(.portal-dark) .portal-pro-value-online,
+html:not(.portal-dark) .portal-summary-card--active .portal-summary-card__value {
+    color: #059669 !important;
+}
+
+html:not(.portal-dark) a.portal-btn:not(.portal-btn-primary):not(.portal-btn-pay),
+html:not(.portal-dark) .portal-action-link {
+    background: rgba(255, 255, 255, 0.9) !important;
+    border: 1px solid rgba(99, 102, 241, 0.28) !important;
+    color: #312e81 !important;
+}
+
+/* ── Dashboard quick pills — light mode (were white-on-white) ── */
+html:not(.dark) .isp-quick-pill:not(.isp-quick-pill-primary),
+[data-theme='light'] .isp-quick-pill:not(.isp-quick-pill-primary) {
+    background: rgba(255, 255, 255, 0.94) !important;
+    border: 1px solid rgba(99, 102, 241, 0.3) !important;
+    color: #312e81 !important;
+    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.06) !important;
+}
+
+html:not(.dark) .isp-quick-pill:not(.isp-quick-pill-primary):hover,
+[data-theme='light'] .isp-quick-pill:not(.isp-quick-pill-primary):hover {
+    background: rgba(238, 242, 255, 0.98) !important;
+    border-color: rgba(99, 102, 241, 0.45) !important;
+    color: #4338ca !important;
+}
+
+html:not(.dark) .isp-quick-pill-primary,
+[data-theme='light'] .isp-quick-pill-primary {
+    background: linear-gradient(135deg, #4f46e5, #6366f1) !important;
+    color: #fff !important;
+    border: 1px solid rgba(79, 70, 229, 0.5) !important;
+    box-shadow: 0 4px 16px rgba(99, 102, 241, 0.4) !important;
+}
+
+html:not(.dark) .isp-quick-pill-primary:hover,
+[data-theme='light'] .isp-quick-pill-primary:hover {
+    background: linear-gradient(135deg, #4338ca, #4f46e5) !important;
+    filter: none !important;
+}
+
+html:not(.dark) a.isp-quick-pill[href*='collection'],
+html:not(.dark) a.isp-quick-pill[href*='bill-collection'],
+[data-theme='light'] a.isp-quick-pill[href*='collection'],
+[data-theme='light'] a.isp-quick-pill[href*='bill-collection'] {
+    background: rgba(16, 185, 129, 0.14) !important;
+    border-color: rgba(16, 185, 129, 0.45) !important;
+    color: #047857 !important;
+}
+
+html:not(.dark) a.isp-quick-pill[href*='online'],
+[data-theme='light'] a.isp-quick-pill[href*='online'] {
+    background: rgba(6, 182, 212, 0.14) !important;
+    border-color: rgba(6, 182, 212, 0.45) !important;
+    color: #0e7490 !important;
+}
+
+html:not(.dark) a.isp-quick-pill[href*='invoice'],
+[data-theme='light'] a.isp-quick-pill[href*='invoice'] {
+    background: rgba(124, 58, 237, 0.12) !important;
+    border-color: rgba(124, 58, 237, 0.4) !important;
+    color: #6d28d9 !important;
+}
+
+html:not(.dark) a.isp-quick-pill[href*='payment'],
+[data-theme='light'] a.isp-quick-pill[href*='payment'] {
+    background: rgba(37, 99, 235, 0.12) !important;
+    border-color: rgba(37, 99, 235, 0.4) !important;
+    color: #1d4ed8 !important;
+}
+
+html:not(.dark) a.isp-quick-pill[href*='suspended'],
+[data-theme='light'] a.isp-quick-pill[href*='suspended'] {
+    background: rgba(245, 158, 11, 0.14) !important;
+    border-color: rgba(245, 158, 11, 0.45) !important;
+    color: #b45309 !important;
+}
+
+/* KPI stat cards — colored glass in light mode */
+html:not(.dark) .isp-cmd-primary__card::before,
+[data-theme='light'] .isp-cmd-primary__card::before {
+    height: 4px !important;
+    opacity: 1 !important;
+}
+
+html:not(.dark) .isp-cmd-primary__card--green,
+[data-theme='light'] .isp-cmd-primary__card--green {
+    background: linear-gradient(180deg, rgba(16, 185, 129, 0.12), rgba(255, 255, 255, 0.88)) !important;
+    border-color: rgba(16, 185, 129, 0.35) !important;
+}
+
+html:not(.dark) .isp-cmd-primary__card--rose,
+[data-theme='light'] .isp-cmd-primary__card--rose {
+    background: linear-gradient(180deg, rgba(244, 63, 94, 0.12), rgba(255, 255, 255, 0.88)) !important;
+    border-color: rgba(244, 63, 94, 0.35) !important;
+}
+
+html:not(.dark) .isp-cmd-primary__card--amber,
+[data-theme='light'] .isp-cmd-primary__card--amber {
+    background: linear-gradient(180deg, rgba(245, 158, 11, 0.14), rgba(255, 255, 255, 0.88)) !important;
+    border-color: rgba(245, 158, 11, 0.38) !important;
+}
+
+html:not(.dark) .isp-cmd-primary__card--teal,
+[data-theme='light'] .isp-cmd-primary__card--teal {
+    background: linear-gradient(180deg, rgba(13, 148, 136, 0.12), rgba(255, 255, 255, 0.88)) !important;
+    border-color: rgba(13, 148, 136, 0.35) !important;
+}
+
+html:not(.dark) .isp-cmd-primary__card--sky,
+[data-theme='light'] .isp-cmd-primary__card--sky {
+    background: linear-gradient(180deg, rgba(2, 132, 199, 0.12), rgba(255, 255, 255, 0.88)) !important;
+    border-color: rgba(2, 132, 199, 0.35) !important;
+}
+
+html:not(.dark) .isp-cmd-primary__card--violet,
+[data-theme='light'] .isp-cmd-primary__card--violet {
+    background: linear-gradient(180deg, rgba(124, 58, 237, 0.12), rgba(255, 255, 255, 0.88)) !important;
+    border-color: rgba(124, 58, 237, 0.35) !important;
+}
+
+html:not(.dark) .isp-cmd-primary__card--green .isp-cmd-primary__value,
+[data-theme='light'] .isp-cmd-primary__card--green .isp-cmd-primary__value { color: #047857 !important; }
+
+html:not(.dark) .isp-cmd-primary__card--rose .isp-cmd-primary__value,
+[data-theme='light'] .isp-cmd-primary__card--rose .isp-cmd-primary__value { color: #be123c !important; }
+
+html:not(.dark) .isp-cmd-primary__card--amber .isp-cmd-primary__value,
+[data-theme='light'] .isp-cmd-primary__card--amber .isp-cmd-primary__value { color: #b45309 !important; }
