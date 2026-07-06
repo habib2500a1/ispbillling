@@ -276,6 +276,7 @@ body.isp-landing-page .wrap > header:not(.landing-header) nav {
     display: flex;
     align-items: center;
     gap: 0.5rem;
+    flex-shrink: 0;
 }
 
 /* Theme switch — compact on mobile */
@@ -521,8 +522,21 @@ body.isp-landing-page .btn-app:hover {
     color: var(--lp-text-secondary);
     font-size: clamp(0.9375rem, 2vw, 1.0625rem);
     max-width: 38rem;
-    margin: 0 auto 1.75rem;
+    margin: 0 auto 0.75rem;
     line-height: 1.65;
+}
+
+.hero__note {
+    margin: 0 auto 1.25rem;
+    max-width: 32rem;
+    font-size: 0.8125rem;
+    color: var(--lp-text-muted);
+    line-height: 1.5;
+}
+
+.hero__note strong {
+    color: var(--lp-accent);
+    font-weight: 600;
 }
 
 .hero-actions {
@@ -532,7 +546,7 @@ body.isp-landing-page .btn-app:hover {
     gap: 0.625rem;
 }
 
-/* ── Sign-in hub ───────────────────────────────────────────────── */
+/* ── Sign-in hub (legacy, unused) ──────────────────────────────── */
 
 .sign-in-hub {
     margin: 1.75rem 0;
@@ -1354,6 +1368,11 @@ footer a:hover { text-decoration: underline; }
         align-items: stretch;
         width: 100%;
         gap: 0.5rem;
+    }
+
+    .hero-actions__signin {
+        order: -1;
+        width: 100%;
     }
 
     .hero-actions .btn-lg {

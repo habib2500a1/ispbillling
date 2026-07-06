@@ -34,8 +34,8 @@ class LandingPageLinksTest extends TestCase
             'appDownloadUrl' => 'https://example.com/downloads/isp-radiant.apk',
         ])->render();
 
-        $this->assertStringContainsString('Sign in', $html);
-        $this->assertStringContainsString('One place to sign in', $html);
+        $this->assertSame(1, substr_count($html, '>Sign in<'), 'Sign in should appear exactly once on the page.');
+        $this->assertStringContainsString('One sign-in for customer, staff, or partner', $html);
         $this->assertStringContainsString('Mobile app', $html);
         $this->assertStringContainsString('/downloads/isp-radiant.apk', $html);
         $this->assertStringContainsString('https://example.com/login', $html);

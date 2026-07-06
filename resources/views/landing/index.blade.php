@@ -65,14 +65,12 @@
                 @if (! empty($shopUrl))
                     <a class="btn-ghost" href="{{ $shopUrl }}">Shop</a>
                 @endif
-                @if ($loginHubUrl ?? $portalUrl)
-                    <a class="btn-primary" href="{{ $loginHubUrl ?? $portalUrl }}">Sign in</a>
-                @endif
                 <a class="btn-app" href="{{ $appDownloadUrl }}">Mobile app</a>
                 @if ($signupUrl ?? null)
                     <a class="btn-ghost" href="{{ $signupUrl }}">New connection</a>
                 @endif
                 <a class="btn-ghost" href="{{ $payUrl }}">Pay bill</a>
+                <a class="btn-ghost" href="#packages">Packages</a>
             </nav>
         </header>
 
@@ -84,8 +82,14 @@
                 <p class="hero__eyebrow">Internet service provider</p>
                 <h2 id="hero-title">Fast, reliable internet for home & business</h2>
                 <p class="lead">{{ $tagline }}. Choose a package, pay online, and manage your connection from our customer portal.</p>
+                @if ($loginHubUrl ?? $portalUrl)
+                    <p class="hero__note">One sign-in for customer, staff, or partner — email, phone, or account ID.</p>
+                @endif
                 <div class="hero-actions">
-                    <a class="btn-primary btn-lg" href="#packages">View packages</a>
+                    @if ($loginHubUrl ?? $portalUrl)
+                        <a class="btn-primary btn-lg hero-actions__signin" href="{{ $loginHubUrl ?? $portalUrl }}">Sign in</a>
+                    @endif
+                    <a class="btn-ghost btn-lg" href="#packages">View packages</a>
                     @if ($signupUrl ?? null)
                         <a class="btn-ghost btn-lg" href="{{ $signupUrl }}">New connection</a>
                     @endif
@@ -121,7 +125,7 @@
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
                     </span>
                     <h3>Customer portal</h3>
-                    <p>Invoices, usage, speed test — @if ($customerLoginUrl ?? $portalUrl)<a href="{{ $customerLoginUrl ?? $portalUrl }}">customer login</a>@else online @endif.</p>
+                    <p>Invoices, usage, and speed test — all in your online account.</p>
                 </div>
                 <div class="feature" role="listitem">
                     <span class="feature__icon" aria-hidden="true">
@@ -170,8 +174,6 @@
                             </ul>
                             @if ($signupUrl ?? null)
                                 <a href="{{ $signupUrl }}">Request connection</a>
-                            @elseif ($customerLoginUrl ?? $portalUrl)
-                                <a href="{{ $customerLoginUrl ?? $portalUrl }}">Customer portal</a>
                             @else
                                 <a href="{{ $payUrl }}">Pay bill / contact</a>
                             @endif
@@ -188,8 +190,8 @@
             @if ($phone)<p>Phone: <a href="tel:{{ $phone }}">{{ $phone }}</a></p>@endif
             @if ($email)<p>Email: <a href="mailto:{{ $email }}">{{ $email }}</a></p>@endif
             <p class="footer-links">
-                @if ($loginHubUrl ?? $portalUrl)<a href="{{ $loginHubUrl ?? $portalUrl }}">Portal</a> · @endif
                 <a href="{{ $payUrl }}">Pay bill</a>
+                @if (! empty($shopUrl)) · <a href="{{ $shopUrl }}">Shop</a>@endif
             </p>
         </footer>
     </div>
