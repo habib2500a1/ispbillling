@@ -42,6 +42,9 @@
             </div>
 
             <div class="landing-header__actions">
+                @if ($loginHubUrl ?? $portalUrl)
+                    <a class="btn-primary landing-header__signin" href="{{ $loginHubUrl ?? $portalUrl }}">Sign in</a>
+                @endif
                 <div class="theme-switch" role="group" aria-label="Color theme">
                     <button type="button" class="theme-switch__btn" data-theme-value="light" id="theme-light" aria-pressed="true">Light</button>
                     <button type="button" class="theme-switch__btn" data-theme-value="dark" id="theme-dark" aria-pressed="false">Dark</button>
@@ -65,12 +68,12 @@
                 @if (! empty($shopUrl))
                     <a class="btn-ghost" href="{{ $shopUrl }}">Shop</a>
                 @endif
-                <a class="btn-app" href="{{ $appDownloadUrl }}">Mobile app</a>
+                <a class="btn-ghost" href="#packages">Packages</a>
                 @if ($signupUrl ?? null)
                     <a class="btn-ghost" href="{{ $signupUrl }}">New connection</a>
                 @endif
                 <a class="btn-ghost" href="{{ $payUrl }}">Pay bill</a>
-                <a class="btn-ghost" href="#packages">Packages</a>
+                <a class="btn-app" href="{{ $appDownloadUrl }}">Mobile app</a>
             </nav>
         </header>
 
@@ -83,13 +86,10 @@
                 <h2 id="hero-title">Fast, reliable internet for home & business</h2>
                 <p class="lead">{{ $tagline }}. Choose a package, pay online, and manage your connection from our customer portal.</p>
                 @if ($loginHubUrl ?? $portalUrl)
-                    <p class="hero__note">One sign-in for customer, staff, or partner — email, phone, or account ID.</p>
+                    <p class="hero__note">One sign-in for customer, staff, or partner.</p>
                 @endif
                 <div class="hero-actions">
-                    @if ($loginHubUrl ?? $portalUrl)
-                        <a class="btn-primary btn-lg hero-actions__signin" href="{{ $loginHubUrl ?? $portalUrl }}">Sign in</a>
-                    @endif
-                    <a class="btn-ghost btn-lg" href="#packages">View packages</a>
+                    <a class="btn-primary btn-lg" href="#packages">View packages</a>
                     @if ($signupUrl ?? null)
                         <a class="btn-ghost btn-lg" href="{{ $signupUrl }}">New connection</a>
                     @endif
