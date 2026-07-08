@@ -159,8 +159,8 @@ services:
       context: .
       dockerfile: deploy/Dockerfile
     restart: unless-stopped
-    mem_limit: 512m
-    memswap_limit: 512m
+    mem_limit: 2g
+    memswap_limit: 2g
     command: php artisan horizon
     env_file:
       - .env

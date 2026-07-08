@@ -8,6 +8,7 @@ use App\Filament\Resources\CustomerResource\RelationManagers;
 use App\Filament\Resources\CustomerResource\Widgets;
 use App\Filament\Pages\BillCollectionDesk;
 use App\Support\CustomerNetworkSyncDispatcher;
+use App\Support\StaffRoleGuard;
 use App\Jobs\SyncCustomerOnuFromOltJob;
 use App\Models\Reseller;
 use App\Models\Area;
@@ -1427,6 +1428,7 @@ class CustomerResource extends Resource
             ->icon('heroicon-o-arrows-right-left')
             ->color('gray')
             ->tooltip('Move to POP / reseller')
+            ->visible(fn (): bool => StaffRoleGuard::canAssignReseller(auth()->user()))
             ->form([
                 Forms\Components\Select::make('reseller_id')
                     ->label('Target reseller')
@@ -1603,6 +1605,7 @@ class CustomerResource extends Resource
         return Tables\Actions\BulkAction::make('bulk_move_reseller')
             ->label('Move')
             ->icon('heroicon-o-arrows-right-left')
+            ->visible(fn (): bool => StaffRoleGuard::canAssignReseller(auth()->user()))
             ->form([
                 Forms\Components\Select::make('reseller_id')
                     ->label('Target reseller')

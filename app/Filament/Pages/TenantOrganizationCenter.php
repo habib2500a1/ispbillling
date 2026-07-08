@@ -7,6 +7,7 @@ use App\Services\Rbac\ModulePermissionService;
 use App\Services\Tenant\TenantModuleSettingsService;
 use App\Services\Tenant\TenantOrganizationIntelligenceService;
 use App\Support\Rbac\IspModuleCatalog;
+use App\Support\PlatformSuperAdmin;
 use App\Support\Rbac\StaffCapability;
 use App\Support\TenantResolver;
 use Filament\Notifications\Notification;
@@ -290,7 +291,7 @@ class TenantOrganizationCenter extends Page
             'roles' => $this->canManageModules(),
             'security' => $cap->canAny(['security.manage', 'audit.view']),
             'resellers' => $cap->canResellers(),
-            'tenants' => auth()->user()?->hasRole('super-admin') ?? false,
+            'tenants' => PlatformSuperAdmin::allows(auth()->user()),
         ];
     }
 

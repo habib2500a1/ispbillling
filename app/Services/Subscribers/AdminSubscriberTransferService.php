@@ -7,6 +7,7 @@ use App\Models\Reseller;
 use App\Models\ResellerCustomerTransfer;
 use App\Models\User;
 use App\Services\Resellers\ResellerQuotaService;
+use App\Support\StaffRoleGuard;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -17,6 +18,12 @@ final class AdminSubscriberTransferService
 {
     public function moveToReseller(Customer $customer, ?Reseller $toReseller, User $actor, ?string $reason = null): Customer
     {
+        if (! StaffRoleGuard::canAssignReseller($actor)) {
+            throw ValidationException::withMessages([
+                'reseller' => 'You are not allowed to assign or move customers to resellers.',
+            ]);
+        }
+
         return DB::transaction(function () use ($customer, $toReseller, $actor, $reason): Customer {
             $fromResellerId = $customer->reseller_id;
 

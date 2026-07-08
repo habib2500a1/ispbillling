@@ -44,6 +44,7 @@ final class IspPermissionCatalog
                 'customers.merge' => 'Merge customers',
                 'customers.export' => 'Export customers',
                 'customers.import' => 'Import customers',
+                'customers.assign_reseller' => 'Assign / move customer to reseller',
             ],
             'billing' => [
                 'billing.view' => 'View billing',

@@ -6,6 +6,9 @@ use App\Filament\Concerns\ChecksIspPermission;
 use App\Filament\Resources\ResellerResource\Pages;
 use App\Filament\Resources\ResellerResource\RelationManagers;
 use App\Models\Reseller;
+use App\Models\Tenant;
+use App\Support\PlatformSuperAdmin;
+use App\Support\TenantSaasControls;
 use App\Models\User;
 use App\Services\Resellers\ResellerPortalAccessService;
 use App\Support\ResellerBillingSettlementMode;
@@ -43,6 +46,26 @@ class ResellerResource extends Resource
     protected static ?int $navigationSort = 10;
 
     protected static bool $shouldRegisterNavigation = false;
+
+    public static function canCreate(): bool
+    {
+        if (! static::checkPermission('resellers.manage') && ! static::checkPermission('resellers.create')) {
+            return false;
+        }
+
+        if (PlatformSuperAdmin::allows(auth()->user())) {
+            return true;
+        }
+
+        $tenantId = auth()->user()?->tenant_id;
+        if ($tenantId === null) {
+            return true;
+        }
+
+        return TenantSaasControls::allowsResellerCreation(
+            Tenant::query()->find((int) $tenantId),
+        );
+    }
 
     public static function form(Form $form): Form
     {

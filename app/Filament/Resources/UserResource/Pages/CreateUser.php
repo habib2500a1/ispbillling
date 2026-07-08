@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\UserResource\Pages;
 
 use App\Filament\Resources\UserResource;
+use App\Support\StaffRoleGuard;
 use Filament\Resources\Pages\CreateRecord;
 
 class CreateUser extends CreateRecord
@@ -18,6 +19,14 @@ class CreateUser extends CreateRecord
         }
 
         return $data;
+    }
+
+    protected function beforeCreate(): void
+    {
+        $roles = $this->form->getState()['roles'] ?? [];
+        if (is_array($roles)) {
+            StaffRoleGuard::assertCanAssignRoles(auth()->user(), $roles);
+        }
     }
 
     protected function afterCreate(): void

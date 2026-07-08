@@ -378,6 +378,33 @@ class BillCollectionDesk extends Page
         );
     }
 
+    public function updatedAmount(): void
+    {
+        if (! $this->isRechargeMode() || $this->selectedCustomerId === null || $this->advancePrepayMonths === null) {
+            return;
+        }
+
+        $customer = \App\Models\Customer::query()->find($this->selectedCustomerId);
+        if ($customer === null) {
+            return;
+        }
+
+        $hasDue = ($this->selectedCustomer['balance_due'] ?? 0) > 0.009;
+        $quote = app(CustomerPrepayService::class)->quote($customer, (int) $this->advancePrepayMonths, includeCurrentDue: $hasDue);
+        if ($quote === null) {
+            $this->advancePrepayMonths = null;
+
+            return;
+        }
+
+        $typed = $this->receivedAmountNumeric();
+        $quoted = round($hasDue ? (float) $quote['total_amount'] : (float) $quote['prepay_amount'], 2);
+
+        if (abs($typed - $quoted) > 0.009) {
+            $this->advancePrepayMonths = null;
+        }
+    }
+
     public function isRechargeMode(): bool
     {
         return $this->collectionMode === 'advance';

@@ -19,12 +19,14 @@ use App\Models\InvoiceItem;
 use App\Models\Payment;
 use App\Models\SupportTicket;
 use App\Models\SupportTicketMessage;
+use App\Models\Tenant;
 use App\Observers\CustomerObserver;
 use App\Observers\InvoiceItemObserver;
 use App\Observers\InvoiceObserver;
 use App\Observers\PaymentObserver;
 use App\Observers\SupportTicketMessageObserver;
 use App\Observers\SupportTicketObserver;
+use App\Observers\TenantObserver;
 use App\Observers\UserObserver;
 use App\Services\Network\CompositeNetworkProvisioner;
 use App\Services\Network\LogNetworkProvisioner;
@@ -182,6 +184,7 @@ class AppServiceProvider extends ServiceProvider
         SupportTicket::observe(SupportTicketObserver::class);
         SupportTicketMessage::observe(SupportTicketMessageObserver::class);
         User::observe(UserObserver::class);
+        Tenant::observe(TenantObserver::class);
 
         Gate::before(function (?User $user, string $ability): ?bool {
             if ($user?->hasRole('super-admin')) {

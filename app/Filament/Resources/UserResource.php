@@ -15,7 +15,6 @@ use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
-use Spatie\Permission\Models\Role;
 
 class UserResource extends Resource
 {
@@ -84,11 +83,7 @@ class UserResource extends Resource
                 Forms\Components\Select::make('roles')
                     ->label('Roles')
                     ->multiple()
-                    ->options(fn (): array => Role::query()
-                        ->when(! $isSuper, fn ($q) => $q->where('name', '!=', 'super-admin'))
-                        ->orderBy('name')
-                        ->pluck('name', 'name')
-                        ->all())
+                    ->options(fn (): array => StaffRoleGuard::assignableRoleOptions(Auth::user()))
                     ->required(),
             ])->columns(2),
             Forms\Components\Section::make('Collection discount (this staff)')

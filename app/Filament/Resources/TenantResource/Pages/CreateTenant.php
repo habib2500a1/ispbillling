@@ -5,6 +5,8 @@ namespace App\Filament\Resources\TenantResource\Pages;
 use App\Filament\Resources\TenantResource;
 use App\Services\Tenant\TenantProvisioningService;
 use App\Services\Tenant\TenantSubscriptionService;
+use App\Support\PrimaryTenant;
+use App\Support\TenantSaasControls;
 use App\Support\TenantSubscriptionCatalog;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\CreateRecord;
@@ -25,6 +27,11 @@ class CreateTenant extends CreateRecord
             ->normalizeSubscriptionInput($subscription + [
                 'plan_key' => $subscription['plan_key'] ?? TenantSubscriptionCatalog::PLAN_STARTER_100,
             ]);
+        $settings = TenantSaasControls::mergeIntoSettings(
+            $settings,
+            allowResellers: (bool) ($settings['platform_controls'][TenantSaasControls::KEY_RESELLER_CREATION] ?? false),
+            allowStaffAdminRoles: (bool) ($settings['platform_controls'][TenantSaasControls::KEY_STAFF_ADMIN_ROLES] ?? false),
+        );
         $data['settings'] = $settings;
 
         return $data;

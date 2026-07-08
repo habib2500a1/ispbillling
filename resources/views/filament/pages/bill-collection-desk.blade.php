@@ -353,6 +353,9 @@
                                     value="{{ number_format($this->isRechargeMode() ? (float) ($selectedCustomer['balance_due'] ?? 0) : $payable, 2) }}"
                                     readonly
                                 />
+                                @if (! $this->isRechargeMode() && $payable > 0.009)
+                                    <span class="isp-collection-field__hint">Full due (read-only). To collect less, change <strong>Received amount</strong> below.</span>
+                                @endif
                             </label>
                             <label class="isp-collection-field isp-collection-field--span">
                                 <span class="isp-collection-field__label">Received by *</span>
@@ -415,10 +418,12 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <tr>
-                                        <td>{{ $this->isRechargeMode() ? 'Recharge amount' : 'Payable amount' }}</td>
-                                        <td class="isp-collection-summary__amount">{{ number_format($this->isRechargeMode() ? $received : $payable, 2) }}</td>
-                                    </tr>
+                                    @if (! $this->isRechargeMode())
+                                        <tr>
+                                            <td>Payable amount</td>
+                                            <td class="isp-collection-summary__amount">{{ number_format($payable, 2) }}</td>
+                                        </tr>
+                                    @endif
                                     <tr @if($this->isRechargeMode()) hidden @endif>
                                         <td>Discount</td>
                                         <td>
@@ -436,16 +441,26 @@
                                             @endif
                                         </td>
                                     </tr>
-                                    <tr>
-                                        <td>{{ $this->isRechargeMode() ? 'Advance received' : 'Received amount' }}</td>
+                                    <tr class="isp-collection-summary__row--amount">
+                                        <td>
+                                            {{ $this->isRechargeMode() ? 'Recharge amount (BDT)' : 'Received amount' }}
+                                            @if ($this->isRechargeMode())
+                                                <span class="isp-collection-summary__edit-hint">Quick pick above or type any amount</span>
+                                            @elseif ($payable > 0.009)
+                                                <span class="isp-collection-summary__edit-hint">Edit here for partial pay</span>
+                                            @endif
+                                        </td>
                                         <td>
                                             <input
                                                 type="number"
+                                                inputmode="decimal"
                                                 step="0.01"
                                                 min="0.01"
                                                 @if(! $this->isRechargeMode() && $this->selectedInvoiceBalanceDue()) max="{{ $this->selectedInvoiceBalanceDue() }}" @endif
                                                 wire:model.live="amount"
+                                                wire:key="collection-amount-{{ $collectionMode }}-{{ $advancePrepayMonths }}-{{ $selectedCustomerId }}"
                                                 class="isp-collection-field__input isp-collection-field__input--amount"
+                                                placeholder="{{ $this->isRechargeMode() ? 'e.g. '.number_format((float) ($selectedCustomer['monthly_bill'] ?? 500), 2) : '0.00' }}"
                                                 required
                                             />
                                             @error('amount')
@@ -453,12 +468,14 @@
                                             @enderror
                                         </td>
                                     </tr>
-                                    <tr>
-                                        <td>Total received amount</td>
-                                        <td class="isp-collection-summary__amount isp-collection-summary__amount--strong" wire:key="total-received-{{ $amount }}-{{ $discountPreview }}">
-                                            {{ number_format($received, 2) }}
-                                        </td>
-                                    </tr>
+                                    @if (! $this->isRechargeMode())
+                                        <tr>
+                                            <td>Total received amount</td>
+                                            <td class="isp-collection-summary__amount isp-collection-summary__amount--strong" wire:key="total-received-{{ $amount }}-{{ $discountPreview }}">
+                                                {{ number_format($received, 2) }}
+                                            </td>
+                                        </tr>
+                                    @endif
                                     <tr>
                                         <td>Receipt / transaction no.</td>
                                         <td>

@@ -9,6 +9,7 @@ use App\Models\Reseller;
 use App\Services\Billing\CustomerWalletService;
 use App\Services\Optical\OnuNetworkDiagnosticsPresenter;
 use App\Services\Subscribers\AdminSubscriberTransferService;
+use App\Support\StaffRoleGuard;
 use Filament\Actions;
 use Filament\Forms;
 use Filament\Notifications\Notification;
@@ -68,6 +69,7 @@ final class ShebaSubscriberQuickActions
             ->icon('heroicon-o-arrows-right-left')
             ->color('gray')
             ->tooltip('Move to POP / reseller')
+            ->visible(fn (): bool => StaffRoleGuard::canAssignReseller(auth()->user()))
             ->form(static::moveFormSchema())
             ->action(fn (Customer $record, array $data) => static::runMove($record, $data));
     }
@@ -78,6 +80,7 @@ final class ShebaSubscriberQuickActions
             ->label('Move')
             ->icon('heroicon-o-arrows-right-left')
             ->color('gray')
+            ->visible(fn (): bool => StaffRoleGuard::canAssignReseller(auth()->user()))
             ->form(static::moveFormSchema())
             ->action(fn (array $data) => static::runMove($customer, $data));
     }

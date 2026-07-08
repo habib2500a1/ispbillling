@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\UserResource\Pages;
 
 use App\Filament\Resources\UserResource;
+use App\Support\StaffRoleGuard;
 use App\Support\UserCollectionDiscount;
 use Filament\Resources\Pages\EditRecord;
 
@@ -28,11 +29,20 @@ class EditUser extends EditRecord
         return $data;
     }
 
+    protected function beforeSave(): void
+    {
+        $roles = $this->form->getState()['roles'] ?? [];
+        if (is_array($roles)) {
+            StaffRoleGuard::assertCanAssignRoles(auth()->user(), $roles);
+        }
+    }
+
     protected function afterSave(): void
     {
         $state = $this->form->getState();
         $roles = $state['roles'] ?? [];
         if (is_array($roles)) {
+            StaffRoleGuard::assertCanAssignRoles(auth()->user(), $roles);
             $this->record->syncRoles($roles);
         }
 

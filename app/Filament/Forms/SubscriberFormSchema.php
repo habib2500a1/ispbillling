@@ -14,6 +14,7 @@ use App\Support\CustomerStatus;
 use App\Support\PaymentRenewalPolicy;
 use App\Support\SubscriberIdSettings;
 use App\Support\SubscriberType;
+use App\Support\StaffRoleGuard;
 use App\Support\TenantResolver;
 use Carbon\Carbon;
 use Filament\Forms;
@@ -464,7 +465,9 @@ final class SubscriberFormSchema
                             ->relationship('reseller', 'name')
                             ->searchable()
                             ->preload()
-                            ->native(false),
+                            ->native(false)
+                            ->visible(fn (): bool => StaffRoleGuard::canAssignReseller(auth()->user()))
+                            ->disabled(fn (): bool => ! StaffRoleGuard::canAssignReseller(auth()->user())),
                     ])
                     ->columns(self::gridTwo()),
                 Forms\Components\Section::make('Identity (extended)')

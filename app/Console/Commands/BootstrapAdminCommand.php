@@ -7,11 +7,10 @@ use Database\Seeders\IspPermissionsSeeder;
 use Database\Seeders\IspRolesSeeder;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Artisan;
-use Illuminate\Support\Facades\Hash;
 
 class BootstrapAdminCommand extends Command
 {
-    protected $signature = 'isp:bootstrap-admin';
+    protected $signature = 'isp:bootstrap-admin {--reset-password : Overwrite password for existing super-admin from .env}';
 
     protected $description = 'Ensure super-admin exists using ISP_ADMIN_EMAIL and ISP_ADMIN_PASSWORD from .env';
 
@@ -35,19 +34,34 @@ class BootstrapAdminCommand extends Command
             '--force' => true,
         ]);
 
-        $user = User::query()->updateOrCreate(
-            ['email' => $email],
-            [
+        $user = User::query()->withoutGlobalScopes()->where('email', $email)->first();
+
+        if ($user === null) {
+            $user = User::query()->create([
+                'email' => $email,
                 'name' => 'ISP Administrator',
-                'password' => Hash::make($password),
-            ]
-        );
+                'password' => $password,
+                'is_active' => true,
+            ]);
+            $this->info("Super-admin created: {$email}");
+        } else {
+            $user->forceFill([
+                'name' => $user->name ?: 'ISP Administrator',
+                'is_active' => true,
+            ]);
+
+            if ($this->option('reset-password')) {
+                $user->password = $password;
+                $this->warn("Super-admin password reset from .env: {$email}");
+            }
+
+            $user->save();
+            $this->info("Super-admin verified: {$email}");
+        }
 
         if (! $user->hasRole('super-admin')) {
             $user->assignRole('super-admin');
         }
-
-        $this->info("Super-admin ready: {$email}");
 
         return self::SUCCESS;
     }

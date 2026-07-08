@@ -4,7 +4,9 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\TenantResource\Pages;
 use App\Models\Tenant;
+use App\Support\PlatformSuperAdmin;
 use App\Support\PrimaryTenant;
+use App\Support\TenantSaasControls;
 use App\Support\Rbac\IspModuleCatalog;
 use App\Support\TenantSubscriptionCatalog;
 use Filament\Forms;
@@ -25,12 +27,28 @@ class TenantResource extends Resource
 
     public static function canViewAny(): bool
     {
-        return auth()->user()?->hasRole('super-admin') ?? false;
+        return PlatformSuperAdmin::allows(auth()->user());
+    }
+
+    public static function canCreate(): bool
+    {
+        return PlatformSuperAdmin::allows(auth()->user());
+    }
+
+    public static function canEdit($record): bool
+    {
+        return PlatformSuperAdmin::allows(auth()->user());
+    }
+
+    public static function canDelete($record): bool
+    {
+        return PlatformSuperAdmin::allows(auth()->user())
+            && ! PrimaryTenant::isPrimary($record->getKey());
     }
 
     public static function shouldRegisterNavigation(): bool
     {
-        return auth()->user()?->hasRole('super-admin') ?? false;
+        return PlatformSuperAdmin::allows(auth()->user());
     }
 
     public static function form(Form $form): Form
@@ -147,6 +165,24 @@ class TenantResource extends Resource
                     )->values()->all())
                     ->columns(2)
                     ->collapsed(),
+                Forms\Components\Section::make('Platform resale controls')
+                    ->description('Rented / sub ISPs cannot create partners or grant Admin roles unless you enable it here.')
+                    ->schema([
+                        Forms\Components\Toggle::make('settings.platform_controls.allow_reseller_creation')
+                            ->label('Allow reseller / partner creation')
+                            ->default(fn (?Tenant $record): bool => $record === null
+                                ? false
+                                : TenantSaasControls::allowsResellerCreation($record))
+                            ->helperText('When off, this tenant cannot add new resellers in admin.'),
+                        Forms\Components\Toggle::make('settings.platform_controls.allow_staff_admin_roles')
+                            ->label('Allow Admin / ISP Admin staff roles')
+                            ->default(fn (?Tenant $record): bool => $record === null
+                                ? false
+                                : TenantSaasControls::allowsStaffAdminRoles($record))
+                            ->helperText('When off, staff users cannot be promoted to full Admin.'),
+                    ])
+                    ->columns(2)
+                    ->visible(fn (): bool => PlatformSuperAdmin::allows(auth()->user())),
                 Forms\Components\Section::make('Branding')->schema([
                     Forms\Components\TextInput::make('branding.app_name')
                         ->label('App name')
