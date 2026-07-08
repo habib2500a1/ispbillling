@@ -6,17 +6,13 @@ use App\Filament\Pages\SendSms;
 use App\Filament\Resources\SupportTicketResource;
 use App\Models\BandwidthUsageDaily;
 use App\Models\Customer;
-use App\Models\CustomerNote;
 use App\Models\Device;
-use App\Models\NotificationLog;
 use App\Models\Payment;
-use App\Models\PppSessionLog;
 use App\Models\SupportTicket;
 use App\Models\User;
 use App\Services\Billing\CustomerPrepayService;
 use App\Services\Network\CustomerConnectionStatusService;
 use App\Services\Network\SubscriberNetworkPathService;
-use App\Services\Optical\OpticalSignalHistoryService;
 use App\Services\Optical\SubscriberOnuOpsPresenter;
 use App\Support\MacAddress;
 use Illuminate\Support\Collection;
@@ -28,7 +24,6 @@ final class SubscriberCommandCenterService
 {
     public function __construct(
         private readonly CustomerConnectionStatusService $connectionStatus,
-        private readonly OpticalSignalHistoryService $opticalHistory,
     ) {}
 
     /**
@@ -57,20 +52,14 @@ final class SubscriberCommandCenterService
             'header_strip' => $this->headerStrip($customer, $meta, $openBalance, $tickets, $conn),
             'kpis' => $this->kpiCards($customer, $openBalance, $tickets, $health, $revenue, $churn, $conn),
             'tickets' => $tickets,
-            'timeline' => $this->activityTimeline($customer),
             'live_session' => $this->liveSessionPanel($customer, $conn),
             'network_path' => app(SubscriberNetworkPathService::class)->path($customer),
-            'usage' => $this->usageCharts($customer),
-            'onu_sparkline' => $this->onuSparkline($onu),
             'onu_ops' => app(SubscriberOnuOpsPresenter::class)->forCustomer($customer),
-            'fraud_mac' => $this->fraudMacStrip($customer, $meta),
             'health' => $health,
             'intelligence' => [
                 'ai_summary' => $this->aiSummary($customer, $openBalance, $tickets, $health, $churn),
                 'churn' => $churn,
                 'revenue' => $revenue,
-                'pon_impact' => $this->ponImpact($customer, $onu),
-                'nearby' => $this->nearbySubscribers($customer),
             ],
             'fab_actions' => $this->fabActions($customer),
         ];
@@ -169,92 +158,6 @@ final class SubscriberCommandCenterService
     }
 
     /**
-     * @return list<array<string, mixed>>
-     */
-    private function activityTimeline(Customer $customer): array
-    {
-        $events = collect();
-
-        Payment::query()
-            ->where('customer_id', $customer->id)
-            ->where('status', 'completed')
-            ->orderByDesc('paid_at')
-            ->limit(12)
-            ->get(['amount', 'method', 'paid_at'])
-            ->each(function (Payment $p) use ($events): void {
-                $events->push([
-                    'at' => $p->paid_at,
-                    'type' => 'payment',
-                    'icon' => 'heroicon-o-banknotes',
-                    'tone' => 'emerald',
-                    'title' => 'Payment '.number_format((float) $p->amount, 0).' BDT',
-                    'detail' => ucfirst((string) $p->method),
-                ]);
-            });
-
-        SupportTicket::query()
-            ->where('customer_id', $customer->id)
-            ->orderByDesc('created_at')
-            ->limit(10)
-            ->get(['ticket_number', 'subject', 'status', 'created_at'])
-            ->each(function (SupportTicket $t) use ($events): void {
-                $events->push([
-                    'at' => $t->created_at,
-                    'type' => 'ticket',
-                    'icon' => 'heroicon-o-lifebuoy',
-                    'tone' => 'amber',
-                    'title' => 'Ticket '.$t->ticket_number,
-                    'detail' => \Illuminate\Support\Str::limit((string) $t->subject, 60),
-                ]);
-            });
-
-        NotificationLog::query()
-            ->where('customer_id', $customer->id)
-            ->whereIn('channel', ['sms', 'whatsapp'])
-            ->orderByDesc('created_at')
-            ->limit(10)
-            ->get(['channel', 'event', 'status', 'created_at'])
-            ->each(function (NotificationLog $log) use ($events): void {
-                $events->push([
-                    'at' => $log->created_at,
-                    'type' => 'comms',
-                    'icon' => $log->channel === 'whatsapp' ? 'heroicon-o-chat-bubble-oval-left-ellipsis' : 'heroicon-o-device-phone-mobile',
-                    'tone' => 'sky',
-                    'title' => strtoupper((string) $log->channel).' · '.($log->event ?: 'message'),
-                    'detail' => ucfirst((string) $log->status),
-                ]);
-            });
-
-        CustomerNote::query()
-            ->where('customer_id', $customer->id)
-            ->orderByDesc('created_at')
-            ->limit(8)
-            ->get(['body', 'created_at'])
-            ->each(function (CustomerNote $note) use ($events): void {
-                $events->push([
-                    'at' => $note->created_at,
-                    'type' => 'note',
-                    'icon' => 'heroicon-o-pencil-square',
-                    'tone' => 'slate',
-                    'title' => 'Staff note',
-                    'detail' => \Illuminate\Support\Str::limit((string) $note->body, 80),
-                ]);
-            });
-
-        return $events
-            ->filter(fn (array $e): bool => $e['at'] !== null)
-            ->sortByDesc('at')
-            ->take(20)
-            ->map(fn (array $e): array => [
-                ...$e,
-                'at_label' => $e['at']->format('d M Y · H:i'),
-                'ago' => $e['at']->diffForHumans(),
-            ])
-            ->values()
-            ->all();
-    }
-
-    /**
      * @param  array<string, mixed>  $conn
      * @return array<string, mixed>
      */
@@ -273,95 +176,6 @@ final class SubscriberCommandCenterService
             'bytes_out' => $ppp?->bytes_out !== null ? BandwidthUsageDaily::formatBytes((int) $ppp->bytes_out) : '—',
             'router' => $customer->mikrotikServer?->name ?? '—',
             'last_disconnect' => $conn['last_disconnect_formatted'] ?? '—',
-        ];
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    private function usageCharts(Customer $customer): array
-    {
-        $periods = [
-            'day' => 7,
-            'week' => 28,
-            'month' => 90,
-        ];
-
-        $out = [];
-        foreach ($periods as $key => $days) {
-            $rows = BandwidthUsageDaily::query()
-                ->where('customer_id', $customer->id)
-                ->where('usage_date', '>=', now()->subDays($days)->toDateString())
-                ->orderBy('usage_date')
-                ->get(['usage_date', 'bytes_in', 'bytes_out']);
-
-            $out[$key] = [
-                'labels' => $rows->map(fn ($r) => $r->usage_date->format('M j'))->all(),
-                'download_gb' => $rows->map(fn ($r) => round(((int) $r->bytes_in) / 1_073_741_824, 2))->all(),
-                'upload_gb' => $rows->map(fn ($r) => round(((int) $r->bytes_out) / 1_073_741_824, 2))->all(),
-            ];
-        }
-
-        return $out;
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    private function onuSparkline(?Device $onu): array
-    {
-        if ($onu === null) {
-            return ['available' => false, 'labels' => [], 'rx' => []];
-        }
-
-        $series = $this->opticalHistory->series((int) $onu->id, '24h', 48);
-
-        return [
-            'available' => ($series['rx'] ?? []) !== [],
-            'labels' => $series['labels'] ?? [],
-            'rx' => $series['rx'] ?? [],
-            'current_rx' => $onu->rx_power_dbm ?? $onu->onuHealthScore?->smoothed_rx_dbm,
-            'olt' => $onu->olt?->display_name ?? $onu->olt?->hostname ?? '—',
-            'pon' => filled($onu->pon_no) ? 'PON '.$onu->pon_no : '—',
-        ];
-    }
-
-    /**
-     * @param  array<string, mixed>  $meta
-     * @return array<string, mixed>
-     */
-    private function fraudMacStrip(Customer $customer, array $meta): array
-    {
-        $bound = MacAddress::normalizeColon($meta['mac_binding'] ?? '') ?? ($meta['mac_binding'] ?? null);
-        $onuMac = MacAddress::normalizeColon($meta['onu_mac'] ?? '') ?? ($meta['onu_mac'] ?? null);
-        $sessionMacs = PppSessionLog::query()
-            ->where('customer_id', $customer->id)
-            ->whereNotNull('caller_id')
-            ->orderByDesc('started_at')
-            ->limit(20)
-            ->pluck('caller_id')
-            ->map(fn (?string $m) => MacAddress::normalizeColon($m ?? '') ?? $m)
-            ->filter()
-            ->unique()
-            ->values();
-
-        $alerts = [];
-        if ($bound && $sessionMacs->isNotEmpty() && ! $sessionMacs->contains($bound)) {
-            $alerts[] = 'Session MAC differs from binding — possible CPE swap or fraud.';
-        }
-        if ($onuMac && $bound && $onuMac !== $bound) {
-            $alerts[] = 'ONU MAC and PPP binding MAC do not match.';
-        }
-        if ($sessionMacs->count() > 3) {
-            $alerts[] = $sessionMacs->count().' distinct session MACs in recent history.';
-        }
-
-        return [
-            'binding_mac' => $bound ?: '—',
-            'onu_mac' => $onuMac ?: '—',
-            'recent_session_macs' => $sessionMacs->take(5)->all(),
-            'alerts' => $alerts,
-            'risk' => $alerts !== [] ? 'elevated' : 'normal',
         ];
     }
 
@@ -523,75 +337,6 @@ final class SubscriberCommandCenterService
         }
 
         return ucfirst(implode(' · ', $parts)).'.';
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    private function ponImpact(Customer $customer, ?Device $onu): array
-    {
-        if ($onu === null || $onu->olt_id === null) {
-            return ['available' => false, 'neighbors' => [], 'open_tickets_on_pon' => 0];
-        }
-
-        $neighborOnus = Device::query()
-            ->where('olt_id', $onu->olt_id)
-            ->where('pon_no', $onu->pon_no)
-            ->where('id', '!=', $onu->id)
-            ->where('type', 'onu')
-            ->limit(20)
-            ->pluck('id');
-
-        $neighborCustomers = Customer::query()
-            ->whereIn('id', Device::query()
-                ->whereIn('id', $neighborOnus)
-                ->whereNotNull('customer_id')
-                ->pluck('customer_id'))
-            ->limit(8)
-            ->get(['id', 'name', 'customer_code', 'status']);
-
-        // Simpler: customers with same olt via open tickets
-        $ponTickets = SupportTicket::query()
-            ->where('olt_device_id', $onu->olt_id)
-            ->whereNotIn('status', ['resolved', 'closed'])
-            ->count();
-
-        return [
-            'available' => true,
-            'olt' => $onu->olt?->display_name ?? $onu->olt?->hostname ?? 'OLT',
-            'pon' => filled($onu->pon_no) ? 'PON '.$onu->pon_no : '—',
-            'neighbors_on_pon' => $neighborOnus->count(),
-            'open_tickets_on_olt' => $ponTickets,
-            'neighbors' => $neighborCustomers->map(fn (Customer $c): array => [
-                'name' => $c->name,
-                'code' => $c->customer_code,
-                'status' => $c->status,
-            ])->all(),
-        ];
-    }
-
-    /**
-     * @return list<array<string, mixed>>
-     */
-    private function nearbySubscribers(Customer $customer): array
-    {
-        if ($customer->area_id === null) {
-            return [];
-        }
-
-        return Customer::query()
-            ->where('area_id', $customer->area_id)
-            ->whereKeyNot($customer->id)
-            ->where('status', 'active')
-            ->orderBy('name')
-            ->limit(6)
-            ->get(['id', 'name', 'customer_code'])
-            ->map(fn (Customer $c): array => [
-                'name' => $c->name,
-                'code' => $c->customer_code,
-                'url' => \App\Filament\Resources\CustomerResource::getUrl('view', ['record' => $c]),
-            ])
-            ->all();
     }
 
     /**

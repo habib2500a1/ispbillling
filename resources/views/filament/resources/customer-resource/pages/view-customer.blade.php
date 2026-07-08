@@ -65,7 +65,6 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin="" data-cfasync="false"></script>
     <script src="{{ asset('js/subscriber-view-tabs.js') }}?v={{ @filemtime(public_path('js/subscriber-view-tabs.js')) ?: 1 }}" data-cfasync="false" defer></script>
     <script src="{{ asset('js/subscriber-view-location-map.js') }}?v={{ @filemtime(public_path('js/subscriber-view-location-map.js')) ?: 1 }}" data-cfasync="false" defer></script>
-    <script src="{{ asset('js/subscriber-view-charts.js') }}?v={{ @filemtime(public_path('js/subscriber-view-charts.js')) ?: 1 }}" data-cfasync="false" defer></script>
 
     <div class="sub-pro olt-pro" wire:key="client-view-{{ $record->getKey() }}-{{ \App\Support\SubscriberViewStyles::version() }}" x-data="{ tab: 'overview' }" data-sub-tabs-root data-initial-tab="overview">
         <div class="sub-hero-wrap">

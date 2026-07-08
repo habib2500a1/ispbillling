@@ -1,15 +1,6 @@
 (function () {
     'use strict';
 
-    function resetTimelineLayout() {
-        document.querySelectorAll('.sub-cc-panel--timeline .sub-cc-timeline, .sub-cc-timeline-wrap').forEach(function (el) {
-            el.style.removeProperty('max-height');
-            el.style.removeProperty('min-height');
-            el.style.removeProperty('height');
-            el.style.removeProperty('overflow');
-        });
-    }
-
     function activate(root, tab) {
         const next = tab || 'overview';
 
@@ -44,12 +35,9 @@
                     if (history.replaceState) {
                         history.replaceState(null, '', '#' + tab);
                     }
-                    resetTimelineLayout();
                 });
             });
         });
-
-        resetTimelineLayout();
     }
 
     if (document.readyState === 'loading') {
@@ -59,5 +47,4 @@
     }
 
     document.addEventListener('livewire:navigated', boot);
-    window.addEventListener('resize', resetTimelineLayout);
 })();
