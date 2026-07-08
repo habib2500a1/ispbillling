@@ -369,6 +369,10 @@ html:not(.portal-dark) .lh-theme-btn__moon { display: none; }
     line-height: 1.45;
 }
 
+.lh-error-flash {
+    animation: lh-shake 0.45s ease-in-out both;
+}
+
 .lh-alert--error {
     border: 1px solid rgba(220, 38, 38, 0.25);
     background: rgba(220, 38, 38, 0.08);
@@ -378,6 +382,22 @@ html:not(.portal-dark) .lh-theme-btn__moon { display: none; }
 html.portal-dark .lh-alert--error {
     background: rgba(248, 113, 113, 0.12);
     border-color: rgba(248, 113, 113, 0.3);
+}
+
+/* Highlight fields when login has an error */
+.lh-has-error #lh-password,
+.lh-has-error #lh-login {
+    border-color: rgba(220, 38, 38, 0.8) !important;
+    box-shadow: 0 0 0 4px rgba(220, 38, 38, 0.14);
+}
+
+@keyframes lh-shake {
+    0% { transform: translateX(0); }
+    20% { transform: translateX(-3px); }
+    40% { transform: translateX(3px); }
+    60% { transform: translateX(-2px); }
+    80% { transform: translateX(2px); }
+    100% { transform: translateX(0); }
 }
 
 /* ── Manual portals ────────────────────────────────────────────── */

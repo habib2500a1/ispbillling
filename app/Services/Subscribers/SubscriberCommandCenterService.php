@@ -8,6 +8,7 @@ use App\Models\BandwidthUsageDaily;
 use App\Models\Customer;
 use App\Models\Device;
 use App\Models\Payment;
+use App\Models\NotificationLog;
 use App\Models\SupportTicket;
 use App\Models\User;
 use App\Services\Billing\CustomerPrepayService;

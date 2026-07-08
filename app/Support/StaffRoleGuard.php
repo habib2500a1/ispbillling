@@ -85,7 +85,12 @@ final class StaffRoleGuard
         }
 
         if (\App\Support\Rbac\StaffCapability::for($user)->isTenantAdmin()) {
-            return true;
+            // Hard security rule:
+            // Even if a user already has admin/isp-admin roles, prevent reseller "sell/create/move"
+            // operations on rented tenants when the platform controls disable it.
+            return $tenant === null
+                ? true
+                : TenantSaasControls::allowsStaffAdminRoles($tenant);
         }
 
         return $user->can('customers.assign_reseller');

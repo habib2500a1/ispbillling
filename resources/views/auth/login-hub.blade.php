@@ -41,7 +41,7 @@
     @include('partials.isp-premium-theme', ['tailwind' => false, 'glass' => false, 'motion' => false])
     <link rel="stylesheet" href="{{ asset('css/login-hub.css') }}?v={{ @filemtime(public_path('css/login-hub.css')) ?: time() }}">
 </head>
-<body class="isp-login-hub-page">
+<body class="isp-login-hub-page {{ $errors->any() ? 'lh-has-error' : '' }}">
     @include('partials.demo-banner')
 
     <main class="lh-shell">
@@ -85,7 +85,7 @@
             @endif
 
             @if ($errors->any())
-                <div class="lh-alert lh-alert--error" role="alert">
+                <div class="lh-alert lh-alert--error lh-error-flash" role="alert">
                     {{ $errors->first() }}
                 </div>
             @endif
