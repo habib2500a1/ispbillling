@@ -25,6 +25,8 @@ class CustomersInfo extends Model
         'disable_count',
         'ppp_user_id',
         'connection_date',
+        'portal_access_token_hash',
+        'portal_access_token_at',
         'package_id',
         'status',
         'reseller_id',
@@ -109,5 +111,42 @@ class CustomersInfo extends Model
     public function primaryOnu(): ?CustomerOnu
     {
         return $this->onus()->orderByDesc('last_polled_at')->orderByDesc('id')->first();
+    }
+
+    public function isVip(): bool
+    {
+        return strtolower((string) ($this->official?->customer_type ?? '')) === 'vip'
+            || $this->status === 'vip';
+    }
+
+    public function isCorporate(): bool
+    {
+        return strtolower((string) ($this->official?->client_type ?? '')) === 'corporate';
+    }
+
+    public function gpsCoordinates(): ?array
+    {
+        foreach ($this->customerAddress as $address) {
+            if ($address->latitude && $address->longitude) {
+                return [
+                    'lat' => (float) $address->latitude,
+                    'lng' => (float) $address->longitude,
+                ];
+            }
+        }
+
+        return null;
+    }
+
+    public function joinDate(): ?\Carbon\Carbon
+    {
+        $date = $this->connection_date ?? $this->created_at;
+
+        return $date ? \Carbon\Carbon::parse($date) : null;
+    }
+
+    public function joinDateLabel(string $format = 'd M Y'): string
+    {
+        return $this->joinDate()?->format($format) ?? '—';
     }
 }

@@ -358,6 +358,17 @@
                                                     </span>
                                                 @elseif ($field === 'router_name' || $field === 'service')
                                                     <span>{{ $fields['pppUser'][$field] ?? '' }}</span>
+                                                @elseif ($field === 'connection_date')
+                                                    <span x-show="isEditing !== 'pppUser.{{ $field }}'"
+                                                        @click="isEditing = 'pppUser.{{ $field }}';
+                                                        tempValue['pppUser.{{ $field }}'] = @js($fields['pppUser'][$field] ?? '');
+                                                        $wire.startEditing('pppUser.{{ $field }}');"
+                                                        style="cursor: pointer; text-decoration: underline dotted;"
+                                                        class="link-success">
+                                                        {!! !empty($fields['pppUser'][$field])
+                                                            ? \Carbon\Carbon::parse($fields['pppUser'][$field])->format('d M Y')
+                                                            : '<span class="text-danger">' . __('Empty') . '</span>' !!}
+                                                    </span>
                                                 @else
                                                     <span x-show="isEditing !== 'pppUser.{{ $field }}'"
                                                         @click="isEditing = 'pppUser.{{ $field }}';
@@ -368,7 +379,7 @@
                                                         {!! !empty($fields['pppUser'][$field]) ? $fields['pppUser'][$field] : '<span class="text-danger">' . __('Empty') . '</span>' !!}
                                                     </span>
                                                 @endif
- 
+
                                                 <div x-show="isEditing === 'pppUser.{{ $field }}'"
                                                     @click.away="isEditing = null;
                                                     tempValue['pppUser.{{ $field }}'] = '{{ $fields['pppUser'][$field] ?? '' }}';

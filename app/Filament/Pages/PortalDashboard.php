@@ -39,8 +39,6 @@ class PortalDashboard extends Page
 
     public ?string $connectionStatus = 'checking...';
 
-    public array $optical = [];
-
     // Customer Review system variables
     public $showReviewModal = false;
     public $reviewRating = 5;
@@ -55,7 +53,30 @@ class PortalDashboard extends Page
 
     public function triggerReviewModal()
     {
+        if ($this->shouldSkipReviewPrompt()) {
+            return;
+        }
+
         $this->showReviewModal = true;
+    }
+
+    public function dismissReviewModal(): void
+    {
+        $this->showReviewModal = false;
+        session(['portal_review_dismissed_at' => now()->toIso8601String()]);
+    }
+
+    protected function shouldSkipReviewPrompt(): bool
+    {
+        if (session('portal_impersonated_by_admin')) {
+            return true;
+        }
+
+        if (session()->has('portal_review_dismissed_at')) {
+            return true;
+        }
+
+        return false;
     }
 
     public function submitReview()
@@ -109,11 +130,6 @@ class PortalDashboard extends Page
             ->where('ppp_user_id', $user->id)
             ->first();
 
-        if ($this->customer) {
-            $this->optical = app(\App\Services\Olt\CustomerOpticalPresenter::class)
-                ->forCustomer($this->customer, true);
-        }
-
         // Retrieve existing review
         $this->existingReview = \App\Models\CustomerReview::where('ppp_user_id', $user->id)->first();
 
@@ -122,20 +138,22 @@ class PortalDashboard extends Page
             $this->reviewComment = $this->existingReview->comment;
         }
 
-        // Trigger review popup conditions
-        if ($user->login_count >= 2) {
-            if (!$this->existingReview) {
-                $this->showReviewModal = true;
-            }
-        } elseif ($user->login_count == 1 && !$this->existingReview) {
-            $loginTime = session('portal_login_time', now());
-            $elapsedSeconds = now()->diffInSeconds($loginTime);
-            $thirtyMinsInSeconds = 30 * 60;
+        // Trigger review popup conditions (skip for admin impersonation / dismissed this session)
+        if (! $this->shouldSkipReviewPrompt()) {
+            if ($user->login_count >= 2) {
+                if (! $this->existingReview) {
+                    $this->showReviewModal = true;
+                }
+            } elseif ($user->login_count == 1 && ! $this->existingReview) {
+                $loginTime = session('portal_login_time', now());
+                $elapsedSeconds = now()->diffInSeconds($loginTime);
+                $thirtyMinsInSeconds = 30 * 60;
 
-            if ($elapsedSeconds >= $thirtyMinsInSeconds) {
-                $this->showReviewModal = true;
-            } else {
-                $this->timerRemainingMs = ($thirtyMinsInSeconds - $elapsedSeconds) * 1000;
+                if ($elapsedSeconds >= $thirtyMinsInSeconds) {
+                    $this->showReviewModal = true;
+                } else {
+                    $this->timerRemainingMs = ($thirtyMinsInSeconds - $elapsedSeconds) * 1000;
+                }
             }
         }
 

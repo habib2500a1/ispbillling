@@ -37,9 +37,4 @@ class CustomerOnu extends Model
     {
         return $this->belongsTo(CustomersInfo::class, 'customers_info_id');
     }
-
-    public function olt(): BelongsTo
-    {
-        return $this->belongsTo(Olt::class);
-    }
 }

@@ -46,6 +46,15 @@ class PaymentCollection extends Component
             abort(403, 'Unauthorized action.');
         }
 
+        $customerId = request()->query('customer');
+        if ($customerId) {
+            try {
+                $this->selectCustomer($customerId);
+            } catch (\Throwable) {
+                // ignore invalid encrypted id
+            }
+        }
+
         return true;
     }
     
@@ -225,6 +234,8 @@ class PaymentCollection extends Component
                 'collection_amount' => $this->paid_amount,
                 'collected_by' => auth()->user()->email,
                 'payment_status' => 'paid',
+                'invoice_no' => CollectionSummary::nextInvoiceNo(),
+                'bill_month' => Carbon::now()->format('F Y'),
             ]);
 
             BillingInfo::where('customer_bill_unique_id', $this->info_data->customer_unique_id)

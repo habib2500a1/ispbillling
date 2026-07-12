@@ -119,3 +119,14 @@ if (! function_exists('site_image')) {
         return asset($path);
     }
 }
+
+if (! function_exists('portalLoginUrl')) {
+    function portalLoginUrl(): string
+    {
+        if (\Illuminate\Support\Facades\Route::has('filament.portal.auth.login')) {
+            return route('filament.portal.auth.login');
+        }
+
+        return url('/portal/login');
+    }
+}

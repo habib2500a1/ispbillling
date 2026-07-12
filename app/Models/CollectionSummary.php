@@ -25,6 +25,13 @@ class CollectionSummary extends Model
         'invoice_no',
     ];
 
+    public static function nextInvoiceNo(): int
+    {
+        $maxInvoice = static::max('invoice_no');
+
+        return $maxInvoice ? ($maxInvoice + 1) : 100001;
+    }
+
     public function customer()
     {
         return $this->belongsTo(CustomersInfo::class, 'customer_collection_unique_id', 'customer_unique_id');

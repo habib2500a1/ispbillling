@@ -11,9 +11,6 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Throwable;
 
-/**
- * Pull ONU optical (RX/TX/PON/OLT) from ispbilling on the same server when configured.
- */
 final class IspbillingOpticalBridge
 {
     public function enabled(): bool
@@ -147,9 +144,6 @@ final class IspbillingOpticalBridge
         return $this->upsertLocalOnu($customer, $row);
     }
 
-    /**
-     * Try PPP username first, then caller-id / provided MAC.
-     */
     public function autoLinkCustomer(CustomersInfo $customer): ?CustomerOnu
     {
         $customer->loadMissing('pppUser');
@@ -167,8 +161,6 @@ final class IspbillingOpticalBridge
     }
 
     /**
-     * Match local PPP usernames to ispbilling ONUs and upsert customer_onus.
-     *
      * @return array{synced: int, skipped: int}
      */
     public function syncMatchedCustomers(int $limit = 500): array

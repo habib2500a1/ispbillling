@@ -1,68 +1,39 @@
-# NextDeploy / GitHub auto-deploy (FAST)
-# Domains tab (all → service app, port 80):
-#   - bill.flixbd.xyz
-#   - billing.bill.flixbd.xyz
-#   - portal.bill.flixbd.xyz
-# Never bind host :80/:443 (Caddy owns them).
-
 services:
   app:
     build:
       context: .
       dockerfile: Dockerfile
-    image: isgamma-58fb-app:latest
     restart: unless-stopped
-    expose:
-      - "80"
-    env_file:
-      - .env
+    ports:
+      - "80:80"
     environment:
       APP_NAME: "ISP Billing"
       APP_ENV: production
       APP_DEBUG: "false"
-      APP_URL: ${APP_URL:-https://bill.flixbd.xyz}
+      APP_URL: ${APP_URL:-http://localhost}
       APP_TIMEZONE: Asia/Dhaka
       DB_CONNECTION: mysql
       DB_HOST: mysql
       DB_PORT: 3306
       DB_DATABASE: ${DB_DATABASE:-mikrotik_billing}
-      DB_USERNAME: billing
+      DB_USERNAME: ${DB_USERNAME:-billing}
       DB_PASSWORD: ${DB_PASSWORD:-billing_secret}
       SESSION_DRIVER: database
-      SESSION_DOMAIN: ${SESSION_DOMAIN:-.flixbd.xyz}
-      SESSION_SECURE_COOKIE: "true"
       QUEUE_CONNECTION: database
       CACHE_STORE: file
       LOG_CHANNEL: stderr
-      ISPBILLING_OPTICAL_BRIDGE: ${ISPBILLING_OPTICAL_BRIDGE:-true}
-      ISPBILLING_DB_HOST: ${ISPBILLING_DB_HOST:-postgres}
-      ISPBILLING_DB_PORT: ${ISPBILLING_DB_PORT:-5432}
-      ISPBILLING_DB_DATABASE: ${ISPBILLING_DB_DATABASE:-isp_platform}
-      ISPBILLING_DB_USERNAME: ${ISPBILLING_DB_USERNAME:-isp_app}
-      ISPBILLING_DB_PASSWORD: ${ISPBILLING_DB_PASSWORD:-}
-    labels:
-      caddy: "${APP_DOMAIN:-bill.flixbd.xyz}, billing.${APP_DOMAIN:-bill.flixbd.xyz}, portal.${APP_DOMAIN:-bill.flixbd.xyz}"
-      caddy.reverse_proxy: "{{upstreams 80}}"
-      caddy.header.X-Frame-Options: SAMEORIGIN
-      caddy.header.X-Content-Type-Options: nosniff
-      caddy.header.Referrer-Policy: strict-origin-when-cross-origin
-      caddy.header.X-XSS-Protection: "1; mode=block"
     volumes:
       - app_storage:/var/www/html/storage
     depends_on:
       mysql:
         condition: service_healthy
-    networks:
-      - default
-      - nextdeploy
-      - ispbilling
 
   mysql:
     image: mysql:8.4
     restart: unless-stopped
     environment:
       MYSQL_DATABASE: ${DB_DATABASE:-mikrotik_billing}
-      MYSQL_USER: billing
+      MYSQL_USER: ${DB_USERNAME:-billing}
       MYSQL_PASSWORD: ${DB_PASSWORD:-billing_secret}
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root_secret}
     volumes:
@@ -73,16 +44,6 @@ services:
       timeout: 5s
       retries: 20
       start_period: 20s
-    networks:
-      - default
-
-networks:
-  nextdeploy:
-    external: true
-    name: NextDeploy
-  ispbilling:
-    external: true
-    name: ispbilling_isp
 
 volumes:
   mysql_data:

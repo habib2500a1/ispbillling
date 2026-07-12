@@ -119,7 +119,16 @@ class CustomerList extends Component
             case 'disable':
             case 'free':
             case 'inactive':
-                $data->where('status', $request->filter);
+            case 'vip':
+                if ($request->filter === 'vip') {
+                    $data->whereHas('official', fn ($q) => $q->where('customer_type', 'vip'));
+                } else {
+                    $data->where('status', $request->filter);
+                }
+                break;
+
+            case 'corporate':
+                $data->whereHas('official', fn ($q) => $q->where('client_type', 'Corporate'));
                 break;
 
             default:
@@ -128,21 +137,6 @@ class CustomerList extends Component
 
         return DataTables::eloquent($data)
             ->addIndexColumn()
-            ->filterColumn('customer_name', function ($query, $keyword) {
-                $query->where(function ($q) use ($keyword) {
-                    $q->where('customers_infos.customer_name', 'like', "%{$keyword}%")
-                        ->orWhere('customers_infos.customer_unique_id', 'like', "%{$keyword}%")
-                        ->orWhere('customers_infos.mobile', 'like', "%{$keyword}%")
-                        ->orWhereHas('pppUser', function ($pq) use ($keyword) {
-                            $pq->where('username', 'like', "%{$keyword}%");
-                        });
-                });
-            })
-            ->filterColumn('ppp_user.username', function ($query, $keyword) {
-                $query->whereHas('pppUser', function ($pq) use ($keyword) {
-                    $pq->where('username', 'like', "%{$keyword}%");
-                });
-            })
             ->addColumn('customer_identity', function ($row) {
                 $resellerBadge = $row->reseller_id && $row->reseller
                     ? ' <span class="badge ms-1" style="background-color: rgba(111, 66, 193, 0.1); color: rgb(111, 66, 193); border: 1px solid rgba(111, 66, 193, 0.25); font-size: 0.75rem;"><i class="bi bi-person-badge me-1"></i>'.$row->reseller->name.'</span>'
@@ -162,12 +156,21 @@ class CustomerList extends Component
                         .$initials.'</div>';
                 }
 
+                $vipBadge = ($row->official?->customer_type === 'vip')
+                    ? ' <span class="badge bg-warning text-dark ms-1" style="font-size:.7rem;"><i class="bi bi-star-fill"></i> VIP</span>'
+                    : '';
+                $corpBadge = (strtolower((string) ($row->official?->client_type ?? '')) === 'corporate')
+                    ? ' <span class="badge bg-info text-dark ms-1" style="font-size:.7rem;"><i class="bi bi-building"></i></span>'
+                    : '';
+                $viewUrl = route('customers.show', encrypt($row->customer_unique_id));
+                $viewBtn = ' <a href="'.$viewUrl.'" class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 text-decoration-none ms-1" title="View"><i class="bi bi-eye"></i></a>';
+
                 return '<div class="d-flex align-items-center gap-2">'.
                     $avatar.
                     '<div>'.
-                    '<div class="fw-bold text-dark">'.$row->customer_name.
+                    '<div class="fw-bold text-dark"><a href="'.$viewUrl.'" class="text-dark text-decoration-none">'.$row->customer_name.'</a>'.
                     (! empty($row->contact_person && $row->contact_person != '-') ? '<small class="text-muted"> ('.$row->contact_person.')</small>' : '').
-                    $resellerBadge.
+                    $resellerBadge.$vipBadge.$corpBadge.$viewBtn.
                     '</div>'.
 
                     '<div class="small">
@@ -179,6 +182,10 @@ class CustomerList extends Component
 
                         (! empty($row->contact_email)
                             ? '<span class="text-muted"><i class="bi bi-envelope text-success"></i> '.$row->contact_email.'</span>'
+                            : '').
+
+                        ($row->joinDate()
+                            ? ' <span class="text-muted"><i class="bi bi-calendar-check text-primary"></i> '.$row->joinDateLabel('d-M-Y').'</span>'
                             : '').
 
                     '</div>'.
@@ -209,12 +216,7 @@ class CustomerList extends Component
                        '</div>';
             })
             ->addColumn('connection_details', function ($row) {
-                $isOnline = $row->pppUser && ! empty($row->pppUser->uptime);
-                $onlineBadge = $isOnline
-                    ? '<span class="badge bg-success ms-1"><i class="bi bi-broadcast me-1"></i>Online</span>'
-                    : '<span class="badge bg-secondary ms-1">Offline</span>';
-
-                return '<div class="mb-1 fw-bold text-dark"><i class="bi bi-person-fill"></i> '.e($row->pppUser->username ?? 'N/A').$onlineBadge.'<span class="badge bg-info bg-opacity-10 text-dark border border-info border-opacity-25 ms-1"><i class="bi bi-router-fill me-1"></i>'.e($row->pppUser->router_name ?? 'N/A').'</span></div><div class="badge bg-success bg-opacity-10 text-dark border border-info border-opacity-25"><i class="bi bi-package me-1"></i>'.e($row->package->package ?? 'N/A').'</span><span class="text-white px-1 py-0 fw-bold"><i class="bi bi-cash me-1"></i>'.e((string) ($row->package->price ?? 'N/A')).'</span></div>';
+                return '<div class="mb-1 fw-bold text-dark"><i class="bi bi-person-fill"></i> '.($row->pppUser->username ?? 'N/A').'<span class="badge bg-info bg-opacity-10 text-dark border border-info border-opacity-25 ms-1"><i class="bi bi-router-fill me-1"></i>'.($row->pppUser->router_name ?? 'N/A').'</span></div><div class="badge bg-success bg-opacity-10 text-dark border border-info border-opacity-25"><i class="bi bi-package me-1"></i>'.($row->package->package ?? 'N/A').'</span><span class="text-white px-1 py-0 fw-bold"><i class="bi bi-cash me-1"></i>'.($row->package->price ?? 'N/A').'</span></div>';
             })
             ->addColumn('billing_summary', function ($row) {
                 $bill = number_format($row->billing?->total_amount ?? 0, 2);
@@ -240,10 +242,11 @@ class CustomerList extends Component
             ->addColumn('action', function ($row) {
                 $enable_btn = '<button onclick="confirmEnableCustomer(\''.encrypt($row->customer_unique_id).'\')" class="btn btn-success"><i class="bi bi-power"></i></button>';
                 $delete_btn = '<button onclick="confirmDeleteCustomer(\''.encrypt($row->customer_unique_id).'\')" class="btn btn-danger"><i class="bi bi-trash"></i></button>';
+                $view_btn = '<a href="'.route('customers.show', encrypt($row->customer_unique_id)).'" class="btn btn-success" title="View"><i class="bi bi-eye"></i></a>';
                 $customers_edit_btn = '<button onclick="Livewire.dispatch(\'open-edit-customer\', { id: \''.encrypt($row->customer_unique_id).'\' })" class="edit btn btn-primary"><i class="bi bi-pencil-square"></i></button>';
                 $bill_edit_btn = '<button onclick="Livewire.dispatch(\'open-bill-modal\', { id: \''.encrypt($row->customer_unique_id).'\' })" class="bill btn btn-info"><i class="bi bi-journal-arrow-up"></i></button>';
 
-                $btns = '<div class="action-btns d-flex justify-content-center">';
+                $btns = '<div class="action-btns d-flex justify-content-center">'.$view_btn;
 
                 if ($row->status === 'pending') {
                     if (hasAccess(['Super Admin'], ['edit-customer', 'enable-pending-customer', 'delete-customer'])) {
@@ -286,6 +289,11 @@ class CustomerList extends Component
                 if ($row->pppUser && !empty($row->pppUser->router_name) && hasAccess(['Super Admin'], ['push-customers'])) {
                     $push_btn = '<button onclick="confirmPushCustomer(\''.encrypt($row->customer_unique_id).'\')" class="btn btn-warning text-white ms-1" title="Push to MikroTik"><i class="bi bi-cloud-arrow-up"></i></button>';
                     $btns .= $push_btn;
+                }
+
+                if ($row->pppUser && hasAccess(['Super Admin'], ['all-customer', 'edit-customer'])) {
+                    $portal_btn = '<a href="'.route('staff.subscribers.portal-login', $row->id).'" target="_blank" rel="noopener" class="btn btn-info text-white ms-1" title="'.e(__('Portal Login')).'"><i class="bi bi-box-arrow-in-right"></i></a>';
+                    $btns .= $portal_btn;
                 }
 
                 return $btns.'</div>';

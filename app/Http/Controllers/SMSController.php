@@ -84,4 +84,15 @@ class SMSController extends Controller
             ->message($message)
             ->send();
     }
+
+    public function sendCustomSms(array $data): SmsResponse
+    {
+        if (empty($data['recipient']) || empty($data['message'])) {
+            return new SmsResponse(false, 'Recipient and message are required');
+        }
+
+        return SmsBridge::to($data['recipient'])
+            ->message($data['message'])
+            ->send();
+    }
 }

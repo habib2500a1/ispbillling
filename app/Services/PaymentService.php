@@ -101,10 +101,6 @@ class PaymentService
                 }
             }
 
-            // Generate next sequential invoice number
-            $maxInvoice = CollectionSummary::max('invoice_no');
-            $invoiceNo = $maxInvoice ? ($maxInvoice + 1) : 100001;
-
             // 2. Create Collection Record
             CollectionSummary::create([
                 'customer_collection_unique_id' => $customer->customer_unique_id,
@@ -115,7 +111,7 @@ class PaymentService
                 'payment_method' => $gateway,
                 'transaction_id' => $trxId,
                 'payment_status' => 'paid',
-                'invoice_no' => $invoiceNo,
+                'invoice_no' => CollectionSummary::nextInvoiceNo(),
                 'bill_month' => Carbon::now()->format('F Y'),
             ]);
 

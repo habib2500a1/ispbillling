@@ -794,8 +794,7 @@ class MikrotikSync extends Component
 
     public function importAllFromPanel(): void
     {
-        $this->selectedSecrets = array_column($this->cachedSecrets(), 'name');
-        $this->importSelected();
+        flash()->warning('Bulk import disabled. Open Import users and select only the customers you want.');
     }
 
     public function allSync()
@@ -807,22 +806,12 @@ class MikrotikSync extends Component
             return;
         }
 
-        $created = 0;
-        $updated = 0;
-        $skipped = 0;
+        // Do NOT auto-create customers — only refresh live PPP online sessions.
         $onlineTotal = 0;
         $errors = [];
 
         foreach ($routers as $router) {
             try {
-                $result = app(MikrotikPppImportService::class)->importFromRouter($router, [
-                    'create_missing' => true,
-                    'update_existing' => true,
-                ]);
-                $created += $result['created'];
-                $updated += $result['updated'];
-                $skipped += $result['skipped'];
-                $errors = array_merge($errors, $result['errors']);
                 $onlineTotal += $this->refreshOnlineSessions($router->router_name);
             } catch (\Throwable $e) {
                 $errors[] = $router->router_name.': '.$e->getMessage();
@@ -830,10 +819,7 @@ class MikrotikSync extends Component
         }
 
         flash()->success(sprintf(
-            'Sync All finished — Created: %d · Updated: %d · Skipped: %d · Online: %d%s',
-            $created,
-            $updated,
-            $skipped,
+            'Online refresh finished — Online sessions: %d%s',
             $onlineTotal,
             $errors === [] ? '' : ' · Issues: '.count($errors)
         ));

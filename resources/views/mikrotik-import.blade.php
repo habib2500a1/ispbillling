@@ -53,11 +53,6 @@
             submitOne(name) {
                 this.selected = [name];
                 this.submitSelected();
-            },
-            submitAll() {
-                if (!confirm(@json(__("Import EVERY user from this router?")))) return;
-                this.selected = this.all.map(u => u.name);
-                this.submitSelected();
             }
          }'
          x-effect="q; page = 1">
@@ -87,7 +82,7 @@
             <div class="card border-0 shadow-sm rounded-4">
                 <div class="card-body">
                     <div class="alert alert-info py-2 px-3 small mb-3">
-                        {{ __('Search is instant. Row Import = 1 user. Or tick → Import selected.') }}
+                        {{ __('Router users ≠ Customers. Import only the users you choose — they appear in Customers list. Online Clients still shows live PPP sessions.') }}
                     </div>
 
                     <div class="d-flex flex-wrap gap-2 align-items-center mb-3">
@@ -157,7 +152,6 @@
                             <button type="button" class="btn btn-outline-secondary" @click="page = Math.min(pageCount, page + 1)" :disabled="page >= pageCount">{{ __('Next') }}</button>
                         </div>
                         <div class="d-flex flex-wrap gap-2">
-                            <button type="button" class="btn btn-sm btn-outline-danger" @click="submitAll()">{{ __('Import all (optional)') }}</button>
                             <button type="button" class="btn btn-sm btn-success" @click="submitSelected()" :disabled="selected.length === 0">
                                 <i class="bi bi-cloud-download me-1"></i>{{ __('Import selected') }}
                                 <span x-show="selected.length > 0">(<span x-text="selected.length"></span>)</span>

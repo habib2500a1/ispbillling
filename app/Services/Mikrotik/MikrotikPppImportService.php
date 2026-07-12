@@ -151,8 +151,38 @@ class MikrotikPppImportService
                             if ($attrs !== []) {
                                 $customer->update($attrs);
                             }
+                            $updated++;
+                        } elseif ($createMissing) {
+                            // PPP secret exists (e.g. after customer purge) but no billing customer — create one.
+                            $lastIdCount++;
+                            $newId = match ($options['code_format'] ?? 'prefix_sequential') {
+                                'secret_as_code' => $row['name'],
+                                'numeric' => (string) ($lastIdCount),
+                                default => $prefix.$lastIdCount,
+                            };
+                            if (CustomersInfo::where('customer_unique_id', $newId)->exists()) {
+                                $lastIdCount++;
+                                $newId = $prefix.$lastIdCount;
+                            }
+
+                            CustomersInfo::create([
+                                'customer_unique_id' => $newId,
+                                'ppp_user_id' => $secret->id,
+                                'customer_name' => $row['comment'] !== '' ? $row['comment'] : $row['name'],
+                                'status' => $status === 'disable' ? 'disable' : 'active',
+                                'package_id' => $packageId,
+                                'connection_date' => Carbon::now(),
+                            ]);
+                            BillingInfo::create([
+                                'customer_bill_unique_id' => $newId,
+                                'billing_type' => 'prepaid',
+                                'auto_disable_date' => Carbon::now(),
+                            ]);
+                            OfficialInfo::create(['customer_office_unique_id' => $newId]);
+                            $created++;
+                        } else {
+                            $skipped++;
                         }
-                        $updated++;
                     } else {
                         if (! $createMissing) {
                             $skipped++;

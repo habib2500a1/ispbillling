@@ -4,18 +4,11 @@ namespace App\Http\Controllers;
 
 use App\Models\BillingInfo;
 use App\Models\CollectionSummary;
-use App\Models\CustomerOnu;
 use App\Models\CustomersInfo;
 use App\Models\HotspotSale;
-use App\Models\Olt;
 use App\Models\Reseller;
 use App\Models\ResellerCommission;
-use App\Models\RouterList;
-use App\Services\Olt\IspbillingOpticalBridge;
-use App\Services\Dashboard\DashboardOpsService;
 use Carbon\Carbon;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
 
 class DashboardController extends Controller
 {
@@ -167,89 +160,7 @@ class DashboardController extends Controller
             $systemOverview = [];
         }
 
-        $opticalData = $this->opticalNetworkOverview();
-        $networkQuick = [
-            'routers' => RouterList::count(),
-            'routers_connected' => RouterList::where('action', 'connected')->count(),
-            'olts_local' => Olt::count(),
-            'onus_local' => CustomerOnu::count(),
-        ];
-        $opsData = app(DashboardOpsService::class)->snapshot();
-        try {
-            $insightCounts = app(\App\Services\Ai\OpsInsightsService::class)->payload()['counts'] ?? [];
-            $opsData['insights_critical'] = (int) ($insightCounts['critical'] ?? 0);
-            $opsData['insights_high'] = (int) ($insightCounts['high'] ?? 0);
-            $opsData['insights_total'] = (int) array_sum($insightCounts);
-        } catch (\Throwable) {
-            $opsData['insights_critical'] = 0;
-            $opsData['insights_high'] = 0;
-            $opsData['insights_total'] = 0;
-        }
-
         // Calculate total cashflow, income, and revenue difference for the year
-        return view('dashboard', compact(
-            'results',
-            'customersData',
-            'billInformationData',
-            'systemOverview',
-            'resellerData',
-            'opticalData',
-            'networkQuick',
-            'opsData'
-        ));
-    }
-
-    /**
-     * Optical / ONU snapshot from same-server ispbilling + local tables.
-     *
-     * @return array<string, mixed>
-     */
-    private function opticalNetworkOverview(): array
-    {
-        $data = [
-            'bridge' => false,
-            'olts' => 0,
-            'onus' => 0,
-            'linked' => 0,
-            'rx_ok' => 0,
-            'rx_weak' => 0,
-            'rx_critical' => 0,
-            'avg_rx' => null,
-        ];
-
-        try {
-            $bridge = app(IspbillingOpticalBridge::class);
-            $data['bridge'] = $bridge->enabled();
-
-            if ($bridge->enabled()) {
-                $row = DB::connection('ispbilling')->selectOne(
-                    <<<'SQL'
-                    SELECT
-                        COUNT(*) FILTER (WHERE type = 'olt') AS olts,
-                        COUNT(*) FILTER (WHERE type = 'onu') AS onus,
-                        COUNT(*) FILTER (WHERE type = 'onu' AND customer_id IS NOT NULL) AS linked,
-                        COUNT(*) FILTER (WHERE type = 'onu' AND rx_power_dbm IS NOT NULL AND rx_power_dbm > -25) AS rx_ok,
-                        COUNT(*) FILTER (WHERE type = 'onu' AND rx_power_dbm IS NOT NULL AND rx_power_dbm <= -25 AND rx_power_dbm > -28) AS rx_weak,
-                        COUNT(*) FILTER (WHERE type = 'onu' AND rx_power_dbm IS NOT NULL AND rx_power_dbm <= -28) AS rx_critical,
-                        ROUND(AVG(rx_power_dbm) FILTER (WHERE type = 'onu' AND rx_power_dbm IS NOT NULL)::numeric, 2) AS avg_rx
-                    FROM devices
-                    SQL
-                );
-
-                if ($row) {
-                    $data['olts'] = (int) ($row->olts ?? 0);
-                    $data['onus'] = (int) ($row->onus ?? 0);
-                    $data['linked'] = (int) ($row->linked ?? 0);
-                    $data['rx_ok'] = (int) ($row->rx_ok ?? 0);
-                    $data['rx_weak'] = (int) ($row->rx_weak ?? 0);
-                    $data['rx_critical'] = (int) ($row->rx_critical ?? 0);
-                    $data['avg_rx'] = $row->avg_rx !== null ? (float) $row->avg_rx : null;
-                }
-            }
-        } catch (\Throwable $e) {
-            Log::warning('dashboard optical overview failed', ['error' => $e->getMessage()]);
-        }
-
-        return $data;
+        return view('dashboard', compact('results', 'customersData', 'billInformationData', 'systemOverview', 'resellerData'));
     }
 }

@@ -7,26 +7,22 @@ use App\Models\RouterList;
 use Livewire\Component;
 use Livewire\WithPagination;
 
-/**
- * ispbillling Online clients page — Bootstrap/Livewire.
- */
 class OnlineClients extends Component
 {
     use WithPagination;
 
     public string $search = '';
 
-    public string $filter = 'online'; // online|offline|all
+    public string $filter = 'online';
 
     public string $routerFilter = '';
 
     public function mount(): void
     {
-        if (! hasAccess(['Super Admin'], ['mikrotik-setup']) && ! hasAccess(['Super Admin'], ['view-customers'])) {
+        if (! hasAccess(['Super Admin'], ['mikrotik-setup']) && ! hasAccess(['Super Admin'], ['all-customer'])) {
             abort(403, 'Unauthorized action.');
         }
 
-        // Fresh poll when opening the page (ispbillling collect-on-open style)
         $this->pollOnlineQuiet();
     }
 
@@ -49,7 +45,7 @@ class OnlineClients extends Component
     public function refreshOnline(): void
     {
         $this->pollOnlineQuiet();
-        flash()->success('Online status refreshed from MikroTik.');
+        flash()->success(__('Online status refreshed from MikroTik.'));
     }
 
     public function updatingSearch(): void

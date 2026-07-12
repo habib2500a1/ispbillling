@@ -186,7 +186,7 @@ class EditCustomer extends Component
                 'rx' => $onu->rx_power_dbm !== null ? number_format((float) $onu->rx_power_dbm, 2) : '—',
             ]));
         } else {
-            flash()->warning(__('No ONU match in ispbilling for this PPP/MAC.'));
+            flash()->warning(__('No ONU match for this PPP/MAC.'));
         }
     }
 
@@ -218,18 +218,6 @@ class EditCustomer extends Component
         try {
             if ($status === 'active') {
                 app(MikrotikController::class)->enablePPPSecret($unique, $ppp->router_name, $ppp->username);
-                try {
-                    app(MikrotikController::class)->singleRead(
-                        $ppp->router_name,
-                        '/ppp/active/remove',
-                        '/ppp active remove [find name="'.$ppp->username.'"]',
-                        [],
-                        false,
-                        true
-                    );
-                } catch (\Throwable $e) {
-                    // session drop optional
-                }
                 PPPSecrets::where('id', $ppp->id)->update(['status' => 'active']);
                 $customer->update(['status' => 'active']);
                 flash()->success(__('Line enabled (Net ON).'));
@@ -286,9 +274,9 @@ class EditCustomer extends Component
         $this->loadOptical(false);
 
         if ($synced) {
-            flash()->success(__('Optical / ONU synced from ispbilling.'));
+            flash()->success(__('Optical / ONU synced.'));
         } else {
-            flash()->warning(__('No matching ONU found in ispbilling for this PPP username.'));
+            flash()->warning(__('No matching ONU found for this PPP username.'));
         }
     }
 
@@ -428,7 +416,7 @@ class EditCustomer extends Component
                 'customerAddress' => $customerAddresses, // This will be an array of addresses
 
                 'pppUser' => array_merge([
-                    'connection_date' => Carbon::parse($customer->connection_date)->format('d M Y') ?? '',
+                    'connection_date' => $customer->joinDate()?->format('Y-m-d') ?? '',
                     'package_name' => $customer->package?->package ?? '',
                     'ppp_user_id' => $this->ppp_user_id ?? '',
                 ], $this->ppp_user_id !== null ? [
@@ -458,7 +446,8 @@ class EditCustomer extends Component
                         'connection_type' => $customer->official->connection_type ?? '',
                         'connectivity_type' => $customer->official->connectivity_type ?? '',
                         'distribution_location' => $customer->official->distribution_location ?? '',
-                        // 'bill_create' => $customer->official->bill_create ?? '',
+                        'customer_type' => $customer->official->customer_type ?? 'standard',
+                        'bill_create' => $customer->official->bill_create ?? true,
                         'bill_sms' => $customer->official->bill_sms ?? '',
                         'continue_bill' => $customer->official->continue_bill ?? '',
                         'description' => $customer->official->description ?? '',
@@ -1016,10 +1005,10 @@ class EditCustomer extends Component
                         }
                         $customer->package_id = $pkg?->id;
                     } else {
-                        $customer->connection_date = date('Y-m-d', strtotime($value));
+                        $customer->connection_date = Carbon::parse($value)->format('Y-m-d');
                     }
                     $customer->save();
-                    data_set($this->fields, $field, $value); // Update the specific field in the 'customer'
+                    data_set($this->fields, $field, Carbon::parse($value)->format('Y-m-d'));
                     flash()->success(ucwords(str_replace('_', ' ', $field)).' updated successfully!');
                 } elseif ($relation == 'pppUser' && ($attribute == 'auto_disable_date' || $attribute == 'auto_disable_month')) {
                     $customer->billing->$attribute = ($attribute == 'auto_disable_date') ? date('Y-m-d', strtotime($value)) : (($value != '') ? $value : null);

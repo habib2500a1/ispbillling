@@ -74,7 +74,7 @@ class MikrotikImportController extends Controller
         $router = RouterList::findOrFail($id);
 
         $validated = $request->validate([
-            'usernames' => ['required', 'array', 'min:1'],
+            'usernames' => ['required', 'array', 'min:1', 'max:100'],
             'usernames.*' => ['required', 'string', 'max:255'],
             'create_missing' => ['nullable', 'boolean'],
             'update_existing' => ['nullable', 'boolean'],

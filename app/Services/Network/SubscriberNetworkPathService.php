@@ -8,9 +8,6 @@ use App\Models\PPPSecrets;
 use App\Services\Olt\IspbillingOpticalBridge;
 use Throwable;
 
-/**
- * Code Pagol subscriber network path (MikroTik → PPP → ONU), ispbilling-inspired.
- */
 final class SubscriberNetworkPathService
 {
     public function path(CustomersInfo $customer): array
@@ -61,9 +58,6 @@ final class SubscriberNetworkPathService
         ];
     }
 
-    /**
-     * Sync optical from ispbilling (PPP then MAC) and refresh path.
-     */
     public function syncAndRefresh(CustomersInfo $customer): array
     {
         $bridge = app(IspbillingOpticalBridge::class);
@@ -108,7 +102,6 @@ final class SubscriberNetworkPathService
             return [
                 'online' => true,
                 'framed_ip' => $row['address'] ?? $row['caller-id'] ?? null,
-                // RouterOS often puts MAC in caller-id on active
                 'caller_id' => $row['caller-id'] ?? $ppp->caller_id,
             ];
         } catch (Throwable) {

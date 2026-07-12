@@ -10,16 +10,17 @@ use App\Livewire\Admin\ManageReviews;
 use App\Livewire\Admin\AdminVoucherList;
 use App\Livewire\Admin\SystemLogViewer;
 use App\Http\Controllers\CollectionReportController;
+use App\Http\Controllers\CustomerPortalController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ImportController;
+use App\Http\Controllers\MikrotikImportController;
 use App\Http\Controllers\MainSiteController;
+use App\Http\Controllers\RouterListController;
 use App\Http\Controllers\Payment\BkashPaymentController;
 use App\Http\Controllers\Payment\NagadPaymentController;
 use App\Http\Controllers\Payment\SslCommerzPaymentController;
 use App\Http\Controllers\Portal\PortalVoucherController;
 use App\Http\Controllers\Reseller\ResellerDashboardController;
-use App\Http\Controllers\RouterListController;
-use App\Http\Controllers\MikrotikImportController;
 use App\Livewire\AddressSetup;
 use App\Livewire\Admin\ManageRole;
 use App\Livewire\Admin\ManageTickets;
@@ -28,6 +29,7 @@ use App\Livewire\CollectionEdit;
 use App\Livewire\CommentSubmit;
 use App\Livewire\CustomerList;
 use App\Livewire\CustomerSummary;
+use App\Livewire\CustomerView;
 use App\Livewire\EditCustomer;
 use App\Livewire\MainSiteSetup;
 use App\Livewire\Mikrotik\BackupManager;
@@ -43,22 +45,10 @@ use App\Livewire\Mikrotik\TrafficMonitor;
 use App\Livewire\Mikrotik\VpnSetup;
 use App\Livewire\Mikrotik\WalledGardenSetup;
 use App\Livewire\MikrotikSync;
-use App\Livewire\OnlineClients;
 use App\Livewire\NewCustomer;
 use App\Livewire\NotificationListAll;
 use App\Livewire\PackageListSetup;
 use App\Livewire\Payment\Invoice;
-use App\Livewire\NocOverview;
-use App\Livewire\BillingNotices;
-use App\Livewire\AccountsHub;
-use App\Livewire\CallDesk;
-use App\Livewire\SmsNotices;
-use App\Livewire\InventoryHub;
-use App\Livewire\InventoryPurchases;
-use App\Livewire\InventorySales;
-use App\Livewire\HrHub;
-use App\Livewire\BandwidthHub;
-use App\Livewire\OpsInsights;
 use App\Livewire\PaymentCollection;
 use App\Livewire\Report\DisReport;
 use App\Livewire\Reseller\ResellerCustomerList;
@@ -66,8 +56,6 @@ use App\Livewire\Reseller\ResellerPackageManagement;
 use App\Livewire\Reseller\ResellerVoucherManagement;
 use App\Livewire\Reseller\ResellerWalletManagement;
 use App\Livewire\SMSSetup;
-use App\Livewire\OltManager;
-use App\Livewire\OnuManager;
 use Filament\Http\Middleware\DispatchServingFilamentEvent;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Str;
@@ -103,8 +91,15 @@ Route::domain($baseDomain)->group(function () {
     Route::get('/recharge/voucher', [PortalVoucherController::class, 'showRechargeForm'])->name('welcome.voucher.recharge');
     Route::post('/recharge/voucher', [PortalVoucherController::class, 'redeem'])->name('welcome.voucher.redeem');
 
+    Route::get('/portal', function () {
+        return redirect()->to(portalLoginUrl());
+    })->name('portal.home');
+
+    Route::get('/portal/access/{token}', [CustomerPortalController::class, 'accessToken'])
+        ->name('portal.access.token');
+
     Route::get('/billing', function () {
-        return redirect('/login');
+        return redirect('/dashboard');
     });
 });
 
@@ -115,7 +110,7 @@ Route::middleware([
     'restrict.profile',
 ])->group(function () use ($baseDomain) {
 
-    // billing domain
+    // Admin panel on main domain (bill.flixbd.xyz)
     Route::domain($baseDomain)->group(function () {
         Route::get('/system/db-backup/download/{filename}', function ($filename) {
             if (str_contains($filename, '/') || str_contains($filename, '\\')) {
@@ -128,14 +123,17 @@ Route::middleware([
             abort(404, 'Backup file not found.');
         })->name('system.db-backup.download');
 
-        // '/' stays on main marketing site; dashboard is explicit
         Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
         Route::resources([
             'collection-report' => CollectionReportController::class,
         ]);
         Route::get('customers/data', [CustomerList::class, 'getData'])->name('customers.data');
         Route::get('customers/{id}/edit', [CustomerList::class, 'edit'])->name('customers.edit');
-        Route::get('customers/{id}', [CustomerList::class, 'show'])->name('customers.show');
+        Route::get('customers/{id}/portal-login', [CustomerPortalController::class, 'login'])->name('customers.portal-login');
+        Route::post('customers/{id}/portal-token', [CustomerPortalController::class, 'regenerateToken'])->name('customers.portal-token.regenerate');
+        Route::get('/subscriber-portal-login/{customer}', [CustomerPortalController::class, 'loginById'])
+            ->name('staff.subscribers.portal-login');
+        Route::get('customers/{id}', CustomerView::class)->name('customers.show');
         Route::patch('customers/{id}', [CustomerList::class, 'update'])->name('customers.update');
         Route::get('customers', CustomerList::class)->name('customers.index');
 
@@ -143,16 +141,12 @@ Route::middleware([
         Route::get('/admin-users', ManageUser::class)->name('admin-users');
         Route::get('/admin-roles', ManageRole::class)->name('admin-roles');
         Route::get('/support-tickets', ManageTickets::class)->name('admin-tickets');
-        Route::get('/call-desk', CallDesk::class)->name('call-desk');
-        Route::get('/noc', NocOverview::class)->name('noc-overview');
         Route::get('/mikrotik', MikrotikSync::class)->name('mikrotik-sync');
         Route::post('/mikrotik', [RouterListController::class, 'store'])->name('mikrotik.store');
         Route::delete('/mikrotik/{id}', [RouterListController::class, 'destroy'])->name('mikrotik.destroy');
         Route::get('/mikrotik/{id}/import', [MikrotikImportController::class, 'show'])->name('mikrotik.import');
         Route::post('/mikrotik/{id}/import', [MikrotikImportController::class, 'store'])->name('mikrotik.import.store');
-        Route::get('/online-clients', OnlineClients::class)->name('online-clients');
-        Route::get('/olts', OltManager::class)->name('olt-management');
-        Route::get('/onus', OnuManager::class)->name('onu-management');
+        Route::get('/online-clients', \App\Livewire\OnlineClients::class)->name('online-clients');
 
         // Mikrotik Setup Routes
         Route::prefix('mikrotik-setup')->group(function () {
@@ -174,19 +168,10 @@ Route::middleware([
         Route::get('/address', AddressSetup::class)->name('address-setup');
         Route::get('/packages', PackageListSetup::class)->name('package-list-setup');
         Route::get('/sms', SMSSetup::class)->name('sms-setup');
-        Route::get('/sms-notices', SmsNotices::class)->name('sms-notices');
-        Route::get('/inventory', InventoryHub::class)->name('inventory-hub');
-        Route::get('/inventory/purchases', InventoryPurchases::class)->name('inventory-purchases');
-        Route::get('/inventory/sales', InventorySales::class)->name('inventory-sales');
-        Route::get('/hr', HrHub::class)->name('hr-hub');
-        Route::get('/bandwidth', BandwidthHub::class)->name('bandwidth-hub');
-        Route::get('/ops-insights', OpsInsights::class)->name('ops-insights');
         Route::get('/create-customer', NewCustomer::class)->name('new-customer');
 
         // payment routes
         Route::get('/payment-collection', PaymentCollection::class)->name('payment-collection');
-        Route::get('/billing-notices', BillingNotices::class)->name('billing-notices');
-        Route::get('/accounts-hub', AccountsHub::class)->name('accounts-hub');
         Route::get('/payment-collection-edit', CollectionEdit::class)->name('collection-edit');
         Route::get('/payment-invoice', Invoice::class)->name('payment-invoice');
 
@@ -270,34 +255,36 @@ Route::middleware([
     });
 });
 
-
-
-// Legacy billing.* subdomain → main domain (admin now lives on APP_URL)
+// Legacy billing subdomain → main domain
 Route::domain('billing.'.$baseDomain)->group(function () use ($baseDomain) {
     Route::any('{any?}', function () use ($baseDomain) {
-        $path = request()->getRequestUri();
-        return redirect()->away('https://'.$baseDomain.$path);
+        $path = request()->path();
+        $target = 'https://'.$baseDomain.($path && $path !== '/' ? '/'.$path : '/dashboard');
+
+        return redirect()->away($target);
     })->where('any', '.*');
 });
 
-// Portal + payments on main APP_URL domain (single-domain mode)
-Route::middleware(['auth:ppp'])->group(function () {
-    Route::get('/payment/bkash/initiate', [BkashPaymentController::class, 'initiate'])->name('payment.bkash.initiate');
-    Route::get('/payment/nagad/initiate', [NagadPaymentController::class, 'initiate'])->name('payment.nagad.initiate');
-    Route::get('/payment/sslcommerz/initiate', [SslCommerzPaymentController::class, 'initiate'])->name('payment.sslcommerz.initiate');
-});
-
-Route::any('/payment/bkash/callback', [BkashPaymentController::class, 'callback'])->name('payment.bkash.callback');
-Route::any('/payment/nagad/callback', [NagadPaymentController::class, 'callback'])->name('payment.nagad.callback');
-Route::any('/payment/sslcommerz/callback', [SslCommerzPaymentController::class, 'callback'])->name('payment.sslcommerz.callback');
-Route::post('/payment/mock/submit', [BkashPaymentController::class, 'mockSubmit'])->name('payment.mock.submit');
-
-Route::get('/portal/recharge/voucher', [PortalVoucherController::class, 'showRechargeForm'])->name('portal.voucher.recharge');
-Route::post('/portal/recharge/voucher', [PortalVoucherController::class, 'redeem'])->name('portal.voucher.redeem');
-
-// Legacy portal.* / billing.* subdomains → main domain
+// portal domain routes
 Route::domain('portal.'.$baseDomain)->group(function () use ($baseDomain) {
-    Route::any('{any?}', function () use ($baseDomain) {
-        return redirect()->away('https://'.$baseDomain.request()->getRequestUri());
-    })->where('any', '.*');
+    Route::get('/', function () use ($baseDomain) {
+        return redirect()->away('https://'.$baseDomain.'/portal/login');
+    });
+
+    // Authenticated portal payment initiation routes
+    Route::middleware(['auth:ppp'])->group(function () {
+        Route::get('/payment/bkash/initiate', [BkashPaymentController::class, 'initiate'])->name('payment.bkash.initiate');
+        Route::get('/payment/nagad/initiate', [NagadPaymentController::class, 'initiate'])->name('payment.nagad.initiate');
+        Route::get('/payment/sslcommerz/initiate', [SslCommerzPaymentController::class, 'initiate'])->name('payment.sslcommerz.initiate');
+    });
+
+    // Public payment callback routes (Gateways redirect here, CSRF is disabled for POSTs)
+    Route::any('/payment/bkash/callback', [BkashPaymentController::class, 'callback'])->name('payment.bkash.callback');
+    Route::any('/payment/nagad/callback', [NagadPaymentController::class, 'callback'])->name('payment.nagad.callback');
+    Route::any('/payment/sslcommerz/callback', [SslCommerzPaymentController::class, 'callback'])->name('payment.sslcommerz.callback');
+    Route::post('/payment/mock/submit', [BkashPaymentController::class, 'mockSubmit'])->name('payment.mock.submit');
+
+    // Public voucher redemption route
+    Route::get('/recharge/voucher', [PortalVoucherController::class, 'showRechargeForm'])->name('portal.voucher.recharge');
+    Route::post('/recharge/voucher', [PortalVoucherController::class, 'redeem'])->name('portal.voucher.redeem');
 });

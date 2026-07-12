@@ -5,9 +5,6 @@ namespace App\Services\Olt;
 use App\Models\CustomerOnu;
 use App\Models\CustomersInfo;
 
-/**
- * Optical / ONU summary for admin customer view and portal (ispbilling-style card).
- */
 final class CustomerOpticalPresenter
 {
     public function __construct(
@@ -27,7 +24,7 @@ final class CustomerOpticalPresenter
         $onu = $customer->primaryOnu();
 
         if ($onu === null && $tryRemote) {
-            $synced = $this->bridge->syncForCustomer($customer);
+            $synced = $this->bridge->autoLinkCustomer($customer);
             if ($synced !== null) {
                 $onu = $synced;
             }
@@ -36,7 +33,7 @@ final class CustomerOpticalPresenter
         if ($onu === null) {
             return [
                 'linked' => false,
-                'hint' => __('ONU not linked. Sync from ispbilling or enter optical details.'),
+                'hint' => __('ONU not linked. Sync from OLT or enter optical details manually.'),
                 'row' => null,
                 'details' => [],
             ];
@@ -45,17 +42,15 @@ final class CustomerOpticalPresenter
         $rx = $onu->rx_power_dbm !== null ? number_format((float) $onu->rx_power_dbm, 2) : null;
         $tx = $onu->tx_power_dbm !== null ? number_format((float) $onu->tx_power_dbm, 2) : null;
 
-        $row = [
-            'optical_power' => $rx,
-            'tx_power' => $tx,
-            'olt_name' => $onu->olt_name ?: ($onu->olt?->name ?: '—'),
-            'olt_port' => $onu->pon_port ?: '—',
-        ];
-
         return [
             'linked' => true,
             'hint' => null,
-            'row' => $row,
+            'row' => [
+                'optical_power' => $rx,
+                'tx_power' => $tx,
+                'olt_name' => $onu->olt_name ?: '—',
+                'olt_port' => $onu->pon_port ?: '—',
+            ],
             'details' => [
                 'mac' => $onu->mac_address,
                 'serial' => $onu->serial_number,
@@ -72,7 +67,6 @@ final class CustomerOpticalPresenter
 
         $onu->fill([
             'customers_info_id' => $customer->id,
-            'olt_id' => $data['olt_id'] ?? $onu->olt_id,
             'olt_name' => $data['olt_name'] ?? $onu->olt_name,
             'pon_port' => $data['pon_port'] ?? $onu->pon_port,
             'mac_address' => $data['mac_address'] ?? $onu->mac_address,

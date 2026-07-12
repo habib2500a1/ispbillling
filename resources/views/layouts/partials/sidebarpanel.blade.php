@@ -193,45 +193,6 @@
                     </div>
                 </a>
 
-                <a wire:navigate.hover wire:current="active" class="nav-link" href="{{ route('olt-management') }}"
-                    role="button">
-                    <div class="d-flex align-items-center">
-                        <span class="nav-link-icon">
-                            <i class="bi bi-hdd-network"></i>
-                        </span>
-                        <span class="nav-link-text ps-1">{{ __('OLT Management') }}</span>
-                    </div>
-                </a>
-
-                <a wire:navigate.hover wire:current="active" class="nav-link" href="{{ route('noc-overview') }}"
-                    role="button">
-                    <div class="d-flex align-items-center">
-                        <span class="nav-link-icon">
-                            <i class="bi bi-display"></i>
-                        </span>
-                        <span class="nav-link-text ps-1">{{ __('NOC Overview') }}</span>
-                    </div>
-                </a>
-                <a wire:navigate.hover wire:current="active" class="nav-link" href="{{ route('ops-insights') }}"
-                    role="button">
-                    <div class="d-flex align-items-center">
-                        <span class="nav-link-icon">
-                            <i class="bi bi-lightning-charge"></i>
-                        </span>
-                        <span class="nav-link-text ps-1">{{ __('Ops Insights') }}</span>
-                    </div>
-                </a>
-
-                <a wire:navigate.hover wire:current="active" class="nav-link" href="{{ route('onu-management') }}"
-                    role="button">
-                    <div class="d-flex align-items-center">
-                        <span class="nav-link-icon">
-                            <i class="bi bi-broadcast-pin"></i>
-                        </span>
-                        <span class="nav-link-text ps-1">{{ __('Optical / ONU') }}</span>
-                    </div>
-                </a>
-
                 <!-- Mikrotik Setup Dropdown -->
                 <a class="nav-link dropdown-indicator collapsed" href="#mikrotikSetup" role="button"
                     data-bs-toggle="collapse" aria-expanded="false" aria-controls="mikrotikSetup">
@@ -280,10 +241,6 @@
                     <li class="nav-item"><a wire:navigate.hover wire:current="active" class="nav-link"
                             href="{{ route('mikrotik-interface-setup') }}">
                             <div class="d-flex align-items-center"><span class="nav-link-text ps-1">{{ __('Interfaces & VLAN') }}</span></div>
-                        </a></li>
-                    <li class="nav-item"><a wire:navigate.hover wire:current="active" class="nav-link"
-                            href="{{ route('bandwidth-hub') }}">
-                            <div class="d-flex align-items-center"><span class="nav-link-text ps-1">{{ __('Bandwidth Hub') }}</span></div>
                         </a></li>
                     <li class="nav-item"><a wire:navigate.hover wire:current="active" class="nav-link"
                             href="{{ route('mikrotik-traffic-monitor') }}">
@@ -343,15 +300,6 @@
                         <span class="nav-link-text ps-1">{{ __('Support Tickets') }}</span>
                     </div>
                 </a>
-                <a wire:navigate.hover wire:current="active" class="nav-link" href="{{ route('call-desk') }}"
-                    role="button">
-                    <div class="d-flex align-items-center">
-                        <span class="nav-link-icon">
-                            <i class="bi bi-telephone-forward"></i>
-                        </span>
-                        <span class="nav-link-text ps-1">{{ __('Call Desk') }}</span>
-                    </div>
-                </a>
                 <!-- parent pages-->
                 <a class="nav-link dropdown-indicator collapsed" href="#collections" role="button"
                     data-bs-toggle="collapse" aria-expanded="true" aria-controls="collections">
@@ -366,10 +314,6 @@
                     <li class="nav-item"><a wire:navigate.hover wire:current="active" class="nav-link"
                             href="{{ route('payment-collection') }}">
                             <div class="d-flex align-items-center"><span class="nav-link-text ps-1">{{ __('Payment Collection') }}</span></div>
-                        </a></li>
-                    <li class="nav-item"><a wire:navigate.hover wire:current="active" class="nav-link"
-                            href="{{ route('billing-notices') }}">
-                            <div class="d-flex align-items-center"><span class="nav-link-text ps-1">{{ __('Billing Notices') }}</span><span class="badge rounded-pill ms-2 badge-subtle-warning">{{ __('New') }}</span></div>
                         </a></li>
                     <li class="nav-item"><a wire:navigate.hover wire:current="active" class="nav-link"
                             href="{{ route('collection-edit') }}">
@@ -429,13 +373,6 @@
                         <hr class="mb-0 navbar-vertical-divider" />
                     </div>
                 </div>
-                <a wire:navigate.hover wire:current="active" class="nav-link" href="{{ route('accounts-hub') }}"
-                    role="button">
-                    <div class="d-flex align-items-center">
-                        <span class="nav-link-icon"><i class="bi bi-cash-stack text-success"></i></span>
-                        <span class="nav-link-text ps-1">{{ __('Accounts Hub') }}</span>
-                    </div>
-                </a>
                 <a wire:navigate.hover wire:current="active" class="nav-link" href="{{ route('admin.expenses') }}"
                     role="button">
                     <div class="d-flex align-items-center">
@@ -450,27 +387,6 @@
                         <span class="nav-link-text ps-1">{{ __('Profit & Loss') }}</span>
                     </div>
                 </a>
-                <a wire:navigate.hover wire:current="active" class="nav-link" href="{{ route('inventory-hub') }}"
-                    role="button">
-                    <div class="d-flex align-items-center">
-                        <span class="nav-link-icon"><i class="bi bi-box-seam"></i></span>
-                        <span class="nav-link-text ps-1">{{ __('Inventory Hub') }}</span>
-                    </div>
-                </a>
-                <a wire:navigate.hover wire:current="active" class="nav-link" href="{{ route('inventory-purchases') }}"
-                    role="button">
-                    <div class="d-flex align-items-center">
-                        <span class="nav-link-icon"><i class="bi bi-clipboard-check"></i></span>
-                        <span class="nav-link-text ps-1">{{ __('Purchases / Warehouse') }}</span>
-                    </div>
-                </a>
-                <a wire:navigate.hover wire:current="active" class="nav-link" href="{{ route('inventory-sales') }}"
-                    role="button">
-                    <div class="d-flex align-items-center">
-                        <span class="nav-link-icon"><i class="bi bi-bag-check"></i></span>
-                        <span class="nav-link-text ps-1">{{ __('Sales / Issue') }}</span>
-                    </div>
-                </a>
             </li>
 
             <li class="nav-item">
@@ -482,15 +398,6 @@
                     </div>
                 </div>
                 <!-- parent pages-->
-                <a wire:navigate.hover wire:current="active" class="nav-link" href="{{ route('hr-hub') }}"
-                    role="button">
-                    <div class="d-flex align-items-center">
-                        <span class="nav-link-icon">
-                            <i class="bi bi-person-badge"></i>
-                        </span>
-                        <span class="nav-link-text ps-1">{{ __('HR Hub') }}</span>
-                    </div>
-                </a>
                 <a wire:navigate.hover wire:current="active" class="nav-link" href="{{ route('address-setup') }}"
                     role="button">
                     <div class="d-flex align-items-center">
@@ -598,13 +505,6 @@
                     </div>
                 </a>
                 <ul class="nav collapse" id="smsSetupDropdown">
-                    <li class="nav-item">
-                        <a wire:navigate.hover wire:current="active" class="nav-link"
-                            href="{{ route('sms-notices') }}">
-                            <div class="d-flex align-items-center"><span class="nav-link-text ps-1">{{ __('SMS Notices') }}</span>
-                            </div>
-                        </a>
-                    </li>
                     <li class="nav-item">
                         <a wire:navigate.hover wire:current="active" class="nav-link"
                             href="{{ route('sms-setup') }}">

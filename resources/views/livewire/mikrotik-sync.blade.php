@@ -15,11 +15,11 @@
                         class="btn btn-sm btn-outline-primary"
                         wire:click="allSync"
                         wire:loading.attr="disabled"
-                        wire:confirm="{{ __('Import ALL PPP users from every Online router (anetbd-style)?') }}">
-                        <span wire:loading.remove wire:target="allSync"><i class="bi bi-cloud-download"></i> {{ __('Import All') }}</span>
+                        wire:confirm="{{ __('Refresh online PPP sessions only? This will NOT create customers.') }}">
+                        <span wire:loading.remove wire:target="allSync"><i class="bi bi-wifi"></i> {{ __('Refresh online') }}</span>
                         <span wire:loading wire:target="allSync" class="spinner-border spinner-border-sm" role="status"></span>
                     </button>
-                    <span class="text-muted small ms-1">{{ trans_choice(':count router|:count routers', $routers->total(), ['count' => $routers->total()]) }} · {{ __('Import users → pick 1 or many') }}</span>
+                    <span class="text-muted small ms-1">{{ trans_choice(':count router|:count routers', $routers->total(), ['count' => $routers->total()]) }} · {{ __('Customers: Import users → pick only who you want') }}</span>
                 </div>
 
                 @if ($showForm)

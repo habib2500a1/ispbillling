@@ -178,40 +178,6 @@
                     </div>
                 </div>
 
-                <!-- Optical / ONU -->
-                <div class="portal-card cp-bg-white dark:cp-bg-slate-900/60 cp-border cp-border-gray-100 dark:cp-border-white/5 cp-rounded-3xl cp-p-6 cp-shadow-xl md:cp-col-span-2">
-                    <div class="cp-flex cp-items-center cp-justify-between cp-mb-3">
-                        <span class="cp-text-gray-400 dark:cp-text-slate-400 cp-text-xs cp-font-bold cp-uppercase cp-tracking-wider">Optical / ONU</span>
-                    </div>
-                    @if ($optical['linked'] ?? false)
-                        @php $row = $optical['row'] ?? []; @endphp
-                        <dl class="cp-grid cp-grid-cols-2 sm:cp-grid-cols-4 cp-gap-3 cp-text-sm">
-                            <div>
-                                <dt class="cp-text-gray-400 cp-text-xs">RX</dt>
-                                <dd class="cp-font-mono cp-font-bold cp-text-gray-900 dark:cp-text-white">{{ isset($row['optical_power']) && $row['optical_power'] !== null ? $row['optical_power'].' dBm' : '—' }}</dd>
-                            </div>
-                            <div>
-                                <dt class="cp-text-gray-400 cp-text-xs">TX</dt>
-                                <dd class="cp-font-mono cp-font-bold cp-text-gray-900 dark:cp-text-white">{{ isset($row['tx_power']) && $row['tx_power'] !== null ? $row['tx_power'].' dBm' : '—' }}</dd>
-                            </div>
-                            <div>
-                                <dt class="cp-text-gray-400 cp-text-xs">OLT</dt>
-                                <dd class="cp-font-semibold cp-text-gray-900 dark:cp-text-white">{{ $row['olt_name'] ?? '—' }}</dd>
-                            </div>
-                            <div>
-                                <dt class="cp-text-gray-400 cp-text-xs">PON</dt>
-                                <dd class="cp-font-mono cp-text-gray-900 dark:cp-text-white">{{ $row['olt_port'] ?? '—' }}</dd>
-                            </div>
-                        </dl>
-                    @else
-                        <p class="cp-text-sm cp-text-gray-500">{{ $optical['hint'] ?? __('ONU not linked yet. Contact support if signal details should appear here.') }}</p>
-                    @endif
-                </div>
-            </div>
-
-            <!-- Billing stats -->
-            <div class="cp-grid cp-grid-cols-1 md:cp-grid-cols-2 cp-gap-4">
-
                 <!-- Monthly Plan Rent -->
                 <div class="portal-card cp-bg-white dark:cp-bg-slate-900/60 cp-border cp-border-gray-100 dark:cp-border-white/5 cp-rounded-3xl cp-p-6 cp-shadow-xl cp-flex cp-items-center cp-justify-between">
                     <div>
@@ -544,8 +510,11 @@
 
         {{-- Custom Review Popup Modal --}}
         @if($showReviewModal)
-            <div class="cp-fixed cp-inset-0 cp-z-50 cp-flex cp-items-center cp-justify-center cp-p-4 cp-bg-black/60 cp-backdrop-blur-sm">
+            <div class="cp-fixed cp-inset-0 cp-z-50 cp-flex cp-items-center cp-justify-center cp-p-4 cp-bg-black/60 cp-backdrop-blur-sm" wire:click.self="dismissReviewModal">
                 <div class="cp-bg-white dark:cp-bg-slate-900 cp-border cp-border-gray-100 dark:cp-border-white/10 cp-rounded-3xl cp-shadow-2xl cp-w-full cp-max-w-md cp-p-6 cp-relative cp-overflow-hidden">
+                    <button type="button" wire:click="dismissReviewModal" class="cp-absolute cp-top-4 cp-right-4 cp-text-gray-400 hover:cp-text-gray-600 dark:cp-text-slate-500" aria-label="Close">
+                        <svg class="cp-w-5 cp-h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </button>
                     <h3 class="cp-text-lg cp-font-bold cp-text-gray-900 dark:cp-text-white cp-mb-2 cp-text-center">
                         {{ $existingReview ? 'Update Your Review' : 'We value your opinion!' }}
                     </h3>
@@ -568,7 +537,7 @@
                         {{-- Comment Box --}}
                         <div>
                             <label class="cp-block cp-text-xs cp-font-bold cp-text-gray-400 dark:cp-text-slate-400 cp-mb-1">Your Comment</label>
-                            <textarea wire:model="reviewComment" rows="4" required placeholder="Write your review here..." class="cp-w-full cp-px-4 cp-py-3 cp-text-sm cp-bg-gray-55 dark:cp-bg-slate-950 cp-border cp-border-gray-200 dark:cp-border-white/10 cp-rounded-2xl focus:cp-outline-none focus:cp-ring-2 focus:cp-ring-indigo-500/20 focus:cp-border-indigo-500 dark:cp-text-white"></textarea>
+                            <textarea wire:model="reviewComment" rows="4" required placeholder="{{ __('Write at least 5 characters...') }}" class="cp-w-full cp-px-4 cp-py-3 cp-text-sm cp-bg-gray-55 dark:cp-bg-slate-950 cp-border cp-border-gray-200 dark:cp-border-white/10 cp-rounded-2xl focus:cp-outline-none focus:cp-ring-2 focus:cp-ring-indigo-500/20 focus:cp-border-indigo-500 dark:cp-text-white"></textarea>
                             @error('reviewComment')
                                 <span class="cp-text-rose-500 cp-text-xs cp-block cp-mt-1">{{ $message }}</span>
                             @enderror
@@ -576,8 +545,8 @@
 
                         {{-- Actions --}}
                         <div class="cp-flex cp-gap-2.5 cp-pt-2">
-                            <button type="button" wire:click="$set('showReviewModal', false)" class="cp-flex-1 cp-py-3 cp-bg-gray-100 hover:cp-bg-gray-200 dark:cp-bg-slate-800 dark:hover:cp-bg-slate-700 cp-text-gray-700 dark:cp-text-gray-300 cp-text-sm cp-font-bold cp-rounded-2xl cp-transition-colors">
-                                Cancel
+                            <button type="button" wire:click="dismissReviewModal" class="cp-flex-1 cp-py-3 cp-bg-gray-100 hover:cp-bg-gray-200 dark:cp-bg-slate-800 dark:hover:cp-bg-slate-700 cp-text-gray-700 dark:cp-text-gray-300 cp-text-sm cp-font-bold cp-rounded-2xl cp-transition-colors">
+                                {{ __('Skip for now') }}
                             </button>
                             <button type="submit" class="cp-flex-1 cp-py-3 cp-bg-indigo-600 hover:cp-bg-indigo-500 cp-text-white cp-text-sm cp-font-bold cp-rounded-2xl cp-shadow-lg cp-transition-colors">
                                 Submit

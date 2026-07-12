@@ -97,7 +97,6 @@ return [
             'sslmode' => 'prefer',
         ],
 
-        // Same-server ispbilling (optical / ONU) — optional
         'ispbilling' => [
             'driver' => 'pgsql',
             'host' => env('ISPBILLING_DB_HOST', 'postgres'),

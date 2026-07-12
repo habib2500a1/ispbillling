@@ -27,7 +27,6 @@
 
                 <span class="badge bg-success">{{ __('Online') }}: {{ $onlineCount }}</span>
                 <span class="badge bg-secondary">{{ __('Offline') }}: {{ $offlineCount }}</span>
-                <span class="text-muted small">{{ __('Auto-polls every minute (ispbillling-style)') }}</span>
             </div>
 
             <div class="table-responsive">
@@ -68,7 +67,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="6" class="text-muted text-center py-4">{{ __('No PPP users found. Import from Mikrotik List first.') }}</td>
+                                <td colspan="6" class="text-muted text-center py-4">{{ __('No PPP users found.') }}</td>
                             </tr>
                         @endforelse
                     </tbody>

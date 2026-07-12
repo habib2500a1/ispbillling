@@ -18,9 +18,9 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        $uri = $_SERVER['REQUEST_URI'] ?? '';
-        if ((isset($_SERVER['HTTP_HOST']) && str_contains($_SERVER['HTTP_HOST'], 'portal.'))
-            || str_starts_with(parse_url($uri, PHP_URL_PATH) ?: '', '/portal')) {
+        // Separate portal cookie only on portal.* subdomain — NOT on /portal path (main domain).
+        // Otherwise admin staff-login writes billing_session but Filament portal reads portal_session.
+        if (isset($_SERVER['HTTP_HOST']) && str_starts_with($_SERVER['HTTP_HOST'], 'portal.')) {
             config(['session.cookie' => 'portal_session']);
         }
 
@@ -32,10 +32,6 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
-        if (str_starts_with((string) config('app.url'), 'https://')) {
-            \Illuminate\Support\Facades\URL::forceScheme('https');
-        }
-
         // Set dynamic application locale from database settings
         try {
             if (class_exists(\App\Models\MainSiteData::class) && \Illuminate\Support\Facades\Schema::hasTable('main_site_data')) {
