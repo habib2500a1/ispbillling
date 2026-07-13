@@ -10,6 +10,15 @@ use App\Models\MainSiteData;
  * Time: 03.01 PM
  */
 
+if (! function_exists('site_brand')) {
+    function site_brand(): string
+    {
+        $name = siteUrlSettings('site_name');
+
+        return is_string($name) && $name !== '' ? $name : (string) (config('app.name') ?: 'ISP Billing');
+    }
+}
+
 if (! function_exists('siteUrlSettings')) {
     function siteUrlSettings($key)
     {

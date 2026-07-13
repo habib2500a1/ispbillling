@@ -16,6 +16,7 @@ use App\Http\Controllers\ImportController;
 use App\Http\Controllers\MikrotikImportController;
 use App\Http\Controllers\MainSiteController;
 use App\Http\Controllers\RouterListController;
+use App\Livewire\AdminControlCenter;
 use App\Livewire\AccountsHub;
 use App\Livewire\AutomaticProcesses;
 use App\Livewire\FeatureModulePage;
@@ -141,6 +142,7 @@ Route::middleware([
 
         Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
+        Route::get('/admin-center', AdminControlCenter::class)->name('admin-center');
         Route::get('/isp-os', IspOsHub::class)->name('isp-os');
         Route::get('/isp/{module}', FeatureModulePage::class)->name('isp.module');
         Route::get('/hub/{group}', GroupHub::class)->name('group-hub')->where('group', '[a-z0-9\-]+');

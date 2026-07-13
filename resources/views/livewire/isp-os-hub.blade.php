@@ -8,7 +8,7 @@
             <div class="d-flex flex-wrap justify-content-between align-items-start gap-3">
                 <div>
                     <h5 class="fw-bold mb-1">{{ __('All anetbd modules') }}</h5>
-                    <p class="text-muted small mb-0">{{ __(':total features — same functions as anetbd.com, Code Pagol design.', ['total' => $total]) }}</p>
+                    <p class="text-muted small mb-0">{{ __(':total features — billing, NOC, HR, inventory & more from one hub.', ['total' => $total]) }}</p>
                 </div>
                 <input type="search" wire:model.live.debounce.300ms="search" class="form-control form-control-sm" style="max-width:280px" placeholder="{{ __('Search modules...') }}">
             </div>
