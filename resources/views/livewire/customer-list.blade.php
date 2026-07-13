@@ -91,8 +91,9 @@
     </div>
 
     <div class="card border-0 shadow-sm m-sm-0 m-md-3 p-0 overflow-hidden">
-        <div class="table-responsive bg-white px-3 pb-3" wire:ignore>
-            <table class="customer-table table table-hover custom-data-table border-0 w-100" style="width:100%">
+        <div class="table-responsive bg-white px-3 pb-3" wire:ignore.self wire:key="customer-list-table-wrap">
+            <table class="customer-table table table-hover custom-data-table border-0 w-100" style="width:100%"
+                data-url="{{ route('customers.data') }}">
                 <thead class="bg-light">
                     <tr>
                         <th class="text-center">{{ __('SL') }}</th>
@@ -392,32 +393,22 @@
 
 @push('scripts')
     <script>
-        (function () {
-            let initAttempts = 0;
+        window.initCustomerListTable = function () {
+            var $table = $('.customer-table');
+            if (!$table.length || typeof $ === 'undefined' || !$.fn || !$.fn.DataTable) {
+                return false;
+            }
 
-            function initCustomerListTable() {
-                if (!$('.customer-table').length) {
-                    return;
-                }
+            if ($.fn.DataTable.isDataTable($table[0])) {
+                $table.DataTable().destroy();
+                $table.find('tbody').empty();
+            }
 
-                if (typeof $ === 'undefined' || !$.fn || !$.fn.DataTable) {
-                    if (++initAttempts < 50) {
-                        setTimeout(initCustomerListTable, 150);
-                    }
-                    return;
-                }
+            $.ajaxSetup({
+                headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') }
+            });
 
-                if ($.fn.DataTable.isDataTable('.customer-table')) {
-                    $('.customer-table').DataTable().destroy();
-                }
-
-                $.ajaxSetup({
-                    headers: {
-                        'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
-                    }
-                });
-
-                var table = $('.customer-table').DataTable({
+            var table = $table.DataTable({
                 processing: true,
                 serverSide: true,
                 deferRender: true,
@@ -425,10 +416,7 @@
                 pageLength: 10,
                 lengthChange: true,
                 searchable: true,
-                lengthMenu: [
-                    [10, 25, 50, 100],
-                    [10, 25, 50, 100]
-                ],
+                lengthMenu: [[10, 25, 50, 100], [10, 25, 50, 100]],
                 dom: '<"d-flex flex-column flex-md-row justify-content-md-between align-items-center gap-2 mb-3"Bf>rt<"d-flex flex-column flex-md-row justify-content-md-between align-items-center gap-2 mt-3"ip>',
                 buttons: [
                     'pageLength',
@@ -459,9 +447,10 @@
                     'colvis'
                 ],
                 ajax: {
-                    url: "{{ route('customers.data') }}",
+                    url: $table.data('url') || "{{ route('customers.data') }}",
+                    type: 'GET',
                     error: function (xhr) {
-                        console.error('Customer list load failed', xhr.status, xhr.responseText?.slice(0, 200));
+                        console.error('Customer list load failed', xhr.status, xhr.responseText ? xhr.responseText.slice(0, 200) : '');
                     },
                     data: function(d) {
                         var checkedRadio = $('input[name="collection"]:checked');
@@ -707,13 +696,34 @@
             };
 
             Livewire.on('customer-action-done', () => { table.ajax.reload(null, false); });
+
+            return true;
+        };
+
+        let bootAttempts = 0;
+        function bootCustomerListTable() {
+            if (window.initCustomerListTable()) {
+                bootAttempts = 0;
+                return;
             }
+            if (++bootAttempts < 30) {
+                setTimeout(bootCustomerListTable, 200);
+            }
+        }
 
-            const bootCustomerListTable = () => setTimeout(initCustomerListTable, 200);
-
-            bootCustomerListTable();
-            document.addEventListener('DOMContentLoaded', bootCustomerListTable);
-            document.addEventListener('livewire:navigated', bootCustomerListTable);
-        })();
+        bootCustomerListTable();
+        document.addEventListener('livewire:navigated', bootCustomerListTable);
     </script>
 @endpush
+
+<script>
+    (function () {
+        function runCustomerListBoot() {
+            if (document.querySelector('.customer-table') && typeof window.initCustomerListTable === 'function') {
+                setTimeout(window.initCustomerListTable, 250);
+            }
+        }
+        runCustomerListBoot();
+        document.addEventListener('livewire:navigated', runCustomerListBoot);
+    })();
+</script>
