@@ -447,12 +447,17 @@
                     'colvis'
                 ],
                 ajax: {
-                    url: $table.data('url') || "{{ route('customers.data') }}",
-                    type: 'GET',
+                    url: '/customers/data',
+                    type: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content'),
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
                     error: function (xhr) {
                         console.error('Customer list load failed', xhr.status, xhr.responseText ? xhr.responseText.slice(0, 200) : '');
                     },
                     data: function(d) {
+                        d._token = $('meta[name="csrf-token"]').attr('content');
                         var checkedRadio = $('input[name="collection"]:checked');
                         var checkedId = checkedRadio.attr('id');
 

@@ -127,7 +127,7 @@ Route::middleware([
         Route::resources([
             'collection-report' => CollectionReportController::class,
         ]);
-        Route::get('customers/data', [CustomerList::class, 'getData'])->name('customers.data');
+        Route::match(['get', 'post'], 'customers/data', [CustomerList::class, 'getData'])->name('customers.data');
         Route::get('customers/{id}/edit', [CustomerList::class, 'edit'])->name('customers.edit');
         Route::get('customers/{id}/portal-login', [CustomerPortalController::class, 'login'])->name('customers.portal-login');
         Route::post('customers/{id}/portal-token', [CustomerPortalController::class, 'regenerateToken'])->name('customers.portal-token.regenerate');
