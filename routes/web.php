@@ -21,7 +21,6 @@ use App\Livewire\AutomaticProcesses;
 use App\Livewire\FeatureModulePage;
 use App\Livewire\GroupHub;
 use App\Livewire\IspOsHub;
-use App\Livewire\SubscriberListsHub;
 use App\Livewire\BandwidthHub;
 use App\Livewire\BillingNotices;
 use App\Livewire\CallDesk;
@@ -145,7 +144,6 @@ Route::middleware([
         Route::get('/isp-os', IspOsHub::class)->name('isp-os');
         Route::get('/isp/{module}', FeatureModulePage::class)->name('isp.module');
         Route::get('/hub/{group}', GroupHub::class)->name('group-hub')->where('group', '[a-z0-9\-]+');
-        Route::get('/subscriber-lists', SubscriberListsHub::class)->name('subscriber-lists');
         Route::resources([
             'collection-report' => CollectionReportController::class,
         ]);

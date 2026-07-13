@@ -110,7 +110,6 @@ final class FeatureModuleRegistry
     {
         return [
             ['slug' => 'all-subscribers', 'group' => 'Subscribers', 'section' => 'Main', 'label' => 'All subscribers', 'description' => 'Search, edit, PPPoE & billing', 'icon' => 'bi-people', 'accent' => 'teal', 'route' => 'customers.index'],
-            ['slug' => 'subscriber-lists', 'group' => 'Subscribers', 'section' => 'Lists', 'label' => 'Subscriber lists', 'description' => 'Free · VIP · expired · suspended', 'icon' => 'bi-list-ul', 'accent' => 'teal', 'route' => 'subscriber-lists'],
             ['slug' => 'packages', 'group' => 'Subscribers', 'section' => 'Catalog', 'label' => 'Packages', 'description' => 'Plans, speed & pricing', 'icon' => 'bi-box2', 'accent' => 'teal', 'route' => 'package-list-setup'],
             ['slug' => 'zones-areas', 'group' => 'Subscribers', 'section' => 'Coverage', 'label' => 'Zones & areas', 'description' => 'Area → zone → subzone', 'icon' => 'bi-geo-alt', 'accent' => 'teal', 'route' => 'address-setup'],
             ['slug' => 'new-subscriber', 'group' => 'Subscribers', 'section' => 'Main', 'label' => 'New subscriber', 'description' => 'Create customer account', 'icon' => 'bi-person-plus', 'accent' => 'teal', 'route' => 'new-customer'],
