@@ -482,7 +482,7 @@ class CustomerView extends Component
         flash()->success("Expire extended +{$days} days → ".$bill->auto_disable_date);
     }
 
-    public function render()
+    public function with(): array
     {
         $customer = $this->customer();
         $online = $this->isOnline($customer);
@@ -531,20 +531,25 @@ class CustomerView extends Component
         $firstBillNote = $customer->official?->note ?? '';
         $firstBillCycle = str_contains(strtolower($firstBillNote), 'next month') ? 'next_month' : 'this_month';
 
-        return view('livewire.customer-view', [
+        return [
             'customer' => $customer,
             'online' => $online,
             'payments' => $payments,
             'collections' => $collections,
             'tickets' => $tickets,
             'addressLines' => $address,
-            'encryptedId' => $this->encryptedId,
             'optical' => $optical,
             'gps' => $gps,
             'opticalBridgeEnabled' => app(IspbillingOpticalBridge::class)->enabled(),
             'firstBillCycle' => $firstBillCycle,
             'walletBalance' => (float) ($customer->billing?->advance ?? 0),
             'hasPortalToken' => app(\App\Services\Portal\CustomerPortalAccessService::class)->hasAccessToken($customer),
-        ])->layout('layouts.app');
+        ];
+    }
+
+    public function render()
+    {
+        return view('livewire.customer-view')
+            ->layout('layouts.app');
     }
 }
