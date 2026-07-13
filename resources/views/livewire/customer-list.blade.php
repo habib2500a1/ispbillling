@@ -390,7 +390,7 @@
     </style>
 @endpush
 
-@script
+@push('scripts')
     <script>
         (function () {
             let initAttempts = 0;
@@ -630,19 +630,19 @@
                 $('.dt-search input').val('');
             }
 
-            $('input[name="collection"]').on('change', function() { 
+            $('input[name="collection"]').off('change.customerList').on('change.customerList', function() { 
                 resetTableState();
                 table.clear().draw(); 
                 table.ajax.reload(null, true); 
             });
 
-            $('#router_filter').on('change', function() { 
+            $('#router_filter').off('change.customerList').on('change.customerList', function() { 
                 resetTableState();
                 table.clear().draw();
                 table.ajax.reload(null, true); 
             });
 
-            $('#reset_table').on('click', function() {
+            $('#reset_table').off('click.customerList').on('click.customerList', function() {
                 $('#router_filter').val('');
                 $('#all_active_list').prop('checked', true);
                 resetTableState();
@@ -716,4 +716,4 @@
             document.addEventListener('livewire:navigated', bootCustomerListTable);
         })();
     </script>
-@endscript
+@endpush
