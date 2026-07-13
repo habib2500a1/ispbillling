@@ -2,8 +2,10 @@
 
 namespace App\Livewire\Admin;
 
+use App\Models\CustomersInfo;
 use App\Models\NotificationLogs;
 use App\Models\SupportTicket;
+use App\Services\CallCenter\CallDeskService;
 use Codepagol\SmsBridge\Facades\SmsBridge;
 use Livewire\Attributes\On;
 use Livewire\Component;
@@ -34,11 +36,108 @@ class ManageTickets extends Component
 
     public bool $sendSms = true;
 
+    public bool $confirmingCreate = false;
+
+    public string $customerSearch = '';
+
+    public ?string $newCustomerUid = null;
+
+    public string $newSubject = '';
+
+    public string $newDescription = '';
+
+    public string $newPriority = 'medium';
+
+    public string $newCategory = 'connection';
+
+    /** @var list<array<string, mixed>> */
+    public array $customerSearchResults = [];
+
     public function mount()
     {
         if (! hasAccess(['Super Admin'], ['manage-tickets', 'view-tickets'])) {
             abort(403, 'Unauthorized action.');
         }
+    }
+
+    public function showCreateModal(): void
+    {
+        $this->resetCreateForm();
+        $this->confirmingCreate = true;
+    }
+
+    public function updatedCustomerSearch(): void
+    {
+        $this->customerSearchResults = app(CallDeskService::class)
+            ->searchCustomers($this->customerSearch, 10);
+    }
+
+    public function selectCustomerForTicket(string $uid): void
+    {
+        $this->newCustomerUid = $uid;
+        $customer = CustomersInfo::query()
+            ->with('pppUser:id,username')
+            ->where('customer_unique_id', $uid)
+            ->whereNull('deleted_at')
+            ->first();
+
+        if ($customer) {
+            $this->customerSearch = trim($customer->customer_name.' ('.$customer->customer_unique_id.')');
+        }
+        $this->customerSearchResults = [];
+    }
+
+    public function createTicket(): void
+    {
+        $this->validate([
+            'newCustomerUid' => 'required|string|exists:customers_infos,customer_unique_id',
+            'newSubject' => 'required|string|min:5|max:255',
+            'newDescription' => 'required|string|min:10|max:2000',
+            'newPriority' => 'required|in:'.implode(',', SupportTicket::PRIORITIES),
+            'newCategory' => 'required|in:'.implode(',', SupportTicket::CATEGORIES),
+        ]);
+
+        $customer = CustomersInfo::query()
+            ->with('pppUser:id,username')
+            ->where('customer_unique_id', $this->newCustomerUid)
+            ->whereNull('deleted_at')
+            ->firstOrFail();
+
+        $ticket = SupportTicket::create([
+            'ticket_no' => SupportTicket::generateTicketNo(),
+            'customer_unique_id' => $customer->customer_unique_id,
+            'ppp_username' => $customer->pppUser?->username,
+            'subject' => $this->newSubject,
+            'description' => $this->newDescription,
+            'priority' => $this->newPriority,
+            'category' => $this->newCategory,
+            'status' => 'open',
+        ]);
+
+        NotificationLogs::create([
+            'title' => 'New Support Ticket Opened',
+            'message' => 'Admin opened support ticket #'.$ticket->ticket_no.' for '.$customer->customer_name.' ('.$customer->customer_unique_id.'): '.$ticket->subject,
+            'status' => 'New Ticket Created',
+            'type' => 'Support Ticket',
+        ]);
+
+        flash()->success('Support ticket opened successfully.');
+        $this->confirmingCreate = false;
+        $this->resetCreateForm();
+        $this->statusFilter = 'open';
+        $this->resetPage();
+    }
+
+    protected function resetCreateForm(): void
+    {
+        $this->customerSearch = '';
+        $this->newCustomerUid = null;
+        $this->newSubject = '';
+        $this->newDescription = '';
+        $this->newPriority = 'medium';
+        $this->newCategory = 'connection';
+        $this->customerSearchResults = [];
+        $this->resetValidation();
     }
 
     public function showReplyModal($id)

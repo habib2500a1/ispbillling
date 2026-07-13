@@ -140,9 +140,15 @@
                                         </span>
                                     </div>
                                     <div class="d-flex justify-content-between align-items-center">
+                                        <span class="text-muted">{{ __('PPP users') }}:</span>
+                                        <span class="badge bg-secondary-subtle text-secondary border px-2 py-1">
+                                            <i class="bi bi-hdd-network me-1"></i>{{ $router->ppp_user_count ?? 0 }}
+                                        </span>
+                                    </div>
+                                    <div class="d-flex justify-content-between align-items-center">
                                         <span class="text-muted">{{ __('Customers') }}:</span>
                                         <a href="{{ route('customers.index') }}" class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1 text-decoration-none">
-                                            <i class="bi bi-people-fill me-1"></i>{{ $router->user_list_count }}
+                                            <i class="bi bi-people-fill me-1"></i>{{ $router->customer_count ?? 0 }}
                                         </a>
                                     </div>
                                 </div>

@@ -6,6 +6,12 @@ use Illuminate\Database\Eloquent\Model;
 
 class SupportTicket extends Model
 {
+    public const STATUSES = ['open', 'in_progress', 'resolved', 'closed'];
+
+    public const PRIORITIES = ['low', 'medium', 'high'];
+
+    public const CATEGORIES = ['billing', 'connection', 'speed', 'other', 'call'];
+
     protected $fillable = [
         'ticket_no',
         'customer_unique_id',

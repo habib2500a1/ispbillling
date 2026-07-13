@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class CustomerOnu extends Model
 {
@@ -36,5 +37,15 @@ class CustomerOnu extends Model
     public function customer(): BelongsTo
     {
         return $this->belongsTo(CustomersInfo::class, 'customers_info_id');
+    }
+
+    public function olt(): BelongsTo
+    {
+        return $this->belongsTo(Olt::class);
+    }
+
+    public function rxHistories(): HasMany
+    {
+        return $this->hasMany(CustomerOnuRxHistory::class)->orderByDesc('recorded_at');
     }
 }

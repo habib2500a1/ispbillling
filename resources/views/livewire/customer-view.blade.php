@@ -99,7 +99,7 @@
     {{-- Overview --}}
     <div x-show="tab==='overview'" x-cloak>
         <div class="row g-3">
-            <div class="col-md-6">
+            <div class="col-md-12">
                 <div class="card border-0 shadow-sm h-100">
                     <div class="card-header bg-white border-0 fw-semibold">{{ __('Identity') }}</div>
                     <div class="card-body pt-0 small">
@@ -113,57 +113,6 @@
                             <div class="col-5 text-muted">{{ __('NID') }}</div><div class="col-7">{{ $customer->identification_no ?: '—' }}</div>
                             <div class="col-5 text-muted">{{ __('Package') }}</div><div class="col-7">{{ $customer->package?->package ?? '—' }}</div>
                         </div>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-6">
-                <div class="card border-0 shadow-sm h-100 border-start border-warning border-3">
-                    <div class="card-header bg-white border-0 fw-semibold">
-                        <i class="bi bi-key me-1 text-warning"></i>{{ __('Portal Access') }}
-                    </div>
-                    <div class="card-body pt-0 small">
-                        <p class="text-muted mb-2">{{ __('Admin can open portal without customer password (anetbd style).') }}</p>
-                        @if($customer->pppUser)
-                            <div class="d-flex flex-wrap gap-2 mb-3">
-                                <button type="button" class="btn btn-sm btn-info text-white" wire:click="loginToPortal" wire:loading.attr="disabled">
-                                    <span wire:loading.remove wire:target="loginToPortal"><i class="bi bi-box-arrow-in-right me-1"></i>{{ __('Portal Login') }}</span>
-                                    <span wire:loading wire:target="loginToPortal" class="spinner-border spinner-border-sm"></span>
-                                </button>
-                                <a href="{{ route('staff.subscribers.portal-login', $customer->id) }}" target="_blank" rel="noopener"
-                                    class="btn btn-sm btn-outline-info">
-                                    <i class="bi bi-box-arrow-up-right me-1"></i>{{ __('New tab') }}
-                                </a>
-                                <button type="button" class="btn btn-sm btn-outline-warning" wire:click="generatePortalToken" wire:loading.attr="disabled">
-                                    <span wire:loading.remove wire:target="generatePortalToken"><i class="bi bi-arrow-repeat me-1"></i>{{ __('Regenerate token') }}</span>
-                                    <span wire:loading wire:target="generatePortalToken" class="spinner-border spinner-border-sm"></span>
-                                </button>
-                            </div>
-                            <div class="rounded bg-warning bg-opacity-10 border border-warning border-opacity-25 p-2 mb-2">
-                                <div class="fw-semibold text-warning-emphasis mb-1">{{ __('Token login (one-click, no password)') }}</div>
-                                @if($portalTokenUrl)
-                                    <input type="text" readonly class="form-control form-control-sm font-monospace mb-2" id="portal-token-url" value="{{ $portalTokenUrl }}">
-                                    <button type="button" class="btn btn-sm btn-outline-primary"
-                                        onclick="navigator.clipboard.writeText(document.getElementById('portal-token-url').value); this.innerText=@js(__('Copied!'));">
-                                        <i class="bi bi-clipboard me-1"></i>{{ __('Copy link') }}
-                                    </button>
-                                    <div class="text-muted mt-2" style="font-size:.75rem;">{{ __('Share this link with the customer — no password needed.') }}</div>
-                                @elseif($hasPortalToken)
-                                    <div class="text-muted" style="font-size:.8rem;">
-                                        <i class="bi bi-check-circle text-success me-1"></i>
-                                        {{ __('A magic link is already active. Use Regenerate token to issue a new URL (previous links stop working).') }}
-                                    </div>
-                                @else
-                                    <div class="text-muted" style="font-size:.8rem;">
-                                        {{ __('No token yet — click Regenerate token to create a one-click login link.') }}
-                                    </div>
-                                @endif
-                            </div>
-                            <div class="text-muted" style="font-size:.75rem;">
-                                {{ __('Manual login') }}: {{ portalLoginUrl() }} · {{ __('User') }}: <span class="font-monospace">{{ $customer->pppUser->username }}</span>
-                            </div>
-                        @else
-                            <div class="text-danger">{{ __('Link a PPP user first to enable portal access.') }}</div>
-                        @endif
                     </div>
                 </div>
             </div>
@@ -272,6 +221,18 @@
                             <div class="col-4"><input type="text" class="form-control form-control-sm" placeholder="OLT" wire:model="onuOlt"></div>
                         </div>
                         <button type="button" class="btn btn-sm btn-success mt-2" wire:click="saveOnuManual">{{ __('Save optical') }}</button>
+                        @if(!empty($optical['history']))
+                            <div class="mt-3 border-top pt-2">
+                                <div class="text-muted small fw-semibold mb-1">{{ __('RX / TX history') }}</div>
+                                <div class="d-flex flex-wrap gap-1">
+                                    @foreach(array_slice($optical['history'], 0, 8) as $h)
+                                        <span class="badge bg-light text-dark border font-monospace" style="font-size:.7rem;">
+                                            {{ $h['at'] }}: {{ $h['rx'] ?? '—' }}/{{ $h['tx'] ?? '—' }}
+                                        </span>
+                                    @endforeach
+                                </div>
+                            </div>
+                        @endif
                     </div>
                 </div>
             </div>

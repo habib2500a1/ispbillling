@@ -192,6 +192,6 @@ class OltManager extends Component
             'vendors' => $vendors,
             'drivers' => $drivers,
             'snmpAvailable' => OltSnmpProbeService::isSnmpExtensionAvailable(),
-        ]);
+        ])->layout('layouts.app');
     }
 }

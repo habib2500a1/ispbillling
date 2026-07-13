@@ -81,7 +81,21 @@ class CollectionReportController extends Controller
         }
         $collectors = User::select('name', 'email')->get();
 
-        return view('reports.collections.index', compact('collectors'));
+        $from = $request->fromDate ?? Carbon::now()->startOfMonth()->format('Y-m-d');
+        $to = $request->toDate ?? Carbon::now()->endOfMonth()->format('Y-m-d');
+
+        $fundFlow = [
+            'from' => $from,
+            'to' => $to,
+            'total' => (float) CollectionSummary::whereBetween('collection_date', [$from, $to])->sum('collection_amount'),
+            'count' => (int) CollectionSummary::whereBetween('collection_date', [$from, $to])->count(),
+            'avg' => 0.0,
+        ];
+        if ($fundFlow['count'] > 0) {
+            $fundFlow['avg'] = round($fundFlow['total'] / $fundFlow['count'], 2);
+        }
+
+        return view('reports.collections.index', compact('collectors', 'fundFlow'));
     }
 
     /**

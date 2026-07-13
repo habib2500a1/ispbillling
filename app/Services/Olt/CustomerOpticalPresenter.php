@@ -9,6 +9,7 @@ final class CustomerOpticalPresenter
 {
     public function __construct(
         private readonly IspbillingOpticalBridge $bridge,
+        private readonly OpticalRxHistoryService $history,
     ) {}
 
     /**
@@ -36,6 +37,7 @@ final class CustomerOpticalPresenter
                 'hint' => __('ONU not linked. Sync from OLT or enter optical details manually.'),
                 'row' => null,
                 'details' => [],
+                'history' => [],
             ];
         }
 
@@ -58,6 +60,7 @@ final class CustomerOpticalPresenter
                 'source' => $onu->source,
                 'last_polled_at' => optional($onu->last_polled_at)?->diffForHumans(),
             ],
+            'history' => $this->history->recentForOnu($onu),
         ];
     }
 
@@ -67,6 +70,7 @@ final class CustomerOpticalPresenter
 
         $onu->fill([
             'customers_info_id' => $customer->id,
+            'olt_id' => \App\Models\Olt::resolveIdByName($data['olt_name'] ?? $onu->olt_name),
             'olt_name' => $data['olt_name'] ?? $onu->olt_name,
             'pon_port' => $data['pon_port'] ?? $onu->pon_port,
             'mac_address' => $data['mac_address'] ?? $onu->mac_address,
@@ -78,6 +82,7 @@ final class CustomerOpticalPresenter
             'last_polled_at' => now(),
         ]);
         $onu->save();
+        $this->history->record($onu, 'manual');
 
         return $onu;
     }

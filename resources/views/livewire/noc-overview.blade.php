@@ -15,6 +15,7 @@
                 <i class="bi bi-arrow-repeat"></i> {{ __('Refresh') }}
             </button>
             <a href="{{ route('admin-tickets') }}" class="btn btn-sm btn-outline-secondary">{{ __('Tickets') }}</a>
+            <a href="{{ route('noc-outage') }}" class="btn btn-sm btn-outline-warning">{{ __('Outage') }}</a>
             <a href="{{ route('onu-management') }}" class="btn btn-sm btn-primary">{{ __('Optical / ONU') }}</a>
         </div>
     </div>

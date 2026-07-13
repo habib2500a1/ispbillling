@@ -6,6 +6,8 @@ use App\Http\Controllers\MikrotikController;
 use App\Models\BillingInfo;
 use App\Models\CollectionSummary;
 use App\Models\CustomersInfo;
+use App\Models\NetworkOutageNotice;
+use App\Services\Olt\CustomerOpticalPresenter;
 use Carbon\Carbon;
 use Filament\Pages\Page;
 use Illuminate\Support\Facades\Auth;
@@ -38,6 +40,11 @@ class PortalDashboard extends Page
     public $dueAmount = 0;
 
     public ?string $connectionStatus = 'checking...';
+
+  public array $optical = [];
+
+  /** @var list<array<string, mixed>> */
+  public array $outageNotices = [];
 
     // Customer Review system variables
     public $showReviewModal = false;
@@ -169,6 +176,23 @@ class PortalDashboard extends Page
             if ($this->billing) {
                 $this->dueAmount = (float) ($this->billing->due_amount ?? 0);
             }
+
+            $this->optical = app(CustomerOpticalPresenter::class)->forCustomer($this->customer, true);
+        }
+
+        $this->outageNotices = [];
+        if (\Illuminate\Support\Facades\Schema::hasTable('network_outage_notices')) {
+            $this->outageNotices = NetworkOutageNotice::activeNow()
+                ->orderByDesc('id')
+                ->limit(5)
+                ->get(['title', 'message', 'severity', 'area_label'])
+                ->map(fn ($n) => [
+                    'title' => $n->title,
+                    'message' => $n->message,
+                    'severity' => $n->severity,
+                    'area' => $n->area_label,
+                ])
+                ->all();
         }
     }
 

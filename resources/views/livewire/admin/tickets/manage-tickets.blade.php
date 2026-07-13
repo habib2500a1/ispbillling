@@ -1,7 +1,10 @@
 <div>
     <x-slot name="header">
-        <div class="d-flex align-items-center justify-content-between">
+        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
             <span class="h4 mb-0"><i class="bi bi-chat-left-text me-2 text-primary"></i>{{ __('Support Tickets') }}</span>
+            <button type="button" wire:click="showCreateModal" class="btn btn-primary btn-sm px-3" style="border-radius: 8px;">
+                <i class="bi bi-plus-circle me-1"></i>{{ __('Open Ticket') }}
+            </button>
         </div>
     </x-slot>
 
@@ -200,6 +203,84 @@
             </div>
         </div>
     </div>
+
+    {{-- Open Ticket Modal --}}
+    @if($confirmingCreate)
+    <x-dialog-modal wire:model.live="confirmingCreate" maxWidth="2xl">
+        <x-slot name="title">
+            <span class="h5 mb-0"><i class="bi bi-plus-circle text-primary me-2"></i>{{ __('Open Support Ticket') }}</span>
+        </x-slot>
+
+        <x-slot name="content">
+            <form wire:submit.prevent="createTicket" class="mt-1">
+                <div class="mb-3 position-relative">
+                    <label for="customerSearch" class="form-label fw-bold text-dark">{{ __('Customer') }}</label>
+                    <input id="customerSearch" type="text" class="form-control border-light-subtle @error('newCustomerUid') is-invalid @enderror"
+                        wire:model.live.debounce.300ms="customerSearch" placeholder="{{ __('Search name, mobile, UID, PPP...') }}" style="border-radius: 10px;">
+                    <x-error name="newCustomerUid" />
+                    @if($newCustomerUid)
+                        <div class="mt-2"><span class="badge bg-success-subtle text-success border border-success-subtle">{{ __('Selected') }}: {{ $newCustomerUid }}</span></div>
+                    @endif
+                    @if(count($customerSearchResults) > 0)
+                        <div class="list-group position-absolute w-100 shadow-sm mt-1" style="z-index: 1050; max-height: 220px; overflow-y: auto;">
+                            @foreach($customerSearchResults as $row)
+                                <button type="button" class="list-group-item list-group-item-action py-2"
+                                    wire:click="selectCustomerForTicket('{{ $row['customer_unique_id'] }}')">
+                                    <div class="fw-semibold">{{ $row['customer_name'] }}</div>
+                                    <small class="text-muted">{{ $row['customer_unique_id'] }} · {{ $row['mobile'] ?: '—' }} · {{ $row['ppp_username'] ?: '—' }}</small>
+                                </button>
+                            @endforeach
+                        </div>
+                    @endif
+                </div>
+
+                <div class="mb-3">
+                    <label for="newSubject" class="form-label fw-bold text-dark">{{ __('Subject') }}</label>
+                    <input id="newSubject" type="text" class="form-control border-light-subtle @error('newSubject') is-invalid @enderror"
+                        wire:model="newSubject" style="border-radius: 10px;">
+                    <x-error name="newSubject" />
+                </div>
+
+                <div class="mb-3">
+                    <label for="newDescription" class="form-label fw-bold text-dark">{{ __('Description') }}</label>
+                    <textarea id="newDescription" class="form-control border-light-subtle @error('newDescription') is-invalid @enderror"
+                        wire:model="newDescription" rows="4" style="border-radius: 10px;"></textarea>
+                    <x-error name="newDescription" />
+                </div>
+
+                <div class="row g-3 mb-4">
+                    <div class="col-md-6">
+                        <label for="newPriority" class="form-label fw-bold text-dark">{{ __('Priority') }}</label>
+                        <select id="newPriority" class="form-select border-0 bg-light @error('newPriority') is-invalid @enderror" wire:model="newPriority" style="border-radius: 8px;">
+                            <option value="low">{{ __('Low') }}</option>
+                            <option value="medium">{{ __('Medium') }}</option>
+                            <option value="high">{{ __('High') }}</option>
+                        </select>
+                        <x-error name="newPriority" />
+                    </div>
+                    <div class="col-md-6">
+                        <label for="newCategory" class="form-label fw-bold text-dark">{{ __('Category') }}</label>
+                        <select id="newCategory" class="form-select border-0 bg-light @error('newCategory') is-invalid @enderror" wire:model="newCategory" style="border-radius: 8px;">
+                            <option value="billing">{{ __('Billing') }}</option>
+                            <option value="connection">{{ __('Connection') }}</option>
+                            <option value="speed">{{ __('Speed') }}</option>
+                            <option value="call">{{ __('Call desk') }}</option>
+                            <option value="other">{{ __('Other') }}</option>
+                        </select>
+                        <x-error name="newCategory" />
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-end gap-2 border-top pt-3">
+                    <button type="button" class="btn btn-outline-secondary px-3" style="border-radius: 8px;" wire:click="$set('confirmingCreate', false)">{{ __('Cancel') }}</button>
+                    <button type="submit" class="btn btn-primary px-4" style="border-radius: 8px;"><i class="bi bi-check2-circle me-1"></i>{{ __('Open Ticket') }}</button>
+                </div>
+            </form>
+        </x-slot>
+
+        <x-slot name="footer"></x-slot>
+    </x-dialog-modal>
+    @endif
 
     {{-- Reply Modal --}}
     @if($confirmingReply && $selectedTicket)

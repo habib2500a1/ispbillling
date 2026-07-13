@@ -53,10 +53,7 @@ if ! grep -qE '^APP_KEY=base64:' .env 2>/dev/null; then
 fi
 
 php artisan storage:link --force --no-interaction 2>/dev/null || true
-php artisan migrate --force --no-interaction 2>/dev/null || true
-php artisan config:cache 2>/dev/null || true
-php artisan route:cache 2>/dev/null || true
-php artisan view:cache 2>/dev/null || true
+php artisan cpagol:post-deploy 2>/dev/null || php artisan migrate --force --no-interaction 2>/dev/null || true
 
 chown -R www-data:www-data storage bootstrap/cache public/storage 2>/dev/null || true
 

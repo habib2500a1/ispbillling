@@ -4,6 +4,35 @@
     </x-slot>
     <div class="row">
         <div class="col">
+            @isset($fundFlow)
+                <div class="row g-3 mb-3">
+                    <div class="col-md-4">
+                        <div class="card border-0 shadow-sm">
+                            <div class="card-body">
+                                <div class="text-muted small">{{ __('Period total') }}</div>
+                                <div class="fs-4 fw-bold text-success">৳{{ number_format($fundFlow['total'] ?? 0, 2) }}</div>
+                                <div class="small text-muted">{{ $fundFlow['from'] ?? '' }} → {{ $fundFlow['to'] ?? '' }}</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card border-0 shadow-sm">
+                            <div class="card-body">
+                                <div class="text-muted small">{{ __('Collections count') }}</div>
+                                <div class="fs-4 fw-bold">{{ number_format($fundFlow['count'] ?? 0) }}</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card border-0 shadow-sm">
+                            <div class="card-body">
+                                <div class="text-muted small">{{ __('Average ticket') }}</div>
+                                <div class="fs-4 fw-bold">৳{{ number_format($fundFlow['avg'] ?? 0, 2) }}</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            @endisset
             <div class="card">
                 <div class="row p-3">
                     <div class="col">

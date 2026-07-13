@@ -159,7 +159,7 @@ final class CallDeskService
         $ticketId = null;
         if (! empty($data['create_ticket'])) {
             $ticket = SupportTicket::query()->create([
-                'ticket_no' => 'CD-'.now()->format('ymdHis').'-'.Str::upper(Str::random(3)),
+                'ticket_no' => SupportTicket::generateTicketNo(),
                 'customer_unique_id' => $customer->customer_unique_id,
                 'ppp_username' => $customer->pppUser?->username,
                 'subject' => 'Call desk: '.CallDeskLog::OUTCOMES[$outcome],

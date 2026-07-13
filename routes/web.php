@@ -16,6 +16,23 @@ use App\Http\Controllers\ImportController;
 use App\Http\Controllers\MikrotikImportController;
 use App\Http\Controllers\MainSiteController;
 use App\Http\Controllers\RouterListController;
+use App\Livewire\AccountsHub;
+use App\Livewire\AutomaticProcesses;
+use App\Livewire\FeatureModulePage;
+use App\Livewire\GroupHub;
+use App\Livewire\IspOsHub;
+use App\Livewire\SubscriberListsHub;
+use App\Livewire\BandwidthHub;
+use App\Livewire\BillingNotices;
+use App\Livewire\CallDesk;
+use App\Livewire\HrHub;
+use App\Livewire\InventoryHub;
+use App\Livewire\NocOutageBroadcast;
+use App\Livewire\NocOverview;
+use App\Livewire\OltManager;
+use App\Livewire\OnuManager;
+use App\Livewire\OpsInsights;
+use App\Livewire\SmsNotices;
 use App\Http\Controllers\Payment\BkashPaymentController;
 use App\Http\Controllers\Payment\NagadPaymentController;
 use App\Http\Controllers\Payment\SslCommerzPaymentController;
@@ -124,6 +141,11 @@ Route::middleware([
         })->name('system.db-backup.download');
 
         Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+
+        Route::get('/isp-os', IspOsHub::class)->name('isp-os');
+        Route::get('/isp/{module}', FeatureModulePage::class)->name('isp.module');
+        Route::get('/hub/{group}', GroupHub::class)->name('group-hub')->where('group', '[a-z0-9\-]+');
+        Route::get('/subscriber-lists', SubscriberListsHub::class)->name('subscriber-lists');
         Route::resources([
             'collection-report' => CollectionReportController::class,
         ]);
@@ -147,6 +169,27 @@ Route::middleware([
         Route::get('/mikrotik/{id}/import', [MikrotikImportController::class, 'show'])->name('mikrotik.import');
         Route::post('/mikrotik/{id}/import', [MikrotikImportController::class, 'store'])->name('mikrotik.import.store');
         Route::get('/online-clients', \App\Livewire\OnlineClients::class)->name('online-clients');
+
+        // Optical / OLT (Phase 1)
+        Route::get('/olts', OltManager::class)->name('olt-management');
+        Route::get('/onus', OnuManager::class)->name('onu-management');
+        Route::get('/noc', NocOverview::class)->name('noc-overview');
+
+        // Billing extras (Phase 3)
+        Route::get('/billing-notices', BillingNotices::class)->name('billing-notices');
+        Route::get('/sms-notices', SmsNotices::class)->name('sms-notices');
+        Route::get('/automatic-processes', AutomaticProcesses::class)->name('automatic-processes');
+
+        // NOC / Bandwidth (Phase 4)
+        Route::get('/bandwidth-hub', BandwidthHub::class)->name('bandwidth-hub');
+        Route::get('/noc-outage', NocOutageBroadcast::class)->name('noc-outage');
+
+        // Ops hubs (Phase 5)
+        Route::get('/accounts-hub', AccountsHub::class)->name('accounts-hub');
+        Route::get('/hr-hub', HrHub::class)->name('hr-hub');
+        Route::get('/call-desk', CallDesk::class)->name('call-desk');
+        Route::get('/inventory-hub', InventoryHub::class)->name('inventory-hub');
+        Route::get('/ops-insights', OpsInsights::class)->name('ops-insights');
 
         // Mikrotik Setup Routes
         Route::prefix('mikrotik-setup')->group(function () {

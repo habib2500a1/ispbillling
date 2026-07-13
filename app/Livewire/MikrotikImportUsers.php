@@ -100,7 +100,7 @@ class MikrotikImportUsers extends Component
     /**
      * @param  list<string>|string  $names
      */
-    public function importNames(array|string $names = []): void
+    public function importNames(array|string $names = [])
     {
         if (is_string($names)) {
             $names = [$names];
@@ -151,6 +151,20 @@ class MikrotikImportUsers extends Component
             if ($result['errors'] !== []) {
                 $this->lastMessage .= ' · Errors: '.implode(' | ', array_slice($result['errors'], 0, 3));
                 $this->lastMessageType = 'warning';
+
+                return;
+            }
+
+            if (count($names) === 1) {
+                $customer = $this->findCustomerByPppUsername($router, $names[0]);
+                if ($customer) {
+                    flash()->success(__('Customer imported: :name (:id)', [
+                        'name' => $customer->customer_name,
+                        'id' => $customer->customer_unique_id,
+                    ]));
+
+                    return redirect()->route('customers.show', encrypt($customer->customer_unique_id));
+                }
             }
         } catch (\Throwable $e) {
             $this->lastMessageType = 'danger';
@@ -165,7 +179,22 @@ class MikrotikImportUsers extends Component
 
     public function importAllNames(array $names = []): void
     {
-        $this->importNames($names);
+        flash()->warning(__('Bulk import disabled. Select specific users only.'));
+    }
+
+    protected function findCustomerByPppUsername(RouterList $router, string $username): ?\App\Models\CustomersInfo
+    {
+        $username = strtolower(trim($username));
+        if ($username === '') {
+            return null;
+        }
+
+        return \App\Models\CustomersInfo::query()
+            ->whereHas('pppUser', function ($q) use ($router, $username) {
+                $q->where('router_name', $router->router_name)
+                    ->whereRaw('LOWER(username) = ?', [$username]);
+            })
+            ->first();
     }
 
     public function render()

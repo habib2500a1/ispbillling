@@ -64,4 +64,21 @@ class Olt extends Model
 
         return $host;
     }
+
+    public static function resolveIdByName(?string $name): ?int
+    {
+        $name = trim((string) $name);
+        if ($name === '') {
+            return null;
+        }
+
+        $id = static::query()->where('name', $name)->value('id');
+        if ($id) {
+            return (int) $id;
+        }
+
+        $id = static::query()->where('name', 'like', $name.'%')->value('id');
+
+        return $id ? (int) $id : null;
+    }
 }

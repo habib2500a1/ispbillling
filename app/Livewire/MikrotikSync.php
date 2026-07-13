@@ -122,9 +122,13 @@ class MikrotikSync extends Component
             ->orderByDesc('id')
             ->paginate(10)
             ->through(function ($router) {
-                $router->user_list_count = PPPSecrets::where('router_name', $router->router_name)
+                $router->ppp_user_count = PPPSecrets::where('router_name', $router->router_name)
                     ->where('status', '!=', 'removed')
                     ->count();
+                $router->customer_count = CustomersInfo::whereHas('pppUser', function ($q) use ($router) {
+                    $q->where('router_name', $router->router_name)
+                        ->where('status', '!=', 'removed');
+                })->count();
                 $router->online_count = PPPSecrets::where('router_name', $router->router_name)
                     ->where('status', '!=', 'removed')
                     ->whereNotNull('uptime')
@@ -541,20 +545,9 @@ class MikrotikSync extends Component
                             PPPSecrets::where('id', $existingSecret->id)->update(['status' => $existingSecret->status]);
                         }
                     } else {
-                        $newSecret = PPPSecrets::create($secretData);
+                        PPPSecrets::create($secretData);
                         $createdCount++;
-                        $lastIdCount++;
-                        $newId = $prefix.$lastIdCount;
-
-                        CustomersInfo::create([
-                            'customer_unique_id' => $newId,
-                            'ppp_user_id' => $newSecret->id,
-                            'customer_name' => $username,
-                            'status' => 'pending',
-                            'connection_date' => Carbon::now(),
-                        ]);
-                        BillingInfo::create(['customer_bill_unique_id' => $newId, 'billing_type' => 'prepaid', 'auto_disable_date' => Carbon::now()]);
-                        OfficialInfo::create(['customer_office_unique_id' => $newId]);
+                        // Customers are created only via Import users / New Customer — not PPP sync.
                     }
                 }
 

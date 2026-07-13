@@ -89,7 +89,12 @@
                                     <td><span class="badge bg-secondary">{{ $item['status'] }}</span></td>
                                     <td class="fw-bold text-danger">৳{{ number_format($item['due_amount'], 2) }}</td>
                                     <td>৳{{ number_format($item['monthly_rent'], 2) }}</td>
-                                    <td>{{ $item['auto_disable_date'] }}</td>
+                                    <td>
+                                        {{ $item['auto_disable_date'] }}
+                                        @if(!empty($item['suggested_late_fee']))
+                                            <div class="small text-warning">+৳{{ number_format($item['suggested_late_fee'], 2) }} {{ __('late') }}</div>
+                                        @endif
+                                    </td>
                                     <td class="text-end">
                                         @if(!empty($item['edit_url']))
                                             <a href="{{ $item['edit_url'] }}" class="btn btn-sm btn-outline-primary">{{ __('Open') }}</a>

@@ -59,16 +59,12 @@
                 doImportSelected() {
                     if (!this.selected.length) { alert(@js(__('Select at least one user'))); return; }
                     $wire.importNames([...this.selected]);
-                },
-                doImportAll() {
-                    if (!confirm(@js(__('Import EVERY user from this router?')))) return;
-                    $wire.importAllNames(this.all.map(u => u.name));
                 }
             }"
             x-effect="q; page = 1">
             <div class="card-body">
                 <div class="alert alert-info py-2 px-3 small">
-                    {{ __('Type to search instantly. Row Import = 1 user. Or tick → Import selected.') }}
+                    {{ __('Router PPP users ≠ Customers. Import only who you need — they appear in Customers list. Row Import opens that customer view.') }}
                 </div>
 
                 <div class="d-flex flex-wrap gap-2 align-items-center mb-3">
@@ -144,9 +140,6 @@
                     </div>
 
                     <div class="d-flex flex-wrap gap-2">
-                        <button type="button" class="btn btn-sm btn-outline-danger" @click="doImportAll()">
-                            {{ __('Import all (optional)') }}
-                        </button>
                         <button type="button" class="btn btn-sm btn-success" @click="doImportSelected()" :disabled="selected.length === 0">
                             <i class="bi bi-cloud-download me-1"></i>
                             {{ __('Import selected') }}

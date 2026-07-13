@@ -3,6 +3,34 @@
         {{ __('SMS Gateway & Templates Setup') }}
     </x-slot>
 
+    {{-- Template stats (anetbd-style) --}}
+    <div class="row g-3 mb-4">
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm rounded-4 h-100">
+                <div class="card-body">
+                    <div class="text-uppercase small text-muted fw-bold">{{ __('Templates') }}</div>
+                    <div class="fs-3 fw-bold">{{ $templateStats['total'] ?? 0 }}</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm rounded-4 h-100" style="border-left: 4px solid #10b981 !important;">
+                <div class="card-body">
+                    <div class="text-uppercase small text-muted fw-bold">{{ __('Enabled') }}</div>
+                    <div class="fs-3 fw-bold text-success">{{ $templateStats['enabled'] ?? 0 }}</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm rounded-4 h-100">
+                <div class="card-body">
+                    <div class="text-uppercase small text-muted fw-bold">{{ __('Disabled') }}</div>
+                    <div class="fs-3 fw-bold text-secondary">{{ $templateStats['disabled'] ?? 0 }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     {{-- Top Section: Balance & Profile Dashboard --}}
     <div class="row g-4 mb-4">
         {{-- Gateway Balance Card --}}
@@ -115,6 +143,14 @@
             </div>
             
             @if($activeTab === 'templates')
+                <div class="d-flex flex-wrap gap-2 align-items-center">
+                    <button type="button" wire:click="syncMissingTemplates" wire:loading.attr="disabled" class="btn btn-sm btn-outline-success rounded-3">
+                        <i class="bi bi-plus-circle me-1"></i>{{ __('Add missing templates') }}
+                    </button>
+                    <a href="{{ route('automatic-processes') }}" class="btn btn-sm btn-outline-primary rounded-3">
+                        <i class="bi bi-clock me-1"></i>{{ __('Automatic Processes') }}
+                    </a>
+                </div>
                 {{-- Search templates --}}
                 <div class="position-relative">
                     <span class="position-absolute top-50 start-0 translate-middle-y ps-3 text-muted">
@@ -177,10 +213,13 @@
                                                     <i class="bi {{ $meta['icon'] }} fs-5"></i>
                                                 </div>
                                                 <div>
-                                                    <h6 class="mb-0.5 fw-bold text-dark text-capitalize" style="font-size: 0.95rem; letter-spacing: -0.2px;">
-                                                        {{ str_replace('_', ' ', $smsTemp->template_name) }}
+                                                    <h6 class="mb-0.5 fw-bold text-dark" style="font-size: 0.95rem; letter-spacing: -0.2px;">
+                                                        {{ $smsTemp->label() }}
                                                     </h6>
-                                                    <small class="text-muted" style="font-size: 0.72rem;">{{ __($meta['desc']) }}</small>
+                                                    <small class="text-muted d-block" style="font-size: 0.72rem;">{{ __($meta['desc']) }}</small>
+                                                    @if($smsTemp->event_key)
+                                                        <span class="badge bg-light text-primary border mt-1" style="font-size: 0.65rem;">{{ $smsTemp->event_key }}</span>
+                                                    @endif
                                                 </div>
                                             </div>
                                             

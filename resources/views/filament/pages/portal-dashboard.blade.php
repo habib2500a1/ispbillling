@@ -100,6 +100,36 @@
                 </div>
             @endif
 
+            @if(!empty($outageNotices))
+                <div class="cp-mb-4 cp-space-y-2">
+                    @foreach($outageNotices as $notice)
+                        <div class="cp-p-4 cp-rounded-2xl cp-border cp-text-sm
+                            @if(($notice['severity'] ?? '') === 'critical') cp-bg-rose-500/10 cp-border-rose-500/30 cp-text-rose-700
+                            @elseif(($notice['severity'] ?? '') === 'warning') cp-bg-amber-500/10 cp-border-amber-500/30 cp-text-amber-800
+                            @else cp-bg-sky-500/10 cp-border-sky-500/30 cp-text-sky-800 @endif">
+                            <div class="cp-font-bold">{{ $notice['title'] }}</div>
+                            <div>{{ $notice['message'] }}</div>
+                            @if(!empty($notice['area']))<div class="cp-text-xs cp-opacity-80 cp-mt-1">{{ $notice['area'] }}</div>@endif
+                        </div>
+                    @endforeach
+                </div>
+            @endif
+
+            @if(!empty($optical['linked']))
+                <div class="cp-bg-white dark:cp-bg-slate-900 cp-border cp-border-slate-200 dark:cp-border-slate-800 cp-rounded-3xl cp-p-5 cp-mb-6 cp-shadow-sm">
+                    <h4 class="cp-text-sm cp-font-bold cp-text-gray-900 dark:cp-text-white cp-mb-2">{{ __('Optical / ONU') }}</h4>
+                    <div class="cp-grid cp-grid-cols-2 md:cp-grid-cols-4 cp-gap-3 cp-text-sm">
+                        <div><span class="cp-text-gray-500">RX</span><div class="cp-font-bold">{{ $optical['row']['optical_power'] ?? '—' }} dBm</div></div>
+                        <div><span class="cp-text-gray-500">TX</span><div class="cp-font-bold">{{ $optical['row']['tx_power'] ?? '—' }} dBm</div></div>
+                        <div><span class="cp-text-gray-500">OLT</span><div class="cp-font-bold">{{ $optical['row']['olt_name'] ?? '—' }}</div></div>
+                        <div><span class="cp-text-gray-500">PON</span><div class="cp-font-bold">{{ $optical['row']['olt_port'] ?? '—' }}</div></div>
+                    </div>
+                    @if(!empty($optical['details']['last_polled_at']))
+                        <div class="cp-text-xs cp-text-gray-500 cp-mt-2">{{ __('Updated') }}: {{ $optical['details']['last_polled_at'] }}</div>
+                    @endif
+                </div>
+            @endif
+
             <!-- Greeting & Quick Status Banner -->
             <div class="cp-bg-gradient-to-r cp-from-indigo-600 cp-via-purple-600 cp-to-pink-600 dark:cp-from-indigo-700 dark:cp-via-purple-700 dark:cp-to-pink-700 cp-text-white cp-shadow-xl cp-rounded-3xl cp-p-6 cp-flex cp-flex-col md:cp-flex-row cp-items-start md:cp-items-center cp-justify-between cp-gap-4">
                 <div>

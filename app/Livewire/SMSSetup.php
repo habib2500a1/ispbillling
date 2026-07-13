@@ -4,6 +4,7 @@ namespace App\Livewire;
 
 use App\Models\SmsTemplate;
 use App\Models\CustomersInfo;
+use App\Services\Sms\SmsTemplateCatalogService;
 use Codepagol\SmsBridge\Facades\SmsBridge;
 use Livewire\Component;
 
@@ -86,6 +87,15 @@ class SMSSetup extends Component
         } else {
             flash()->error('SMS template not found.');
         }
+    }
+
+    public function syncMissingTemplates(): void
+    {
+        $count = app(SmsTemplateCatalogService::class)->syncMissing();
+        $this->smsTempList = SmsTemplate::pluck('template', 'id')->toArray();
+        flash()->success($count > 0
+            ? "Added {$count} missing SMS template(s) from catalog."
+            : 'All catalog templates are already present.');
     }
 
     // Set active tab and reset campaign variables
@@ -265,8 +275,11 @@ class SMSSetup extends Component
     {
         $smsTemps = SmsTemplate::when($this->search, function ($q) {
             $q->where('template_name', 'like', '%' . $this->search . '%')
+              ->orWhere('display_name', 'like', '%' . $this->search . '%')
               ->orWhere('template', 'like', '%' . $this->search . '%');
-        })->get();
+        })->orderBy('sort_order')->orderBy('template_name')->get();
+
+        $templateStats = app(SmsTemplateCatalogService::class)->stats();
 
         // Bulk SMS variables
         $activeTemplates = SmsTemplate::where('is_active', true)->get();
@@ -301,7 +314,8 @@ class SMSSetup extends Component
             'recipientsCount',
             'recipientsPreview',
             'selectedCustomers',
-            'excludedCustomers'
+            'excludedCustomers',
+            'templateStats',
         ))->layout('layouts.app');
     }
 }

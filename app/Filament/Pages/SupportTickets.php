@@ -140,7 +140,7 @@ class SupportTickets extends Page
             'subject' => 'required|string|min:5|max:255',
             'description' => 'required|string|min:10|max:2000',
             'priority' => 'required|in:low,medium,high',
-            'category' => 'required|in:billing,connection,speed,other',
+            'category' => 'required|in:'.implode(',', SupportTicket::CATEGORIES),
         ]);
 
         if (! $this->customer) {

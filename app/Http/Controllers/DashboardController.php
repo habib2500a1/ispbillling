@@ -8,6 +8,9 @@ use App\Models\CustomersInfo;
 use App\Models\HotspotSale;
 use App\Models\Reseller;
 use App\Models\ResellerCommission;
+use App\Services\Ai\OpsInsightsService;
+use App\Services\Dashboard\DashboardOpsService;
+use App\Services\Noc\NocOverviewService;
 use Carbon\Carbon;
 
 class DashboardController extends Controller
@@ -160,7 +163,32 @@ class DashboardController extends Controller
             $systemOverview = [];
         }
 
+        $nocPayload = app(NocOverviewService::class)->payload();
+        $opticalData = $nocPayload['optical'];
+        $networkQuick = $nocPayload['network'];
+        $opsData = app(DashboardOpsService::class)->snapshot();
+
+        try {
+            $insights = app(OpsInsightsService::class)->payload();
+            $opsData['insights_critical'] = (int) ($insights['counts']['critical'] ?? 0);
+            $opsData['insights_high'] = (int) ($insights['counts']['high'] ?? 0);
+            $opsData['insights_total'] = count($insights['items'] ?? []);
+        } catch (\Throwable) {
+            $opsData['insights_critical'] = 0;
+            $opsData['insights_high'] = 0;
+            $opsData['insights_total'] = 0;
+        }
+
         // Calculate total cashflow, income, and revenue difference for the year
-        return view('dashboard', compact('results', 'customersData', 'billInformationData', 'systemOverview', 'resellerData'));
+        return view('dashboard', compact(
+            'results',
+            'customersData',
+            'billInformationData',
+            'systemOverview',
+            'resellerData',
+            'opticalData',
+            'networkQuick',
+            'opsData'
+        ));
     }
 }

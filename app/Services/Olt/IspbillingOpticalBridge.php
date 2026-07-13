@@ -238,9 +238,11 @@ final class IspbillingOpticalBridge
     private function upsertLocalOnu(CustomersInfo $customer, object $row): CustomerOnu
     {
         $onu = $customer->primaryOnu() ?? new CustomerOnu(['customers_info_id' => $customer->id]);
+        $oltName = $row->olt_name ?: null;
         $onu->fill([
             'customers_info_id' => $customer->id,
-            'olt_name' => $row->olt_name ?: null,
+            'olt_id' => \App\Models\Olt::resolveIdByName($oltName),
+            'olt_name' => $oltName,
             'pon_port' => $row->display_name ?: null,
             'mac_address' => $row->mac_address ?: null,
             'serial_number' => $row->serial_number ?: null,
@@ -254,6 +256,7 @@ final class IspbillingOpticalBridge
                 : now(),
         ]);
         $onu->save();
+        app(OpticalRxHistoryService::class)->record($onu, 'ispbilling');
 
         return $onu;
     }
