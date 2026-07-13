@@ -7,6 +7,7 @@ use App\Models\NotificationLogs;
 use App\Models\SupportTicket;
 use App\Services\CallCenter\CallDeskService;
 use Codepagol\SmsBridge\Facades\SmsBridge;
+use Illuminate\Validation\Rule;
 use Livewire\Attributes\On;
 use Livewire\Component;
 use Livewire\WithoutUrlPagination;
@@ -70,31 +71,27 @@ class ManageTickets extends Component
     {
         $this->customerSearchResults = app(CallDeskService::class)
             ->searchCustomers($this->customerSearch, 10);
-    }
 
-    public function selectCustomerForTicket(string $uid): void
-    {
-        $this->newCustomerUid = $uid;
-        $customer = CustomersInfo::query()
-            ->with('pppUser:id,username')
-            ->where('customer_unique_id', $uid)
-            ->whereNull('deleted_at')
-            ->first();
-
-        if ($customer) {
-            $this->customerSearch = trim($customer->customer_name.' ('.$customer->customer_unique_id.')');
-        }
-        $this->customerSearchResults = [];
+        $this->tryAutoSelectCustomer();
     }
 
     public function createTicket(): void
     {
+        $this->resolveCustomerFromSearch();
+
         $this->validate([
-            'newCustomerUid' => 'required|string|exists:customers_infos,customer_unique_id',
+            'newCustomerUid' => [
+                'required',
+                'string',
+                Rule::exists('customers_infos', 'customer_unique_id')->whereNull('deleted_at'),
+            ],
             'newSubject' => 'required|string|min:5|max:255',
             'newDescription' => 'required|string|min:10|max:2000',
             'newPriority' => 'required|in:'.implode(',', SupportTicket::PRIORITIES),
             'newCategory' => 'required|in:'.implode(',', SupportTicket::CATEGORIES),
+        ], [
+            'newCustomerUid.required' => __('Please search and select a customer from the list.'),
+            'newCustomerUid.exists' => __('Selected customer was not found or is inactive.'),
         ]);
 
         $customer = CustomersInfo::query()
@@ -114,18 +111,69 @@ class ManageTickets extends Component
             'status' => 'open',
         ]);
 
-        NotificationLogs::create([
-            'title' => 'New Support Ticket Opened',
-            'message' => 'Admin opened support ticket #'.$ticket->ticket_no.' for '.$customer->customer_name.' ('.$customer->customer_unique_id.'): '.$ticket->subject,
-            'status' => 'New Ticket Created',
-            'type' => 'Support Ticket',
-        ]);
+        try {
+            NotificationLogs::create([
+                'title' => 'New Support Ticket Opened',
+                'message' => 'Admin opened support ticket #'.$ticket->ticket_no.' for '.$customer->customer_name.' ('.$customer->customer_unique_id.'): '.$ticket->subject,
+                'status' => 'New Ticket Created',
+                'type' => 'Support Ticket',
+            ]);
+        } catch (\Throwable $e) {
+            \Log::warning('ticket notification log failed', ['error' => $e->getMessage(), 'ticket' => $ticket->ticket_no]);
+        }
 
         flash()->success('Support ticket opened successfully.');
         $this->confirmingCreate = false;
         $this->resetCreateForm();
         $this->statusFilter = 'open';
         $this->resetPage();
+    }
+
+    public function selectCustomerForTicket(string $uid): void
+    {
+        $this->newCustomerUid = $uid;
+        $customer = CustomersInfo::query()
+            ->with('pppUser:id,username')
+            ->where('customer_unique_id', $uid)
+            ->whereNull('deleted_at')
+            ->first();
+
+        if ($customer) {
+            $this->customerSearch = trim($customer->customer_name.' ('.$customer->customer_unique_id.')');
+        }
+        $this->customerSearchResults = [];
+    }
+
+    protected function resolveCustomerFromSearch(): void
+    {
+        if ($this->newCustomerUid) {
+            return;
+        }
+
+        $this->tryAutoSelectCustomer();
+    }
+
+    protected function tryAutoSelectCustomer(): void
+    {
+        $needle = trim($this->customerSearch);
+        if ($needle === '') {
+            return;
+        }
+
+        $exact = CustomersInfo::query()
+            ->whereNull('deleted_at')
+            ->where('customer_unique_id', $needle)
+            ->value('customer_unique_id');
+
+        if ($exact) {
+            $this->selectCustomerForTicket($exact);
+
+            return;
+        }
+
+        if (count($this->customerSearchResults) === 1) {
+            $this->selectCustomerForTicket((string) $this->customerSearchResults[0]['customer_unique_id']);
+        }
     }
 
     protected function resetCreateForm(): void

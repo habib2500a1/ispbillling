@@ -205,7 +205,6 @@
     </div>
 
     {{-- Open Ticket Modal --}}
-    @if($confirmingCreate)
     <x-dialog-modal wire:model.live="confirmingCreate" maxWidth="2xl">
         <x-slot name="title">
             <span class="h5 mb-0"><i class="bi bi-plus-circle text-primary me-2"></i>{{ __('Open Support Ticket') }}</span>
@@ -216,16 +215,17 @@
                 <div class="mb-3 position-relative">
                     <label for="customerSearch" class="form-label fw-bold text-dark">{{ __('Customer') }}</label>
                     <input id="customerSearch" type="text" class="form-control border-light-subtle @error('newCustomerUid') is-invalid @enderror"
-                        wire:model.live.debounce.300ms="customerSearch" placeholder="{{ __('Search name, mobile, UID, PPP...') }}" style="border-radius: 10px;">
+                        wire:model.live.debounce.300ms="customerSearch" placeholder="{{ __('Search name, mobile, UID, PPP...') }}" style="border-radius: 10px;" autocomplete="off">
+                    <div class="form-text">{{ __('Type at least 2 characters, then click a customer from the list (or type exact UID).') }}</div>
                     <x-error name="newCustomerUid" />
                     @if($newCustomerUid)
                         <div class="mt-2"><span class="badge bg-success-subtle text-success border border-success-subtle">{{ __('Selected') }}: {{ $newCustomerUid }}</span></div>
                     @endif
                     @if(count($customerSearchResults) > 0)
-                        <div class="list-group position-absolute w-100 shadow-sm mt-1" style="z-index: 1050; max-height: 220px; overflow-y: auto;">
+                        <div class="list-group position-absolute w-100 shadow-sm mt-1" style="z-index: 2000; max-height: 220px; overflow-y: auto;">
                             @foreach($customerSearchResults as $row)
                                 <button type="button" class="list-group-item list-group-item-action py-2"
-                                    wire:click="selectCustomerForTicket('{{ $row['customer_unique_id'] }}')">
+                                    wire:click.prevent="selectCustomerForTicket('{{ $row['customer_unique_id'] }}')">
                                     <div class="fw-semibold">{{ $row['customer_name'] }}</div>
                                     <small class="text-muted">{{ $row['customer_unique_id'] }} · {{ $row['mobile'] ?: '—' }} · {{ $row['ppp_username'] ?: '—' }}</small>
                                 </button>
@@ -273,14 +273,16 @@
 
                 <div class="d-flex justify-content-end gap-2 border-top pt-3">
                     <button type="button" class="btn btn-outline-secondary px-3" style="border-radius: 8px;" wire:click="$set('confirmingCreate', false)">{{ __('Cancel') }}</button>
-                    <button type="submit" class="btn btn-primary px-4" style="border-radius: 8px;"><i class="bi bi-check2-circle me-1"></i>{{ __('Open Ticket') }}</button>
+                    <button type="submit" class="btn btn-primary px-4" style="border-radius: 8px;" wire:loading.attr="disabled">
+                        <span wire:loading.remove wire:target="createTicket"><i class="bi bi-check2-circle me-1"></i>{{ __('Open Ticket') }}</span>
+                        <span wire:loading wire:target="createTicket">{{ __('Opening...') }}</span>
+                    </button>
                 </div>
             </form>
         </x-slot>
 
         <x-slot name="footer"></x-slot>
     </x-dialog-modal>
-    @endif
 
     {{-- Reply Modal --}}
     @if($confirmingReply && $selectedTicket)
