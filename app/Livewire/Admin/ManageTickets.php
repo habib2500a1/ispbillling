@@ -5,6 +5,7 @@ namespace App\Livewire\Admin;
 use App\Models\CustomersInfo;
 use App\Models\NotificationLogs;
 use App\Models\SupportTicket;
+use App\Models\User;
 use App\Services\CallCenter\CallDeskService;
 use Codepagol\SmsBridge\Facades\SmsBridge;
 use Illuminate\Validation\Rule;
@@ -51,6 +52,10 @@ class ManageTickets extends Component
 
     public string $newCategory = 'connection';
 
+    public ?int $newAssignedToUserId = null;
+
+    public ?int $assignedToUserId = null;
+
     /** @var list<array<string, mixed>> */
     public array $customerSearchResults = [];
 
@@ -64,6 +69,7 @@ class ManageTickets extends Component
     public function showCreateModal(): void
     {
         $this->resetCreateForm();
+        $this->newAssignedToUserId = auth()->id();
         $this->confirmingCreate = true;
     }
 
@@ -89,6 +95,7 @@ class ManageTickets extends Component
             'newDescription' => 'required|string|min:10|max:2000',
             'newPriority' => 'required|in:'.implode(',', SupportTicket::PRIORITIES),
             'newCategory' => 'required|in:'.implode(',', SupportTicket::CATEGORIES),
+            'newAssignedToUserId' => 'nullable|integer|exists:users,id',
         ], [
             'newCustomerUid.required' => __('Please search and select a customer from the list.'),
             'newCustomerUid.exists' => __('Selected customer was not found or is inactive.'),
@@ -109,6 +116,7 @@ class ManageTickets extends Component
             'priority' => $this->newPriority,
             'category' => $this->newCategory,
             'status' => 'open',
+            'assigned_to_user_id' => $this->newAssignedToUserId ?: null,
         ]);
 
         try {
@@ -184,6 +192,7 @@ class ManageTickets extends Component
         $this->newDescription = '';
         $this->newPriority = 'medium';
         $this->newCategory = 'connection';
+        $this->newAssignedToUserId = null;
         $this->customerSearchResults = [];
         $this->resetValidation();
     }
@@ -191,9 +200,10 @@ class ManageTickets extends Component
     public function showReplyModal($id)
     {
         $this->ticketId = $id;
-        $this->selectedTicket = SupportTicket::with('customer')->findOrFail($id);
+        $this->selectedTicket = SupportTicket::with(['customer', 'assignee'])->findOrFail($id);
         $this->adminReply = $this->selectedTicket->admin_reply ?? '';
         $this->status = $this->selectedTicket->status;
+        $this->assignedToUserId = $this->selectedTicket->assigned_to_user_id;
         $this->sendSms = true;
         $this->confirmingReply = true;
     }
@@ -203,12 +213,14 @@ class ManageTickets extends Component
         $this->validate([
             'adminReply' => 'required|string|min:5|max:2000',
             'status' => 'required|in:open,in_progress,resolved,closed',
+            'assignedToUserId' => 'nullable|integer|exists:users,id',
         ]);
 
         $ticket = SupportTicket::with('customer')->findOrFail($this->ticketId);
         $ticket->update([
             'admin_reply' => $this->adminReply,
             'status' => $this->status,
+            'assigned_to_user_id' => $this->assignedToUserId ?: null,
             'replied_at' => now(),
             'replied_by' => auth()->user()->name,
         ]);
@@ -288,7 +300,7 @@ class ManageTickets extends Component
             'resolved' => SupportTicket::where('status', 'resolved')->count(),
         ];
 
-        $query = SupportTicket::with('customer');
+        $query = SupportTicket::with(['customer', 'assignee']);
 
         if ($this->search) {
             $query->where(function ($q) {
@@ -315,6 +327,20 @@ class ManageTickets extends Component
         return view('livewire.admin.tickets.manage-tickets', [
             'tickets' => $tickets,
             'stats' => $stats,
+            'staffUsers' => $this->staffUsers(),
         ])->layout('layouts.app');
+    }
+
+    /**
+     * @return \Illuminate\Support\Collection<int, User>
+     */
+    private function staffUsers()
+    {
+        return User::query()
+            ->whereDoesntHave('roles', function ($query) {
+                $query->where('name', 'Reseller');
+            })
+            ->orderBy('name')
+            ->get(['id', 'name']);
     }
 }

@@ -20,6 +20,7 @@ class SupportTicket extends Model
         'description',
         'priority',
         'status',
+        'assigned_to_user_id',
         'category',
         'admin_reply',
         'replied_at',
@@ -33,6 +34,11 @@ class SupportTicket extends Model
     public function customer()
     {
         return $this->belongsTo(CustomersInfo::class, 'customer_unique_id', 'customer_unique_id');
+    }
+
+    public function assignee()
+    {
+        return $this->belongsTo(User::class, 'assigned_to_user_id');
     }
 
     public function getStatusColorAttribute(): string
