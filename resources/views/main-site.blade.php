@@ -67,15 +67,17 @@
 
             {{-- Nav Links --}}
             <div class="collapse navbar-collapse" id="navbarSupportedContent">
-                <ul class="nav navbar-nav ms-auto mb-2 mb-lg-0">
+                <ul class="nav navbar-nav ms-auto mb-2 mb-lg-0 align-items-md-center gap-md-1">
                     <li class="nav-item"><a class="nav-link" href="#banner">{{ __('Home') }}</a></li>
                     <li class="nav-item"><a class="nav-link" href="#features">{{ __('Service') }}</a></li>
-                    <li class="nav-item"><a class="nav-link" href="#gallery">{{ __('Gallery') }}</a></li>
-                    <li class="nav-item"><a class="nav-link" href="#pricing-table">{{ __('Price') }}</a></li>
-                    <li class="nav-item"><a class="nav-link" href="#team">{{ __('Team') }}</a></li>
-                    <li class="nav-item"><a class="nav-link" href="#blog">{{ __('Blog') }}</a></li>
-                    <li class="nav-item"><a class="nav-link" href="#testimonial">{{ __('Testimonial') }}</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#pricing-table">{{ __('Packages') }}</a></li>
                     <li class="nav-item"><a class="nav-link" href="#contact-form">{{ __('Contact') }}</a></li>
+                    <li class="nav-item ms-md-2">
+                        <a class="btn btn-success btn-sm px-3 rounded-pill fw-semibold" href="{{ route('login') }}">{{ __('Staff Login') }}</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="btn btn-outline-success btn-sm px-3 rounded-pill fw-semibold" href="{{ url('/portal') }}">{{ __('Customer Portal') }}</a>
+                    </li>
                 </ul>
             </div>
 
@@ -156,18 +158,30 @@
                             </div>
                         @endforeach
                     @else
-                        {{-- Fallback static slides --}}
+                        {{-- Clean brand-first hero (no clutter) --}}
                         <div class="carousel-item active">
-                            <img src="{{ asset('images/slide/img0.jpg') }}" class="img-fluid"
-                                alt="{{ __('Slide 1') }}">
-                        </div>
-                        <div class="carousel-item">
-                            <img src="{{ asset('images/slide/img1.jpg') }}" class="img-fluid"
-                                alt="{{ __('Slide 2') }}">
-                        </div>
-                        <div class="carousel-item">
-                            <img src="{{ asset('images/slide/img2.jpg') }}" class="img-fluid"
-                                alt="{{ __('Slide 3') }}">
+                            <div class="position-relative" style="min-height:min(72vh,640px);background:
+                                radial-gradient(ellipse at 20% 20%, rgba(6,173,115,.28), transparent 45%),
+                                radial-gradient(ellipse at 80% 0%, rgba(15,23,42,.35), transparent 40%),
+                                linear-gradient(145deg,#0b1f17 0%,#102a22 45%,#0f172a 100%);">
+                                <div class="container h-100 d-flex align-items-center" style="min-height:min(72vh,640px);">
+                                    <div class="col-lg-7 text-white py-5">
+                                        <p class="text-uppercase fw-bold mb-2" style="letter-spacing:.14em;color:#6ee7b7;font-size:.8rem;">
+                                            {{ siteUrlSettings('site_name') ?? config('app.name') }}
+                                        </p>
+                                        <h1 class="display-4 fw-bold mb-3" style="line-height:1.15;">
+                                            {{ $siteData?->hero_title ?? __('Faster. Reliable. Always On.') }}
+                                        </h1>
+                                        <p class="lead mb-4" style="max-width:34rem;color:rgba(255,255,255,.82);">
+                                            {{ $siteData?->hero_subtitle ?? __('Home & corporate broadband with auto billing and instant pay-to-ON.') }}
+                                        </p>
+                                        <div class="d-flex flex-wrap gap-2">
+                                            <a href="#pricing-table" class="btn btn-success btn-lg rounded-pill px-4">{{ __('View packages') }}</a>
+                                            <a href="#contact-form" class="btn btn-outline-light btn-lg rounded-pill px-4">{{ __('Contact sales') }}</a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     @endif
                 </div>

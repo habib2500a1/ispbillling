@@ -3,121 +3,209 @@
         {{ __('Dashboard') }}
     </x-slot>
 
-    {{-- Modern Stat Cards Row --}}
-    <div class="row g-3 mb-4">
-        <!-- Card 1: Active Users -->
-        <div class="col-12 col-sm-6 col-xl-3">
-            <div class="card border-0 shadow-sm overflow-hidden h-100" style="background: linear-gradient(135deg, #4f46e5, #7c3aed); color: #fff; border-radius: 12px; transition: transform 0.3s ease;">
-                <div class="card-body position-relative z-1">
-                    <div class="d-flex justify-content-between align-items-sm-center">
+    <style>
+        .dash-shell { --dash-ink:#0f172a; --dash-muted:#64748b; --dash-line:#e2e8f0; --dash-soft:#f8fafc; --dash-brand:#06ad73; --dash-brand-dark:#05885b; }
+        .dash-shell .dash-kpi { background:#fff; border:1px solid var(--dash-line); border-radius:14px; padding:1.1rem 1.15rem; height:100%; transition:border-color .2s, box-shadow .2s; }
+        .dash-shell .dash-kpi:hover { border-color:#cbd5e1; box-shadow:0 8px 24px rgba(15,23,42,.06); }
+        .dash-shell .dash-kpi .label { font-size:.72rem; letter-spacing:.06em; text-transform:uppercase; color:var(--dash-muted); font-weight:700; margin-bottom:.35rem; }
+        .dash-shell .dash-kpi .value { font-size:1.65rem; font-weight:800; color:var(--dash-ink); line-height:1.15; }
+        .dash-shell .dash-kpi .meta { font-size:.82rem; color:var(--dash-muted); margin-top:.55rem; }
+        .dash-shell .dash-kpi .icon { width:42px; height:42px; border-radius:11px; display:flex; align-items:center; justify-content:center; background:rgba(6,173,115,.12); color:var(--dash-brand-dark); font-size:1.15rem; }
+        .dash-shell .dash-section-title { font-size:.75rem; letter-spacing:.08em; text-transform:uppercase; color:var(--dash-muted); font-weight:700; }
+        .dash-shell .dash-panel { background:#fff; border:1px solid var(--dash-line); border-radius:14px; overflow:hidden; height:100%; }
+        .dash-shell .dash-panel .panel-h { padding:.85rem 1.1rem; border-bottom:1px solid var(--dash-line); background:var(--dash-soft); display:flex; align-items:center; justify-content:space-between; gap:.75rem; flex-wrap:wrap; }
+        .dash-shell .dash-panel .panel-b { padding:1rem 1.1rem; }
+        .dash-shell .dash-chip { display:inline-flex; align-items:center; gap:.35rem; padding:.25rem .55rem; border-radius:999px; font-size:.75rem; font-weight:600; background:var(--dash-soft); color:var(--dash-ink); border:1px solid var(--dash-line); }
+        .dash-shell .dash-chip.ok { background:rgba(6,173,115,.1); color:var(--dash-brand-dark); border-color:rgba(6,173,115,.25); }
+        .dash-shell .dash-chip.warn { background:#fff7ed; color:#9a3412; border-color:#fed7aa; }
+        .dash-shell .dash-chip.bad { background:#fef2f2; color:#991b1b; border-color:#fecaca; }
+        .dash-shell a.dash-link { color:inherit; text-decoration:none; }
+        .dash-shell .quick-grid a { display:flex; align-items:center; gap:.65rem; padding:.7rem .8rem; border:1px solid var(--dash-line); border-radius:12px; background:#fff; color:var(--dash-ink); text-decoration:none; font-weight:600; font-size:.9rem; transition:border-color .15s, background .15s; }
+        .dash-shell .quick-grid a:hover { border-color:var(--dash-brand); background:rgba(6,173,115,.04); }
+        .dash-shell .quick-grid a i { color:var(--dash-brand-dark); }
+    </style>
+
+    <div class="dash-shell">
+        {{-- KPI row --}}
+        <div class="row g-3 mb-3">
+            <div class="col-12 col-sm-6 col-xl-3">
+                <div class="dash-kpi">
+                    <div class="d-flex justify-content-between align-items-start">
                         <div>
-                            <h6 class="text-uppercase fw-bold mb-1" style="font-size: 0.72rem; letter-spacing: 1px; opacity: 0.85;">{{ __('Active PPPoE Users') }}</h6>
-                            <h3 class="fw-bold mb-0">{{ $customersData['active'] ?? 0 }} <span style="font-size: 0.85rem; font-weight: normal; opacity: 0.75;">/ {{ $customersData['total'] ?? 0 }}</span></h3>
+                            <div class="label">{{ __('Active PPPoE') }}</div>
+                            <div class="value">{{ $customersData['active'] ?? 0 }} <span class="fs-6 fw-semibold text-muted">/ {{ $customersData['total'] ?? 0 }}</span></div>
                         </div>
-                        <div class="rounded-circle d-flex align-items-center justify-content-center" style="width: 48px; height: 48px; background: rgba(255,255,255,0.2);">
-                            <i class="bi bi-people-fill fs-4"></i>
-                        </div>
+                        <div class="icon"><i class="bi bi-people-fill"></i></div>
                     </div>
-                    <div class="mt-3 pt-2 border-top border-white border-opacity-25">
-                        <span class="small fw-medium" style="opacity: 0.9;"><i class="bi bi-person-plus-fill me-1"></i>{{ $customersData['recent'] ?? 0 }} {{ __('New this month') }}</span>
-                        <span class="small float-end" style="opacity: 0.9;"><i class="bi bi-x-circle me-1 text-light"></i>{{ __('Inactive') }}</span>
-                    </div>
+                    <div class="meta">{{ $customersData['recent'] ?? 0 }} {{ __('new this month') }} · {{ $customersData['temporary_disable'] ?? 0 }} {{ __('disabled') }}</div>
                 </div>
-                <div class="position-absolute end-0 bottom-0" style="opacity: 0.15; transform: translate(10%, 10%); z-index: 0; pointer-events: none;">
-                    <i class="bi bi-person-check-fill" style="font-size: 5.5rem;"></i>
+            </div>
+            <div class="col-12 col-sm-6 col-xl-3">
+                <div class="dash-kpi">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <div class="label">{{ __("Today's collection") }}</div>
+                            <div class="value">৳{{ number_format(($billInformationData['today_paid_amount'] ?? 0) + ($billInformationData['hotspot_today'] ?? 0), 0) }}</div>
+                        </div>
+                        <div class="icon"><i class="bi bi-wallet2"></i></div>
+                    </div>
+                    <div class="meta">{{ __('PPPoE') }} ৳{{ number_format($billInformationData['today_paid_amount'] ?? 0, 0) }} · {{ __('Hotspot') }} ৳{{ number_format($billInformationData['hotspot_today'] ?? 0, 0) }}</div>
+                </div>
+            </div>
+            <div class="col-12 col-sm-6 col-xl-3">
+                <div class="dash-kpi">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <div class="label">{{ __('Month revenue') }}</div>
+                            <div class="value">৳{{ number_format(($billInformationData['paid_amount'] ?? 0) + ($billInformationData['hotspot_total'] ?? 0), 0) }}</div>
+                        </div>
+                        <div class="icon"><i class="bi bi-graph-up-arrow"></i></div>
+                    </div>
+                    <div class="meta text-danger">{{ __('Pending due') }} ৳{{ number_format(abs($billInformationData['due_amount'] ?? 0), 0) }}</div>
+                </div>
+            </div>
+            <div class="col-12 col-sm-6 col-xl-3">
+                <div class="dash-kpi">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <div class="label">{{ __('Ops pressure') }}</div>
+                            <div class="value">{{ ($opsData['overdue_notices'] ?? 0) + ($opsData['sla_breached'] ?? 0) }}</div>
+                        </div>
+                        <div class="icon"><i class="bi bi-exclamation-triangle"></i></div>
+                    </div>
+                    <div class="meta">{{ __('Overdue') }} {{ $opsData['overdue_notices'] ?? 0 }} · {{ __('SLA') }} {{ $opsData['sla_breached'] ?? 0 }} · {{ __('Open tickets') }} {{ $opsData['open_tickets'] ?? 0 }}</div>
                 </div>
             </div>
         </div>
 
-        <!-- Card 2: Today PPPoE Collection -->
-        <div class="col-12 col-sm-6 col-xl-3">
-            <div class="card border-0 shadow-sm overflow-hidden h-100" style="background: linear-gradient(135deg, #0ea5e9, #0284c7); color: #fff; border-radius: 12px; transition: transform 0.3s ease;">
-                <div class="card-body position-relative z-1">
-                    <div class="d-flex justify-content-between align-items-sm-center">
-                        <div>
-                            <h6 class="text-uppercase fw-bold mb-1" style="font-size: 0.72rem; letter-spacing: 1px; opacity: 0.85;">{{ __("Today's PPPoE Sales") }}</h6>
-                            <h3 class="fw-bold mb-0">৳{{ number_format($billInformationData['today_paid_amount'] ?? 0, 0) }}</h3>
-                        </div>
-                        <div class="rounded-circle d-flex align-items-center justify-content-center" style="width: 48px; height: 48px; background: rgba(255,255,255,0.2);">
-                            <i class="bi bi-wallet2 fs-4"></i>
+        {{-- Network + Ops panels --}}
+        <div class="row g-3 mb-4">
+            <div class="col-12 col-lg-7">
+                <div class="dash-panel">
+                    <div class="panel-h">
+                        <span class="dash-section-title mb-0">{{ __('Network & Optical') }}</span>
+                        <div class="d-flex flex-wrap gap-2">
+                            @if($opticalData['bridge'] ?? false)
+                                <span class="dash-chip ok">{{ __('Live bridge') }}</span>
+                            @else
+                                <span class="dash-chip">{{ __('Local inventory') }}</span>
+                            @endif
+                            <a href="{{ route('mikrotik-sync') }}" class="btn btn-sm btn-outline-secondary">{{ __('MikroTik') }}</a>
+                            <a href="{{ route('olt-management') }}" class="btn btn-sm btn-outline-secondary">{{ __('OLT') }}</a>
+                            <a href="{{ route('onu-management') }}" class="btn btn-sm btn-success">{{ __('ONU') }}</a>
                         </div>
                     </div>
-                    <div class="mt-3 pt-2 border-top border-white border-opacity-25">
-                        <span class="small fw-medium" style="opacity: 0.9;"><i class="bi bi-calendar3 me-1"></i>{{ __('Total Mo:') }} ৳{{ number_format($billInformationData['paid_amount'] ?? 0, 0) }}</span>
-                        <span class="small float-end" style="opacity: 0.9;"><i class="bi bi-arrow-up-right me-1"></i>{{ __('PPPoE Only') }}</span>
+                    <div class="panel-b">
+                        <div class="row g-3">
+                            <div class="col-6 col-md-3">
+                                <div class="label text-muted small text-uppercase fw-bold">{{ __('Routers') }}</div>
+                                <div class="fs-4 fw-bold">{{ $networkQuick['routers'] ?? 0 }}</div>
+                                <div class="small text-muted">{{ __('online') }} {{ $networkQuick['routers_online'] ?? ($networkQuick['online_routers'] ?? '—') }}</div>
+                            </div>
+                            <div class="col-6 col-md-3">
+                                <div class="label text-muted small text-uppercase fw-bold">{{ __('OLT') }}</div>
+                                <div class="fs-4 fw-bold">{{ $opticalData['olts'] ?? ($networkQuick['olts'] ?? 0) }}</div>
+                                <div class="small text-muted">{{ __('ports / PON tracked') }}</div>
+                            </div>
+                            <div class="col-6 col-md-3">
+                                <div class="label text-muted small text-uppercase fw-bold">{{ __('ONU') }}</div>
+                                <div class="fs-4 fw-bold">{{ $opticalData['onus'] ?? ($networkQuick['onus_local'] ?? 0) }}</div>
+                                <div class="small text-muted">{{ __('local') }} {{ $networkQuick['onus_local'] ?? 0 }}</div>
+                            </div>
+                            <div class="col-6 col-md-3">
+                                <div class="label text-muted small text-uppercase fw-bold">{{ __('PPP online') }}</div>
+                                <div class="fs-4 fw-bold">{{ $networkQuick['ppp_online'] ?? ($customersData['active'] ?? 0) }}</div>
+                                <div class="small text-muted"><a href="{{ route('online-clients') }}">{{ __('View live') }}</a></div>
+                            </div>
+                        </div>
                     </div>
                 </div>
-                <div class="position-absolute end-0 bottom-0" style="opacity: 0.15; transform: translate(10%, 10%); z-index: 0; pointer-events: none;">
-                    <i class="bi bi-cash-stack" style="font-size: 5.5rem;"></i>
+            </div>
+            <div class="col-12 col-lg-5">
+                <div class="dash-panel">
+                    <div class="panel-h">
+                        <span class="dash-section-title mb-0">{{ __('Quick actions') }}</span>
+                        <a href="{{ route('ops-insights') }}" class="btn btn-sm btn-outline-secondary">{{ __('Insights') }}</a>
+                    </div>
+                    <div class="panel-b quick-grid">
+                        <div class="row g-2">
+                            <div class="col-6"><a href="{{ route('payment-collection') }}"><i class="bi bi-cash-coin"></i> {{ __('Collect bill') }}</a></div>
+                            <div class="col-6"><a href="{{ route('customers.index') }}"><i class="bi bi-person-lines-fill"></i> {{ __('Customers') }}</a></div>
+                            <div class="col-6"><a href="{{ route('billing-notices') }}"><i class="bi bi-bell"></i> {{ __('Notices') }}</a></div>
+                            <div class="col-6"><a href="{{ route('noc-overview') }}"><i class="bi bi-radar"></i> {{ __('NOC') }}</a></div>
+                            <div class="col-6"><a href="{{ route('call-desk') }}"><i class="bi bi-telephone"></i> {{ __('Call desk') }}</a></div>
+                            <div class="col-6"><a href="{{ route('accounts-hub') }}"><i class="bi bi-journal-richtext"></i> {{ __('Accounts') }}</a></div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <!-- Card 3: Today Hotspot Sales -->
-        <div class="col-12 col-sm-6 col-xl-3">
-            <div class="card border-0 shadow-sm overflow-hidden h-100" style="background: linear-gradient(135deg, #f59e0b, #d97706); color: #fff; border-radius: 12px; transition: transform 0.3s ease;">
-                <div class="card-body position-relative z-1">
-                    <div class="d-flex justify-content-between align-items-sm-center">
-                        <div>
-                            <h6 class="text-uppercase fw-bold mb-1" style="font-size: 0.72rem; letter-spacing: 1px; opacity: 0.85;">{{ __("Today's Hotspot Sales") }}</h6>
-                            <h3 class="fw-bold mb-0">৳{{ number_format($billInformationData['hotspot_today'] ?? 0, 0) }}</h3>
-                        </div>
-                        <div class="rounded-circle d-flex align-items-center justify-content-center" style="width: 48px; height: 48px; background: rgba(255,255,255,0.2);">
-                            <i class="bi bi-wifi fs-4"></i>
-                        </div>
+        {{-- Ops summary chips (replaces heavy gradient command cards) --}}
+        <div class="row g-3 mb-4">
+            <div class="col-12">
+                <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2">
+                    <span class="dash-section-title">{{ __('Ops Command Center') }}</span>
+                    <div class="d-flex flex-wrap gap-2">
+                        <a href="{{ route('accounts-hub') }}" class="btn btn-sm btn-outline-secondary">{{ __('Accounts') }}</a>
+                        <a href="{{ route('sms-notices') }}" class="btn btn-sm btn-outline-secondary">{{ __('SMS') }}</a>
+                        <a href="{{ route('noc-overview') }}" class="btn btn-sm btn-success">{{ __('NOC') }}</a>
                     </div>
-                    <div class="mt-3 pt-2 border-top border-white border-opacity-25">
-                        <span class="small fw-medium" style="opacity: 0.9;"><i class="bi bi-calendar3 me-1"></i>{{ __('Total Mo:') }} ৳{{ number_format($billInformationData['hotspot_total'] ?? 0, 0) }}</span>
-                        <span class="small float-end" style="opacity: 0.9;"><i class="bi bi-arrow-up-right me-1"></i>{{ __('Hotspot Only') }}</span>
-                    </div>
-                </div>
-                <div class="position-absolute end-0 bottom-0" style="opacity: 0.15; transform: translate(10%, 10%); z-index: 0; pointer-events: none;">
-                    <i class="bi bi-router-fill" style="font-size: 5.5rem;"></i>
                 </div>
             </div>
-        </div>
-
-        <!-- Card 4: Total Revenue YTD -->
-        <div class="col-12 col-sm-6 col-xl-3">
-            <div class="card border-0 shadow-sm overflow-hidden h-100" style="background: linear-gradient(135deg, #10b981, #059669); color: #fff; border-radius: 12px; transition: transform 0.3s ease;">
-                <div class="card-body position-relative z-1">
-                    <div class="d-flex justify-content-between align-items-sm-center">
-                        <div>
-                            <h6 class="text-uppercase fw-bold mb-1" style="font-size: 0.72rem; letter-spacing: 1px; opacity: 0.85;">{{ __('Total Global Revenue') }}</h6>
-                            <h3 class="fw-bold mb-0">৳{{ number_format(($billInformationData['paid_amount'] ?? 0) + ($billInformationData['hotspot_total'] ?? 0), 0) }}</h3>
-                        </div>
-                        <div class="rounded-circle d-flex align-items-center justify-content-center" style="width: 48px; height: 48px; background: rgba(255,255,255,0.2);">
-                            <i class="bi bi-graph-up-arrow fs-4"></i>
-                        </div>
+            <div class="col-6 col-md-3">
+                <a class="dash-link" href="{{ route('accounts-hub') }}">
+                    <div class="dash-kpi">
+                        <div class="label">{{ __('Today collection') }}</div>
+                        <div class="value fs-3">৳{{ number_format($opsData['today_collection'] ?? 0, 0) }}</div>
+                        <div class="meta">{{ __('Accounts Hub') }}</div>
                     </div>
-                    <div class="mt-3 pt-2 border-top border-white border-opacity-25">
-                        <span class="small fw-semibold text-warning" style="opacity: 1;"><i class="bi bi-exclamation-triangle-fill me-1"></i>{{ __('Pending Due:') }} ৳{{ number_format($billInformationData['due_amount'] ?? 0, 0) }}</span>
-                        <span class="small float-end" style="opacity: 0.9;">{{ __('Total Arrears') }}</span>
+                </a>
+            </div>
+            <div class="col-6 col-md-3">
+                <a class="dash-link" href="{{ route('billing-notices') }}">
+                    <div class="dash-kpi">
+                        <div class="label">{{ __('Billing notices') }}</div>
+                        <div class="value fs-3">{{ $opsData['overdue_notices'] ?? 0 }}</div>
+                        <div class="meta">{{ __('Due soon') }}: {{ $opsData['due_soon'] ?? 0 }}</div>
                     </div>
-                </div>
-                <div class="position-absolute end-0 bottom-0" style="opacity: 0.15; transform: translate(10%, 10%); z-index: 0; pointer-events: none;">
-                    <i class="bi bi-bank2" style="font-size: 5.5rem;"></i>
-                </div>
+                </a>
+            </div>
+            <div class="col-6 col-md-3">
+                <a class="dash-link" href="{{ route('noc-overview') }}">
+                    <div class="dash-kpi">
+                        <div class="label">{{ __('Tickets / SLA') }}</div>
+                        <div class="value fs-3">{{ $opsData['open_tickets'] ?? 0 }}</div>
+                        <div class="meta {{ ($opsData['sla_breached'] ?? 0) > 0 ? 'text-danger' : '' }}">{{ __('SLA breached') }}: {{ $opsData['sla_breached'] ?? 0 }}</div>
+                    </div>
+                </a>
+            </div>
+            <div class="col-6 col-md-3">
+                <a class="dash-link" href="{{ route('call-desk') }}">
+                    <div class="dash-kpi">
+                        <div class="label">{{ __('Call Desk') }}</div>
+                        <div class="value fs-3">{{ $opsData['calls_today'] ?? 0 }}</div>
+                        <div class="meta">{{ __('Callbacks') }}: {{ $opsData['callbacks'] ?? 0 }}</div>
+                    </div>
+                </a>
             </div>
         </div>
     </div>
 
-    {{-- Network / Optical (same-server ispbilling) — same card design language --}}
-    <div class="row g-3 mb-4">
+    {{-- Legacy gradient Ops Command Center removed — cleaned above --}}
+    <div class="d-none">
+        <div class="row g-3 mb-4">
         <div class="col-12">
             <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-1">
                 <h6 class="text-uppercase text-muted fw-bold mb-0" style="font-size: 0.75rem; letter-spacing: 0.08em;">
-                    {{ __('Network & Optical') }}
-                    @if($opticalData['bridge'] ?? false)
-                        <span class="badge bg-success-subtle text-success border border-success-subtle ms-1">{{ __('Live from ispbilling') }}</span>
-                    @else
-                        <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle ms-1">{{ __('Bridge off') }}</span>
-                    @endif
+                    {{ __('Ops Command Center') }}
                 </h6>
-                <div class="d-flex gap-2">
-                    <a href="{{ route('mikrotik-sync') }}" class="btn btn-sm btn-outline-secondary">{{ __('Mikrotik') }}</a>
-                    <a href="{{ route('olt-management') }}" class="btn btn-sm btn-outline-secondary">{{ __('OLT') }}</a>
-                    <a href="{{ route('onu-management') }}" class="btn btn-sm btn-primary">{{ __('Optical / ONU') }}</a>
+                <div class="d-flex flex-wrap gap-2">
+                    <a href="{{ route('accounts-hub') }}" class="btn btn-sm btn-outline-secondary">{{ __('Accounts') }}</a>
+                    <a href="{{ route('call-desk') }}" class="btn btn-sm btn-outline-secondary">{{ __('Call Desk') }}</a>
+                    <a href="{{ route('sms-notices') }}" class="btn btn-sm btn-outline-secondary">{{ __('SMS') }}</a>
+                    <a href="{{ route('ops-insights') }}" class="btn btn-sm btn-outline-secondary">{{ __('Insights') }}</a>
+                    <a href="{{ route('noc-overview') }}" class="btn btn-sm btn-primary">{{ __('NOC') }}</a>
                 </div>
             </div>
         </div>
@@ -480,6 +568,7 @@
             </div>
         </div>
     </div>
+    </div>{{-- /legacy gradient blocks --}}
 
     <div class="row g-4 mb-4">
         {{-- Unified Row for Routers and Graphs to allow dynamic "weight" adjustment --}}
