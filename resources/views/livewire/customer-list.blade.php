@@ -27,6 +27,11 @@
                                 <i class="bi bi-people-fill me-1"></i> {{ __('All Active') }} <span class="badge bg-white text-primary fw-bold"></span>
                             </label>
 
+                            <input type="radio" class="btn-check" name="collection" id="active_customer" autocomplete="off">
+                            <label class="btn btn-outline-success btn-sm rounded-pill px-3 shadow-none fw-600" for="active_customer">
+                                <i class="bi bi-check-circle me-1"></i> {{ __('Active') }} <span class="badge bg-white text-success fw-bold"></span>
+                            </label>
+
                             <input type="radio" class="btn-check" name="collection" id="collection_list" autocomplete="off">
                             <label class="btn btn-outline-success btn-sm rounded-pill px-3 shadow-none fw-600" for="collection_list">
                                 <i class="bi bi-cash-stack me-1"></i> {{ __('Paid') }} <span class="badge bg-white text-success fw-bold"></span>
@@ -65,6 +70,41 @@
                             <input type="radio" class="btn-check" name="collection" id="inactive_customer" autocomplete="off">
                             <label class="btn btn-outline-secondary btn-sm rounded-pill px-3 shadow-none fw-600" for="inactive_customer">
                                 <i class="bi bi-person-x me-1"></i> {{ __('Inactive') }} <span class="badge bg-white text-secondary fw-bold"></span>
+                            </label>
+
+                            <input type="radio" class="btn-check" name="collection" id="expired_customer" autocomplete="off">
+                            <label class="btn btn-outline-warning btn-sm rounded-pill px-3 shadow-none fw-600" for="expired_customer">
+                                <i class="bi bi-exclamation-triangle me-1"></i> {{ __('Expired') }}
+                            </label>
+
+                            <input type="radio" class="btn-check" name="collection" id="expired_today_customer" autocomplete="off">
+                            <label class="btn btn-outline-warning btn-sm rounded-pill px-3 shadow-none fw-600" for="expired_today_customer">
+                                <i class="bi bi-calendar-x me-1"></i> {{ __('Expired Today') }}
+                            </label>
+
+                            <input type="radio" class="btn-check" name="collection" id="joined_today_customer" autocomplete="off">
+                            <label class="btn btn-outline-primary btn-sm rounded-pill px-3 shadow-none fw-600" for="joined_today_customer">
+                                <i class="bi bi-person-plus me-1"></i> {{ __('Today New') }}
+                            </label>
+
+                            <input type="radio" class="btn-check" name="collection" id="joined_month_customer" autocomplete="off">
+                            <label class="btn btn-outline-primary btn-sm rounded-pill px-3 shadow-none fw-600" for="joined_month_customer">
+                                <i class="bi bi-calendar-plus me-1"></i> {{ __('This Month') }}
+                            </label>
+
+                            <input type="radio" class="btn-check" name="collection" id="online_customer" autocomplete="off">
+                            <label class="btn btn-outline-info btn-sm rounded-pill px-3 shadow-none fw-600" for="online_customer">
+                                <i class="bi bi-wifi me-1"></i> {{ __('Online') }}
+                            </label>
+
+                            <input type="radio" class="btn-check" name="collection" id="offline_customer" autocomplete="off">
+                            <label class="btn btn-outline-secondary btn-sm rounded-pill px-3 shadow-none fw-600" for="offline_customer">
+                                <i class="bi bi-wifi-off me-1"></i> {{ __('Offline') }}
+                            </label>
+
+                            <input type="radio" class="btn-check" name="collection" id="inactive_due_customer" autocomplete="off">
+                            <label class="btn btn-outline-danger btn-sm rounded-pill px-3 shadow-none fw-600" for="inactive_due_customer">
+                                <i class="bi bi-slash-circle me-1"></i> {{ __('Inactive Due') }}
                             </label>
 
                             @foreach($resellers as $reseller)
@@ -465,6 +505,8 @@
                             d.filter = 'all';
                         } else if ($('#all_active_list').is(':checked')) {
                             d.filter = 'all_active';
+                        } else if ($('#active_customer').is(':checked')) {
+                            d.filter = 'active';
                         } else if ($('#without_collection_list').is(':checked')) {
                             d.filter = 'without_collection';
                         } else if ($('#collection_list').is(':checked')) {
@@ -481,6 +523,20 @@
                             d.filter = 'corporate';
                         }else if ($('#inactive_customer').is(':checked')) {
                             d.filter = 'inactive';
+                        }else if ($('#expired_customer').is(':checked')) {
+                            d.filter = 'expired';
+                        }else if ($('#expired_today_customer').is(':checked')) {
+                            d.filter = 'expired_today';
+                        }else if ($('#joined_today_customer').is(':checked')) {
+                            d.filter = 'joined_today';
+                        }else if ($('#joined_month_customer').is(':checked')) {
+                            d.filter = 'joined_month';
+                        }else if ($('#online_customer').is(':checked')) {
+                            d.filter = 'online';
+                        }else if ($('#offline_customer').is(':checked')) {
+                            d.filter = 'offline';
+                        }else if ($('#inactive_due_customer').is(':checked')) {
+                            d.filter = 'inactive_due';
                         }else if (checkedId && checkedId.startsWith('reseller_')) {
                             d.filter = 'reseller';
                             d.reseller_id = checkedRadio.data('reseller-id');
@@ -718,6 +774,40 @@
 
         bootCustomerListTable();
         document.addEventListener('livewire:navigated', bootCustomerListTable);
+
+        // Dashboard deep-link: /customers?filter=expired
+        (function applyUrlFilter() {
+            const params = new URLSearchParams(window.location.search);
+            const f = params.get('filter');
+            if (!f) return;
+            const map = {
+                all: '#all_list',
+                all_active: '#all_active_list',
+                active: '#active_customer',
+                pending: '#pending_customer',
+                disable: '#disable_customer',
+                inactive: '#inactive_customer',
+                expired: '#expired_customer',
+                expired_today: '#expired_today_customer',
+                joined_today: '#joined_today_customer',
+                joined_month: '#joined_month_customer',
+                online: '#online_customer',
+                offline: '#offline_customer',
+                inactive_due: '#inactive_due_customer',
+                free: '#free_customer',
+            };
+            const sel = map[f];
+            if (sel && document.querySelector(sel)) {
+                document.querySelector(sel).checked = true;
+                setTimeout(function () {
+                    if (window.customerListTable) {
+                        window.customerListTable.ajax.reload();
+                    } else {
+                        $(sel).trigger('change');
+                    }
+                }, 600);
+            }
+        })();
     </script>
 @endpush
 

@@ -6,12 +6,15 @@ use App\Models\BillingInfo;
 use App\Models\CollectionSummary;
 use App\Models\CustomersInfo;
 use App\Models\HotspotSale;
+use App\Models\IspExpense;
+use App\Models\PPPSecrets;
 use App\Models\Reseller;
 use App\Models\ResellerCommission;
 use App\Services\Ai\OpsInsightsService;
 use App\Services\Dashboard\DashboardOpsService;
 use App\Services\Noc\NocOverviewService;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Schema;
 
 class DashboardController extends Controller
 {
@@ -38,6 +41,93 @@ class DashboardController extends Controller
         $recentCount = CustomersInfo::whereMonth('created_at', Carbon::now()->month)
             ->whereYear('created_at', Carbon::now()->year)
             ->count();
+
+        $today = Carbon::today();
+        $monthStart = Carbon::now()->startOfMonth();
+        $monthEnd = Carbon::now()->endOfMonth();
+        $monthLabel = Carbon::now()->format('F Y');
+
+        $onlinePppIds = PPPSecrets::query()
+            ->where('status', '!=', 'removed')
+            ->whereNotNull('uptime')
+            ->pluck('id');
+        $offlinePppIds = PPPSecrets::query()
+            ->where('status', '!=', 'removed')
+            ->whereNull('uptime')
+            ->pluck('id');
+
+        $clientSummary = [
+            'total' => array_sum($statusCounts),
+            'active' => $statusCounts['active'] ?? 0,
+            'online' => CustomersInfo::whereIn('ppp_user_id', $onlinePppIds)->count(),
+            'offline' => CustomersInfo::whereIn('ppp_user_id', $offlinePppIds)->count(),
+            'inactive' => ($statusCounts['inactive'] ?? 0) + ($statusCounts['disable'] ?? 0),
+            'inactive_due' => CustomersInfo::query()
+                ->whereIn('status', ['inactive', 'disable'])
+                ->whereHas('billing', fn ($q) => $q->where('due_amount', '>', 0))
+                ->count(),
+            'expired' => CustomersInfo::query()
+                ->whereHas('billing', fn ($q) => $q->whereDate('auto_disable_date', '<', $today)->where('due_amount', '>', 0))
+                ->whereNotIn('status', ['free'])
+                ->count(),
+            'joined_month' => $recentCount,
+            'joined_today' => CustomersInfo::whereDate('created_at', $today)->count(),
+            'expired_today' => CustomersInfo::query()
+                ->whereHas('billing', fn ($q) => $q->whereDate('auto_disable_date', $today))
+                ->count(),
+            'inactive_today' => CustomersInfo::query()
+                ->whereIn('status', ['inactive', 'disable'])
+                ->whereDate('updated_at', $today)
+                ->count(),
+        ];
+
+        $monthCollection = (float) CollectionSummary::whereBetween('collection_date', [$monthStart, $monthEnd])->sum('collection_amount');
+        $monthDue = (float) BillingInfo::join('customers_infos', 'billing_infos.customer_bill_unique_id', '=', 'customers_infos.customer_unique_id')
+            ->whereNull('customers_infos.deleted_at')
+            ->where('customers_infos.status', '!=', 'inactive')
+            ->sum('billing_infos.due_amount');
+        $monthDue = max(0, $monthDue);
+
+        $monthBill = (float) BillingInfo::join('customers_infos', 'billing_infos.customer_bill_unique_id', '=', 'customers_infos.customer_unique_id')
+            ->whereNull('customers_infos.deleted_at')
+            ->whereNotIn('customers_infos.status', ['inactive', 'free'])
+            ->selectRaw('SUM(COALESCE(billing_infos.monthly_rent, 0) + COALESCE(billing_infos.additional_charge, 0) + COALESCE(billing_infos.vat, 0)) as t')
+            ->value('t');
+        // Prefer billed + outstanding picture when monthly rent sum is empty
+        if ($monthBill <= 0) {
+            $monthBill = $monthCollection + $monthDue;
+        }
+
+        $monthDiscount = (float) BillingInfo::join('customers_infos', 'billing_infos.customer_bill_unique_id', '=', 'customers_infos.customer_unique_id')
+            ->whereNull('customers_infos.deleted_at')
+            ->sum('billing_infos.discount');
+        $monthExpense = 0.0;
+        if (Schema::hasTable('isp_expenses')) {
+            $monthExpense = (float) IspExpense::whereBetween('expense_date', [$monthStart, $monthEnd])->sum('amount');
+        }
+
+        $collectDueTotal = max(0.01, $monthCollection + $monthDue);
+        $financialSummary = [
+            'month_label' => $monthLabel,
+            'bill' => $monthBill,
+            'today_collection' => (float) CollectionSummary::whereDate('collection_date', $today)->sum('collection_amount'),
+            'collection' => $monthCollection,
+            'due' => $monthDue,
+            'discount' => $monthDiscount,
+            'expense' => $monthExpense,
+            'collection_pct' => round(($monthCollection / $collectDueTotal) * 100, 1),
+            'due_pct' => round(($monthDue / $collectDueTotal) * 100, 1),
+        ];
+
+        $lineGrowth = ['labels' => [], 'new' => [], 'monthly' => []];
+        for ($i = 5; $i >= 0; $i--) {
+            $m = Carbon::now()->subMonths($i);
+            $lineGrowth['labels'][] = $m->format('M Y');
+            $lineGrowth['new'][] = CustomersInfo::whereYear('created_at', $m->year)
+                ->whereMonth('created_at', $m->month)
+                ->count();
+            $lineGrowth['monthly'][] = CustomersInfo::where('created_at', '<=', $m->copy()->endOfMonth())->count();
+        }
 
         $customersData = [
             'total' => array_sum($statusCounts),
@@ -188,7 +278,10 @@ class DashboardController extends Controller
             'resellerData',
             'opticalData',
             'networkQuick',
-            'opsData'
+            'opsData',
+            'clientSummary',
+            'financialSummary',
+            'lineGrowth'
         ));
     }
 }

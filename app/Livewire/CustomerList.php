@@ -115,6 +115,10 @@ class CustomerList extends Component
                 }
                 break;
 
+            case 'active':
+                $data->where('status', 'active');
+                break;
+
             case 'pending':
             case 'disable':
             case 'free':
@@ -122,6 +126,8 @@ class CustomerList extends Component
             case 'vip':
                 if ($request->filter === 'vip') {
                     $data->whereHas('official', fn ($q) => $q->where('customer_type', 'vip'));
+                } elseif ($request->filter === 'inactive') {
+                    $data->whereIn('status', ['inactive', 'disable']);
                 } else {
                     $data->where('status', $request->filter);
                 }
@@ -129,6 +135,44 @@ class CustomerList extends Component
 
             case 'corporate':
                 $data->whereHas('official', fn ($q) => $q->where('client_type', 'Corporate'));
+                break;
+
+            case 'expired':
+                $data->whereHas('billing', function ($q) {
+                    $q->whereDate('auto_disable_date', '<', Carbon::today())
+                        ->where('due_amount', '>', 0);
+                })->whereNotIn('status', ['free']);
+                break;
+
+            case 'expired_today':
+                $data->whereHas('billing', fn ($q) => $q->whereDate('auto_disable_date', Carbon::today()));
+                break;
+
+            case 'inactive_due':
+                $data->whereIn('status', ['inactive', 'disable'])
+                    ->whereHas('billing', fn ($q) => $q->where('due_amount', '>', 0));
+                break;
+
+            case 'joined_month':
+                $data->whereMonth('created_at', Carbon::now()->month)
+                    ->whereYear('created_at', Carbon::now()->year);
+                break;
+
+            case 'joined_today':
+                $data->whereDate('created_at', Carbon::today());
+                break;
+
+            case 'inactive_today':
+                $data->whereIn('status', ['inactive', 'disable'])
+                    ->whereDate('updated_at', Carbon::today());
+                break;
+
+            case 'online':
+                $data->whereHas('pppUser', fn ($q) => $q->whereNotNull('uptime')->where('status', '!=', 'removed'));
+                break;
+
+            case 'offline':
+                $data->whereHas('pppUser', fn ($q) => $q->whereNull('uptime')->where('status', '!=', 'removed'));
                 break;
 
             default:

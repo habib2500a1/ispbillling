@@ -4,7 +4,16 @@
     </x-slot>
 
     <style>
-        .dash-shell { --dash-ink:#0f172a; --dash-muted:#64748b; --dash-line:#e2e8f0; --dash-soft:#f8fafc; --dash-brand:#06ad73; --dash-brand-dark:#05885b; }
+        .dash-shell { --dash-ink:#1e3a5f; --dash-muted:#64748b; --dash-line:#e8eef5; --dash-soft:#f4f7fb; --dash-brand:#06ad73; --dash-brand-dark:#05885b; }
+        .dash-shell .sum-head { display:flex; align-items:center; gap:.5rem; margin-bottom:.85rem; }
+        .dash-shell .sum-head .dot { width:10px; height:10px; border-radius:50%; background:#3b82f6; box-shadow:0 0 0 3px rgba(59,130,246,.2); }
+        .dash-shell .sum-head h6 { margin:0; font-size:.8rem; letter-spacing:.08em; text-transform:uppercase; color:#1e3a5f; font-weight:800; }
+        .dash-shell .sum-card { display:flex; align-items:center; gap:.75rem; background:#fff; border-radius:14px; padding:.9rem 1rem; height:100%; text-decoration:none; color:inherit; box-shadow:0 2px 10px rgba(15,23,42,.04); border:1px solid #eef2f7; border-bottom:3px solid var(--accent, #3b82f6); transition:transform .15s, box-shadow .15s; }
+        .dash-shell .sum-card:hover { transform:translateY(-2px); box-shadow:0 10px 24px rgba(15,23,42,.08); color:inherit; }
+        .dash-shell .sum-card .ico { width:46px; height:46px; border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:1.25rem; flex-shrink:0; background:var(--ico-bg, #eff6ff); color:var(--ico-fg, #2563eb); }
+        .dash-shell .sum-card .eyebrow { font-size:.72rem; color:var(--dash-muted); font-weight:600; line-height:1.1; }
+        .dash-shell .sum-card .num { font-size:1.35rem; font-weight:800; color:var(--dash-ink); line-height:1.15; }
+        .dash-shell .sum-card .sub { font-size:.78rem; color:#475569; font-weight:600; }
         .dash-shell .dash-kpi { background:#fff; border:1px solid var(--dash-line); border-radius:14px; padding:1.1rem 1.15rem; height:100%; transition:border-color .2s, box-shadow .2s; }
         .dash-shell .dash-kpi:hover { border-color:#cbd5e1; box-shadow:0 8px 24px rgba(15,23,42,.06); }
         .dash-shell .dash-kpi .label { font-size:.72rem; letter-spacing:.06em; text-transform:uppercase; color:var(--dash-muted); font-weight:700; margin-bottom:.35rem; }
@@ -17,63 +26,244 @@
         .dash-shell .dash-panel .panel-b { padding:1rem 1.1rem; }
         .dash-shell .dash-chip { display:inline-flex; align-items:center; gap:.35rem; padding:.25rem .55rem; border-radius:999px; font-size:.75rem; font-weight:600; background:var(--dash-soft); color:var(--dash-ink); border:1px solid var(--dash-line); }
         .dash-shell .dash-chip.ok { background:rgba(6,173,115,.1); color:var(--dash-brand-dark); border-color:rgba(6,173,115,.25); }
-        .dash-shell .dash-chip.warn { background:#fff7ed; color:#9a3412; border-color:#fed7aa; }
-        .dash-shell .dash-chip.bad { background:#fef2f2; color:#991b1b; border-color:#fecaca; }
         .dash-shell a.dash-link { color:inherit; text-decoration:none; }
         .dash-shell .quick-grid a { display:flex; align-items:center; gap:.65rem; padding:.7rem .8rem; border:1px solid var(--dash-line); border-radius:12px; background:#fff; color:var(--dash-ink); text-decoration:none; font-weight:600; font-size:.9rem; transition:border-color .15s, background .15s; }
         .dash-shell .quick-grid a:hover { border-color:var(--dash-brand); background:rgba(6,173,115,.04); }
         .dash-shell .quick-grid a i { color:var(--dash-brand-dark); }
+        .dash-shell .chart-wrap { position:relative; min-height:220px; }
+        .dash-shell .pct-legend { display:flex; flex-wrap:wrap; gap:.75rem; justify-content:center; margin-top:.75rem; }
+        .dash-shell .pct-legend span { font-size:.82rem; font-weight:700; color:#334155; }
+        .dash-shell .pct-legend i { display:inline-block; width:10px; height:10px; border-radius:3px; margin-right:.35rem; }
     </style>
 
+    @php
+        $cs = $clientSummary ?? [];
+        $fs = $financialSummary ?? [];
+        $lg = $lineGrowth ?? ['labels' => [], 'new' => [], 'monthly' => []];
+        $custUrl = fn (string $filter) => route('customers.index', ['filter' => $filter]);
+    @endphp
+
     <div class="dash-shell">
-        {{-- KPI row --}}
-        <div class="row g-3 mb-3">
-            <div class="col-12 col-sm-6 col-xl-3">
-                <div class="dash-kpi">
-                    <div class="d-flex justify-content-between align-items-start">
-                        <div>
-                            <div class="label">{{ __('Active PPPoE') }}</div>
-                            <div class="value">{{ $customersData['active'] ?? 0 }} <span class="fs-6 fw-semibold text-muted">/ {{ $customersData['total'] ?? 0 }}</span></div>
-                        </div>
-                        <div class="icon"><i class="bi bi-people-fill"></i></div>
+        {{-- CLIENT SUMMARY --}}
+        <div class="sum-head">
+            <span class="dot"></span>
+            <h6>{{ __('Client Summary') }}</h6>
+        </div>
+        <div class="row g-3 mb-4">
+            <div class="col-6 col-md-4 col-xl-2">
+                <a class="sum-card" href="{{ $custUrl('all') }}" style="--accent:#3b82f6;--ico-bg:#eff6ff;--ico-fg:#2563eb;">
+                    <div class="ico"><i class="bi bi-people-fill"></i></div>
+                    <div>
+                        <div class="eyebrow">{{ __('Total') }}</div>
+                        <div class="num">{{ number_format($cs['total'] ?? 0) }}</div>
+                        <div class="sub">{{ __('Total Client') }}</div>
                     </div>
-                    <div class="meta">{{ $customersData['recent'] ?? 0 }} {{ __('new this month') }} · {{ $customersData['temporary_disable'] ?? 0 }} {{ __('disabled') }}</div>
+                </a>
+            </div>
+            <div class="col-6 col-md-4 col-xl-2">
+                <a class="sum-card" href="{{ $custUrl('active') }}" style="--accent:#22c55e;--ico-bg:#ecfdf5;--ico-fg:#16a34a;">
+                    <div class="ico"><i class="bi bi-check-circle-fill"></i></div>
+                    <div>
+                        <div class="eyebrow">{{ __('Active') }}</div>
+                        <div class="num">{{ number_format($cs['active'] ?? 0) }}</div>
+                        <div class="sub">{{ __('Active Client') }}</div>
+                    </div>
+                </a>
+            </div>
+            <div class="col-6 col-md-4 col-xl-2">
+                <a class="sum-card" href="{{ $custUrl('online') }}" style="--accent:#38bdf8;--ico-bg:#f0f9ff;--ico-fg:#0284c7;">
+                    <div class="ico"><i class="bi bi-wifi"></i></div>
+                    <div>
+                        <div class="eyebrow">{{ __('Online') }}</div>
+                        <div class="num">{{ number_format($cs['online'] ?? 0) }}</div>
+                        <div class="sub">{{ __('Online') }}</div>
+                    </div>
+                </a>
+            </div>
+            <div class="col-6 col-md-4 col-xl-2">
+                <a class="sum-card" href="{{ $custUrl('offline') }}" style="--accent:#94a3b8;--ico-bg:#f1f5f9;--ico-fg:#64748b;">
+                    <div class="ico"><i class="bi bi-wifi-off"></i></div>
+                    <div>
+                        <div class="eyebrow">{{ __('Offline') }}</div>
+                        <div class="num">{{ number_format($cs['offline'] ?? 0) }}</div>
+                        <div class="sub">{{ __('Offline') }}</div>
+                    </div>
+                </a>
+            </div>
+            <div class="col-6 col-md-4 col-xl-2">
+                <a class="sum-card" href="{{ $custUrl('inactive') }}" style="--accent:#ec4899;--ico-bg:#fdf2f8;--ico-fg:#db2777;">
+                    <div class="ico"><i class="bi bi-x-circle-fill"></i></div>
+                    <div>
+                        <div class="eyebrow">{{ __('Inactive') }}</div>
+                        <div class="num">{{ number_format($cs['inactive'] ?? 0) }}</div>
+                        <div class="sub">{{ __('Inactive Client') }}</div>
+                    </div>
+                </a>
+            </div>
+            <div class="col-6 col-md-4 col-xl-2">
+                <a class="sum-card" href="{{ $custUrl('inactive_due') }}" style="--accent:#f43f5e;--ico-bg:#fff1f2;--ico-fg:#e11d48;">
+                    <div class="ico"><i class="bi bi-slash-circle"></i></div>
+                    <div>
+                        <div class="eyebrow">{{ __('Due') }}</div>
+                        <div class="num">{{ number_format($cs['inactive_due'] ?? 0) }}</div>
+                        <div class="sub">{{ __('Inactive Due') }}</div>
+                    </div>
+                </a>
+            </div>
+            <div class="col-6 col-md-4 col-xl-3">
+                <a class="sum-card" href="{{ $custUrl('expired') }}" style="--accent:#f59e0b;--ico-bg:#fffbeb;--ico-fg:#d97706;">
+                    <div class="ico"><i class="bi bi-exclamation-circle-fill"></i></div>
+                    <div>
+                        <div class="eyebrow">{{ __('Expired') }}</div>
+                        <div class="num">{{ number_format($cs['expired'] ?? 0) }}</div>
+                        <div class="sub">{{ __('Expired Only') }}</div>
+                    </div>
+                </a>
+            </div>
+            <div class="col-6 col-md-4 col-xl-3">
+                <a class="sum-card" href="{{ $custUrl('joined_month') }}" style="--accent:#3b82f6;--ico-bg:#eff6ff;--ico-fg:#2563eb;">
+                    <div class="ico"><i class="bi bi-person-plus-fill"></i></div>
+                    <div>
+                        <div class="eyebrow">{{ __('This Month') }}</div>
+                        <div class="num">{{ number_format($cs['joined_month'] ?? 0) }}</div>
+                        <div class="sub">{{ __('Joined') }}</div>
+                    </div>
+                </a>
+            </div>
+            <div class="col-6 col-md-4 col-xl-3">
+                <a class="sum-card" href="{{ $custUrl('joined_today') }}" style="--accent:#06b6d4;--ico-bg:#ecfeff;--ico-fg:#0891b2;">
+                    <div class="ico"><i class="bi bi-person-fill-add"></i></div>
+                    <div>
+                        <div class="eyebrow">{{ __('Today') }}</div>
+                        <div class="num">{{ number_format($cs['joined_today'] ?? 0) }}</div>
+                        <div class="sub">{{ __('Today New Line') }}</div>
+                    </div>
+                </a>
+            </div>
+            <div class="col-6 col-md-4 col-xl-3">
+                <a class="sum-card" href="{{ $custUrl('expired_today') }}" style="--accent:#f97316;--ico-bg:#fff7ed;--ico-fg:#ea580c;">
+                    <div class="ico"><i class="bi bi-calendar-x"></i></div>
+                    <div>
+                        <div class="eyebrow">{{ __('Today') }}</div>
+                        <div class="num">{{ number_format($cs['expired_today'] ?? 0) }}</div>
+                        <div class="sub">{{ __('Expired Today') }}</div>
+                    </div>
+                </a>
+            </div>
+            <div class="col-6 col-md-4 col-xl-3">
+                <a class="sum-card" href="{{ $custUrl('inactive_today') }}" style="--accent:#ec4899;--ico-bg:#fdf2f8;--ico-fg:#db2777;">
+                    <div class="ico"><i class="bi bi-slash-circle"></i></div>
+                    <div>
+                        <div class="eyebrow">{{ __('Today') }}</div>
+                        <div class="num">{{ number_format($cs['inactive_today'] ?? 0) }}</div>
+                        <div class="sub">{{ __('Inactive Today') }}</div>
+                    </div>
+                </a>
+            </div>
+        </div>
+
+        {{-- FINANCIAL SUMMARY --}}
+        <div class="sum-head">
+            <span class="dot" style="background:#10b981;box-shadow:0 0 0 3px rgba(16,185,129,.2);"></span>
+            <h6>{{ __('Financial Summary') }}</h6>
+        </div>
+        <div class="row g-3 mb-4">
+            <div class="col-6 col-md-4 col-xl-2">
+                <div class="sum-card" style="--accent:#3b82f6;--ico-bg:#eff6ff;--ico-fg:#2563eb;cursor:default;">
+                    <div class="ico"><i class="bi bi-receipt"></i></div>
+                    <div>
+                        <div class="eyebrow">{{ $fs['month_label'] ?? now()->format('F Y') }}</div>
+                        <div class="num">{{ number_format($fs['bill'] ?? 0) }}</div>
+                        <div class="sub">{{ __('Bill') }}</div>
+                    </div>
                 </div>
             </div>
-            <div class="col-12 col-sm-6 col-xl-3">
-                <div class="dash-kpi">
-                    <div class="d-flex justify-content-between align-items-start">
-                        <div>
-                            <div class="label">{{ __("Today's collection") }}</div>
-                            <div class="value">৳{{ number_format(($billInformationData['today_paid_amount'] ?? 0) + ($billInformationData['hotspot_today'] ?? 0), 0) }}</div>
-                        </div>
-                        <div class="icon"><i class="bi bi-wallet2"></i></div>
+            <div class="col-6 col-md-4 col-xl-2">
+                <a class="sum-card" href="{{ route('payment-collection') }}" style="--accent:#38bdf8;--ico-bg:#f0f9ff;--ico-fg:#0284c7;">
+                    <div class="ico"><i class="bi bi-cash"></i></div>
+                    <div>
+                        <div class="eyebrow">{{ __('Today') }}</div>
+                        <div class="num">{{ number_format($fs['today_collection'] ?? 0) }}</div>
+                        <div class="sub">{{ __('Collection') }}</div>
                     </div>
-                    <div class="meta">{{ __('PPPoE') }} ৳{{ number_format($billInformationData['today_paid_amount'] ?? 0, 0) }} · {{ __('Hotspot') }} ৳{{ number_format($billInformationData['hotspot_today'] ?? 0, 0) }}</div>
+                </a>
+            </div>
+            <div class="col-6 col-md-4 col-xl-2">
+                <a class="sum-card" href="{{ route('accounts-hub') }}" style="--accent:#22c55e;--ico-bg:#ecfdf5;--ico-fg:#16a34a;">
+                    <div class="ico"><i class="bi bi-wallet2"></i></div>
+                    <div>
+                        <div class="eyebrow">{{ $fs['month_label'] ?? '' }}</div>
+                        <div class="num">{{ number_format($fs['collection'] ?? 0) }}</div>
+                        <div class="sub">{{ __('Collection') }}</div>
+                    </div>
+                </a>
+            </div>
+            <div class="col-6 col-md-4 col-xl-2">
+                <div class="sum-card" style="--accent:#f43f5e;--ico-bg:#fff1f2;--ico-fg:#e11d48;cursor:default;">
+                    <div class="ico"><i class="bi bi-arrow-repeat"></i></div>
+                    <div>
+                        <div class="eyebrow">{{ $fs['month_label'] ?? '' }}</div>
+                        <div class="num">{{ number_format($fs['due'] ?? 0) }}</div>
+                        <div class="sub">{{ __('Due') }}</div>
+                    </div>
                 </div>
             </div>
-            <div class="col-12 col-sm-6 col-xl-3">
-                <div class="dash-kpi">
-                    <div class="d-flex justify-content-between align-items-start">
-                        <div>
-                            <div class="label">{{ __('Month revenue') }}</div>
-                            <div class="value">৳{{ number_format(($billInformationData['paid_amount'] ?? 0) + ($billInformationData['hotspot_total'] ?? 0), 0) }}</div>
-                        </div>
-                        <div class="icon"><i class="bi bi-graph-up-arrow"></i></div>
+            <div class="col-6 col-md-4 col-xl-2">
+                <div class="sum-card" style="--accent:#f59e0b;--ico-bg:#fffbeb;--ico-fg:#d97706;cursor:default;">
+                    <div class="ico"><i class="bi bi-percent"></i></div>
+                    <div>
+                        <div class="eyebrow">{{ $fs['month_label'] ?? '' }}</div>
+                        <div class="num">{{ number_format($fs['discount'] ?? 0) }}</div>
+                        <div class="sub">{{ __('Discount') }}</div>
                     </div>
-                    <div class="meta text-danger">{{ __('Pending due') }} ৳{{ number_format(abs($billInformationData['due_amount'] ?? 0), 0) }}</div>
                 </div>
             </div>
-            <div class="col-12 col-sm-6 col-xl-3">
-                <div class="dash-kpi">
-                    <div class="d-flex justify-content-between align-items-start">
-                        <div>
-                            <div class="label">{{ __('Ops pressure') }}</div>
-                            <div class="value">{{ ($opsData['overdue_notices'] ?? 0) + ($opsData['sla_breached'] ?? 0) }}</div>
-                        </div>
-                        <div class="icon"><i class="bi bi-exclamation-triangle"></i></div>
+            <div class="col-6 col-md-4 col-xl-2">
+                <div class="sum-card" style="--accent:#fb923c;--ico-bg:#fff7ed;--ico-fg:#ea580c;cursor:default;">
+                    <div class="ico"><i class="bi bi-wallet-fill"></i></div>
+                    <div>
+                        <div class="eyebrow">{{ now()->format('M Y') }}</div>
+                        <div class="num">{{ number_format($fs['expense'] ?? 0) }}</div>
+                        <div class="sub">{{ __('Expense') }}</div>
                     </div>
-                    <div class="meta">{{ __('Overdue') }} {{ $opsData['overdue_notices'] ?? 0 }} · {{ __('SLA') }} {{ $opsData['sla_breached'] ?? 0 }} · {{ __('Open tickets') }} {{ $opsData['open_tickets'] ?? 0 }}</div>
+                </div>
+            </div>
+        </div>
+
+        {{-- Graphs: collection vs due % + last 6 month line growth --}}
+        <div class="row g-3 mb-4">
+            <div class="col-12 col-lg-4">
+                <div class="dash-panel">
+                    <div class="panel-h">
+                        <span class="dash-section-title mb-0">{{ __('Collection vs Due') }}</span>
+                        <span class="dash-chip">{{ $fs['month_label'] ?? '' }}</span>
+                    </div>
+                    <div class="panel-b">
+                        <div class="chart-wrap" style="max-width:260px;margin:0 auto;">
+                            <canvas id="dashCollectDueChart" height="220"></canvas>
+                        </div>
+                        <div class="pct-legend">
+                            <span><i style="background:#22c55e;"></i>{{ __('Collection') }} {{ $fs['collection_pct'] ?? 0 }}%</span>
+                            <span><i style="background:#f43f5e;"></i>{{ __('Due') }} {{ $fs['due_pct'] ?? 0 }}%</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-12 col-lg-8">
+                <div class="dash-panel">
+                    <div class="panel-h">
+                        <span class="dash-section-title mb-0">{{ __('Line Growth') }}</span>
+                        <div class="d-flex flex-wrap gap-2">
+                            <a href="{{ $custUrl('joined_today') }}" class="btn btn-sm btn-outline-info">{{ __('Today New') }} ({{ $cs['joined_today'] ?? 0 }})</a>
+                            <a href="{{ $custUrl('joined_month') }}" class="btn btn-sm btn-outline-primary">{{ __('This Month') }} ({{ $cs['joined_month'] ?? 0 }})</a>
+                            <span class="dash-chip">{{ __('Last 6 months') }}</span>
+                        </div>
+                    </div>
+                    <div class="panel-b">
+                        <div class="chart-wrap">
+                            <canvas id="dashLineGrowthChart" height="220"></canvas>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -141,7 +331,7 @@
             </div>
         </div>
 
-        {{-- Ops summary chips (replaces heavy gradient command cards) --}}
+        {{-- Ops summary chips --}}
         <div class="row g-3 mb-4">
             <div class="col-12">
                 <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2">
@@ -191,6 +381,95 @@
             </div>
         </div>
     </div>
+
+    @push('scripts')
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <script>
+        (function () {
+            const collect = {{ (float) ($fs['collection'] ?? 0) }};
+            const due = {{ (float) ($fs['due'] ?? 0) }};
+            const collectPct = {{ (float) ($fs['collection_pct'] ?? 0) }};
+            const duePct = {{ (float) ($fs['due_pct'] ?? 0) }};
+            const labels = @json($lg['labels'] ?? []);
+            const newLines = @json($lg['new'] ?? []);
+            const monthlyLines = @json($lg['monthly'] ?? []);
+
+            const donutEl = document.getElementById('dashCollectDueChart');
+            if (donutEl && window.Chart) {
+                new Chart(donutEl, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['{{ __('Collection') }} ' + collectPct + '%', '{{ __('Due') }} ' + duePct + '%'],
+                        datasets: [{
+                            data: [collect || 0.01, due || 0.01],
+                            backgroundColor: ['#22c55e', '#f43f5e'],
+                            borderWidth: 0,
+                            hoverOffset: 4
+                        }]
+                    },
+                    options: {
+                        cutout: '62%',
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: {
+                                callbacks: {
+                                    label: function (ctx) {
+                                        const total = (collect + due) || 1;
+                                        const val = ctx.raw || 0;
+                                        const pct = ((val / total) * 100).toFixed(1);
+                                        return ctx.label.split(' ')[0] + ': ৳' + Number(val).toLocaleString() + ' (' + pct + '%)';
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+
+            const lineEl = document.getElementById('dashLineGrowthChart');
+            if (lineEl && window.Chart) {
+                new Chart(lineEl, {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: [
+                            {
+                                label: '{{ __('New lines / month') }}',
+                                data: newLines,
+                                borderColor: '#3b82f6',
+                                backgroundColor: 'rgba(59,130,246,.15)',
+                                fill: true,
+                                tension: 0.35,
+                                pointRadius: 4,
+                                pointBackgroundColor: '#3b82f6'
+                            },
+                            {
+                                label: '{{ __('Total lines (cumulative)') }}',
+                                data: monthlyLines,
+                                borderColor: '#06ad73',
+                                backgroundColor: 'rgba(6,173,115,.08)',
+                                fill: false,
+                                tension: 0.35,
+                                pointRadius: 4,
+                                pointBackgroundColor: '#06ad73'
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        interaction: { mode: 'index', intersect: false },
+                        plugins: { legend: { position: 'bottom' } },
+                        scales: {
+                            y: { beginAtZero: true, ticks: { precision: 0 } },
+                            x: { grid: { display: false } }
+                        }
+                    }
+                });
+            }
+        })();
+    </script>
+    @endpush
 
     {{-- Legacy gradient Ops Command Center removed — cleaned above --}}
     <div class="d-none">
