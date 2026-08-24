@@ -81,7 +81,7 @@ class AutomaticProcessSeeder extends Seeder
             [
                 'slug' => 'generate-monthly-bills',
                 'name' => 'Generate monthly bills',
-                'description' => 'Creates monthly bills on the last day of each month (23:45).',
+                'description' => 'Creates monthly bills daily for customers whose billing_day matches today (full sweep on last day / --force).',
                 'artisan_command' => 'cpagol:generate-monthly-bills',
                 'command_options' => [],
                 'execute_at' => '23:45',

@@ -55,9 +55,27 @@ class ScheduledTasksController extends Controller
     //     }
     // }
 
-    public function createMonthlyBill()
+    /**
+     * Generate next-month bills.
+     *
+     * @param  int|null  $billingDay  When set, only customers with this billing_day (or null billing_day) are billed.
+     * @param  bool  $force  When true with null billingDay, bill everyone (legacy EOM behaviour).
+     */
+    public function createMonthlyBill(?int $billingDay = null, bool $force = false)
     {
-        BillingInfo::query()->cursor()->each(function ($billing) {
+        $query = BillingInfo::query();
+
+        if ($billingDay !== null && ! $force) {
+            $isLastOfMonth = now(config('app.timezone') ?: 'Asia/Dhaka')->isLastOfMonth();
+            $query->where(function ($q) use ($billingDay, $isLastOfMonth) {
+                $q->where('billing_day', $billingDay);
+                if ($isLastOfMonth) {
+                    $q->orWhereNull('billing_day')->orWhere('billing_day', 0);
+                }
+            });
+        }
+
+        $query->cursor()->each(function ($billing) {
             $customer = CustomersInfo::where('customer_unique_id', $billing->customer_bill_unique_id)->first();
 
             if (! $customer) {

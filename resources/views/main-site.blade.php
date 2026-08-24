@@ -229,7 +229,7 @@
                         @endforeach
                     </div>
                 @else
-                    {{-- Fallback static services --}}
+                    {{-- Fallback services: ISP platform capabilities (codepagol design) --}}
                     <div class="row">
                         <div class="col-md-4 col-xs-6 col-sm-6">
                             <div class="feature-block text-center">
@@ -255,6 +255,33 @@
                                 <h4 class="wow fadeInUp" data-wow-delay=".3s">{{ __('Data Connectivity') }}</h4>
                                 <p class="wow fadeInUp" data-wow-delay=".5s">
                                     {{ __('Fiber optic point-to-point links for enterprise and campus connectivity needs.') }}
+                                </p>
+                            </div>
+                        </div>
+                        <div class="col-md-4 col-xs-6 col-sm-6">
+                            <div class="feature-block text-center">
+                                <div class="icon-box"><i class="bi bi-receipt-cutoff"></i></div>
+                                <h4 class="wow fadeInUp" data-wow-delay=".3s">{{ __('Auto Billing') }}</h4>
+                                <p class="wow fadeInUp" data-wow-delay=".5s">
+                                    {{ __('Billing-day invoices, due SMS, grace period, and auto line OFF when unpaid.') }}
+                                </p>
+                            </div>
+                        </div>
+                        <div class="col-md-4 col-xs-6 col-sm-6">
+                            <div class="feature-block text-center">
+                                <div class="icon-box"><i class="bi bi-lightning-charge-fill"></i></div>
+                                <h4 class="wow fadeInUp" data-wow-delay=".3s">{{ __('Pay & Instant ON') }}</h4>
+                                <p class="wow fadeInUp" data-wow-delay=".5s">
+                                    {{ __('bKash / Nagad / SSLCommerz / MFS SMS — payment instantly enables MikroTik PPPoE.') }}
+                                </p>
+                            </div>
+                        </div>
+                        <div class="col-md-4 col-xs-6 col-sm-6">
+                            <div class="feature-block text-center">
+                                <div class="icon-box"><i class="bi bi-person-badge"></i></div>
+                                <h4 class="wow fadeInUp" data-wow-delay=".3s">{{ __('Customer Portal') }}</h4>
+                                <p class="wow fadeInUp" data-wow-delay=".5s">
+                                    {{ __('Self-service bills, pay online, tickets, and optical / ONU status for subscribers.') }}
                                 </p>
                             </div>
                         </div>
