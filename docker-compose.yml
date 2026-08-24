@@ -1,13 +1,27 @@
+# NextDeploy / GitHub auto-deploy
+# Panel Domains tab: set primary domain (e.g. anetbd.com) → service app, port 80
+# Never bind host :80/:443 (Caddy owns them).
+#
+# Panel .env minimum (copy from .env.example):
+#   APP_URL=https://your-domain.com
+#   APP_DOMAIN=your-domain.com
+#   DB_PASSWORD=strong-secret
+#   MYSQL_ROOT_PASSWORD=strong-root-secret
+# Do NOT set APP_KEY= (leave unset — container auto-generates on first boot).
+
 services:
   app:
     build:
       context: .
       dockerfile: Dockerfile
+    image: ispbilling-app:latest
     restart: unless-stopped
-    ports:
-      - "80:80"
+    expose:
+      - "80"
+    env_file:
+      - .env
     environment:
-      APP_NAME: "ISP Billing"
+      APP_NAME: "${APP_NAME:-ISP Billing}"
       APP_ENV: production
       APP_DEBUG: "false"
       APP_URL: ${APP_URL:-http://localhost}
@@ -19,14 +33,26 @@ services:
       DB_USERNAME: ${DB_USERNAME:-billing}
       DB_PASSWORD: ${DB_PASSWORD:-billing_secret}
       SESSION_DRIVER: database
+      SESSION_DOMAIN: ${SESSION_DOMAIN:-}
+      SESSION_SECURE_COOKIE: "true"
       QUEUE_CONNECTION: database
       CACHE_STORE: file
       LOG_CHANNEL: stderr
+    labels:
+      caddy: "${APP_DOMAIN:-localhost}"
+      caddy.reverse_proxy: "{{upstreams 80}}"
+      caddy.header.X-Frame-Options: SAMEORIGIN
+      caddy.header.X-Content-Type-Options: nosniff
+      caddy.header.Referrer-Policy: strict-origin-when-cross-origin
+      caddy.header.X-XSS-Protection: "1; mode=block"
     volumes:
       - app_storage:/var/www/html/storage
     depends_on:
       mysql:
         condition: service_healthy
+    networks:
+      - default
+      - nextdeploy
 
   mysql:
     image: mysql:8.4
@@ -44,6 +70,13 @@ services:
       timeout: 5s
       retries: 20
       start_period: 20s
+    networks:
+      - default
+
+networks:
+  nextdeploy:
+    external: true
+    name: NextDeploy
 
 volumes:
   mysql_data:

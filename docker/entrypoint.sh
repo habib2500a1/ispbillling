@@ -11,7 +11,12 @@ if [ ! -f .env ]; then
   fi
 fi
 
-# Prefer compose/env-injected DB host when running in Docker
+# Empty APP_KEY from docker env_file blocks Laravel reading the key from .env file.
+if [ -z "${APP_KEY}" ]; then
+  unset APP_KEY
+fi
+
+# Prefer compose/env-injected values when running in Docker
 if [ -n "${DB_HOST}" ]; then
   sed -i "s/^DB_HOST=.*/DB_HOST=${DB_HOST}/" .env || true
 fi
@@ -33,6 +38,9 @@ fi
 if [ -n "${APP_DEBUG}" ]; then
   sed -i "s/^APP_DEBUG=.*/APP_DEBUG=${APP_DEBUG}/" .env || true
 fi
+if [ -n "${SESSION_DOMAIN}" ]; then
+  sed -i "s/^SESSION_DOMAIN=.*/SESSION_DOMAIN=${SESSION_DOMAIN}/" .env || true
+fi
 
 # Wait for MySQL
 if [ -n "${DB_HOST}" ]; then
@@ -50,6 +58,11 @@ fi
 
 if ! grep -qE '^APP_KEY=base64:' .env 2>/dev/null; then
   php artisan key:generate --force --no-interaction || true
+fi
+
+# Export APP_KEY for php-fpm / queue workers (avoid empty docker env override)
+if grep -qE '^APP_KEY=base64:' .env 2>/dev/null; then
+  export APP_KEY="$(grep '^APP_KEY=' .env | cut -d= -f2- | tr -d '"')"
 fi
 
 php artisan storage:link --force --no-interaction 2>/dev/null || true

@@ -2,8 +2,12 @@
 
 namespace App\Console\Commands;
 
+use App\Models\User;
 use App\Services\Sms\SmsTemplateCatalogService;
 use Database\Seeders\AutomaticProcessSeeder;
+use Database\Seeders\PermissionSeeder;
+use Database\Seeders\RoleSeeder;
+use Database\Seeders\SuperAdminSeeder;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Artisan;
 
@@ -19,6 +23,14 @@ class PostDeploy extends Command
 
         Artisan::call('migrate', ['--force' => true]);
         $this->line(trim(Artisan::output()));
+
+        if (! User::query()->role('Super Admin')->exists()) {
+            $this->info('First deploy — seeding roles and super admin…');
+            (new PermissionSeeder)->run();
+            (new RoleSeeder)->run();
+            (new SuperAdminSeeder)->run();
+            $this->info('Default login: rohan9222@gmail.com / rohan9222@gmail.com');
+        }
 
         $processStats = (new AutomaticProcessSeeder)->syncOnDeploy();
         $this->info(sprintf(

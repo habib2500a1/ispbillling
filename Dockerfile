@@ -20,7 +20,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     snmp \
     && docker-php-ext-configure gd --with-freetype --with-jpeg \
     && docker-php-ext-install -j$(nproc) \
-        pdo_mysql pdo_pgsql mbstring exif pcntl bcmath gd zip intl opcache snmp \
+        pdo_mysql pdo_pgsql mbstring exif pcntl bcmath gd zip intl opcache snmp sockets \
     && pecl install redis \
     && docker-php-ext-enable redis \
     && rm -rf /var/lib/apt/lists/*
