@@ -89,6 +89,13 @@
                     </x-slot>
                     <x-slot name="aside">
                         <x-mikrotik.form-group
+                            label="{{ __('Customer ID') }}"
+                            type="text"
+                            name="customer_code"
+                            placeholder="{{ __('Your ID — edit as you like') }}"
+                            required="true"
+                        />
+                        <x-mikrotik.form-group
                             label="{{ __('Customer Name') }}"
                             name="customer_name"
                             type="text"
@@ -147,12 +154,6 @@
                             placeholder="{{ __('Select Any One') }}"
                             :options="['active' => __('Active'), 'pending' => __('Pending'), 'disable' => __('Disable')]"
                         />
-                        <x-mikrotik.form-group
-                            label="{{ __('Customer ID (optional)') }}"
-                            type="text"
-                            name="customer_code"
-                            placeholder="{{ __('Leave empty for auto ID') }}"
-                        />
                         @endif
                         <x-mikrotik.form-group
                             label="{{ __('Activation / Connection Date') }}"
@@ -203,6 +204,15 @@
                                 :options="json_decode($addressField['dropdown_list'])"
                             />
                         @endforeach
+                        <div class="col-12 mb-3">
+                            <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                                <button type="button" class="btn btn-sm btn-outline-secondary" id="nc-geo-btn">
+                                    <i class="bi bi-crosshair"></i> {{ __('Use live location') }}
+                                </button>
+                                <span class="small text-muted">{{ __('Or tap the map / drag the pin') }}</span>
+                            </div>
+                            <div id="nc-live-map" wire:ignore style="height:280px;border:1px solid #d7dee6;border-radius:8px;"></div>
+                        </div>
                         <x-mikrotik.form-group
                             label="{{ __('GPS Latitude') }}"
                             type="text"
@@ -217,14 +227,6 @@
                             placeholder="90.4125"
                             column="col-md-6 col-sm-6"
                         />
-                        @if($gps_lat && $gps_lng)
-                            <div class="col-12 mb-2">
-                                <a class="small text-success" target="_blank" rel="noopener"
-                                   href="https://www.openstreetmap.org/?mlat={{ urlencode($gps_lat) }}&mlon={{ urlencode($gps_lng) }}#map=17/{{ urlencode($gps_lat) }}/{{ urlencode($gps_lng) }}">
-                                    <i class="bi bi-geo-alt"></i> {{ __('Open map preview') }}
-                                </a>
-                            </div>
-                        @endif
                     </x-slot>
                     <x-section-border/>
                 </x-mikrotik.section-form>
@@ -672,9 +674,64 @@
     </form>
 </div>
 
+@push('styles')
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+@endpush
+
 @push('scripts')
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
     <script>
+        function bootNewCustomerMap() {
+            var el = document.getElementById('nc-live-map');
+            if (!el || !window.L || el.dataset.ready === '1') {
+                if (window._ncMap) {
+                    setTimeout(function () { window._ncMap.invalidateSize(); }, 200);
+                }
+                return;
+            }
+            el.dataset.ready = '1';
+            var lat = parseFloat(document.querySelector('[name="gps_lat"], #gps_lat')?.value) || {{ (float) ($gps_lat ?: 23.8103) }};
+            var lng = parseFloat(document.querySelector('[name="gps_lng"], #gps_lng')?.value) || {{ (float) ($gps_lng ?: 90.4125) }};
+            var map = L.map(el).setView([lat, lng], 15);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19,
+                attribution: '&copy; OpenStreetMap'
+            }).addTo(map);
+            var marker = L.marker([lat, lng], { draggable: true }).addTo(map);
+            function apply(la, ln) {
+                marker.setLatLng([la, ln]);
+                map.setView([la, ln]);
+                if (window.Livewire) {
+                    @this.set('gps_lat', la.toFixed(6));
+                    @this.set('gps_lng', ln.toFixed(6));
+                }
+            }
+            map.on('click', function (e) { apply(e.latlng.lat, e.latlng.lng); });
+            marker.on('dragend', function (e) {
+                var p = e.target.getLatLng();
+                apply(p.lat, p.lng);
+            });
+            var geoBtn = document.getElementById('nc-geo-btn');
+            if (geoBtn) {
+                geoBtn.addEventListener('click', function () {
+                    if (!navigator.geolocation) {
+                        alert(@json(__('This browser cannot read live location.')));
+                        return;
+                    }
+                    navigator.geolocation.getCurrentPosition(function (pos) {
+                        apply(pos.coords.latitude, pos.coords.longitude);
+                        map.setView([pos.coords.latitude, pos.coords.longitude], 17);
+                    }, function () {
+                        alert(@json(__('Allow location permission, then try again.')));
+                    }, { enableHighAccuracy: true, timeout: 12000 });
+                });
+            }
+            window._ncMap = map;
+            setTimeout(function () { map.invalidateSize(); }, 300);
+        }
+
         document.addEventListener('DOMContentLoaded', function () {
+            bootNewCustomerMap();
             // Remove invalid class and errors on focus
             $('input, textarea, select').on('focus', function () {
                 $(this).removeClass('is-invalid');
@@ -697,6 +754,8 @@
                     }
                 });
             });
+            bootNewCustomerMap();
         });
+        document.addEventListener('livewire:navigated', bootNewCustomerMap);
     </script>
 @endpush

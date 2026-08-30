@@ -191,8 +191,29 @@ class NewCustomer extends Component
         $this->auto_disable = true;
         $this->auto_disable_date = $this->expireDateFromBillingDay($this->billing_day);
         $this->status = auth()->user()->hasRole('Reseller') ? 'pending' : 'active';
+        $this->customer_code = $this->nextCustomerId();
+        $this->gps_lat = $this->gps_lat ?: '23.8103';
+        $this->gps_lng = $this->gps_lng ?: '90.4125';
 
         return true;
+    }
+
+    public function nextCustomerId(): string
+    {
+        $prefix = siteUrlSettings('customer_id_prefix') ?: 'FCNET';
+        $lastCustomer = CustomersInfo::query()->orderByDesc('id')->value('customer_unique_id');
+        if (! $lastCustomer) {
+            return $prefix.'100';
+        }
+        if (str_starts_with((string) $lastCustomer, $prefix)) {
+            $lastId = (int) substr((string) $lastCustomer, strlen($prefix));
+        } elseif (preg_match('/(\d+)$/', (string) $lastCustomer, $matches)) {
+            $lastId = (int) $matches[1];
+        } else {
+            $lastId = 99;
+        }
+
+        return $prefix.($lastId + 1);
     }
 
     public function updatedBillingDay($value): void
@@ -247,6 +268,9 @@ class NewCustomer extends Component
             'connection_type' => 'required',
             'connectivity_type' => 'required',
             'photo_url' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'customer_code' => 'required|string|max:40|unique:customers_infos,customer_unique_id',
+            'gps_lat' => 'nullable|numeric',
+            'gps_lng' => 'nullable|numeric',
         ];
 
         // Add dynamic address rules if they exist
@@ -615,28 +639,11 @@ class NewCustomer extends Component
             }
 
             // create customers_info table record
-            $prefix = siteUrlSettings('customer_id_prefix') ?: 'FCNET';
-            if (filled($this->customer_code)) {
-                $newId = trim((string) $this->customer_code);
-                if (CustomersInfo::where('customer_unique_id', $newId)->exists()) {
-                    throw new \RuntimeException('This Customer ID is already in use.');
-                }
-            } else {
-                $lastCustomer = CustomersInfo::orderBy('id', 'desc')->value('customer_unique_id');
-                if ($lastCustomer) {
-                    if (str_starts_with($lastCustomer, $prefix)) {
-                        $lastId = (int) substr($lastCustomer, strlen($prefix));
-                    } else {
-                        if (preg_match('/(\d+)$/', $lastCustomer, $matches)) {
-                            $lastId = (int) $matches[1];
-                        } else {
-                            $lastId = 99;
-                        }
-                    }
-                    $newId = $prefix.($lastId + 1);
-                } else {
-                    $newId = $prefix.'100';
-                }
+            $newId = filled($this->customer_code)
+                ? trim((string) $this->customer_code)
+                : $this->nextCustomerId();
+            if (CustomersInfo::where('customer_unique_id', $newId)->exists()) {
+                throw new \RuntimeException('This Customer ID is already in use. Change Customer ID and save again.');
             }
             if (! saasAssertQuota('customers')) {
                 DB::rollBack();
