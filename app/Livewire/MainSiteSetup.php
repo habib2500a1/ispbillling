@@ -3,6 +3,7 @@
 namespace App\Livewire;
 
 use App\Http\Controllers\MikrotikController;
+use App\Http\Controllers\Payment\BkashPaymentController;
 use App\Models\AutomaticProcess;
 use App\Models\MainSiteData;
 use App\Models\RouterList;
@@ -170,7 +171,8 @@ class MainSiteSetup extends Component implements HasActions, HasForms
 
             // Payment Gateways
             'payment_bkash_enabled' => $this->flagFromStore('payment_bkash_enabled', 0),
-            'payment_bkash_base_url' => MainSiteData::getValue('payment_bkash_base_url', 'https://tokenized.sandbox.bka.sh/v1.2.0-beta'),
+            'payment_bkash_sandbox' => $this->flagFromStore('payment_bkash_sandbox', 0),
+            'payment_bkash_base_url' => MainSiteData::getValue('payment_bkash_base_url', 'https://tokenized.pay.bka.sh/v1.2.0-beta'),
             'payment_bkash_username' => MainSiteData::getValue('payment_bkash_username'),
             'payment_bkash_password' => MainSiteData::getValue('payment_bkash_password'),
             'payment_bkash_app_key' => MainSiteData::getValue('payment_bkash_app_key'),
@@ -458,6 +460,13 @@ class MainSiteSetup extends Component implements HasActions, HasForms
                 MainSiteData::setValue($key, $this->valueForKey($key, $this->data[$key]));
             }
 
+            if ($tab === 'payment') {
+                $sandbox = $this->isOn($this->data['payment_bkash_sandbox'] ?? 0);
+                $bkashUrl = $sandbox ? BkashPaymentController::SANDBOX_URL : BkashPaymentController::LIVE_URL;
+                $this->data['payment_bkash_base_url'] = $bkashUrl;
+                MainSiteData::setValue('payment_bkash_base_url', $bkashUrl);
+            }
+
             if ($tab === 'theme') {
                 MainSiteData::setValue('theme_updated_at', time());
             }
@@ -523,7 +532,7 @@ class MainSiteSetup extends Component implements HasActions, HasForms
                 'expired_profile_name',
             ],
             'payment' => [
-                'payment_bkash_enabled', 'payment_bkash_base_url', 'payment_bkash_username',
+                'payment_bkash_enabled', 'payment_bkash_sandbox', 'payment_bkash_base_url', 'payment_bkash_username',
                 'payment_bkash_password', 'payment_bkash_app_key', 'payment_bkash_app_secret',
                 'payment_nagad_enabled', 'payment_nagad_base_url', 'payment_nagad_merchant_id',
                 'payment_nagad_public_key', 'payment_nagad_private_key',
@@ -622,6 +631,7 @@ class MainSiteSetup extends Component implements HasActions, HasForms
     {
         return [
             'payment_bkash_enabled',
+            'payment_bkash_sandbox',
             'payment_nagad_enabled',
             'payment_sslcommerz_enabled',
             'payment_sslcommerz_sandbox',

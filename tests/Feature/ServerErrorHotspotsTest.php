@@ -60,6 +60,11 @@ class ServerErrorHotspotsTest extends TestCase
 
         $this->assertSame(1, (int) MainSiteData::getValue('payment_bkash_enabled'));
         $this->assertSame('merchant01', MainSiteData::getValue('payment_bkash_username'));
+        $this->assertSame(0, (int) MainSiteData::getValue('payment_bkash_sandbox'));
+        $this->assertSame(
+            \App\Http\Controllers\Payment\BkashPaymentController::LIVE_URL,
+            MainSiteData::getValue('payment_bkash_base_url')
+        );
         $this->assertSame(1, (int) MainSiteData::getValue('payment_nagad_enabled'));
         $this->assertSame(1, (int) MainSiteData::getValue('payment_sslcommerz_enabled'));
         $this->assertSame(0, (int) MainSiteData::getValue('payment_sslcommerz_sandbox'));
@@ -70,6 +75,25 @@ class ServerErrorHotspotsTest extends TestCase
             ->assertSet('data.payment_nagad_enabled', 1)
             ->assertSet('data.payment_sslcommerz_enabled', 1)
             ->assertSet('data.portal_registration_enabled', 1);
+    }
+
+    public function test_site_settings_payment_tab_sandbox_sets_sandbox_bkash_url(): void
+    {
+        $this->actingAs($this->admin());
+
+        Livewire::test(MainSiteSetup::class)
+            ->set('activeTab', 'payment')
+            ->set('data.payment_bkash_sandbox', 1)
+            ->call('save', 'payment')
+            ->assertHasNoErrors()
+            ->assertSet('data.payment_bkash_sandbox', 1)
+            ->assertSet('data.payment_bkash_base_url', \App\Http\Controllers\Payment\BkashPaymentController::SANDBOX_URL);
+
+        $this->assertSame(1, (int) MainSiteData::getValue('payment_bkash_sandbox'));
+        $this->assertSame(
+            \App\Http\Controllers\Payment\BkashPaymentController::SANDBOX_URL,
+            MainSiteData::getValue('payment_bkash_base_url')
+        );
     }
 
     public function test_customer_datatable_search_does_not_use_missing_ppp_user_column(): void

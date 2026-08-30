@@ -19,12 +19,19 @@ class BkashPaymentController extends Controller
         $this->paymentService = $paymentService;
     }
 
+    public const SANDBOX_URL = 'https://tokenized.sandbox.bka.sh/v1.2.0-beta';
+
+    public const LIVE_URL = 'https://tokenized.pay.bka.sh/v1.2.0-beta';
+
     private function getBkashConfig()
     {
         $trim = static fn ($value) => is_string($value) ? trim($value) : $value;
+        $sandbox = (string) siteUrlSettings('payment_bkash_sandbox', '0') !== '0';
+        $baseUrl = $sandbox ? self::SANDBOX_URL : self::LIVE_URL;
 
         return [
-            'base_url' => rtrim((string) $trim(siteUrlSettings('payment_bkash_base_url') ?: config('services.bkash.base_url')), '/'),
+            'base_url' => $baseUrl,
+            'sandbox' => $sandbox,
             'username' => $trim(siteUrlSettings('payment_bkash_username') ?: config('services.bkash.username')),
             'password' => $trim(siteUrlSettings('payment_bkash_password') ?: config('services.bkash.password')),
             'app_key' => $trim(siteUrlSettings('payment_bkash_app_key') ?: config('services.bkash.app_key')),
@@ -32,11 +39,34 @@ class BkashPaymentController extends Controller
         ];
     }
 
+    private function decodeBkash(mixed $response): array
+    {
+        $json = method_exists($response, 'json') ? $response->json() : null;
+        if (is_array($json)) {
+            return $json;
+        }
+
+        $raw = method_exists($response, 'body') ? trim((string) $response->body()) : '';
+        $decoded = json_decode($raw, true);
+        if (is_array($decoded)) {
+            return $decoded;
+        }
+
+        if (is_string($json)) {
+            $decoded = json_decode($json, true);
+            if (is_array($decoded)) {
+                return $decoded;
+            }
+        }
+
+        return [];
+    }
+
     private function generateToken()
     {
         $config = $this->getBkashConfig();
 
-        if ($config['base_url'] === '' || $config['username'] === '' || $config['password'] === '' || $config['app_key'] === '' || $config['app_secret'] === '') {
+        if ($config['username'] === '' || $config['password'] === '' || $config['app_key'] === '' || $config['app_secret'] === '') {
             throw new \Exception('bKash username, password, app key, and app secret must be saved in Site Settings → Payment Gateways.');
         }
 
@@ -54,12 +84,19 @@ class BkashPaymentController extends Controller
                 'app_secret' => $config['app_secret'],
             ]);
 
-        $body = $response->json();
+        $body = $this->decodeBkash($response);
 
-        if (! is_array($body) || empty($body['id_token'])) {
-            $detail = $body['statusMessage'] ?? $body['errorMessage'] ?? $body['message'] ?? ('HTTP '.$response->status());
+        if (empty($body['id_token'])) {
+            $detail = $body['statusMessage'] ?? $body['errorMessage'] ?? $body['message'] ?? null;
+            if (! $detail) {
+                $detail = $config['sandbox']
+                    ? 'Sandbox rejected these keys. Switch to Live if this is a merchant account.'
+                    : 'Live bKash rejected these keys. Check App Key, Secret, Username, and Password.';
+            }
             Log::error('bKash token generation failed: '.json_encode([
                 'http' => $response->status(),
+                'url' => $config['base_url'],
+                'sandbox' => $config['sandbox'],
                 'statusCode' => $body['statusCode'] ?? null,
                 'message' => $detail,
             ]));
@@ -107,27 +144,33 @@ class BkashPaymentController extends Controller
                     'mode' => '0011',
                     'payerReference' => $customer->customer_unique_id,
                     'callbackURL' => $callbackURL,
-                    'amount' => (string) round($amount, 2),
+                    'amount' => (string) round((float) $amount, 2),
+                    'currency' => 'BDT',
                     'merchantInvoiceNumber' => 'INV_'.uniqid(),
                     'intent' => 'sale',
                 ]);
 
-            $res = $payment->json();
+            $res = $this->decodeBkash($payment);
 
-            if (isset($res['bkashURL'])) {
+            if (! empty($res['bkashURL'])) {
                 session(['bkash_amount' => $amount, 'bkash_customer_id' => $customer->id]);
 
                 return redirect()->away($res['bkashURL']);
             }
 
-            Log::error('bKash Create Payment Failed: '.json_encode($res));
+            $createError = $res['statusMessage'] ?? $res['errorMessage'] ?? $res['message'] ?? 'Unknown error';
+            Log::error('bKash Create Payment Failed: '.json_encode([
+                'http' => $payment->status(),
+                'statusCode' => $res['statusCode'] ?? null,
+                'message' => $createError,
+            ]));
 
             // If API fails on local development, redirect to mock page
             if ($isLocal) {
-                return $this->showMockPaymentPage('bKash', $customer, $amount, 'bKash API returned error: '.($res['errorMessage'] ?? 'Unknown error'));
+                return $this->showMockPaymentPage('bKash', $customer, $amount, 'bKash API returned error: '.$createError);
             }
 
-            return PublicPayCustomer::failRedirect('bKash payment initiation failed: '.($res['errorMessage'] ?? 'Unknown error'));
+            return PublicPayCustomer::failRedirect('bKash payment initiation failed: '.$createError);
 
         } catch (\Exception $e) {
             Log::error('bKash initiate exception: '.$e->getMessage());
@@ -161,7 +204,7 @@ class BkashPaymentController extends Controller
                         'paymentID' => $paymentID,
                     ]);
 
-                $res = $execution->json();
+                $res = $this->decodeBkash($execution);
 
                 if (isset($res['statusCode']) && $res['statusCode'] === '0000') {
                     $trxID = $res['trxID'] ?? 'BKASH_'.uniqid();

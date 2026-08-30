@@ -101,7 +101,7 @@
             'theme'    => ['data.portal_theme_preset', 'data.theme_name', 'data.theme_primary_color', 'data.theme_accent_color', 'data.theme_font_family', 'data.theme_mode', 'data.theme_section_height', 'data.portal_primary_color', 'data.portal_accent_color'],
             'contact'  => ['data.site_email', 'data.site_phone', 'data.site_address', 'data.site_map', 'data.site_whatsapp', 'data.site_facebook', 'data.site_twitter', 'data.site_instagram', 'data.site_linkedin', 'data.site_youtube', 'data.site_pinterest'],
             'billing'  => ['data.site_invoice_prefix', 'data.customer_id_prefix', 'data.customer_id_start', 'data.site_invoice_color', 'data.site_invoice_footer', 'data.site_invoice_notes', 'data.site_invoice_terms', 'data.site_invoice_logo', 'data.site_invoice_signature'],
-            'payment'  => ['data.payment_bkash_enabled', 'data.payment_bkash_base_url', 'data.payment_bkash_username', 'data.payment_bkash_password', 'data.payment_bkash_app_key', 'data.payment_bkash_app_secret', 'data.payment_nagad_enabled', 'data.payment_nagad_base_url', 'data.payment_nagad_merchant_id', 'data.payment_nagad_public_key', 'data.payment_nagad_private_key', 'data.payment_sslcommerz_enabled', 'data.payment_sslcommerz_store_id', 'data.payment_sslcommerz_store_password', 'data.payment_sslcommerz_sandbox'],
+            'payment'  => ['data.payment_bkash_enabled', 'data.payment_bkash_sandbox', 'data.payment_bkash_base_url', 'data.payment_bkash_username', 'data.payment_bkash_password', 'data.payment_bkash_app_key', 'data.payment_bkash_app_secret', 'data.payment_nagad_enabled', 'data.payment_nagad_base_url', 'data.payment_nagad_merchant_id', 'data.payment_nagad_public_key', 'data.payment_nagad_private_key', 'data.payment_sslcommerz_enabled', 'data.payment_sslcommerz_store_id', 'data.payment_sslcommerz_store_password', 'data.payment_sslcommerz_sandbox'],
             'security' => ['data.site_secret_key', 'data.site_secret_value', 'data.site_secret_validity', 'data.site_secret_url', 'data.site_secret_email'],
             'content'  => ['data.hero_title', 'data.hero_subtitle', 'data.hero_button_text', 'data.hero_button_link', 'data.registration_link', 'data.about_title', 'data.about_body', 'data.packages_section_title', 'data.testimonial_title', 'data.footer_copyright'],
             'logs'     => ['data.mysql_binary_path', 'data.log_server_enabled', 'data.log_server_routers', 'data.log_retention_days']
@@ -801,8 +801,20 @@
                                 
                                 <div class="row g-3" x-show="$wire.data.payment_bkash_enabled">
                                     <div class="col-12">
-                                        <label class="form-label fw-semibold">{{ __('bKash Endpoint base URL') }}</label>
-                                        <input type="text" class="form-control rounded-3" wire:model="data.payment_bkash_base_url">
+                                        <label class="form-label fw-semibold">{{ __('Set Sandbox / Live') }}</label>
+                                        <div class="d-flex flex-wrap gap-3">
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="radio" name="payment_bkash_sandbox" id="bkash_live" value="0" wire:model.live="data.payment_bkash_sandbox">
+                                                <label class="form-check-label fw-semibold" for="bkash_live">{{ __('Live') }}</label>
+                                            </div>
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="radio" name="payment_bkash_sandbox" id="bkash_sandbox" value="1" wire:model.live="data.payment_bkash_sandbox">
+                                                <label class="form-check-label fw-semibold" for="bkash_sandbox">{{ __('Sandbox') }}</label>
+                                            </div>
+                                        </div>
+                                        <small class="text-muted">
+                                            {{ __('Live uses tokenized.pay.bka.sh — same as your working merchant panel. Sandbox is only for bKash test keys.') }}
+                                        </small>
                                     </div>
                                     <div class="col-md-6">
                                         <label class="form-label fw-semibold">{{ __('bKash Merchant Username') }}</label>
