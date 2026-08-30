@@ -3,7 +3,11 @@
 namespace App\Livewire;
 
 use App\Models\CustomerOnu;
+use App\Models\CustomersInfo;
+use App\Models\Olt;
+use App\Services\Olt\CustomerOpticalPresenter;
 use App\Services\Olt\IspbillingOpticalBridge;
+use Illuminate\Validation\Rule;
 use Livewire\Component;
 use Livewire\WithPagination;
 
@@ -13,7 +17,27 @@ class OnuManager extends Component
 
     public string $search = '';
 
-    public string $tab = 'local'; // local|remote
+    public string $tab = 'local';
+
+    public bool $showForm = false;
+
+    public ?int $editingId = null;
+
+    public ?int $customer_id = null;
+
+    public ?int $olt_id = null;
+
+    public string $pon_port = '';
+
+    public string $mac_address = '';
+
+    public string $serial_number = '';
+
+    public string $rx_power_dbm = '';
+
+    public string $tx_power_dbm = '';
+
+    public string $oper_status = 'online';
 
     public ?string $statusMessage = null;
 
@@ -36,6 +60,59 @@ class OnuManager extends Component
         $this->tab = in_array($tab, ['local', 'remote'], true) ? $tab : 'local';
         $this->resetPage();
         $this->statusMessage = null;
+        $this->showForm = false;
+    }
+
+    public function startCreate(): void
+    {
+        $this->resetForm();
+        $this->showForm = true;
+        $this->statusMessage = null;
+    }
+
+    public function cancelForm(): void
+    {
+        $this->resetForm();
+        $this->showForm = false;
+    }
+
+    public function saveOnu(CustomerOpticalPresenter $optical): void
+    {
+        $data = $this->validate([
+            'customer_id' => ['required', 'integer', Rule::exists('customers_infos', 'id')],
+            'olt_id' => ['nullable', 'integer', Rule::exists('olts', 'id')],
+            'pon_port' => ['nullable', 'string', 'max:64'],
+            'mac_address' => ['nullable', 'string', 'max:64'],
+            'serial_number' => ['nullable', 'string', 'max:64'],
+            'rx_power_dbm' => ['nullable', 'numeric'],
+            'tx_power_dbm' => ['nullable', 'numeric'],
+            'oper_status' => ['nullable', 'string', 'max:32'],
+        ]);
+
+        $customer = CustomersInfo::query()->findOrFail((int) $data['customer_id']);
+        $olt = ! empty($data['olt_id']) ? Olt::query()->find((int) $data['olt_id']) : null;
+
+        $optical->saveManual($customer, [
+            'olt_name' => $olt?->name,
+            'pon_port' => $data['pon_port'] ?: null,
+            'mac_address' => $data['mac_address'] ?: null,
+            'serial_number' => $data['serial_number'] ?: null,
+            'rx_power_dbm' => $data['rx_power_dbm'] !== '' ? $data['rx_power_dbm'] : null,
+            'tx_power_dbm' => $data['tx_power_dbm'] !== '' ? $data['tx_power_dbm'] : null,
+            'oper_status' => $data['oper_status'] ?: 'online',
+        ]);
+
+        if ($olt) {
+            $onu = $customer->primaryOnu();
+            if ($onu) {
+                $onu->olt_id = $olt->id;
+                $onu->save();
+            }
+        }
+
+        $this->resetForm();
+        $this->showForm = false;
+        flash()->success(__('ONU linked to :name.', ['name' => $customer->customer_name]));
     }
 
     public function syncMatched(): void
@@ -43,16 +120,15 @@ class OnuManager extends Component
         $bridge = app(IspbillingOpticalBridge::class);
         if (! $bridge->enabled()) {
             $this->statusOk = false;
-            $this->statusMessage = __('ispbilling bridge is not enabled. Check ISPBILLING_* env and same-server Docker network.');
+            $this->statusMessage = __('This panel is the billing system. Add ONU here or on the customer page — no second ispbilling server is required.');
 
             return;
         }
 
         $result = $bridge->syncMatchedCustomers(500);
         $this->statusOk = true;
-        $this->statusMessage = __('Synced :synced ONU(s) from ispbilling (:skipped skipped).', [
+        $this->statusMessage = __('Synced :synced ONU(s).', [
             'synced' => $result['synced'],
-            'skipped' => $result['skipped'],
         ]);
         $this->tab = 'local';
         flash()->success($this->statusMessage);
@@ -67,25 +143,27 @@ class OnuManager extends Component
             return;
         }
 
-        $synced = app(IspbillingOpticalBridge::class)->syncForCustomer($onu->customer);
-        if ($synced) {
+        $bridge = app(IspbillingOpticalBridge::class);
+        if ($bridge->enabled() && $bridge->syncForCustomer($onu->customer)) {
             flash()->success(__('Optical refreshed for :name', ['name' => $onu->customer->customer_name]));
-        } else {
-            flash()->warning(__('No matching ONU in ispbilling for this PPP user.'));
+
+            return;
         }
+
+        flash()->warning(__('Refresh needs a live OLT poll or an updated manual RX/TX on the customer page.'));
     }
 
     public function deleteLocal(int $id): void
     {
         CustomerOnu::whereKey($id)->delete();
-        flash()->success(__('Local ONU record deleted.'));
+        flash()->success(__('ONU record deleted.'));
     }
 
     public function render()
     {
         $bridge = app(IspbillingOpticalBridge::class);
         $remote = collect();
-        $local = CustomerOnu::query()->with(['customer.pppUser'])->orderByDesc('last_polled_at')->orderByDesc('id');
+        $local = CustomerOnu::query()->with(['customer.pppUser', 'olt'])->orderByDesc('last_polled_at')->orderByDesc('id');
 
         if ($this->search !== '') {
             $q = '%'.$this->search.'%';
@@ -102,7 +180,7 @@ class OnuManager extends Component
             });
         }
 
-        if ($this->tab === 'remote') {
+        if ($this->tab === 'remote' && $bridge->enabled()) {
             $remote = $bridge->listRemoteOnus(150, $this->search !== '' ? $this->search : null);
         }
 
@@ -110,6 +188,24 @@ class OnuManager extends Component
             'onus' => $local->paginate(20),
             'remoteOnus' => $remote,
             'bridgeEnabled' => $bridge->enabled(),
+            'olts' => Olt::query()->orderBy('name')->get(['id', 'name', 'management_ip']),
+            'customers' => CustomersInfo::query()->orderBy('customer_name')->limit(400)->get(['id', 'customer_name', 'customer_unique_id']),
+            'oltCount' => Olt::query()->count(),
+            'customerCount' => CustomersInfo::query()->count(),
         ])->layout('layouts.app');
+    }
+
+    private function resetForm(): void
+    {
+        $this->editingId = null;
+        $this->customer_id = null;
+        $this->olt_id = null;
+        $this->pon_port = '';
+        $this->mac_address = '';
+        $this->serial_number = '';
+        $this->rx_power_dbm = '';
+        $this->tx_power_dbm = '';
+        $this->oper_status = 'online';
+        $this->resetValidation();
     }
 }
