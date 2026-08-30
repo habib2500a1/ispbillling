@@ -129,12 +129,12 @@ class PayBill extends Page
             $routeParams['mock'] = 'true';
         }
 
-        if ($this->paymentMethod === 'bkash') {
-            return redirect()->route('payment.bkash.initiate', $routeParams);
-        } elseif ($this->paymentMethod === 'nagad') {
-            return redirect()->route('payment.nagad.initiate', $routeParams);
-        } elseif ($this->paymentMethod === 'sslcommerz') {
-            return redirect()->route('payment.sslcommerz.initiate', $routeParams);
-        }
+        $start = match ($this->paymentMethod) {
+            'nagad' => 'pay.start.nagad',
+            'sslcommerz' => 'pay.start.sslcommerz',
+            default => 'pay.start.bkash',
+        };
+
+        return redirect()->route($start, $routeParams);
     }
 }

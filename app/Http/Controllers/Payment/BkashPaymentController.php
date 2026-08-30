@@ -75,9 +75,7 @@ class BkashPaymentController extends Controller
             $idToken = $this->generateToken();
             $config = $this->getBkashConfig();
 
-            $callbackURL = PublicPayCustomer::isPublic()
-                ? url('/pay/callback/bkash')
-                : route('payment.bkash.callback');
+            $callbackURL = url('/pay/callback/bkash');
 
             $payment = Http::withToken($idToken)
                 ->withHeaders([

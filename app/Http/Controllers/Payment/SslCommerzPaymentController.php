@@ -82,9 +82,9 @@ class SslCommerzPaymentController extends Controller
                 'total_amount' => (string) round($amount, 2),
                 'currency' => 'BDT',
                 'tran_id' => 'SSL_'.uniqid(),
-                'success_url' => PublicPayCustomer::isPublic() ? url('/pay/callback/sslcommerz') : route('payment.sslcommerz.callback'),
-                'fail_url' => PublicPayCustomer::isPublic() ? url('/pay/callback/sslcommerz') : route('payment.sslcommerz.callback'),
-                'cancel_url' => PublicPayCustomer::isPublic() ? url('/pay/callback/sslcommerz') : route('payment.sslcommerz.callback'),
+                'success_url' => url('/pay/callback/sslcommerz'),
+                'fail_url' => url('/pay/callback/sslcommerz'),
+                'cancel_url' => url('/pay/callback/sslcommerz'),
 
                 // Customer Information
                 'cus_name' => $customer->customer_name ?: 'ISP Customer',

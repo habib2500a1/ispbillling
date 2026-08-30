@@ -124,6 +124,16 @@ Route::any('/pay/callback/bkash', [BkashPaymentController::class, 'callback'])->
 Route::any('/pay/callback/nagad', [NagadPaymentController::class, 'callback'])->name('pay.callback.nagad');
 Route::any('/pay/callback/sslcommerz', [SslCommerzPaymentController::class, 'callback'])->name('pay.callback.sslcommerz');
 
+// Portal Pay Bill used to generate portal.anetbd.com URLs. That subdomain is not
+// this app, so keep the same paths on the live host (anetbd.com).
+Route::get('/payment/bkash/initiate', [BkashPaymentController::class, 'initiate'])->name('payment.bkash.initiate');
+Route::get('/payment/nagad/initiate', [NagadPaymentController::class, 'initiate'])->name('payment.nagad.initiate');
+Route::get('/payment/sslcommerz/initiate', [SslCommerzPaymentController::class, 'initiate'])->name('payment.sslcommerz.initiate');
+Route::any('/payment/bkash/callback', [BkashPaymentController::class, 'callback'])->name('payment.bkash.callback');
+Route::any('/payment/nagad/callback', [NagadPaymentController::class, 'callback'])->name('payment.nagad.callback');
+Route::any('/payment/sslcommerz/callback', [SslCommerzPaymentController::class, 'callback'])->name('payment.sslcommerz.callback');
+Route::post('/payment/mock/submit', [BkashPaymentController::class, 'mockSubmit'])->name('payment.mock.submit');
+
 Route::get('/recharge/voucher', [PortalVoucherController::class, 'showRechargeForm'])->name('welcome.voucher.recharge');
 Route::post('/recharge/voucher', [PortalVoucherController::class, 'redeem'])->name('welcome.voucher.redeem');
 
@@ -342,18 +352,9 @@ Route::domain('portal.'.$baseDomain)->group(function () use ($baseDomain) {
         return redirect()->away('https://'.$baseDomain.'/portal/login');
     });
 
-    // Authenticated portal payment initiation routes
-    Route::middleware(['auth:ppp'])->group(function () {
-        Route::get('/payment/bkash/initiate', [BkashPaymentController::class, 'initiate'])->name('payment.bkash.initiate');
-        Route::get('/payment/nagad/initiate', [NagadPaymentController::class, 'initiate'])->name('payment.nagad.initiate');
-        Route::get('/payment/sslcommerz/initiate', [SslCommerzPaymentController::class, 'initiate'])->name('payment.sslcommerz.initiate');
-    });
-
-    // Public payment callback routes (Gateways redirect here, CSRF is disabled for POSTs)
-    Route::any('/payment/bkash/callback', [BkashPaymentController::class, 'callback'])->name('payment.bkash.callback');
-    Route::any('/payment/nagad/callback', [NagadPaymentController::class, 'callback'])->name('payment.nagad.callback');
-    Route::any('/payment/sslcommerz/callback', [SslCommerzPaymentController::class, 'callback'])->name('payment.sslcommerz.callback');
-    Route::post('/payment/mock/submit', [BkashPaymentController::class, 'mockSubmit'])->name('payment.mock.submit');
+    Route::any('/payment/{path?}', function () use ($baseDomain) {
+        return redirect()->away('https://'.$baseDomain.request()->getRequestUri());
+    })->where('path', '.*');
 
     // Public voucher redemption route
     Route::get('/recharge/voucher', [PortalVoucherController::class, 'showRechargeForm'])->name('portal.voucher.recharge');
