@@ -9,15 +9,28 @@
         .cr-page .cr-stat { min-height:100%; }
         .cr-page .cr-stat .cr-value { font-size:clamp(1.25rem, 3vw, 1.6rem); font-weight:800; letter-spacing:-.02em; }
         .cr-page .form-label { font-weight:700; font-size:.8rem; color:var(--cr-navy); }
-        .cr-page .form-control, .cr-page .form-select, .cr-page .btn { min-height:44px; }
-        .cr-page .btn-cr { background:var(--cr-teal); border-color:var(--cr-teal); font-weight:700; }
+        .cr-page .form-control, .cr-page .form-select, .cr-page .btn-cr { min-height:44px; }
+        .cr-page .btn-cr { background:var(--cr-teal); border-color:var(--cr-teal); font-weight:700; color:#fff; }
         .cr-page .table { margin-bottom:0; }
         .cr-page .table thead th { white-space:nowrap; font-size:.8rem; color:var(--cr-navy); background:#f8fafc; }
         .cr-page .table td { vertical-align:middle; font-size:.9rem; }
         .cr-page .cr-table-wrap { overflow-x:auto; -webkit-overflow-scrolling:touch; }
-        .cr-page .dataTables_wrapper .dt-buttons,
         .cr-page .dt-buttons { display:flex; flex-wrap:wrap; gap:.4rem; }
-        .cr-page .dt-buttons .btn { min-height:36px; font-size:.8rem; }
+        .cr-page .dt-buttons .dt-button,
+        .cr-page .dt-buttons .btn {
+            background:#fff !important;
+            color:var(--cr-navy) !important;
+            border:1px solid #c5d0dc !important;
+            box-shadow:none !important;
+            min-height:36px !important;
+            padding:.4rem .85rem !important;
+            border-radius:8px !important;
+            font-size:.8rem !important;
+            font-weight:700 !important;
+            line-height:1.2 !important;
+        }
+        .cr-page .dt-buttons .dt-button span,
+        .cr-page .dt-buttons .btn span { color:inherit !important; visibility:visible !important; }
         .cr-page .dataTables_filter, .cr-page .dataTables_length { margin-bottom:.5rem; }
         .cr-page .dataTables_filter input { min-height:40px; }
         .cr-page .cr-dt-toolbar,
@@ -179,10 +192,10 @@
                         lengthMenu: [[10, 25, 50, 100, -1], [10, 25, 50, 100, 'All']],
                         dom: "<'cr-dt-toolbar'<'cr-dt-buttons'B><'cr-dt-search'f>>t<'cr-dt-foot'<'cr-dt-len'l><'cr-dt-info'i><'cr-dt-page'p>>",
                         buttons: [
-                            { extend: 'copy', className: 'btn btn-sm btn-outline-secondary' },
-                            { extend: 'excel', className: 'btn btn-sm btn-outline-secondary' },
-                            { extend: 'pdf', className: 'btn btn-sm btn-outline-secondary' },
-                            { extend: 'print', className: 'btn btn-sm btn-outline-secondary' }
+                            { extend: 'copy', text: 'Copy' },
+                            { extend: 'excel', text: 'Excel' },
+                            { extend: 'pdf', text: 'PDF' },
+                            { extend: 'print', text: 'Print' }
                         ],
                         columnDefs: [
                             { responsivePriority: 1, targets: [2, 5] },
