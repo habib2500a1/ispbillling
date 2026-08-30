@@ -372,9 +372,15 @@
                             return;
                         }
                         // Page Total
-                        pageTotals[key] = api.column(colIdx, { page: 'current' }).data().reduce(function(a, b) { return intVal(a) + intVal(b); }, 0);
+                        pageTotals[key] = api.column(colIdx, { page: 'current' }).data().reduce(function(a, b) {
+                            var n = intVal(b);
+                            return intVal(a) + (key === 'due' ? Math.max(0, n) : n);
+                        }, 0);
                         // Grand Total
-                        grandTotals[key] = api.column(colIdx).data().reduce(function(a, b) { return intVal(a) + intVal(b); }, 0);
+                        grandTotals[key] = api.column(colIdx).data().reduce(function(a, b) {
+                            var n = intVal(b);
+                            return intVal(a) + (key === 'due' ? Math.max(0, n) : n);
+                        }, 0);
                     });
 
                     // Update UI safely (Matching Table Column Design)

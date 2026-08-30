@@ -1,4 +1,4 @@
-<div class="zoom-in pb-4" x-data="{ tab: 'overview' }">
+<div class="zoom-in pb-4" x-data="{ tab: 'overview' }" wire:init="refreshPresence">
     <x-slot name="header">
         <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
             <h2 class="h4 fw-bold text-dark mb-0">
@@ -38,7 +38,16 @@
                             </div>
                             <div class="text-muted small">
                                 <span class="font-monospace fw-semibold text-dark">{{ $customer->customer_unique_id }}</span>
-                                @if($customer->mobile) · <a href="tel:{{ $customer->mobile }}" class="text-decoration-none">{{ $customer->mobile }}</a> @endif
+                                @if($customer->mobile)
+                                    · <a href="tel:{{ $customer->mobile }}" class="text-decoration-none">{{ $customer->mobile }}</a>
+                                    @if($wa = whatsapp_url($customer->mobile))
+                                        <a href="{{ $wa }}" target="_blank" rel="noopener" title="WhatsApp"
+                                           class="d-inline-flex align-items-center justify-content-center rounded-circle text-decoration-none ms-1"
+                                           style="width:18px;height:18px;background:#25D366;color:#fff;font-size:10px;line-height:1;vertical-align:text-bottom;">
+                                            <i class="bi bi-whatsapp"></i>
+                                        </a>
+                                    @endif
+                                @endif
                                 @if($customer->pppUser?->username) · PPPoE <span class="font-monospace">{{ $customer->pppUser->username }}</span> @endif
                                 @if($customer->joinDate())
                                     · {{ __('Joined') }} {{ $customer->joinDateLabel() }}
@@ -73,7 +82,7 @@
                     <div class="bg-white border rounded-3 p-3 h-100 shadow-sm">
                         <div class="text-muted small">{{ __('Wallet / Advance') }}</div>
                         <div class="fw-bold text-success fs-5">{{ number_format($walletBalance, 2) }} BDT</div>
-                        <div class="small text-muted mb-2">{{ __('Due') }}: <span class="text-danger fw-semibold">{{ number_format((float)($customer->billing?->due_amount ?? 0), 2) }}</span></div>
+                        <div class="small text-muted mb-2">{{ __('Due') }}: <span class="text-danger fw-semibold">{{ number_format($customer->billing?->outstandingDue() ?? 0, 2) }}</span></div>
                         <div class="d-flex gap-1 mb-2">
                             <button type="button" class="btn btn-sm btn-outline-success" wire:click="addWallet(100)" wire:confirm="{{ __('Add 100 BDT to wallet?') }}">+100</button>
                             <button type="button" class="btn btn-sm btn-outline-success" wire:click="addWallet(500)" wire:confirm="{{ __('Add 500 BDT to wallet?') }}">+500</button>
@@ -121,7 +130,7 @@
     </div>
 
     <ul class="nav nav-pills gap-1 mb-3 flex-wrap">
-        @foreach(['overview' => 'grid', 'billing' => 'cash-stack', 'network' => 'hdd-network', 'invoices' => 'receipt', 'map' => 'geo-alt', 'more' => 'three-dots'] as $key => $icon)
+        @foreach(['overview' => 'grid', 'billing' => 'cash-stack', 'network' => 'hdd-network', 'invoices' => 'receipt', 'sms' => 'chat-dots', 'map' => 'geo-alt', 'more' => 'three-dots'] as $key => $icon)
             <li class="nav-item">
                 <button type="button" class="nav-link" :class="tab==='{{ $key }}' && 'active'" @click="tab='{{ $key }}'; @if($key === 'network') setTimeout(() => window.dispatchEvent(new Event('cv-chart-resize')), 80) @endif">
                     <i class="bi bi-{{ $icon }} me-1"></i>{{ __(ucfirst($key)) }}
@@ -171,7 +180,7 @@
             <div class="card-body small">
                 <div class="row g-2">
                     <div class="col-md-3"><span class="text-muted">{{ __('Rent') }}</span><div class="fw-bold">{{ number_format((float)($b?->monthly_rent ?? 0), 2) }}</div></div>
-                    <div class="col-md-3"><span class="text-muted">{{ __('Due') }}</span><div class="fw-bold text-danger">{{ number_format((float)($b?->due_amount ?? 0), 2) }}</div></div>
+                    <div class="col-md-3"><span class="text-muted">{{ __('Due') }}</span><div class="fw-bold text-danger">{{ number_format($b?->outstandingDue() ?? 0, 2) }}</div></div>
                     <div class="col-md-3"><span class="text-muted">{{ __('Advance') }}</span><div class="fw-bold text-success">{{ number_format((float)($b?->advance ?? 0), 2) }}</div></div>
                     <div class="col-md-3"><span class="text-muted">{{ __('Bill day') }}</span><div class="fw-bold">{{ $b?->billing_day ?: '—' }}</div></div>
                     <div class="col-md-3"><span class="text-muted">{{ __('Permanent expire') }}</span><div class="fw-bold">{{ $b?->auto_disable_date ? \Carbon\Carbon::parse($b->auto_disable_date)->format('d M Y') : '—' }}</div></div>
@@ -279,18 +288,26 @@
             <div class="card-header bg-white border-0 fw-semibold">{{ __('Invoice & collection history') }}</div>
             <div class="table-responsive">
                 <table class="table table-sm mb-0">
-                    <thead class="table-light"><tr><th>{{ __('Date') }}</th><th>{{ __('Invoice #') }}</th><th class="text-end">{{ __('Amount') }}</th><th>{{ __('By') }}</th><th>{{ __('Status') }}</th></tr></thead>
+                    <thead class="table-light"><tr><th>{{ __('Date') }}</th><th>{{ __('Invoice #') }}</th><th class="text-end">{{ __('Amount') }}</th><th>{{ __('By') }}</th><th>{{ __('Status') }}</th><th class="text-end no-print">{{ __('Action') }}</th></tr></thead>
                     <tbody>
                     @forelse($collections as $col)
                         <tr>
                             <td>{{ $col->collection_date ? \Carbon\Carbon::parse($col->collection_date)->format('d M Y H:i') : '—' }}</td>
-                            <td class="font-monospace">{{ $col->invoice_no ? '#'.siteUrlSettings('site_invoice_prefix').$col->invoice_no : '—' }}</td>
+                            <td class="font-monospace">{{ $col->invoice_no ? '#'.siteUrlSettings('site_invoice_prefix').$col->invoice_no : '#'.$col->id }}</td>
                             <td class="text-end fw-semibold text-success">{{ number_format((float)($col->collection_amount ?? 0), 2) }}</td>
                             <td>{{ $col->collected_by ?? '—' }}</td>
                             <td><span class="badge bg-success">{{ $col->payment_status ?? 'paid' }}</span></td>
+                            <td class="text-end text-nowrap no-print">
+                                <a href="{{ route('collection-invoice.show', $col->id) }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-primary" title="{{ __('View invoice') }}">
+                                    <i class="bi bi-eye"></i>
+                                </a>
+                                <a href="{{ route('collection-invoice.download', $col->id) }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-success" title="{{ __('Download / print invoice') }}">
+                                    <i class="bi bi-download"></i>
+                                </a>
+                            </td>
                         </tr>
                     @empty
-                        <tr><td colspan="5" class="text-center text-muted py-4">{{ __('No invoices yet') }}</td></tr>
+                        <tr><td colspan="6" class="text-center text-muted py-4">{{ __('No invoices yet') }}</td></tr>
                     @endforelse
                     </tbody>
                 </table>
@@ -335,6 +352,59 @@
                         {{ __('No GPS coordinates. Add latitude/longitude when creating or editing the customer.') }}
                     </div>
                 @endif
+            </div>
+        </div>
+    </div>
+
+    {{-- SMS history --}}
+    <div x-show="tab==='sms'" x-cloak>
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white border-0 d-flex flex-wrap justify-content-between align-items-center gap-2">
+                <span class="fw-semibold"><i class="bi bi-chat-dots me-1 text-success"></i>{{ __('SMS history') }}</span>
+                <div class="d-flex flex-wrap gap-2 align-items-center">
+                    <span class="badge bg-success">{{ __('Success') }} {{ $smsSentCount }}</span>
+                    <span class="badge bg-danger">{{ __('Failed') }} {{ $smsFailCount }}</span>
+                    <button type="button" class="btn btn-sm btn-success" wire:click="openSmsModal"><i class="bi bi-send me-1"></i>{{ __('New SMS') }}</button>
+                </div>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-sm mb-0 align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>{{ __('Date') }}</th>
+                            <th>{{ __('Type') }}</th>
+                            <th>{{ __('Message') }}</th>
+                            <th>{{ __('Status') }}</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    @forelse($smsLogs as $log)
+                        <tr>
+                            <td class="small text-nowrap">{{ $log->created_at?->format('d M Y h:i A') }}</td>
+                            <td class="small">{{ $log->sourceLabel() }}<div class="text-muted">{{ $log->mobile }}</div></td>
+                            <td class="small" style="max-width:28rem;white-space:pre-wrap;">{{ $log->body }}</td>
+                            <td>
+                                @if($log->status === 'success')
+                                    <span class="badge bg-success">{{ __('Success') }}</span>
+                                @else
+                                    <span class="badge bg-danger">{{ __('Failed') }}</span>
+                                    @if($log->error)<div class="small text-danger">{{ $log->error }}</div>@endif
+                                @endif
+                            </td>
+                            <td class="text-end">
+                                @if($log->status !== 'success')
+                                    <button type="button" class="btn btn-sm btn-outline-primary" wire:click="resendSms({{ $log->id }})" wire:loading.attr="disabled">
+                                        <i class="bi bi-arrow-repeat me-1"></i>{{ __('Resend') }}
+                                    </button>
+                                @endif
+                            </td>
+                        </tr>
+                    @empty
+                        <tr><td colspan="5" class="text-center text-muted py-4">{{ __('No SMS sent to this customer yet.') }}</td></tr>
+                    @endforelse
+                    </tbody>
+                </table>
             </div>
         </div>
     </div>

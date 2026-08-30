@@ -160,7 +160,7 @@ final class FeatureModuleRegistry
     private static function network(): array
     {
         return [
-            ['slug' => 'network-center', 'group' => 'Network', 'section' => 'Hub', 'label' => 'Network center', 'description' => 'SNMP · NetFlow · routers', 'icon' => 'bi-cpu', 'accent' => 'cyan', 'route' => 'noc-overview'],
+            ['slug' => 'network-center', 'group' => 'Network', 'section' => 'Hub', 'label' => 'Network center', 'description' => 'SNMP · NetFlow · routers', 'icon' => 'bi-cpu', 'accent' => 'cyan', 'route' => 'mikrotik-sync'],
             ['slug' => 'mikrotik', 'group' => 'Network', 'section' => 'Core', 'label' => 'MikroTik', 'description' => 'Routers & PPPoE sync', 'icon' => 'bi-router', 'accent' => 'cyan', 'route' => 'mikrotik-sync'],
             ['slug' => 'radius-users', 'group' => 'Network', 'section' => 'Core', 'label' => 'RADIUS users', 'description' => 'radcheck / radusergroup admin', 'icon' => 'bi-database', 'accent' => 'cyan', 'route' => 'mikrotik-radius-setup'],
             ['slug' => 'online-clients', 'group' => 'Network', 'section' => 'Monitor', 'label' => 'Online clients', 'description' => 'Live PPP sessions', 'icon' => 'bi-wifi', 'accent' => 'cyan', 'route' => 'online-clients'],
@@ -180,13 +180,13 @@ final class FeatureModuleRegistry
     {
         return [
             ['slug' => 'support-center', 'group' => 'Support', 'section' => 'Hub', 'label' => 'Support center', 'description' => 'Tickets · SLA · chat', 'icon' => 'bi-life-preserver', 'accent' => 'warning', 'route' => 'admin-tickets'],
-            ['slug' => 'call-center', 'group' => 'Support', 'section' => 'Call center', 'label' => 'Call center', 'description' => 'Logs · follow-ups · SIP', 'icon' => 'bi-telephone', 'accent' => 'warning', 'route' => 'call-desk'],
+            ['slug' => 'call-center', 'group' => 'Support', 'section' => 'Call center', 'label' => 'Call center', 'description' => 'Logs · follow-ups · SIP', 'icon' => 'bi-telephone', 'accent' => 'warning', 'route' => 'admin-tickets'],
             ['slug' => 'call-reports', 'group' => 'Support', 'section' => 'Call center', 'label' => 'Call reports', 'description' => 'Staff call performance', 'icon' => 'bi-bar-chart', 'accent' => 'warning'],
             ['slug' => 'new-connections', 'group' => 'Support', 'section' => 'CRM', 'label' => 'New connections', 'description' => 'Website signup · convert', 'icon' => 'bi-person-plus', 'accent' => 'warning'],
             ['slug' => 'sales-pipeline', 'group' => 'Support', 'section' => 'CRM', 'label' => 'Connection pipeline', 'description' => 'Kanban by stage', 'icon' => 'bi-kanban', 'accent' => 'warning'],
             ['slug' => 'all-tickets', 'group' => 'Support', 'section' => 'Tickets', 'label' => 'All tickets', 'description' => 'Complaints queue', 'icon' => 'bi-chat-left-text', 'accent' => 'warning', 'route' => 'admin-tickets'],
             ['slug' => 'task-board', 'group' => 'Support', 'section' => 'Tasks', 'label' => 'Task board', 'description' => 'Kanban for staff', 'icon' => 'bi-columns-gap', 'accent' => 'warning'],
-            ['slug' => 'outage-broadcast', 'group' => 'Support', 'section' => 'Alerts', 'label' => 'Outage broadcast', 'description' => 'SMS / email alerts', 'icon' => 'bi-megaphone', 'accent' => 'warning', 'route' => 'noc-outage'],
+            ['slug' => 'outage-broadcast', 'group' => 'Support', 'section' => 'Alerts', 'label' => 'Outage broadcast', 'description' => 'SMS / email alerts', 'icon' => 'bi-megaphone', 'accent' => 'warning', 'route' => 'sms-notices'],
         ];
     }
 
@@ -239,7 +239,7 @@ final class FeatureModuleRegistry
     {
         return [
             ['slug' => 'reports-center', 'group' => 'Reports', 'section' => 'Hub', 'label' => 'Reports center', 'description' => 'All analytics', 'icon' => 'bi-pie-chart', 'accent' => 'sky'],
-            ['slug' => 'analytics-dashboard', 'group' => 'Reports', 'section' => 'Analytics', 'label' => 'Analytics dashboard', 'description' => 'KPIs & charts', 'icon' => 'bi-graph-up-arrow', 'accent' => 'sky', 'route' => 'ops-insights'],
+            ['slug' => 'analytics-dashboard', 'group' => 'Reports', 'section' => 'Analytics', 'label' => 'Analytics dashboard', 'description' => 'KPIs & charts', 'icon' => 'bi-graph-up-arrow', 'accent' => 'sky', 'route' => 'collection-report.index'],
             ['slug' => 'zone-collection', 'group' => 'Reports', 'section' => 'Collections', 'label' => 'Zone collection', 'description' => 'Recovery by zone', 'icon' => 'bi-geo', 'accent' => 'sky', 'route' => 'customer-summary'],
             ['slug' => 'btrc-dis', 'group' => 'Reports', 'section' => 'Regulatory', 'label' => 'BTRC DIS', 'description' => 'Export CSV', 'icon' => 'bi-file-earmark-arrow-down', 'accent' => 'sky', 'route' => 'dis-report'],
             ['slug' => 'monthly-billing-report', 'group' => 'Reports', 'section' => 'Billing', 'label' => 'Monthly billing', 'description' => 'Period reports', 'icon' => 'bi-calendar3', 'accent' => 'sky', 'route' => 'collection-report.index'],

@@ -136,17 +136,20 @@ class CollectionEdit extends Component
                 'bill_month' => Carbon::now()->format('F Y'),
             ]);
 
+            $remainingDue = (float) $this->due_amount;
+
             BillingInfo::where('customer_bill_unique_id', $this->info_data->customer_unique_id)
                 ->update([
                     'paid_amount' => $this->paid_amount + $this->info_data->billing->paid_amount,
                     'paid_date' => Carbon::now(),
                     'extra_date' => null,
-                    'due_amount' => $this->due_amount,
+                    'due_amount' => max(0, $remainingDue),
                 ]);
             DB::commit();
             flash('Payment added successfully.')->success();
             $data = [
                 'recipient' => $this->info_data->mobile,
+                'customer_id' => $this->info_data->customer_unique_id,
                 'customer_name' => $this->info_data->customer_name,
                 'collection_amount' => $this->paid_amount,
                 'ip_or_user_name' => $this->info_data->pppUser->username ?? '',
@@ -247,6 +250,7 @@ class CollectionEdit extends Component
                 if ($this->info_data && isset($this->info_data->customer_unique_id) && $this->info_data->customer_unique_id === $collection->customer_collection_unique_id) {
                     $data = [
                         'recipient' => $this->info_data->mobile,
+                        'customer_id' => $this->info_data->customer_unique_id,
                         'customer_name' => $this->info_data->customer_name,
                         'collection_amount' => $colleted,
                         'ip_or_user_name' => $this->info_data->pppUser->username ?? '',

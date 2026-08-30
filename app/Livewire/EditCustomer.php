@@ -1093,6 +1093,10 @@ class EditCustomer extends Component
                         }
                         $relatedModel->$attribute = $value;
                         $relatedModel->save();
+                        if ($relation === 'billing' && in_array($attribute, ['monthly_rent', 'additional_charge', 'discount', 'advance', 'previous_due', 'vat'], true)) {
+                            $this->recalculateBillingTotal($customer->billing);
+                            data_set($this->fields, 'billing.total_amount', $customer->billing->total_amount);
+                        }
                         if ($attribute === 'connected_by') {
                             $userName = $this->userLists->where('id', $value)->first()->name ?? '';
                             data_set($this->fields, $field, $userName);
@@ -1116,6 +1120,14 @@ class EditCustomer extends Component
         } else {
             flash()->error('Customer not found.');
         }
+    }
+
+    protected function recalculateBillingTotal(BillingInfo $billing): void
+    {
+        $subtotal = (float) $billing->monthly_rent + (float) $billing->previous_due + (float) $billing->additional_charge;
+        $vatAmount = ($subtotal * (float) $billing->vat) / 100;
+        $billing->total_amount = round($subtotal + $vatAmount - ((float) $billing->advance + (float) $billing->discount), 2);
+        $billing->save();
     }
 
     public function render()

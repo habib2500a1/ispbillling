@@ -5,7 +5,6 @@ namespace App\Jobs;
 use App\Models\CustomersInfo;
 use App\Models\NotificationLogs;
 use App\Models\User;
-use Codepagol\SmsBridge\Facades\SmsBridge;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -63,9 +62,7 @@ class SendBulkSmsJob implements ShouldQueue
                     $message = $this->compileMessage($customer, $this->messageTemplate);
 
                     try {
-                        $response = SmsBridge::to($customer->mobile)
-                            ->message($message)
-                            ->send();
+                        $response = app(\App\Services\Sms\SmsSender::class)->send($customer->mobile, $message);
 
                         if ($response && $response->isSuccessful()) {
                             $successfulIDs[] = $customer->customer_unique_id . ' (' . ($customer->pppUser->username ?? 'No PPPoE') . ')';
@@ -105,19 +102,6 @@ class SendBulkSmsJob implements ShouldQueue
      */
     private function compileMessage(CustomersInfo $customer, string $template): string
     {
-        $placeholders = [
-            '{CUSTOMER_NAME}' => $customer->customer_name,
-            '{CUSTOMER_ID}' => $customer->customer_unique_id,
-            '{PPPOE_USERNAME}' => $customer->pppUser->username ?? '',
-            '{IP_OR_USER_NAME_OR_ID}' => $customer->pppUser->username ?? $customer->customer_unique_id,
-            '{DUE_AMOUNT}' => $customer->billing->due_amount ?? 0,
-            '{BILL_AMOUNT}' => $customer->billing->total_amount ?? 0,
-            '{AUTO_TEMPORARY_DAY}' => $customer->billing->auto_disable_date ? \Carbon\Carbon::parse($customer->billing->auto_disable_date)->format('d-M-Y') : '',
-            '{LAST_DAY_OF_PAY_BILL}' => $customer->billing->auto_disable_date ? \Carbon\Carbon::parse($customer->billing->auto_disable_date)->format('d-M-Y') : '',
-            '{COMPANY_NAME}' => siteUrlSettings('site_name') ?? config('app.name'),
-            '{COMPANY_MOBILE}' => siteUrlSettings('site_phone') ?? '',
-        ];
-
-        return str_replace(array_keys($placeholders), array_values($placeholders), $template);
+        return app(\App\Services\Sms\SmsPlaceholderRenderer::class)->render($template, [], $customer);
     }
 }

@@ -613,9 +613,12 @@
                         return 0;
                     };
 
-                    var sumColumn = function (colIdx, page) {
+                    var sumColumn = function (colIdx, page, clampZero) {
                         var data = api.column(colIdx, page ? { page: 'current' } : undefined).data().toArray();
-                        return data.reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                        return data.reduce(function (a, b) {
+                            var n = intVal(b);
+                            return intVal(a) + (clampZero ? Math.max(0, n) : n);
+                        }, 0);
                     };
 
                     var fields = {
@@ -627,8 +630,9 @@
 
                     Object.keys(fields).forEach(function(key) {
                         var colIdx = fields[key];
-                        pageTotals[key] = sumColumn(colIdx, true);
-                        grandTotals[key] = sumColumn(colIdx, false);
+                        var clampZero = key === 'due';
+                        pageTotals[key] = sumColumn(colIdx, true, clampZero);
+                        grandTotals[key] = sumColumn(colIdx, false, clampZero);
                     });
 
                     // Update UI safely (Matching Table Column Design)

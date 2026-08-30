@@ -148,11 +148,11 @@
             $navIs = fn (...$names) => request()->routeIs(...$names);
             $openClients = $navIs('customers.*', 'new-customer', 'online-clients', 'package-list-setup', 'address-setup');
             $openBilling = $navIs('payment-collection', 'collection-edit', 'payment-invoice', 'billing-notices', 'sms-notices', 'admin.staff-cash');
-            $openOptical = $navIs('olt-management', 'onu-management', 'noc-overview');
+            $openOptical = $navIs('olt-management', 'onu-management');
             $openMtSetup = $navIs('mikrotik-ip-setup', 'mikrotik-pppoe-setup', 'mikrotik-radius-setup', 'mikrotik-firewall-setup', 'mikrotik-walled-garden', 'mikrotik-queue-setup', 'mikrotik-vpn-setup', 'mikrotik-interface-setup', 'mikrotik-traffic-monitor', 'mikrotik-backup-setup');
             $openNetwork = $openMtSetup || $navIs('mikrotik-sync', 'bandwidth-hub', 'mikrotik-hotspot-manager');
-            $openSupport = $navIs('admin-tickets', 'call-desk', 'noc-outage');
-            $openReports = $navIs('collection-report.*', 'customer-summary', 'dis-report', 'ops-insights');
+            $openSupport = $navIs('admin-tickets');
+            $openReports = $navIs('collection-report.*', 'customer-summary', 'dis-report');
             $openFinance = $navIs('admin.expenses', 'admin.profit-summary', 'accounts-hub', 'inventory-hub');
             $openSystem = $navIs('admin.purchase-requests', 'admin.saas-operators', 'admin.resellers.*', 'admin.activity-logs', 'admin.login-logs', 'admin.system-logs', 'mikrotik-log-viewer', 'admin.vouchers', 'admin.reviews', 'sms-setup', 'automatic-processes', 'sms-bridge.*', 'hr-hub');
         @endphp
@@ -288,11 +288,6 @@
                             <div class="d-flex align-items-center"><span class="nav-link-text ps-1">{{ __('Optical / ONU') }}</span></div>
                         </a>
                     </li>
-                    <li class="nav-item">
-                        <a wire:navigate.hover class="nav-link {{ $navIs('noc-overview') ? 'active' : '' }}" href="{{ route('noc-overview') }}">
-                            <div class="d-flex align-items-center"><span class="nav-link-text ps-1">{{ __('NOC Overview') }}</span></div>
-                        </a>
-                    </li>
                 </ul>
             </li>
             @endif
@@ -401,16 +396,6 @@
                             <div class="d-flex align-items-center"><span class="nav-link-text ps-1">{{ __('Tickets') }}</span></div>
                         </a>
                     </li>
-                    <li class="nav-item">
-                        <a wire:navigate.hover class="nav-link {{ $navIs('call-desk') ? 'active' : '' }}" href="{{ route('call-desk') }}">
-                            <div class="d-flex align-items-center"><span class="nav-link-text ps-1">{{ __('Call Desk') }}</span></div>
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a wire:navigate.hover class="nav-link {{ $navIs('noc-outage') ? 'active' : '' }}" href="{{ route('noc-outage') }}">
-                            <div class="d-flex align-items-center"><span class="nav-link-text ps-1">{{ __('Outage Broadcast') }}</span></div>
-                        </a>
-                    </li>
                 </ul>
             </li>
 
@@ -437,11 +422,6 @@
                     <li class="nav-item">
                         <a wire:navigate.hover class="nav-link {{ $navIs('dis-report') ? 'active' : '' }}" href="{{ route('dis-report') }}">
                             <div class="d-flex align-items-center"><span class="nav-link-text ps-1">{{ __('BTRC DIS') }}</span></div>
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a wire:navigate.hover class="nav-link {{ $navIs('ops-insights') ? 'active' : '' }}" href="{{ route('ops-insights') }}">
-                            <div class="d-flex align-items-center"><span class="nav-link-text ps-1">{{ __('Ops Insights') }}</span></div>
                         </a>
                     </li>
                 </ul>

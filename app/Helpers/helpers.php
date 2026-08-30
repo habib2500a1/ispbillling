@@ -213,3 +213,37 @@ if (! function_exists('portalLoginUrl')) {
         return url('/portal/login');
     }
 }
+
+if (! function_exists('whatsapp_url')) {
+    function whatsapp_url(?string $mobile, string $message = ''): ?string
+    {
+        $digits = preg_replace('/\D+/', '', (string) $mobile) ?? '';
+        if ($digits === '') {
+            return null;
+        }
+        if (str_starts_with($digits, '0') && strlen($digits) === 11) {
+            $digits = '88'.$digits;
+        }
+        $url = 'https://wa.me/'.$digits;
+        if (trim($message) !== '') {
+            $url .= '?text='.rawurlencode($message);
+        }
+
+        return $url;
+    }
+}
+
+if (! function_exists('whatsapp_button')) {
+    function whatsapp_button(?string $mobile, string $message = ''): string
+    {
+        $url = whatsapp_url($mobile, $message);
+        if (! $url) {
+            return '';
+        }
+
+        return '<a href="'.e($url).'" target="_blank" rel="noopener" title="WhatsApp"'
+            .' class="d-inline-flex align-items-center justify-content-center rounded-circle text-decoration-none ms-1"'
+            .' style="width:18px;height:18px;background:#25D366;color:#fff;font-size:10px;line-height:1;vertical-align:text-bottom;">'
+            .'<i class="bi bi-whatsapp"></i></a>';
+    }
+}

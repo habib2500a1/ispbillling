@@ -42,9 +42,10 @@ final class StaffCashService
             ->get();
 
         $emails = $staff->pluck('email')->filter()->all();
+        [$fromAt, $toAt] = $this->collectionWindow($from, $to);
 
         $collections = CollectionSummary::query()
-            ->whereBetween('collection_date', [$from, $to])
+            ->whereBetween('collection_date', [$fromAt, $toAt])
             ->when($emails !== [], fn ($q) => $q->whereIn('collected_by', $emails))
             ->selectRaw('collected_by, SUM(collection_amount) as total, COUNT(*) as cnt')
             ->groupBy('collected_by')
@@ -98,5 +99,52 @@ final class StaffCashService
             'entry_date' => $date,
             'note' => $note,
         ]);
+    }
+
+    /**
+     * @return list<array{id: int, customer: string, amount: float, collected_by: string, collected_at: string}>
+     */
+    public function receipts(?SaasOperator $operator = null, ?string $from = null, ?string $to = null, int $limit = 50): array
+    {
+        $from ??= now()->startOfMonth()->toDateString();
+        $to ??= now()->toDateString();
+        [$fromAt, $toAt] = $this->collectionWindow($from, $to);
+
+        $emails = User::query()
+            ->when($operator, fn ($q) => $q->where(function ($inner) use ($operator) {
+                $inner->where('saas_operator_id', $operator->id)
+                    ->orWhere('id', $operator->user_id);
+            }))
+            ->pluck('email')
+            ->filter()
+            ->all();
+
+        return CollectionSummary::query()
+            ->with('customer:id,customer_unique_id,customer_name')
+            ->whereBetween('collection_date', [$fromAt, $toAt])
+            ->when($emails !== [], fn ($q) => $q->whereIn('collected_by', $emails))
+            ->orderByDesc('collection_date')
+            ->limit($limit)
+            ->get()
+            ->map(fn (CollectionSummary $row) => [
+                'id' => $row->id,
+                'customer' => $row->customer?->customer_name ?: $row->customer_collection_unique_id,
+                'uid' => $row->customer_collection_unique_id,
+                'amount' => (float) $row->collection_amount,
+                'collected_by' => $row->collected_by,
+                'collected_at' => \Carbon\Carbon::parse($row->collection_date)->format('d M Y H:i'),
+            ])
+            ->all();
+    }
+
+    /**
+     * @return array{0: string, 1: string}
+     */
+    private function collectionWindow(string $from, string $to): array
+    {
+        return [
+            \Carbon\Carbon::parse($from)->startOfDay()->toDateTimeString(),
+            \Carbon\Carbon::parse($to)->endOfDay()->toDateTimeString(),
+        ];
     }
 }

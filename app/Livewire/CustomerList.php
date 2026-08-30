@@ -224,7 +224,7 @@ class CustomerList extends Component
                         <span class="badge bg-secondary bg-opacity-10 text-secondary pe-2">'.$row->customer_unique_id.'</span> '.
 
                         (! empty($row->mobile)
-                            ? '<span class="text-muted"><i class="bi bi-telephone text-success"></i> '.$row->mobile.'</span> '
+                            ? '<span class="text-muted"><i class="bi bi-telephone text-success"></i> '.e($row->mobile).'</span>'.whatsapp_button($row->mobile).' '
                             : '').
 
                         (! empty($row->contact_email)
@@ -275,7 +275,8 @@ class CustomerList extends Component
             ->addColumn('billing_summary', function ($row) {
                 $bill = number_format($row->billing?->total_amount ?? 0, 2);
                 $paid = number_format($row->billing?->paid_amount ?? 0, 2);
-                $due = number_format($row->billing?->due_amount ?? 0, 2);
+                $dueRaw = (float) ($row->billing?->due_amount ?? 0);
+                $due = number_format(max(0, $dueRaw), 2);
 
                 return '<div class="billing-card small">'.
                        '<div class="d-flex justify-content-between"><span>Bill:</span> <span class="fw-bold text-primary">'.$bill.'</span></div>'.
@@ -357,6 +358,7 @@ class CustomerList extends Component
 
                 return $btns.'</div>';
             })
+            ->editColumn('billing.due_amount', fn ($row) => max(0, (float) ($row->billing?->due_amount ?? 0)))
             ->rawColumns(['customer_identity', 'customers_address', 'billing_breakdown', 'connection_details', 'billing_summary', 'action', 'disable_details'])
             ->make(true);
     }

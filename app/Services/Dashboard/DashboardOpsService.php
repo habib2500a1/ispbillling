@@ -4,6 +4,7 @@ namespace App\Services\Dashboard;
 
 use App\Models\CallDeskLog;
 use App\Models\CollectionSummary;
+use App\Models\PPPSecrets;
 use App\Models\HrAttendanceLog;
 use App\Models\HrLeaveRequest;
 use App\Models\InventoryProduct;
@@ -37,15 +38,16 @@ final class DashboardOpsService
             'pending_leaves' => 0,
             'routers_connected' => 0,
             'routers' => 0,
+            'online_clients' => 0,
             'links' => [
                 'accounts' => 'accounts-hub',
                 'billing_notices' => 'billing-notices',
-                'call_desk' => 'call-desk',
+                'call_desk' => 'admin-tickets',
                 'sms_notices' => 'sms-notices',
                 'inventory' => 'inventory-hub',
                 'hr' => 'hr-hub',
                 'bandwidth' => 'bandwidth-hub',
-                'noc' => 'noc-overview',
+                'noc' => 'admin-tickets',
             ],
         ];
 
@@ -64,6 +66,10 @@ final class DashboardOpsService
 
             $data['routers'] = RouterList::query()->count();
             $data['routers_connected'] = RouterList::query()->where('action', 'connected')->count();
+            $data['online_clients'] = PPPSecrets::query()
+                ->whereNotNull('uptime')
+                ->where('status', '!=', 'removed')
+                ->count();
 
             if (Schema::hasTable('call_desk_logs')) {
                 $data['calls_today'] = CallDeskLog::query()->whereDate('called_at', today())->count();

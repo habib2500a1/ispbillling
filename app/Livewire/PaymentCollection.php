@@ -238,13 +238,17 @@ class PaymentCollection extends Component
                 'bill_month' => Carbon::now()->format('F Y'),
             ]);
 
+            $remainingDue = (float) $this->due_amount;
+            $advanceBump = $remainingDue < 0 ? abs($remainingDue) : 0;
+
             BillingInfo::where('customer_bill_unique_id', $this->info_data->customer_unique_id)
                 ->update([
                     'paid_amount' => $this->paid_amount + $this->info_data->billing->paid_amount,
                     'paid_date' => Carbon::now(),
                     'auto_disable_date' => $this->expire_date,
                     'extra_date' => null,
-                    'due_amount' => $this->due_amount,
+                    'due_amount' => max(0, $remainingDue),
+                    'advance' => (float) $this->info_data->billing->advance + $advanceBump,
                 ]);
             DB::commit();
         } catch (\Throwable $th) {
@@ -260,6 +264,7 @@ class PaymentCollection extends Component
             flash()->success('Payment added successfully.');
             $data = [
                 'recipient' => $this->info_data->mobile,
+                'customer_id' => $this->info_data->customer_unique_id,
                 'customer_name' => $this->info_data->customer_name,
                 'collection_amount' => $this->paid_amount,
                 'ip_or_user_name' => $this->info_data->pppUser->username ?? '',

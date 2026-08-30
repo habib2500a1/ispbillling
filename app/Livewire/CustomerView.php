@@ -5,6 +5,7 @@ namespace App\Livewire;
 use App\Http\Controllers\MikrotikController;
 use App\Http\Controllers\SMSController;
 use App\Models\BillingInfo;
+use App\Models\CustomerSmsLog;
 use App\Models\CollectionSummary;
 use App\Models\CustomersInfo;
 use App\Models\PaymentSummary;
@@ -176,15 +177,19 @@ class CustomerView extends Component
 
     public function isOnline(CustomersInfo $customer): bool
     {
-        $uptime = $customer->pppUser?->uptime;
-        if (! $uptime) {
-            return false;
+        return ! empty($customer->pppUser?->uptime);
+    }
+
+    public function refreshPresence(): void
+    {
+        $ppp = $this->customer()->pppUser;
+        if (! $ppp?->router_name || ! $ppp->username) {
+            return;
         }
 
         try {
-            return Carbon::parse($uptime)->gte(now()->subMinutes(5));
+            app(MikrotikSync::class)->refreshOneSession($ppp->router_name, (string) $ppp->username);
         } catch (\Throwable) {
-            return false;
         }
     }
 
@@ -344,14 +349,50 @@ class CustomerView extends Component
 
         $response = app(SMSController::class)->sendCustomSms([
             'recipient' => $customer->mobile,
+            'customer_id' => $customer->customer_unique_id,
             'message' => $this->smsMessage,
+            'source' => 'profile',
         ]);
 
-        if ($response->success ?? false) {
+        if (($response->success ?? false) || (method_exists($response, 'isSuccessful') && $response->isSuccessful())) {
             flash()->success(__('SMS sent successfully.'));
             $this->showSmsModal = false;
         } else {
-            flash()->error($response->message ?? __('SMS send failed.'));
+            flash()->error($response->getMessage() ?? $response->message ?? __('SMS send failed.'));
+        }
+    }
+
+    public function resendSms(int $id): void
+    {
+        $log = CustomerSmsLog::query()
+            ->where('id', $id)
+            ->where('customer_unique_id', $this->customerId)
+            ->first();
+        if (! $log) {
+            flash()->error(__('SMS log not found.'));
+
+            return;
+        }
+
+        $customer = $this->customer();
+        $mobile = $customer->mobile ?: $log->mobile;
+        if (! filled($mobile)) {
+            flash()->error(__('Customer has no mobile number.'));
+
+            return;
+        }
+
+        $response = app(SMSController::class)->sendCustomSms([
+            'recipient' => $mobile,
+            'customer_id' => $customer->customer_unique_id,
+            'message' => $log->body,
+            'source' => 'resend',
+        ]);
+
+        if (($response->success ?? false) || (method_exists($response, 'isSuccessful') && $response->isSuccessful())) {
+            flash()->success(__('SMS resent successfully.'));
+        } else {
+            flash()->error($response->getMessage() ?? $response->message ?? __('SMS resend failed.'));
         }
     }
 
@@ -616,6 +657,19 @@ class CustomerView extends Component
             'firstBillCycle' => $firstBillCycle,
             'walletBalance' => (float) ($customer->billing?->advance ?? 0),
             'hasPortalToken' => app(\App\Services\Portal\CustomerPortalAccessService::class)->hasAccessToken($customer),
+            'smsLogs' => \Schema::hasTable('customer_sms_logs')
+                ? CustomerSmsLog::query()
+                    ->where('customer_unique_id', $customer->customer_unique_id)
+                    ->orderByDesc('id')
+                    ->limit(80)
+                    ->get()
+                : collect(),
+            'smsSentCount' => \Schema::hasTable('customer_sms_logs')
+                ? CustomerSmsLog::query()->where('customer_unique_id', $customer->customer_unique_id)->where('status', 'success')->count()
+                : 0,
+            'smsFailCount' => \Schema::hasTable('customer_sms_logs')
+                ? CustomerSmsLog::query()->where('customer_unique_id', $customer->customer_unique_id)->where('status', 'failed')->count()
+                : 0,
         ];
     }
 

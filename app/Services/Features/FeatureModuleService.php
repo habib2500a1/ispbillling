@@ -335,7 +335,7 @@ final class FeatureModuleService
             'actions' => [
                 ['label' => __('SMS Setup'), 'url' => route('sms-setup'), 'class' => 'btn-primary'],
                 ['label' => __('SMS Notices'), 'url' => route('sms-notices'), 'class' => 'btn-outline-success'],
-                ['label' => __('Outage broadcast'), 'url' => route('noc-outage'), 'class' => 'btn-outline-warning'],
+                ['label' => __('SMS Notices'), 'url' => route('sms-notices'), 'class' => 'btn-outline-warning'],
             ],
             'columns' => [],
             'rows' => [],
@@ -373,7 +373,7 @@ final class FeatureModuleService
                 ['label' => __('Open tickets'), 'value' => (string) $tickets, 'color' => 'danger'],
             ],
             'actions' => [
-                ['label' => __('NOC Overview'), 'url' => route('noc-overview'), 'class' => 'btn-primary'],
+                ['label' => __('Online clients'), 'url' => route('online-clients'), 'class' => 'btn-primary'],
                 ['label' => __('Bandwidth'), 'url' => route('bandwidth-hub'), 'class' => 'btn-outline-info'],
                 ['label' => __('Online clients'), 'url' => route('online-clients'), 'class' => 'btn-outline-success'],
             ],
@@ -414,7 +414,6 @@ final class FeatureModuleService
             'rows' => $rows,
             'actions' => [
                 ['label' => __('Support tickets'), 'url' => route('admin-tickets'), 'class' => 'btn-primary'],
-                ['label' => __('Ops insights'), 'url' => route('ops-insights'), 'class' => 'btn-outline-secondary'],
             ],
         ]);
     }
@@ -597,7 +596,7 @@ final class FeatureModuleService
             ],
             'rows' => $rows,
             'actions' => [
-                ['label' => __('Call desk'), 'url' => route('call-desk'), 'class' => 'btn-primary'],
+                ['label' => __('Tickets'), 'url' => route('admin-tickets'), 'class' => 'btn-primary'],
             ],
         ]);
     }
@@ -929,8 +928,8 @@ final class FeatureModuleService
                 ['label' => __('Insights'), 'value' => (string) NotificationLogs::count(), 'color' => 'indigo'],
             ],
             'actions' => [
-                ['label' => __('Ops insights'), 'url' => route('ops-insights'), 'class' => 'btn-primary'],
-                ['label' => __('NOC overview'), 'url' => route('noc-overview'), 'class' => 'btn-outline-info'],
+                ['label' => __('Dashboard'), 'url' => route('dashboard'), 'class' => 'btn-primary'],
+                ['label' => __('Online clients'), 'url' => route('online-clients'), 'class' => 'btn-outline-info'],
                 ['label' => __('Billing notices'), 'url' => route('billing-notices'), 'class' => 'btn-outline-success'],
             ],
             'columns' => [],

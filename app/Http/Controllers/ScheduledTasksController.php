@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\BillingInfo;
 use App\Models\CollectionSummary;
 use App\Models\CustomersInfo;
+use App\Models\CustomerSmsLog;
 use App\Models\NotificationLogs;
 use App\Models\PaymentSummary;
 use App\Models\PPPSecrets;
@@ -12,7 +13,6 @@ use App\Models\RouterList;
 use App\Models\SmsTemplate;
 use App\Services\MikrotikSSHService;
 use Carbon\Carbon;
-use Codepagol\SmsBridge\Facades\SmsBridge;
 
 class ScheduledTasksController extends Controller
 {
@@ -268,25 +268,15 @@ class ScheduledTasksController extends Controller
 
                     if ($customer_bill * ($customer->billing->auto_disable_month) < $due_amount) {
                         if ($template) {
-                            $message = str_replace(
-                                ['{CUSTOMER_NAME}', '{AUTO_TEMPORARY_DAY}', '{ID}', '{DUE_AMOUNT}', '{COMPANY_NAME}', '{COMPANY_MOBILE}'],
-                                [
-                                    $customer->customer_name,
-                                    Carbon::parse($expiredDate)->format('d-M-Y'),
-                                    $customer->customer_unique_id.'('.($customer->pppUser->username ?? '').')',
-                                    $customer->billing->due_amount,
-                                    siteUrlSettings('site_name'),
-                                    siteUrlSettings('site_phone'),
-                                ],
-                                $template->template
-                            );
+                            $message = app(\App\Services\Sms\SmsPlaceholderRenderer::class)->render($template->template, [
+                                'last_day_of_pay_bill' => Carbon::parse($expiredDate)->format('d-M-Y'),
+                            ], $customer);
                         } else {
                             $message = 'Dear '.$customer->customer_name.', Your ID '.$customer->customer_unique_id.'('.($customer->pppUser->username ?? '').') is EXPIRED on: '.Carbon::parse($expiredDate)->format('d-M-Y').', Your Due amount: '.$customer->billing->due_amount.'TK, Please Pay it before '.Carbon::parse($expiredDate)->format('d-M-Y').' to avoid Disconnection. Regards, '.siteUrlSettings('site_name').', Mobile: '.siteUrlSettings('site_phone');
                         }
 
-                        $response = SmsBridge::to($customer->mobile)
-                            ->message($message)
-                            ->send();
+                        $response = app(\App\Services\Sms\SmsSender::class)->send($customer->mobile, $message);
+                        CustomerSmsLog::record($customer->customer_unique_id, $customer->mobile, $message, 'expire_alert', $response);
 
                         if ($response && $response->isSuccessful()) {
                             $successfulIDs[] = $customer->customer_unique_id.' ('.($customer->pppUser->username ?? '').')';
@@ -436,22 +426,12 @@ class ScheduledTasksController extends Controller
 
                             if ($template) {
                                 if ($template->is_active) {
-                                    $message = str_replace(
-                                        ['{CUSTOMER_NAME}', '{CUSTOMER_ID}', '{DUE_AMOUNT}', '{COMPANY_NAME}', '{COMPANY_MOBILE}'],
-                                        [
-                                            $customer->customer_name,
-                                            $customer->customer_unique_id.'('.($pppUser->username ?? '').')',
-                                            $due,
-                                            siteUrlSettings('site_name'),
-                                            siteUrlSettings('site_phone'),
-                                        ],
-                                        $template->template
-                                    );
+                                    $message = app(\App\Services\Sms\SmsPlaceholderRenderer::class)->render($template->template, [
+                                        'due_amount' => $due,
+                                    ], $customer);
 
-                                    // Send SMS
-                                    $responseSms = SmsBridge::to($customer->mobile)
-                                        ->message($message)
-                                        ->send();
+                                    $responseSms = app(\App\Services\Sms\SmsSender::class)->send($customer->mobile, $message);
+                                    CustomerSmsLog::record($customer->customer_unique_id, $customer->mobile, $message, 'disable_alert', $responseSms);
 
                                     if ($responseSms && $responseSms->isSuccessful()) {
                                         $successfulSMS = '->{sms sent}';
@@ -466,9 +446,8 @@ class ScheduledTasksController extends Controller
                                 $message = 'Dear '.$customer->customer_name.', Your ID '.$customer->customer_unique_id.'('.($customer->pppUser->username ?? '').') is temporarily disconnected, Your Due amount: '.$due.'TK. Regards, '.siteUrlSettings('site_name').', Mobile: '.siteUrlSettings('site_phone');
 
                                 // Send SMS
-                                $responseSms = SmsBridge::to($customer->mobile)
-                                    ->message($message)
-                                    ->send();
+                                $responseSms = app(\App\Services\Sms\SmsSender::class)->send($customer->mobile, $message);
+                                CustomerSmsLog::record($customer->customer_unique_id, $customer->mobile, $message, 'disable_alert', $responseSms);
 
                                 if ($responseSms && $responseSms->isSuccessful()) {
                                     $successfulSMS = '->{sms sent}';

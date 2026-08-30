@@ -444,15 +444,14 @@
                 <div class="dash-panel">
                     <div class="panel-h">
                         <span class="dash-section-title mb-0">{{ __('Quick actions') }}</span>
-                        <a href="{{ route('ops-insights') }}" class="btn btn-sm btn-outline-secondary">{{ __('Insights') }}</a>
                     </div>
                     <div class="panel-b quick-grid">
                         <div class="row g-2">
                             <div class="col-6"><a href="{{ route('payment-collection') }}"><i class="bi bi-cash-coin"></i> {{ __('Collect bill') }}</a></div>
                             <div class="col-6"><a href="{{ route('customers.index') }}"><i class="bi bi-person-lines-fill"></i> {{ __('Customers') }}</a></div>
                             <div class="col-6"><a href="{{ route('billing-notices') }}"><i class="bi bi-bell"></i> {{ __('Notices') }}</a></div>
-                            <div class="col-6"><a href="{{ route('noc-overview') }}"><i class="bi bi-radar"></i> {{ __('NOC') }}</a></div>
-                            <div class="col-6"><a href="{{ route('call-desk') }}"><i class="bi bi-telephone"></i> {{ __('Call desk') }}</a></div>
+                            <div class="col-6"><a href="{{ route('online-clients') }}"><i class="bi bi-wifi"></i> {{ __('Online clients') }}</a></div>
+                            <div class="col-6"><a href="{{ route('admin-tickets') }}"><i class="bi bi-headset"></i> {{ __('Tickets') }}</a></div>
                             <div class="col-6"><a href="{{ route('accounts-hub') }}"><i class="bi bi-journal-richtext"></i> {{ __('Accounts') }}</a></div>
                         </div>
                     </div>
@@ -468,7 +467,6 @@
                     <div class="d-flex flex-wrap gap-2">
                         <a href="{{ route('accounts-hub') }}" class="btn btn-sm btn-outline-secondary">{{ __('Accounts') }}</a>
                         <a href="{{ route('sms-notices') }}" class="btn btn-sm btn-outline-secondary">{{ __('SMS') }}</a>
-                        <a href="{{ route('noc-overview') }}" class="btn btn-sm btn-success">{{ __('NOC') }}</a>
                     </div>
                 </div>
             </div>
@@ -491,7 +489,7 @@
                 </a>
             </div>
             <div class="col-6 col-md-3">
-                <a class="dash-link" href="{{ route('noc-overview') }}">
+                <a class="dash-link" href="{{ route('admin-tickets') }}">
                     <div class="dash-kpi">
                         <div class="label">{{ __('Tickets / SLA') }}</div>
                         <div class="value fs-3">{{ $opsData['open_tickets'] ?? 0 }}</div>
@@ -500,11 +498,11 @@
                 </a>
             </div>
             <div class="col-6 col-md-3">
-                <a class="dash-link" href="{{ route('call-desk') }}">
+                <a class="dash-link" href="{{ route('online-clients') }}">
                     <div class="dash-kpi">
-                        <div class="label">{{ __('Call Desk') }}</div>
-                        <div class="value fs-3">{{ $opsData['calls_today'] ?? 0 }}</div>
-                        <div class="meta">{{ __('Callbacks') }}: {{ $opsData['callbacks'] ?? 0 }}</div>
+                        <div class="label">{{ __('Online clients') }}</div>
+                        <div class="value fs-3">{{ $opsData['online_clients'] ?? '—' }}</div>
+                        <div class="meta">{{ __('Live sessions') }}</div>
                     </div>
                 </a>
             </div>
@@ -610,10 +608,9 @@
                 </h6>
                 <div class="d-flex flex-wrap gap-2">
                     <a href="{{ route('accounts-hub') }}" class="btn btn-sm btn-outline-secondary">{{ __('Accounts') }}</a>
-                    <a href="{{ route('call-desk') }}" class="btn btn-sm btn-outline-secondary">{{ __('Call Desk') }}</a>
+                    <a href="{{ route('admin-tickets') }}" class="btn btn-sm btn-outline-secondary">{{ __('Tickets') }}</a>
                     <a href="{{ route('sms-notices') }}" class="btn btn-sm btn-outline-secondary">{{ __('SMS') }}</a>
-                    <a href="{{ route('ops-insights') }}" class="btn btn-sm btn-outline-secondary">{{ __('Insights') }}</a>
-                    <a href="{{ route('noc-overview') }}" class="btn btn-sm btn-primary">{{ __('NOC') }}</a>
+                    <a href="{{ route('collection-report.index') }}" class="btn btn-sm btn-outline-secondary">{{ __('Collection report') }}</a>
                 </div>
             </div>
         </div>
@@ -709,10 +706,9 @@
                 </h6>
                 <div class="d-flex flex-wrap gap-2">
                     <a href="{{ route('accounts-hub') }}" class="btn btn-sm btn-outline-secondary">{{ __('Accounts') }}</a>
-                    <a href="{{ route('call-desk') }}" class="btn btn-sm btn-outline-secondary">{{ __('Call Desk') }}</a>
+                    <a href="{{ route('admin-tickets') }}" class="btn btn-sm btn-outline-secondary">{{ __('Tickets') }}</a>
                     <a href="{{ route('sms-notices') }}" class="btn btn-sm btn-outline-secondary">{{ __('SMS') }}</a>
-                    <a href="{{ route('ops-insights') }}" class="btn btn-sm btn-outline-secondary">{{ __('Insights') }}</a>
-                    <a href="{{ route('noc-overview') }}" class="btn btn-sm btn-primary">{{ __('NOC') }}</a>
+                    <a href="{{ route('collection-report.index') }}" class="btn btn-sm btn-outline-secondary">{{ __('Collection report') }}</a>
                 </div>
             </div>
         </div>
@@ -761,7 +757,7 @@
         </div>
 
         <div class="col-12 col-sm-6 col-xl-3">
-            <a href="{{ route('noc-overview') }}" class="text-decoration-none">
+            <a href="{{ route('admin-tickets') }}" class="text-decoration-none">
                 <div class="card border-0 shadow-sm overflow-hidden h-100" style="background: linear-gradient(135deg, #991b1b, #7f1d1d); color: #fff; border-radius: 12px;">
                     <div class="card-body position-relative z-1">
                         <div class="d-flex justify-content-between align-items-center">
@@ -783,21 +779,20 @@
         </div>
 
         <div class="col-12 col-sm-6 col-xl-3">
-            <a href="{{ route('call-desk') }}" class="text-decoration-none">
+            <a href="{{ route('online-clients') }}" class="text-decoration-none">
                 <div class="card border-0 shadow-sm overflow-hidden h-100" style="background: linear-gradient(135deg, #0f172a, #1e3a5f); color: #fff; border-radius: 12px;">
                     <div class="card-body position-relative z-1">
                         <div class="d-flex justify-content-between align-items-center">
                             <div>
-                                <h6 class="text-uppercase fw-bold mb-1" style="font-size: 0.72rem; letter-spacing: 1px; opacity: 0.85;">{{ __('Call Desk') }}</h6>
-                                <h3 class="fw-bold mb-0">{{ $opsData['calls_today'] ?? 0 }}</h3>
+                                <h6 class="text-uppercase fw-bold mb-1" style="font-size: 0.72rem; letter-spacing: 1px; opacity: 0.85;">{{ __('Online clients') }}</h6>
+                                <h3 class="fw-bold mb-0">{{ $opsData['online_clients'] ?? '—' }}</h3>
                             </div>
                             <div class="rounded-circle d-flex align-items-center justify-content-center" style="width: 48px; height: 48px; background: rgba(255,255,255,0.2);">
-                                <i class="bi bi-telephone-forward fs-4"></i>
+                                <i class="bi bi-wifi fs-4"></i>
                             </div>
                         </div>
                         <div class="mt-3 pt-2 border-top border-white border-opacity-25 small" style="opacity: 0.9;">
-                            {{ __('Calls today') }}
-                            <span class="float-end">{{ __('Callbacks:') }} {{ $opsData['callbacks'] ?? 0 }}</span>
+                            {{ __('Live sessions') }}
                         </div>
                     </div>
                 </div>
@@ -870,21 +865,20 @@
         </div>
 
         <div class="col-12 col-sm-6 col-xl-3">
-            <a href="{{ route('ops-insights') }}" class="text-decoration-none">
+            <a href="{{ route('collection-report.index') }}" class="text-decoration-none">
                 <div class="card border-0 shadow-sm overflow-hidden h-100" style="background: linear-gradient(135deg, #7c2d12, #9a3412); color: #fff; border-radius: 12px;">
                     <div class="card-body position-relative z-1">
                         <div class="d-flex justify-content-between align-items-center">
                             <div>
-                                <h6 class="text-uppercase fw-bold mb-1" style="font-size: 0.72rem; letter-spacing: 1px; opacity: 0.85;">{{ __('Ops Insights') }}</h6>
-                                <h3 class="fw-bold mb-0">{{ $opsData['insights_critical'] ?? 0 }}</h3>
+                                <h6 class="text-uppercase fw-bold mb-1" style="font-size: 0.72rem; letter-spacing: 1px; opacity: 0.85;">{{ __('Collection report') }}</h6>
+                                <h3 class="fw-bold mb-0">৳{{ number_format($opsData['today_collection'] ?? 0, 0) }}</h3>
                             </div>
                             <div class="rounded-circle d-flex align-items-center justify-content-center" style="width: 48px; height: 48px; background: rgba(255,255,255,0.2);">
-                                <i class="bi bi-lightning-charge fs-4"></i>
+                                <i class="bi bi-file-earmark-bar-graph fs-4"></i>
                             </div>
                         </div>
                         <div class="mt-3 pt-2 border-top border-white border-opacity-25 small" style="opacity: 0.9;">
-                            {{ __('Critical') }}
-                            <span class="float-end">{{ __('High:') }} {{ $opsData['insights_high'] ?? 0 }} · {{ __('All:') }} {{ $opsData['insights_total'] ?? 0 }}</span>
+                            {{ __('Today collection') }}
                         </div>
                     </div>
                 </div>

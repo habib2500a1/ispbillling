@@ -63,6 +63,11 @@ class BillingInfo extends Model
         $this->save();
     }
 
+    public function outstandingDue(): float
+    {
+        return max(0, (float) ($this->due_amount ?? 0));
+    }
+
     protected $fillable = [
         'customer_bill_unique_id',
         'monthly_rent',

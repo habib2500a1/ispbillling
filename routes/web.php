@@ -12,6 +12,7 @@ use App\Livewire\Admin\SystemLogViewer;
 use App\Livewire\Admin\ManageSaasOperators;
 use App\Livewire\Admin\StaffCashDesk;
 use App\Http\Controllers\SaasLockedController;
+use App\Http\Controllers\CollectionInvoiceController;
 use App\Http\Controllers\CollectionReportController;
 use App\Http\Controllers\CustomerPortalController;
 use App\Http\Controllers\DashboardController;
@@ -27,14 +28,10 @@ use App\Livewire\GroupHub;
 use App\Livewire\IspOsHub;
 use App\Livewire\BandwidthHub;
 use App\Livewire\BillingNotices;
-use App\Livewire\CallDesk;
 use App\Livewire\HrHub;
 use App\Livewire\InventoryHub;
-use App\Livewire\NocOutageBroadcast;
-use App\Livewire\NocOverview;
 use App\Livewire\OltManager;
 use App\Livewire\OnuManager;
-use App\Livewire\OpsInsights;
 use App\Livewire\SmsNotices;
 use App\Http\Controllers\Payment\BkashPaymentController;
 use App\Http\Controllers\Payment\NagadPaymentController;
@@ -180,7 +177,7 @@ Route::middleware([
         // Optical / OLT (Phase 1)
         Route::get('/olts', OltManager::class)->name('olt-management');
         Route::get('/onus', OnuManager::class)->name('onu-management');
-        Route::get('/noc', NocOverview::class)->name('noc-overview');
+        Route::get('/noc', fn () => redirect()->route('dashboard'))->name('noc-overview');
 
         // Billing extras (Phase 3)
         Route::get('/billing-notices', BillingNotices::class)->name('billing-notices');
@@ -189,14 +186,14 @@ Route::middleware([
 
         // NOC / Bandwidth (Phase 4)
         Route::get('/bandwidth-hub', BandwidthHub::class)->name('bandwidth-hub');
-        Route::get('/noc-outage', NocOutageBroadcast::class)->name('noc-outage');
+        Route::get('/noc-outage', fn () => redirect()->route('dashboard'))->name('noc-outage');
 
         // Ops hubs (Phase 5)
         Route::get('/accounts-hub', AccountsHub::class)->name('accounts-hub');
         Route::get('/hr-hub', HrHub::class)->name('hr-hub');
-        Route::get('/call-desk', CallDesk::class)->name('call-desk');
+        Route::get('/call-desk', fn () => redirect()->route('dashboard'))->name('call-desk');
         Route::get('/inventory-hub', InventoryHub::class)->name('inventory-hub');
-        Route::get('/ops-insights', OpsInsights::class)->name('ops-insights');
+        Route::get('/ops-insights', fn () => redirect()->route('dashboard'))->name('ops-insights');
 
         // Mikrotik Setup Routes
         Route::prefix('mikrotik-setup')->group(function () {
@@ -224,6 +221,8 @@ Route::middleware([
         Route::get('/payment-collection', PaymentCollection::class)->name('payment-collection');
         Route::get('/payment-collection-edit', CollectionEdit::class)->name('collection-edit');
         Route::get('/payment-invoice', Invoice::class)->name('payment-invoice');
+        Route::get('/invoices/{id}', [CollectionInvoiceController::class, 'show'])->name('collection-invoice.show')->whereNumber('id');
+        Route::get('/invoices/{id}/download', [CollectionInvoiceController::class, 'download'])->name('collection-invoice.download')->whereNumber('id');
 
         // all report
         Route::get('/customer-summary', CustomerSummary::class)->name('customer-summary');

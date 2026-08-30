@@ -15,7 +15,6 @@
             <button type="button" class="btn btn-sm btn-outline-dark" wire:click="publishDigest">
                 <i class="bi bi-journal-check"></i> {{ __('Save digest') }}
             </button>
-            <a href="{{ route('noc-overview') }}" class="btn btn-sm btn-outline-secondary">{{ __('NOC') }}</a>
             <a href="{{ route('dashboard') }}" class="btn btn-sm btn-primary">{{ __('Dashboard') }}</a>
         </div>
     </div>

@@ -217,6 +217,7 @@ class PaymentService
             try {
                 $smsData = [
                     'recipient' => $customer->mobile,
+                    'customer_id' => $customer->customer_unique_id,
                     'customer_name' => $customer->customer_name,
                     'collection_amount' => $amount,
                     'ip_or_user_name' => $customer->pppUser->username ?? '',

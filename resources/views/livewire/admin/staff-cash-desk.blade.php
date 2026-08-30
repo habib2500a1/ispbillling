@@ -68,6 +68,39 @@
         </div>
     </div>
 
+    <div class="card border-0 shadow-sm rounded-4 mb-3">
+        <div class="card-header bg-white border-0 py-3"><strong>{{ __('Collection receipts') }}</strong></div>
+        <div class="card-body pt-0">
+            <div class="table-responsive">
+                <table class="table table-sm table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>{{ __('Time') }}</th>
+                            <th>{{ __('Customer') }}</th>
+                            <th>{{ __('Staff') }}</th>
+                            <th class="text-end">{{ __('Amount') }}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse ($receipts as $receipt)
+                            <tr>
+                                <td class="small text-muted">{{ $receipt['collected_at'] }}</td>
+                                <td>
+                                    <div class="fw-semibold">{{ $receipt['customer'] }}</div>
+                                    <div class="small text-muted">{{ $receipt['uid'] }}</div>
+                                </td>
+                                <td class="small">{{ $receipt['collected_by'] }}</td>
+                                <td class="text-end fw-semibold text-success">৳{{ number_format($receipt['amount'], 2) }}</td>
+                            </tr>
+                        @empty
+                            <tr><td colspan="4" class="text-center text-muted py-4">{{ __('No collections in this period.') }}</td></tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
     <div class="card border-0 shadow-sm rounded-4">
         <div class="card-header bg-white border-0 py-3"><strong>{{ __('Record office deposit') }}</strong></div>
         <div class="card-body">

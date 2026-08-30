@@ -150,9 +150,9 @@ final class OpsInsightsService
                 'support',
                 'critical',
                 __('SLA breached tickets'),
-                __(':n open tickets past SLA — prioritize NOC queue.', ['n' => $breached]),
-                'noc-overview',
-                __('NOC Overview')
+                __(':n open tickets past SLA — prioritize the ticket queue.', ['n' => $breached]),
+                'admin-tickets',
+                __('Support tickets')
             );
         } elseif ($open >= 10) {
             $insights[] = $this->insight(
@@ -179,8 +179,8 @@ final class OpsInsightsService
                 'medium',
                 __('Pending callbacks'),
                 __(':n callback outcomes in last 7 days.', ['n' => $callbacks]),
-                'call-desk',
-                __('Call Desk')
+                'admin-tickets',
+                __('Support tickets')
             );
         }
     }

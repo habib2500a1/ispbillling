@@ -13,7 +13,6 @@
             </button>
             <a href="{{ route('admin-tickets') }}" class="btn btn-sm btn-outline-secondary">{{ __('Tickets') }}</a>
             <a href="{{ route('billing-notices') }}" class="btn btn-sm btn-outline-secondary">{{ __('Billing Notices') }}</a>
-            <a href="{{ route('noc-overview') }}" class="btn btn-sm btn-primary">{{ __('NOC') }}</a>
         </div>
     </div>
 

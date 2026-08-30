@@ -62,11 +62,13 @@ class StaffCashDesk extends Component
     public function render()
     {
         $operator = canSellSaas() ? null : SaasContext::operator();
-        $rows = app(StaffCashService::class)->ledger($operator, $this->from, $this->to);
+        $cash = app(StaffCashService::class);
+        $rows = $cash->ledger($operator, $this->from, $this->to);
         $staff = collect($rows)->pluck('user');
 
         return view('livewire.admin.staff-cash-desk', [
             'rows' => $rows,
+            'receipts' => $cash->receipts($operator, $this->from, $this->to),
             'staff' => $staff,
             'totals' => [
                 'collected' => collect($rows)->sum('collected'),

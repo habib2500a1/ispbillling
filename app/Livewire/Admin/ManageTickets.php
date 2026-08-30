@@ -7,7 +7,6 @@ use App\Models\NotificationLogs;
 use App\Models\SupportTicket;
 use App\Models\User;
 use App\Services\CallCenter\CallDeskService;
-use Codepagol\SmsBridge\Facades\SmsBridge;
 use Illuminate\Validation\Rule;
 use Livewire\Attributes\On;
 use Livewire\Component;
@@ -266,9 +265,7 @@ class ManageTickets extends Component
                 $message = "Dear {$ticket->customer->customer_name}, Support Ticket #{$ticket->ticket_no} has a new response: \"{$replySnippet}\". Status: ".ucfirst(str_replace('_', ' ', $ticket->status)).'. Regards, '.siteUrlSettings('site_name');
 
                 try {
-                    $response = SmsBridge::to($mobile)
-                        ->message($message)
-                        ->send();
+                    $response = app(\App\Services\Sms\SmsSender::class)->send($mobile, $message);
                     if ($response && $response->isSuccessful()) {
                         flash()->success('SMS notification sent to customer.');
                     } else {

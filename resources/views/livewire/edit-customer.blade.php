@@ -159,42 +159,51 @@
                     <x-slot name="title">{{ __('Billing Information') }}</x-slot>
                     <x-slot name="aside">
                         <div class="col-12">
+                            <p class="small text-muted mb-2">{{ __('Click a value to edit, then tick to save.') }}</p>
                             <table class="table table-sm text-capitalize">
                                 @foreach ($fields['billing'] as $field => $value)
                                     <tr>
                                         <th>{{ __(ucwords(str_replace('_', ' ', $field))) }}:</th>
                                         <td>
-                                            <span>
-                                                {!! !empty($fields['billing'][$field]) ? $fields['billing'][$field] : '<span class="text-danger">' . __('Empty') . '</span>' !!}
-                                            </span>
-                                            {{-- <span x-show="isEditing !== 'billing.{{ $field }}'"
+                                            <span x-show="isEditing !== 'billing.{{ $field }}'"
                                                 @click="isEditing = 'billing.{{ $field }}';
-                                                tempValue['billing.{{ $field }}'] = '{{ $fields['billing'][$field] ?? '' }}';
+                                                tempValue['billing.{{ $field }}'] = @js($fields['billing'][$field] ?? '');
                                                 $wire.startEditing('billing.{{ $field }}');"
                                                 style="cursor: pointer; text-decoration: underline dotted;"
                                                 class="link-success">
-                                                {!! !empty($fields['billing'][$field]) ? $fields['billing'][$field] : '<span class="text-danger">Empty</span>' !!}
-                                            </span> --}}
+                                                @if($fields['billing'][$field] === '' || $fields['billing'][$field] === null)
+                                                    <span class="text-danger">{{ __('Empty') }}</span>
+                                                @else
+                                                    {{ $fields['billing'][$field] }}
+                                                @endif
+                                            </span>
 
-                                            {{-- <div x-show="isEditing === 'billing.{{ $field }}'"
+                                            <div x-show="isEditing === 'billing.{{ $field }}'"
                                                 @click.away="isEditing = null;
-                                                tempValue['billing.{{ $field }}'] = '{{ $fields['billing'][$field] ?? '' }}';
+                                                tempValue['billing.{{ $field }}'] = @js($fields['billing'][$field] ?? '');
                                                 $wire.cancelEditing('billing.{{ $field }}')"
                                                 style="display: none;" class="input-group mt-2">
 
-                                                <input type="text" x-model="tempValue['billing.{{ $field }}']"
-                                                    class="form-control form-control-sm h-50"
-                                                    placeholder="Edit {{ ucwords(str_replace('_', ' ', $field)) }}" autofocus />
+                                                @if ($field === 'billing_type')
+                                                    <select x-model="tempValue['billing.{{ $field }}']" class="form-control form-control-sm h-50">
+                                                        <option value="prepaid">{{ __('Prepaid') }}</option>
+                                                        <option value="postpaid">{{ __('Postpaid') }}</option>
+                                                    </select>
+                                                @else
+                                                    <input type="number" step="0.01" x-model="tempValue['billing.{{ $field }}']"
+                                                        class="form-control form-control-sm h-50"
+                                                        placeholder="{{ __('Edit') }} {{ __(ucwords(str_replace('_', ' ', $field))) }}" autofocus />
+                                                @endif
 
-                                                <button @click="$wire.updateCustomer('billing.{{ $field }}', tempValue['billing.{{ $field }}']);
+                                                <button type="button" @click="$wire.updateCustomer('billing.{{ $field }}', tempValue['billing.{{ $field }}']);
                                                         isEditing = null"
                                                         class="btn btn-white text-success h-50"><i class="bi bi-check2-circle"></i></button>
 
-                                                <button @click="isEditing = null;
-                                                        tempValue['billing.{{ $field }}'] = '{{ $fields['billing'][$field] ?? '' }}';
+                                                <button type="button" @click="isEditing = null;
+                                                        tempValue['billing.{{ $field }}'] = @js($fields['billing'][$field] ?? '');
                                                         $wire.cancelEditing('billing.{{ $field }}')"
                                                         class="btn btn-white h-50 text-danger"><i class="bi bi-x-circle"></i></button>
-                                            </div> --}}
+                                            </div>
                                         </td>
                                     </tr>
                                 @endforeach
