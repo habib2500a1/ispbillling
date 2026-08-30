@@ -170,6 +170,9 @@ Route::middleware([
         Route::get('/mikrotik', MikrotikSync::class)->name('mikrotik-sync');
         Route::post('/mikrotik', [RouterListController::class, 'store'])->name('mikrotik.store');
         Route::delete('/mikrotik/{id}', [RouterListController::class, 'destroy'])->name('mikrotik.destroy');
+        Route::get('/mikrotik/{id}', function (int $id) {
+            return redirect()->route('mikrotik-sync', ['edit' => $id]);
+        })->whereNumber('id');
         Route::get('/mikrotik/{id}/import', [MikrotikImportController::class, 'show'])->name('mikrotik.import');
         Route::post('/mikrotik/{id}/import', [MikrotikImportController::class, 'store'])->name('mikrotik.import.store');
         Route::get('/online-clients', \App\Livewire\OnlineClients::class)->name('online-clients');

@@ -2,9 +2,14 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\CustomersInfo;
+use App\Models\PackageList;
+use App\Models\PPPSecrets;
 use App\Models\RouterList;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\Rule;
 
 class RouterListController extends Controller
@@ -70,8 +75,37 @@ class RouterListController extends Controller
         }
 
         $router = RouterList::findOrFail($id);
-        $router->delete();
-        flash()->success('Router deleted successfully!');
+        $name = (string) $router->router_name;
+
+        $customerCount = CustomersInfo::query()
+            ->whereHas('pppUser', fn ($q) => $q->where('router_name', $name))
+            ->count();
+
+        if ($customerCount > 0) {
+            flash()->error(__('This MikroTik has :count customers. Delete or move those clients first from the Customer list — router delete does not remove users.', [
+                'count' => $customerCount,
+            ]));
+
+            return redirect()->route('mikrotik-sync');
+        }
+
+        try {
+            DB::transaction(function () use ($router, $name) {
+                PPPSecrets::query()->where('router_name', $name)->delete();
+
+                if (Schema::hasTable('package_lists')) {
+                    PackageList::query()->where('router_name', $name)->update(['router_name' => null]);
+                }
+
+                $router->delete();
+            });
+        } catch (\Throwable $e) {
+            flash()->error(__('Router could not be deleted: :message', ['message' => $e->getMessage()]));
+
+            return redirect()->route('mikrotik-sync');
+        }
+
+        flash()->success(__('Router removed from billing. Live MikroTik users were not deleted.'));
 
         return redirect()->route('mikrotik-sync');
     }

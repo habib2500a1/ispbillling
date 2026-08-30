@@ -176,7 +176,7 @@
                                             title="{{ __('Import PPP users') }}">
                                             <i class="bi bi-cloud-download me-1"></i>{{ __('Import users') }}
                                         </a>
-                                        <form method="POST" action="{{ route('mikrotik.destroy', $router->id) }}" class="d-inline" onsubmit="return confirm('{{ __('Delete this MikroTik router?') }}')">
+                                        <form method="POST" action="{{ route('mikrotik.destroy', $router->id) }}" class="d-inline" onsubmit="return confirm('{{ __('Remove this router from billing? Customers stay — delete clients from the Customer list.') }}')">
                                             @csrf
                                             @method('DELETE')
                                             <button class="btn btn-sm btn-outline-danger p-1" title="{{ __('Delete') }}" type="submit">
