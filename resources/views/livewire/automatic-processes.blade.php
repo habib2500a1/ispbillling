@@ -40,6 +40,19 @@
 
     <div class="card border-0 shadow-sm rounded-4 mb-3" style="border-left: 5px solid #1e3a5f !important;">
         <div class="card-body">
+            <div class="d-flex flex-wrap align-items-start justify-content-between gap-2">
+                <div>
+                    <h6 class="fw-bold mb-1">{{ __('Invoice & billing rules') }}</h6>
+                    <p class="small text-muted mb-0">{{ __('Bill day, SMS, late fee, invoice PDF, and auto-disable are managed on Site Settings → Billing & Invoice.') }}</p>
+                </div>
+                <a href="{{ route('site-settings', ['tab' => 'billing']) }}" class="btn btn-sm btn-primary">
+                    <i class="bi bi-sliders me-1"></i>{{ __('Open Billing & Invoice') }}
+                </a>
+            </div>
+        </div>
+    </div>
+    <div class="d-none">
+        <div class="card-body">
             <div class="d-flex flex-wrap align-items-start justify-content-between gap-2 mb-3">
                 <div>
                     <h6 class="fw-bold mb-1">{{ __('Billing automation') }}</h6>

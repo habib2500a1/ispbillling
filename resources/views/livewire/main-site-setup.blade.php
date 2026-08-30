@@ -119,8 +119,10 @@
 
     <div x-data="{ activeTab: $wire.entangle('activeTab') }"
          x-init="
+            const q = new URLSearchParams(window.location.search).get('tab');
             const stored = localStorage.getItem('siteSetupActiveTab');
-            if (stored) activeTab = stored;
+            if (q) activeTab = q;
+            else if (stored) activeTab = stored;
             $watch('activeTab', val => localStorage.setItem('siteSetupActiveTab', val));
          ">
 
@@ -651,59 +653,95 @@
                                 </div>
                                 <div class="col-12">
                                     <div class="p-3 border rounded-3 bg-light bg-opacity-50">
-                                        <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
-                                            <div>
-                                                <div class="fw-bold">{{ __('Monthly bill generate') }}</div>
-                                                <div class="small text-muted">{{ __('Super Admin sets the date and clock. Staff still collect bills as usual.') }}</div>
-                                            </div>
-                                            <div class="form-check form-switch m-0">
-                                                <input class="form-check-input" type="checkbox" role="switch" id="bill_generate_on" wire:model.live="bill_generate_on">
-                                                <label class="form-check-label fw-semibold" for="bill_generate_on">{{ __('On') }}</label>
-                                            </div>
-                                        </div>
+                                        <div class="fw-bold mb-1">{{ __('Invoice schedule') }}</div>
+                                        <div class="small text-muted mb-3">{{ __('Generate, SMS, late fee, and auto-disable are all saved from this tab.') }}</div>
                                         <div class="row g-3">
-                                            <div class="col-6 col-md-3">
-                                                <label class="form-label fw-semibold">{{ __('Bill day') }}</label>
-                                                <select class="form-select rounded-3" wire:model.live="bill_generate_day">
-                                                    @for ($d = 1; $d <= 28; $d++)
-                                                        <option value="{{ $d }}">{{ $d }}</option>
-                                                    @endfor
-                                                </select>
-                                                <small class="text-muted">{{ __('Day of each month (1–28).') }}</small>
+                                            <div class="col-12 col-md-6 col-xl-3">
+                                                <div class="border rounded-3 p-3 h-100 bg-white">
+                                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                                        <div class="fw-semibold">{{ __('1. Monthly invoice') }}</div>
+                                                        <div class="form-check form-switch m-0">
+                                                            <input class="form-check-input" type="checkbox" role="switch" id="bill_generate_on" wire:model.live="bill_generate_on">
+                                                            <label class="form-check-label small" for="bill_generate_on">{{ __('On') }}</label>
+                                                        </div>
+                                                    </div>
+                                                    <label class="form-label small mb-1">{{ __('Bill day') }}</label>
+                                                    <select class="form-select form-select-sm rounded-3 mb-2" wire:model.live="bill_generate_day">
+                                                        @for ($d = 1; $d <= 28; $d++)
+                                                            <option value="{{ $d }}">{{ $d }}</option>
+                                                        @endfor
+                                                    </select>
+                                                    <label class="form-label small mb-1">{{ __('Clock') }}</label>
+                                                    <input type="time" class="form-control form-control-sm rounded-3 mb-2" wire:model.live="bill_generate_at">
+                                                    <label class="form-label small mb-1">{{ __('Who gets the invoice') }}</label>
+                                                    <select class="form-select form-select-sm rounded-3" wire:model.live="bill_generate_mode">
+                                                        <option value="customer">{{ __('Each customer’s own day') }}</option>
+                                                        <option value="global">{{ __('All customers on this date') }}</option>
+                                                    </select>
+                                                </div>
                                             </div>
-                                            <div class="col-6 col-md-3">
-                                                <label class="form-label fw-semibold">{{ __('Clock') }}</label>
-                                                <input type="time" class="form-control rounded-3" wire:model.live="bill_generate_at">
-                                                @error('bill_generate_at') <div class="text-danger small">{{ $message }}</div> @enderror
+                                            <div class="col-12 col-md-6 col-xl-3">
+                                                <div class="border rounded-3 p-3 h-100 bg-white">
+                                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                                        <div class="fw-semibold">{{ __('2. Invoice SMS') }}</div>
+                                                        <div class="form-check form-switch m-0">
+                                                            <input class="form-check-input" type="checkbox" role="switch" id="sms_send_on" wire:model.live="sms_send_on">
+                                                            <label class="form-check-label small" for="sms_send_on">{{ __('On') }}</label>
+                                                        </div>
+                                                    </div>
+                                                    <label class="form-label small mb-1">{{ __('SMS day') }}</label>
+                                                    <input type="number" min="1" max="28" class="form-control form-control-sm rounded-3 mb-2" wire:model.live="monthly_bill_sms_day">
+                                                    <label class="form-label small mb-1">{{ __('Clock') }}</label>
+                                                    <input type="time" class="form-control form-control-sm rounded-3" wire:model.live="sms_send_at">
+                                                </div>
                                             </div>
-                                            <div class="col-12 col-md-6">
-                                                <label class="form-label fw-semibold">{{ __('Who gets a bill that day') }}</label>
-                                                <select class="form-select rounded-3" wire:model.live="bill_generate_mode">
-                                                    <option value="customer">{{ __('Each customer’s own billing day') }}</option>
-                                                    <option value="global">{{ __('All customers on the Super Admin date') }}</option>
-                                                </select>
+                                            <div class="col-12 col-md-6 col-xl-3">
+                                                <div class="border rounded-3 p-3 h-100 bg-white">
+                                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                                        <div class="fw-semibold">{{ __('3. Auto disable unpaid') }}</div>
+                                                        <div class="form-check form-switch m-0">
+                                                            <input class="form-check-input" type="checkbox" role="switch" id="disable_on" wire:model.live="disable_on">
+                                                            <label class="form-check-label small" for="disable_on">{{ __('On') }}</label>
+                                                        </div>
+                                                    </div>
+                                                    <label class="form-label small mb-1">{{ __('Every day at') }}</label>
+                                                    <input type="time" class="form-control form-control-sm rounded-3 mb-2" wire:model.live="disable_at">
+                                                    <label class="form-label small mb-1">{{ __('Grace days') }}</label>
+                                                    <input type="number" min="0" max="90" class="form-control form-control-sm rounded-3 mb-2" wire:model.live="data.disable_check_days">
+                                                    <label class="form-label small mb-1">{{ __('Grace amount') }}</label>
+                                                    <input type="number" min="0" class="form-control form-control-sm rounded-3" wire:model.live="data.disable_check_no">
+                                                </div>
                                             </div>
-                                        </div>
-                                        <div class="small text-muted mt-2">
-                                            {{ __('SMS day, late fee, and auto-disable stay on') }}
-                                            <a href="{{ route('automatic-processes') }}" class="fw-semibold">{{ __('Automatic Processes') }}</a>.
+                                            <div class="col-12 col-md-6 col-xl-3">
+                                                <div class="border rounded-3 p-3 h-100 bg-white">
+                                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                                        <div class="fw-semibold">{{ __('4. Payment reminder') }}</div>
+                                                        <div class="form-check form-switch m-0">
+                                                            <input class="form-check-input" type="checkbox" role="switch" id="reminder_on" wire:model.live="reminder_on">
+                                                            <label class="form-check-label small" for="reminder_on">{{ __('On') }}</label>
+                                                        </div>
+                                                    </div>
+                                                    <label class="form-label small mb-1">{{ __('Days before expire') }}</label>
+                                                    <input type="number" min="0" max="30" class="form-control form-control-sm rounded-3 mb-2" wire:model.live="payment_reminder_days">
+                                                    <label class="form-label small mb-1">{{ __('Clock') }}</label>
+                                                    <input type="time" class="form-control form-control-sm rounded-3" wire:model.live="reminder_at">
+                                                </div>
+                                            </div>
+                                            <div class="col-6 col-md-4">
+                                                <label class="form-label fw-semibold">{{ __('Late fee per day') }}</label>
+                                                <input type="number" min="0" step="0.01" class="form-control rounded-3" wire:model.live="late_fee_per_day">
+                                            </div>
+                                            <div class="col-6 col-md-4">
+                                                <label class="form-label fw-semibold">{{ __('Late fee grace days') }}</label>
+                                                <input type="number" min="0" max="90" class="form-control rounded-3" wire:model.live="late_fee_grace_days">
+                                            </div>
+                                            <div class="col-12 col-md-4">
+                                                <label class="form-label fw-semibold">{{ __('Expired Profile Name') }}</label>
+                                                <input type="text" class="form-control rounded-3" wire:model.live="data.expired_profile_name">
+                                                <small class="text-muted">{{ __('Mikrotik redirection profile for expired users.') }}</small>
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
-                                <div class="col-md-4">
-                                    <label class="form-label fw-semibold">{{ __('Grace Limit Amount') }}</label>
-                                    <input type="number" class="form-control rounded-3" wire:model="data.disable_check_no">
-                                    <small class="text-muted">{{ __('Maximum unpaid dues allowed before automatic disable.') }}</small>
-                                </div>
-                                <div class="col-md-4">
-                                    <label class="form-label fw-semibold">{{ __('Grace Limit Days') }}</label>
-                                    <input type="number" class="form-control rounded-3" wire:model="data.disable_check_days">
-                                    <small class="text-muted">{{ __('Dues past invoice date before automatic disable.') }}</small>
-                                </div>
-                                <div class="col-md-4">
-                                    <label class="form-label fw-semibold">{{ __('Expired Profile Name') }}</label>
-                                    <input type="text" class="form-control rounded-3" wire:model="data.expired_profile_name">
-                                    <small class="text-muted">{{ __('Mikrotik redirection profile for expired users.') }}</small>
                                 </div>
                             </div>
 
@@ -729,6 +767,10 @@
                                 <div class="col-md-12">
                                     <label class="form-label fw-semibold">{{ __('Invoice Footer Text') }}</label>
                                     <input type="text" class="form-control rounded-3" wire:model="data.site_invoice_footer" placeholder="{{ __('e.g. Thank you for choosing our fiber network services!') }}">
+                                </div>
+                                <div class="col-md-12">
+                                    <label class="form-label fw-semibold">{{ __('Invoice notes') }}</label>
+                                    <textarea class="form-control rounded-3" rows="2" wire:model="data.site_invoice_notes" placeholder="{{ __('Shown on the invoice under the totals.') }}"></textarea>
                                 </div>
                                 <div class="col-12 mt-3">
                                     <label class="form-label fw-bold text-primary-emphasis mb-2">{{ __('Terms & Conditions (Rich Editor)') }}</label>

@@ -64,11 +64,16 @@ class BillingAdjustmentsTest extends TestCase
             ->set('bill_generate_at', '21:15')
             ->set('bill_generate_on', true)
             ->set('bill_generate_mode', 'global')
+            ->set('monthly_bill_sms_day', 10)
+            ->set('sms_send_at', '09:00')
+            ->set('late_fee_per_day', 15)
             ->call('save', 'billing')
             ->assertHasNoErrors();
 
         $this->assertSame(7, (int) MainSiteData::getValue('monthly_bill_day'));
         $this->assertSame('global', MainSiteData::getValue('monthly_bill_mode'));
+        $this->assertSame(10, (int) MainSiteData::getValue('monthly_bill_sms_day'));
+        $this->assertEquals(15.0, (float) MainSiteData::getValue('late_fee_per_day'));
     }
 
     public function test_global_bill_day_skips_other_dates(): void

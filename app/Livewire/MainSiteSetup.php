@@ -52,10 +52,35 @@ class MainSiteSetup extends Component implements HasActions, HasForms
 
     public string $bill_generate_mode = 'customer';
 
+    public string $sms_send_at = '10:00';
+
+    public bool $sms_send_on = true;
+
+    public int $monthly_bill_sms_day = 1;
+
+    public string $disable_at = '08:30';
+
+    public bool $disable_on = true;
+
+    public string $reminder_at = '08:00';
+
+    public bool $reminder_on = true;
+
+    public int $payment_reminder_days = 2;
+
+    public float $late_fee_per_day = 10;
+
+    public int $late_fee_grace_days = 0;
+
     public function mount(): void
     {
         if (! hasAccess(['Super Admin'], ['site-setup'])) {
             abort(403, 'Unauthorized action.');
+        }
+
+        $requestedTab = (string) request('tab', '');
+        if (in_array($requestedTab, ['identity', 'theme', 'contact', 'billing', 'payment', 'security', 'content', 'logs', 'utilities'], true)) {
+            $this->activeTab = $requestedTab;
         }
 
         $settings = [
@@ -201,12 +226,20 @@ class MainSiteSetup extends Component implements HasActions, HasForms
 
     private function loadBillClock(): void
     {
-        $at = (string) (AutomaticProcess::query()->where('slug', 'generate-monthly-bills')->value('execute_at') ?: '23:45');
-        $this->bill_generate_at = preg_match('/^(\d{1,2}:\d{2})/', $at, $m) ? $m[1] : '23:45';
-        $row = AutomaticProcess::query()->where('slug', 'generate-monthly-bills')->first();
-        $this->bill_generate_on = $row ? (bool) $row->enabled : true;
+        $this->bill_generate_at = $this->clockOf('generate-monthly-bills', '23:45');
+        $this->bill_generate_on = $this->jobEnabled('generate-monthly-bills');
         $this->bill_generate_day = max(1, min(28, (int) (MainSiteData::getValue('monthly_bill_day', 1) ?: 1)));
         $this->bill_generate_mode = MainSiteData::getValue('monthly_bill_mode', 'customer') === 'global' ? 'global' : 'customer';
+        $this->sms_send_at = $this->clockOf('monthly-bill-sms', '10:00');
+        $this->sms_send_on = $this->jobEnabled('monthly-bill-sms');
+        $this->monthly_bill_sms_day = max(1, min(28, (int) (MainSiteData::getValue('monthly_bill_sms_day', 1) ?: 1)));
+        $this->disable_at = $this->clockOf('disable-unpaid-users', '08:30');
+        $this->disable_on = $this->jobEnabled('disable-unpaid-users');
+        $this->reminder_at = $this->clockOf('payment-reminder-alerts', '08:00');
+        $this->reminder_on = $this->jobEnabled('payment-reminder-alerts');
+        $this->payment_reminder_days = max(0, (int) (MainSiteData::getValue('payment_reminder_days', 2) ?? 2));
+        $this->late_fee_per_day = (float) (MainSiteData::getValue('late_fee_per_day', 10) ?: 0);
+        $this->late_fee_grace_days = max(0, (int) (MainSiteData::getValue('late_fee_grace_days', 0) ?: 0));
     }
 
     private function saveBillClock(): void
@@ -215,21 +248,54 @@ class MainSiteSetup extends Component implements HasActions, HasForms
             'bill_generate_at' => 'required|regex:/^\d{1,2}:\d{2}(:\d{2})?$/',
             'bill_generate_day' => 'required|integer|min:1|max:28',
             'bill_generate_mode' => 'required|in:customer,global',
+            'sms_send_at' => 'required|regex:/^\d{1,2}:\d{2}(:\d{2})?$/',
+            'monthly_bill_sms_day' => 'required|integer|min:1|max:28',
+            'disable_at' => 'required|regex:/^\d{1,2}:\d{2}(:\d{2})?$/',
+            'reminder_at' => 'required|regex:/^\d{1,2}:\d{2}(:\d{2})?$/',
+            'payment_reminder_days' => 'integer|min:0|max:30',
+            'late_fee_per_day' => 'numeric|min:0|max:99999',
+            'late_fee_grace_days' => 'integer|min:0|max:90',
         ]);
 
         MainSiteData::setValue('monthly_bill_day', (int) $this->bill_generate_day);
         MainSiteData::setValue('monthly_bill_mode', $this->bill_generate_mode);
+        MainSiteData::setValue('monthly_bill_sms_day', (int) $this->monthly_bill_sms_day);
+        MainSiteData::setValue('payment_reminder_days', (int) $this->payment_reminder_days);
+        MainSiteData::setValue('late_fee_per_day', $this->late_fee_per_day);
+        MainSiteData::setValue('late_fee_grace_days', (int) $this->late_fee_grace_days);
 
-        $process = AutomaticProcess::query()->where('slug', 'generate-monthly-bills')->first();
+        $this->applyJobClock('generate-monthly-bills', $this->bill_generate_at, $this->bill_generate_on);
+        $this->applyJobClock('monthly-bill-sms', $this->sms_send_at, $this->sms_send_on);
+        $this->applyJobClock('disable-unpaid-users', $this->disable_at, $this->disable_on);
+        $this->applyJobClock('payment-reminder-alerts', $this->reminder_at, $this->reminder_on);
+    }
+
+    private function clockOf(string $slug, string $fallback): string
+    {
+        $at = (string) (AutomaticProcess::query()->where('slug', $slug)->value('execute_at') ?: $fallback);
+
+        return preg_match('/^(\d{1,2}:\d{2})/', $at, $m) ? $m[1] : $fallback;
+    }
+
+    private function jobEnabled(string $slug): bool
+    {
+        $row = AutomaticProcess::query()->where('slug', $slug)->first();
+
+        return $row ? (bool) $row->enabled : true;
+    }
+
+    private function applyJobClock(string $slug, string $clock, bool $enabled): void
+    {
+        $process = AutomaticProcess::query()->where('slug', $slug)->first();
         if (! $process) {
             return;
         }
 
-        $normalized = preg_match('/^(\d{1,2}:\d{2})/', $this->bill_generate_at, $m) ? $m[1] : '23:45';
+        $normalized = preg_match('/^(\d{1,2}:\d{2})/', $clock, $m) ? $m[1] : '00:00';
         $process->update([
             'execute_at' => $normalized,
             'interval' => 'daily',
-            'enabled' => $this->bill_generate_on,
+            'enabled' => $enabled,
         ]);
         $process->forceFill([
             'next_run_at' => app(AutomaticProcessScheduler::class)->computeNextRunAt($process->fresh()),
@@ -502,6 +568,13 @@ class MainSiteSetup extends Component implements HasActions, HasForms
                 'bill_generate_day' => 'required|integer|min:1|max:28',
                 'bill_generate_at' => 'required|regex:/^\d{1,2}:\d{2}(:\d{2})?$/',
                 'bill_generate_mode' => 'required|in:customer,global',
+                'sms_send_at' => 'required|regex:/^\d{1,2}:\d{2}(:\d{2})?$/',
+                'monthly_bill_sms_day' => 'required|integer|min:1|max:28',
+                'disable_at' => 'required|regex:/^\d{1,2}:\d{2}(:\d{2})?$/',
+                'reminder_at' => 'required|regex:/^\d{1,2}:\d{2}(:\d{2})?$/',
+                'payment_reminder_days' => 'integer|min:0|max:30',
+                'late_fee_per_day' => 'numeric|min:0|max:99999',
+                'late_fee_grace_days' => 'integer|min:0|max:90',
             ],
             default => [],
         };
