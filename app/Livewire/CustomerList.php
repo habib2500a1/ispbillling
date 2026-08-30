@@ -188,8 +188,8 @@ class CustomerList extends Component
 
                 // Round avatar: photo if exists, else coloured initials
                 $initials = mb_strtoupper(mb_substr($row->customer_name ?? '', 0, 1, 'UTF-8'), 'UTF-8');
-                $colors = ['#4f46e5', '#0ea5e9', '#16a34a', '#ea580c', '#dc2626', '#7c3aed', '#0891b2', '#ca8a04'];
-                $bgColor = $colors[abs(crc32($row->customer_unique_id)) % count($colors)];
+                $colors = ['#1e3a5f', '#2c5282', '#3d5a80', '#4a6fa5'];
+                $bgColor = $colors[abs(crc32((string) $row->customer_unique_id)) % count($colors)];
 
                 if (! empty($row->photo_url)) {
                     $avatar = '<img src="'.asset('storage/'.$row->photo_url).'" '
@@ -260,7 +260,14 @@ class CustomerList extends Component
                        '</div>';
             })
             ->addColumn('connection_details', function ($row) {
-                return '<div class="mb-1 fw-bold text-dark"><i class="bi bi-person-fill"></i> '.($row->pppUser->username ?? 'N/A').'<span class="badge bg-info bg-opacity-10 text-dark border border-info border-opacity-25 ms-1"><i class="bi bi-router-fill me-1"></i>'.($row->pppUser->router_name ?? 'N/A').'</span></div><div class="badge bg-success bg-opacity-10 text-dark border border-info border-opacity-25"><i class="bi bi-package me-1"></i>'.($row->package->package ?? 'N/A').'</span><span class="text-white px-1 py-0 fw-bold"><i class="bi bi-cash me-1"></i>'.($row->package->price ?? 'N/A').'</span></div>';
+                $user = $row->pppUser->username ?? '—';
+                $router = $row->pppUser->router_name ?? '—';
+                $pkg = $row->package->package ?? '—';
+                $price = $row->package->price ?? null;
+                $priceHtml = $price !== null && $price !== '' ? ' · '.e((string) $price) : '';
+
+                return '<div class="fw-semibold text-dark">'.e($user).'</div>'
+                    .'<div class="small text-muted">'.e($router).' · '.e($pkg).$priceHtml.'</div>';
             })
             ->addColumn('billing_summary', function ($row) {
                 $bill = number_format($row->billing?->total_amount ?? 0, 2);
