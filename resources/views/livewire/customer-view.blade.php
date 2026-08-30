@@ -61,6 +61,8 @@
                                     <button type="button" class="btn btn-sm btn-outline-danger" wire:click="disableLine" wire:confirm="{{ __('Disable line?') }}"><i class="bi bi-slash-circle me-1"></i>{{ __('Net OFF') }}</button>
                                 @endif
                                 <button type="button" class="btn btn-sm btn-outline-warning" wire:click="kickPpp" wire:confirm="{{ __('Kick PPP?') }}"><i class="bi bi-plug me-1"></i>{{ __('Kick') }}</button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary" wire:click="extendExpire(1)" title="{{ __('Extend expire 1 day') }}">+1d</button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary" wire:click="extendExpire(2)" title="{{ __('Extend expire 2 days') }}">+2d</button>
                                 <button type="button" class="btn btn-sm btn-outline-secondary" wire:click="extendExpire(5)">+5d</button>
                                 <button type="button" class="btn btn-sm btn-outline-secondary" wire:click="extendExpire(30)">+30d</button>
                             </div>
