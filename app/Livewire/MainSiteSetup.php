@@ -3,8 +3,10 @@
 namespace App\Livewire;
 
 use App\Http\Controllers\MikrotikController;
+use App\Models\AutomaticProcess;
 use App\Models\MainSiteData;
 use App\Models\RouterList;
+use App\Services\Automation\AutomaticProcessScheduler;
 use Carbon\Carbon;
 use Filament\Actions\Action;
 use Filament\Actions\Concerns\InteractsWithActions;
@@ -24,9 +26,7 @@ use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Tabs;
 use Filament\Schemas\Components\Tabs\Tab;
 use Filament\Schemas\Schema;
-use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Artisan;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\HtmlString;
@@ -44,6 +44,10 @@ class MainSiteSetup extends Component implements HasActions, HasForms
 
     public string $activeTab = 'identity';
 
+    public string $bill_generate_at = '23:45';
+
+    public bool $bill_generate_on = true;
+
     public function mount(): void
     {
         if (! hasAccess(['Super Admin'], ['site-setup'])) {
@@ -56,10 +60,10 @@ class MainSiteSetup extends Component implements HasActions, HasForms
             'portal_name' => MainSiteData::getValue('portal_name', 'Code Pagol Ltd'),
             'site_title' => MainSiteData::getValue('site_title'),
             'site_status' => MainSiteData::getValue('site_status', 'active'),
-            'site_maintenance' => MainSiteData::getValue('site_maintenance', 0) ? 1 : 0,
+            'site_maintenance' => $this->flagFromStore('site_maintenance', 0),
             'site_message' => MainSiteData::getValue('site_message'),
-            'portal_registration_enabled' => MainSiteData::getValue('portal_registration_enabled', 1) ? 1 : 0,
-            'portal_change_password_enabled' => MainSiteData::getValue('portal_change_password_enabled', 1) ? 1 : 0,
+            'portal_registration_enabled' => $this->flagFromStore('portal_registration_enabled', 1),
+            'portal_change_password_enabled' => $this->flagFromStore('portal_change_password_enabled', 1),
             'site_locale' => MainSiteData::getValue('site_locale', 'en'),
             'main_site_locale' => MainSiteData::getValue('main_site_locale', 'en'),
             'portal_theme_preset' => MainSiteData::getValue('portal_theme_preset', 'indigo'),
@@ -131,28 +135,28 @@ class MainSiteSetup extends Component implements HasActions, HasForms
 
             // Log Server
             'mysql_binary_path' => MainSiteData::getValue('mysql_binary_path', ''),
-            'log_server_enabled' => MainSiteData::getValue('log_server_enabled', 0) ? 1 : 0,
+            'log_server_enabled' => $this->flagFromStore('log_server_enabled', 0),
             'log_server_routers' => MainSiteData::getValue('log_server_routers', []),
             'log_retention_days' => MainSiteData::getValue('log_retention_days', 30),
 
             // Payment Gateways
-            'payment_bkash_enabled' => MainSiteData::getValue('payment_bkash_enabled', 0) ? 1 : 0,
+            'payment_bkash_enabled' => $this->flagFromStore('payment_bkash_enabled', 0),
             'payment_bkash_base_url' => MainSiteData::getValue('payment_bkash_base_url', 'https://tokenized.sandbox.bka.sh/v1.2.0-beta'),
             'payment_bkash_username' => MainSiteData::getValue('payment_bkash_username'),
             'payment_bkash_password' => MainSiteData::getValue('payment_bkash_password'),
             'payment_bkash_app_key' => MainSiteData::getValue('payment_bkash_app_key'),
             'payment_bkash_app_secret' => MainSiteData::getValue('payment_bkash_app_secret'),
 
-            'payment_nagad_enabled' => MainSiteData::getValue('payment_nagad_enabled', 0) ? 1 : 0,
+            'payment_nagad_enabled' => $this->flagFromStore('payment_nagad_enabled', 0),
             'payment_nagad_base_url' => MainSiteData::getValue('payment_nagad_base_url', 'http://sandbox.nagad.com.bd:10080/remote-payment-gateway-1.0/api/dfs'),
             'payment_nagad_merchant_id' => MainSiteData::getValue('payment_nagad_merchant_id'),
             'payment_nagad_public_key' => MainSiteData::getValue('payment_nagad_public_key'),
             'payment_nagad_private_key' => MainSiteData::getValue('payment_nagad_private_key'),
 
-            'payment_sslcommerz_enabled' => MainSiteData::getValue('payment_sslcommerz_enabled', 0) ? 1 : 0,
+            'payment_sslcommerz_enabled' => $this->flagFromStore('payment_sslcommerz_enabled', 0),
             'payment_sslcommerz_store_id' => MainSiteData::getValue('payment_sslcommerz_store_id'),
             'payment_sslcommerz_store_password' => MainSiteData::getValue('payment_sslcommerz_store_password'),
-            'payment_sslcommerz_sandbox' => MainSiteData::getValue('payment_sslcommerz_sandbox', 1) ? 1 : 0,
+            'payment_sslcommerz_sandbox' => $this->flagFromStore('payment_sslcommerz_sandbox', 1),
 
             // Dynamic Web Content (MainSiteData unique)
             'hero_title' => MainSiteData::getValue('hero_title'),
@@ -163,7 +167,7 @@ class MainSiteSetup extends Component implements HasActions, HasForms
             'about_body' => MainSiteData::getValue('about_body'),
             'packages_section_title' => MainSiteData::getValue('packages_section_title', 'Internet Packages'),
             'footer_copyright' => MainSiteData::getValue('footer_copyright'),
-            'is_active' => MainSiteData::getValue('is_active', 1) ? 1 : 0,
+            'is_active' => $this->flagFromStore('is_active', 1),
             'registration_link' => MainSiteData::getValue('registration_link'),
 
             'hero_slides' => MainSiteData::getValue('hero_slides', []),
@@ -184,6 +188,41 @@ class MainSiteSetup extends Component implements HasActions, HasForms
 
         $this->data = $settings;
         $this->form->fill($settings);
+        try {
+            $this->loadBillClock();
+        } catch (\Throwable $e) {
+            Log::warning('MainSiteSetup bill clock load skipped: '.$e->getMessage());
+        }
+    }
+
+    private function loadBillClock(): void
+    {
+        $at = (string) (AutomaticProcess::query()->where('slug', 'generate-monthly-bills')->value('execute_at') ?: '23:45');
+        $this->bill_generate_at = preg_match('/^(\d{1,2}:\d{2})/', $at, $m) ? $m[1] : '23:45';
+        $row = AutomaticProcess::query()->where('slug', 'generate-monthly-bills')->first();
+        $this->bill_generate_on = $row ? (bool) $row->enabled : true;
+    }
+
+    private function saveBillClock(): void
+    {
+        $this->validate([
+            'bill_generate_at' => 'required|regex:/^\d{1,2}:\d{2}(:\d{2})?$/',
+        ]);
+
+        $process = AutomaticProcess::query()->where('slug', 'generate-monthly-bills')->first();
+        if (! $process) {
+            return;
+        }
+
+        $normalized = preg_match('/^(\d{1,2}:\d{2})/', $this->bill_generate_at, $m) ? $m[1] : '23:45';
+        $process->update([
+            'execute_at' => $normalized,
+            'interval' => 'daily',
+            'enabled' => $this->bill_generate_on,
+        ]);
+        $process->forceFill([
+            'next_run_at' => app(AutomaticProcessScheduler::class)->computeNextRunAt($process->fresh()),
+        ])->save();
     }
 
     public function form(Schema $schema): Schema
@@ -336,16 +375,31 @@ class MainSiteSetup extends Component implements HasActions, HasForms
 
         try {
             foreach ($keys as $key) {
-                if (array_key_exists($key, $this->data)) {
-                    MainSiteData::setValue($key, $this->data[$key]);
+                if (! is_array($this->data) || ! array_key_exists($key, $this->data)) {
+                    continue;
                 }
+                MainSiteData::setValue($key, $this->valueForKey($key, $this->data[$key]));
             }
 
             if ($tab === 'theme') {
                 MainSiteData::setValue('theme_updated_at', time());
             }
 
-            Cache::flush();
+            if ($tab === 'billing') {
+                try {
+                    $this->saveBillClock();
+                } catch (\Throwable $e) {
+                    Log::warning('MainSiteSetup bill clock skipped: '.$e->getMessage());
+                }
+            }
+
+            foreach ($keys as $key) {
+                if (is_array($this->data) && array_key_exists($key, $this->data) && $this->isFlagKey($key)) {
+                    $this->data[$key] = $this->valueForKey($key, $this->data[$key]);
+                }
+            }
+
+            MainSiteData::forgetSiteCache();
             flash()->success(__('Saved :tab. Other tabs were not changed.', [
                 'tab' => $this->tabLabel($tab),
             ]));
@@ -474,6 +528,58 @@ class MainSiteSetup extends Component implements HasActions, HasForms
         }
     }
 
+    /**
+     * @return list<string>
+     */
+    private function flagKeys(): array
+    {
+        return [
+            'payment_bkash_enabled',
+            'payment_nagad_enabled',
+            'payment_sslcommerz_enabled',
+            'payment_sslcommerz_sandbox',
+            'portal_registration_enabled',
+            'portal_change_password_enabled',
+            'site_maintenance',
+            'log_server_enabled',
+            'is_active',
+        ];
+    }
+
+    private function isFlagKey(string $key): bool
+    {
+        return in_array($key, $this->flagKeys(), true);
+    }
+
+    private function flagFromStore(string $key, int $default = 0): int
+    {
+        $raw = MainSiteData::getValue($key, $default);
+        if ($raw === null || $raw === '') {
+            return $default;
+        }
+
+        return $this->isOn($raw) ? 1 : 0;
+    }
+
+    private function valueForKey(string $key, mixed $value): mixed
+    {
+        if ($this->isFlagKey($key)) {
+            return $this->isOn($value) ? 1 : 0;
+        }
+
+        return $value;
+    }
+
+    private function isOn(mixed $value): bool
+    {
+        return $value === true
+            || $value === 1
+            || $value === '1'
+            || $value === 'on'
+            || $value === 'true'
+            || $value === 'yes';
+    }
+
     private function normalizeTab(?string $tab): string
     {
         $tab = $tab ?: $this->activeTab;
@@ -528,7 +634,7 @@ class MainSiteSetup extends Component implements HasActions, HasForms
 
          MainSiteData::setValue('theme_updated_at', time());
          $this->form->fill($this->data);
-         Cache::flush();
+         MainSiteData::forgetSiteCache();
 
          flash()->success('Portal theme settings reset to SASS defaults in the database!');
     }

@@ -58,6 +58,11 @@ class MainSiteData extends Model
         );
     }
 
+    public static function forgetSiteCache(): void
+    {
+        Cache::forget('main_site_data_active');
+    }
+
     /**
      * Get all active data and return it as an object
      * so that existing Blade templates ($siteData->hero_title) don't break.
@@ -139,8 +144,8 @@ class MainSiteData extends Model
 
     protected static function booted(): void
     {
-        static::saved(fn () => Cache::flush());
-        static::updated(fn () => Cache::flush());
-        static::deleted(fn () => Cache::flush());
+        static::saved(fn () => self::forgetSiteCache());
+        static::updated(fn () => self::forgetSiteCache());
+        static::deleted(fn () => self::forgetSiteCache());
     }
 }

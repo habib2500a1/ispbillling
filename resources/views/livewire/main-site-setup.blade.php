@@ -51,6 +51,26 @@
         .cursor-pointer {
             cursor: pointer;
         }
+        .ss-tabs { display:flex; flex-direction:column; gap:.25rem; }
+        @media (max-width: 767.98px) {
+            .ss-tabs {
+                flex-direction: row;
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+                gap: .4rem;
+                padding-bottom: .35rem;
+            }
+            .ss-tabs .nav-link {
+                white-space: nowrap;
+                width: auto !important;
+                flex: 0 0 auto;
+                padding: .45rem .75rem !important;
+            }
+            .ss-tabs .nav-link span { font-size: .8rem; }
+            .ss-sidebar { position: static !important; top: auto !important; }
+            .ss-content-card { padding: 1rem !important; }
+            .ss-theme-custom { border-left: 0 !important; padding-left: 0 !important; }
+        }
     </style>
 
     <!-- Global Loading Overlay -->
@@ -71,27 +91,6 @@
     <x-slot name="header">
         {{ __('Main Site Setup') }}
     </x-slot>
-
-    <!-- Top Action & Info Bar -->
-    <div class="card border-0 shadow-sm mb-4 glass-card">
-        <div class="card-body p-4">
-            <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
-                <div>
-                    <h4 class="mb-1 fw-extrabold text-primary-emphasis d-flex align-items-center gap-2">
-                        <i class="bi bi-sliders text-primary"></i> {{ __('Master Setup Control Center') }}
-                    </h4>
-                    <p class="text-muted small mb-0">{{ __('Save one tab at a time. Payment can be saved without filling images on other tabs.') }}</p>
-                </div>
-                <div class="d-flex flex-wrap align-items-center gap-2">
-                    <button type="submit" form="masterSetupForm" class="btn btn-primary px-4 fw-bold shadow-sm rounded-3">
-                        <span wire:loading.remove wire:target="save"><i class="bi bi-check2-circle me-1"></i> {{ __('Save this tab') }}</span>
-                        <span wire:loading wire:target="save" class="spinner-border spinner-border-sm me-1" role="status"></span>
-                        <span wire:loading wire:target="save">{{ __('Saving...') }}</span>
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
 
     <!-- Main Navigation Layout (Alpine Powered Tab Switcher) -->
     @php
@@ -122,12 +121,33 @@
             if (stored) activeTab = stored;
             $watch('activeTab', val => localStorage.setItem('siteSetupActiveTab', val));
          ">
+
+        <div class="card border-0 shadow-sm mb-4 glass-card">
+            <div class="card-body p-3 p-md-4">
+                <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+                    <div>
+                        <h4 class="mb-1 fw-extrabold text-primary-emphasis d-flex align-items-center gap-2">
+                            <i class="bi bi-sliders text-primary"></i> {{ __('Master Setup Control Center') }}
+                        </h4>
+                        <p class="text-muted small mb-0">{{ __('Save one tab at a time. Payment can be saved without filling images on other tabs.') }}</p>
+                    </div>
+                    <div class="d-flex flex-wrap align-items-center gap-2">
+                        <button type="button" class="btn btn-primary px-4 fw-bold shadow-sm rounded-3"
+                                @click="$wire.save(activeTab)">
+                            <span wire:loading.remove wire:target="save"><i class="bi bi-check2-circle me-1"></i> {{ __('Save this tab') }}</span>
+                            <span wire:loading wire:target="save" class="spinner-border spinner-border-sm me-1" role="status"></span>
+                            <span wire:loading wire:target="save">{{ __('Saving...') }}</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
         
         <div class="row g-4">
             <!-- Sidebar navigation panel -->
-            <div class="col-md-3">
-                <div class="card border-0 shadow-sm p-3 sticky-top glass-card" style="top: 20px; ">
-                    <div class="nav flex-column nav-pills gap-1" id="v-pills-tab" role="tablist" aria-orientation="vertical">
+            <div class="col-12 col-md-3">
+                <div class="card border-0 shadow-sm p-2 p-md-3 sticky-top glass-card ss-sidebar" style="top: 20px; ">
+                    <div class="nav nav-pills ss-tabs" id="v-pills-tab" role="tablist">
                         <button class="nav-link text-start py-2.5 px-3 d-flex align-items-center gap-3 w-100" 
                                 :class="activeTab === 'identity' ? 'active shadow' : 'text-body hover-bg'"
                                 @click="activeTab = 'identity'" type="button">
@@ -211,8 +231,8 @@
             </div>
 
             <!-- Content Card Panel -->
-            <div class="col-md-9">
-                <form wire:submit.prevent="save" id="masterSetupForm">
+            <div class="col-12 col-md-9">
+                <form @submit.prevent="$wire.save(activeTab)" id="masterSetupForm">
                     @if ($errors->any())
                         <div class="alert alert-danger border-0 rounded-4 shadow-sm mb-4 p-3 d-flex align-items-start gap-3" style="background: rgba(var(--bs-danger-rgb), 0.08);">
                             <div class="bg-danger text-white rounded-circle p-2 d-flex align-items-center justify-content-center flex-shrink-0" style="width:36px; height:36px;">
@@ -230,7 +250,7 @@
                         </div>
                     @endif
 
-                    <div class="card border-0 shadow-sm p-4 glass-card min-vh-50">
+                    <div class="card border-0 shadow-sm p-3 p-md-4 glass-card min-vh-50 ss-content-card">
                         
                         <!-- TAB 1: IDENTITY & SEO -->
                         <div x-show="activeTab === 'identity'" x-transition:enter.duration.200ms>
@@ -280,7 +300,7 @@
                                             <label class="form-check-label fw-semibold d-block" for="site_maintenance" style="cursor: pointer;">{{ __('Maintenance Mode') }}</label>
                                             <span class="text-muted" style="font-size: 0.75rem;">{{ __('Block public website access and show a template warning.') }}</span>
                                         </div>
-                                        <input class="form-check-input fs-5 cursor-pointer me-2" type="checkbox" role="switch" id="site_maintenance" wire:model="data.site_maintenance" value="1">
+                                        <input class="form-check-input fs-5 cursor-pointer me-2" type="checkbox" role="switch" id="site_maintenance" wire:model.live="data.site_maintenance" value="1">
                                     </div>
                                 </div>
                                 <div class="col-12">
@@ -297,7 +317,7 @@
                                             <label class="form-check-label fw-semibold d-block" for="portal_registration_enabled" style="cursor: pointer;">{{ __('Enable Client Registration') }}</label>
                                             <span class="text-muted" style="font-size: 0.75rem;">{{ __('Allow new signups on portal') }}</span>
                                         </div>
-                                        <input class="form-check-input fs-5 cursor-pointer me-2" type="checkbox" role="switch" id="portal_registration_enabled" wire:model="data.portal_registration_enabled" value="1">
+                                        <input class="form-check-input fs-5 cursor-pointer me-2" type="checkbox" role="switch" id="portal_registration_enabled" wire:model.live="data.portal_registration_enabled" value="1">
                                     </div>
                                 </div>
                                 <div class="col-md-6">
@@ -306,7 +326,7 @@
                                             <label class="form-check-label fw-semibold d-block" for="portal_change_password_enabled" style="cursor: pointer;">{{ __('Enable Change Password') }}</label>
                                             <span class="text-muted" style="font-size: 0.75rem;">{{ __('Allow clients to modify their passwords') }}</span>
                                         </div>
-                                        <input class="form-check-input fs-5 cursor-pointer me-2" type="checkbox" role="switch" id="portal_change_password_enabled" wire:model="data.portal_change_password_enabled" value="1">
+                                        <input class="form-check-input fs-5 cursor-pointer me-2" type="checkbox" role="switch" id="portal_change_password_enabled" wire:model.live="data.portal_change_password_enabled" value="1">
                                     </div>
                                 </div>
                             </div>
@@ -378,7 +398,7 @@
                                     </div>
 
                                     {{-- Custom Portal Color Pickers (only shown when "custom" selected) --}}
-                                    <div class="col-md-7 align-items-center gap-4 border-start ps-4"
+                                    <div class="col-md-7 align-items-center gap-4 border-start ps-4 ss-theme-custom">
                                         x-show="portalPreset === 'custom'"
                                         x-cloak
                                         style="display: none;"
@@ -696,7 +716,7 @@
                                         </div>
                                     </div>
                                     <div class="form-check form-switch fs-4">
-                                        <input class="form-check-input cursor-pointer" type="checkbox" role="switch" id="payment_bkash_enabled" wire:model="data.payment_bkash_enabled" value="1">
+                                        <input class="form-check-input cursor-pointer" type="checkbox" role="switch" id="payment_bkash_enabled" wire:model.live="data.payment_bkash_enabled" value="1">
                                     </div>
                                 </div>
                                 
@@ -735,7 +755,7 @@
                                         </div>
                                     </div>
                                     <div class="form-check form-switch fs-4">
-                                        <input class="form-check-input cursor-pointer" type="checkbox" role="switch" id="payment_nagad_enabled" wire:model="data.payment_nagad_enabled" value="1">
+                                        <input class="form-check-input cursor-pointer" type="checkbox" role="switch" id="payment_nagad_enabled" wire:model.live="data.payment_nagad_enabled" value="1">
                                     </div>
                                 </div>
 
@@ -770,7 +790,7 @@
                                         </div>
                                     </div>
                                     <div class="form-check form-switch fs-4">
-                                        <input class="form-check-input cursor-pointer" type="checkbox" role="switch" id="payment_sslcommerz_enabled" wire:model="data.payment_sslcommerz_enabled" value="1">
+                                            <input class="form-check-input cursor-pointer" type="checkbox" role="switch" id="payment_sslcommerz_enabled" wire:model.live="data.payment_sslcommerz_enabled" value="1">
                                     </div>
                                 </div>
 
@@ -788,7 +808,7 @@
                                             <div class="ms-2">
                                                 <label class="form-check-label fw-semibold" for="payment_sslcommerz_sandbox">{{ __('Sandbox') }}</label>
                                             </div>
-                                            <input class="form-check-input fs-5 cursor-pointer me-2" type="checkbox" role="switch" id="payment_sslcommerz_sandbox" wire:model="data.payment_sslcommerz_sandbox" value="1">
+                                            <input class="form-check-input fs-5 cursor-pointer me-2" type="checkbox" role="switch" id="payment_sslcommerz_sandbox" wire:model.live="data.payment_sslcommerz_sandbox" value="1">
                                         </div>
                                     </div>
                                 </div>
@@ -841,7 +861,7 @@
                                             <label class="form-check-label fw-semibold d-block" for="log_server_enabled" style="cursor: pointer;">{{ __('Enable Remote Log Streaming') }}</label>
                                             <span class="text-muted" style="font-size: 0.75rem;">{{ __('Enable log daemon listener on background worker') }}</span>
                                         </div>
-                                        <input class="form-check-input fs-5 cursor-pointer me-2" type="checkbox" role="switch" id="log_server_enabled" wire:model="data.log_server_enabled" value="1">
+                                        <input class="form-check-input fs-5 cursor-pointer me-2" type="checkbox" role="switch" id="log_server_enabled" wire:model.live="data.log_server_enabled" value="1">
                                     </div>
                                 </div>
                                 <div class="col-md-6">
@@ -911,7 +931,7 @@
                                             <label class="form-check-label fw-semibold d-block" for="is_active" style="cursor: pointer;">{{ __('Public Website Visible') }}</label>
                                             <span class="text-muted" style="font-size: 0.75rem;">{{ __('Show/Hide public frontend site') }}</span>
                                         </div>
-                                        <input class="form-check-input fs-5 cursor-pointer me-2" type="checkbox" role="switch" id="is_active" wire:model="data.is_active" value="1">
+                                        <input class="form-check-input fs-5 cursor-pointer me-2" type="checkbox" role="switch" id="is_active" wire:model.live="data.is_active" value="1">
                                     </div>
                                 </div>
                                 <div class="col-md-12 mt-3 card p-3 shadow-none border bg-light bg-opacity-25 rounded-3">

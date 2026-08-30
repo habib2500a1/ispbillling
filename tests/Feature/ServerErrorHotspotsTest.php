@@ -8,6 +8,7 @@ use App\Livewire\InventoryHub;
 use App\Livewire\MainSiteSetup;
 use App\Models\BillingInfo;
 use App\Models\CustomersInfo;
+use App\Models\MainSiteData;
 use App\Models\PPPSecrets;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -37,6 +38,38 @@ class ServerErrorHotspotsTest extends TestCase
             ->set('data.payment_bkash_enabled', 0)
             ->call('save', 'payment')
             ->assertHasNoErrors();
+    }
+
+    public function test_site_settings_payment_tab_persists_enabled_gateways(): void
+    {
+        $this->actingAs($this->admin());
+
+        Livewire::test(MainSiteSetup::class)
+            ->set('activeTab', 'payment')
+            ->set('data.payment_bkash_enabled', true)
+            ->set('data.payment_bkash_username', 'merchant01')
+            ->set('data.payment_nagad_enabled', '1')
+            ->set('data.payment_sslcommerz_enabled', 1)
+            ->set('data.payment_sslcommerz_sandbox', 0)
+            ->call('save', 'payment')
+            ->assertHasNoErrors()
+            ->assertSet('data.payment_bkash_enabled', 1)
+            ->assertSet('data.payment_nagad_enabled', 1)
+            ->assertSet('data.payment_sslcommerz_enabled', 1)
+            ->assertSet('data.payment_sslcommerz_sandbox', 0);
+
+        $this->assertSame(1, (int) MainSiteData::getValue('payment_bkash_enabled'));
+        $this->assertSame('merchant01', MainSiteData::getValue('payment_bkash_username'));
+        $this->assertSame(1, (int) MainSiteData::getValue('payment_nagad_enabled'));
+        $this->assertSame(1, (int) MainSiteData::getValue('payment_sslcommerz_enabled'));
+        $this->assertSame(0, (int) MainSiteData::getValue('payment_sslcommerz_sandbox'));
+
+        Livewire::test(MainSiteSetup::class)
+            ->assertSet('data.payment_bkash_enabled', 1)
+            ->assertSet('data.payment_bkash_username', 'merchant01')
+            ->assertSet('data.payment_nagad_enabled', 1)
+            ->assertSet('data.payment_sslcommerz_enabled', 1)
+            ->assertSet('data.portal_registration_enabled', 1);
     }
 
     public function test_customer_datatable_search_does_not_use_missing_ppp_user_column(): void

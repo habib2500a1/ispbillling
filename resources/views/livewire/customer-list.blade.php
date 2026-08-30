@@ -537,6 +537,10 @@
                         'X-Requested-With': 'XMLHttpRequest',
                     },
                     error: function (xhr) {
+                        $table.closest('.dt-container, .dataTables_wrapper')
+                            .find('.dt-processing, .dataTables_processing')
+                            .hide()
+                            .addClass('d-none');
                         console.error('Customer list load failed', xhr.status, xhr.responseText ? xhr.responseText.slice(0, 200) : '');
                     },
                     data: function(d) {
@@ -599,7 +603,7 @@
                     { data: 'billing_breakdown', name: 'billing_breakdown', title: '{{ __('Billing Breakdown') }}', searchable: false, className: 'text-start' },
                     { data: 'connection_details', name: 'connection_details', title: '{{ __('Connection Info') }}', searchable: false, className: 'text-start' },
                     { data: 'billing_summary', name: 'billing_summary', title: '{{ __('Billing Summary') }}', searchable: false, className: 'text-end' },
-                    { data: 'disable_details', name: 'disable_details', title: '{{ __('Auto Disable') }}', className: 'text-center' },
+                    { data: 'disable_details', name: 'disable_details', title: '{{ __('Auto Disable') }}', searchable: false, className: 'text-center' },
                     { data: 'action', name: 'action', title: '{{ __('Action') }}', orderable: false, searchable: false, className: 'text-center' },
                     
                     // Invisible columns for raw data & totals (8-22)
@@ -607,17 +611,17 @@
                     { data: 'customer_name', name: 'customer_name', title: '{{ __('Name') }}', visible: false, searchable: false },
                     { data: 'customers_address', name: 'customers_address', title: '{{ __('Address') }}', visible: false, searchable: false },
                     { data: 'mobile', name: 'mobile', title: '{{ __('Mobile') }}', visible: false, searchable: false },
-                    { data: 'ppp_user.username', name: 'connection_username', title: '{{ __('IP') }}', visible: false, searchable: false },
-                    { data: 'ppp_user.router_name', name: 'connection_router', title: '{{ __('Router') }}', visible: false, searchable: false },
-                    { data: 'billing.monthly_rent', name: 'billing.monthly_rent', title: '{{ __('Rent') }}', visible: false, searchable: false },
-                    { data: 'billing.previous_due', name: 'billing.previous_due', title: '{{ __('P.Due') }}', visible: false, searchable: false },
-                    { data: 'billing.additional_charge', name: 'billing.additional_charge', title: '{{ __('Add.') }}', visible: false, searchable: false },
-                    { data: 'billing.vat', name: 'billing.vat', title: '{{ __('Vat') }}', visible: false, searchable: false },
-                    { data: 'billing.discount', name: 'billing.discount', title: '{{ __('Disc') }}', visible: false, searchable: false },
-                    { data: 'billing.advance', name: 'billing.advance', title: '{{ __('Adv') }}', visible: false, searchable: false },
-                    { data: 'billing.total_amount', name: 'billing.total_amount', title: '{{ __('Bill') }}', visible: false, searchable: false },
-                    { data: 'billing.paid_amount', name: 'billing.paid_amount', title: '{{ __('Paid') }}', visible: false, searchable: false },
-                    { data: 'billing.due_amount', name: 'billing.due_amount', title: '{{ __('Due') }}', visible: false, searchable: false }
+                    { data: 'ppp_user.username', name: 'connection_username', title: '{{ __('IP') }}', visible: false, searchable: false, defaultContent: '' },
+                    { data: 'ppp_user.router_name', name: 'connection_router', title: '{{ __('Router') }}', visible: false, searchable: false, defaultContent: '' },
+                    { data: 'billing.monthly_rent', name: 'billing_rent', title: '{{ __('Rent') }}', visible: false, searchable: false, defaultContent: 0 },
+                    { data: 'billing.previous_due', name: 'billing_prev_due', title: '{{ __('P.Due') }}', visible: false, searchable: false, defaultContent: 0 },
+                    { data: 'billing.additional_charge', name: 'billing_add', title: '{{ __('Add.') }}', visible: false, searchable: false, defaultContent: 0 },
+                    { data: 'billing.vat', name: 'billing_vat', title: '{{ __('Vat') }}', visible: false, searchable: false, defaultContent: 0 },
+                    { data: 'billing.discount', name: 'billing_disc', title: '{{ __('Disc') }}', visible: false, searchable: false, defaultContent: 0 },
+                    { data: 'billing.advance', name: 'billing_adv', title: '{{ __('Adv') }}', visible: false, searchable: false, defaultContent: 0 },
+                    { data: 'billing.total_amount', name: 'billing_bill', title: '{{ __('Bill') }}', visible: false, searchable: false, defaultContent: 0 },
+                    { data: 'billing.paid_amount', name: 'billing_paid', title: '{{ __('Paid') }}', visible: false, searchable: false, defaultContent: 0 },
+                    { data: 'billing.due_amount', name: 'billing_due', title: '{{ __('Due') }}', visible: false, searchable: false, defaultContent: 0 }
                 ],
                 footerCallback: function () {
                     try {
@@ -712,6 +716,12 @@
             });
 
             window.customerListTable = table;
+            table.on('xhr.dt error.dt draw.dt', function () {
+                $table.closest('.dt-container, .dataTables_wrapper')
+                    .find('.dt-processing, .dataTables_processing')
+                    .hide()
+                    .addClass('d-none');
+            });
             var urlQ = new URLSearchParams(window.location.search).get('q');
             if (urlQ) {
                 $('.dt-search input').val(urlQ);
