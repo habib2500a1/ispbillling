@@ -19,6 +19,15 @@ class RestrictToProfileIfNoPermissions
         if (Auth::check()) {
             $user = Auth::user();
 
+            if (method_exists($user, 'hasRole') && $user->hasRole('Operator')) {
+                $operator = \App\Models\SaasOperator::query()->where('user_id', $user->id)->first();
+                if ($operator && $operator->status !== 'active') {
+                    Auth::logout();
+
+                    return redirect('/login')->with('error', __('This operator account is suspended.'));
+                }
+            }
+
             // A user is considered to have permissions if they:
             // 1. are a Super Admin
             // 2. have any roles via Spatie

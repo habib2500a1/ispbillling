@@ -115,5 +115,10 @@ class User extends Authenticatable implements HasAvatar
     {
         return $this->hasOne(Reseller::class);
     }
+
+    public function saasOperator()
+    {
+        return $this->hasOne(SaasOperator::class);
+    }
 }
 

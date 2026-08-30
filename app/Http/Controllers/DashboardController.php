@@ -6,15 +6,14 @@ use App\Models\BillingInfo;
 use App\Models\CollectionSummary;
 use App\Models\CustomersInfo;
 use App\Models\HotspotSale;
-use App\Models\IspExpense;
 use App\Models\PPPSecrets;
 use App\Models\Reseller;
 use App\Models\ResellerCommission;
 use App\Services\Ai\OpsInsightsService;
+use App\Services\Dashboard\DashboardFinanceService;
 use App\Services\Dashboard\DashboardOpsService;
 use App\Services\Noc\NocOverviewService;
 use Carbon\Carbon;
-use Illuminate\Support\Facades\Schema;
 
 class DashboardController extends Controller
 {
@@ -43,9 +42,6 @@ class DashboardController extends Controller
             ->count();
 
         $today = Carbon::today();
-        $monthStart = Carbon::now()->startOfMonth();
-        $monthEnd = Carbon::now()->endOfMonth();
-        $monthLabel = Carbon::now()->format('F Y');
 
         $onlinePppIds = PPPSecrets::query()
             ->where('status', '!=', 'removed')
@@ -81,43 +77,7 @@ class DashboardController extends Controller
                 ->count(),
         ];
 
-        $monthCollection = (float) CollectionSummary::whereBetween('collection_date', [$monthStart, $monthEnd])->sum('collection_amount');
-        $monthDue = (float) BillingInfo::join('customers_infos', 'billing_infos.customer_bill_unique_id', '=', 'customers_infos.customer_unique_id')
-            ->whereNull('customers_infos.deleted_at')
-            ->where('customers_infos.status', '!=', 'inactive')
-            ->sum('billing_infos.due_amount');
-        $monthDue = max(0, $monthDue);
-
-        $monthBill = (float) BillingInfo::join('customers_infos', 'billing_infos.customer_bill_unique_id', '=', 'customers_infos.customer_unique_id')
-            ->whereNull('customers_infos.deleted_at')
-            ->whereNotIn('customers_infos.status', ['inactive', 'free'])
-            ->selectRaw('SUM(COALESCE(billing_infos.monthly_rent, 0) + COALESCE(billing_infos.additional_charge, 0) + COALESCE(billing_infos.vat, 0)) as t')
-            ->value('t');
-        // Prefer billed + outstanding picture when monthly rent sum is empty
-        if ($monthBill <= 0) {
-            $monthBill = $monthCollection + $monthDue;
-        }
-
-        $monthDiscount = (float) BillingInfo::join('customers_infos', 'billing_infos.customer_bill_unique_id', '=', 'customers_infos.customer_unique_id')
-            ->whereNull('customers_infos.deleted_at')
-            ->sum('billing_infos.discount');
-        $monthExpense = 0.0;
-        if (Schema::hasTable('isp_expenses')) {
-            $monthExpense = (float) IspExpense::whereBetween('expense_date', [$monthStart, $monthEnd])->sum('amount');
-        }
-
-        $collectDueTotal = max(0.01, $monthCollection + $monthDue);
-        $financialSummary = [
-            'month_label' => $monthLabel,
-            'bill' => $monthBill,
-            'today_collection' => (float) CollectionSummary::whereDate('collection_date', $today)->sum('collection_amount'),
-            'collection' => $monthCollection,
-            'due' => $monthDue,
-            'discount' => $monthDiscount,
-            'expense' => $monthExpense,
-            'collection_pct' => round(($monthCollection / $collectDueTotal) * 100, 1),
-            'due_pct' => round(($monthDue / $collectDueTotal) * 100, 1),
-        ];
+        $financialSummary = app(DashboardFinanceService::class)->summary();
 
         $lineGrowth = ['labels' => [], 'new' => [], 'monthly' => []];
         for ($i = 5; $i >= 0; $i--) {
@@ -247,22 +207,44 @@ class DashboardController extends Controller
             ];
         }
 
+        $systemOverview = [];
         try {
-            $systemOverview = app(MikrotikController::class)->systemOverview();
-        } catch (\Exception $e) {
+            $systemOverview = app(MikrotikController::class)->systemOverview(false);
+        } catch (\Throwable $e) {
             $systemOverview = [];
         }
 
-        $nocPayload = app(NocOverviewService::class)->payload();
-        $opticalData = $nocPayload['optical'];
-        $networkQuick = $nocPayload['network'];
+        $opticalData = [
+            'bridge' => false,
+            'olts' => 0,
+            'onus' => 0,
+            'linked' => 0,
+            'rx_ok' => 0,
+            'rx_weak' => 0,
+            'rx_critical' => 0,
+            'avg_rx' => null,
+        ];
+        $networkQuick = [
+            'routers' => 0,
+            'routers_connected' => 0,
+            'olts_local' => 0,
+            'onus_local' => 0,
+        ];
+        try {
+            $nocPayload = app(NocOverviewService::class)->payload();
+            $opticalData = array_merge($opticalData, $nocPayload['optical'] ?? []);
+            $networkQuick = array_merge($networkQuick, $nocPayload['network'] ?? []);
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning('dashboard noc payload failed', ['error' => $e->getMessage()]);
+        }
+
         $opsData = app(DashboardOpsService::class)->snapshot();
 
         try {
             $insights = app(OpsInsightsService::class)->payload();
             $opsData['insights_critical'] = (int) ($insights['counts']['critical'] ?? 0);
             $opsData['insights_high'] = (int) ($insights['counts']['high'] ?? 0);
-            $opsData['insights_total'] = count($insights['items'] ?? []);
+            $opsData['insights_total'] = count($insights['insights'] ?? []);
         } catch (\Throwable) {
             $opsData['insights_critical'] = 0;
             $opsData['insights_high'] = 0;

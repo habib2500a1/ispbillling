@@ -12,7 +12,12 @@ class ResellerDashboardController extends Controller
 {
     public function index()
     {
-        $reseller = auth()->user()->reseller;
+        $reseller = auth()->user()?->reseller;
+        if (! $reseller) {
+            flash()->error(__('Reseller profile not found.'));
+
+            return redirect()->route('profile.show');
+        }
 
         // Stats queries
         $totalCustomers = CustomersInfo::where('reseller_id', $reseller->id)->count();

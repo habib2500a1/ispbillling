@@ -10,6 +10,7 @@ export default defineConfig({
                 'resources/js/app.js',
                 'resources/sass/main-site.scss',
                 'resources/sass/guest.scss',
+                'resources/js/guest.js',
                 'resources/js/main-site.js',
             ],
             refresh: true,

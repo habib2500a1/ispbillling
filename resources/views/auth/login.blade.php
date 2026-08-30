@@ -59,7 +59,7 @@
                         </span>
                     </div>
                     <div class="input-group">
-                        <input t id="password" type="password" name="password" placeholder="Password" required
+                        <input id="password" type="password" name="password" placeholder="Password" required
                             autocomplete="current-password">
                         <span class="icon">
                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
@@ -77,7 +77,7 @@
                     </label>
                     @if (Route::has('password.request'))
                         <p class="form__text">
-                            <a wire:navigate.hover wire:current="active" class="form__link"
+                            <a class="form__link"
                                 href="{{ route('password.request') }}">{{ __('Forgot your password?') }}</a>
                         </p>
                     @endif
@@ -86,7 +86,7 @@
                         <p class="form__text">
                             Don't have an account?
                             <label for="toggle" class="form__text">
-                                <a wire:navigate.hover wire:current="active" class="form__link"
+                                <a class="form__link"
                                     href="{{ route('register') }}">Sign up!</a>
                             </label>
                         </p>

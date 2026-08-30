@@ -76,6 +76,10 @@ class ManageUser extends Component
             $query->where('name', '!=', 'Super Admin');
         }
 
+        if (! canSellSaas()) {
+            $query->where('name', '!=', 'Operator');
+        }
+
         $this->userRoles = $query->pluck('name')->all();
     }
 
@@ -191,6 +195,12 @@ class ManageUser extends Component
 
         if (in_array('Super Admin', $this->roles) && !auth()->user()->hasRole('Super Admin')) {
             flash()->error('Only Super Admins can assign the Super Admin role.');
+
+            return;
+        }
+
+        if (in_array('Operator', $this->roles) && ! canSellSaas()) {
+            flash()->error(__('Only the platform owner can sell or assign Operator access.'));
 
             return;
         }

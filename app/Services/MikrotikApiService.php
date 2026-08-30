@@ -20,7 +20,9 @@ class MikrotikApiService
                 'pass' => $password,
                 'port' => $port ?? 8728,
                 'timeout' => $timeout,
+                'socket_timeout' => $timeout,
                 'attempts' => 1,
+                'delay' => 0,
             ]);
 
             $this->client = new Client($config);

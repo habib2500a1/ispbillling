@@ -129,6 +129,30 @@ if (! function_exists('site_image')) {
     }
 }
 
+if (! function_exists('canSellSaas')) {
+    /**
+     * Platform owner only — Super Admin who is not a sold Operator.
+     */
+    function canSellSaas(): bool
+    {
+        $user = auth()->user();
+        if (! $user || ! method_exists($user, 'hasRole')) {
+            return false;
+        }
+
+        return $user->hasRole('Super Admin') && ! $user->hasRole('Operator');
+    }
+}
+
+if (! function_exists('isOperatorAdmin')) {
+    function isOperatorAdmin(): bool
+    {
+        $user = auth()->user();
+
+        return $user && method_exists($user, 'hasRole') && $user->hasRole('Operator');
+    }
+}
+
 if (! function_exists('portalLoginUrl')) {
     function portalLoginUrl(): string
     {

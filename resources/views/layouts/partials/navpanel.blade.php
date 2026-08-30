@@ -156,6 +156,10 @@
                     href="{{ route('customers.index') }}" role="button">{{ __('Customers') }}</a>
             </li>
             <li class="nav-item">
+                <a wire:navigate.hover wire:current="active" class="nav-link" href="{{ route('online-clients') }}"
+                    role="button">{{ __('Online Clients') }}</a>
+            </li>
+            <li class="nav-item">
                 <a wire:navigate.hover wire:current="active" class="nav-link" href="{{ route('admin-tickets') }}"
                     role="button">{{ __('Support Tickets') }}</a>
             </li>
@@ -228,6 +232,12 @@
                 <div class="dropdown-menu dropdown-caret dropdown-menu-card border-0 mt-0" aria-labelledby="admin">
                     <div class="bg-white dark__bg-1000 rounded-3 py-2">
                         <img class="img-dropdown" src="{{ asset('images/authentication-corner.png') }}" width="60" alt="" />
+                        @if (canSellSaas())
+                            <a wire:navigate.hover wire:current="active" class="dropdown-item link-600 fw-medium"
+                                href="{{ route('admin.saas-operators') }}">
+                                {{ __('Sell ISP Admin') }}
+                            </a>
+                        @endif
                         <a wire:navigate.hover wire:current="active" class="dropdown-item link-600 fw-medium"
                             href="{{ route('admin.resellers.index') }}">
                             {{ __('Reseller Setup') }}

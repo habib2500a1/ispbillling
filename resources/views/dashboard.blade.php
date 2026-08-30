@@ -34,6 +34,13 @@
         .dash-shell .pct-legend { display:flex; flex-wrap:wrap; gap:.75rem; justify-content:center; margin-top:.75rem; }
         .dash-shell .pct-legend span { font-size:.82rem; font-weight:700; color:#334155; }
         .dash-shell .pct-legend i { display:inline-block; width:10px; height:10px; border-radius:3px; margin-right:.35rem; }
+        @media (max-width: 575.98px) {
+            .dash-shell .sum-card { padding:.7rem .65rem; gap:.5rem; }
+            .dash-shell .sum-card .ico { width:38px; height:38px; font-size:1.05rem; }
+            .dash-shell .sum-card .num { font-size:1.1rem; }
+            .dash-shell .dash-kpi .value { font-size:1.35rem; }
+            .dash-shell .quick-grid a { font-size:.85rem; }
+        }
     </style>
 
     @php
@@ -166,6 +173,14 @@
         <div class="sum-head">
             <span class="dot" style="background:#10b981;box-shadow:0 0 0 3px rgba(16,185,129,.2);"></span>
             <h6>{{ __('Financial Summary') }}</h6>
+            @if(($fs['billable_customers'] ?? 0) > 0 && ($fs['bills_generated'] ?? 0) === 0 && ($fs['bill'] ?? 0) > 0)
+                <span class="dash-chip">{{ __('Live rent total') }}</span>
+            @elseif(($fs['bills_generated'] ?? 0) > 0)
+                <span class="dash-chip ok">{{ __('Bills generated') }}: {{ $fs['bills_generated'] }}</span>
+            @endif
+            @if(canSellSaas() || hasAccess(['Super Admin'], ['automatic-processes']))
+                <a href="{{ route('automatic-processes') }}" class="btn btn-sm btn-outline-secondary">{{ __('Generate bills') }}</a>
+            @endif
         </div>
         <div class="row g-3 mb-4">
             <div class="col-6 col-md-4 col-xl-2">
@@ -174,7 +189,7 @@
                     <div>
                         <div class="eyebrow">{{ $fs['month_label'] ?? now()->format('F Y') }}</div>
                         <div class="num">{{ number_format($fs['bill'] ?? 0) }}</div>
-                        <div class="sub">{{ __('Bill') }}</div>
+                        <div class="sub">{{ __('Total Bill') }}@if(($fs['billable_customers'] ?? 0) > 0) · {{ $fs['billable_customers'] }}@endif</div>
                     </div>
                 </div>
             </div>
@@ -194,7 +209,7 @@
                     <div>
                         <div class="eyebrow">{{ $fs['month_label'] ?? '' }}</div>
                         <div class="num">{{ number_format($fs['collection'] ?? 0) }}</div>
-                        <div class="sub">{{ __('Collection') }}</div>
+                        <div class="sub">{{ __('Collection') }} · {{ $fs['collection_pct'] ?? 0 }}%</div>
                     </div>
                 </a>
             </div>
@@ -204,7 +219,7 @@
                     <div>
                         <div class="eyebrow">{{ $fs['month_label'] ?? '' }}</div>
                         <div class="num">{{ number_format($fs['due'] ?? 0) }}</div>
-                        <div class="sub">{{ __('Due') }}</div>
+                        <div class="sub">{{ __('Due') }} · {{ $fs['due_pct'] ?? 0 }}%</div>
                     </div>
                 </div>
             </div>
@@ -851,13 +866,14 @@
 
     <div class="row g-4 mb-4">
         {{-- Unified Row for Routers and Graphs to allow dynamic "weight" adjustment --}}
-        @foreach ($systemOverview as $routerName => $routerData)
+        @foreach (($systemOverview ?? []) as $routerName => $routerData)
             @php
-                if (! ($routerData['status'] ?? false)) {
+                if (! is_array($routerData) || ! ($routerData['status'] ?? false)) {
                     continue;
                 }
 
-                $info = $routerData['data'][0] ?? $routerData['data'] ?? [];
+                $rawInfo = $routerData['data'][0] ?? $routerData['data'] ?? [];
+                $info = is_array($rawInfo) ? $rawInfo : [];
 
                 $cpuLoad = (int) filter_var($info['cpu-load'] ?? 0, FILTER_SANITIZE_NUMBER_INT);
                 $cpuColor = $cpuLoad > 80 ? 'bg-danger' : ($cpuLoad > 50 ? 'bg-warning' : 'bg-success');
@@ -1238,13 +1254,13 @@
                     if (window.chart2b) chart2b.destroy();
                     const billStatusEl = document.querySelector("#billByStatus");
                     if (billStatusEl) {
-                        const byStatus = @json($billInformationData['by_status']);
+                        const byStatus = @json($billInformationData['by_status'] ?? []);
                         const statusKeys   = ['active', 'free', 'inactive', 'pending'];
                         const statusLabels = ['{{ __("Active") }}', '{{ __("Free") }}', '{{ __("Inactive") }}', '{{ __("Pending") }}'];
 
-                        const rentData = statusKeys.map(s => byStatus[s].monthly_rent);
-                        const advData  = statusKeys.map(s => byStatus[s].advance);
-                        const dueData  = statusKeys.map(s => Math.abs(byStatus[s].due_amount));
+                        const rentData = statusKeys.map(s => byStatus[s]?.monthly_rent ?? 0);
+                        const advData  = statusKeys.map(s => byStatus[s]?.advance ?? 0);
+                        const dueData  = statusKeys.map(s => Math.abs(byStatus[s]?.due_amount ?? 0));
 
                         const billByStatus = {
                             series: [

@@ -16,6 +16,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->trustProxies(at: '*');
         $middleware->web(append: [
             \App\Http\Middleware\SetLocaleFromSession::class,
+            \App\Http\Middleware\SecurityHeaders::class,
         ]);
         $middleware->append(CheckSiteStatus::class);
         $middleware->alias([

@@ -3,11 +3,12 @@
 
     <div class="card border-0 shadow-sm rounded-4">
         <div class="card-body">
+            <p class="small text-muted mb-2">{{ __('List is from the last sync. Refresh pulls live sessions from MikroTik.') }}</p>
             <div class="d-flex flex-wrap gap-2 align-items-center mb-3">
-                <input type="search" class="form-control form-control-sm" style="max-width:220px"
-                    wire:model.live.debounce.300ms="search" placeholder="{{ __('Search user / profile') }}">
+                <input type="search" class="form-control form-control-sm" style="max-width:100%;width:220px"
+                    wire:model.live.debounce.300ms="search" placeholder="{{ __('Search user / IP / caller') }}">
 
-                <select class="form-select form-select-sm" style="max-width:140px" wire:model.live="filter">
+                <select class="form-select form-select-sm" style="max-width:100%;width:140px" wire:model.live="filter">
                     <option value="online">{{ __('Online') }}</option>
                     <option value="offline">{{ __('Offline') }}</option>
                     <option value="all">{{ __('All') }}</option>
@@ -37,6 +38,7 @@
                             <th>{{ __('PPP User') }}</th>
                             <th>{{ __('Router') }}</th>
                             <th>{{ __('Profile') }}</th>
+                            <th>{{ __('IP / Caller') }}</th>
                             <th>{{ __('Customer') }}</th>
                             <th>{{ __('Updated') }}</th>
                         </tr>
@@ -55,6 +57,12 @@
                                 <td class="fw-semibold">{{ $row->username }}</td>
                                 <td>{{ $row->router_name }}</td>
                                 <td>{{ $row->profile }}</td>
+                                <td class="small">
+                                    {{ $row->ppp_remote_ip ?: '—' }}
+                                    @if($row->caller_id || $row->last_caller_id)
+                                        <div class="text-muted">{{ $row->caller_id ?: $row->last_caller_id }}</div>
+                                    @endif
+                                </td>
                                 <td>
                                     @if($row->customer)
                                         {{ $row->customer->customer_name }}
@@ -67,7 +75,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="6" class="text-muted text-center py-4">{{ __('No PPP users found.') }}</td>
+                                <td colspan="7" class="text-muted text-center py-4">{{ __('No PPP users found.') }}</td>
                             </tr>
                         @endforelse
                     </tbody>

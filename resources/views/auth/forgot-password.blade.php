@@ -38,7 +38,7 @@
 
                 <button type="submit" class="form__button">{{ __('Email Password Reset Link') }}</button>
 
-                <a wire:navigate.hover wire:current="active" class="form__text" href="{{ route('login') }}">
+                <a class="form__text form__link" href="{{ route('login') }}">
                     {{ __('Back to Login Page?') }}
                 </a>
             </form>

@@ -530,6 +530,17 @@
                         <span class="nav-link-text ps-1">{{ __('Purchase Requests') }}</span>
                     </div>
                 </a>
+                @if (canSellSaas())
+                <a wire:navigate.hover wire:current="active" class="nav-link"
+                    href="{{ route('admin.saas-operators') }}" role="button">
+                    <div class="d-flex align-items-center">
+                        <span class="nav-link-icon">
+                            <i class="bi bi-bag-check"></i>
+                        </span>
+                        <span class="nav-link-text ps-1">{{ __('Sell ISP Admin') }}</span>
+                    </div>
+                </a>
+                @endif
                 <!-- reseller setup page-->
                 <a wire:navigate.hover wire:current="active" class="nav-link"
                     href="{{ route('admin.resellers.index') }}" role="button">

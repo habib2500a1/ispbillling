@@ -80,8 +80,7 @@
 
                     <button type="submit" class="form__button">{{ __('Create an Account') }}</button>
 
-                    <p class="form__text">{{ __('Already have an account?') }} <a wire:navigate.hover
-                            wire:current="active" class="form__link" href="{{ route('login') }}">Sign in!</a></p>
+                    <p class="form__text">{{ __('Already have an account?') }} <a class="form__link" href="{{ route('login') }}">Sign in!</a></p>
                 </form>
             </div>
 

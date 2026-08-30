@@ -9,6 +9,7 @@ use App\Livewire\Admin\LoginLogViewer;
 use App\Livewire\Admin\ManageReviews;
 use App\Livewire\Admin\AdminVoucherList;
 use App\Livewire\Admin\SystemLogViewer;
+use App\Livewire\Admin\ManageSaasOperators;
 use App\Http\Controllers\CollectionReportController;
 use App\Http\Controllers\CustomerPortalController;
 use App\Http\Controllers\DashboardController;
@@ -279,6 +280,7 @@ Route::middleware([
 
             // Package purchase requests
             Route::get('purchase-requests', ManagePurchaseRequests::class)->name('purchase-requests');
+            Route::get('saas-operators', ManageSaasOperators::class)->name('saas-operators');
         });
 
         // Reseller Portal Routes

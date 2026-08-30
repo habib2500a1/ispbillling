@@ -17,6 +17,10 @@ class FeatureModulePage extends Component
             abort(404);
         }
 
+        if (($def['slug'] ?? '') === 'saas-sell' && ! canSellSaas()) {
+            abort(403, 'Only the platform owner can sell ISP admin access.');
+        }
+
         if (! empty($def['route'])) {
             $this->redirect(FeatureModuleRegistry::url($def));
 

@@ -101,18 +101,22 @@ class AppServiceProvider extends ServiceProvider
         Event::listen(\Illuminate\Auth\Events\Login::class, function ($event) {
             $user = $event->user;
             if ($user) {
-                $ip = request()->ip();
-                $userAgent = request()->userAgent();
-                $username = $user instanceof \App\Models\PPPSecrets ? $user->username : ($user->email ?? $user->name ?? 'Unknown');
+                try {
+                    $ip = request()->ip();
+                    $userAgent = request()->userAgent();
+                    $username = $user instanceof \App\Models\PPPSecrets ? $user->username : ($user->email ?? $user->name ?? 'Unknown');
 
-                \App\Models\UserLoginLog::create([
-                    'authenticatable_id' => $user->id,
-                    'authenticatable_type' => get_class($user),
-                    'username' => $username,
-                    'ip_address' => $ip,
-                    'user_agent' => $userAgent,
-                    'action' => 'login',
-                ]);
+                    \App\Models\UserLoginLog::create([
+                        'authenticatable_id' => $user->id,
+                        'authenticatable_type' => get_class($user),
+                        'username' => $username,
+                        'ip_address' => $ip,
+                        'user_agent' => $userAgent,
+                        'action' => 'login',
+                    ]);
+                } catch (\Throwable $e) {
+                    \Illuminate\Support\Facades\Log::warning('login log failed', ['error' => $e->getMessage()]);
+                }
 
                 // Track client portal login count and session duration
                 if ($user instanceof \App\Models\PPPSecrets) {
@@ -126,18 +130,22 @@ class AppServiceProvider extends ServiceProvider
         Event::listen(\Illuminate\Auth\Events\Logout::class, function ($event) {
             $user = $event->user;
             if ($user) {
-                $ip = request()->ip();
-                $userAgent = request()->userAgent();
-                $username = $user instanceof \App\Models\PPPSecrets ? $user->username : ($user->email ?? $user->name ?? 'Unknown');
+                try {
+                    $ip = request()->ip();
+                    $userAgent = request()->userAgent();
+                    $username = $user instanceof \App\Models\PPPSecrets ? $user->username : ($user->email ?? $user->name ?? 'Unknown');
 
-                \App\Models\UserLoginLog::create([
-                    'authenticatable_id' => $user->id,
-                    'authenticatable_type' => get_class($user),
-                    'username' => $username,
-                    'ip_address' => $ip,
-                    'user_agent' => $userAgent,
-                    'action' => 'logout',
-                ]);
+                    \App\Models\UserLoginLog::create([
+                        'authenticatable_id' => $user->id,
+                        'authenticatable_type' => get_class($user),
+                        'username' => $username,
+                        'ip_address' => $ip,
+                        'user_agent' => $userAgent,
+                        'action' => 'logout',
+                    ]);
+                } catch (\Throwable $e) {
+                    \Illuminate\Support\Facades\Log::warning('logout log failed', ['error' => $e->getMessage()]);
+                }
             }
         });
     }

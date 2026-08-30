@@ -70,6 +70,7 @@
                 <ul class="nav navbar-nav ms-auto mb-2 mb-lg-0 align-items-md-center gap-md-1">
                     <li class="nav-item"><a class="nav-link" href="#banner">{{ __('Home') }}</a></li>
                     <li class="nav-item"><a class="nav-link" href="#features">{{ __('Service') }}</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#platform">{{ __('Platform') }}</a></li>
                     <li class="nav-item"><a class="nav-link" href="#pricing-table">{{ __('Packages') }}</a></li>
                     <li class="nav-item"><a class="nav-link" href="#contact-form">{{ __('Contact') }}</a></li>
                     <li class="nav-item ms-md-2">
@@ -301,6 +302,58 @@
                         </div>
                     </div>
                 @endif
+            </div>
+        </section>
+
+        {{-- =========================================================
+             SAAS PLATFORM (same design language as this site)
+        ========================================================== --}}
+        <section id="platform" class="pb-4">
+            <div class="container">
+                <div class="row">
+                    <div class="col-md-12">
+                        <div class="title">
+                            <h5 class="text-success">{{ __('ISP Billing SaaS') }}</h5>
+                            <h2>{{ __('One platform to run — and sell — an ISP') }}</h2>
+                            <p>{{ __('Billing, customer portal, reseller desk, payments, and MikroTik in one workspace. You open admin for a buyer; they run the full ISP independently and cannot resell the platform.') }}</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-3 col-sm-6">
+                        <div class="feature-block text-center">
+                            <div class="icon-box"><i class="bi bi-speedometer2"></i></div>
+                            <h4>{{ __('Admin operations') }}</h4>
+                            <p>{{ __('Clients, monthly bills, collection %, due, tickets, and staff roles.') }}</p>
+                        </div>
+                    </div>
+                    <div class="col-md-3 col-sm-6">
+                        <div class="feature-block text-center">
+                            <div class="icon-box"><i class="bi bi-person-badge"></i></div>
+                            <h4>{{ __('Customer portal') }}</h4>
+                            <p>{{ __('Invoices, online pay, tickets, and connection status for subscribers.') }}</p>
+                        </div>
+                    </div>
+                    <div class="col-md-3 col-sm-6">
+                        <div class="feature-block text-center">
+                            <div class="icon-box"><i class="bi bi-shop-window"></i></div>
+                            <h4>{{ __('Reseller desk') }}</h4>
+                            <p>{{ __('Partner wallet, commission, and subscriber sales — not platform resale.') }}</p>
+                        </div>
+                    </div>
+                    <div class="col-md-3 col-sm-6">
+                        <div class="feature-block text-center">
+                            <div class="icon-box"><i class="bi bi-router"></i></div>
+                            <h4>{{ __('Network + pay') }}</h4>
+                            <p>{{ __('MikroTik PPPoE, bKash / Nagad / SSLCommerz, and pay-to-ON.') }}</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="text-center mt-3 d-flex flex-wrap justify-content-center gap-2">
+                    <a href="{{ route('login') }}" class="btn btn-success rounded-pill px-4">{{ __('Staff Login') }}</a>
+                    <a href="{{ url('/portal') }}" class="btn btn-outline-success rounded-pill px-4">{{ __('Customer Portal') }}</a>
+                    <a href="#contact-form" class="btn btn-outline-secondary rounded-pill px-4">{{ __('Request a demo') }}</a>
+                </div>
             </div>
         </section>
 

@@ -413,6 +413,7 @@ section .air.air4 {
         cursor: pointer;
         font-size: 1.5rem;
         font-weight: 600;
+        min-height: 44px;
         padding: 10px 20px;
         -webkit-border-radius: 30px;
         -moz-border-radius: 30px;
@@ -447,6 +448,7 @@ section .air.air4 {
 .input-group input {
     font-size: 1.5rem;
     width: 100%;
+    min-height: 44px;
     padding: 12px 40px 12px 40px;
     border-radius: 30px;
     border: none;
@@ -475,8 +477,11 @@ section .air.air4 {
 
 .checkbox-group {
     display: flex;
+    flex-wrap: wrap;
+    align-items: center;
     font-size: 12px;
     gap: 5px;
+    min-height: 24px;
 }
 
 .checkbox-group input {
@@ -672,5 +677,37 @@ h2 {
         color: white;
         text-shadow: 0 0 1vw $teal-green, 0 0 2vw $teal-green, 0 0 2.5vw $teal-green,
             0 0 3vw $teal-green, 0 0 4vw $teal-green;
+    }
+}
+
+@include breakpoint(md) {
+    .container {
+        height: auto;
+        min-height: 100dvh;
+        padding: 16px 0 96px;
+        width: 100%;
+    }
+
+    .box {
+        width: 94%;
+        max-width: 480px;
+        margin: 0 auto;
+    }
+
+    .form {
+        padding: 16px 16px 8px;
+    }
+
+    .input-group input {
+        font-size: 16px;
+    }
+
+    .form__button {
+        font-size: 1.6rem;
+        min-height: 48px;
+    }
+
+    .form__title {
+        font-size: 2rem;
     }
 }

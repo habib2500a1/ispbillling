@@ -23,7 +23,7 @@ class OnlineClients extends Component
             abort(403, 'Unauthorized action.');
         }
 
-        $this->pollOnlineQuiet();
+        // Do not hit MikroTik on first paint — use last synced DB flags so the page opens instantly.
     }
 
     public function pollOnlineQuiet(): void
@@ -58,6 +58,11 @@ class OnlineClients extends Component
         $this->resetPage();
     }
 
+    public function updatingRouterFilter(): void
+    {
+        $this->resetPage();
+    }
+
     public function render()
     {
         $query = PPPSecrets::query()
@@ -82,7 +87,10 @@ class OnlineClients extends Component
                 $q->where('username', 'like', $s)
                     ->orWhere('profile', 'like', $s)
                     ->orWhere('comment', 'like', $s)
-                    ->orWhere('router_name', 'like', $s);
+                    ->orWhere('router_name', 'like', $s)
+                    ->orWhere('ppp_remote_ip', 'like', $s)
+                    ->orWhere('caller_id', 'like', $s)
+                    ->orWhere('last_caller_id', 'like', $s);
             });
         }
 

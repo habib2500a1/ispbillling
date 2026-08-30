@@ -30,7 +30,7 @@ final class CallDeskService
 
         $openTickets = SupportTicket::query()
             ->whereIn('status', ['open', 'in_progress'])
-            ->orderByRaw("FIELD(priority, 'high', 'medium', 'low')")
+            ->orderByRaw("CASE LOWER(COALESCE(priority, '')) WHEN 'high' THEN 1 WHEN 'medium' THEN 2 WHEN 'low' THEN 3 ELSE 4 END")
             ->orderBy('created_at')
             ->limit($limit)
             ->get()

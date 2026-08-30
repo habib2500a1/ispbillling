@@ -2,7 +2,8 @@
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
     <head>
         <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+        <meta name="theme-color" content="#06ad73">
         <meta name="csrf-token" content="{{ csrf_token() }}">
 
         <!-- ===============================================-->
@@ -12,7 +13,7 @@
 
         <link rel="shortcut icon" href="{{ site_image(siteUrlSettings('site_favicon'), 'images/favicon.png') }}" type="image/x-icon">
 
-        @vite(['resources/sass/guest.scss', 'resources/js/app.js'])
+        @vite(['resources/sass/guest.scss', 'resources/js/guest.js'])
         <script>
             @php
                 $tz = config('app.timezone', 'Asia/Dhaka');
@@ -26,7 +27,6 @@
             @endphp
             window.sitePhoneCountry = '{{ $phoneCountry }}';
         </script>
-        @livewireStyles
     </head>
     <body>
         <div class="font-sans text-gray-900 dark:text-gray-100 antialiased">
@@ -38,6 +38,5 @@
             <div class='air air3'></div>
             <div class='air air4'></div>
         </section>
-        @livewireScripts
     </body>
 </html>

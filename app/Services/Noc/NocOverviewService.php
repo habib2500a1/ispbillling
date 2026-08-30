@@ -18,41 +18,61 @@ final class NocOverviewService
 {
     public function payload(): array
     {
-        $optical = $this->optical();
-        $sla = app(TicketSlaService::class);
-        $tickets = $sla->summaryCounts();
+        try {
+            $optical = $this->optical();
+            $sla = app(TicketSlaService::class);
+            $tickets = $sla->summaryCounts();
 
-        $breachedTickets = SupportTicket::query()
-            ->whereIn('status', ['open', 'in_progress'])
-            ->orderByRaw("FIELD(priority, 'high', 'medium', 'low')")
-            ->orderBy('created_at')
-            ->limit(40)
-            ->get()
-            ->filter(fn (SupportTicket $t) => $sla->isResolveBreached($t) || $sla->isFirstResponseBreached($t))
-            ->take(20)
-            ->values()
-            ->map(fn (SupportTicket $t) => $this->ticketRow($t, $sla));
+            $priorityOrder = "CASE LOWER(COALESCE(priority, '')) WHEN 'high' THEN 1 WHEN 'medium' THEN 2 WHEN 'low' THEN 3 ELSE 4 END";
 
-        $recentOpen = SupportTicket::query()
-            ->whereIn('status', ['open', 'in_progress'])
-            ->orderByDesc('created_at')
-            ->limit(10)
-            ->get()
-            ->map(fn (SupportTicket $t) => $this->ticketRow($t, $sla));
+            $breachedTickets = SupportTicket::query()
+                ->whereIn('status', ['open', 'in_progress'])
+                ->orderByRaw($priorityOrder)
+                ->orderBy('created_at')
+                ->limit(40)
+                ->get()
+                ->filter(fn (SupportTicket $t) => $sla->isResolveBreached($t) || $sla->isFirstResponseBreached($t))
+                ->take(20)
+                ->values()
+                ->map(fn (SupportTicket $t) => $this->ticketRow($t, $sla));
 
-        return [
-            'optical' => $optical,
-            'network' => [
-                'routers' => RouterList::count(),
-                'routers_connected' => RouterList::where('action', 'connected')->count(),
-                'olts_local' => Olt::count(),
-                'onus_local' => CustomerOnu::count(),
-            ],
-            'tickets' => $tickets,
-            'breached_tickets' => $breachedTickets,
-            'recent_open' => $recentOpen,
-            'updated_at' => now()->toIso8601String(),
-        ];
+            $recentOpen = SupportTicket::query()
+                ->whereIn('status', ['open', 'in_progress'])
+                ->orderByDesc('created_at')
+                ->limit(10)
+                ->get()
+                ->map(fn (SupportTicket $t) => $this->ticketRow($t, $sla));
+
+            return [
+                'optical' => $optical,
+                'network' => [
+                    'routers' => RouterList::count(),
+                    'routers_connected' => RouterList::where('action', 'connected')->count(),
+                    'olts_local' => Olt::count(),
+                    'onus_local' => CustomerOnu::count(),
+                ],
+                'tickets' => $tickets,
+                'breached_tickets' => $breachedTickets,
+                'recent_open' => $recentOpen,
+                'updated_at' => now()->toIso8601String(),
+            ];
+        } catch (\Throwable $e) {
+            Log::warning('noc overview payload failed', ['error' => $e->getMessage()]);
+
+            return [
+                'optical' => $this->optical(),
+                'network' => [
+                    'routers' => 0,
+                    'routers_connected' => 0,
+                    'olts_local' => 0,
+                    'onus_local' => 0,
+                ],
+                'tickets' => ['open' => 0, 'in_progress' => 0, 'breached' => 0, 'high_open' => 0],
+                'breached_tickets' => collect(),
+                'recent_open' => collect(),
+                'updated_at' => now()->toIso8601String(),
+            ];
+        }
     }
 
     /**
