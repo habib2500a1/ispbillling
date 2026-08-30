@@ -56,6 +56,9 @@ if [ -n "${DB_HOST}" ]; then
   done
 fi
 
+if ! grep -qE '^APP_KEY=' .env 2>/dev/null; then
+  echo 'APP_KEY=' >> .env
+fi
 if ! grep -qE '^APP_KEY=base64:' .env 2>/dev/null; then
   php artisan key:generate --force --no-interaction || true
 fi
