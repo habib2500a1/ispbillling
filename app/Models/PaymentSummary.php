@@ -2,10 +2,12 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\ScopesByCustomerTenant;
 use Illuminate\Database\Eloquent\Model;
 
 class PaymentSummary extends Model
 {
+    use ScopesByCustomerTenant;
     protected $fillable = [
         'customer_payment_unique_id',
         // 'ppp_username',
@@ -21,6 +23,11 @@ class PaymentSummary extends Model
     protected $casts = [
         'summary_date' => 'date',
     ];
+
+    public function saasCustomerKey(): string
+    {
+        return 'customer_payment_unique_id';
+    }
 
     public function customer()
     {

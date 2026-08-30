@@ -146,7 +146,7 @@
     @else
         @php
             $navIs = fn (...$names) => request()->routeIs(...$names);
-            $openClients = $navIs('customers.*', 'new-customer', 'online-clients', 'package-list-setup', 'address-setup');
+            $openClients = $navIs('customers.*', 'new-customer', 'customers.excel-upload', 'online-clients', 'package-list-setup', 'address-setup');
             $openBilling = $navIs('payment-collection', 'collection-edit', 'payment-invoice', 'billing-notices', 'sms-notices', 'admin.staff-cash');
             $openOptical = $navIs('olt-management', 'onu-management');
             $openMtSetup = $navIs('mikrotik-ip-setup', 'mikrotik-pppoe-setup', 'mikrotik-radius-setup', 'mikrotik-firewall-setup', 'mikrotik-walled-garden', 'mikrotik-queue-setup', 'mikrotik-vpn-setup', 'mikrotik-interface-setup', 'mikrotik-traffic-monitor', 'mikrotik-backup-setup');
@@ -201,6 +201,11 @@
                     <li class="nav-item">
                         <a wire:navigate.hover class="nav-link {{ $navIs('new-customer') ? 'active' : '' }}" href="{{ route('new-customer') }}">
                             <div class="d-flex align-items-center"><span class="nav-link-text ps-1">{{ __('New Client') }}</span></div>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a wire:navigate.hover class="nav-link {{ $navIs('customers.excel-upload') ? 'active' : '' }}" href="{{ route('customers.excel-upload') }}">
+                            <div class="d-flex align-items-center"><span class="nav-link-text ps-1">{{ __('Excel upload') }}</span></div>
                         </a>
                     </li>
                     <li class="nav-item">

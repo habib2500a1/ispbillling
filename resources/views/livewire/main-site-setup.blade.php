@@ -80,11 +80,11 @@
                     <h4 class="mb-1 fw-extrabold text-primary-emphasis d-flex align-items-center gap-2">
                         <i class="bi bi-sliders text-primary"></i> {{ __('Master Setup Control Center') }}
                     </h4>
-                    <p class="text-muted small mb-0">{{ __('Manage global settings, layouts, theme customization, payment APIs, and dynamic landing page content.') }}</p>
+                    <p class="text-muted small mb-0">{{ __('Save one tab at a time. Payment can be saved without filling images on other tabs.') }}</p>
                 </div>
                 <div class="d-flex flex-wrap align-items-center gap-2">
                     <button type="submit" form="masterSetupForm" class="btn btn-primary px-4 fw-bold shadow-sm rounded-3">
-                        <span wire:loading.remove wire:target="save"><i class="bi bi-check2-circle me-1"></i> {{ __('SAVE ALL CHANGES') }}</span>
+                        <span wire:loading.remove wire:target="save"><i class="bi bi-check2-circle me-1"></i> {{ __('Save this tab') }}</span>
                         <span wire:loading wire:target="save" class="spinner-border spinner-border-sm me-1" role="status"></span>
                         <span wire:loading wire:target="save">{{ __('Saving...') }}</span>
                     </button>
@@ -116,8 +116,12 @@
         };
     @endphp
 
-    <div x-data="{ activeTab: localStorage.getItem('siteSetupActiveTab') || 'identity' }" 
-         x-init="$watch('activeTab', val => localStorage.setItem('siteSetupActiveTab', val))">
+    <div x-data="{ activeTab: $wire.entangle('activeTab') }"
+         x-init="
+            const stored = localStorage.getItem('siteSetupActiveTab');
+            if (stored) activeTab = stored;
+            $watch('activeTab', val => localStorage.setItem('siteSetupActiveTab', val));
+         ">
         
         <div class="row g-4">
             <!-- Sidebar navigation panel -->
@@ -216,7 +220,7 @@
                             </div>
                             <div class="flex-grow-1">
                                 <h6 class="alert-heading fw-bold mb-1 text-danger-emphasis">{{ __('Settings Validation Failed') }}</h6>
-                                <p class="text-danger-emphasis small mb-2">{{ __('Some fields are invalid. Please check the tabs marked with a red dot and correct the errors listed below:') }}</p>
+                                <p class="text-danger-emphasis small mb-2">{{ __('Only this tab is saved. Fix the fields below, then save again.') }}</p>
                                 <ul class="mb-0 ps-3 small text-danger-emphasis">
                                     @foreach ($errors->all() as $error)
                                         <li>{{ $error }}</li>
@@ -234,12 +238,12 @@
                             <div class="row g-3">
                                 <div class="col-md-6">
                                     <label class="form-label fw-semibold">{{ __('App Name') }}</label>
-                                    <input type="text" class="form-control rounded-3" wire:model="data.site_name" required>
+                                    <input type="text" class="form-control rounded-3" wire:model="data.site_name">
                                     @error('data.site_name') <span class="text-danger small">{{ $message }}</span> @enderror
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label fw-semibold">{{ __('Portal Name') }}</label>
-                                    <input type="text" class="form-control rounded-3" wire:model="data.portal_name" required>
+                                    <input type="text" class="form-control rounded-3" wire:model="data.portal_name">
                                     @error('data.portal_name') <span class="text-danger small">{{ $message }}</span> @enderror
                                 </div>
                                 <div class="col-md-12">
@@ -623,6 +627,12 @@
                                         </span>
                                     </small>
                                 </div>
+                                <div class="col-12">
+                                    <div class="alert alert-info border-0 rounded-3 py-2 px-3 mb-0 small">
+                                        {{ __('Bill generate time, SMS day, late fee, and auto-disable schedule are edited on') }}
+                                        <a href="{{ route('automatic-processes') }}" class="fw-semibold">{{ __('Automatic Processes') }}</a>.
+                                    </div>
+                                </div>
                                 <div class="col-md-4">
                                     <label class="form-label fw-semibold">{{ __('Grace Limit Amount') }}</label>
                                     <input type="number" class="form-control rounded-3" wire:model="data.disable_check_no">
@@ -962,7 +972,7 @@
                         <!-- Sticky Footer inside tab pane for instant access -->
                         <div class="border-top mt-4 pt-3 text-end d-md-none">
                             <button type="submit" class="btn btn-primary px-5 fw-bold shadow-sm rounded-3">
-                                <i class="bi bi-check2-circle me-1"></i> {{ __('Save Changes') }}
+                                <i class="bi bi-check2-circle me-1"></i> {{ __('Save this tab') }}
                             </button>
                         </div>
                     </div>

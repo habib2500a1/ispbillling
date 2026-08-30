@@ -12,17 +12,22 @@ use App\Livewire\Admin\SystemLogViewer;
 use App\Livewire\Admin\ManageSaasOperators;
 use App\Livewire\Admin\StaffCashDesk;
 use App\Http\Controllers\SaasLockedController;
+use App\Http\Controllers\SaasTlsAskController;
+use App\Services\Saas\SaasDomain;
 use App\Http\Controllers\CollectionInvoiceController;
 use App\Http\Controllers\CollectionReportController;
 use App\Http\Controllers\CustomerPortalController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\GlobalSearchController;
 use App\Http\Controllers\ImportController;
 use App\Http\Controllers\MikrotikImportController;
 use App\Http\Controllers\MainSiteController;
+use App\Http\Controllers\PublicPayController;
 use App\Http\Controllers\RouterListController;
 use App\Livewire\AdminControlCenter;
 use App\Livewire\AccountsHub;
 use App\Livewire\AutomaticProcesses;
+use App\Livewire\CustomerExcelUpload;
 use App\Livewire\FeatureModulePage;
 use App\Livewire\GroupHub;
 use App\Livewire\IspOsHub;
@@ -80,44 +85,54 @@ use Illuminate\Support\Str;
 // Extract domain host from APP_URL for consistent subdomain routing
 $baseDomain = parse_url(config('app.url'), PHP_URL_HOST) ?: config('app.url');
 
-// Catch-all redirect for external domains or direct IP requests (NAT Redirection for Expired Users)
+Route::get('/saas/tls-ask', SaasTlsAskController::class)->name('saas.tls-ask');
+
+// Unknown hosts (raw IP / expired NAT) stay on the warning page.
+// Registered ISP domains and the platform host serve the full app.
 $currentHost = request()->getHost();
-if ($currentHost && !in_array($currentHost, [$baseDomain, 'portal.'.$baseDomain, 'billing.'.$baseDomain])) {
+if ($currentHost && ! SaasDomain::isAllowedHost($currentHost)) {
     Route::any('{any}', function () {
         return redirect()->away(config('app.url') . '/warning');
     })->where('any', '.*');
 }
 
-// Main domain
-Route::domain($baseDomain)->group(function () {
-    Route::get('/', [MainSiteController::class, 'index'])->name('welcome');
-    Route::get('/all-packages', [MainSiteController::class, 'allPackages'])->name('all-packages');
-    Route::get('/lang/{locale}', function ($locale) {
-        if (in_array($locale, ['en', 'bn'])) {
-            session()->put('main_site_locale', $locale);
-        }
-        return redirect()->back();
-    })->name('welcome.lang');
+Route::get('/', [MainSiteController::class, 'index'])->name('welcome');
+Route::get('/all-packages', [MainSiteController::class, 'allPackages'])->name('all-packages');
+Route::get('/lang/{locale}', function ($locale) {
+    if (in_array($locale, ['en', 'bn'])) {
+        session()->put('main_site_locale', $locale);
+    }
 
-    // Warning / Recharge page for expired users
-    Route::get('/warning', function () {
-        return view('warning');
-    })->name('warning');
+    return redirect()->back();
+})->name('welcome.lang');
 
-    // Public voucher redemption route on main domain
-    Route::get('/recharge/voucher', [PortalVoucherController::class, 'showRechargeForm'])->name('welcome.voucher.recharge');
-    Route::post('/recharge/voucher', [PortalVoucherController::class, 'redeem'])->name('welcome.voucher.redeem');
+Route::get('/warning', function () {
+    return view('warning');
+})->name('warning');
 
-    Route::get('/portal', function () {
-        return redirect()->to(portalLoginUrl());
-    })->name('portal.home');
+Route::get('/pay', [PublicPayController::class, 'lookup'])->name('pay.lookup');
+Route::post('/pay', [PublicPayController::class, 'find'])->middleware('throttle:20,1')->name('pay.find');
+Route::get('/pay/{ref}', [PublicPayController::class, 'show'])->where('ref', '[A-Za-z0-9._-]+')->name('pay.show');
+Route::post('/pay/{ref}/checkout', [PublicPayController::class, 'checkout'])->middleware('throttle:10,1')->name('pay.checkout');
+Route::get('/pay/start/bkash', [BkashPaymentController::class, 'initiate'])->name('pay.start.bkash');
+Route::get('/pay/start/nagad', [NagadPaymentController::class, 'initiate'])->name('pay.start.nagad');
+Route::get('/pay/start/sslcommerz', [SslCommerzPaymentController::class, 'initiate'])->name('pay.start.sslcommerz');
+Route::any('/pay/callback/bkash', [BkashPaymentController::class, 'callback'])->name('pay.callback.bkash');
+Route::any('/pay/callback/nagad', [NagadPaymentController::class, 'callback'])->name('pay.callback.nagad');
+Route::any('/pay/callback/sslcommerz', [SslCommerzPaymentController::class, 'callback'])->name('pay.callback.sslcommerz');
 
-    Route::get('/portal/access/{token}', [CustomerPortalController::class, 'accessToken'])
-        ->name('portal.access.token');
+Route::get('/recharge/voucher', [PortalVoucherController::class, 'showRechargeForm'])->name('welcome.voucher.recharge');
+Route::post('/recharge/voucher', [PortalVoucherController::class, 'redeem'])->name('welcome.voucher.redeem');
 
-    Route::get('/billing', function () {
-        return redirect('/dashboard');
-    });
+Route::get('/portal', function () {
+    return redirect()->to(portalLoginUrl());
+})->name('portal.home');
+
+Route::get('/portal/access/{token}', [CustomerPortalController::class, 'accessToken'])
+    ->name('portal.access.token');
+
+Route::get('/billing', function () {
+    return redirect('/dashboard');
 });
 
 Route::middleware([
@@ -125,11 +140,8 @@ Route::middleware([
     config('jetstream.auth_session'),
     'verified',
     'restrict.profile',
-])->group(function () use ($baseDomain) {
-
-    // Admin panel on main domain (bill.flixbd.xyz)
-    Route::domain($baseDomain)->group(function () {
-        Route::get('/system/db-backup/download/{filename}', function ($filename) {
+])->group(function () {
+    Route::get('/system/db-backup/download/{filename}', function ($filename) {
             if (str_contains($filename, '/') || str_contains($filename, '\\')) {
                 abort(403, 'Invalid filename.');
             }
@@ -150,6 +162,7 @@ Route::middleware([
         Route::resources([
             'collection-report' => CollectionReportController::class,
         ]);
+        Route::get('search/live', [GlobalSearchController::class, 'customers'])->name('search.live');
         Route::match(['get', 'post'], 'customers/data', [CustomerList::class, 'getData'])->name('customers.data');
         Route::get('customers/{id}/edit', [CustomerList::class, 'edit'])->name('customers.edit');
         Route::get('customers/{id}/portal-login', [CustomerPortalController::class, 'login'])->name('customers.portal-login');
@@ -216,6 +229,7 @@ Route::middleware([
         Route::get('/packages', PackageListSetup::class)->name('package-list-setup');
         Route::get('/sms', SMSSetup::class)->name('sms-setup');
         Route::get('/create-customer', NewCustomer::class)->name('new-customer');
+        Route::get('/upload-users', CustomerExcelUpload::class)->name('customers.excel-upload');
 
         // payment routes
         Route::get('/payment-collection', PaymentCollection::class)->name('payment-collection');
@@ -303,7 +317,6 @@ Route::middleware([
             Route::get('vouchers', ResellerVoucherManagement::class)->name('vouchers.index');
             Route::get('wallet', ResellerWalletManagement::class)->name('wallet.index');
         });
-    });
 });
 
 // Legacy billing subdomain → main domain

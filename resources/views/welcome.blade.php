@@ -77,6 +77,9 @@
 					<li class="nav-item">
 					<a class="nav-link" href="#contact-form">{{ __('Contact') }}</a>
 					</li>
+					<li class="nav-item">
+					<a class="nav-link" href="{{ url('/pay') }}">{{ __('Pay bill') }}</a>
+					</li>
 				</ul>
 			</div>
 

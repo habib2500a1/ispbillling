@@ -15,6 +15,7 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware) {
         $middleware->trustProxies(at: '*');
         $middleware->web(append: [
+            \App\Http\Middleware\IdentifySaasDomain::class,
             \App\Http\Middleware\SetLocaleFromSession::class,
             \App\Http\Middleware\SecurityHeaders::class,
         ]);
@@ -31,6 +32,9 @@ return Application::configure(basePath: dirname(__DIR__))
             '/payment/nagad/callback',
             '/payment/sslcommerz/callback',
             '/payment/mock/submit',
+            '/pay/callback/bkash',
+            '/pay/callback/nagad',
+            '/pay/callback/sslcommerz',
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {

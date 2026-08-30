@@ -23,6 +23,9 @@
             <button type="button" id="reset_table" class="btn btn-sm cl-btn-ghost" title="{{ __('Reset filters') }}">
                 <i class="bi bi-arrow-clockwise"></i> <span class="d-none d-sm-inline">{{ __('Reset') }}</span>
             </button>
+            <a href="{{ route('customers.excel-upload') }}" class="btn btn-sm cl-btn-ghost">
+                <i class="bi bi-file-earmark-excel"></i> <span class="d-none d-sm-inline">{{ __('Excel upload') }}</span>
+            </a>
             <a href="{{ route('new-customer') }}" class="btn btn-sm cl-btn-ink">
                 <i class="bi bi-person-plus"></i> <span class="d-none d-sm-inline">{{ __('New Client') }}</span>
             </a>
@@ -483,6 +486,13 @@
                 pageLength: 10,
                 lengthChange: true,
                 searchable: true,
+                searchDelay: 280,
+                search: { return: false },
+                language: {
+                    search: '',
+                    searchPlaceholder: '{{ __("Name, ID, mobile, username…") }}',
+                    processing: '{{ __("Searching…") }}'
+                },
                 lengthMenu: [[10, 25, 50, 100], [10, 25, 50, 100]],
                 dom: '<"d-flex flex-column flex-md-row justify-content-md-between align-items-center gap-2 mb-3"Bf>rt<"d-flex flex-column flex-md-row justify-content-md-between align-items-center gap-2 mt-3"ip>',
                 buttons: [
@@ -575,6 +585,11 @@
                             d.reseller_id = checkedRadio.data('reseller-id');
                         }
                         d.router_name = $('#router_filter').val();
+                        if (!d.search) d.search = {};
+                        if (!d.search.value) {
+                            var typed = $('.dt-search input').val() || new URLSearchParams(window.location.search).get('q') || '';
+                            if (typed) d.search.value = typed;
+                        }
                     }
                 },
                 columns: [
@@ -697,6 +712,11 @@
             });
 
             window.customerListTable = table;
+            var urlQ = new URLSearchParams(window.location.search).get('q');
+            if (urlQ) {
+                $('.dt-search input').val(urlQ);
+                table.search(urlQ);
+            }
             if (window.innerWidth < 768) {
                 table.columns([0, 2, 3, 6]).visible(false);
             }

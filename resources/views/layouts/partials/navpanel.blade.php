@@ -151,6 +151,10 @@
                     role="button">{{ __('Create Customer') }}</a>
             </li>
             <li class="nav-item">
+                <a wire:navigate.hover wire:current="active" class="nav-link" href="{{ route('customers.excel-upload') }}"
+                    role="button">{{ __('Excel upload') }}</a>
+            </li>
+            <li class="nav-item">
                 <!-- parent pages-->
                 <a wire:navigate.hover wire:current.exact="active" class="nav-link"
                     href="{{ route('customers.index') }}" role="button">{{ __('Customers') }}</a>

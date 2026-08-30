@@ -37,7 +37,7 @@ class CheckSiteStatus
             if ($host === $baseDomain) {
                 $path = trim($request->path(), '/');
                 $isPortalOrMarketing = $path === '' || $path === 'all-packages' || $path === 'warning'
-                    || str_starts_with($path, 'recharge/') || str_starts_with($path, 'lang/')
+                    || str_starts_with($path, 'recharge/') || str_starts_with($path, 'pay') || str_starts_with($path, 'lang/')
                     || $path === 'billing' || $path === 'portal' || str_starts_with($path, 'portal/');
                 // Admin panel paths stay available during maintenance
                 if (! $isPortalOrMarketing) {

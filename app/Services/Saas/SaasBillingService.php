@@ -14,6 +14,14 @@ final class SaasBillingService
 
     public function quote(SaasOperator $operator): int
     {
+        if ($operator->isLifetime()) {
+            $operator->user_base_count = $this->quotas->count($operator, 'customers');
+            $operator->amount = 0;
+            $operator->save();
+
+            return 0;
+        }
+
         $users = $this->quotas->count($operator, 'customers');
         $operator->user_base_count = $users;
         $amount = (int) $operator->base_amount + ($users * (int) $operator->per_user_rate);
@@ -23,8 +31,12 @@ final class SaasBillingService
         return $amount;
     }
 
-    public function issueInvoice(SaasOperator $operator, ?CarbonInterface $dueAt = null): SaasInvoice
+    public function issueInvoice(SaasOperator $operator, ?CarbonInterface $dueAt = null): ?SaasInvoice
     {
+        if ($operator->isLifetime()) {
+            return null;
+        }
+
         $amount = $this->quote($operator);
         $due = $dueAt ?: ($operator->next_due_at ?: now());
         $cycle = $operator->billing_cycle === 'yearly' ? 'year' : 'month';
@@ -96,7 +108,7 @@ final class SaasBillingService
 
     public function refreshLock(SaasOperator $operator): void
     {
-        if ($operator->status === 'suspended') {
+        if ($operator->isLifetime() || $operator->status === 'suspended') {
             return;
         }
 

@@ -71,7 +71,11 @@ final class SaasQuotaService
         return match ($resource) {
             'customers' => $this->scopedCount(CustomersInfo::class, 'customers_infos', $id),
             'olts' => $this->scopedCount(Olt::class, 'olts', $id),
-            'onus' => $this->scopedCount(CustomerOnu::class, 'customer_onus', $id, false),
+            'onus' => CustomerOnu::query()
+                ->whereIn('customers_info_id', function ($q) use ($id) {
+                    $q->select('id')->from('customers_infos')->where('saas_operator_id', $id);
+                })
+                ->count(),
             'routers' => $this->scopedCount(RouterList::class, 'router_lists', $id),
             'staff' => User::query()
                 ->where('saas_operator_id', $id)
@@ -84,17 +88,15 @@ final class SaasQuotaService
     /**
      * @param  class-string  $model
      */
-    private function scopedCount(string $model, string $table, int $operatorId, bool $hasTenant = true): int
+    private function scopedCount(string $model, string $table, int $operatorId): int
     {
         if (! Schema::hasTable($table)) {
             return 0;
         }
 
-        $query = $model::query();
-        if ($hasTenant && Schema::hasColumn($table, 'saas_operator_id')) {
-            $query->where(function ($q) use ($operatorId) {
-                $q->where('saas_operator_id', $operatorId)->orWhereNull('saas_operator_id');
-            });
+        $query = $model::query()->withoutGlobalScope('saas_tenant');
+        if (Schema::hasColumn($table, 'saas_operator_id')) {
+            $query->where('saas_operator_id', $operatorId);
         }
 
         return $query->count();

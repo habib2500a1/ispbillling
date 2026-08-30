@@ -117,6 +117,7 @@ class PortalTrafficMonitor extends Component
 
             // Only update and dispatch if we got valid data
             if (isset($data['rx-bits-per-second']) || isset($data['tx-bits-per-second'])) {
+                // Keep raw MikroTik counters; the portal UI maps TX→download, RX→upload.
                 $this->rxSpeed = (float) ($data['rx-bits-per-second'] ?? 0);
                 $this->txSpeed = (float) ($data['tx-bits-per-second'] ?? 0);
                 $this->dispatch('traffic-updated', rx: $this->rxSpeed, tx: $this->txSpeed);

@@ -68,6 +68,7 @@ class AutomaticProcess extends Model
             'poll-router-logs',
             'olt-health-poll',
             'saas-lock-overdue',
+            'saas-sync-domains',
             'prune-router-logs',
         ];
     }

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Payment;
 
 use App\Http\Controllers\Controller;
 use App\Models\CustomersInfo;
+use App\Services\Billing\PublicPayCustomer;
 use App\Services\PaymentService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
@@ -56,13 +57,11 @@ class BkashPaymentController extends Controller
         ]);
 
         $amount = $request->amount;
-        $user = auth()->user();
+        $customer = PublicPayCustomer::current();
 
-        if (! $user || ! $user->customer) {
-            return redirect()->back()->with('error', 'Unauthorized customer access.');
+        if (! $customer) {
+            return PublicPayCustomer::failRedirect('Unauthorized customer access.');
         }
-
-        $customer = $user->customer;
 
         // Auto-detect local development to offer sandbox mock helper
         $host = request()->getHost();
@@ -76,7 +75,9 @@ class BkashPaymentController extends Controller
             $idToken = $this->generateToken();
             $config = $this->getBkashConfig();
 
-            $callbackURL = route('payment.bkash.callback');
+            $callbackURL = PublicPayCustomer::isPublic()
+                ? url('/pay/callback/bkash')
+                : route('payment.bkash.callback');
 
             $payment = Http::withToken($idToken)
                 ->withHeaders([
@@ -106,8 +107,7 @@ class BkashPaymentController extends Controller
                 return $this->showMockPaymentPage('bKash', $customer, $amount, 'bKash API returned error: '.($res['errorMessage'] ?? 'Unknown error'));
             }
 
-            return redirect()->route('filament.portal.pages.pay-bill')
-                ->with('error', 'bKash payment initiation failed: '.($res['errorMessage'] ?? 'Unknown error'));
+            return PublicPayCustomer::failRedirect('bKash payment initiation failed: '.($res['errorMessage'] ?? 'Unknown error'));
 
         } catch (\Exception $e) {
             Log::error('bKash initiate exception: '.$e->getMessage());
@@ -116,8 +116,7 @@ class BkashPaymentController extends Controller
                 return $this->showMockPaymentPage('bKash', $customer, $amount, 'Connection failed: '.$e->getMessage());
             }
 
-            return redirect()->route('filament.portal.pages.pay-bill')
-                ->with('error', 'bKash service temporarily unavailable: '.$e->getMessage());
+            return PublicPayCustomer::failRedirect('bKash service temporarily unavailable: '.$e->getMessage());
         }
     }
 
@@ -150,26 +149,25 @@ class BkashPaymentController extends Controller
                     if ($customer) {
                         $this->paymentService->processSuccessPayment($customer, $amount, 'bkash', $trxID);
 
-                        return redirect()->route('filament.portal.pages.dashboard')
-                            ->with('success', 'Payment of BDT '.$amount.' received successfully via bKash. Your account is active.');
+                        return PublicPayCustomer::afterPayment(
+                            $customer,
+                            'Payment of BDT '.$amount.' received successfully via bKash. Your account is active.'
+                        );
                     }
                 }
 
                 Log::error('bKash Execution Failed: '.json_encode($res));
 
-                return redirect()->route('filament.portal.pages.pay-bill')
-                    ->with('error', 'Payment verification failed: '.($res['statusMessage'] ?? 'Unknown error'));
+                return PublicPayCustomer::failRedirect('Payment verification failed: '.($res['statusMessage'] ?? 'Unknown error'));
 
             } catch (\Exception $e) {
                 Log::error('bKash callback execution exception: '.$e->getMessage());
 
-                return redirect()->route('filament.portal.pages.pay-bill')
-                    ->with('error', 'Verification exception: '.$e->getMessage());
+                return PublicPayCustomer::failRedirect('Verification exception: '.$e->getMessage());
             }
         }
 
-        return redirect()->route('filament.portal.pages.pay-bill')
-            ->with('error', 'Payment process cancelled or failed. Status: '.$status);
+        return PublicPayCustomer::failRedirect('Payment process cancelled or failed. Status: '.$status);
     }
 
     public function mockSubmit(Request $request)
@@ -188,11 +186,12 @@ class BkashPaymentController extends Controller
         try {
             $this->paymentService->processSuccessPayment($customer, $amount, $gateway, $trxID);
 
-            return redirect()->route('filament.portal.pages.dashboard')
-                ->with('success', 'Payment of BDT '.$amount.' simulated successfully via '.strtoupper($gateway).'. Your account is active.');
+            return PublicPayCustomer::afterPayment(
+                $customer,
+                'Payment of BDT '.$amount.' simulated successfully via '.strtoupper($gateway).'. Your account is active.'
+            );
         } catch (\Exception $e) {
-            return redirect()->route('filament.portal.pages.pay-bill')
-                ->with('error', 'Failed to process simulated payment: '.$e->getMessage());
+            return PublicPayCustomer::failRedirect('Failed to process simulated payment: '.$e->getMessage());
         }
     }
 

@@ -113,6 +113,7 @@ final class FeatureModuleRegistry
             ['slug' => 'packages', 'group' => 'Subscribers', 'section' => 'Catalog', 'label' => 'Packages', 'description' => 'Plans, speed & pricing', 'icon' => 'bi-box2', 'accent' => 'teal', 'route' => 'package-list-setup'],
             ['slug' => 'zones-areas', 'group' => 'Subscribers', 'section' => 'Coverage', 'label' => 'Zones & areas', 'description' => 'Area → zone → subzone', 'icon' => 'bi-geo-alt', 'accent' => 'teal', 'route' => 'address-setup'],
             ['slug' => 'new-subscriber', 'group' => 'Subscribers', 'section' => 'Main', 'label' => 'New subscriber', 'description' => 'Create customer account', 'icon' => 'bi-person-plus', 'accent' => 'teal', 'route' => 'new-customer'],
+            ['slug' => 'excel-user-upload', 'group' => 'Subscribers', 'section' => 'Main', 'label' => 'Excel user upload', 'description' => 'Demo file · bulk create / update clients', 'icon' => 'bi-file-earmark-excel', 'accent' => 'teal', 'route' => 'customers.excel-upload'],
         ];
     }
 

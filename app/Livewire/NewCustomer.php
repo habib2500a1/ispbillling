@@ -839,7 +839,13 @@ class NewCustomer extends Component
         }
 
         // $users = User::permission('create-user')->get();
-        $this->users = User::all();
+        $users = User::query();
+        if ($operatorId = \App\Services\Saas\SaasContext::operatorId()) {
+            $users->where('saas_operator_id', $operatorId);
+        } elseif (\App\Services\Saas\SaasContext::isPlatformOwner()) {
+            $users->whereNull('saas_operator_id');
+        }
+        $this->users = $users->get();
 
         return view('livewire.new-customer')->layout('layouts.app');
     }

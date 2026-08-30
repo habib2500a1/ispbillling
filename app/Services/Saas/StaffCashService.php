@@ -45,6 +45,7 @@ final class StaffCashService
         [$fromAt, $toAt] = $this->collectionWindow($from, $to);
 
         $collections = CollectionSummary::query()
+            ->when($operator, fn ($q) => $q->withoutGlobalScope('saas_tenant'))
             ->whereBetween('collection_date', [$fromAt, $toAt])
             ->when($emails !== [], fn ($q) => $q->whereIn('collected_by', $emails))
             ->selectRaw('collected_by, SUM(collection_amount) as total, COUNT(*) as cnt')
@@ -120,7 +121,13 @@ final class StaffCashService
             ->all();
 
         return CollectionSummary::query()
-            ->with('customer:id,customer_unique_id,customer_name')
+            ->when($operator, fn ($q) => $q->withoutGlobalScope('saas_tenant'))
+            ->with(['customer' => function ($q) use ($operator) {
+                $q->select('id', 'customer_unique_id', 'customer_name');
+                if ($operator) {
+                    $q->withoutGlobalScope('saas_tenant');
+                }
+            }])
             ->whereBetween('collection_date', [$fromAt, $toAt])
             ->when($emails !== [], fn ($q) => $q->whereIn('collected_by', $emails))
             ->orderByDesc('collection_date')

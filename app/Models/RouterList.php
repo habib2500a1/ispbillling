@@ -2,11 +2,13 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToSaasOperator;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class RouterList extends Model
 {
+    use BelongsToSaasOperator;
     use HasFactory;
 
     protected $fillable = ['saas_operator_id', 'router_name', 'ip_address', 'username', 'password', 'action', 'ssh_port', 'api_port'];

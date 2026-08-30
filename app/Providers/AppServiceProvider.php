@@ -56,11 +56,15 @@ class AppServiceProvider extends ServiceProvider
         }
 
         Gate::before(function ($user, $ability) {
-            if (method_exists($user, 'hasRole')) {
-                return $user->hasRole('Super Admin') ? true : null;
+            if (! method_exists($user, 'hasRole')) {
+                return null;
             }
 
-            return null;
+            if ($user->hasRole('Operator') && $ability === 'saas-sell') {
+                return false;
+            }
+
+            return $user->hasRole('Super Admin') ? true : null;
         });
 
         Gate::define('viewLogViewer', function ($user = null) {

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\ScopesByCustomerTenant;
 use Illuminate\Database\Eloquent\Model;
 use Spatie\Activitylog\LogOptions;
 use Spatie\Activitylog\Traits\LogsActivity;
@@ -9,6 +10,7 @@ use Spatie\Activitylog\Traits\LogsActivity;
 class CollectionSummary extends Model
 {
     use LogsActivity;
+    use ScopesByCustomerTenant;
 
     protected static $recordEvents = ['deleted', 'updated'];
 
@@ -27,9 +29,14 @@ class CollectionSummary extends Model
 
     public static function nextInvoiceNo(): int
     {
-        $maxInvoice = static::max('invoice_no');
+        $maxInvoice = static::query()->withoutGlobalScope('saas_tenant')->max('invoice_no');
 
         return $maxInvoice ? ($maxInvoice + 1) : 100001;
+    }
+
+    public function saasCustomerKey(): string
+    {
+        return 'customer_collection_unique_id';
     }
 
     public function customer()

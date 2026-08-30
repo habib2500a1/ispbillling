@@ -1,70 +1,151 @@
-{{-- search --}}
-<ul class="navbar-nav align-items-center d-none d-lg-block">
-    <li class="nav-item">
-        <div class="search-box" data-list='{"valueNames":["title"]}'>
-            <form class="position-relative" data-bs-toggle="search" data-bs-display="static">
-                <input class="form-control search-input fuzzy-search" type="search" placeholder="{{ __('Search...') }}" aria-label="Search" />
+{{-- Live customer search (name, ID, username, mobile) --}}
+<ul class="navbar-nav align-items-center flex-grow-1 px-2" style="max-width: 560px;">
+    <li class="nav-item w-100">
+        <div class="search-box js-live-search position-relative w-100">
+            <form class="position-relative" action="{{ route('customers.index') }}" method="get" autocomplete="off">
+                <input class="form-control search-input js-live-search-input" type="search" name="q"
+                    placeholder="{{ __('Search client, ID, mobile, username…') }}"
+                    aria-label="{{ __('Search') }}"
+                    autocomplete="off"
+                    spellcheck="false">
                 <i class="fas fa-search search-box-icon"></i>
             </form>
-            <div class="btn-close-container position-absolute end-0 top-50 translate-middle shadow-none" data-bs-dismiss="search">
-                <button class="btn btn-link btn-close p-0" aria-label="Close"></button>
-            </div>
-            <div class="dropdown-menu border font-base start-0 mt-2 py-0 overflow-hidden w-100">
-                <div class="scrollbar list py-3" style="max-height: 24rem;">
-                    <h6 class="dropdown-header fw-medium text-uppercase px-x1 fs-11 pt-0 pb-2">{{ __('Recently Browsed') }}</h6>
-                    <a class="dropdown-item fs-10 px-x1 py-1 hover-primary" href="app/events/event-detail.html">
-                        <div class="d-flex align-items-center">
-                            <span class="fas fa-circle me-2 text-300 fs-11"></span>
-                            <div class="fw-normal title">Pages <span class="fas fa-chevron-right mx-1 text-500 fs-11"></span> Events</div>
-                        </div>
-                    </a>
-                    <hr class="text-200 dark__text-900" />
-                    <h6 class="dropdown-header fw-medium text-uppercase px-x1 fs-11 pt-0 pb-2">{{ __('Suggested Filter') }}</h6>
-                    <a class="dropdown-item px-x1 py-1 fs-9" href="{{route('customers.index')}}">
-                        <div class="d-flex align-items-center"><span class="badge fw-medium text-decoration-none me-2 badge-subtle-warning">customers:</span>
-                            <div class="flex-1 fs-10 title">{{ __('All customers list') }}</div>
-                        </div>
-                    </a>
-                    <a class="dropdown-item px-x1 py-1 fs-9" href="app/events/event-detail.html">
-                        <div class="d-flex align-items-center"><span class="badge fw-medium text-decoration-none me-2 badge-subtle-success">events:</span>
-                            <div class="flex-1 fs-10 title">{{ __('Latest events in current month') }}</div>
-                        </div>
-                    </a>
-                    <a class="dropdown-item px-x1 py-1 fs-9" href="app/e-commerce/product/product-grid.html">
-                        <div class="d-flex align-items-center"><span class="badge fw-medium text-decoration-none me-2 badge-subtle-info">products:</span>
-                            <div class="flex-1 fs-10 title">{{ __('Most popular products') }}</div>
-                        </div>
-                    </a>
-                    {{-- if need --}}
-                    {{-- <hr class="text-200 dark__text-900" /> --}}
-                    {{-- <h6 class="dropdown-header fw-medium text-uppercase px-x1 fs-11 pt-0 pb-2">Files</h6> --}}
-                    {{-- <a class="dropdown-item px-x1 py-2" href="#!">
-                        <div class="d-flex align-items-center">
-                            <div class="file-thumbnail me-2"><img class="border h-100 w-100 object-fit-cover rounded-3" src="assets/img/products/3-thumb.png" alt="" /></div>
-                            <div class="flex-1">
-                                <h6 class="mb-0 title">iPhone</h6>
-                                <p class="fs-11 mb-0 d-flex"><span class="fw-semi-bold">Antony</span><span class="fw-medium text-600 ms-2">27 Sep at 10:30 AM</span></p>
-                            </div>
-                        </div>
-                    </a> --}}
-                    <hr class="text-200 dark__text-900" />
-                    <h6 class="dropdown-header fw-medium text-uppercase px-x1 fs-11 pt-0 pb-2">{{ __('Members') }}</h6>
-                    {{-- <a class="dropdown-item px-x1 py-2" href="pages/user/profile.html">
-                        <div class="d-flex align-items-center">
-                            <div class="avatar avatar-l status-online me-2">
-                                <img class="rounded-circle" src="assets/img/team/1.jpg" alt="" />
-                            </div>
-                            <div class="flex-1">
-                                <h6 class="mb-0 title">Anna Karinina</h6>
-                                <p class="fs-11 mb-0 d-flex">Technext Limited</p>
-                            </div>
-                        </div>
-                    </a> --}}
-                </div>
-                <div class="text-center mt-n3">
-                    <p class="fallback fw-bold fs-8 d-none">{{ __('No Result Found.') }}</p>
-                </div>
+            <div class="js-live-search-panel dropdown-menu border font-base start-0 mt-1 py-0 overflow-hidden w-100 shadow"
+                style="display:none; max-width: 560px;">
+                <div class="js-live-search-list scrollbar py-2" style="max-height: 22rem;"></div>
+                <div class="js-live-search-empty text-center py-3 px-3 small text-muted d-none">{{ __('No client found.') }}</div>
             </div>
         </div>
     </li>
 </ul>
+
+@once
+    @push('scripts')
+        <script>
+            (function () {
+                if (window.__anetbdLiveSearchBound) {
+                    return;
+                }
+                window.__anetbdLiveSearchBound = true;
+
+                var url = @json(route('search.live'));
+                var timer = null;
+                var lastQ = '';
+
+                function panelEl(box) {
+                    return box.querySelector('.js-live-search-panel');
+                }
+                function listEl(box) {
+                    return box.querySelector('.js-live-search-list');
+                }
+                function emptyEl(box) {
+                    return box.querySelector('.js-live-search-empty');
+                }
+
+                function hide(box) {
+                    var p = panelEl(box);
+                    if (p) p.style.display = 'none';
+                }
+
+                function show(box) {
+                    var p = panelEl(box);
+                    if (p) p.style.display = 'block';
+                }
+
+                function render(box, rows, listUrl, q) {
+                    var list = listEl(box);
+                    var empty = emptyEl(box);
+                    list.innerHTML = '';
+                    if (!rows.length) {
+                        empty.classList.remove('d-none');
+                        show(box);
+                        return;
+                    }
+                    empty.classList.add('d-none');
+                    rows.forEach(function (row) {
+                        var a = document.createElement('a');
+                        a.className = 'dropdown-item px-3 py-2';
+                        a.href = row.url;
+                        var due = Number(row.due || 0);
+                        a.innerHTML =
+                            '<div class="fw-semibold text-dark">' + escapeHtml(row.name || '—') + '</div>' +
+                            '<div class="small text-muted">' +
+                            escapeHtml(row.id || '') +
+                            (row.username ? ' · ' + escapeHtml(row.username) : '') +
+                            (row.mobile ? ' · ' + escapeHtml(row.mobile) : '') +
+                            (due > 0 ? ' · {{ __("Due") }} ৳' + due.toFixed(0) : '') +
+                            '</div>';
+                        list.appendChild(a);
+                    });
+                    if (listUrl && q) {
+                        var more = document.createElement('a');
+                        more.className = 'dropdown-item px-3 py-2 border-top small fw-semibold';
+                        more.href = listUrl;
+                        more.textContent = '{{ __("See all in client list") }}';
+                        list.appendChild(more);
+                    }
+                    show(box);
+                }
+
+                function escapeHtml(s) {
+                    return String(s).replace(/[&<>"']/g, function (c) {
+                        return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c];
+                    });
+                }
+
+                function query(box, q) {
+                    q = (q || '').trim();
+                    if (q.length < 2) {
+                        hide(box);
+                        return;
+                    }
+                    if (q === lastQ) {
+                        show(box);
+                        return;
+                    }
+                    lastQ = q;
+                    fetch(url + '?q=' + encodeURIComponent(q), {
+                        headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+                        credentials: 'same-origin'
+                    }).then(function (r) { return r.json(); }).then(function (data) {
+                        var input = box.querySelector('.js-live-search-input');
+                        if (!input || input.value.trim() !== q) {
+                            return;
+                        }
+                        render(box, data.results || [], data.list_url, q);
+                    }).catch(function () {
+                        hide(box);
+                    });
+                }
+
+                document.addEventListener('input', function (e) {
+                    var input = e.target.closest('.js-live-search-input');
+                    if (!input) return;
+                    var box = input.closest('.js-live-search');
+                    clearTimeout(timer);
+                    timer = setTimeout(function () { query(box, input.value); }, 220);
+                });
+
+                document.addEventListener('focusin', function (e) {
+                    var input = e.target.closest('.js-live-search-input');
+                    if (!input) return;
+                    var box = input.closest('.js-live-search');
+                    if ((input.value || '').trim().length >= 2) {
+                        query(box, input.value);
+                    }
+                });
+
+                document.addEventListener('click', function (e) {
+                    if (!e.target.closest('.js-live-search')) {
+                        document.querySelectorAll('.js-live-search').forEach(hide);
+                    }
+                });
+
+                document.addEventListener('keydown', function (e) {
+                    if (e.key !== 'Escape') return;
+                    document.querySelectorAll('.js-live-search').forEach(hide);
+                });
+            })();
+        </script>
+    @endpush
+@endonce

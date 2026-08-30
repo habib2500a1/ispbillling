@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Payment;
 
 use App\Http\Controllers\Controller;
+use App\Services\Billing\PublicPayCustomer;
 use App\Services\PaymentService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
@@ -34,13 +35,11 @@ class NagadPaymentController extends Controller
         ]);
 
         $amount = $request->amount;
-        $user = auth()->user();
+        $customer = PublicPayCustomer::current();
 
-        if (! $user || ! $user->customer) {
-            return redirect()->back()->with('error', 'Unauthorized customer access.');
+        if (! $customer) {
+            return PublicPayCustomer::failRedirect('Unauthorized customer access.');
         }
-
-        $customer = $user->customer;
 
         // Auto-detect local development to offer sandbox mock helper
         $host = request()->getHost();
@@ -68,8 +67,7 @@ class NagadPaymentController extends Controller
                 ]);
             }
 
-            return redirect()->route('filament.portal.pages.pay-bill')
-                ->with('error', 'Nagad is not properly configured (keys are missing).');
+            return PublicPayCustomer::failRedirect('Nagad is not properly configured (keys are missing).');
         }
 
         try {
@@ -174,8 +172,7 @@ class NagadPaymentController extends Controller
                 ]);
             }
 
-            return redirect()->route('filament.portal.pages.pay-bill')
-                ->with('error', 'Nagad session creation failed: '.($res['message'] ?? 'Unknown error'));
+            return PublicPayCustomer::failRedirect('Nagad session creation failed: '.($res['message'] ?? 'Unknown error'));
 
         } catch (\Exception $e) {
             Log::error('Nagad initiate exception: '.$e->getMessage());
@@ -189,8 +186,7 @@ class NagadPaymentController extends Controller
                 ]);
             }
 
-            return redirect()->route('filament.portal.pages.pay-bill')
-                ->with('error', 'Nagad service currently unavailable: '.$e->getMessage());
+            return PublicPayCustomer::failRedirect('Nagad service currently unavailable: '.$e->getMessage());
         }
     }
 
@@ -219,13 +215,15 @@ class NagadPaymentController extends Controller
 
                         if (isset($decryptedVerifyJson['status']) && $decryptedVerifyJson['status'] === 'Success') {
                             $amount = (float) $decryptedVerifyJson['amount'];
-                            $customer = auth()->user() ? auth()->user()->customer : null;
+                            $customer = PublicPayCustomer::current();
 
                             if ($customer) {
                                 $this->paymentService->processSuccessPayment($customer, $amount, 'nagad', $paymentRefId);
 
-                                return redirect()->route('filament.portal.pages.dashboard')
-                                    ->with('success', 'Payment of BDT '.$amount.' received successfully via Nagad. Your account is active.');
+                                return PublicPayCustomer::afterPayment(
+                                    $customer,
+                                    'Payment of BDT '.$amount.' received successfully via Nagad. Your account is active.'
+                                );
                             }
                         }
                     }
@@ -233,19 +231,16 @@ class NagadPaymentController extends Controller
 
                 Log::error('Nagad validation failed: '.json_encode($res));
 
-                return redirect()->route('filament.portal.pages.pay-bill')
-                    ->with('error', 'Nagad verification failed.');
+                return PublicPayCustomer::failRedirect('Nagad verification failed.');
 
             } catch (\Exception $e) {
                 Log::error('Nagad callback verification exception: '.$e->getMessage());
 
-                return redirect()->route('filament.portal.pages.pay-bill')
-                    ->with('error', 'Verification exception: '.$e->getMessage());
+                return PublicPayCustomer::failRedirect('Verification exception: '.$e->getMessage());
             }
         }
 
-        return redirect()->route('filament.portal.pages.pay-bill')
-            ->with('error', 'Payment failed or cancelled. Status: '.$status);
+        return PublicPayCustomer::failRedirect('Payment failed or cancelled. Status: '.$status);
     }
 
     private function cleanPrivateKey($key)

@@ -13,6 +13,11 @@ use App\Models\MainSiteData;
 if (! function_exists('site_brand')) {
     function site_brand(): string
     {
+        $tenant = \App\Services\Saas\SaasContext::hostOperator();
+        if ($tenant && filled($tenant->company)) {
+            return $tenant->company;
+        }
+
         $name = siteUrlSettings('site_name');
         $legacy = ['sam online', 'samonline', 'code pagol', 'codepagol', 'isp billing', 'laravel'];
         if (! is_string($name) || trim($name) === '' || in_array(strtolower(trim($name)), $legacy, true)) {
@@ -26,7 +31,7 @@ if (! function_exists('site_brand')) {
 }
 
 if (! function_exists('siteUrlSettings')) {
-    function siteUrlSettings($key)
+    function siteUrlSettings($key, $default = null)
     {
         static $hasTable = null;
         static $runtimeCache = [];
@@ -36,16 +41,21 @@ if (! function_exists('siteUrlSettings')) {
                 $hasTable = \Illuminate\Support\Facades\Schema::hasTable('main_site_data');
             }
             if (! $hasTable) {
-                return null;
+                return $default;
             }
 
             if (array_key_exists($key, $runtimeCache)) {
-                return $runtimeCache[$key];
+                $cached = $runtimeCache[$key];
+
+                return $cached === null ? $default : $cached;
             }
 
-            return $runtimeCache[$key] = MainSiteData::getValue($key);
+            $value = MainSiteData::getValue($key);
+            $runtimeCache[$key] = $value;
+
+            return $value === null ? $default : $value;
         } catch (\Throwable $e) {
-            return null;
+            return $default;
         }
     }
 }
@@ -200,6 +210,15 @@ if (! function_exists('saasBillingWarning')) {
         }
 
         return null;
+    }
+}
+
+if (! function_exists('publicPayUrl')) {
+    function publicPayUrl(?string $customerUniqueId = null): string
+    {
+        return $customerUniqueId
+            ? url('/pay/'.$customerUniqueId)
+            : url('/pay');
     }
 }
 

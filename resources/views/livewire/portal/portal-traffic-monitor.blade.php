@@ -174,10 +174,11 @@
                         
                          window.addEventListener('traffic-updated', (e) => {
                              let evt = Array.isArray(e.detail) ? e.detail[0] : e.detail;
-                             let rxBytes = evt.rx || 0;
-                             let txBytes = evt.tx || 0;
-                             let rxMbps = rxBytes / 1048576;
-                             let txMbps = txBytes / 1048576;
+                             // MikroTik interface: RX = from user (upload), TX = to user (download)
+                             let uploadBytes = evt.rx || 0;
+                             let downloadBytes = evt.tx || 0;
+                             let uploadMbps = uploadBytes / 1048576;
+                             let downloadMbps = downloadBytes / 1048576;
                         
                              const formatLabel = (bytes) => {
                                  if (bytes >= 1048576) return (bytes / 1048576).toFixed(2) + ' Mbps';
@@ -185,12 +186,12 @@
                                  return bytes.toFixed(0) + ' bps';
                              };
                         
-                             document.getElementById('rx-label').innerText = formatLabel(rxBytes);
-                             document.getElementById('tx-label').innerText = formatLabel(txBytes);
+                             document.getElementById('rx-label').innerText = formatLabel(downloadBytes);
+                             document.getElementById('tx-label').innerText = formatLabel(uploadBytes);
                         
                              let now = new Date().getTime();
-                             $data.dataRx.push([now, rxMbps]);
-                             $data.dataTx.push([now, txMbps]);
+                             $data.dataRx.push([now, downloadMbps]);
+                             $data.dataTx.push([now, uploadMbps]);
                              if ($data.dataRx.length > 900) $data.dataRx.shift();
                              if ($data.dataTx.length > 900) $data.dataTx.shift();
                         

@@ -22,6 +22,7 @@ return new class extends Migration
             $table->unsignedInteger('max_staff')->default(0);
             $table->json('modules')->nullable();
             $table->boolean('is_active')->default(true);
+            $table->boolean('is_lifetime')->default(false);
             $table->unsignedSmallInteger('sort_order')->default(10);
             $table->timestamps();
         });

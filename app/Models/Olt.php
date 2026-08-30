@@ -2,11 +2,13 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToSaasOperator;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Olt extends Model
 {
+    use BelongsToSaasOperator;
     protected $fillable = [
         'saas_operator_id',
         'name',

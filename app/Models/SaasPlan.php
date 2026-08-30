@@ -20,6 +20,7 @@ class SaasPlan extends Model
         'max_staff',
         'modules',
         'is_active',
+        'is_lifetime',
         'sort_order',
     ];
 
@@ -28,7 +29,13 @@ class SaasPlan extends Model
         return [
             'modules' => 'array',
             'is_active' => 'boolean',
+            'is_lifetime' => 'boolean',
         ];
+    }
+
+    public function isLifetime(): bool
+    {
+        return (bool) $this->is_lifetime;
     }
 
     public function operators(): HasMany

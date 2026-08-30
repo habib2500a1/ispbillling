@@ -13,8 +13,9 @@ class SendMonthlyBillSms extends Command
 
     public function handle(): int
     {
-        if ((int) now()->format('j') !== 1) {
-            $this->info('Skipped — not 1st of month.');
+        $day = max(1, min(28, (int) (siteUrlSettings('monthly_bill_sms_day') ?: 1)));
+        if ((int) now()->format('j') !== $day) {
+            $this->info("Skipped — SMS day is {$day}, today is ".now()->format('j').'.');
 
             return self::SUCCESS;
         }

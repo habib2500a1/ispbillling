@@ -2,11 +2,13 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToSaasOperator;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class CustomersInfo extends Model
 {
+    use BelongsToSaasOperator;
     use HasFactory;
 
     protected $fillable = [
@@ -90,13 +92,55 @@ class CustomersInfo extends Model
 
     public function scopeSearch($query, $search)
     {
-        return $query->where('customer_unique_id', 'like', '%'.$search.'%')
-            ->orWhere('customer_name', 'like', '%'.$search.'%')
-            ->orWhere('email', 'like', '%'.$search.'%')
-            ->orWhere('mobile', 'like', '%'.$search.'%')
-            ->orWhereHas('pppUser', function ($q) use ($search) {
-                $q->where('username', 'like', '%'.$search.'%');
+        $term = trim((string) $search);
+        if ($term === '') {
+            return $query;
+        }
+
+        $likes = array_values(array_unique(array_filter(array_merge([$term], $this->searchMobileVariants($term)))));
+        $likes = array_map(fn (string $v) => str_replace(['\\', '%', '_'], ['\\\\', '\%', '\_'], $v), $likes);
+        $safeTerm = str_replace(['\\', '%', '_'], ['\\\\', '\%', '\_'], $term);
+
+        return $query->where(function ($q) use ($likes, $safeTerm) {
+            foreach ($likes as $like) {
+                $q->orWhere('customer_unique_id', 'like', '%'.$like.'%')
+                    ->orWhere('customer_name', 'like', '%'.$like.'%')
+                    ->orWhere('contact_person', 'like', '%'.$like.'%')
+                    ->orWhere('email', 'like', '%'.$like.'%')
+                    ->orWhere('mobile', 'like', '%'.$like.'%')
+                    ->orWhere('alternative_mobile', 'like', '%'.$like.'%')
+                    ->orWhere('address', 'like', '%'.$like.'%');
+            }
+
+            $q->orWhereHas('pppUser', function ($inner) use ($safeTerm) {
+                $inner->where('username', 'like', '%'.$safeTerm.'%');
             });
+        });
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function searchMobileVariants(string $term): array
+    {
+        $digits = preg_replace('/\D+/', '', $term) ?: '';
+        if ($digits === '' || strlen($digits) < 7) {
+            return [];
+        }
+
+        $out = [$digits];
+        if (str_starts_with($digits, '880') && strlen($digits) >= 13) {
+            $out[] = substr($digits, 2);
+            $out[] = substr($digits, 3);
+        } elseif (str_starts_with($digits, '0') && strlen($digits) >= 10) {
+            $out[] = '88'.$digits;
+            $out[] = substr($digits, 1);
+        } elseif (strlen($digits) === 10) {
+            $out[] = '0'.$digits;
+            $out[] = '880'.$digits;
+        }
+
+        return $out;
     }
 
     public function reseller()

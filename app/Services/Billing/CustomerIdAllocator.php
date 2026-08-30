@@ -24,6 +24,7 @@ class CustomerIdAllocator
         $max = $this->startNumber() - 1;
 
         CustomersInfo::query()
+            ->withoutGlobalScope('saas_tenant')
             ->select(['id', 'customer_unique_id'])
             ->orderBy('id')
             ->chunkById(500, function ($rows) use ($prefix, &$max) {
@@ -47,7 +48,7 @@ class CustomerIdAllocator
         $n = max($seed + 1, $this->startNumber());
         $id = $this->format($n);
 
-        while (CustomersInfo::where('customer_unique_id', $id)->exists()) {
+        while (CustomersInfo::withoutGlobalScope('saas_tenant')->where('customer_unique_id', $id)->exists()) {
             $n++;
             $id = $this->format($n);
         }

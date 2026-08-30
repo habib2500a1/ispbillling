@@ -581,7 +581,7 @@
                         />
                         @php
                             $usersData =[];
-                            if (auth()->user()->hasRole('Super Admin')) {
+                            if (canSellSaas() || isOperatorAdmin()) {
                                 foreach ($users as $user) {
                                     $usersData[$user->id] = $user->name;
                                 }

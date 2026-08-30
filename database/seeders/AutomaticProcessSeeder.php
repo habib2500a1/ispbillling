@@ -50,12 +50,13 @@ class AutomaticProcessSeeder extends Seeder
             if ($fullRestore) {
                 $existing->forceFill(array_merge($row, ['enabled' => $enabled]))->save();
             } else {
+                // Keep owner schedule, name, and enabled as edited on Automatic Processes.
                 $existing->forceFill([
-                    'name' => $row['name'],
-                    'description' => $row['description'] ?? $existing->description,
                     'artisan_command' => $row['artisan_command'],
-                    'command_options' => $row['command_options'],
-                    'when_config_key' => $row['when_config_key'] ?? null,
+                    'command_options' => $row['command_options'] ?? $existing->command_options,
+                    'when_config_key' => array_key_exists('when_config_key', $row)
+                        ? $row['when_config_key']
+                        : $existing->when_config_key,
                     'without_overlapping_minutes' => $row['without_overlapping_minutes'] ?? $existing->without_overlapping_minutes,
                     'sort_order' => $row['sort_order'],
                 ])->save();
@@ -91,7 +92,7 @@ class AutomaticProcessSeeder extends Seeder
             [
                 'slug' => 'monthly-bill-sms',
                 'name' => 'Monthly bill SMS',
-                'description' => 'Sends bill SMS to all customers on the 1st of each month.',
+                'description' => 'Sends bill SMS on the day set under Billing rules (default: 1st).',
                 'artisan_command' => 'cpagol:send-monthly-bill-sms',
                 'command_options' => [],
                 'execute_at' => '10:00',
@@ -101,7 +102,7 @@ class AutomaticProcessSeeder extends Seeder
             [
                 'slug' => 'payment-reminder-alerts',
                 'name' => 'Payment reminder alerts',
-                'description' => 'Due / overdue payment reminder SMS.',
+                'description' => 'Due reminder SMS N days before expire (N is under Billing rules).',
                 'artisan_command' => 'cpagol:payment-reminder-alerts',
                 'command_options' => [],
                 'execute_at' => '08:00',
@@ -150,6 +151,17 @@ class AutomaticProcessSeeder extends Seeder
                 'interval' => 'every_fifteen_minutes',
                 'without_overlapping_minutes' => 10,
                 'sort_order' => 70,
+            ],
+            [
+                'slug' => 'saas-sync-domains',
+                'name' => 'Publish ISP domains to Caddy',
+                'description' => 'Keeps sold ISP custom domains on the shared HTTPS proxy.',
+                'artisan_command' => 'saas:sync-domains',
+                'command_options' => [],
+                'execute_at' => '00:00',
+                'interval' => 'every_minute',
+                'without_overlapping_minutes' => 1,
+                'sort_order' => 76,
             ],
             [
                 'slug' => 'saas-lock-overdue',

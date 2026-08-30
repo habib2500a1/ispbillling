@@ -21,6 +21,7 @@ class SetLocaleFromSession
                     || str_starts_with($path, 'portal')
                     || (! in_array($path, ['', 'all-packages', 'warning', 'billing'], true)
                         && ! str_starts_with($path, 'recharge/')
+                        && ! str_starts_with($path, 'pay')
                         && ! str_starts_with($path, 'lang/'));
 
                 if ($isAdminOrPortal) {

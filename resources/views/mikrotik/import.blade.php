@@ -1,6 +1,11 @@
 <x-app-layout>
     <div class="container mt-5">
         <h2>{{ __('Import and Preview Excel Data') }}</h2>
+        <div class="alert alert-info border-0 rounded-3 mb-3">
+            {{ __('To create users from a spreadsheet (no MikroTik required), use') }}
+            <a href="{{ route('customers.excel-upload') }}" class="fw-semibold">{{ __('Excel user upload') }}</a>
+            — {{ __('download the demo file first.') }}
+        </div>
         <div class="float-end">
             <a href="{{ url('/') }}" class="btn btn-primary btn-sm">&larr; {{ __('Back') }}</a>
         </div>

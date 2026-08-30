@@ -267,6 +267,12 @@ class ManageUser extends Component
             ->whereDoesntHave('roles', function ($query) {
                 $query->where('name', 'Reseller');
             })
+            ->when(\App\Services\Saas\SaasContext::operatorId(), function ($query, $operatorId) {
+                $query->where('saas_operator_id', $operatorId);
+            })
+            ->when(\App\Services\Saas\SaasContext::isPlatformOwner(), function ($query) {
+                $query->whereNull('saas_operator_id');
+            })
             ->paginate($this->perPage);
 
         return view('livewire.admin.user.manage-user', ['users' => $users])->layout('layouts.app');

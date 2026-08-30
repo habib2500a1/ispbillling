@@ -9,7 +9,7 @@
         <!-- ===============================================-->
         <!--    Document Title-->
         <!-- ===============================================-->
-        <title>{{ siteUrlSettings('site_title') ?? config('app.name') }}</title>
+        <title>{{ site_brand() }}</title>
 
         <link rel="shortcut icon" href="{{ site_image(siteUrlSettings('site_favicon'), 'images/favicon.png') }}" type="image/x-icon">
 

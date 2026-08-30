@@ -2,14 +2,17 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToSaasOperator;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class PackageList extends Model
 {
+    use BelongsToSaasOperator;
     use HasFactory;
 
     protected $fillable = [
+        'saas_operator_id',
         'package', 'price', 'description', 'merchant_company',
         'plan_label', 'speed', 'features', 'is_featured', 'show_on_site', 'sort_order',
         'mikrotik_rate_limit', 'push_to_mikrotik', 'mikrotik_local_address', 'mikrotik_remote_address',

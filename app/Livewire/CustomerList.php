@@ -183,7 +183,14 @@ class CustomerList extends Component
                 $data->whereNotIn('status', $statusFilter);
         }
 
+        $search = trim((string) data_get($request->input('search'), 'value', $request->input('q', '')));
+
         return DataTables::eloquent($data)
+            ->filter(function ($query) use ($search) {
+                if ($search !== '') {
+                    $query->search($search);
+                }
+            }, true)
             ->addIndexColumn()
             ->addColumn('customer_identity', function ($row) {
                 $resellerBadge = $row->reseller_id && $row->reseller

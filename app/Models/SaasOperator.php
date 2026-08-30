@@ -15,6 +15,7 @@ class SaasOperator extends Model
         'contact_name',
         'email',
         'phone',
+        'domain',
         'plan',
         'billing_cycle',
         'base_amount',
@@ -74,6 +75,11 @@ class SaasOperator extends Model
     public function isAccessBlocked(): bool
     {
         return in_array($this->status, ['locked', 'suspended'], true);
+    }
+
+    public function isLifetime(): bool
+    {
+        return $this->billing_cycle === 'lifetime';
     }
 
     public function allowsModule(string $module): bool

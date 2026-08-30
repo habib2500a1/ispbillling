@@ -135,7 +135,8 @@
         <h1>{{ __('Account Expired') }}</h1>
         <p>{{ __('Your internet subscription has expired. Please recharge your account or pay any outstanding dues to restore internet access. However, payment gateways remain accessible.') }}</p>
         
-        <a href="{{ url('/portal') }}" class="action-button">{{ __('Go to Payment Portal') }}</a>
+        <a href="{{ url('/pay') }}" class="action-button">{{ __('Pay with User ID') }}</a>
+        <a href="{{ url('/portal') }}" class="voucher-button">{{ __('Go to Payment Portal') }}</a>
         <a href="{{ url('/recharge/voucher') }}" class="voucher-button">{{ __('Recharge via Voucher') }}</a>
         
         <div class="support-info">

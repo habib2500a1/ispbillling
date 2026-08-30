@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\ScopesByCustomerTenant;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -12,6 +13,12 @@ class BillingInfo extends Model
 {
     use HasFactory;
     use LogsActivity;
+    use ScopesByCustomerTenant;
+
+    public function saasCustomerKey(): string
+    {
+        return 'customer_bill_unique_id';
+    }
 
     protected function casts(): array
     {

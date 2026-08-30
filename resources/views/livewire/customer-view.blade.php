@@ -55,6 +55,9 @@
                             </div>
                             <div class="d-flex flex-wrap gap-2 mt-3 no-print">
                                 <a href="{{ route('payment-collection') }}?customer={{ urlencode($encryptedId) }}" class="btn btn-sm btn-success"><i class="bi bi-cash-stack me-1"></i>{{ __('Collect') }}</a>
+                                <a href="{{ publicPayUrl($customer->customer_unique_id) }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-success" title="{{ __('Outside pay link — customer ID opens this bill') }}">
+                                    <i class="bi bi-link-45deg me-1"></i>{{ __('Pay link') }}
+                                </a>
                                 <button type="button" class="btn btn-sm btn-outline-info" wire:click="openSmsModal"><i class="bi bi-chat-dots me-1"></i>{{ __('SMS') }}</button>
                                 <a href="{{ route('payment-invoice') }}?customer={{ urlencode($customer->customer_unique_id) }}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-receipt me-1"></i>{{ __('Invoice') }}</a>
                                 <a href="{{ route('customers.edit', $encryptedId) }}" class="btn btn-sm btn-outline-primary"><i class="bi bi-pencil-square me-1"></i>{{ __('Edit') }}</a>

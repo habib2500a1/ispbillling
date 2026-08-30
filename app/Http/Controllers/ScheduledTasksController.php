@@ -246,7 +246,8 @@ class ScheduledTasksController extends Controller
 
     public function createAlert()
     {
-        $expiredDate = Carbon::now()->addDays(2)->toDateString(); // Set as date only
+        $reminderDays = max(0, (int) (siteUrlSettings('payment_reminder_days') ?? 2));
+        $expiredDate = Carbon::now()->addDays($reminderDays)->toDateString();
         $successfulIDs = [];
         $errorIDs = [];
 

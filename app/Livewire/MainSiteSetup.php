@@ -42,6 +42,8 @@ class MainSiteSetup extends Component implements HasActions, HasForms
 
     public ?array $data = [];
 
+    public string $activeTab = 'identity';
+
     public function mount(): void
     {
         if (! hasAccess(['Super Admin'], ['site-setup'])) {
@@ -230,8 +232,7 @@ class MainSiteSetup extends Component implements HasActions, HasForms
                         ->automaticallyResizeImagesMode('cover')
                         ->automaticallyResizeImagesToWidth('1920')
                         ->automaticallyResizeImagesToHeight('720')
-                        ->rules(['image', 'max:20480'])
-                        ->required()
+                        ->rules(['nullable', 'image', 'max:20480'])
                         ->directory('hero'),
                     TextInput::make('caption')->placeholder('Slide caption...'),
                 ])->grid(3),
@@ -242,15 +243,14 @@ class MainSiteSetup extends Component implements HasActions, HasForms
                         ->label('Bootstrap Icon Class')
                         ->placeholder('e.g., bi bi-wifi, bi bi-shield-check, bi bi-speedometer')
                         ->default('bi bi-wifi'),
-                    TextInput::make('title')->label('Service Title')->required(),
+                    TextInput::make('title')->label('Service Title'),
                     TextInput::make('description')->label('Short Description'),
                 ])->columns(3),
             Repeater::make('valuable_clients')
                 ->label('Valuable Clients')
                 ->schema([
                     TextInput::make('name')
-                        ->label('Client Name')
-                        ->required(),
+                        ->label('Client Name'),
                     FileUpload::make('logo')
                         ->label('Client Logo')
                         ->image()
@@ -266,12 +266,10 @@ class MainSiteSetup extends Component implements HasActions, HasForms
                 ->schema([
                     TextInput::make('key')
                         ->label('Key')
-                        ->required()
                         ->placeholder('Unique key used in gallery items, e.g. category-1')
                         ->inlineLabel(),
                     TextInput::make('label')
                         ->label('Label')
-                        ->required()
                         ->placeholder('Human readable label shown on filter buttons')
                         ->inlineLabel(),
                 ])
@@ -286,8 +284,7 @@ class MainSiteSetup extends Component implements HasActions, HasForms
                     FileUpload::make('image')
                         ->label('Image')
                         ->image()
-                        ->directory('gallery')
-                        ->required(),
+                        ->directory('gallery'),
                     TextInput::make('caption')
                         ->label('Caption')
                         ->placeholder('Optional caption'),
@@ -306,68 +303,33 @@ class MainSiteSetup extends Component implements HasActions, HasForms
                 ->schema([
                     TextInput::make('label')
                         ->label('Link Label')
-                        ->required()
                         ->placeholder('e.g., BTRC Website'),
                     TextInput::make('url')
                         ->label('URL')
-                        ->required()
                         ->placeholder('e.g., https://... or /about'),
                 ])->columns(2),
         ])->statePath('data');
     }
 
-    public function save(): void
+    public function save(?string $tab = null): void
     {
-        $oldLocale = MainSiteData::getValue('site_locale', 'en');
-        try {
-            $state = $this->form->getState();
-            Log::debug('MainSiteSetup save state: '.json_encode([
-                'payment_bkash_enabled' => $this->data['payment_bkash_enabled'] ?? 'not_in_state',
-                'payment_nagad_enabled' => $this->data['payment_nagad_enabled'] ?? 'not_in_state',
-                'payment_sslcommerz_enabled' => $this->data['payment_sslcommerz_enabled'] ?? 'not_in_state',
-            ]));
-        } catch (ValidationException $e) {
-            Log::error('MainSiteSetup validation failed: '.json_encode($e->errors()));
-            flash()->error('Validation failed: '.implode(', ', Arr::flatten($e->errors())));
-            throw $e;
+        $tab = $this->normalizeTab($tab ?? $this->activeTab);
+        $this->activeTab = $tab;
+        $keys = $this->keysForTab($tab);
+
+        if ($keys === []) {
+            flash()->info(__('Nothing to save on this tab.'));
+
+            return;
         }
 
-        $this->validate([
-            'data.site_name'   => 'required|string',
-            'data.portal_name' => 'required|string',
-            'data.site_locale' => 'required|string|in:en,bn',
-            'data.main_site_locale' => 'required|string|in:en,bn',
-            'data.site_phone'  => ['nullable', 'string', new ValidPhoneDigits],
-            'data.site_whatsapp'  => ['nullable', 'string', new ValidPhoneDigits],
-            'data.customer_id_prefix' => 'nullable|string|max:20',
-            'data.customer_id_start' => 'nullable|integer|min:1|max:99999999',
-        ]);
+        $oldLocale = MainSiteData::getValue('site_locale', 'en');
 
-        // All keys from both migrations
-        $keys = [
-            'site_name', 'portal_name', 'site_title', 'site_status', 'site_maintenance', 'site_message', 'site_locale', 'main_site_locale',
-            'portal_theme_preset', 'portal_primary_color', 'portal_accent_color',
-            'portal_registration_enabled', 'portal_change_password_enabled',
-            'site_logo', 'site_icon', 'site_favicon',
-            'site_description', 'site_keywords', 'site_author',
-            'site_email', 'site_phone', 'site_address', 'site_map',
-            'site_facebook', 'site_twitter', 'site_instagram', 'site_whatsapp', 'site_linkedin', 'site_youtube', 'site_pinterest',
-            'site_currency', 'site_invoice_prefix', 'customer_id_prefix', 'customer_id_start', 'site_invoice_logo', 'site_invoice_color', 'site_invoice_footer', 'site_invoice_notes', 'site_invoice_terms', 'site_invoice_signature',
-            'disable_check_no', 'disable_check_days', 'expired_profile_name',
-            'site_secret_key', 'site_secret_value', 'site_secret_validity', 'site_secret_url', 'site_secret_email',
-            'mysql_binary_path', 'log_server_enabled', 'log_server_routers', 'log_retention_days',
-            'hero_title', 'hero_subtitle', 'hero_button_text', 'hero_button_link', 'registration_link',
-            'about_title', 'about_body', 'packages_section_title', 'testimonial_title', 'footer_copyright', 'is_active',
-            'hero_slides', 'services', 'testimonials', 'gallery_items', 'gallery_categories', 'valuable_clients',
-            'btcl_tariff_link', 'important_links',
-            'payment_bkash_enabled', 'payment_bkash_base_url', 'payment_bkash_username', 'payment_bkash_password', 'payment_bkash_app_key', 'payment_bkash_app_secret',
-            'payment_nagad_enabled', 'payment_nagad_base_url', 'payment_nagad_merchant_id', 'payment_nagad_public_key', 'payment_nagad_private_key',
-            'payment_sslcommerz_enabled', 'payment_sslcommerz_store_id', 'payment_sslcommerz_store_password', 'payment_sslcommerz_sandbox',
-            'theme_preset', 'theme_name', 'theme_primary_color', 'theme_accent_color', 'theme_card_style',
-            'theme_border_radius', 'theme_font_size', 'theme_font_family', 'theme_nav_style',
-            'theme_widget_style', 'theme_mode', 'theme_transparency', 'theme_blur', 'theme_animations', 'theme_gradient_intensity',
-            'theme_section_height',
-        ];
+        if (in_array($tab, ['identity', 'billing', 'content', 'logs'], true)) {
+            $this->syncFormFilesForTab($tab, $keys);
+        }
+
+        $this->validate($this->rulesForTab($tab));
 
         try {
             foreach ($keys as $key) {
@@ -376,31 +338,160 @@ class MainSiteSetup extends Component implements HasActions, HasForms
                 }
             }
 
-            if (isset($this->data['all_data'])) {
-                foreach ($this->data['all_data'] as $item) {
-                    if (empty($item['type'])) {
-                        continue;
-                    }
-                    // Don't overwrite keys that were already handled above
-                    if (in_array($item['type'], $keys)) {
-                        continue;
-                    }
-                    MainSiteData::setValue($item['type'], $item['value']);
-                }
+            if ($tab === 'theme') {
+                MainSiteData::setValue('theme_updated_at', time());
             }
 
-            MainSiteData::setValue('theme_updated_at', time());
             Cache::flush();
-            flash()->success('Master Setup saved. All settings and secrets migrated to universal KV store!');
+            flash()->success(__('Saved :tab. Other tabs were not changed.', [
+                'tab' => $this->tabLabel($tab),
+            ]));
 
-            $newLocale = MainSiteData::getValue('site_locale', 'en');
-            if ($oldLocale !== $newLocale) {
-                $this->redirect(route('site-settings'), navigate: false);
+            if ($tab === 'identity') {
+                $newLocale = MainSiteData::getValue('site_locale', 'en');
+                if ($oldLocale !== $newLocale) {
+                    $this->redirect(route('site-settings'), navigate: false);
+                }
             }
         } catch (\Exception $e) {
             Log::error('MainSiteSetup save failed: '.json_encode($e->getMessage()));
             flash()->error('Save failed: '.$e->getMessage());
         }
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function keysForTab(string $tab): array
+    {
+        return match ($tab) {
+            'identity' => [
+                'site_name', 'portal_name', 'site_title', 'site_status', 'site_maintenance', 'site_message',
+                'site_locale', 'main_site_locale', 'portal_registration_enabled', 'portal_change_password_enabled',
+                'site_logo', 'site_icon', 'site_favicon', 'site_description', 'site_keywords', 'site_author', 'is_active',
+            ],
+            'theme' => [
+                'portal_theme_preset', 'portal_primary_color', 'portal_accent_color',
+                'theme_preset', 'theme_name', 'theme_primary_color', 'theme_accent_color', 'theme_card_style',
+                'theme_border_radius', 'theme_font_size', 'theme_font_family', 'theme_nav_style',
+                'theme_widget_style', 'theme_mode', 'theme_transparency', 'theme_blur', 'theme_animations',
+                'theme_gradient_intensity', 'theme_section_height',
+            ],
+            'contact' => [
+                'site_email', 'site_phone', 'site_address', 'site_map',
+                'site_facebook', 'site_twitter', 'site_instagram', 'site_whatsapp', 'site_linkedin',
+                'site_youtube', 'site_pinterest',
+            ],
+            'billing' => [
+                'site_currency', 'site_invoice_prefix', 'customer_id_prefix', 'customer_id_start',
+                'site_invoice_logo', 'site_invoice_color', 'site_invoice_footer', 'site_invoice_notes',
+                'site_invoice_terms', 'site_invoice_signature', 'disable_check_no', 'disable_check_days',
+                'expired_profile_name',
+            ],
+            'payment' => [
+                'payment_bkash_enabled', 'payment_bkash_base_url', 'payment_bkash_username',
+                'payment_bkash_password', 'payment_bkash_app_key', 'payment_bkash_app_secret',
+                'payment_nagad_enabled', 'payment_nagad_base_url', 'payment_nagad_merchant_id',
+                'payment_nagad_public_key', 'payment_nagad_private_key',
+                'payment_sslcommerz_enabled', 'payment_sslcommerz_store_id',
+                'payment_sslcommerz_store_password', 'payment_sslcommerz_sandbox',
+            ],
+            'security' => [
+                'site_secret_key', 'site_secret_value', 'site_secret_validity', 'site_secret_url', 'site_secret_email',
+            ],
+            'content' => [
+                'hero_title', 'hero_subtitle', 'hero_button_text', 'hero_button_link', 'registration_link',
+                'about_title', 'about_body', 'packages_section_title', 'testimonial_title', 'footer_copyright',
+                'hero_slides', 'services', 'testimonials', 'gallery_items', 'gallery_categories',
+                'valuable_clients', 'btcl_tariff_link', 'important_links',
+            ],
+            'logs' => [
+                'mysql_binary_path', 'log_server_enabled', 'log_server_routers', 'log_retention_days',
+            ],
+            default => [],
+        };
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function rulesForTab(string $tab): array
+    {
+        return match ($tab) {
+            'identity' => [
+                'data.site_name' => 'required|string',
+                'data.portal_name' => 'required|string',
+                'data.site_locale' => 'required|string|in:en,bn',
+                'data.main_site_locale' => 'required|string|in:en,bn',
+            ],
+            'contact' => [
+                'data.site_phone' => ['nullable', 'string', new ValidPhoneDigits],
+                'data.site_whatsapp' => ['nullable', 'string', new ValidPhoneDigits],
+            ],
+            'billing' => [
+                'data.customer_id_prefix' => 'nullable|string|max:20',
+                'data.customer_id_start' => 'nullable|integer|min:1|max:99999999',
+            ],
+            default => [],
+        };
+    }
+
+    /**
+     * @param  list<string>  $keys
+     */
+    private function syncFormFilesForTab(string $tab, array $keys): void
+    {
+        try {
+            $state = $this->form->getState();
+        } catch (ValidationException $e) {
+            $allowed = [];
+            foreach ($e->errors() as $field => $messages) {
+                $bare = str_replace('data.', '', (string) $field);
+                $root = explode('.', $bare)[0];
+                if (in_array($root, $keys, true)) {
+                    $allowed[$field] = $messages;
+                }
+            }
+
+            if ($allowed !== []) {
+                Log::error('MainSiteSetup validation failed: '.json_encode($allowed));
+                flash()->error(__('Fix the fields on this tab, then save again.'));
+                throw ValidationException::withMessages($allowed);
+            }
+
+            $state = method_exists($this->form, 'getRawState')
+                ? $this->form->getRawState()
+                : $this->data;
+        }
+
+        foreach ($keys as $key) {
+            if (is_array($state) && array_key_exists($key, $state)) {
+                $this->data[$key] = $state[$key];
+            }
+        }
+    }
+
+    private function normalizeTab(?string $tab): string
+    {
+        $tab = $tab ?: $this->activeTab;
+        $known = ['identity', 'theme', 'contact', 'billing', 'payment', 'security', 'content', 'logs', 'utilities'];
+
+        return in_array($tab, $known, true) ? $tab : 'identity';
+    }
+
+    private function tabLabel(string $tab): string
+    {
+        return match ($tab) {
+            'identity' => __('Identity & SEO'),
+            'theme' => __('Theme & Colors'),
+            'contact' => __('Contact & Socials'),
+            'billing' => __('Billing & Invoice'),
+            'payment' => __('Payment Gateways'),
+            'security' => __('Security & Secrets'),
+            'content' => __('Landing content'),
+            'logs' => __('Logs'),
+            default => $tab,
+        };
     }
 
     public function resetThemeSettings(): void

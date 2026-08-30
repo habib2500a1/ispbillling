@@ -105,6 +105,90 @@ class SaasBillingAndStaffCashTest extends TestCase
         app(SaasQuotaService::class)->assert('olts');
     }
 
+    public function test_lifetime_sell_has_no_invoice_and_binds_tenant_user(): void
+    {
+        $this->actingAs($this->owner());
+
+        $operator = app(OperatorProvisioningService::class)->sell([
+            'company' => 'Free ISP',
+            'contact_name' => 'Free Admin',
+            'email' => 'free-saas@isp.com',
+            'password' => 'password12',
+            'plan' => 'lifetime',
+            'billing_cycle' => 'lifetime',
+        ]);
+
+        $this->assertTrue($operator->isLifetime());
+        $this->assertNull($operator->next_due_at);
+        $this->assertSame(0, (int) $operator->amount);
+        $this->assertSame(0, $operator->invoices()->count());
+        $this->assertSame($operator->id, (int) $operator->user->saas_operator_id);
+        $this->assertFalse($operator->user->hasRole('Super Admin'));
+        $this->assertFalse($operator->user->can('saas-sell'));
+
+        app(SaasBillingService::class)->refreshLock($operator->fresh());
+        $this->assertFalse($operator->fresh()->isAccessBlocked());
+    }
+
+    public function test_grant_lifetime_clears_due_and_unlocks(): void
+    {
+        $operator = $this->sellBuyer();
+        $operator->update(['next_due_at' => now()->subDay(), 'status' => 'locked', 'lock_reason' => 'unpaid']);
+
+        app(OperatorProvisioningService::class)->grantLifetime($operator->fresh());
+
+        $fresh = $operator->fresh();
+        $this->assertTrue($fresh->isLifetime());
+        $this->assertNull($fresh->next_due_at);
+        $this->assertSame('active', $fresh->status);
+        $this->assertSame(0, $fresh->invoices()->where('status', '!=', 'paid')->count());
+    }
+
+    public function test_operator_cannot_see_platform_customers_or_count_them(): void
+    {
+        $this->actingAs($this->owner());
+        \App\Models\CustomersInfo::create([
+            'customer_unique_id' => 'ANET-OWNER-1',
+            'customer_name' => 'Anetbd Client',
+            'mobile' => '01700000999',
+            'status' => 'active',
+        ]);
+        Olt::create(['name' => 'ANET-OLT', 'status' => 'active']);
+
+        $operator = $this->sellBuyer('starter');
+        $buyer = User::where('email', 'buyer-saas@isp.com')->first();
+        $this->actingAs($buyer);
+
+        $this->assertSame(0, \App\Models\CustomersInfo::query()->count());
+        $this->assertSame(0, Olt::query()->count());
+        $this->assertSame(0, app(SaasQuotaService::class)->count($operator, 'customers'));
+        $this->assertSame(0, app(SaasQuotaService::class)->count($operator, 'olts'));
+
+        \App\Models\CustomersInfo::create([
+            'customer_unique_id' => 'BUYER-1',
+            'customer_name' => 'Buyer Client',
+            'mobile' => '01700000888',
+            'status' => 'active',
+        ]);
+
+        $this->assertSame(1, \App\Models\CustomersInfo::query()->count());
+        $this->assertSame('BUYER-1', \App\Models\CustomersInfo::query()->first()->customer_unique_id);
+        $this->assertSame($operator->id, (int) \App\Models\CustomersInfo::query()->first()->saas_operator_id);
+    }
+
+    public function test_plan_seed_does_not_overwrite_owner_prices(): void
+    {
+        app(\App\Services\Saas\SaasPlanCatalog::class)->seed();
+        $plan = \App\Models\SaasPlan::query()->where('slug', 'starter')->first();
+        $plan->update(['monthly_price' => 1234, 'name' => 'Starter Custom']);
+
+        app(\App\Services\Saas\SaasPlanCatalog::class)->seed();
+
+        $plan->refresh();
+        $this->assertSame(1234, (int) $plan->monthly_price);
+        $this->assertSame('Starter Custom', $plan->name);
+    }
+
     public function test_staff_cash_shows_collected_minus_deposit(): void
     {
         $operator = $this->sellBuyer();
@@ -132,5 +216,21 @@ class SaasBillingAndStaffCashTest extends TestCase
         $this->assertEquals(1500.0, $row['collected']);
         $this->assertEquals(500.0, $row['deposited']);
         $this->assertEquals(1000.0, $row['due']);
+    }
+
+    public function test_operator_domain_is_saved_and_tls_ask_allows_it(): void
+    {
+        $operator = $this->sellBuyer();
+        $operator->update(['domain' => 'buyer-isp.test']);
+
+        $this->get('/saas/tls-ask?domain=buyer-isp.test')->assertOk();
+        $this->get('/saas/tls-ask?domain=www.buyer-isp.test')->assertOk();
+        $this->get('/saas/tls-ask?domain=unknown-isp.test')->assertNotFound();
+        $this->assertTrue(\App\Services\Saas\SaasDomain::isAllowedHost('buyer-isp.test'));
+        $this->assertFalse(\App\Services\Saas\SaasDomain::isAllowedHost('unknown-isp.test'));
+        $this->assertTrue(\App\Services\Saas\SaasDomain::isReserved('anetbd.com'));
+
+        $this->get('http://buyer-isp.test/login')->assertOk();
+        $this->get('http://unknown-isp.test/login')->assertRedirect();
     }
 }

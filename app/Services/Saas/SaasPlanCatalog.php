@@ -85,16 +85,35 @@ final class SaasPlanCatalog
                 'modules' => ['*'],
                 'sort_order' => 40,
             ],
+            [
+                'name' => 'Lifetime Free',
+                'slug' => 'lifetime',
+                'monthly_price' => 0,
+                'yearly_price' => 0,
+                'per_user_rate' => 0,
+                'max_customers' => 0,
+                'max_olts' => 0,
+                'max_onus' => 0,
+                'max_routers' => 0,
+                'max_staff' => 0,
+                'modules' => ['*'],
+                'is_lifetime' => true,
+                'sort_order' => 50,
+            ],
         ];
     }
 
     public function seed(): void
     {
         foreach ($this->defaults() as $row) {
-            SaasPlan::query()->updateOrCreate(
-                ['slug' => $row['slug']],
-                array_merge($row, ['is_active' => true])
-            );
+            if (SaasPlan::query()->where('slug', $row['slug'])->exists()) {
+                continue;
+            }
+
+            SaasPlan::query()->create(array_merge($row, [
+                'is_active' => true,
+                'is_lifetime' => (bool) ($row['is_lifetime'] ?? false),
+            ]));
         }
     }
 

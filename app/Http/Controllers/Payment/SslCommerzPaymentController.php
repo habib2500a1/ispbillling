@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Payment;
 
 use App\Http\Controllers\Controller;
 use App\Models\CustomersInfo;
+use App\Services\Billing\PublicPayCustomer;
 use App\Services\PaymentService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
@@ -40,13 +41,11 @@ class SslCommerzPaymentController extends Controller
         ]);
 
         $amount = $request->amount;
-        $user = auth()->user();
+        $customer = PublicPayCustomer::current();
 
-        if (! $user || ! $user->customer) {
-            return redirect()->back()->with('error', 'Unauthorized customer access.');
+        if (! $customer) {
+            return PublicPayCustomer::failRedirect('Unauthorized customer access.');
         }
-
-        $customer = $user->customer;
 
         // Auto-detect local development to offer sandbox mock helper
         $host = request()->getHost();
@@ -74,8 +73,7 @@ class SslCommerzPaymentController extends Controller
                     ]);
                 }
 
-                return redirect()->route('filament.portal.pages.pay-bill')
-                    ->with('error', 'SSLCommerz is not properly configured.');
+                return PublicPayCustomer::failRedirect('SSLCommerz is not properly configured.');
             }
 
             $post_data = [
@@ -84,9 +82,9 @@ class SslCommerzPaymentController extends Controller
                 'total_amount' => (string) round($amount, 2),
                 'currency' => 'BDT',
                 'tran_id' => 'SSL_'.uniqid(),
-                'success_url' => route('payment.sslcommerz.callback'),
-                'fail_url' => route('payment.sslcommerz.callback'),
-                'cancel_url' => route('payment.sslcommerz.callback'),
+                'success_url' => PublicPayCustomer::isPublic() ? url('/pay/callback/sslcommerz') : route('payment.sslcommerz.callback'),
+                'fail_url' => PublicPayCustomer::isPublic() ? url('/pay/callback/sslcommerz') : route('payment.sslcommerz.callback'),
+                'cancel_url' => PublicPayCustomer::isPublic() ? url('/pay/callback/sslcommerz') : route('payment.sslcommerz.callback'),
 
                 // Customer Information
                 'cus_name' => $customer->customer_name ?: 'ISP Customer',
@@ -123,8 +121,7 @@ class SslCommerzPaymentController extends Controller
                 ]);
             }
 
-            return redirect()->route('filament.portal.pages.pay-bill')
-                ->with('error', 'SSLCommerz session creation failed: '.($res['failedreason'] ?? 'Unknown error'));
+            return PublicPayCustomer::failRedirect('SSLCommerz session creation failed: '.($res['failedreason'] ?? 'Unknown error'));
 
         } catch (\Exception $e) {
             Log::error('SSLCommerz initiate exception: '.$e->getMessage());
@@ -138,8 +135,7 @@ class SslCommerzPaymentController extends Controller
                 ]);
             }
 
-            return redirect()->route('filament.portal.pages.pay-bill')
-                ->with('error', 'SSLCommerz service currently offline: '.$e->getMessage());
+            return PublicPayCustomer::failRedirect('SSLCommerz service currently offline: '.$e->getMessage());
         }
     }
 
@@ -169,7 +165,7 @@ class SslCommerzPaymentController extends Controller
                     $trxID = $res['bank_trx_id'] ?: $tranId;
 
                     // We can locate the customer by matching the user session or retrieving their identifier
-                    $customer = auth()->user() ? auth()->user()->customer : null;
+                    $customer = PublicPayCustomer::current();
 
                     if (! $customer && session()->has('ssl_customer_id')) {
                         $customer = CustomersInfo::find(session('ssl_customer_id'));
@@ -178,25 +174,24 @@ class SslCommerzPaymentController extends Controller
                     if ($customer) {
                         $this->paymentService->processSuccessPayment($customer, $amount, 'sslcommerz', $trxID);
 
-                        return redirect()->route('filament.portal.pages.dashboard')
-                            ->with('success', 'Payment of BDT '.$amount.' received successfully via SSLCommerz. Your account is active.');
+                        return PublicPayCustomer::afterPayment(
+                            $customer,
+                            'Payment of BDT '.$amount.' received successfully via SSLCommerz. Your account is active.'
+                        );
                     }
                 }
 
                 Log::error('SSLCommerz Validation Failed: '.json_encode($res));
 
-                return redirect()->route('filament.portal.pages.pay-bill')
-                    ->with('error', 'Transaction validation failed.');
+                return PublicPayCustomer::failRedirect('Transaction validation failed.');
 
             } catch (\Exception $e) {
                 Log::error('SSLCommerz callback verification exception: '.$e->getMessage());
 
-                return redirect()->route('filament.portal.pages.pay-bill')
-                    ->with('error', 'Verification exception: '.$e->getMessage());
+                return PublicPayCustomer::failRedirect('Verification exception: '.$e->getMessage());
             }
         }
 
-        return redirect()->route('filament.portal.pages.pay-bill')
-            ->with('error', 'Payment failed or cancelled. Status: '.$status);
+        return PublicPayCustomer::failRedirect('Payment failed or cancelled. Status: '.$status);
     }
 }
