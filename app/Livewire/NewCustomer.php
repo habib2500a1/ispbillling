@@ -200,20 +200,7 @@ class NewCustomer extends Component
 
     public function nextCustomerId(): string
     {
-        $prefix = siteUrlSettings('customer_id_prefix') ?: 'FCNET';
-        $lastCustomer = CustomersInfo::query()->orderByDesc('id')->value('customer_unique_id');
-        if (! $lastCustomer) {
-            return $prefix.'100';
-        }
-        if (str_starts_with((string) $lastCustomer, $prefix)) {
-            $lastId = (int) substr((string) $lastCustomer, strlen($prefix));
-        } elseif (preg_match('/(\d+)$/', (string) $lastCustomer, $matches)) {
-            $lastId = (int) $matches[1];
-        } else {
-            $lastId = 99;
-        }
-
-        return $prefix.($lastId + 1);
+        return app(\App\Services\Billing\CustomerIdAllocator::class)->next();
     }
 
     public function updatedBillingDay($value): void

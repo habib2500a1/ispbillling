@@ -99,7 +99,7 @@
             'identity' => ['data.site_name', 'data.portal_name', 'data.site_title', 'data.site_description', 'data.site_keywords', 'data.site_author', 'data.site_logo', 'data.site_icon', 'data.site_favicon'],
             'theme'    => ['data.portal_theme_preset', 'data.theme_name', 'data.theme_primary_color', 'data.theme_accent_color', 'data.theme_font_family', 'data.theme_mode', 'data.theme_section_height', 'data.portal_primary_color', 'data.portal_accent_color'],
             'contact'  => ['data.site_email', 'data.site_phone', 'data.site_address', 'data.site_map', 'data.site_whatsapp', 'data.site_facebook', 'data.site_twitter', 'data.site_instagram', 'data.site_linkedin', 'data.site_youtube', 'data.site_pinterest'],
-            'billing'  => ['data.site_invoice_prefix', 'data.customer_id_prefix', 'data.site_invoice_color', 'data.site_invoice_footer', 'data.site_invoice_notes', 'data.site_invoice_terms', 'data.site_invoice_logo', 'data.site_invoice_signature'],
+            'billing'  => ['data.site_invoice_prefix', 'data.customer_id_prefix', 'data.customer_id_start', 'data.site_invoice_color', 'data.site_invoice_footer', 'data.site_invoice_notes', 'data.site_invoice_terms', 'data.site_invoice_logo', 'data.site_invoice_signature'],
             'payment'  => ['data.payment_bkash_enabled', 'data.payment_bkash_base_url', 'data.payment_bkash_username', 'data.payment_bkash_password', 'data.payment_bkash_app_key', 'data.payment_bkash_app_secret', 'data.payment_nagad_enabled', 'data.payment_nagad_base_url', 'data.payment_nagad_merchant_id', 'data.payment_nagad_public_key', 'data.payment_nagad_private_key', 'data.payment_sslcommerz_enabled', 'data.payment_sslcommerz_store_id', 'data.payment_sslcommerz_store_password', 'data.payment_sslcommerz_sandbox'],
             'security' => ['data.site_secret_key', 'data.site_secret_value', 'data.site_secret_validity', 'data.site_secret_url', 'data.site_secret_email'],
             'content'  => ['data.hero_title', 'data.hero_subtitle', 'data.hero_button_text', 'data.hero_button_link', 'data.registration_link', 'data.about_title', 'data.about_body', 'data.packages_section_title', 'data.testimonial_title', 'data.footer_copyright'],
@@ -607,8 +607,21 @@
                                 </div>
                                 <div class="col-md-4">
                                     <label class="form-label fw-semibold">{{ __('Customer ID Prefix') }}</label>
-                                    <input type="text" class="form-control rounded-3" wire:model="data.customer_id_prefix">
+                                    <input type="text" class="form-control rounded-3" wire:model.live="data.customer_id_prefix" placeholder="{{ __('Empty = numbers only') }}">
                                     @error('data.customer_id_prefix') <span class="text-danger small">{{ $message }}</span> @enderror
+                                    <small class="text-muted">{{ __('Example: FCNET. Leave blank for 100, 101, 102…') }}</small>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label fw-semibold">{{ __('Customer ID start number') }}</label>
+                                    <input type="number" min="1" step="1" class="form-control rounded-3" wire:model.live="data.customer_id_start">
+                                    @error('data.customer_id_start') <span class="text-danger small">{{ $message }}</span> @enderror
+                                    <small class="text-muted">
+                                        {{ __('Next new ID starts from this number, then auto +1.') }}
+                                        <span class="d-block fw-semibold text-dark mt-1">
+                                            {{ __('Preview') }}:
+                                            {{ ($data['customer_id_prefix'] ?? '') }}{{ (int) ($data['customer_id_start'] ?? 100) }}
+                                        </span>
+                                    </small>
                                 </div>
                                 <div class="col-md-4">
                                     <label class="form-label fw-semibold">{{ __('Grace Limit Amount') }}</label>

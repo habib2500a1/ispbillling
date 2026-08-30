@@ -50,11 +50,11 @@
                             <input type="radio" class="btn-check" name="collection" id="disable_customer" autocomplete="off">
                             <label class="cl-chip" for="disable_customer">{{ __('Disabled') }} <span class="cl-count"></span></label>
 
-                            <div class="dropdown cl-more">
-                                <button class="cl-chip cl-more-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                    {{ __('More') }} <i class="bi bi-chevron-down small"></i>
+                            <div class="cl-more" x-data="{ open: false }" @keydown.escape.window="open = false" @click.outside="open = false">
+                                <button class="cl-chip cl-more-btn" type="button" @click.stop="open = !open" :class="{ 'is-on': open }" :aria-expanded="open">
+                                    {{ __('More') }} <i class="bi small" :class="open ? 'bi-chevron-up' : 'bi-chevron-down'"></i>
                                 </button>
-                                <div class="dropdown-menu dropdown-menu-end cl-more-menu">
+                                <div class="cl-more-menu" x-show="open" x-cloak @click="open = false">
                                     <label class="dropdown-item" for="active_customer"><input type="radio" class="btn-check" name="collection" id="active_customer" autocomplete="off"> {{ __('Status: Active') }} <span class="cl-count"></span></label>
                                     <label class="dropdown-item" for="free_customer"><input type="radio" class="btn-check" name="collection" id="free_customer" autocomplete="off"> {{ __('Free') }} <span class="cl-count"></span></label>
                                     <label class="dropdown-item" for="vip_customer"><input type="radio" class="btn-check" name="collection" id="vip_customer" autocomplete="off"> {{ __('VIP') }} <span class="cl-count"></span></label>
@@ -274,9 +274,9 @@
             border: 1px solid var(--cl-line);
             border-radius: 10px;
         }
-        .cl-filter-card { padding: 0.65rem 0.75rem; margin-bottom: 0.75rem; }
+        .cl-filter-card { padding: 0.65rem 0.75rem; margin-bottom: 0.75rem; overflow: visible; position: relative; z-index: 4; }
         .cl-table-card { overflow: hidden; }
-        .cl-chips { display: flex; flex-wrap: nowrap; gap: 0.35rem; overflow-x: auto; -webkit-overflow-scrolling: touch; padding-bottom: 2px; }
+        .cl-chips { display: flex; flex-wrap: wrap; gap: 0.35rem; overflow: visible; padding-bottom: 2px; }
         .cl-chip {
             display: inline-flex;
             align-items: center;
@@ -309,9 +309,24 @@
             font-size: 0.72rem;
         }
         .btn-check:checked + .cl-chip .cl-count { background: rgba(255,255,255,0.18); color: #fff; }
+        [x-cloak] { display: none !important; }
+        .cl-more { position: relative; }
         .cl-more-btn { border-style: dashed; }
-        .cl-more-menu { min-width: 14rem; max-height: 20rem; overflow: auto; }
-        .cl-more-menu .dropdown-item { font-size: 0.82rem; cursor: pointer; }
+        .cl-more-menu {
+            position: absolute;
+            top: calc(100% + 4px);
+            left: 0;
+            z-index: 1080;
+            min-width: 16rem;
+            max-height: 22rem;
+            overflow: auto;
+            padding: 0.4rem 0;
+            background: #fff;
+            border: 1px solid var(--cl-line);
+            border-radius: 8px;
+            box-shadow: 0 10px 28px rgba(30, 58, 95, 0.16);
+        }
+        .cl-more-menu .dropdown-item { font-size: 0.82rem; cursor: pointer; display: flex; align-items: center; gap: 0.4rem; }
         .custom-data-table {
             border-collapse: collapse !important;
             border-spacing: 0 !important;
@@ -387,22 +402,44 @@
             .cl-table-card .table-responsive { padding-left: 0.5rem !important; padding-right: 0.5rem !important; }
             .action-btns { flex-wrap: wrap; }
         }
-        .dt-buttons .btn {
-            border-radius: 8px !important;
-            font-size: 0.8rem !important;
-            margin-right: 4px !important;
-            margin-bottom: 4px !important;
-            flex: 0 0 auto !important;
-            white-space: nowrap !important;
-        }
         .dt-container .dt-buttons {
             display: flex !important;
-            flex-wrap: nowrap !important;
-            overflow-x: auto !important;
-            -webkit-overflow-scrolling: touch !important;
-            gap: 2px !important;
+            flex-wrap: wrap !important;
+            overflow: visible !important;
+            gap: 6px !important;
             max-width: 100% !important;
             padding-bottom: 6px !important;
+        }
+        .dt-buttons .btn,
+        .dt-buttons .dt-button {
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            border-radius: 8px !important;
+            font-size: 0.8rem !important;
+            font-weight: 600 !important;
+            line-height: 1.2 !important;
+            margin: 0 !important;
+            padding: 0.35rem 0.75rem !important;
+            min-height: 34px !important;
+            min-width: auto !important;
+            width: auto !important;
+            height: auto !important;
+            color: #1e3a5f !important;
+            background: #fff !important;
+            border: 1px solid #d5dde6 !important;
+            white-space: nowrap !important;
+            overflow: visible !important;
+            visibility: visible !important;
+        }
+        .dt-buttons .btn span,
+        .dt-buttons .dt-button span,
+        .dt-buttons .btn i,
+        .dt-buttons .dt-button i {
+            display: inline !important;
+            visibility: visible !important;
+            color: inherit !important;
+            font-size: inherit !important;
         }
         .dt-container .dt-buttons::-webkit-scrollbar {
             height: 4px;
@@ -449,32 +486,38 @@
                 lengthMenu: [[10, 25, 50, 100], [10, 25, 50, 100]],
                 dom: '<"d-flex flex-column flex-md-row justify-content-md-between align-items-center gap-2 mb-3"Bf>rt<"d-flex flex-column flex-md-row justify-content-md-between align-items-center gap-2 mt-3"ip>',
                 buttons: [
-                    'pageLength',
                     {
-                        extend: 'excel',
-                        text: '<i class="bi bi-file-earmark-excel"></i> {{ __("Excel") }}',
-                        className: 'btn-outline-secondary',
+                        extend: 'pageLength',
+                        className: 'btn btn-sm btn-outline-secondary'
+                    },
+                    {
+                        extend: 'excelHtml5',
+                        text: '{{ __("Excel") }}',
+                        className: 'btn btn-sm btn-outline-secondary',
                         exportOptions: { columns: [0, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22], footer: true }
                     },
                     {
                         extend: 'pdfHtml5',
-                        text: '<i class="bi bi-file-earmark-pdf"></i> {{ __("PDF") }}',
-                        className: 'btn-outline-secondary',
+                        text: '{{ __("PDF") }}',
+                        className: 'btn btn-sm btn-outline-secondary',
                         orientation: 'landscape',
                         pageSize: 'LEGAL',
                         exportOptions: { columns: [0, 8, 9, 10, 11, 12, 3, 20, 21, 22], footer: true }
                     },
                     {
                         extend: 'print',
-                        text: '<i class="bi bi-printer"></i> {{ __("Print") }}',
-                        className: 'btn-outline-secondary',
+                        text: '{{ __("Print") }}',
+                        className: 'btn btn-sm btn-outline-secondary',
                         exportOptions: { columns: [0, 8, 9, 10, 11, 12, 3, 20, 21, 22], footer: true },
                         customize: function (win) {
                             $(win.document.body).find('h1').css('text-align', 'center').text('{{ __("Customer Billing Report") }}');
-                            // We can manually append footer totals here if needed since footer: false is used
                         }
                     },
-                    'colvis'
+                    {
+                        extend: 'colvis',
+                        text: '{{ __("Columns") }}',
+                        className: 'btn btn-sm btn-outline-secondary'
+                    }
                 ],
                 ajax: {
                     url: '/customers/data',

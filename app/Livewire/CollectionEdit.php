@@ -140,6 +140,7 @@ class CollectionEdit extends Component
                 ->update([
                     'paid_amount' => $this->paid_amount + $this->info_data->billing->paid_amount,
                     'paid_date' => Carbon::now(),
+                    'extra_date' => null,
                     'due_amount' => $this->due_amount,
                 ]);
             DB::commit();

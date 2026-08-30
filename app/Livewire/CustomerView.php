@@ -71,10 +71,15 @@ class CustomerView extends Component
 
     protected function loadExpireDate(): void
     {
-        $raw = BillingInfo::query()
+        $bill = BillingInfo::query()
             ->where('customer_bill_unique_id', $this->customerId)
-            ->value('auto_disable_date');
-        $this->expireDate = $raw ? Carbon::parse($raw)->format('Y-m-d') : now()->format('Y-m-d');
+            ->first();
+        if ($bill?->extra_date && Carbon::parse($bill->extra_date)->gte(today())) {
+            $this->expireDate = Carbon::parse($bill->extra_date)->format('Y-m-d');
+
+            return;
+        }
+        $this->expireDate = now()->format('Y-m-d');
     }
 
     protected function bootstrapPortalToken(): void
@@ -472,18 +477,37 @@ class CustomerView extends Component
             return;
         }
 
-        $base = $bill->auto_disable_date
-            ? Carbon::parse($bill->auto_disable_date)
-            : now();
-        if ($base->lt(now())) {
-            $base = now();
+        $today = now()->startOfDay();
+        $permanent = $bill->auto_disable_date
+            ? Carbon::parse($bill->auto_disable_date)->startOfDay()
+            : $today;
+        $currentTemp = $bill->extra_date
+            ? Carbon::parse($bill->extra_date)->startOfDay()
+            : null;
+
+        if ($currentTemp && $currentTemp->gte($today)) {
+            $base = $currentTemp;
+        } elseif ($permanent->gte($today)) {
+            $base = $permanent;
+        } else {
+            $base = $today;
         }
-        $bill->auto_disable_date = $base->copy()->addDays($days)->format('Y-m-d');
+
+        $bill->extra_date = $base->copy()->addDays($days)->format('Y-m-d');
         $bill->auto_disable = 1;
         $bill->save();
-        $this->expireDate = (string) $bill->auto_disable_date;
+        $this->expireDate = Carbon::parse($bill->extra_date)->format('Y-m-d');
 
-        flash()->success("Expire extended +{$days} days → ".$bill->auto_disable_date);
+        $permLabel = $bill->auto_disable_date
+            ? Carbon::parse($bill->auto_disable_date)->format('d M Y')
+            : '—';
+        flash()->success(
+            __('Temporary expire +:days days → :temp. Permanent stay :perm.', [
+                'days' => $days,
+                'temp' => Carbon::parse($bill->extra_date)->format('d M Y'),
+                'perm' => $permLabel,
+            ])
+        );
     }
 
     public function setExpireDate(): void
@@ -499,12 +523,36 @@ class CustomerView extends Component
             return;
         }
 
-        $bill->auto_disable_date = Carbon::parse($this->expireDate)->format('Y-m-d');
+        $bill->extra_date = Carbon::parse($this->expireDate)->format('Y-m-d');
         $bill->auto_disable = 1;
         $bill->save();
-        $this->expireDate = (string) $bill->auto_disable_date;
+        $this->expireDate = Carbon::parse($bill->extra_date)->format('Y-m-d');
 
-        flash()->success(__('Expire set to :date', ['date' => Carbon::parse($bill->auto_disable_date)->format('d M Y')]));
+        $permLabel = $bill->auto_disable_date
+            ? Carbon::parse($bill->auto_disable_date)->format('d M Y')
+            : '—';
+        flash()->success(
+            __('Temporary expire set to :temp. Permanent stay :perm', [
+                'temp' => Carbon::parse($bill->extra_date)->format('d M Y'),
+                'perm' => $permLabel,
+            ])
+        );
+    }
+
+    public function clearTempExpire(): void
+    {
+        $bill = BillingInfo::where('customer_bill_unique_id', $this->customerId)->first();
+        if (! $bill) {
+            flash()->error('Billing not found.');
+
+            return;
+        }
+
+        $bill->extra_date = null;
+        $bill->save();
+        $this->expireDate = now()->format('Y-m-d');
+
+        flash()->success(__('Temporary expire cleared. Permanent date unchanged.'));
     }
 
     public function with(): array

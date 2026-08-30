@@ -89,22 +89,7 @@ class Register extends BaseRegister
             $pppUser->save();
 
             // 2. Generate customer_unique_id
-            $prefix = siteUrlSettings('customer_id_prefix') ?: 'FCNET';
-            $lastCustomer = CustomersInfo::orderBy('id', 'desc')->value('customer_unique_id');
-            if ($lastCustomer) {
-                if (str_starts_with($lastCustomer, $prefix)) {
-                    $lastId = (int) substr($lastCustomer, strlen($prefix));
-                } else {
-                    if (preg_match('/(\d+)$/', $lastCustomer, $matches)) {
-                        $lastId = (int) $matches[1];
-                    } else {
-                        $lastId = 99;
-                    }
-                }
-                $newId = $prefix . ($lastId + 1);
-            } else {
-                $newId = $prefix . '100';
-            }
+            $newId = app(\App\Services\Billing\CustomerIdAllocator::class)->next();
 
             // 3. Create CustomersInfo
             $customer = new CustomersInfo;

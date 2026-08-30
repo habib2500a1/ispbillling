@@ -243,6 +243,7 @@ class PaymentCollection extends Component
                     'paid_amount' => $this->paid_amount + $this->info_data->billing->paid_amount,
                     'paid_date' => Carbon::now(),
                     'auto_disable_date' => $this->expire_date,
+                    'extra_date' => null,
                     'due_amount' => $this->due_amount,
                 ]);
             DB::commit();

@@ -63,7 +63,14 @@ class DashboardController extends Controller
                 ->whereHas('billing', fn ($q) => $q->where('due_amount', '>', 0))
                 ->count(),
             'expired' => CustomersInfo::query()
-                ->whereHas('billing', fn ($q) => $q->whereDate('auto_disable_date', '<', $today)->where('due_amount', '>', 0))
+                ->whereHas('billing', function ($q) use ($today) {
+                    $q->whereDate('auto_disable_date', '<', $today)
+                        ->where('due_amount', '>', 0)
+                        ->where(function ($hold) use ($today) {
+                            $hold->whereNull('extra_date')
+                                ->orWhereDate('extra_date', '<', $today);
+                        });
+                })
                 ->whereNotIn('status', ['free'])
                 ->count(),
             'joined_month' => $recentCount,

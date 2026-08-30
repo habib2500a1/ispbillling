@@ -61,10 +61,10 @@
                                     <button type="button" class="btn btn-sm btn-outline-danger" wire:click="disableLine" wire:confirm="{{ __('Disable line?') }}"><i class="bi bi-slash-circle me-1"></i>{{ __('Net OFF') }}</button>
                                 @endif
                                 <button type="button" class="btn btn-sm btn-outline-warning" wire:click="kickPpp" wire:confirm="{{ __('Kick PPP?') }}"><i class="bi bi-plug me-1"></i>{{ __('Kick') }}</button>
-                                <button type="button" class="btn btn-sm btn-outline-secondary" wire:click="extendExpire(1)" title="{{ __('Extend expire 1 day') }}">+1d</button>
-                                <button type="button" class="btn btn-sm btn-outline-secondary" wire:click="extendExpire(2)" title="{{ __('Extend expire 2 days') }}">+2d</button>
-                                <button type="button" class="btn btn-sm btn-outline-secondary" wire:click="extendExpire(5)">+5d</button>
-                                <button type="button" class="btn btn-sm btn-outline-secondary" wire:click="extendExpire(30)">+30d</button>
+                                <button type="button" class="btn btn-sm btn-outline-warning" wire:click="extendExpire(1)" title="{{ __('Temporary expire +1 day (permanent date stays)') }}">+1d</button>
+                                <button type="button" class="btn btn-sm btn-outline-warning" wire:click="extendExpire(2)" title="{{ __('Temporary expire +2 days (permanent date stays)') }}">+2d</button>
+                                <button type="button" class="btn btn-sm btn-outline-warning" wire:click="extendExpire(5)" title="{{ __('Temporary expire +5 days (permanent date stays)') }}">+5d</button>
+                                <button type="button" class="btn btn-sm btn-outline-warning" wire:click="extendExpire(30)" title="{{ __('Temporary expire +30 days (permanent date stays)') }}">+30d</button>
                             </div>
                         </div>
                     </div>
@@ -80,10 +80,38 @@
                         </div>
                         <hr class="my-2">
                         <div class="d-flex justify-content-between small"><span class="text-muted">{{ __('Monthly') }}</span><span class="fw-semibold">{{ number_format((float)($customer->billing?->monthly_rent ?? 0), 2) }}</span></div>
-                        <div class="small text-muted mb-1">{{ __('Expire') }}</div>
-                        <div class="d-flex gap-1">
+                        <div class="d-flex justify-content-between align-items-center small mt-2">
+                            <span class="text-muted">{{ __('Permanent expire') }}</span>
+                            <span class="fw-semibold">
+                                {{ $customer->billing?->auto_disable_date ? \Carbon\Carbon::parse($customer->billing->auto_disable_date)->format('d M Y') : '—' }}
+                                @if($customer->billing?->billing_day)
+                                    <span class="text-muted fw-normal">({{ __('day') }} {{ $customer->billing->billing_day }})</span>
+                                @endif
+                            </span>
+                        </div>
+                        <div class="text-end mb-2">
+                            <a href="{{ route('customers.edit', $encryptedId) }}" class="small text-decoration-none">
+                                <i class="bi bi-pencil-square me-1"></i>{{ __('Edit permanent date') }}
+                            </a>
+                        </div>
+                        <div class="small text-muted mb-1">{{ __('Temporary expire') }}</div>
+                        @if($customer->billing?->isTemporarilyExtended())
+                            <div class="badge bg-warning text-dark mb-2">
+                                {{ __('Until') }} {{ \Carbon\Carbon::parse($customer->billing->extra_date)->format('d M Y') }}
+                            </div>
+                        @endif
+                        <div class="d-flex gap-1 mb-1">
                             <input type="date" class="form-control form-control-sm" wire:model="expireDate">
-                            <button type="button" class="btn btn-sm btn-outline-secondary text-nowrap" wire:click="setExpireDate">{{ __('Set date') }}</button>
+                            <button type="button" class="btn btn-sm btn-outline-warning text-nowrap" wire:click="setExpireDate">{{ __('Set temp') }}</button>
+                        </div>
+                        <div class="d-flex flex-wrap gap-1 mb-2">
+                            <button type="button" class="btn btn-sm btn-outline-warning" wire:click="extendExpire(1)">+1d</button>
+                            <button type="button" class="btn btn-sm btn-outline-warning" wire:click="extendExpire(2)">+2d</button>
+                            <button type="button" class="btn btn-sm btn-outline-warning" wire:click="extendExpire(5)">+5d</button>
+                            <button type="button" class="btn btn-sm btn-outline-warning" wire:click="extendExpire(30)">+30d</button>
+                            @if($customer->billing?->extra_date)
+                                <button type="button" class="btn btn-sm btn-outline-secondary" wire:click="clearTempExpire">{{ __('Clear temp') }}</button>
+                            @endif
                         </div>
                         <div class="d-flex justify-content-between small"><span class="text-muted">{{ __('First bill') }}</span><span>{{ $firstBillCycle === 'next_month' ? __('Next month') : __('This month') }}</span></div>
                     </div>
@@ -146,6 +174,8 @@
                     <div class="col-md-3"><span class="text-muted">{{ __('Due') }}</span><div class="fw-bold text-danger">{{ number_format((float)($b?->due_amount ?? 0), 2) }}</div></div>
                     <div class="col-md-3"><span class="text-muted">{{ __('Advance') }}</span><div class="fw-bold text-success">{{ number_format((float)($b?->advance ?? 0), 2) }}</div></div>
                     <div class="col-md-3"><span class="text-muted">{{ __('Bill day') }}</span><div class="fw-bold">{{ $b?->billing_day ?: '—' }}</div></div>
+                    <div class="col-md-3"><span class="text-muted">{{ __('Permanent expire') }}</span><div class="fw-bold">{{ $b?->auto_disable_date ? \Carbon\Carbon::parse($b->auto_disable_date)->format('d M Y') : '—' }}</div></div>
+                    <div class="col-md-3"><span class="text-muted">{{ __('Temporary expire') }}</span><div class="fw-bold {{ $b?->isTemporarilyExtended() ? 'text-warning' : '' }}">{{ $b?->isTemporarilyExtended() ? \Carbon\Carbon::parse($b->extra_date)->format('d M Y') : '—' }}</div></div>
                 </div>
             </div>
         </div>

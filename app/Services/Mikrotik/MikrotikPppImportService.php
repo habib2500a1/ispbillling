@@ -105,8 +105,9 @@ class MikrotikPppImportService
         $skipped = 0;
         $errors = [];
 
-        $prefix = siteUrlSettings('customer_id_prefix') ?: 'FCNET';
-        $lastIdCount = $this->nextCustomerIdSeed($prefix);
+        $idAllocator = app(\App\Services\Billing\CustomerIdAllocator::class);
+        $prefix = $idAllocator->prefix();
+        $lastIdCount = $idAllocator->highestNumber();
         $packageMap = $this->packagesByProfile($router->router_name);
 
         $existingSecrets = PPPSecrets::where('router_name', $router->router_name)
@@ -261,18 +262,7 @@ class MikrotikPppImportService
 
     private function nextCustomerIdSeed(string $prefix): int
     {
-        $last = CustomersInfo::orderByDesc('id')->value('customer_unique_id');
-        if (! $last) {
-            return 99;
-        }
-        if (str_starts_with($last, $prefix)) {
-            return (int) substr($last, strlen($prefix));
-        }
-        if (preg_match('/(\d+)$/', $last, $m)) {
-            return (int) $m[1];
-        }
-
-        return 99;
+        return app(\App\Services\Billing\CustomerIdAllocator::class)->highestNumber();
     }
 
     /**

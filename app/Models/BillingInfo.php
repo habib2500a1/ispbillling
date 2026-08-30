@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Spatie\Activitylog\LogOptions;
@@ -11,6 +12,56 @@ class BillingInfo extends Model
 {
     use HasFactory;
     use LogsActivity;
+
+    protected function casts(): array
+    {
+        return [
+            'auto_disable_date' => 'date',
+            'extra_date' => 'date',
+            'paid_date' => 'datetime',
+        ];
+    }
+
+    public function permanentExpireDate(): ?Carbon
+    {
+        return $this->auto_disable_date
+            ? Carbon::parse($this->auto_disable_date)->startOfDay()
+            : null;
+    }
+
+    public function temporaryExpireDate(): ?Carbon
+    {
+        if (! $this->extra_date) {
+            return null;
+        }
+        $temp = Carbon::parse($this->extra_date)->startOfDay();
+
+        return $temp->gte(now()->startOfDay()) ? $temp : null;
+    }
+
+    public function isTemporarilyExtended(): bool
+    {
+        return $this->temporaryExpireDate() !== null;
+    }
+
+    public function hasActiveTemporaryHold(?Carbon $asOf = null): bool
+    {
+        $asOf = ($asOf ?? now())->copy()->startOfDay();
+        if (! $this->extra_date) {
+            return false;
+        }
+
+        return Carbon::parse($this->extra_date)->startOfDay()->gte($asOf);
+    }
+
+    public function clearTemporaryHold(): void
+    {
+        if ($this->extra_date === null) {
+            return;
+        }
+        $this->extra_date = null;
+        $this->save();
+    }
 
     protected $fillable = [
         'customer_bill_unique_id',

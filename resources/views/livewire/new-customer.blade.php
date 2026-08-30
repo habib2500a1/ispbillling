@@ -209,7 +209,7 @@
                                 <button type="button" class="btn btn-sm btn-outline-secondary" id="nc-geo-btn">
                                     <i class="bi bi-crosshair"></i> {{ __('Use live location') }}
                                 </button>
-                                <span class="small text-muted">{{ __('Or tap the map / drag the pin') }}</span>
+                                <span class="small text-muted" id="nc-geo-status">{{ __('Browser will ask for location, then the pin moves.') }}</span>
                             </div>
                             <div id="nc-live-map" wire:ignore style="height:280px;border:1px solid #d7dee6;border-radius:8px;"></div>
                         </div>
@@ -712,22 +712,38 @@
                 apply(p.lat, p.lng);
             });
             var geoBtn = document.getElementById('nc-geo-btn');
-            if (geoBtn) {
-                geoBtn.addEventListener('click', function () {
-                    if (!navigator.geolocation) {
-                        alert(@json(__('This browser cannot read live location.')));
-                        return;
+            var geoStatus = document.getElementById('nc-geo-status');
+            function setGeoStatus(text) {
+                if (geoStatus) geoStatus.textContent = text;
+            }
+            function locateMe(fromClick) {
+                if (!navigator.geolocation) {
+                    setGeoStatus(@json(__('This browser cannot read live location.')));
+                    return;
+                }
+                setGeoStatus(fromClick
+                    ? @json(__('Waiting for browser location permission…'))
+                    : @json(__('Requesting live location…')));
+                navigator.geolocation.getCurrentPosition(function (pos) {
+                    apply(pos.coords.latitude, pos.coords.longitude);
+                    map.setView([pos.coords.latitude, pos.coords.longitude], 17);
+                    setGeoStatus(@json(__('Live location set on the map.')));
+                }, function (err) {
+                    var code = err && err.code;
+                    if (code === 1) {
+                        setGeoStatus(@json(__('Location blocked. Click the lock icon in the address bar → Location → Allow, then tap Use live location.')));
+                    } else if (code === 3) {
+                        setGeoStatus(@json(__('Location timed out. Tap Use live location again.')));
+                    } else {
+                        setGeoStatus(@json(__('Could not read location. Tap Use live location or drop the pin on the map.')));
                     }
-                    navigator.geolocation.getCurrentPosition(function (pos) {
-                        apply(pos.coords.latitude, pos.coords.longitude);
-                        map.setView([pos.coords.latitude, pos.coords.longitude], 17);
-                    }, function () {
-                        alert(@json(__('Allow location permission, then try again.')));
-                    }, { enableHighAccuracy: true, timeout: 12000 });
-                });
+                }, { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 });
+            }
+            if (geoBtn) {
+                geoBtn.addEventListener('click', function () { locateMe(true); });
             }
             window._ncMap = map;
-            setTimeout(function () { map.invalidateSize(); }, 300);
+            setTimeout(function () { map.invalidateSize(); locateMe(false); }, 400);
         }
 
         document.addEventListener('DOMContentLoaded', function () {

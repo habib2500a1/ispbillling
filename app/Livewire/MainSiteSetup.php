@@ -109,6 +109,7 @@ class MainSiteSetup extends Component implements HasActions, HasForms
             'site_currency' => MainSiteData::getValue('site_currency', 'BDT'),
             'site_invoice_prefix' => MainSiteData::getValue('site_invoice_prefix', 'INV-'),
             'customer_id_prefix' => MainSiteData::getValue('customer_id_prefix', 'FCNET'),
+            'customer_id_start' => MainSiteData::getValue('customer_id_start', 100),
             'site_invoice_logo' => MainSiteData::getValue('site_invoice_logo'),
             'site_invoice_color' => MainSiteData::getValue('site_invoice_color', '#000000'),
             'site_invoice_footer' => MainSiteData::getValue('site_invoice_footer'),
@@ -338,6 +339,8 @@ class MainSiteSetup extends Component implements HasActions, HasForms
             'data.main_site_locale' => 'required|string|in:en,bn',
             'data.site_phone'  => ['nullable', 'string', new ValidPhoneDigits],
             'data.site_whatsapp'  => ['nullable', 'string', new ValidPhoneDigits],
+            'data.customer_id_prefix' => 'nullable|string|max:20',
+            'data.customer_id_start' => 'nullable|integer|min:1|max:99999999',
         ]);
 
         // All keys from both migrations
@@ -349,7 +352,7 @@ class MainSiteSetup extends Component implements HasActions, HasForms
             'site_description', 'site_keywords', 'site_author',
             'site_email', 'site_phone', 'site_address', 'site_map',
             'site_facebook', 'site_twitter', 'site_instagram', 'site_whatsapp', 'site_linkedin', 'site_youtube', 'site_pinterest',
-            'site_currency', 'site_invoice_prefix', 'customer_id_prefix', 'site_invoice_logo', 'site_invoice_color', 'site_invoice_footer', 'site_invoice_notes', 'site_invoice_terms', 'site_invoice_signature',
+            'site_currency', 'site_invoice_prefix', 'customer_id_prefix', 'customer_id_start', 'site_invoice_logo', 'site_invoice_color', 'site_invoice_footer', 'site_invoice_notes', 'site_invoice_terms', 'site_invoice_signature',
             'disable_check_no', 'disable_check_days', 'expired_profile_name',
             'site_secret_key', 'site_secret_value', 'site_secret_validity', 'site_secret_url', 'site_secret_email',
             'mysql_binary_path', 'log_server_enabled', 'log_server_routers', 'log_retention_days',

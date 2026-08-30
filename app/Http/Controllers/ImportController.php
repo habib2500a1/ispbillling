@@ -53,21 +53,9 @@ class ImportController extends Controller
             $rows = $reader->getRows();
 
             // Fetch customer ID settings
-            $prefix = siteUrlSettings('customer_id_prefix') ?: 'FCNET';
-            $lastCustomerUniqueId = CustomersInfo::orderBy('id', 'desc')->value('customer_unique_id');
-            if ($lastCustomerUniqueId) {
-                if (str_starts_with($lastCustomerUniqueId, $prefix)) {
-                    $lastIdCount = (int) substr($lastCustomerUniqueId, strlen($prefix));
-                } else {
-                    if (preg_match('/(\d+)$/', $lastCustomerUniqueId, $matches)) {
-                        $lastIdCount = (int) $matches[1];
-                    } else {
-                        $lastIdCount = 99;
-                    }
-                }
-            } else {
-                $lastIdCount = 99;
-            }
+            $idAllocator = app(\App\Services\Billing\CustomerIdAllocator::class);
+            $prefix = $idAllocator->prefix();
+            $lastIdCount = $idAllocator->highestNumber();
 
             foreach ($rows as $row) {
                 // Normalize keys to lowercase and trim spaces/underscores for flexible column matching

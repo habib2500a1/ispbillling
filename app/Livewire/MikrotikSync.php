@@ -346,9 +346,10 @@ class MikrotikSync extends Component
     }
 
     /**
-     * Mark PPP secrets online from /ppp/active (uptime timestamp = currently online).
+     * Mark PPP secrets online from /ppp/active (uptime timestamp = session start).
+     * When $withDetails, also store IP/MAC, login time, logout and disconnect reason.
      */
-    public function refreshOnlineSessions(string $routerName): int
+    public function refreshOnlineSessions(string $routerName, bool $withDetails = false): int
     {
         try {
             $sessions = app(MikrotikController::class)->getActivePppSessions($routerName);
@@ -360,37 +361,188 @@ class MikrotikSync extends Component
             return 0;
         }
 
-        $onlineNames = [];
+        $sessionsByName = [];
         foreach ($sessions as $session) {
             if (! is_array($session)) {
                 continue;
             }
             $name = strtolower(trim((string) ($session['name'] ?? '')));
             if ($name !== '') {
-                $onlineNames[$name] = true;
+                $sessionsByName[$name] = $session;
             }
         }
 
-        PPPSecrets::where('router_name', $routerName)->update(['uptime' => null]);
-
-        if ($onlineNames === []) {
-            return 0;
-        }
-
-        $ids = PPPSecrets::where('router_name', $routerName)
+        $secrets = PPPSecrets::query()
+            ->where('router_name', $routerName)
             ->where('status', '!=', 'removed')
-            ->get(['id', 'username'])
-            ->filter(fn ($s) => isset($onlineNames[strtolower((string) $s->username)]))
-            ->pluck('id')
-            ->all();
+            ->get(['id', 'username', 'uptime', 'ppp_remote_ip', 'caller_id', 'last_logged_out', 'last_caller_id', 'last_disconnect_reason', 'downtime']);
 
-        if ($ids === []) {
-            return 0;
+        $secretDetails = [];
+        if ($withDetails) {
+            try {
+                foreach (app(MikrotikController::class)->getPppSecrets($routerName) as $item) {
+                    if (! is_array($item)) {
+                        continue;
+                    }
+                    $n = strtolower(trim((string) ($item['name'] ?? '')));
+                    if ($n !== '') {
+                        $secretDetails[$n] = $item;
+                    }
+                }
+            } catch (\Throwable) {
+                $secretDetails = [];
+            }
         }
 
-        PPPSecrets::whereIn('id', $ids)->update(['uptime' => now()]);
+        $onlineCount = 0;
+        foreach ($secrets as $secret) {
+            $key = strtolower((string) $secret->username);
+            $session = $sessionsByName[$key] ?? null;
+            $wasOnline = ! empty($secret->uptime);
 
-        return count($ids);
+            if ($session) {
+                $secret->uptime = $this->mikrotikUptimeStart($session['uptime'] ?? null);
+                if (! empty($session['address'])) {
+                    $secret->ppp_remote_ip = $session['address'];
+                }
+                if (! empty($session['caller-id'])) {
+                    $secret->caller_id = $session['caller-id'];
+                }
+                $secret->save();
+                $onlineCount++;
+
+                continue;
+            }
+
+            $secret->uptime = null;
+            if ($wasOnline) {
+                $secret->downtime = now();
+                if (! $secret->last_logged_out) {
+                    $secret->last_logged_out = now();
+                }
+            }
+
+            if ($withDetails && isset($secretDetails[$key])) {
+                $info = $secretDetails[$key];
+                $loggedOut = $this->parseMikrotikLastLoggedOut($info['last-logged-out'] ?? null);
+                if ($loggedOut) {
+                    $secret->last_logged_out = $loggedOut;
+                }
+                if (! empty($info['last-disconnect-reason'])) {
+                    $secret->last_disconnect_reason = $info['last-disconnect-reason'];
+                } elseif ($wasOnline && ! $secret->last_disconnect_reason) {
+                    $secret->last_disconnect_reason = 'PPP session dropped';
+                }
+                if (! empty($info['last-caller-id'])) {
+                    $secret->last_caller_id = $info['last-caller-id'];
+                }
+            } elseif ($wasOnline && ! $secret->last_disconnect_reason) {
+                $secret->last_disconnect_reason = 'PPP session dropped';
+            }
+
+            if ($secret->isDirty()) {
+                $secret->save();
+            }
+        }
+
+        return $onlineCount;
+    }
+
+    public function refreshOneSession(string $routerName, string $username): bool
+    {
+        try {
+            $sessions = app(MikrotikController::class)->getActivePppSessions($routerName);
+        } catch (\Throwable) {
+            return false;
+        }
+
+        $key = strtolower(trim($username));
+        $session = null;
+        if (is_array($sessions)) {
+            foreach ($sessions as $item) {
+                if (! is_array($item)) {
+                    continue;
+                }
+                if (strtolower(trim((string) ($item['name'] ?? ''))) === $key) {
+                    $session = $item;
+                    break;
+                }
+            }
+        }
+
+        $secret = PPPSecrets::query()
+            ->where('router_name', $routerName)
+            ->where('username', $username)
+            ->where('status', '!=', 'removed')
+            ->first();
+        if (! $secret) {
+            return false;
+        }
+
+        if ($session) {
+            $secret->uptime = $this->mikrotikUptimeStart($session['uptime'] ?? null);
+            if (! empty($session['address'])) {
+                $secret->ppp_remote_ip = $session['address'];
+            }
+            if (! empty($session['caller-id'])) {
+                $secret->caller_id = $session['caller-id'];
+            }
+            $secret->save();
+
+            return true;
+        }
+
+        $wasOnline = ! empty($secret->uptime);
+        $secret->uptime = null;
+        if ($wasOnline) {
+            $secret->downtime = now();
+            if (! $secret->last_logged_out) {
+                $secret->last_logged_out = now();
+            }
+            if (! $secret->last_disconnect_reason) {
+                $secret->last_disconnect_reason = 'PPP session dropped';
+            }
+        }
+        $secret->save();
+
+        return false;
+    }
+
+    protected function mikrotikUptimeStart(?string $uptime): Carbon
+    {
+        $seconds = 0;
+        if ($uptime && preg_match_all('/(\d+)([wdhms])/i', $uptime, $matches, PREG_SET_ORDER)) {
+            $units = ['w' => 604800, 'd' => 86400, 'h' => 3600, 'm' => 60, 's' => 1];
+            foreach ($matches as $part) {
+                $seconds += (int) $part[1] * ($units[strtolower($part[2])] ?? 0);
+            }
+        }
+
+        return now()->subSeconds(max(0, $seconds));
+    }
+
+    protected function parseMikrotikLastLoggedOut(mixed $value): ?string
+    {
+        if (! $value) {
+            return null;
+        }
+        try {
+            $dt = Carbon::createFromFormat('M/d/Y H:i:s', (string) $value);
+            if ($dt && $dt->year >= 2000) {
+                return $dt->format('Y-m-d H:i:s');
+            }
+        } catch (\Throwable) {
+        }
+
+        try {
+            $dt = Carbon::parse((string) $value);
+            if ($dt->year >= 2000) {
+                return $dt->format('Y-m-d H:i:s');
+            }
+        } catch (\Throwable) {
+        }
+
+        return null;
     }
 
     public function userSync($pppSecrets)
@@ -431,21 +583,9 @@ class MikrotikSync extends Component
                     ->keyBy(fn ($item) => strtolower($item->username));
 
                 // 3. Pre-fetch latest customer unique ID count
-                $prefix = siteUrlSettings('customer_id_prefix') ?: 'FCNET';
-                $lastCustomerUniqueId = CustomersInfo::orderBy('id', 'desc')->value('customer_unique_id');
-                if ($lastCustomerUniqueId) {
-                    if (str_starts_with($lastCustomerUniqueId, $prefix)) {
-                        $lastIdCount = (int) substr($lastCustomerUniqueId, strlen($prefix));
-                    } else {
-                        if (preg_match('/(\d+)$/', $lastCustomerUniqueId, $matches)) {
-                            $lastIdCount = (int) $matches[1];
-                        } else {
-                            $lastIdCount = 99;
-                        }
-                    }
-                } else {
-                    $lastIdCount = 99;
-                }
+                $idAllocator = app(\App\Services\Billing\CustomerIdAllocator::class);
+                $prefix = $idAllocator->prefix();
+                $lastIdCount = $idAllocator->highestNumber();
 
                 $statusGroups = []; // For bulk status updates
 

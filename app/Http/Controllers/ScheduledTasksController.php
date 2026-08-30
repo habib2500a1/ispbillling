@@ -344,7 +344,15 @@ class ScheduledTasksController extends Controller
                 // Cast to int: siteUrlSettings() returns a string from DB, === 1 would always fail
                 $disableCheckNo = (int) (siteUrlSettings('disable_check_no') ?? 1);
 
-                // Parse the base auto_disable_date
+                if ($billing->hasActiveTemporaryHold($today)) {
+                    return;
+                }
+                if ($billing->extra_date) {
+                    $billing->extra_date = null;
+                    $billing->save();
+                }
+
+                // Parse the base auto_disable_date (permanent billing day)
                 $baseDate = Carbon::parse($billing->auto_disable_date, $tz);
                 
                 // If the auto_disable_date is in a past month/year, shift it to the current month & year

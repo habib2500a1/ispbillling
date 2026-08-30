@@ -224,8 +224,13 @@ class CustomersController extends Controller
                     }
 
                     $bill->auto_disable_date = $disableDate->copy()->subMonths($autoDisableMonth)->toDateString();
+                    $bill->extra_date = null;
                     $bill->save();
                 }
+            }
+            if ($bill->extra_date) {
+                $bill->extra_date = null;
+                $bill->save();
             }
 
             if ($customer->pppUser) {

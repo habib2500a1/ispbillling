@@ -140,7 +140,11 @@ class CustomerList extends Component
             case 'expired':
                 $data->whereHas('billing', function ($q) {
                     $q->whereDate('auto_disable_date', '<', Carbon::today())
-                        ->where('due_amount', '>', 0);
+                        ->where('due_amount', '>', 0)
+                        ->where(function ($hold) {
+                            $hold->whereNull('extra_date')
+                                ->orWhereDate('extra_date', '<', Carbon::today());
+                        });
                 })->whereNotIn('status', ['free']);
                 break;
 
@@ -283,10 +287,15 @@ class CustomerList extends Component
             ->addColumn('disable_details', function ($row) {
                 $statusClass = $row->billing?->auto_disable == 1 ? 'bg-danger text-white' : 'bg-light text-muted';
                 $disableDate = $row->billing?->auto_disable_date ? Carbon::parse($row->billing->auto_disable_date)->format('d-M-Y') : 'N/A';
+                $tempHtml = '';
+                if ($row->billing?->isTemporarilyExtended()) {
+                    $tempHtml = '<div class="text-warning fw-bold" style="font-size: 0.75rem"><i class="bi bi-hourglass-split me-1"></i>Temp: '.Carbon::parse($row->billing->extra_date)->format('d-M-Y').'</div>';
+                }
 
                 return '<div class="small fw-bold mb-1">Count: '.$row->disable_count.'</div>'.
                        '<span class="badge badge-soft '.$statusClass.' mb-1">Auto: '.($row->billing?->auto_disable == 1 ? 'Yes' : 'No').'</span>'.
                        '<div class="text-primary fw-bold" style="font-size: 0.75rem"><i class="bi bi-calendar-x me-1"></i>'.$disableDate.'</div>'.
+                       $tempHtml.
                        '<div class="text-muted" style="font-size: 0.7rem">Ext: '.($row->billing?->auto_disable_month ?? 0).' Mon</div>';
             })
             ->addColumn('action', function ($row) {

@@ -120,6 +120,7 @@ class PaymentService
                 'paid_amount' => $billing->paid_amount + $amount,
                 'paid_date' => Carbon::now(),
                 'auto_disable_date' => $expireDate,
+                'extra_date' => null,
                 'due_amount' => $newDue,
             ]);
 
