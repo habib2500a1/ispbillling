@@ -245,6 +245,22 @@
             }
         });
 
+        (function persistSidebarPlace() {
+            const key = 'anetbd.sidebarScroll';
+            const box = () => document.querySelector('.navbar-vertical-content');
+            document.addEventListener('livewire:navigate', () => {
+                const el = box();
+                if (el) sessionStorage.setItem(key, String(el.scrollTop));
+            });
+            const restore = () => {
+                const el = box();
+                const y = sessionStorage.getItem(key);
+                if (el && y) el.scrollTop = parseInt(y, 10) || 0;
+            };
+            document.addEventListener('livewire:navigated', restore);
+            restore();
+        })();
+
         // For theme toggle
         function themeToggle() {
             return {
