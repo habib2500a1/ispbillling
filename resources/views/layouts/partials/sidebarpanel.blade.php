@@ -172,14 +172,13 @@
                         <span class="nav-link-text ps-1">{{ __('Admin Center') }}</span>
                     </div>
                 </a>
-                <a wire:navigate.hover wire:current="active" class="nav-link" href="{{ route('isp-os') }}"
+                <a wire:current="active" class="nav-link" href="{{ route('isp-os') }}"
                     role="button">
                     <div class="d-flex align-items-center">
                         <span class="nav-link-icon">
-                            <i class="bi bi-grid-3x3-gap-fill me-2"></i>
+                            <i class="bi bi-command me-2"></i>
                         </span>
-                        <span class="nav-link-text ps-1">{{ __('ISP Modules') }}</span>
-                        <span class="badge rounded-pill ms-2 badge-subtle-primary">{{ __('All') }}</span>
+                        <span class="nav-link-text ps-1">{{ __('ISP OS') }}</span>
                     </div>
                 </a>
             </li>

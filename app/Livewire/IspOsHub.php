@@ -2,6 +2,7 @@
 
 namespace App\Livewire;
 
+use App\Services\IspOs\IspOsConsoleService;
 use App\Support\FeatureModuleRegistry;
 use Livewire\Component;
 
@@ -25,8 +26,12 @@ class IspOsHub extends Component
 
     public function render()
     {
-        $modules = FeatureModuleRegistry::all();
+        $all = array_values(array_filter(
+            FeatureModuleRegistry::all(),
+            fn (array $m): bool => ($m['slug'] ?? '') !== 'isp-os-center'
+        ));
         $groups = FeatureModuleRegistry::groups();
+        $modules = $all;
 
         if ($this->groupFilter) {
             $modules = array_values(array_filter($modules, fn (array $m): bool => $m['group'] === $this->groupFilter));
@@ -37,14 +42,23 @@ class IspOsHub extends Component
             $modules = array_values(array_filter($modules, function (array $m) use ($q): bool {
                 return str_contains(strtolower($m['label']), $q)
                     || str_contains(strtolower($m['description']), $q)
-                    || str_contains(strtolower($m['group']), $q);
+                    || str_contains(strtolower($m['group']), $q)
+                    || str_contains(strtolower((string) ($m['section'] ?? '')), $q);
             }));
+        }
+
+        $grouped = [];
+        foreach ($modules as $mod) {
+            $grouped[$mod['group']][] = $mod;
         }
 
         return view('livewire.isp-os-hub', [
             'modules' => $modules,
+            'grouped' => $grouped,
             'groups' => $groups,
-            'total' => count(FeatureModuleRegistry::all()),
+            'total' => count($all),
+            'ops' => app(IspOsConsoleService::class)->snapshot(),
+            'groupFilter' => $this->groupFilter,
         ])->layout('layouts.app');
     }
 }
