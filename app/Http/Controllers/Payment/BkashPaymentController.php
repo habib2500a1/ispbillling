@@ -21,12 +21,14 @@ class BkashPaymentController extends Controller
 
     private function getBkashConfig()
     {
+        $trim = static fn ($value) => is_string($value) ? trim($value) : $value;
+
         return [
-            'base_url' => siteUrlSettings('payment_bkash_base_url') ?: config('services.bkash.base_url'),
-            'username' => siteUrlSettings('payment_bkash_username') ?: config('services.bkash.username'),
-            'password' => siteUrlSettings('payment_bkash_password') ?: config('services.bkash.password'),
-            'app_key' => siteUrlSettings('payment_bkash_app_key') ?: config('services.bkash.app_key'),
-            'app_secret' => siteUrlSettings('payment_bkash_app_secret') ?: config('services.bkash.app_secret'),
+            'base_url' => rtrim((string) $trim(siteUrlSettings('payment_bkash_base_url') ?: config('services.bkash.base_url')), '/'),
+            'username' => $trim(siteUrlSettings('payment_bkash_username') ?: config('services.bkash.username')),
+            'password' => $trim(siteUrlSettings('payment_bkash_password') ?: config('services.bkash.password')),
+            'app_key' => $trim(siteUrlSettings('payment_bkash_app_key') ?: config('services.bkash.app_key')),
+            'app_secret' => $trim(siteUrlSettings('payment_bkash_app_secret') ?: config('services.bkash.app_secret')),
         ];
     }
 
@@ -34,7 +36,19 @@ class BkashPaymentController extends Controller
     {
         $config = $this->getBkashConfig();
 
-        $response = Http::withBasicAuth($config['username'], $config['password'])
+        if ($config['base_url'] === '' || $config['username'] === '' || $config['password'] === '' || $config['app_key'] === '' || $config['app_secret'] === '') {
+            throw new \Exception('bKash username, password, app key, and app secret must be saved in Site Settings → Payment Gateways.');
+        }
+
+        // Official grant-token auth is username/password headers, not HTTP Basic.
+        // https://developer.bka.sh/docs/grant-token-1
+        $response = Http::timeout(25)
+            ->acceptJson()
+            ->asJson()
+            ->withHeaders([
+                'username' => $config['username'],
+                'password' => $config['password'],
+            ])
             ->post($config['base_url'].'/tokenized/checkout/token/grant', [
                 'app_key' => $config['app_key'],
                 'app_secret' => $config['app_secret'],
@@ -42,9 +56,14 @@ class BkashPaymentController extends Controller
 
         $body = $response->json();
 
-        if (! isset($body['id_token'])) {
-            Log::error('bKash token generation failed: '.json_encode($body));
-            throw new \Exception('bKash gateway authentication failed.');
+        if (! is_array($body) || empty($body['id_token'])) {
+            $detail = $body['statusMessage'] ?? $body['errorMessage'] ?? $body['message'] ?? ('HTTP '.$response->status());
+            Log::error('bKash token generation failed: '.json_encode([
+                'http' => $response->status(),
+                'statusCode' => $body['statusCode'] ?? null,
+                'message' => $detail,
+            ]));
+            throw new \Exception($detail);
         }
 
         return $body['id_token'];
@@ -77,9 +96,12 @@ class BkashPaymentController extends Controller
 
             $callbackURL = url('/pay/callback/bkash');
 
-            $payment = Http::withToken($idToken)
+            $payment = Http::timeout(25)
+                ->acceptJson()
+                ->asJson()
+                ->withToken($idToken)
                 ->withHeaders([
-                    'X-App-Key' => $config['app_key'],
+                    'X-APP-Key' => $config['app_key'],
                 ])
                 ->post($config['base_url'].'/tokenized/checkout/create', [
                     'mode' => '0011',
@@ -114,7 +136,7 @@ class BkashPaymentController extends Controller
                 return $this->showMockPaymentPage('bKash', $customer, $amount, 'Connection failed: '.$e->getMessage());
             }
 
-            return PublicPayCustomer::failRedirect('bKash service temporarily unavailable: '.$e->getMessage());
+            return PublicPayCustomer::failRedirect('bKash: '.$e->getMessage());
         }
     }
 
@@ -128,9 +150,12 @@ class BkashPaymentController extends Controller
                 $idToken = $this->generateToken();
                 $config = $this->getBkashConfig();
 
-                $execution = Http::withToken($idToken)
+                $execution = Http::timeout(25)
+                    ->acceptJson()
+                    ->asJson()
+                    ->withToken($idToken)
                     ->withHeaders([
-                        'X-App-Key' => $config['app_key'],
+                        'X-APP-Key' => $config['app_key'],
                     ])
                     ->post($config['base_url'].'/tokenized/checkout/execute', [
                         'paymentID' => $paymentID,
