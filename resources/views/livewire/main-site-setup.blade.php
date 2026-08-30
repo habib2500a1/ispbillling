@@ -262,6 +262,12 @@
                         
                         <!-- TAB 1: IDENTITY & SEO -->
                         <div x-show="activeTab === 'identity'" x-transition:enter.duration.200ms>
+                            @if($operatorSetup)
+                                <div class="alert alert-info border-0 rounded-4 mb-4">
+                                    <strong>{{ __('Your logo only') }}</strong>
+                                    <div class="small mb-0">{{ __('Upload stays on your ISP. Super Admin branding on anetbd.com does not change — even if you have not connected a domain yet.') }}</div>
+                                </div>
+                            @endif
                             <h5 class="form-section-title text-primary fw-bold"><i class="bi bi-info-circle-fill me-2"></i>{{ __('Core Brand Identity') }}</h5>
                             <div class="row g-3">
                                 <div class="col-md-6">

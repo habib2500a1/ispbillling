@@ -64,9 +64,11 @@ class MainSiteData extends Model
             $value = json_encode($value);
         }
 
-        $key = $type;
+        $type = self::bareType($type);
         $tenantId = self::settingsTenantId();
-        if ($tenantId) {
+        $key = $tenantId ? self::tenantKey($tenantId, $type) : $type;
+
+        if ($tenantId && $key === $type) {
             $key = self::tenantKey($tenantId, $type);
         }
 
@@ -77,6 +79,13 @@ class MainSiteData extends Model
         self::forgetSiteCache();
 
         return $row;
+    }
+
+    public static function platformValue(string $type, $default = null)
+    {
+        $record = self::query()->where('type', self::bareType($type))->first();
+
+        return $record ? self::decodedRecord($record) : $default;
     }
 
     public static function setValueForTenant(int $tenantId, string $type, $value): self
@@ -90,8 +99,14 @@ class MainSiteData extends Model
         }
     }
 
+    private static function bareType(string $type): string
+    {
+        return preg_replace('/^t\d+:/', '', $type) ?: $type;
+    }
+
     private static function getTenantValue(int $tenantId, string $type, $default = null)
     {
+        $type = self::bareType($type);
         $record = self::query()->where('type', self::tenantKey($tenantId, $type))->first();
         if ($record) {
             return self::decodedRecord($record);
@@ -101,20 +116,14 @@ class MainSiteData extends Model
             return $default !== null ? $default : 1;
         }
 
-        if (str_starts_with($type, 'payment_')) {
-            return $default;
-        }
-
-        if ($type === 'site_name') {
+        if (in_array($type, ['site_name', 'portal_name'], true)) {
             $operator = SaasContext::operator() ?? SaasContext::hostOperator();
             if ($operator && filled($operator->company)) {
                 return $operator->company;
             }
         }
 
-        $platform = self::query()->where('type', $type)->first();
-
-        return $platform ? self::decodedRecord($platform) : $default;
+        return $default;
     }
 
     private static function decodedRecord(self $record): mixed
@@ -128,6 +137,10 @@ class MainSiteData extends Model
     public static function forgetSiteCache(): void
     {
         Cache::forget('main_site_data_active');
+        $tenantId = self::settingsTenantId();
+        if ($tenantId) {
+            Cache::forget('main_site_data_active_t'.$tenantId);
+        }
     }
 
     /**
@@ -136,16 +149,24 @@ class MainSiteData extends Model
      */
     public static function getActive()
     {
-        return Cache::rememberForever('main_site_data_active', function () {
+        $tenantId = self::settingsTenantId();
+        $cacheKey = $tenantId ? 'main_site_data_active_t'.$tenantId : 'main_site_data_active';
+
+        return Cache::rememberForever($cacheKey, function () use ($tenantId) {
             $data = new \stdClass;
-            $records = self::all();
+            $prefix = $tenantId ? self::tenantKey($tenantId, '') : null;
+            $records = $tenantId
+                ? self::query()->where('type', 'like', $prefix.'%')->get()
+                : self::query()->where('type', 'not like', 't%:%')->get();
 
             foreach ($records as $record) {
-                // Return array if JSON, otherwise string
                 $raw = $record->getRawOriginal('value');
                 $decoded = @json_decode($raw, true);
                 $value = (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) ? $decoded : $record->value;
-                $key = $record->type;
+                $key = $tenantId ? substr($record->type, strlen($prefix)) : $record->type;
+                if ($key === '' || str_contains($key, ':')) {
+                    continue;
+                }
                 $data->$key = $value;
             }
 
@@ -202,6 +223,13 @@ class MainSiteData extends Model
             foreach ($defaults as $key => $defaultValue) {
                 if (! property_exists($data, $key)) {
                     $data->$key = $defaultValue;
+                }
+            }
+
+            if ($tenantId && empty($data->site_name)) {
+                $operator = SaasContext::operator() ?? SaasContext::hostOperator();
+                if ($operator && filled($operator->company)) {
+                    $data->site_name = $operator->company;
                 }
             }
 

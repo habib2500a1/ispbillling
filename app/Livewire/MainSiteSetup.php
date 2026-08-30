@@ -81,7 +81,7 @@ class MainSiteSetup extends Component implements HasActions, HasForms
             abort(403, 'Unauthorized action.');
         }
 
-        $this->operatorSetup = isOperatorAdmin();
+        $this->operatorSetup = isOperatorAdmin() || (bool) \App\Services\Saas\SaasContext::operatorId();
         $requestedTab = (string) request('tab', '');
         $allowedTabs = $this->operatorSetup ? $this->operatorTabs() : $this->allTabs();
         if ($this->operatorSetup) {
@@ -317,27 +317,27 @@ class MainSiteSetup extends Component implements HasActions, HasForms
             FileUpload::make('site_logo')
                 ->label('Main Site Logo')
                 ->image()
-                ->directory('brand')
+                ->directory($this->tenantUploadDir('brand'))
                 ->helperText('Recommended: 190x53px transparent PNG'),
             FileUpload::make('site_icon')
                 ->label('Square App Icon')
                 ->image()
-                ->directory('brand')
+                ->directory($this->tenantUploadDir('brand'))
                 ->helperText('Used for smaller UI elements (1:1 ratio)'),
             FileUpload::make('site_favicon')
                 ->label('Browser Favicon')
                 ->image()
-                ->directory('brand')
+                ->directory($this->tenantUploadDir('brand'))
                 ->helperText('Standard browser tab icon (16x16 or 32x32)'),
             FileUpload::make('site_invoice_logo')
                 ->label('Invoice Logo')
                 ->image()
-                ->directory('invoices')
+                ->directory($this->tenantUploadDir('invoices'))
                 ->helperText('Logo displayed specifically on invoices.'),
             FileUpload::make('site_invoice_signature')
                 ->label('Authorized Signature')
                 ->image()
-                ->directory('invoices'),
+                ->directory($this->tenantUploadDir('invoices')),
             RichEditor::make('site_invoice_terms')
                 ->label('Terms & Conditions')
                 ->grow(),
@@ -358,7 +358,7 @@ class MainSiteSetup extends Component implements HasActions, HasForms
                         ->automaticallyResizeImagesToWidth('1920')
                         ->automaticallyResizeImagesToHeight('720')
                         ->rules(['nullable', 'image', 'max:20480'])
-                        ->directory('hero'),
+                        ->directory($this->tenantUploadDir('hero')),
                     TextInput::make('caption')->placeholder('Slide caption...'),
                 ])->grid(3),
             Repeater::make('services')
@@ -379,7 +379,7 @@ class MainSiteSetup extends Component implements HasActions, HasForms
                     FileUpload::make('logo')
                         ->label('Client Logo')
                         ->image()
-                        ->directory('clients')
+                        ->directory($this->tenantUploadDir('clients'))
                         ->helperText('If uploaded, the logo will be shown. If not, the name will be used.'),
                     TextInput::make('link')
                         ->label('Client Website/Link')
@@ -409,7 +409,7 @@ class MainSiteSetup extends Component implements HasActions, HasForms
                     FileUpload::make('image')
                         ->label('Image')
                         ->image()
-                        ->directory('gallery'),
+                        ->directory($this->tenantUploadDir('gallery')),
                     TextInput::make('caption')
                         ->label('Caption')
                         ->placeholder('Optional caption'),
@@ -467,7 +467,11 @@ class MainSiteSetup extends Component implements HasActions, HasForms
                 if (! is_array($this->data) || ! array_key_exists($key, $this->data)) {
                     continue;
                 }
-                MainSiteData::setValue($key, $this->valueForKey($key, $this->data[$key]));
+                $value = $this->valueForKey($key, $this->data[$key]);
+                if ($this->operatorSetup && $this->rejectsPlatformAsset($key, $value)) {
+                    continue;
+                }
+                MainSiteData::setValue($key, $value);
             }
 
             if ($tab === 'payment') {
@@ -685,6 +689,36 @@ class MainSiteSetup extends Component implements HasActions, HasForms
             || $value === 'on'
             || $value === 'true'
             || $value === 'yes';
+    }
+
+    private function tenantUploadDir(string $folder): string
+    {
+        $tenantId = MainSiteData::settingsTenantId();
+
+        return $tenantId ? 'tenants/'.$tenantId.'/'.$folder : $folder;
+    }
+
+    private function rejectsPlatformAsset(string $key, mixed $value): bool
+    {
+        $assetKeys = [
+            'site_logo', 'site_icon', 'site_favicon',
+            'site_invoice_logo', 'site_invoice_signature',
+        ];
+        if (! in_array($key, $assetKeys, true)) {
+            return false;
+        }
+
+        $path = is_array($value) ? (string) (array_values(array_filter($value))[0] ?? '') : (string) $value;
+        if ($path === '') {
+            return false;
+        }
+        if (str_starts_with($path, 'tenants/')) {
+            return false;
+        }
+
+        $platform = (string) (MainSiteData::platformValue($key) ?? '');
+
+        return $platform !== '' && $path === $platform;
     }
 
     /**

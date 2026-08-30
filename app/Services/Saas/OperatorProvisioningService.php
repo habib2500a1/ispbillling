@@ -135,6 +135,7 @@ final class OperatorProvisioningService
     {
         $id = (int) $operator->id;
         MainSiteData::setValueForTenant($id, 'site_name', $operator->company);
+        MainSiteData::setValueForTenant($id, 'portal_name', $operator->company);
         MainSiteData::setValueForTenant($id, 'payment_bkash_enabled', 1);
         MainSiteData::setValueForTenant($id, 'payment_nagad_enabled', 1);
         MainSiteData::setValueForTenant($id, 'payment_sslcommerz_enabled', 1);

@@ -127,6 +127,20 @@ class SaasAndDashboardFinanceTest extends TestCase
 
         $this->actingAs($owner);
         $this->assertSame('platform-merchant', MainSiteData::getValue('payment_bkash_username'));
+        MainSiteData::setValue('site_logo', 'brand/platform-logo.png');
+        $this->assertNull($operator->domain);
+
+        $this->actingAs($buyer);
+        $this->assertNull(MainSiteData::getValue('site_logo'));
+        $formLogo = Livewire::test(MainSiteSetup::class)->get('data.site_logo');
+        $this->assertTrue(empty($formLogo));
+
+        MainSiteData::setValueForTenant((int) $operator->id, 'site_logo', 'tenants/'.$operator->id.'/brand/buyer-logo.png');
+        $this->assertSame('tenants/'.$operator->id.'/brand/buyer-logo.png', MainSiteData::getValue('site_logo'));
+
+        $this->actingAs($owner);
+        $this->assertSame('brand/platform-logo.png', MainSiteData::getValue('site_logo'));
+        $this->assertSame('brand/platform-logo.png', MainSiteData::platformValue('site_logo'));
     }
 
     public function test_monthly_bill_generation_writes_payment_summary(): void

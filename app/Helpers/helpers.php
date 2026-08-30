@@ -13,7 +13,8 @@ use App\Models\MainSiteData;
 if (! function_exists('site_brand')) {
     function site_brand(): string
     {
-        $tenant = \App\Services\Saas\SaasContext::hostOperator();
+        $tenant = \App\Services\Saas\SaasContext::hostOperator()
+            ?? \App\Services\Saas\SaasContext::operator();
         if ($tenant && filled($tenant->company)) {
             return $tenant->company;
         }
