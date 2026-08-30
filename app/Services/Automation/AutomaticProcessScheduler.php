@@ -181,10 +181,13 @@ final class AutomaticProcessScheduler
     private function pruneRunHistory(AutomaticProcess $process): void
     {
         $keep = 50;
-        $ids = $process->runs()->orderByDesc('id')->skip($keep)->pluck('id');
+        $cutoffId = $process->runs()->orderByDesc('id')->skip($keep)->take(1)->value('id');
 
-        if ($ids->isNotEmpty()) {
-            AutomaticProcessRun::query()->whereIn('id', $ids)->delete();
+        if ($cutoffId) {
+            AutomaticProcessRun::query()
+                ->where('automatic_process_id', $process->id)
+                ->where('id', '<=', $cutoffId)
+                ->delete();
         }
     }
 
