@@ -34,6 +34,14 @@
         .dash-shell .pct-legend { display:flex; flex-wrap:wrap; gap:.75rem; justify-content:center; margin-top:.75rem; }
         .dash-shell .pct-legend span { font-size:.82rem; font-weight:700; color:#334155; }
         .dash-shell .pct-legend i { display:inline-block; width:10px; height:10px; border-radius:3px; margin-right:.35rem; }
+        .dash-shell .pay-table { width:100%; border-collapse:collapse; font-size:.86rem; }
+        .dash-shell .pay-table th { font-size:.68rem; letter-spacing:.06em; text-transform:uppercase; color:var(--dash-muted); font-weight:700; padding:.45rem .35rem; border-bottom:1px solid var(--dash-line); text-align:left; }
+        .dash-shell .pay-table td { padding:.55rem .35rem; border-bottom:1px solid #f1f5f9; color:#1e3a5f; vertical-align:middle; }
+        .dash-shell .pay-table tr:last-child td { border-bottom:0; }
+        .dash-shell .pay-table a { color:#2563eb; font-weight:700; text-decoration:none; }
+        .dash-shell .pay-table a:hover { text-decoration:underline; }
+        .dash-shell .pay-table .amt { color:var(--dash-brand-dark); font-weight:800; white-space:nowrap; }
+        .dash-shell .pay-scroll { max-height:340px; overflow:auto; }
         @media (max-width: 575.98px) {
             .dash-shell .sum-card { padding:.7rem .65rem; gap:.5rem; }
             .dash-shell .sum-card .ico { width:38px; height:38px; font-size:1.05rem; }
@@ -240,6 +248,113 @@
                         <div class="eyebrow">{{ now()->format('M Y') }}</div>
                         <div class="num">{{ number_format($fs['expense'] ?? 0) }}</div>
                         <div class="sub">{{ __('Expense') }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        @php
+            $recentPayments = $recentPayments ?? collect();
+            $billAmt = (float) ($fs['bill'] ?? 0);
+            $collectedAmt = (float) ($fs['collection'] ?? 0);
+            $progressPct = $billAmt > 0 ? min(100, round(($collectedAmt / $billAmt) * 100)) : (int) ($fs['collection_pct'] ?? 0);
+        @endphp
+        <div class="row g-3 mb-4">
+            <div class="col-12 col-lg-5">
+                <div class="dash-panel">
+                    <div class="panel-h">
+                        <span class="dash-section-title mb-0">{{ $fs['month_label'] ?? now()->format('F Y') }}</span>
+                        <a href="{{ route('payment-collection') }}" class="btn btn-sm btn-outline-secondary">{{ __('View billing') }} <i class="bi bi-box-arrow-up-right"></i></a>
+                    </div>
+                    <div class="panel-b">
+                        <div class="d-flex align-items-end gap-2 mb-1">
+                            <div class="fs-1 fw-bold lh-1" style="color:var(--dash-brand);">{{ $progressPct }}%</div>
+                            <div class="text-muted fw-semibold pb-1">{{ __('Collected against net bill') }}</div>
+                        </div>
+                        <div class="progress mb-3" style="height:10px;border-radius:999px;background:#e8eef5;">
+                            <div class="progress-bar" role="progressbar" style="width:{{ $progressPct }}%;background:var(--dash-brand);border-radius:999px;"></div>
+                        </div>
+                        <div class="row g-2">
+                            <div class="col-6">
+                                <div class="dash-kpi py-2 px-3">
+                                    <div class="label">{{ __('Bill') }}</div>
+                                    <div class="value fs-5">{{ number_format($billAmt) }}</div>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="dash-kpi py-2 px-3">
+                                    <div class="label">{{ __('Collected') }}</div>
+                                    <div class="value fs-5">{{ number_format($collectedAmt) }}</div>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="dash-kpi py-2 px-3">
+                                    <div class="label">{{ __('Discount') }}</div>
+                                    <div class="value fs-5">{{ number_format($fs['discount'] ?? 0) }}</div>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="dash-kpi py-2 px-3">
+                                    <div class="label">{{ __('Remaining') }}</div>
+                                    <div class="value fs-5">{{ number_format($fs['due'] ?? 0) }}</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-12 col-lg-7">
+                <div class="dash-panel">
+                    <div class="panel-h">
+                        <span class="dash-section-title mb-0">{{ __('Latest Activity') }}</span>
+                        <a href="{{ route('payment-collection') }}" class="btn btn-sm btn-outline-secondary">{{ __('View all') }} <i class="bi bi-box-arrow-up-right"></i></a>
+                    </div>
+                    <div class="panel-b pb-2">
+                        <h6 class="fw-bold mb-3" style="color:var(--dash-ink);">{{ __('Recent Payments') }}</h6>
+                        @if ($recentPayments->isEmpty())
+                            <p class="text-muted mb-2">{{ __('No payments recorded yet.') }}</p>
+                        @else
+                            <div class="pay-scroll">
+                                <table class="pay-table">
+                                    <thead>
+                                        <tr>
+                                            <th>{{ __('PPPoE') }}</th>
+                                            <th>{{ __('Received by') }}</th>
+                                            <th>{{ __('Amount') }}</th>
+                                            <th>{{ __('Date') }}</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach ($recentPayments as $payment)
+                                            @php
+                                                $customer = $payment->customer;
+                                                $pppoe = $customer?->pppUser?->username
+                                                    ?: ($customer?->customer_name ?: $payment->customer_collection_unique_id);
+                                                $received = (string) ($payment->collected_by ?: '—');
+                                                if (str_contains($received, '@')) {
+                                                    $received = strstr($received, '@', true) ?: $received;
+                                                }
+                                                $when = $payment->collection_date
+                                                    ? \Carbon\Carbon::parse($payment->collection_date)
+                                                    : null;
+                                            @endphp
+                                            <tr>
+                                                <td>
+                                                    @if ($customer)
+                                                        <a href="{{ route('customers.show', $customer->id) }}">{{ $pppoe }}</a>
+                                                    @else
+                                                        {{ $pppoe }}
+                                                    @endif
+                                                </td>
+                                                <td>{{ $received }}</td>
+                                                <td class="amt">{{ number_format((float) $payment->collection_amount, 2) }}</td>
+                                                <td>{{ $when ? $when->format('d M, h:i A') : '—' }}</td>
+                                            </tr>
+                                        @endforeach
+                                    </tbody>
+                                </table>
+                            </div>
+                        @endif
                     </div>
                 </div>
             </div>

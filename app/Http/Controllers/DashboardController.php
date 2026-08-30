@@ -77,7 +77,9 @@ class DashboardController extends Controller
                 ->count(),
         ];
 
-        $financialSummary = app(DashboardFinanceService::class)->summary();
+        $finance = app(DashboardFinanceService::class);
+        $financialSummary = $finance->summary();
+        $recentPayments = $finance->recentPayments();
 
         $lineGrowth = ['labels' => [], 'new' => [], 'monthly' => []];
         for ($i = 5; $i >= 0; $i--) {
@@ -263,6 +265,7 @@ class DashboardController extends Controller
             'opsData',
             'clientSummary',
             'financialSummary',
+            'recentPayments',
             'lineGrowth'
         ));
     }

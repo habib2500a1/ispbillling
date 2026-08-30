@@ -143,4 +143,14 @@ final class DashboardFinanceService
             'bill_source' => $source,
         ];
     }
+
+    public function recentPayments(int $limit = 12)
+    {
+        return CollectionSummary::query()
+            ->with(['customer.pppUser'])
+            ->orderByDesc('collection_date')
+            ->orderByDesc('id')
+            ->limit($limit)
+            ->get();
+    }
 }

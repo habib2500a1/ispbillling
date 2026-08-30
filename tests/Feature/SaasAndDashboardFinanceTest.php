@@ -50,6 +50,17 @@ class SaasAndDashboardFinanceTest extends TestCase
         $this->assertEquals(400.0, $summary['due']);
         $this->assertEquals(60.0, $summary['collection_pct']);
         $this->assertEquals(40.0, $summary['due_pct']);
+
+        CollectionSummary::create([
+            'customer_collection_unique_id' => 'CID-BILL-1',
+            'collection_amount' => 250,
+            'collection_date' => now()->subHour(),
+            'collected_by' => 'demo@anetbd.com',
+        ]);
+
+        $recent = app(DashboardFinanceService::class)->recentPayments(5);
+        $this->assertGreaterThanOrEqual(2, $recent->count());
+        $this->assertEquals(250.0, (float) $recent->first()->collection_amount);
     }
 
     public function test_platform_owner_can_sell_operator_who_cannot_resell(): void
