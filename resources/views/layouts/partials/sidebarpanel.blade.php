@@ -512,6 +512,14 @@
                     <div class="d-flex align-items-center"><span class="nav-link-text ps-1">{{ __('Purchase Requests') }}</span></div>
                 </a>
                 </li>
+                @if (canManageMasterSetup())
+                <li class="nav-item">
+                <a wire:navigate.hover class="nav-link {{ $navIs('site-settings') ? 'active' : '' }}"
+                    href="{{ route('site-settings') }}">
+                    <div class="d-flex align-items-center"><span class="nav-link-text ps-1">{{ __('Master Setup') }}</span></div>
+                </a>
+                </li>
+                @endif
                 @if (canSellSaas())
                 <li class="nav-item">
                 <a wire:navigate.hover class="nav-link {{ $navIs('admin.saas-operators') ? 'active' : '' }}"

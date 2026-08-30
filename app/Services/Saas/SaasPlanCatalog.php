@@ -15,6 +15,7 @@ final class SaasPlanCatalog
         'hotspot' => 'Hotspot',
         'sms' => 'SMS',
         'tickets' => 'Support tickets',
+        'payment' => 'Payment gateways',
         'hr' => 'HR',
         'accounts' => 'Accounts',
         'calldesk' => 'Call desk',
@@ -40,7 +41,7 @@ final class SaasPlanCatalog
                 'max_onus' => 200,
                 'max_routers' => 2,
                 'max_staff' => 5,
-                'modules' => ['customers', 'billing', 'mikrotik', 'tickets', 'sms'],
+                'modules' => ['customers', 'billing', 'payment', 'mikrotik', 'tickets', 'sms'],
                 'sort_order' => 10,
             ],
             [

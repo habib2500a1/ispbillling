@@ -197,6 +197,7 @@
                                 <span class="badge bg-danger rounded-circle p-1" style="width: 8px; height: 8px; flex-shrink: 0;" title="Has errors"></span>
                             @endif
                         </button>
+                        @unless($operatorSetup)
                         <button class="nav-link text-start py-2.5 px-3 d-flex align-items-center gap-3 w-100" 
                                 :class="activeTab === 'security' ? 'active shadow' : 'text-body hover-bg'"
                                 @click="activeTab = 'security'" type="button">
@@ -206,6 +207,7 @@
                                 <span class="badge bg-danger rounded-circle p-1" style="width: 8px; height: 8px; flex-shrink: 0;" title="Has errors"></span>
                             @endif
                         </button>
+                        @endunless
                         <button class="nav-link text-start py-2.5 px-3 d-flex align-items-center gap-3 w-100" 
                                 :class="activeTab === 'content' ? 'active shadow' : 'text-body hover-bg'"
                                 @click="activeTab = 'content'" type="button">
@@ -215,6 +217,7 @@
                                 <span class="badge bg-danger rounded-circle p-1" style="width: 8px; height: 8px; flex-shrink: 0;" title="Has errors"></span>
                             @endif
                         </button>
+                        @unless($operatorSetup)
                         <button class="nav-link text-start py-2.5 px-3 d-flex align-items-center gap-3 w-100" 
                                 :class="activeTab === 'logs' ? 'active shadow' : 'text-body hover-bg'"
                                 @click="activeTab = 'logs'" type="button">
@@ -230,6 +233,7 @@
                             <i class="bi bi-wrench-adjustable-circle fs-5"></i>
                             <span class="flex-grow-1">{{ __('System Database') }}</span>
                         </button>
+                        @endunless
                     </div>
                 </div>
             </div>
@@ -783,6 +787,12 @@
 
                         <!-- TAB 5: PAYMENT GATEWAYS -->
                         <div x-show="activeTab === 'payment'" x-transition:enter.duration.200ms>
+                            @if($operatorSetup)
+                                <div class="alert alert-success border-0 rounded-4 mb-4">
+                                    <strong>{{ __('Your payment gateways stay ON') }}</strong>
+                                    <div class="small mb-0">{{ __('These keys are only for your ISP. Customers pay into your merchant — not the platform owner.') }}</div>
+                                </div>
+                            @endif
                             
                             <!-- BKASH -->
                             <div class="card shadow-none border rounded-3 p-4 mb-4 bg-light bg-opacity-25">
@@ -906,6 +916,7 @@
                             </div>
                         </div>
 
+                        @unless($operatorSetup)
                         <!-- TAB 6: SECURITY & SECRETS -->
                         <div x-show="activeTab === 'security'" x-transition:enter.duration.200ms>
                             <h5 class="form-section-title text-primary fw-bold"><i class="bi bi-key-fill me-2"></i>{{ __('Site Secret Credentials') }}</h5>
@@ -971,6 +982,7 @@
                                 </div>
                             </div>
                         </div>
+                        @endunless
 
                         <!-- TAB 7: WEBSITE CONTENT -->
                         <div x-show="activeTab === 'content'" x-transition:enter.duration.200ms>
@@ -1068,6 +1080,7 @@
                             </div>
                         </div>
 
+                        @unless($operatorSetup)
                         <!-- TAB 8: STORED LOGS -->
                         <div x-show="activeTab === 'logs'" x-transition:enter.duration.200ms>
                             <h5 class="form-section-title text-primary fw-bold"><i class="bi bi-card-text me-2"></i>{{ __('Router Log Data Archive') }}</h5>
@@ -1079,6 +1092,7 @@
                             <h5 class="form-section-title text-primary fw-bold"><i class="bi bi-box-seam me-2"></i>{{ __('System database Snapshots') }}</h5>
                             @include('livewire.mikrotik.system-utilities-embed')
                         </div>
+                        @endunless
 
                         <!-- Sticky Footer inside tab pane for instant access -->
                         <div class="border-top mt-4 pt-3 text-end d-md-none">

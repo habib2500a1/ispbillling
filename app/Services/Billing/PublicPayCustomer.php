@@ -37,17 +37,26 @@ final class PublicPayCustomer
     {
         $ppp = Auth::guard('ppp')->user();
         if ($ppp instanceof PPPSecrets && $ppp->customer) {
-            return $ppp->customer;
+            return self::withTenant($ppp->customer);
         }
 
         $web = Auth::guard('web')->user();
         if ($web && method_exists($web, 'customer') && $web->customer) {
-            return $web->customer;
+            return self::withTenant($web->customer);
         }
 
         $id = session('public_pay_customer_id');
 
-        return $id ? CustomersInfo::query()->find($id) : null;
+        return self::withTenant($id ? CustomersInfo::query()->find($id) : null);
+    }
+
+    private static function withTenant(?CustomersInfo $customer): ?CustomersInfo
+    {
+        if ($customer && $customer->saas_operator_id) {
+            \App\Services\Saas\SaasContext::forceTenant((int) $customer->saas_operator_id);
+        }
+
+        return $customer;
     }
 
     public static function remember(CustomersInfo $customer): void
@@ -55,7 +64,12 @@ final class PublicPayCustomer
         session([
             'public_pay_customer_id' => $customer->id,
             'public_pay_uid' => $customer->customer_unique_id,
+            'public_pay_operator_id' => $customer->saas_operator_id,
         ]);
+
+        if ($customer->saas_operator_id) {
+            \App\Services\Saas\SaasContext::forceTenant((int) $customer->saas_operator_id);
+        }
     }
 
     public static function isPublic(): bool

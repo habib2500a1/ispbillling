@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Services\Saas\SaasContext;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Cache;
@@ -15,11 +16,26 @@ class MainSiteData extends Model
         'value',
     ];
 
+    public static function tenantKey(int $tenantId, string $type): string
+    {
+        return 't'.$tenantId.':'.$type;
+    }
+
+    public static function settingsTenantId(): ?int
+    {
+        return SaasContext::tenantId();
+    }
+
     /**
      * Get a specific value by its type name, returning the decoded array or string.
      */
     public static function getValue(string $type, $default = null)
     {
+        $tenantId = self::settingsTenantId();
+        if ($tenantId) {
+            return self::getTenantValue($tenantId, $type, $default);
+        }
+
         try {
             $active = self::getActive();
             if (property_exists($active, $type)) {
@@ -35,11 +51,7 @@ class MainSiteData extends Model
             return $default;
         }
 
-        // Return array if JSON, otherwise string
-        $raw = $record->getRawOriginal('value');
-        $decoded = @json_decode($raw, true);
-
-        return (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) ? $decoded : $record->value;
+        return self::decodedRecord($record);
     }
 
     /**
@@ -52,10 +64,65 @@ class MainSiteData extends Model
             $value = json_encode($value);
         }
 
-        return self::updateOrCreate(
-            ['type' => $type],
+        $key = $type;
+        $tenantId = self::settingsTenantId();
+        if ($tenantId) {
+            $key = self::tenantKey($tenantId, $type);
+        }
+
+        $row = self::updateOrCreate(
+            ['type' => $key],
             ['value' => $value]
         );
+        self::forgetSiteCache();
+
+        return $row;
+    }
+
+    public static function setValueForTenant(int $tenantId, string $type, $value): self
+    {
+        $previous = SaasContext::forcedTenantId();
+        SaasContext::forceTenant($tenantId);
+        try {
+            return self::setValue($type, $value);
+        } finally {
+            SaasContext::forceTenant($previous);
+        }
+    }
+
+    private static function getTenantValue(int $tenantId, string $type, $default = null)
+    {
+        $record = self::query()->where('type', self::tenantKey($tenantId, $type))->first();
+        if ($record) {
+            return self::decodedRecord($record);
+        }
+
+        if (in_array($type, ['payment_bkash_enabled', 'payment_nagad_enabled', 'payment_sslcommerz_enabled'], true)) {
+            return $default !== null ? $default : 1;
+        }
+
+        if (str_starts_with($type, 'payment_')) {
+            return $default;
+        }
+
+        if ($type === 'site_name') {
+            $operator = SaasContext::operator() ?? SaasContext::hostOperator();
+            if ($operator && filled($operator->company)) {
+                return $operator->company;
+            }
+        }
+
+        $platform = self::query()->where('type', $type)->first();
+
+        return $platform ? self::decodedRecord($platform) : $default;
+    }
+
+    private static function decodedRecord(self $record): mixed
+    {
+        $raw = $record->getRawOriginal('value');
+        $decoded = @json_decode($raw, true);
+
+        return (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) ? $decoded : $record->value;
     }
 
     public static function forgetSiteCache(): void

@@ -2,14 +2,17 @@
 
 namespace Tests\Feature;
 
+use App\Livewire\MainSiteSetup;
 use App\Models\BillingInfo;
 use App\Models\CollectionSummary;
 use App\Models\CustomersInfo;
+use App\Models\MainSiteData;
 use App\Models\SaasOperator;
 use App\Models\User;
 use App\Services\Dashboard\DashboardFinanceService;
 use App\Services\Saas\OperatorProvisioningService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Livewire\Livewire;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
@@ -101,8 +104,29 @@ class SaasAndDashboardFinanceTest extends TestCase
 
         $this->actingAs($buyer);
         $this->assertFalse(canSellSaas());
+        $this->assertTrue(canManageMasterSetup());
+        $this->assertSame(1, (int) MainSiteData::getValue('payment_bkash_enabled'));
+        $this->assertSame('Buyer ISP', MainSiteData::getValue('site_name'));
 
         $this->get('http://localhost/admin/saas-operators')->assertForbidden();
+        $this->get('/site-settings')->assertOk();
+
+        $this->actingAs($owner);
+        MainSiteData::setValue('payment_bkash_username', 'platform-merchant');
+
+        $this->actingAs($buyer);
+        Livewire::test(MainSiteSetup::class)
+            ->assertSet('operatorSetup', true)
+            ->assertSet('data.payment_bkash_enabled', 1)
+            ->set('data.payment_bkash_username', 'buyer-merchant')
+            ->call('save', 'payment')
+            ->assertHasNoErrors();
+
+        $this->assertSame('buyer-merchant', MainSiteData::getValue('payment_bkash_username'));
+        $this->assertSame(1, (int) MainSiteData::getValue('payment_bkash_enabled'));
+
+        $this->actingAs($owner);
+        $this->assertSame('platform-merchant', MainSiteData::getValue('payment_bkash_username'));
     }
 
     public function test_monthly_bill_generation_writes_payment_summary(): void

@@ -62,6 +62,8 @@ class PermissionSeeder extends Seeder
             'edit-web-content',
             'delete-web-content',
             'site-settings',
+            'site-setup',
+            'payment-setup',
             'create-product',
             'edit-product',
             'delete-product',

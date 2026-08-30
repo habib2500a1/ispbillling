@@ -12,6 +12,8 @@ final class SaasContext
 
     private static bool $hostResolved = false;
 
+    private static ?int $forcedTenantId = null;
+
     public static function rememberHostOperator(?SaasOperator $operator): void
     {
         self::$hostOperator = $operator;
@@ -58,8 +60,22 @@ final class SaasContext
         return self::operator($user)?->id;
     }
 
+    public static function forceTenant(?int $id): void
+    {
+        self::$forcedTenantId = $id && $id > 0 ? $id : null;
+    }
+
+    public static function forcedTenantId(): ?int
+    {
+        return self::$forcedTenantId;
+    }
+
     public static function tenantId(?User $user = null): ?int
     {
+        if (self::$forcedTenantId) {
+            return self::$forcedTenantId;
+        }
+
         return self::operatorId($user) ?? self::hostOperator()?->id;
     }
 

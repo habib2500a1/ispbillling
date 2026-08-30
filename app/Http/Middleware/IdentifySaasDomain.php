@@ -14,6 +14,13 @@ class IdentifySaasDomain
     {
         SaasContext::rememberHostOperator(SaasDomain::findByHost($request->getHost()));
 
+        if ($request->hasSession()) {
+            $payTenant = (int) $request->session()->get('public_pay_operator_id');
+            if ($payTenant > 0 && ! SaasContext::hostOperator()) {
+                SaasContext::forceTenant($payTenant);
+            }
+        }
+
         return $next($request);
     }
 }

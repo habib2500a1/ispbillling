@@ -44,14 +44,15 @@ if (! function_exists('siteUrlSettings')) {
                 return $default;
             }
 
-            if (array_key_exists($key, $runtimeCache)) {
-                $cached = $runtimeCache[$key];
+            $cacheKey = (\App\Services\Saas\SaasContext::tenantId() ?: 0).':'.$key;
+            if (array_key_exists($cacheKey, $runtimeCache)) {
+                $cached = $runtimeCache[$cacheKey];
 
                 return $cached === null ? $default : $cached;
             }
 
             $value = MainSiteData::getValue($key);
-            $runtimeCache[$key] = $value;
+            $runtimeCache[$cacheKey] = $value;
 
             return $value === null ? $default : $value;
         } catch (\Throwable $e) {
@@ -157,6 +158,13 @@ if (! function_exists('canSellSaas')) {
         }
 
         return $user->hasRole('Super Admin') && ! $user->hasRole('Operator');
+    }
+}
+
+if (! function_exists('canManageMasterSetup')) {
+    function canManageMasterSetup(): bool
+    {
+        return hasAccess(['Super Admin', 'Operator'], ['site-settings', 'site-setup', 'payment-setup']);
     }
 }
 

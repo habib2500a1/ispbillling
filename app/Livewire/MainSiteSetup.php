@@ -73,14 +73,21 @@ class MainSiteSetup extends Component implements HasActions, HasForms
 
     public int $late_fee_grace_days = 0;
 
+    public bool $operatorSetup = false;
+
     public function mount(): void
     {
-        if (! hasAccess(['Super Admin'], ['site-setup'])) {
+        if (! canManageMasterSetup()) {
             abort(403, 'Unauthorized action.');
         }
 
+        $this->operatorSetup = isOperatorAdmin();
         $requestedTab = (string) request('tab', '');
-        if (in_array($requestedTab, ['identity', 'theme', 'contact', 'billing', 'payment', 'security', 'content', 'logs', 'utilities'], true)) {
+        $allowedTabs = $this->operatorSetup ? $this->operatorTabs() : $this->allTabs();
+        if ($this->operatorSetup) {
+            $this->activeTab = 'payment';
+        }
+        if (in_array($requestedTab, $allowedTabs, true)) {
             $this->activeTab = $requestedTab;
         }
 
@@ -170,7 +177,7 @@ class MainSiteSetup extends Component implements HasActions, HasForms
             'log_retention_days' => MainSiteData::getValue('log_retention_days', 30),
 
             // Payment Gateways
-            'payment_bkash_enabled' => $this->flagFromStore('payment_bkash_enabled', 0),
+            'payment_bkash_enabled' => $this->flagFromStore('payment_bkash_enabled', $this->operatorSetup ? 1 : 0),
             'payment_bkash_sandbox' => $this->flagFromStore('payment_bkash_sandbox', 0),
             'payment_bkash_base_url' => MainSiteData::getValue('payment_bkash_base_url', 'https://tokenized.pay.bka.sh/v1.2.0-beta'),
             'payment_bkash_username' => MainSiteData::getValue('payment_bkash_username'),
@@ -178,13 +185,13 @@ class MainSiteSetup extends Component implements HasActions, HasForms
             'payment_bkash_app_key' => MainSiteData::getValue('payment_bkash_app_key'),
             'payment_bkash_app_secret' => MainSiteData::getValue('payment_bkash_app_secret'),
 
-            'payment_nagad_enabled' => $this->flagFromStore('payment_nagad_enabled', 0),
+            'payment_nagad_enabled' => $this->flagFromStore('payment_nagad_enabled', $this->operatorSetup ? 1 : 0),
             'payment_nagad_base_url' => MainSiteData::getValue('payment_nagad_base_url', 'http://sandbox.nagad.com.bd:10080/remote-payment-gateway-1.0/api/dfs'),
             'payment_nagad_merchant_id' => MainSiteData::getValue('payment_nagad_merchant_id'),
             'payment_nagad_public_key' => MainSiteData::getValue('payment_nagad_public_key'),
             'payment_nagad_private_key' => MainSiteData::getValue('payment_nagad_private_key'),
 
-            'payment_sslcommerz_enabled' => $this->flagFromStore('payment_sslcommerz_enabled', 0),
+            'payment_sslcommerz_enabled' => $this->flagFromStore('payment_sslcommerz_enabled', $this->operatorSetup ? 1 : 0),
             'payment_sslcommerz_store_id' => MainSiteData::getValue('payment_sslcommerz_store_id'),
             'payment_sslcommerz_store_password' => MainSiteData::getValue('payment_sslcommerz_store_password'),
             'payment_sslcommerz_sandbox' => $this->flagFromStore('payment_sslcommerz_sandbox', 1),
@@ -432,6 +439,9 @@ class MainSiteSetup extends Component implements HasActions, HasForms
     public function save(?string $tab = null): void
     {
         $tab = $this->normalizeTab($tab ?? $this->activeTab);
+        if ($this->operatorSetup && ! in_array($tab, $this->operatorTabs(), true)) {
+            abort(403, 'Unauthorized action.');
+        }
         $this->activeTab = $tab;
         $keys = $this->keysForTab($tab);
 
@@ -677,12 +687,28 @@ class MainSiteSetup extends Component implements HasActions, HasForms
             || $value === 'yes';
     }
 
+    /**
+     * @return list<string>
+     */
+    private function allTabs(): array
+    {
+        return ['identity', 'theme', 'contact', 'billing', 'payment', 'security', 'content', 'logs', 'utilities'];
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function operatorTabs(): array
+    {
+        return ['identity', 'theme', 'contact', 'billing', 'payment', 'content'];
+    }
+
     private function normalizeTab(?string $tab): string
     {
         $tab = $tab ?: $this->activeTab;
-        $known = ['identity', 'theme', 'contact', 'billing', 'payment', 'security', 'content', 'logs', 'utilities'];
+        $known = $this->operatorSetup ? $this->operatorTabs() : $this->allTabs();
 
-        return in_array($tab, $known, true) ? $tab : 'identity';
+        return in_array($tab, $known, true) ? $tab : ($this->operatorSetup ? 'payment' : 'identity');
     }
 
     private function tabLabel(string $tab): string

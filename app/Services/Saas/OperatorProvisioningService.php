@@ -2,6 +2,7 @@
 
 namespace App\Services\Saas;
 
+use App\Models\MainSiteData;
 use App\Models\SaasOperator;
 use App\Models\SaasPlan;
 use App\Models\User;
@@ -26,6 +27,10 @@ final class OperatorProvisioningService
     {
         Permission::findOrCreate(self::SELL_PERMISSION, 'web');
         Permission::findOrCreate('staff-cash', 'web');
+
+        foreach (['site-settings', 'site-setup', 'payment-setup'] as $name) {
+            Permission::findOrCreate($name, 'web');
+        }
 
         $role = Role::findOrCreate(self::OPERATOR_ROLE, 'web');
         $all = Permission::query()
@@ -116,12 +121,25 @@ final class OperatorProvisioningService
             }
         }
 
+        $this->seedOperatorSetup($operator);
+
         if (! $lifetime) {
             $this->billing->quote($operator);
             $this->billing->issueInvoice($operator, $operator->next_due_at);
         }
 
         return $operator->fresh(['user', 'planCatalog', 'invoices']);
+    }
+
+    public function seedOperatorSetup(SaasOperator $operator): void
+    {
+        $id = (int) $operator->id;
+        MainSiteData::setValueForTenant($id, 'site_name', $operator->company);
+        MainSiteData::setValueForTenant($id, 'payment_bkash_enabled', 1);
+        MainSiteData::setValueForTenant($id, 'payment_nagad_enabled', 1);
+        MainSiteData::setValueForTenant($id, 'payment_sslcommerz_enabled', 1);
+        MainSiteData::setValueForTenant($id, 'payment_bkash_sandbox', 0);
+        MainSiteData::setValueForTenant($id, 'payment_bkash_base_url', \App\Http\Controllers\Payment\BkashPaymentController::LIVE_URL);
     }
 
     public function setStatus(SaasOperator $operator, string $status): void
