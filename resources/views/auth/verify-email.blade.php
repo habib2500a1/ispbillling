@@ -8,7 +8,7 @@
             <form class="form" method="POST" action="{{ route('verification.send') }}">
                 @if (!siteUrlSettings('site_logo') && !siteUrlSettings('site_icon'))
                     <div class="d-desktop-only" style="text-align: center; margin-bottom: 20px;">
-                        <h2 class="neon-text audiowide-bold" style="font-size: 2rem; color: #06ad73; text-shadow: 0 0 5px #06ad73;">{{ site_brand() }}</h2>
+                        <h2 class="neon-text audiowide-bold" style="font-size: 2rem; color: #1e3a5f;">{{ site_brand() }}</h2>
                     </div>
                 @endif
                 <h2 class="form__title">{{ __('Email Verification') }}</h2>

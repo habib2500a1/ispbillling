@@ -30,7 +30,10 @@
     @livewireStyles
     <style>
         .navbar-brand .brand-wordmark,
-        .navbar-brand .text-success {
+        .navbar-brand .text-success,
+        .navbar-vertical .navbar-brand,
+        .navbar-vibrant .navbar-brand,
+        .navbar-vibrant .navbar-brand span {
             color: #1e3a5f !important;
             font-weight: 800;
             letter-spacing: -0.03em;
