@@ -24,6 +24,12 @@ class DemoReadySeeder extends Seeder
 {
     public function run(): void
     {
+        if ((string) MainSiteData::getValue('skip_demo_seed', '') === '1') {
+            $this->command?->info('Demo seed disabled — skipping DemoReadySeeder.');
+
+            return;
+        }
+
         if (CustomersInfo::query()->where('customer_unique_id', 'like', 'DEMO-%')->exists()) {
             $this->command?->info('Demo customers already present — skipping DemoReadySeeder.');
 

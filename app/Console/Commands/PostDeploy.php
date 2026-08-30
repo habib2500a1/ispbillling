@@ -32,7 +32,8 @@ class PostDeploy extends Command
             $this->info('Default login: rohan9222@gmail.com / rohan9222@gmail.com');
         }
 
-        if (\App\Models\CustomersInfo::query()->count() === 0) {
+        $skipDemo = (string) \App\Models\MainSiteData::getValue('skip_demo_seed', '') === '1';
+        if (! $skipDemo && \App\Models\CustomersInfo::query()->count() === 0) {
             $this->info('Seeding demo MikroTik / OLT / clients…');
             (new \Database\Seeders\DemoReadySeeder)->run();
         }
