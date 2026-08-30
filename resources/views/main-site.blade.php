@@ -4,7 +4,7 @@
 
 <head>
     <meta charset="UTF-8">
-    <title>{{ $siteData?->hero_title ?? (siteUrlSettings('site_name') ?? config('app.name')) }}</title>
+    <title>{{ site_brand() }}</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="description" content="{{ siteUrlSettings('site_description') ?? '' }}">
 
@@ -15,7 +15,7 @@
     <x-main-site-theme />
     <script>
         (function() {
-            const adminDefaultTheme = "{{ siteUrlSettings('theme_mode') ?? 'dark' }}";
+            const adminDefaultTheme = "{{ siteUrlSettings('theme_mode') ?? 'light' }}";
             const userPreferredTheme = localStorage.getItem('site-theme');
             const activeTheme = userPreferredTheme || adminDefaultTheme;
             if (activeTheme === 'light') {
@@ -56,29 +56,24 @@
                     @if (siteUrlSettings('site_icon'))
                         <img class="d-inline-block align-text-top" src="{{ site_image(siteUrlSettings('site_icon')) }}"
                             alt="" width="40" />
-                        <span
-                            class="font-sans-serif text-success">{{ siteUrlSettings('site_name') ?? config('app.name') }}</span>
+                        <span class="font-sans-serif text-success">{{ site_brand() }}</span>
                     @else
-                        <span
-                            class="font-sans-serif text-success">{{ siteUrlSettings('site_name') ?? config('app.name') }}</span>
+                        <span class="font-sans-serif text-success">{{ site_brand() }}</span>
                     @endif
                 @endif
             </a>
 
             {{-- Nav Links --}}
             <div class="collapse navbar-collapse" id="navbarSupportedContent">
-                <ul class="nav navbar-nav ms-auto mb-2 mb-lg-0 align-items-md-center gap-md-1">
+                <ul class="nav navbar-nav ms-auto mb-2 mb-lg-0">
                     <li class="nav-item"><a class="nav-link" href="#banner">{{ __('Home') }}</a></li>
                     <li class="nav-item"><a class="nav-link" href="#features">{{ __('Service') }}</a></li>
-                    <li class="nav-item"><a class="nav-link" href="#platform">{{ __('Platform') }}</a></li>
-                    <li class="nav-item"><a class="nav-link" href="#pricing-table">{{ __('Packages') }}</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#gallery">{{ __('Gallery') }}</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#pricing-table">{{ __('Price') }}</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#team">{{ __('Team') }}</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#blog">{{ __('Blog') }}</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#testimonial">{{ __('Testimonial') }}</a></li>
                     <li class="nav-item"><a class="nav-link" href="#contact-form">{{ __('Contact') }}</a></li>
-                    <li class="nav-item ms-md-2">
-                        <a class="btn btn-success btn-sm px-3 rounded-pill fw-semibold" href="{{ route('login') }}">{{ __('Staff Login') }}</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="btn btn-outline-success btn-sm px-3 rounded-pill fw-semibold" href="{{ url('/portal') }}">{{ __('Customer Portal') }}</a>
-                    </li>
                 </ul>
             </div>
 
@@ -131,60 +126,38 @@
                 data-bs-interval="7000">
 
                 {{-- Indicators --}}
-                @php $slides = $siteData?->hero_slides ?? []; @endphp
-                @if (count($slides) > 0)
-                    <div class="carousel-indicators">
-                        @foreach ($slides as $index => $slide)
-                            <button type="button" data-bs-target="#carouselExampleCaptions"
-                                data-bs-slide-to="{{ $index }}" class="{{ $index === 0 ? 'active' : '' }}"
-                                @if ($index === 0) aria-current="true" @endif
-                                aria-label="Slide {{ $index + 1 }}"></button>
-                        @endforeach
-                    </div>
-                @endif
+                @php
+                    $slides = $siteData?->hero_slides ?? [];
+                    if (! is_array($slides) || count($slides) === 0) {
+                        $slides = [
+                            ['image' => 'images/slide/img0.jpg', 'caption' => ''],
+                            ['image' => 'images/slide/img1.jpg', 'caption' => ''],
+                            ['image' => 'images/slide/img2.jpg', 'caption' => ''],
+                        ];
+                    }
+                @endphp
+                <div class="carousel-indicators">
+                    @foreach ($slides as $index => $slide)
+                        <button type="button" data-bs-target="#carouselExampleCaptions"
+                            data-bs-slide-to="{{ $index }}" class="{{ $index === 0 ? 'active' : '' }}"
+                            @if ($index === 0) aria-current="true" @endif
+                            aria-label="Slide {{ $index + 1 }}"></button>
+                    @endforeach
+                </div>
 
-                {{-- Slides --}}
                 <div class="carousel-inner">
-                    @if (count($slides) > 0)
-                        @foreach ($slides as $index => $slide)
-                            <div class="carousel-item {{ $index === 0 ? 'active' : '' }}">
-                                <img src="{{ isset($slide['image']) ? site_image($slide['image']) : '' }}"
-                                    class="img-fluid" style="width: 100%; height: auto; object-fit: cover;"
-                                    alt="{{ $slide['caption'] ?? 'Slide ' . ($index + 1) }}">
-                                @if (!empty($slide['caption']))
-                                    <div class="carousel-caption d-none d-md-block">
-                                        <h2 class="display-4 fw-bold">{{ $slide['caption'] }}</h2>
-                                    </div>
-                                @endif
-                            </div>
-                        @endforeach
-                    @else
-                        {{-- Clean brand-first hero (no clutter) --}}
-                        <div class="carousel-item active">
-                            <div class="position-relative" style="min-height:min(72vh,640px);background:
-                                radial-gradient(ellipse at 20% 20%, rgba(6,173,115,.28), transparent 45%),
-                                radial-gradient(ellipse at 80% 0%, rgba(15,23,42,.35), transparent 40%),
-                                linear-gradient(145deg,#0b1f17 0%,#102a22 45%,#0f172a 100%);">
-                                <div class="container h-100 d-flex align-items-center" style="min-height:min(72vh,640px);">
-                                    <div class="col-lg-7 text-white py-5">
-                                        <p class="text-uppercase fw-bold mb-2" style="letter-spacing:.14em;color:#6ee7b7;font-size:.8rem;">
-                                            {{ siteUrlSettings('site_name') ?? config('app.name') }}
-                                        </p>
-                                        <h1 class="display-4 fw-bold mb-3" style="line-height:1.15;">
-                                            {{ $siteData?->hero_title ?? __('Faster. Reliable. Always On.') }}
-                                        </h1>
-                                        <p class="lead mb-4" style="max-width:34rem;color:rgba(255,255,255,.82);">
-                                            {{ $siteData?->hero_subtitle ?? __('Home & corporate broadband with auto billing and instant pay-to-ON.') }}
-                                        </p>
-                                        <div class="d-flex flex-wrap gap-2">
-                                            <a href="#pricing-table" class="btn btn-success btn-lg rounded-pill px-4">{{ __('View packages') }}</a>
-                                            <a href="#contact-form" class="btn btn-outline-light btn-lg rounded-pill px-4">{{ __('Contact sales') }}</a>
-                                        </div>
-                                    </div>
+                    @foreach ($slides as $index => $slide)
+                        <div class="carousel-item {{ $index === 0 ? 'active' : '' }}">
+                            <img src="{{ isset($slide['image']) ? site_image($slide['image']) : asset('images/slide/img0.jpg') }}"
+                                class="img-fluid" style="width: 100%; height: auto; object-fit: cover;"
+                                alt="{{ $slide['caption'] ?? 'Slide ' . ($index + 1) }}">
+                            @if (!empty($slide['caption']))
+                                <div class="carousel-caption d-none d-md-block">
+                                    <h2 class="display-4 fw-bold">{{ $slide['caption'] }}</h2>
                                 </div>
-                            </div>
+                            @endif
                         </div>
-                    @endif
+                    @endforeach
                 </div>
 
                 <button class="carousel-control-prev" type="button" data-bs-target="#carouselExampleCaptions"
@@ -215,11 +188,18 @@
                                 <h5 class="text-success">{{ __('Welcome to') }}
                                     {{ siteUrlSettings('portal_name') ?? siteUrlSettings('site_name') }}</h5>
                             @endif
-                            <h2>{{ $siteData?->hero_title ?? __('We are always Faster & Reliable') }}</h2>
-                            @if ($siteData?->about_body)
-                                <p>{!! nl2br(e($siteData->about_body)) !!}</p>
-                            @elseif($siteData?->hero_subtitle)
-                                <p>{{ $siteData->hero_subtitle }}</p>
+                            <h2>{{ $siteData?->hero_title && $siteData->hero_title !== 'Faster. Reliable. Always On.' ? $siteData->hero_title : __('We are always Faster & Reliable') }}</h2>
+                            @php
+                                $aboutBody = (string) ($siteData?->about_body ?? '');
+                                $heroSubtitle = (string) ($siteData?->hero_subtitle ?? '');
+                                $isMarketingCopy = str_contains($aboutBody, 'Clean ISP operations')
+                                    || str_contains($heroSubtitle, 'Clean ISP operations')
+                                    || $heroSubtitle === 'Home & corporate broadband with auto billing, instant pay-to-ON, and 24/7 support.';
+                            @endphp
+                            @if ($aboutBody !== '' && ! $isMarketingCopy)
+                                <p>{!! nl2br(e($aboutBody)) !!}</p>
+                            @elseif($heroSubtitle !== '' && ! $isMarketingCopy)
+                                <p>{{ $heroSubtitle }}</p>
                             @endif
                             <h4>{{ __('Our Services are') }}</h4>
                         </div>
@@ -302,58 +282,6 @@
                         </div>
                     </div>
                 @endif
-            </div>
-        </section>
-
-        {{-- =========================================================
-             SAAS PLATFORM (same design language as this site)
-        ========================================================== --}}
-        <section id="platform" class="pb-4">
-            <div class="container">
-                <div class="row">
-                    <div class="col-md-12">
-                        <div class="title">
-                            <h5 class="text-success">{{ __('ISP Billing SaaS') }}</h5>
-                            <h2>{{ __('One platform to run — and sell — an ISP') }}</h2>
-                            <p>{{ __('Sell ISP admin monthly or yearly by user base. You set OLT, customer, and staff limits. If they miss the SaaS bill the account locks; payment unlocks it. They cannot resell the platform.') }}</p>
-                        </div>
-                    </div>
-                </div>
-                <div class="row">
-                    <div class="col-md-3 col-sm-6">
-                        <div class="feature-block text-center">
-                            <div class="icon-box"><i class="bi bi-speedometer2"></i></div>
-                            <h4>{{ __('Admin operations') }}</h4>
-                            <p>{{ __('Clients, monthly/yearly SaaS plans, collection %, staff cash, and roles.') }}</p>
-                        </div>
-                    </div>
-                    <div class="col-md-3 col-sm-6">
-                        <div class="feature-block text-center">
-                            <div class="icon-box"><i class="bi bi-person-badge"></i></div>
-                            <h4>{{ __('Customer portal') }}</h4>
-                            <p>{{ __('Invoices, online pay, tickets, and connection status for subscribers.') }}</p>
-                        </div>
-                    </div>
-                    <div class="col-md-3 col-sm-6">
-                        <div class="feature-block text-center">
-                            <div class="icon-box"><i class="bi bi-shop-window"></i></div>
-                            <h4>{{ __('Reseller desk') }}</h4>
-                            <p>{{ __('Partner wallet, commission, and subscriber sales — not platform resale.') }}</p>
-                        </div>
-                    </div>
-                    <div class="col-md-3 col-sm-6">
-                        <div class="feature-block text-center">
-                            <div class="icon-box"><i class="bi bi-router"></i></div>
-                            <h4>{{ __('Network + pay') }}</h4>
-                            <p>{{ __('MikroTik PPPoE, bKash / Nagad / SSLCommerz, and pay-to-ON.') }}</p>
-                        </div>
-                    </div>
-                </div>
-                <div class="text-center mt-3 d-flex flex-wrap justify-content-center gap-2">
-                    <a href="{{ route('login') }}" class="btn btn-success rounded-pill px-4">{{ __('Staff Login') }}</a>
-                    <a href="{{ url('/portal') }}" class="btn btn-outline-success rounded-pill px-4">{{ __('Customer Portal') }}</a>
-                    <a href="#contact-form" class="btn btn-outline-secondary rounded-pill px-4">{{ __('Request a demo') }}</a>
-                </div>
             </div>
         </section>
 

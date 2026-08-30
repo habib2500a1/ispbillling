@@ -80,6 +80,45 @@ class PostDeploy extends Command
             }
         }
 
-        $this->info('Brand set to Anetbd.');
+        $this->restoreClassicLanding();
+
+        $this->info('Brand and classic landing set to Anetbd.');
+    }
+
+    private function restoreClassicLanding(): void
+    {
+        $classicSlides = [
+            ['image' => 'images/slide/img0.jpg', 'caption' => ''],
+            ['image' => 'images/slide/img1.jpg', 'caption' => ''],
+            ['image' => 'images/slide/img2.jpg', 'caption' => ''],
+        ];
+
+        $heroTitle = (string) \App\Models\MainSiteData::getValue('hero_title', '');
+        $aboutBody = (string) \App\Models\MainSiteData::getValue('about_body', '');
+        $isMarketingCopy = $heroTitle === ''
+            || $heroTitle === 'Faster. Reliable. Always On.'
+            || str_contains($aboutBody, 'Clean ISP operations');
+
+        if ($isMarketingCopy) {
+            \App\Models\MainSiteData::setValue('hero_title', 'We are always Faster & Reliable');
+            \App\Models\MainSiteData::setValue('hero_subtitle', '');
+            \App\Models\MainSiteData::setValue('about_body', '');
+            \App\Models\MainSiteData::setValue('hero_slides', $classicSlides);
+        }
+
+        $slides = \App\Models\MainSiteData::getValue('hero_slides', []);
+        $slideImages = is_array($slides)
+            ? collect($slides)->map(fn ($slide) => (string) ($slide['image'] ?? ''))->implode(' ')
+            : '';
+        if (! is_array($slides) || count($slides) === 0 || ! str_contains($slideImages, 'images/slide/img0.jpg')) {
+            \App\Models\MainSiteData::setValue('hero_slides', $classicSlides);
+        }
+
+        $theme = (string) \App\Models\MainSiteData::getValue('theme_mode', '');
+        if ($theme === '' || $theme === 'dark') {
+            \App\Models\MainSiteData::setValue('theme_mode', 'light');
+        }
+
+        \Illuminate\Support\Facades\Cache::forget('main_site_data_active');
     }
 }

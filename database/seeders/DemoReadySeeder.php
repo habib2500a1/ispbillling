@@ -45,19 +45,22 @@ class DemoReadySeeder extends Seeder
     {
         MainSiteData::setValue('site_name', 'Anetbd');
         MainSiteData::setValue('site_title', 'Anetbd — Faster & Reliable Internet');
-        MainSiteData::setValue('hero_title', 'Faster. Reliable. Always On.');
-        MainSiteData::setValue('hero_subtitle', 'Home & corporate broadband with auto billing, instant pay-to-ON, and 24/7 support.');
+        MainSiteData::setValue('hero_title', 'We are always Faster & Reliable');
+        MainSiteData::setValue('hero_subtitle', '');
+        MainSiteData::setValue('hero_slides', [
+            ['image' => 'images/slide/img0.jpg', 'caption' => ''],
+            ['image' => 'images/slide/img1.jpg', 'caption' => ''],
+            ['image' => 'images/slide/img2.jpg', 'caption' => ''],
+        ]);
+        MainSiteData::setValue('theme_mode', 'light');
         MainSiteData::setValue('about_title', 'Welcome to Anetbd');
-        MainSiteData::setValue('about_body', "Clean ISP operations for Bangladesh.\nPPPoE billing, MikroTik control, OLT/ONU optical, and customer self-pay — all in one place.");
+        MainSiteData::setValue('about_body', '');
         MainSiteData::setValue('packages_section_title', 'Internet Packages');
         MainSiteData::setValue('packages_section_subtitle', 'Pick a plan that fits your home or office.');
         MainSiteData::setValue('services', [
-            ['icon' => 'bi bi-house-fill', 'title' => 'Home Internet', 'description' => 'Unlimited fiber broadband with stable uptime.'],
-            ['icon' => 'bi bi-building', 'title' => 'Corporate Link', 'description' => 'Dedicated business connectivity with priority support.'],
-            ['icon' => 'bi bi-lightning-charge', 'title' => 'Pay & Instant ON', 'description' => 'bKash / Nagad / cash — payment enables the line instantly.'],
-            ['icon' => 'bi bi-router', 'title' => 'MikroTik Ready', 'description' => 'PPPoE sync, disable/enable, and live online clients.'],
-            ['icon' => 'bi bi-broadcast-pin', 'title' => 'OLT / ONU', 'description' => 'Optical signal monitoring for field and NOC teams.'],
-            ['icon' => 'bi bi-person-badge', 'title' => 'Customer Portal', 'description' => 'Self-service bills, tickets, and package view.'],
+            ['icon' => 'bi bi-house-fill', 'title' => 'Home Internet', 'description' => 'High-speed broadband internet for your home. Unlimited data, 24/7 uptime.'],
+            ['icon' => 'bi bi-building-fill-check', 'title' => 'Corporate Internet', 'description' => 'Dedicated business-grade connectivity with SLA guarantees and priority support.'],
+            ['icon' => 'bi bi-hdd-network-fill', 'title' => 'Data Connectivity', 'description' => 'Fiber optic point-to-point links for enterprise and campus connectivity needs.'],
         ]);
     }
 
