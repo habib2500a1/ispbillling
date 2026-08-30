@@ -210,9 +210,7 @@
                         @else
                             <div class="text-muted mb-2">{{ $optical['hint'] ?? __('No ONU data') }}</div>
                         @endif
-                        @if(!$opticalBridgeEnabled)
-                            <div class="text-muted small mb-2"><i class="bi bi-info-circle"></i> {{ __('Enter MAC, PON, and RX/TX here to show this ONU on Optical / ONU.') }}</div>
-                        @endif
+                        <div class="text-muted small mb-2"><i class="bi bi-info-circle"></i> {{ __('Auto-sync reads this panel OLT and the live PPPoE MAC. Or type MAC / PON and Save optical.') }}</div>
                         <div class="row g-2">
                             <div class="col-6"><input type="text" class="form-control form-control-sm" placeholder="MAC" wire:model="onuMac"></div>
                             <div class="col-6"><input type="text" class="form-control form-control-sm" placeholder="PON" wire:model="onuPon"></div>

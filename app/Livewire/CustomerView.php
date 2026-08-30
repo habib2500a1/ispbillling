@@ -11,7 +11,6 @@ use App\Models\PaymentSummary;
 use App\Models\PPPSecrets;
 use App\Models\SupportTicket;
 use App\Services\Olt\CustomerOpticalPresenter;
-use App\Services\Olt\IspbillingOpticalBridge;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Component;
@@ -256,23 +255,12 @@ class CustomerView extends Component
     public function syncOnu(): void
     {
         $customer = $this->customer();
-        $bridge = app(IspbillingOpticalBridge::class);
+        $result = app(\App\Services\Olt\LocalOltOnuSyncService::class)->syncForCustomer($customer);
 
-        if (! $bridge->enabled()) {
-            flash()->warning(__('OLT bridge not configured. Save optical data manually or set ISPBILLING_OPTICAL_BRIDGE=true.'));
-            $this->loadOnuForm($customer);
-
-            return;
-        }
-
-        $onu = $bridge->autoLinkCustomer($customer);
-        if ($onu) {
-            flash()->success(__('ONU synced — RX: :rx dBm, TX: :tx dBm', [
-                'rx' => $onu->rx_power_dbm ?? '—',
-                'tx' => $onu->tx_power_dbm ?? '—',
-            ]));
+        if ($result['ok']) {
+            flash()->success($result['message']);
         } else {
-            flash()->warning(__('No ONU match found for PPP username or MAC.'));
+            flash()->warning($result['message']);
         }
 
         $this->loadOnuForm($customer->fresh(['onus']));
@@ -297,6 +285,10 @@ class CustomerView extends Component
     {
         $onu = $customer->primaryOnu();
         if (! $onu) {
+            if ($this->onuOlt === '') {
+                $this->onuOlt = (string) (\App\Models\Olt::query()->where('status', 'active')->value('name') ?? '');
+            }
+
             return;
         }
 
@@ -540,7 +532,6 @@ class CustomerView extends Component
             'addressLines' => $address,
             'optical' => $optical,
             'gps' => $gps,
-            'opticalBridgeEnabled' => app(IspbillingOpticalBridge::class)->enabled(),
             'firstBillCycle' => $firstBillCycle,
             'walletBalance' => (float) ($customer->billing?->advance ?? 0),
             'hasPortalToken' => app(\App\Services\Portal\CustomerPortalAccessService::class)->hasAccessToken($customer),

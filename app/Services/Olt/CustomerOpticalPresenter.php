@@ -25,7 +25,7 @@ final class CustomerOpticalPresenter
         $onu = $customer->primaryOnu();
 
         if ($onu === null && $tryRemote) {
-            $synced = $this->bridge->autoLinkCustomer($customer);
+            $synced = app(LocalOltOnuSyncService::class)->syncForCustomer($customer)['onu'] ?? null;
             if ($synced !== null) {
                 $onu = $synced;
             }
@@ -34,7 +34,7 @@ final class CustomerOpticalPresenter
         if ($onu === null) {
             return [
                 'linked' => false,
-                'hint' => __('ONU not linked. Sync from OLT or enter optical details manually.'),
+                'hint' => __('ONU not linked. Click Auto-sync, or enter MAC / PON and Save optical.'),
                 'row' => null,
                 'details' => [],
                 'history' => [],
