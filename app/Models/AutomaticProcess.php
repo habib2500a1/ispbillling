@@ -67,6 +67,7 @@ class AutomaticProcess extends Model
             'poll-ppp-online',
             'poll-router-logs',
             'olt-health-poll',
+            'saas-lock-overdue',
             'prune-router-logs',
         ];
     }

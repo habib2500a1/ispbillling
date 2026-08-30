@@ -153,6 +153,50 @@ if (! function_exists('isOperatorAdmin')) {
     }
 }
 
+if (! function_exists('currentSaasOperator')) {
+    function currentSaasOperator(): ?\App\Models\SaasOperator
+    {
+        return \App\Services\Saas\SaasContext::operator();
+    }
+}
+
+if (! function_exists('saasAssertQuota')) {
+    function saasAssertQuota(string $resource): bool
+    {
+        try {
+            app(\App\Services\Saas\SaasQuotaService::class)->assert($resource);
+
+            return true;
+        } catch (\App\Services\Saas\SaasQuotaException $e) {
+            flash()->error($e->getMessage());
+
+            return false;
+        }
+    }
+}
+
+if (! function_exists('saasBillingWarning')) {
+    function saasBillingWarning(): ?string
+    {
+        $operator = currentSaasOperator();
+        if (! $operator || ! $operator->next_due_at) {
+            return null;
+        }
+
+        if ($operator->isAccessBlocked()) {
+            return __('Subscription is locked. Pay the SaaS bill to unlock.');
+        }
+
+        if ($operator->next_due_at->lte(now()->addDays(7))) {
+            return __('SaaS bill due :date — unpaid accounts lock automatically.', [
+                'date' => $operator->next_due_at->format('d M Y'),
+            ]);
+        }
+
+        return null;
+    }
+}
+
 if (! function_exists('portalLoginUrl')) {
     function portalLoginUrl(): string
     {

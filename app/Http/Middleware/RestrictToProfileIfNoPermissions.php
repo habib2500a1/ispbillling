@@ -19,12 +19,29 @@ class RestrictToProfileIfNoPermissions
         if (Auth::check()) {
             $user = Auth::user();
 
-            if (method_exists($user, 'hasRole') && $user->hasRole('Operator')) {
-                $operator = \App\Models\SaasOperator::query()->where('user_id', $user->id)->first();
-                if ($operator && $operator->status !== 'active') {
-                    Auth::logout();
-
-                    return redirect('/login')->with('error', __('This operator account is suspended.'));
+            $operator = \App\Services\Saas\SaasContext::operator($user);
+            if ($operator) {
+                app(\App\Services\Saas\SaasBillingService::class)->refreshLock($operator);
+                $operator->refresh();
+                if ($operator->isAccessBlocked()) {
+                    $allowedWhileLocked = [
+                        'subscription-locked',
+                        'user/profile',
+                        'user/profile-information',
+                        'user/password',
+                        'logout',
+                    ];
+                    $currentPath = ltrim($request->path(), '/');
+                    $ok = false;
+                    foreach ($allowedWhileLocked as $path) {
+                        if ($currentPath === $path || str_starts_with($currentPath, $path.'/')) {
+                            $ok = true;
+                            break;
+                        }
+                    }
+                    if (! $ok) {
+                        return redirect()->route('saas.locked');
+                    }
                 }
             }
 

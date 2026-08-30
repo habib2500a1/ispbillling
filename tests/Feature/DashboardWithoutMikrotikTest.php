@@ -41,15 +41,17 @@ class DashboardWithoutMikrotikTest extends TestCase
 
     public function test_dashboard_opens_when_mikrotik_is_marked_connected_but_offline(): void
     {
-        RouterList::create([
-            'router_name' => 'offline-lab',
-            'ip_address' => '127.0.0.1',
-            'username' => 'admin',
-            'password' => 'admin',
-            'action' => 'connected',
-            'api_port' => 1,
-            'ssh_port' => 2,
-        ]);
+        foreach (['10.10.20.1', '10.10.10.1', '10.9.9.9'] as $i => $ip) {
+            RouterList::create([
+                'router_name' => 'offline-lab-'.$i,
+                'ip_address' => $ip,
+                'username' => 'admin',
+                'password' => 'admin',
+                'action' => 'connected',
+                'api_port' => 8728,
+                'ssh_port' => 22,
+            ]);
+        }
 
         $this->actingAs($this->admin());
 
@@ -59,7 +61,10 @@ class DashboardWithoutMikrotikTest extends TestCase
 
         $response->assertOk();
         $response->assertSee('Client Summary');
-        $this->assertLessThan(6, $elapsed, 'Unreachable MikroTik must not block the dashboard.');
+        $response->assertDontSee('Both API and SSH');
+        $response->assertDontSee('Connection timed out');
+        $response->assertDontSee('Error 110');
+        $this->assertLessThan(3, $elapsed, 'Unreachable MikroTik must not be probed on dashboard load.');
     }
 
     public function test_login_redirects_to_dashboard_without_error(): void

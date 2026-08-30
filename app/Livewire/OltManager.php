@@ -104,6 +104,12 @@ class OltManager extends Component
             Olt::findOrFail($this->editingId)->update($data);
             flash()->success('OLT updated.');
         } else {
+            if (! saasAssertQuota('olts')) {
+                return;
+            }
+            if (\Illuminate\Support\Facades\Schema::hasColumn('olts', 'saas_operator_id')) {
+                $data['saas_operator_id'] = \App\Services\Saas\SaasContext::operatorId();
+            }
             Olt::create($data);
             flash()->success('OLT created.');
         }

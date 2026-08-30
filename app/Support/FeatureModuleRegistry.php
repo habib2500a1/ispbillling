@@ -250,7 +250,8 @@ final class FeatureModuleRegistry
     private static function system(): array
     {
         return [
-            ['slug' => 'saas-sell', 'group' => 'System', 'section' => 'SaaS', 'label' => 'Sell ISP Admin', 'description' => 'Open operator login — buyer cannot resell', 'icon' => 'bi-bag-check', 'accent' => 'success', 'route' => 'admin.saas-operators', 'permission' => ['saas-sell']],
+            ['slug' => 'saas-sell', 'group' => 'System', 'section' => 'SaaS', 'label' => 'Sell ISP Admin', 'description' => 'Monthly/yearly · quotas · lock on unpaid', 'icon' => 'bi-bag-check', 'accent' => 'success', 'route' => 'admin.saas-operators', 'permission' => ['saas-sell']],
+            ['slug' => 'staff-cash', 'group' => 'System', 'section' => 'SaaS', 'label' => 'Staff cash', 'description' => 'Collected · deposited · owes office', 'icon' => 'bi-cash-stack', 'accent' => 'success', 'route' => 'admin.staff-cash'],
             ['slug' => 'organization-center', 'group' => 'System', 'section' => 'Admin', 'label' => 'Organization center', 'description' => 'Staff · roles · security', 'icon' => 'bi-building', 'accent' => 'secondary', 'route' => 'site-settings'],
             ['slug' => 'backup-restore', 'group' => 'System', 'section' => 'Safety', 'label' => 'Backup & restore', 'description' => 'Download · upload restore', 'icon' => 'bi-cloud-arrow-down', 'accent' => 'success', 'route' => 'mikrotik-backup-setup'],
             ['slug' => 'api-configuration', 'group' => 'System', 'section' => 'Integrations', 'label' => 'API configuration', 'description' => 'REST tokens · HMAC', 'icon' => 'bi-key', 'accent' => 'violet'],

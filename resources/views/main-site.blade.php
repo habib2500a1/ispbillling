@@ -315,7 +315,7 @@
                         <div class="title">
                             <h5 class="text-success">{{ __('ISP Billing SaaS') }}</h5>
                             <h2>{{ __('One platform to run — and sell — an ISP') }}</h2>
-                            <p>{{ __('Billing, customer portal, reseller desk, payments, and MikroTik in one workspace. You open admin for a buyer; they run the full ISP independently and cannot resell the platform.') }}</p>
+                            <p>{{ __('Sell ISP admin monthly or yearly by user base. You set OLT, customer, and staff limits. If they miss the SaaS bill the account locks; payment unlocks it. They cannot resell the platform.') }}</p>
                         </div>
                     </div>
                 </div>
@@ -324,7 +324,7 @@
                         <div class="feature-block text-center">
                             <div class="icon-box"><i class="bi bi-speedometer2"></i></div>
                             <h4>{{ __('Admin operations') }}</h4>
-                            <p>{{ __('Clients, monthly bills, collection %, due, tickets, and staff roles.') }}</p>
+                            <p>{{ __('Clients, monthly/yearly SaaS plans, collection %, staff cash, and roles.') }}</p>
                         </div>
                     </div>
                     <div class="col-md-3 col-sm-6">

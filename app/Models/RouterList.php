@@ -9,7 +9,7 @@ class RouterList extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['router_name', 'ip_address', 'username', 'password', 'action', 'ssh_port', 'api_port'];
+    protected $fillable = ['saas_operator_id', 'router_name', 'ip_address', 'username', 'password', 'action', 'ssh_port', 'api_port'];
 
     /**
      * Helper to encrypt value if it's plaintext.

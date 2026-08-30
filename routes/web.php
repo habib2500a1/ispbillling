@@ -10,6 +10,8 @@ use App\Livewire\Admin\ManageReviews;
 use App\Livewire\Admin\AdminVoucherList;
 use App\Livewire\Admin\SystemLogViewer;
 use App\Livewire\Admin\ManageSaasOperators;
+use App\Livewire\Admin\StaffCashDesk;
+use App\Http\Controllers\SaasLockedController;
 use App\Http\Controllers\CollectionReportController;
 use App\Http\Controllers\CustomerPortalController;
 use App\Http\Controllers\DashboardController;
@@ -142,6 +144,7 @@ Route::middleware([
         })->name('system.db-backup.download');
 
         Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+        Route::get('/subscription-locked', SaasLockedController::class)->name('saas.locked');
 
         Route::get('/admin-center', AdminControlCenter::class)->name('admin-center');
         Route::get('/isp-os', IspOsHub::class)->name('isp-os');
@@ -281,6 +284,7 @@ Route::middleware([
             // Package purchase requests
             Route::get('purchase-requests', ManagePurchaseRequests::class)->name('purchase-requests');
             Route::get('saas-operators', ManageSaasOperators::class)->name('saas-operators');
+            Route::get('staff-cash', StaffCashDesk::class)->name('staff-cash');
         });
 
         // Reseller Portal Routes

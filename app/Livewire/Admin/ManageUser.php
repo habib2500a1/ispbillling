@@ -214,16 +214,24 @@ class ManageUser extends Component
             }
         }
 
+        if (! $this->userId && ! saasAssertQuota('staff')) {
+            return;
+        }
+
+        $payload = [
+            'name' => $this->name,
+            'email' => $this->email,
+            'mobile' => $this->mobile ?? null,
+            'address' => $this->address ?? null,
+            'password' => $this->userId && ! $this->password ? $this->user->password : bcrypt($this->password),
+        ];
+        if (! $this->userId && \Illuminate\Support\Facades\Schema::hasColumn('users', 'saas_operator_id')) {
+            $payload['saas_operator_id'] = \App\Services\Saas\SaasContext::operatorId();
+        }
+
         User::updateOrCreate(
             ['id' => $this->userId],
-            [
-                'name' => $this->name,
-                'email' => $this->email,
-                'mobile' => $this->mobile ?? null,
-                'address' => $this->address ?? null,
-                // 'password' => $this->password ? bcrypt($this->password) : null,
-                'password' => $this->userId && ! $this->password ? $this->user->password : bcrypt($this->password),
-            ]
+            $payload
         )->syncRoles($this->roles);
 
         $this->reset([

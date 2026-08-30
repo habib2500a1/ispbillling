@@ -78,7 +78,7 @@ class MikrotikController extends Controller
      * Fast TCP probe so unreachable MikroTik hosts fail in ~1s instead of
      * hanging on API/SSH socket timeouts (often 30s+ per attempt).
      */
-    protected function isPortReachable(string $host, int $port, float $timeout = 1.0): bool
+    protected function isPortReachable(string $host, int $port, float $timeout = 0.4): bool
     {
         if ($host === '' || $port < 1) {
             return false;
@@ -97,14 +97,32 @@ class MikrotikController extends Controller
     }
 
     /**
+     * Never toast timeout/unreachable noise — it blocks UX and makes the site feel broken.
+     */
+    protected function flashConnectError(string $message): void
+    {
+        $quiet = stripos($message, 'timeout') !== false
+            || stripos($message, 'unreachable') !== false
+            || stripos($message, 'timed out') !== false
+            || stripos($message, 'Error 110') !== false;
+
+        if ($quiet) {
+            \Log::warning('MikroTik offline (no flash): '.$message);
+
+            return;
+        }
+
+        flash()->error($message);
+    }
+
+    /**
      * Try API first (if api_port set), fall back to SSH.
      *
      * Always returns a structured array:
      *   Success → ['status' => true,  'type' => 'API'|'SSH', 'data' => array]
      *   Failure → ['status' => false, 'message' => string, 'errors' => ['api' => ?, 'ssh' => ?]]
      *
-     * flash()->error() is triggered automatically on every failure so the
-     * caller never has to inspect the array to show a user notification.
+     * Timeouts / unreachable hosts are never flashed (they only slow the UI).
      */
     public function checkConnection(
         string $ip,
@@ -115,21 +133,21 @@ class MikrotikController extends Controller
         ?string $apiCmd = null,
         ?string $sshCmd = null,
         array $apiParams = [],
-        bool $showErrorFlash = true
+        bool $showErrorFlash = false
     ): array {
         $apiError = null;
 
-        if ($apiPort && ! $this->isPortReachable($ip, (int) $apiPort, 1.0)) {
+        if ($apiPort && ! $this->isPortReachable($ip, (int) $apiPort, 0.4)) {
             $apiError = "API port {$apiPort} unreachable";
             $apiPort = null;
         }
 
-        if ($sshPort && ! $this->isPortReachable($ip, (int) $sshPort, 1.0)) {
+        if ($sshPort && ! $this->isPortReachable($ip, (int) $sshPort, 0.4)) {
             $sshPort = null;
             if ($apiError && ! $apiPort) {
                 $message = 'Both API and SSH unreachable';
                 if ($showErrorFlash) {
-                    flash()->error("[{$ip}] {$message}");
+                    $this->flashConnectError("[{$ip}] {$message}");
                 }
 
                 return [
@@ -140,7 +158,7 @@ class MikrotikController extends Controller
             }
             if (! $apiPort) {
                 if ($showErrorFlash) {
-                    flash()->error("[{$ip}] SSH port unreachable.");
+                    $this->flashConnectError("[{$ip}] SSH port unreachable.");
                 }
 
                 return [
@@ -224,7 +242,7 @@ class MikrotikController extends Controller
                     : $e->getMessage();
 
                 if ($showErrorFlash) {
-                    flash()->error("[{$ip}] {$message}: {$detail}");
+                    $this->flashConnectError("[{$ip}] {$message}: {$detail}");
                 }
 
                 return [
@@ -237,7 +255,7 @@ class MikrotikController extends Controller
 
         $message = $apiError ?: 'No API or SSH port provided';
         if ($showErrorFlash) {
-            flash()->error("[{$ip}] {$message}");
+            $this->flashConnectError("[{$ip}] {$message}");
         }
 
         return [
@@ -251,7 +269,7 @@ class MikrotikController extends Controller
      * Run a READ command on one or all connected routers.
      * Returns ['router_name' => checkConnection() result, ...]
      */
-    public function routerList(?string $routerName = null, ?string $apiCmd = null, ?string $sshCmd = null, array $apiParams = [], bool $showErrorFlash = true): array
+    public function routerList(?string $routerName = null, ?string $apiCmd = null, ?string $sshCmd = null, array $apiParams = [], bool $showErrorFlash = false): array
     {
         $query = RouterList::where('action', 'connected');
         if ($routerName) {
@@ -297,7 +315,7 @@ class MikrotikController extends Controller
                     \Cache::put($cacheKey, $val, now()->addMinutes(10));
                     \Cache::forget($failKey);
                 } else {
-                    \Cache::put($failKey, true, now()->addMinutes(2));
+                    \Cache::put($failKey, true, now()->addMinutes(15));
                 }
             }
             $results[$router->router_name] = $val;
@@ -322,8 +340,8 @@ class MikrotikController extends Controller
         }
 
         $fetchData = function () use ($router, $routerName, $apiCmd, $sshCmd, $apiParams, $showErrorFlash) {
-            $apiOpen = $router->api_port && $this->isPortReachable($router->ip_address, (int) $router->api_port, 1.0);
-            $sshOpen = $router->ssh_port && $this->isPortReachable($router->ip_address, (int) $router->ssh_port, 1.0);
+            $apiOpen = $router->api_port && $this->isPortReachable($router->ip_address, (int) $router->api_port, 0.4);
+            $sshOpen = $router->ssh_port && $this->isPortReachable($router->ip_address, (int) $router->ssh_port, 0.4);
             if (! $apiOpen && ! $sshOpen) {
                 return [];
             }
@@ -561,7 +579,35 @@ class MikrotikController extends Controller
 
     public function systemOverview(bool $showErrorFlash = false): array
     {
-        return $this->routerList(null, '/system/resource/print', '/system resource print', [], $showErrorFlash);
+        return $this->routerList(null, '/system/resource/print', '/system resource print', [], false);
+    }
+
+    /**
+     * Dashboard-safe: last successful cache only. Never opens API/SSH sockets.
+     *
+     * @return array<string, array<string, mixed>>
+     */
+    public function systemOverviewCached(): array
+    {
+        $routers = RouterList::query()->where('action', 'connected')->get();
+        if ($routers->isEmpty()) {
+            return [];
+        }
+
+        $apiCmd = '/system/resource/print';
+        $sshCmd = '/system resource print';
+        $results = [];
+
+        foreach ($routers as $router) {
+            $version = \Cache::get("mikrotik:cache_version:{$router->router_name}", 0);
+            $cacheKey = "mikrotik:router_list:{$router->router_name}:v{$version}:".md5($apiCmd.serialize([]).$sshCmd);
+            $cached = \Cache::get($cacheKey);
+            if (is_array($cached) && ($cached['status'] ?? false)) {
+                $results[$router->router_name] = $cached;
+            }
+        }
+
+        return $results;
     }
 
     // ─── Generic CRUD Helpers ────────────────────────────────────────────────

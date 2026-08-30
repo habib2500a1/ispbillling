@@ -209,7 +209,7 @@ class DashboardController extends Controller
 
         $systemOverview = [];
         try {
-            $systemOverview = app(MikrotikController::class)->systemOverview(false);
+            $systemOverview = app(MikrotikController::class)->systemOverviewCached();
         } catch (\Throwable $e) {
             $systemOverview = [];
         }

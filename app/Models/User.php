@@ -36,6 +36,8 @@ class User extends Authenticatable implements HasAvatar
         'mobile',
         'address',
         'password',
+        'saas_operator_id',
+        'email_verified_at',
     ];
 
     /**
@@ -119,6 +121,11 @@ class User extends Authenticatable implements HasAvatar
     public function saasOperator()
     {
         return $this->hasOne(SaasOperator::class);
+    }
+
+    public function tenantOperator()
+    {
+        return $this->belongsTo(SaasOperator::class, 'saas_operator_id');
     }
 }
 

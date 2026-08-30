@@ -250,6 +250,12 @@ class MikrotikSync extends Component
                     return;
                 }
                 $data['action'] = 'disconnected';
+                if (! saasAssertQuota('routers')) {
+                    return;
+                }
+                if (\Illuminate\Support\Facades\Schema::hasColumn('router_lists', 'saas_operator_id')) {
+                    $data['saas_operator_id'] = \App\Services\Saas\SaasContext::operatorId();
+                }
                 RouterList::create($data);
                 flash()->success('Router added successfully!');
             }

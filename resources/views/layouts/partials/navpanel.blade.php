@@ -181,6 +181,12 @@
                             href="{{ route('payment-invoice') }}">
                             {{ __('Payment Invoice') }}
                         </a>
+                        @if (hasAccess(['Super Admin'], ['payment-collection', 'amount-collection', 'staff-cash']))
+                            <a wire:navigate.hover wire:current="active" class="dropdown-item link-600 fw-medium"
+                                href="{{ route('admin.staff-cash') }}">
+                                {{ __('Staff cash') }}
+                            </a>
+                        @endif
                     </div>
                 </div>
             </li>
@@ -236,6 +242,10 @@
                             <a wire:navigate.hover wire:current="active" class="dropdown-item link-600 fw-medium"
                                 href="{{ route('admin.saas-operators') }}">
                                 {{ __('Sell ISP Admin') }}
+                            </a>
+                            <a wire:navigate.hover wire:current="active" class="dropdown-item link-600 fw-medium"
+                                href="{{ route('admin.staff-cash') }}">
+                                {{ __('Staff cash') }}
                             </a>
                         @endif
                         <a wire:navigate.hover wire:current="active" class="dropdown-item link-600 fw-medium"

@@ -638,7 +638,16 @@ class NewCustomer extends Component
                     $newId = $prefix.'100';
                 }
             }
+            if (! saasAssertQuota('customers')) {
+                DB::rollBack();
+
+                return;
+            }
+
             $customer = new CustomersInfo;
+            if (\Illuminate\Support\Facades\Schema::hasColumn('customers_infos', 'saas_operator_id')) {
+                $customer->saas_operator_id = \App\Services\Saas\SaasContext::operatorId();
+            }
             if (auth()->user()->hasRole('Reseller')) {
                 $customer->reseller_id = auth()->user()->reseller->id;
                 $customer->status = 'pending';

@@ -152,6 +152,16 @@ class AutomaticProcessSeeder extends Seeder
                 'sort_order' => 70,
             ],
             [
+                'slug' => 'saas-lock-overdue',
+                'name' => 'Lock unpaid SaaS operators',
+                'description' => 'Lock ISP admins whose platform bill is past due.',
+                'artisan_command' => 'saas:lock-overdue',
+                'command_options' => [],
+                'execute_at' => '00:15',
+                'interval' => 'daily',
+                'sort_order' => 75,
+            ],
+            [
                 'slug' => 'prune-router-logs',
                 'name' => 'Prune old router logs',
                 'description' => 'Delete router logs older than retention setting.',

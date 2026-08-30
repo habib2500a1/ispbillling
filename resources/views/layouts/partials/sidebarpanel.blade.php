@@ -541,6 +541,17 @@
                     </div>
                 </a>
                 @endif
+                @if (hasAccess(['Super Admin'], ['payment-collection', 'amount-collection', 'staff-cash']))
+                <a wire:navigate.hover wire:current="active" class="nav-link"
+                    href="{{ route('admin.staff-cash') }}" role="button">
+                    <div class="d-flex align-items-center">
+                        <span class="nav-link-icon">
+                            <i class="bi bi-cash-stack"></i>
+                        </span>
+                        <span class="nav-link-text ps-1">{{ __('Staff cash') }}</span>
+                    </div>
+                </a>
+                @endif
                 <!-- reseller setup page-->
                 <a wire:navigate.hover wire:current="active" class="nav-link"
                     href="{{ route('admin.resellers.index') }}" role="button">

@@ -79,11 +79,13 @@ class PermissionSeeder extends Seeder
             'print-setup',
             'payment-setup',
             'mikrotik-auto-backup',
+            'saas-sell',
+            'staff-cash',
         ];
 
         // Looping and Inserting Array's Permissions into Permission Table
         foreach ($permissions as $permission) {
-            Permission::create(['name' => $permission]);
+            Permission::findOrCreate($permission, 'web');
         }
     }
 }

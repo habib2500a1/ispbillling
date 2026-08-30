@@ -93,6 +93,10 @@
             @include('layouts.partials.sidenav')
             <div class="content">
                 @include('layouts.partials.mobile-button-nav')
+                @php $saasWarn = saasBillingWarning(); @endphp
+                @if ($saasWarn)
+                    <div class="alert alert-warning py-2 px-3 mb-3 rounded-3 small">{{ $saasWarn }}</div>
+                @endif
 
 
                 @include('layouts.partials.topnav')

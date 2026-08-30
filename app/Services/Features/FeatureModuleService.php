@@ -156,6 +156,7 @@ final class FeatureModuleService
             'rows' => $rows,
             'actions' => [
                 ['label' => __('Collection report'), 'url' => route('collection-report.index'), 'class' => 'btn-primary'],
+                ['label' => __('Staff cash'), 'url' => route('admin.staff-cash'), 'class' => 'btn-success'],
             ],
         ]);
     }

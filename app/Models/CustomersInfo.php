@@ -10,6 +10,7 @@ class CustomersInfo extends Model
     use HasFactory;
 
     protected $fillable = [
+        'saas_operator_id',
         'customer_unique_id',
         'customer_name',
         'contact_person',

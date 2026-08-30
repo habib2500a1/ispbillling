@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class Olt extends Model
 {
     protected $fillable = [
+        'saas_operator_id',
         'name',
         'vendor',
         'olt_driver',
