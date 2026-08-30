@@ -15,7 +15,7 @@
                     @elseif (siteUrlSettings('site_icon'))
                         <img class="me-2" src="{{ site_image(siteUrlSettings('site_icon')) }}" alt="" width="40" />
                     @endif
-                    <span class="font-sans-serif text-success">{{ site_brand() }}</span>
+                    <span class="font-sans-serif brand-wordmark">{{ site_brand() }}</span>
                 </div>
             </a>
             @include('layouts.partials.searchbar')
@@ -43,7 +43,7 @@
             @elseif (siteUrlSettings('site_icon'))
                 <img class="me-2" src="{{ site_image(siteUrlSettings('site_icon')) }}" alt="" width="40" />
             @endif
-            <span class="font-sans-serif text-success">{{ site_brand() }}</span>
+            <span class="font-sans-serif brand-wordmark">{{ site_brand() }}</span>
         </div>
     </a>
     <div class="collapse navbar-collapse scrollbar" id="navbarStandard">
@@ -74,7 +74,7 @@
                 @elseif (siteUrlSettings('site_icon'))
                     <img class="me-2" src="{{ site_image(siteUrlSettings('site_icon')) }}" alt="" width="40" />
                 @endif
-                <span class="font-sans-serif text-success">{{ site_brand() }}</span>
+                <span class="font-sans-serif brand-wordmark">{{ site_brand() }}</span>
             </div>
         </a>
     </div>

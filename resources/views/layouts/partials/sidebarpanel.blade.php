@@ -172,7 +172,7 @@
                         <span class="nav-link-text ps-1">{{ __('Admin Center') }}</span>
                     </div>
                 </a>
-                <a wire:current="active" class="nav-link" href="{{ route('isp-os') }}"
+                <a class="nav-link" href="{{ route('isp-os', ['v' => '20260831f']) }}"
                     role="button">
                     <div class="d-flex align-items-center">
                         <span class="nav-link-icon">

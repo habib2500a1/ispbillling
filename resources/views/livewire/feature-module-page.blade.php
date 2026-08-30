@@ -4,9 +4,9 @@
     </x-slot>
 
     <style>
-        .os-shell { --os-ink:#1e3a5f; --os-muted:#64748b; --os-line:#e8eef5; --os-soft:#f4f7fb; --os-brand:#06ad73; --os-brand-dark:#05885b; }
+        .os-shell { --os-ink:#1e3a5f; --os-muted:#64748b; --os-line:#e8eef5; --os-soft:#f4f7fb; --os-brand:#1e3a5f; --os-brand-dark:#1e3a5f; }
         .os-shell .os-hero { background:#fff; border:1px solid var(--os-line); border-radius:14px; padding:1.1rem 1.2rem; margin-bottom:1rem; }
-        .os-shell .os-kicker { font-size:.68rem; letter-spacing:.12em; text-transform:uppercase; font-weight:800; color:var(--os-brand-dark); }
+        .os-shell .os-kicker { font-size:.68rem; letter-spacing:.12em; text-transform:uppercase; font-weight:800; color:#64748b; }
         .os-shell .os-title { margin:.15rem 0 0; font-size:1.25rem; font-weight:800; color:var(--os-ink); }
         .os-shell .os-sub { margin:.3rem 0 0; color:var(--os-muted); font-size:.86rem; }
         .os-shell .os-kpi { background:#fff; border:1px solid var(--os-line); border-radius:14px; padding:.95rem 1rem; height:100%; }

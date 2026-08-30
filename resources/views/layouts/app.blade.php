@@ -28,6 +28,17 @@
     @filamentStyles
     <link rel="stylesheet" href="{{ asset('css/filament/filament/app.css') }}">
     @livewireStyles
+    <style>
+        .navbar-brand .brand-wordmark,
+        .navbar-brand .text-success {
+            color: #1e3a5f !important;
+            font-weight: 800;
+            letter-spacing: -0.03em;
+        }
+        .avatar.avatar-xl img.rounded-circle {
+            background: #e8eef5;
+        }
+    </style>
     <!-- ===============================================-->
     <!--    Stylesheets-->
     <!-- ===============================================-->

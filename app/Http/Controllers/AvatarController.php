@@ -8,7 +8,7 @@ class AvatarController extends Controller
 {
     public function generateAvatar($name)
     {
-        $fileName = 'images/avatars/'.md5($name).'.png';
+        $fileName = 'images/avatars/'.md5($name.'-ink').'.png';
         $fullPath = public_path($fileName);
 
         if (is_file($fullPath)) {
@@ -29,12 +29,12 @@ class AvatarController extends Controller
             mkdir($dir, 0775, true);
         }
 
-        $image = Image::create(500, 500)->fill('#cef2ef')
+        $image = Image::create(500, 500)->fill('#e8eef5')
             ->text($initials, 250, 250, function ($font) {
                 $font->file(public_path('webfonts/Tinos-Regular.ttf'));
                 $font->size(230);
-                $font->color('#009e5c');
-                $font->stroke('#cef2ef', 1);
+                $font->color('#1e3a5f');
+                $font->stroke('#e8eef5', 1);
                 $font->align('center');
                 $font->valign('middle');
                 $font->lineHeight(1.6);
