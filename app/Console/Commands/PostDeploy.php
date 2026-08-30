@@ -47,6 +47,8 @@ class PostDeploy extends Command
         $smsCreated = app(SmsTemplateCatalogService::class)->syncMissing();
         $this->info("SMS templates synced (created: {$smsCreated}).");
 
+        $this->ensureAnetbdBrand();
+
         Artisan::call('storage:link', ['--force' => true]);
         Artisan::call('config:cache');
         Artisan::call('route:cache');
@@ -55,5 +57,29 @@ class PostDeploy extends Command
         $this->info('Post-deploy complete.');
 
         return self::SUCCESS;
+    }
+
+    private function ensureAnetbdBrand(): void
+    {
+        if (! \Illuminate\Support\Facades\Schema::hasTable('main_site_data')) {
+            return;
+        }
+
+        $legacy = ['sam online', 'samonline', 'code pagol', 'codepagol', 'isp billing', 'laravel'];
+        $map = [
+            'site_name' => 'Anetbd',
+            'portal_name' => 'Anetbd',
+            'site_title' => 'Anetbd',
+        ];
+
+        foreach ($map as $key => $value) {
+            $current = \App\Models\MainSiteData::getValue($key, '');
+            $normalized = is_string($current) ? strtolower(trim($current)) : '';
+            if ($normalized === '' || in_array($normalized, $legacy, true)) {
+                \App\Models\MainSiteData::setValue($key, $value);
+            }
+        }
+
+        $this->info('Brand set to Anetbd.');
     }
 }

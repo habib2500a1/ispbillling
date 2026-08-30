@@ -14,8 +14,14 @@ if (! function_exists('site_brand')) {
     function site_brand(): string
     {
         $name = siteUrlSettings('site_name');
+        $legacy = ['sam online', 'samonline', 'code pagol', 'codepagol', 'isp billing', 'laravel'];
+        if (! is_string($name) || trim($name) === '' || in_array(strtolower(trim($name)), $legacy, true)) {
+            $fromConfig = (string) (config('app.name') ?: 'Anetbd');
 
-        return is_string($name) && $name !== '' ? $name : (string) (config('app.name') ?: 'ISP Billing');
+            return in_array(strtolower(trim($fromConfig)), $legacy, true) ? 'Anetbd' : $fromConfig;
+        }
+
+        return $name;
     }
 }
 

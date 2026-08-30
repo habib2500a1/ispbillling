@@ -11,15 +11,11 @@
                 <div class="d-flex align-items-center">
                     {{-- Check if site logo exists and display it, otherwise show site icon or name --}}
                     @if (siteUrlSettings('site_logo'))
-                        <img class="me-2" style="width: 150px; height: auto; max-height: 45px; max-width: 100%; object-fit: contain; flex-shrink: 0;" src="{{ site_image(siteUrlSettings('site_logo')) }}" alt="logo"/>
-                    @else
-                        @if (siteUrlSettings('site_icon'))
-                            <img class="me-2" src="{{ site_image(siteUrlSettings('site_icon')) }}" alt="" width="40" />
-                            <span class="font-sans-serif text-success">{{ site_brand() }}</span>
-                        @else
-                            <span class="font-sans-serif text-success">{{ site_brand() }}</span>
-                        @endif
+                        <img class="me-2" style="width: 150px; height: auto; max-height: 45px; max-width: 100%; object-fit: contain; flex-shrink: 0;" src="{{ site_image(siteUrlSettings('site_logo')) }}" alt="{{ site_brand() }}"/>
+                    @elseif (siteUrlSettings('site_icon'))
+                        <img class="me-2" src="{{ site_image(siteUrlSettings('site_icon')) }}" alt="" width="40" />
                     @endif
+                    <span class="font-sans-serif text-success">{{ site_brand() }}</span>
                 </div>
             </a>
             @include('layouts.partials.searchbar')
@@ -43,15 +39,11 @@
     <a class="navbar-brand me-1 me-sm-3" href="{{url('/')}}">
         <div class="d-flex align-items-center">
             @if (siteUrlSettings('site_logo'))
-                <img class="me-2" style="width: 150px; height: auto; max-height: 45px; max-width: 100%; object-fit: contain; flex-shrink: 0;" src="{{ site_image(siteUrlSettings('site_logo')) }}" alt="logo"/>
-            @else
-                @if (siteUrlSettings('site_icon'))
-                    <img class="me-2" src="{{ site_image(siteUrlSettings('site_icon')) }}" alt="" width="40" />
-                    <span class="font-sans-serif text-success">{{ site_brand() }}</span>
-                @else
-                    <span class="font-sans-serif text-success">{{ site_brand() }}</span>
-                @endif
+                <img class="me-2" style="width: 150px; height: auto; max-height: 45px; max-width: 100%; object-fit: contain; flex-shrink: 0;" src="{{ site_image(siteUrlSettings('site_logo')) }}" alt="{{ site_brand() }}"/>
+            @elseif (siteUrlSettings('site_icon'))
+                <img class="me-2" src="{{ site_image(siteUrlSettings('site_icon')) }}" alt="" width="40" />
             @endif
+            <span class="font-sans-serif text-success">{{ site_brand() }}</span>
         </div>
     </a>
     <div class="collapse navbar-collapse scrollbar" id="navbarStandard">
@@ -78,15 +70,11 @@
         <a class="navbar-brand" href="{{url('/')}}">
             <div class="d-flex align-items-center {{ siteUrlSettings('site_logo') ? 'py-1' : 'py-3' }}">
                 @if (siteUrlSettings('site_logo'))
-                    <img class="me-2" style="width: 150px; height: auto; max-height: 45px; max-width: 100%; object-fit: contain; flex-shrink: 0;" src="{{ site_image(siteUrlSettings('site_logo')) }}" alt="logo"/>
-                @else
-                    @if (siteUrlSettings('site_icon'))
-                        <img class="me-2" src="{{ site_image(siteUrlSettings('site_icon')) }}" alt="" width="40" />
-                        <span class="font-sans-serif text-success">{{ site_brand() }}</span>
-                    @else
-                        <span class="font-sans-serif text-success">{{ site_brand() }}</span>
-                    @endif
+                    <img class="me-2" style="width: 150px; height: auto; max-height: 45px; max-width: 100%; object-fit: contain; flex-shrink: 0;" src="{{ site_image(siteUrlSettings('site_logo')) }}" alt="{{ site_brand() }}"/>
+                @elseif (siteUrlSettings('site_icon'))
+                    <img class="me-2" src="{{ site_image(siteUrlSettings('site_icon')) }}" alt="" width="40" />
                 @endif
+                <span class="font-sans-serif text-success">{{ site_brand() }}</span>
             </div>
         </a>
     </div>
