@@ -49,6 +49,8 @@ class CustomerView extends Component
 
     public ?string $portalTokenUrl = null;
 
+    public string $expireDate = '';
+
     public function mount(string $id): void
     {
         if (! hasAccess(['Super Admin'], ['all-customer', 'edit-customer'])) {
@@ -64,6 +66,15 @@ class CustomerView extends Component
         }
         $this->bootstrapPortalToken();
         $this->bootstrapTraffic();
+        $this->loadExpireDate();
+    }
+
+    protected function loadExpireDate(): void
+    {
+        $raw = BillingInfo::query()
+            ->where('customer_bill_unique_id', $this->customerId)
+            ->value('auto_disable_date');
+        $this->expireDate = $raw ? Carbon::parse($raw)->format('Y-m-d') : now()->format('Y-m-d');
     }
 
     protected function bootstrapPortalToken(): void
@@ -470,8 +481,30 @@ class CustomerView extends Component
         $bill->auto_disable_date = $base->copy()->addDays($days)->format('Y-m-d');
         $bill->auto_disable = 1;
         $bill->save();
+        $this->expireDate = (string) $bill->auto_disable_date;
 
         flash()->success("Expire extended +{$days} days → ".$bill->auto_disable_date);
+    }
+
+    public function setExpireDate(): void
+    {
+        $this->validate([
+            'expireDate' => 'required|date',
+        ]);
+
+        $bill = BillingInfo::where('customer_bill_unique_id', $this->customerId)->first();
+        if (! $bill) {
+            flash()->error('Billing not found.');
+
+            return;
+        }
+
+        $bill->auto_disable_date = Carbon::parse($this->expireDate)->format('Y-m-d');
+        $bill->auto_disable = 1;
+        $bill->save();
+        $this->expireDate = (string) $bill->auto_disable_date;
+
+        flash()->success(__('Expire set to :date', ['date' => Carbon::parse($bill->auto_disable_date)->format('d M Y')]));
     }
 
     public function with(): array

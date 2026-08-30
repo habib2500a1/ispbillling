@@ -80,7 +80,11 @@
                         </div>
                         <hr class="my-2">
                         <div class="d-flex justify-content-between small"><span class="text-muted">{{ __('Monthly') }}</span><span class="fw-semibold">{{ number_format((float)($customer->billing?->monthly_rent ?? 0), 2) }}</span></div>
-                        <div class="d-flex justify-content-between small"><span class="text-muted">{{ __('Expire') }}</span><span>{{ $customer->billing?->auto_disable_date ? \Carbon\Carbon::parse($customer->billing->auto_disable_date)->format('d M Y') : '—' }}</span></div>
+                        <div class="small text-muted mb-1">{{ __('Expire') }}</div>
+                        <div class="d-flex gap-1">
+                            <input type="date" class="form-control form-control-sm" wire:model="expireDate">
+                            <button type="button" class="btn btn-sm btn-outline-secondary text-nowrap" wire:click="setExpireDate">{{ __('Set date') }}</button>
+                        </div>
                         <div class="d-flex justify-content-between small"><span class="text-muted">{{ __('First bill') }}</span><span>{{ $firstBillCycle === 'next_month' ? __('Next month') : __('This month') }}</span></div>
                     </div>
                 </div>
