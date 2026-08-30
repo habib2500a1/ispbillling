@@ -55,8 +55,9 @@ section {
     bottom: 0;
     left: 0;
     width: 100%;
-    z-index: 999; /* (optional) to keep it on top */
-    background: #ffffff; /* (optional) to avoid transparency */
+    z-index: 1;
+    pointer-events: none;
+    background: transparent;
 }
 
 section .air {
@@ -250,6 +251,8 @@ section .air.air4 {
     width: 90%;
     height: auto;
     overflow: hidden;
+    position: relative;
+    z-index: 2;
 
     &__sm {
         max-width: 700px;
