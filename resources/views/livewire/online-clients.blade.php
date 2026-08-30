@@ -8,7 +8,7 @@
     <div class="oc-toolbar">
         <div>
             <h1 class="oc-title">{{ __('Online Clients') }}</h1>
-            <p class="oc-sub mb-0">{{ __('Login, logout, ONU and live traffic from the last MikroTik sync.') }}</p>
+            <p class="oc-sub mb-0">{{ __('Login, logout, ONU, live speed, and session / daily / monthly GB from the last MikroTik sync.') }}</p>
         </div>
         <div class="oc-toolbar-actions">
             <span class="oc-pill oc-pill-on">{{ __('Online') }} {{ $onlineCount }}</span>
@@ -45,6 +45,7 @@
                         <th>{{ __('Client') }}</th>
                         <th>{{ __('Network') }}</th>
                         <th>{{ __('ONU') }}</th>
+                        <th>{{ __('Traffic used') }}</th>
                         <th>{{ __('Login / Uptime') }}</th>
                         <th>{{ __('Logout / Reason') }}</th>
                         <th class="text-end">{{ __('Actions') }}</th>
@@ -55,7 +56,7 @@
                         @include('livewire.partials.online-client-row', ['row' => $row, 'compact' => false])
                     @empty
                         <tr>
-                            <td colspan="7" class="text-center oc-muted py-4">{{ __('No PPP users found.') }}</td>
+                            <td colspan="8" class="text-center oc-muted py-4">{{ __('No PPP users found.') }}</td>
                         </tr>
                     @endforelse
                 </tbody>
@@ -96,6 +97,9 @@
                     </div>
                     <div><span class="oc-muted">{{ __('ONU RX/TX') }}</span>
                         <div>{{ $onu?->rx_power_dbm ? number_format((float) $onu->rx_power_dbm, 1).' / '.number_format((float) ($onu->tx_power_dbm ?? 0), 1).' dBm' : '—' }}</div>
+                    </div>
+                    <div class="oc-usage-wrap">
+                        @include('livewire.partials.traffic-usage-pills', ['usage' => $usages[$row->id] ?? [], 'compact' => true])
                     </div>
                     <div><span class="oc-muted">{{ __('Login') }}</span>
                         <div>
@@ -153,12 +157,19 @@
                     </div>
                     <button type="button" class="btn btn-sm oc-icon" wire:click="closeTraffic"><i class="bi bi-x-lg"></i></button>
                 </div>
+                <div class="tu-modal-stats mb-3">
+                    @include('livewire.partials.traffic-usage-pills', ['usage' => $trafficUsage ?? [], 'compact' => false])
+                    <div class="small oc-muted mt-1">
+                        {{ __('Download') }} {{ $trafficUsage['session_tx_label'] ?? '0 B' }}
+                        · {{ __('Upload') }} {{ $trafficUsage['session_rx_label'] ?? '0 B' }}
+                    </div>
+                </div>
                 <div class="d-flex justify-content-between mb-2">
-                    <span class="text-success"><i class="bi bi-arrow-down-circle me-1"></i>{{ __('Download') }}</span>
+                    <span class="text-success"><i class="bi bi-arrow-down-circle me-1"></i>{{ __('Live download') }}</span>
                     <strong class="text-success" id="oc-rx-label">{{ number_format($rxSpeed / 1_000_000, 2) }} Mbps</strong>
                 </div>
                 <div class="d-flex justify-content-between mb-3">
-                    <span class="text-primary"><i class="bi bi-arrow-up-circle me-1"></i>{{ __('Upload') }}</span>
+                    <span class="text-primary"><i class="bi bi-arrow-up-circle me-1"></i>{{ __('Live upload') }}</span>
                     <strong class="text-primary" id="oc-tx-label">{{ number_format($txSpeed / 1_000_000, 2) }} Mbps</strong>
                 </div>
                 <div wire:ignore class="oc-chart" x-data="onlineClientTrafficChart()" x-init="$nextTick(() => initChart())"
@@ -245,6 +256,14 @@
         @media (min-width:768px) { .oc-overlay { align-items:center; } }
         .oc-modal { width:min(720px,100%); background:var(--oc-card); color:var(--oc-text); border:1px solid var(--oc-line); border-radius:14px; padding:1rem; max-height:90vh; overflow:auto; }
         .oc-chart { border:1px solid var(--oc-line); border-radius:10px; background:var(--oc-wash); }
+        .tu-pills { display:flex; flex-direction:column; gap:.2rem; }
+        .tu-pills-compact .tu-pill { padding:.1rem 0; }
+        .tu-pill { display:flex; justify-content:space-between; gap:.5rem; line-height:1.25; }
+        .tu-pill span { color:var(--oc-muted); font-size:.72rem; text-transform:uppercase; letter-spacing:.02em; }
+        .tu-pill strong { font-size:.8rem; color:var(--oc-text); white-space:nowrap; }
+        .tu-pill-month strong { color:#0f766e; }
+        .tu-modal-stats { background:var(--oc-wash); border:1px solid var(--oc-line); border-radius:10px; padding:.65rem .75rem; }
+        .oc-usage-wrap { grid-column:1 / -1; }
         @media (max-width:575.98px) {
             .oc-input { width:100%; }
             .oc-filters { flex-direction:column; }

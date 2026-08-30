@@ -41,6 +41,9 @@
         @endif
     </td>
     <td class="small">
+        @include('livewire.partials.traffic-usage-pills', ['usage' => $usages[$row->id] ?? [], 'compact' => true])
+    </td>
+    <td class="small">
         @if($isOnline)
             <div class="text-success fw-semibold">{{ \App\Livewire\OnlineClients::sessionDuration($row->uptime) }}</div>
             <div>{{ \Carbon\Carbon::parse($row->uptime)->format('d/m/Y h:i:s A') }}</div>

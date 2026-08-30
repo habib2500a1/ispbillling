@@ -126,6 +126,11 @@
                             @endif
                         </div>
                         <div class="d-flex justify-content-between small"><span class="text-muted">{{ __('First bill') }}</span><span>{{ $firstBillCycle === 'next_month' ? __('Next month') : __('This month') }}</span></div>
+                        <hr class="my-2">
+                        <div class="text-muted small mb-1">{{ __('Traffic used') }}</div>
+                        <div class="d-flex justify-content-between small"><span class="text-muted">{{ $trafficUsage['live_or_last_title'] ?? __('Session') }}</span><span class="fw-semibold">{{ $trafficUsage['live_or_last_label'] ?? '0 B' }}</span></div>
+                        <div class="d-flex justify-content-between small"><span class="text-muted">{{ __('Today') }}</span><span class="fw-semibold">{{ $trafficUsage['day_total_label'] ?? '0 B' }}</span></div>
+                        <div class="d-flex justify-content-between small"><span class="text-muted">{{ __('This month') }}</span><span class="fw-semibold text-success">{{ $trafficUsage['month_total_label'] ?? '0 B' }}</span></div>
                     </div>
                 </div>
             </div>
@@ -158,6 +163,12 @@
                             <div class="col-7 font-monospace">{{ $customer->pppUser?->username ?: '—' }}</div>
                             <div class="col-5 text-muted">{{ __('NID') }}</div><div class="col-7">{{ $customer->identification_no ?: '—' }}</div>
                             <div class="col-5 text-muted">{{ __('Package') }}</div><div class="col-7">{{ $customer->package?->package ?? '—' }}</div>
+                            <div class="col-5 text-muted">{{ __('This month traffic') }}</div>
+                            <div class="col-7 fw-semibold text-success">{{ $trafficUsage['month_total_label'] ?? '0 B' }}</div>
+                            <div class="col-5 text-muted">{{ __('Today traffic') }}</div>
+                            <div class="col-7 fw-semibold">{{ $trafficUsage['day_total_label'] ?? '0 B' }}</div>
+                            <div class="col-5 text-muted">{{ $trafficUsage['live_or_last_title'] ?? __('Last online') }}</div>
+                            <div class="col-7 fw-semibold">{{ $trafficUsage['live_or_last_label'] ?? '0 B' }}</div>
                         </div>
                     </div>
                 </div>
@@ -203,6 +214,20 @@
                         @if($online)<span class="badge bg-success">{{ __('Polling') }}</span>@endif
                     </div>
                     <div class="card-body">
+                        <div class="row g-2 mb-3 small">
+                            <div class="col-4">
+                                <div class="text-muted">{{ $trafficUsage['live_or_last_title'] ?? __('Session') }}</div>
+                                <div class="fw-bold">{{ $trafficUsage['live_or_last_label'] ?? '0 B' }}</div>
+                            </div>
+                            <div class="col-4">
+                                <div class="text-muted">{{ __('Today') }}</div>
+                                <div class="fw-bold">{{ $trafficUsage['day_total_label'] ?? '0 B' }}</div>
+                            </div>
+                            <div class="col-4">
+                                <div class="text-muted">{{ __('This month') }}</div>
+                                <div class="fw-bold text-success">{{ $trafficUsage['month_total_label'] ?? '0 B' }}</div>
+                            </div>
+                        </div>
                         @if($online && $trafficRouter && $trafficInterface)
                             <div wire:poll.2000ms="pollTraffic" class="d-none"></div>
                             <div class="d-flex justify-content-between mb-2">

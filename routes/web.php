@@ -35,6 +35,8 @@ use App\Livewire\BandwidthHub;
 use App\Livewire\BillingNotices;
 use App\Livewire\HrHub;
 use App\Livewire\InventoryHub;
+use App\Livewire\InventoryPurchases;
+use App\Livewire\InventorySales;
 use App\Livewire\OltManager;
 use App\Livewire\OnuManager;
 use App\Livewire\SmsNotices;
@@ -206,6 +208,8 @@ Route::middleware([
         Route::get('/hr-hub', HrHub::class)->name('hr-hub');
         Route::get('/call-desk', fn () => redirect()->route('dashboard'))->name('call-desk');
         Route::get('/inventory-hub', InventoryHub::class)->name('inventory-hub');
+        Route::get('/inventory-purchases', InventoryPurchases::class)->name('inventory-purchases');
+        Route::get('/inventory-sales', InventorySales::class)->name('inventory-sales');
         Route::get('/ops-insights', fn () => redirect()->route('dashboard'))->name('ops-insights');
 
         // Mikrotik Setup Routes

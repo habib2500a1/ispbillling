@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use App\Livewire\MikrotikSync;
 use App\Models\RouterList;
+use App\Services\Bandwidth\CustomerTrafficUsageService;
 use Illuminate\Console\Command;
 
 /**
@@ -35,6 +36,11 @@ class PollPppOnlineCommand extends Command
         }
 
         $this->info("Done. Total online marked: {$total}");
+
+        try {
+            app(CustomerTrafficUsageService::class)->resetEndedMonths();
+        } catch (\Throwable) {
+        }
 
         return self::SUCCESS;
     }

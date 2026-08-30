@@ -8,6 +8,7 @@ use App\Models\CustomersInfo;
 use App\Models\OfficialInfo;
 use App\Models\PPPSecrets;
 use App\Models\RouterList;
+use App\Services\Bandwidth\CustomerTrafficUsageService;
 use App\Services\Mikrotik\MikrotikPppImportService;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Cache;
@@ -445,6 +446,11 @@ class MikrotikSync extends Component
             }
         }
 
+        try {
+            app(CustomerTrafficUsageService::class)->snapshotRouter($routerName, $sessionsByName, $secrets);
+        } catch (\Throwable) {
+        }
+
         return $onlineCount;
     }
 
@@ -488,6 +494,7 @@ class MikrotikSync extends Component
                 $secret->caller_id = $session['caller-id'];
             }
             $secret->save();
+            $this->snapshotOneUsage($secret, $session);
 
             return true;
         }
@@ -504,8 +511,24 @@ class MikrotikSync extends Component
             }
         }
         $secret->save();
+        $this->snapshotOneUsage($secret, null);
 
         return false;
+    }
+
+    /**
+     * @param  array<string, mixed>|null  $session
+     */
+    protected function snapshotOneUsage(PPPSecrets $secret, ?array $session): void
+    {
+        try {
+            $usage = app(CustomerTrafficUsageService::class);
+            $bytes = $usage->byteIndexForRouter((string) $secret->router_name, $session
+                ? [strtolower((string) $secret->username) => $session]
+                : []);
+            $usage->apply($secret, $session, $bytes[strtolower((string) $secret->username)] ?? null);
+        } catch (\Throwable) {
+        }
     }
 
     protected function mikrotikUptimeStart(?string $uptime): Carbon

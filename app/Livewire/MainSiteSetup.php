@@ -329,7 +329,10 @@ class MainSiteSetup extends Component implements HasActions, HasForms
             $this->syncFormFilesForTab($tab, $keys);
         }
 
-        $this->validate($this->rulesForTab($tab));
+        $rules = $this->rulesForTab($tab);
+        if ($rules !== []) {
+            $this->validate($rules);
+        }
 
         try {
             foreach ($keys as $key) {

@@ -1240,6 +1240,53 @@ class MikrotikController extends Controller
         return $this->getItems($routerName, '/ppp/active');
     }
 
+    /**
+     * Live PPPoE/L2TP interface byte counters (not cached — used for GB usage snapshots).
+     *
+     * @return array<string, array{rx: int, tx: int, iface: string}>
+     */
+    public function getPppoeByteStats(string $routerName): array
+    {
+        $rows = $this->singleRead(
+            $routerName,
+            '/interface/print',
+            '/interface print stats without-paging terse',
+            [],
+            false,
+            true
+        );
+
+        $out = [];
+        foreach ($rows as $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+            $name = trim((string) ($row['name'] ?? ''));
+            $user = self::usernameFromPppInterface($name);
+            if ($user === null) {
+                continue;
+            }
+            $rx = (int) preg_replace('/[^\d]/', '', (string) ($row['rx-byte'] ?? $row['rx-bytes'] ?? $row['bytes-in'] ?? 0));
+            $tx = (int) preg_replace('/[^\d]/', '', (string) ($row['tx-byte'] ?? $row['tx-bytes'] ?? $row['bytes-out'] ?? 0));
+            $out[$user] = ['rx' => $rx, 'tx' => $tx, 'iface' => $name];
+        }
+
+        return $out;
+    }
+
+    public static function usernameFromPppInterface(string $name): ?string
+    {
+        $name = trim($name);
+        if (preg_match('/^<(pppoe|l2tp|sstp|pptp|ovpn|ppp)-(.+)>$/i', $name, $m)) {
+            return strtolower($m[2]);
+        }
+        if (preg_match('/^(pppoe|l2tp|sstp|pptp|ovpn)-(.+)$/i', $name, $m)) {
+            return strtolower($m[2]);
+        }
+
+        return null;
+    }
+
     // =========================================================================
     // HOTSPOT
     // =========================================================================

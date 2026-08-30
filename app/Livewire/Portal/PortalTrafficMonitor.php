@@ -3,6 +3,7 @@
 namespace App\Livewire\Portal;
 
 use App\Http\Controllers\MikrotikController;
+use App\Services\Bandwidth\CustomerTrafficUsageService;
 use Livewire\Component;
 
 class PortalTrafficMonitor extends Component
@@ -130,6 +131,11 @@ class PortalTrafficMonitor extends Component
 
     public function render()
     {
-        return view('livewire.portal.portal-traffic-monitor');
+        $usage = app(CustomerTrafficUsageService::class)
+            ->presentForSecret(auth()->guard('ppp')->user());
+
+        return view('livewire.portal.portal-traffic-monitor', [
+            'trafficUsage' => $usage,
+        ]);
     }
 }

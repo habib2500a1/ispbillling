@@ -11,6 +11,7 @@ use App\Models\CustomersInfo;
 use App\Models\PaymentSummary;
 use App\Models\PPPSecrets;
 use App\Models\SupportTicket;
+use App\Services\Bandwidth\CustomerTrafficUsageService;
 use App\Services\Olt\CustomerOpticalPresenter;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
@@ -145,7 +146,7 @@ class CustomerView extends Component
     protected function customer(): CustomersInfo
     {
         $customer = CustomersInfo::with([
-            'pppUser',
+            'pppUser.trafficUsage',
             'billing',
             'official',
             'package',
@@ -670,6 +671,7 @@ class CustomerView extends Component
             'smsFailCount' => \Schema::hasTable('customer_sms_logs')
                 ? CustomerSmsLog::query()->where('customer_unique_id', $customer->customer_unique_id)->where('status', 'failed')->count()
                 : 0,
+            'trafficUsage' => app(CustomerTrafficUsageService::class)->presentForCustomer($customer),
         ];
     }
 

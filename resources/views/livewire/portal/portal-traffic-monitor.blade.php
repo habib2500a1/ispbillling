@@ -1,5 +1,29 @@
 <div class="cp-zoom-in">
     <div class="cp-grid cp-grid-cols-1 cp-gap-4">
+        <div class="cp-grid cp-grid-cols-1 md:cp-grid-cols-3 cp-gap-4 cp-mb-4">
+            <div class="cp-bg-white dark:cp-bg-gray-800 cp-p-5 cp-rounded-2xl cp-shadow-sm cp-border cp-border-gray-100 dark:cp-border-gray-700">
+                <p class="cp-text-xs cp-uppercase cp-tracking-wider cp-font-semibold cp-text-gray-400 cp-mb-1">
+                    {{ $trafficUsage['live_or_last_title'] ?? __('Last online') }}</p>
+                <h3 class="cp-text-2xl cp-font-extrabold cp-text-gray-900 dark:cp-text-white">
+                    {{ $trafficUsage['live_or_last_label'] ?? '0 B' }}</h3>
+                <p class="cp-text-xs cp-text-gray-400 cp-mt-1">{{ __('Download + upload') }}</p>
+            </div>
+            <div class="cp-bg-white dark:cp-bg-gray-800 cp-p-5 cp-rounded-2xl cp-shadow-sm cp-border cp-border-gray-100 dark:cp-border-gray-700">
+                <p class="cp-text-xs cp-uppercase cp-tracking-wider cp-font-semibold cp-text-gray-400 cp-mb-1">
+                    {{ __('Today') }}</p>
+                <h3 class="cp-text-2xl cp-font-extrabold cp-text-gray-900 dark:cp-text-white">
+                    {{ $trafficUsage['day_total_label'] ?? '0 B' }}</h3>
+                <p class="cp-text-xs cp-text-gray-400 cp-mt-1">{{ __('Resets every midnight') }}</p>
+            </div>
+            <div class="cp-bg-white dark:cp-bg-gray-800 cp-p-5 cp-rounded-2xl cp-shadow-sm cp-border cp-border-gray-100 dark:cp-border-gray-700">
+                <p class="cp-text-xs cp-uppercase cp-tracking-wider cp-font-semibold cp-text-gray-400 cp-mb-1">
+                    {{ __('This month') }}</p>
+                <h3 class="cp-text-2xl cp-font-extrabold cp-text-emerald-600 dark:cp-text-emerald-400">
+                    {{ $trafficUsage['month_total_label'] ?? '0 B' }}</h3>
+                <p class="cp-text-xs cp-text-gray-400 cp-mt-1">{{ __('Clears at month end') }}</p>
+            </div>
+        </div>
+
         <!-- Dashboard Scorecards -->
         <div class="cp-grid cp-grid-cols-1 md:cp-grid-cols-2 cp-gap-4 cp-mb-4">
             <div

@@ -30,9 +30,7 @@ class CustomerExcelUpload extends Component
             abort(403);
         }
 
-        $dir = storage_path('app/tmp');
-        File::ensureDirectoryExists($dir);
-        $path = $dir.'/anetbd-user-upload-demo.xlsx';
+        $path = $this->writableTempPath('anetbd-user-upload-demo.xlsx');
         if (is_file($path)) {
             @unlink($path);
         }
@@ -61,9 +59,7 @@ class CustomerExcelUpload extends Component
             $ext = 'csv';
         }
 
-        $dir = storage_path('app/tmp');
-        File::ensureDirectoryExists($dir);
-        $safe = $dir.'/upload-'.uniqid('', true).'.'.$ext;
+        $safe = $this->writableTempPath('upload-'.uniqid('', true).'.'.$ext);
         copy($this->file->getRealPath(), $safe);
 
         try {
@@ -104,5 +100,25 @@ class CustomerExcelUpload extends Component
             ['Super Admin', 'Operator', 'Reseller'],
             ['new-customer', 'all-customer', 'new-subscriber', 'all-subscribers']
         );
+    }
+
+    private function writableTempPath(string $filename): string
+    {
+        $dir = storage_path('app/tmp');
+        try {
+            File::ensureDirectoryExists($dir, 0775);
+            @chmod($dir, 0775);
+        } catch (\Throwable) {
+            $dir = rtrim(sys_get_temp_dir(), DIRECTORY_SEPARATOR);
+        }
+
+        $probe = $dir.DIRECTORY_SEPARATOR.'.write-test';
+        if (@file_put_contents($probe, 'ok') === false) {
+            $dir = rtrim(sys_get_temp_dir(), DIRECTORY_SEPARATOR);
+        } else {
+            @unlink($probe);
+        }
+
+        return $dir.DIRECTORY_SEPARATOR.$filename;
     }
 }

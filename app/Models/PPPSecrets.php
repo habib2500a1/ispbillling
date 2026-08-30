@@ -43,6 +43,11 @@ class PPPSecrets extends Authenticatable implements FilamentUser, HasAvatar
         return $this->hasOne(CustomersInfo::class, 'ppp_user_id', 'id');
     }
 
+    public function trafficUsage()
+    {
+        return $this->hasOne(CustomerTrafficUsage::class, 'ppp_secret_id');
+    }
+
     /**
      * Get the password for the user.
      *

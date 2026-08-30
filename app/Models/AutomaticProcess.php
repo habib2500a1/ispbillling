@@ -65,6 +65,7 @@ class AutomaticProcess extends Model
             'payment-reminder-alerts',
             'disable-unpaid-users',
             'poll-ppp-online',
+            'reset-traffic-month',
             'poll-router-logs',
             'olt-health-poll',
             'saas-lock-overdue',

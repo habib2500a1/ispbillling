@@ -88,7 +88,7 @@ class ResellerCustomerList extends Component
                 if ($search !== '') {
                     $query->search($search);
                 }
-            }, true)
+            }, false)
             ->addIndexColumn()
             ->addColumn('customer_identity', function ($row) {
                 // Round avatar: photo if exists, else coloured initials

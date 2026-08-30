@@ -5,6 +5,7 @@ namespace App\Livewire;
 use App\Http\Controllers\MikrotikController;
 use App\Models\PPPSecrets;
 use App\Models\RouterList;
+use App\Services\Bandwidth\CustomerTrafficUsageService;
 use Carbon\Carbon;
 use Livewire\Component;
 use Livewire\WithPagination;
@@ -281,7 +282,7 @@ class OnlineClients extends Component
     public function render()
     {
         $query = PPPSecrets::query()
-            ->with(['customer.onus', 'customer.official', 'customer.package'])
+            ->with(['customer.onus', 'customer.official', 'customer.package', 'trafficUsage'])
             ->where('status', '!=', 'removed')
             ->orderByRaw('CASE WHEN uptime IS NULL THEN 1 ELSE 0 END')
             ->orderBy('username');
@@ -318,9 +319,19 @@ class OnlineClients extends Component
 
         $onlineCount = PPPSecrets::where('status', '!=', 'removed')->whereNotNull('uptime')->count();
         $offlineCount = PPPSecrets::where('status', '!=', 'removed')->whereNull('uptime')->count();
+        $rows = $query->paginate(40);
+        $usageService = app(CustomerTrafficUsageService::class);
+        $usages = $usageService->mapForSecrets($rows->getCollection());
+        $trafficUsage = $this->trafficId && isset($usages[$this->trafficId])
+            ? $usages[$this->trafficId]
+            : ($this->trafficId
+                ? $usageService->presentForSecret(PPPSecrets::with('trafficUsage')->find($this->trafficId))
+                : $usageService->emptyPresentation());
 
         return view('livewire.online-clients', [
-            'rows' => $query->paginate(40),
+            'rows' => $rows,
+            'usages' => $usages,
+            'trafficUsage' => $trafficUsage,
             'routers' => RouterList::orderBy('router_name')->pluck('router_name'),
             'onlineCount' => $onlineCount,
             'offlineCount' => $offlineCount,

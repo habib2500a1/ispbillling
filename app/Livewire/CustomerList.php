@@ -190,7 +190,7 @@ class CustomerList extends Component
                 if ($search !== '') {
                     $query->search($search);
                 }
-            }, true)
+            }, false)
             ->addIndexColumn()
             ->addColumn('customer_identity', function ($row) {
                 $resellerBadge = $row->reseller_id && $row->reseller
