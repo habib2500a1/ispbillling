@@ -48,6 +48,10 @@ class MainSiteSetup extends Component implements HasActions, HasForms
 
     public bool $bill_generate_on = true;
 
+    public int $bill_generate_day = 1;
+
+    public string $bill_generate_mode = 'customer';
+
     public function mount(): void
     {
         if (! hasAccess(['Super Admin'], ['site-setup'])) {
@@ -201,13 +205,20 @@ class MainSiteSetup extends Component implements HasActions, HasForms
         $this->bill_generate_at = preg_match('/^(\d{1,2}:\d{2})/', $at, $m) ? $m[1] : '23:45';
         $row = AutomaticProcess::query()->where('slug', 'generate-monthly-bills')->first();
         $this->bill_generate_on = $row ? (bool) $row->enabled : true;
+        $this->bill_generate_day = max(1, min(28, (int) (MainSiteData::getValue('monthly_bill_day', 1) ?: 1)));
+        $this->bill_generate_mode = MainSiteData::getValue('monthly_bill_mode', 'customer') === 'global' ? 'global' : 'customer';
     }
 
     private function saveBillClock(): void
     {
         $this->validate([
             'bill_generate_at' => 'required|regex:/^\d{1,2}:\d{2}(:\d{2})?$/',
+            'bill_generate_day' => 'required|integer|min:1|max:28',
+            'bill_generate_mode' => 'required|in:customer,global',
         ]);
+
+        MainSiteData::setValue('monthly_bill_day', (int) $this->bill_generate_day);
+        MainSiteData::setValue('monthly_bill_mode', $this->bill_generate_mode);
 
         $process = AutomaticProcess::query()->where('slug', 'generate-monthly-bills')->first();
         if (! $process) {
@@ -488,6 +499,9 @@ class MainSiteSetup extends Component implements HasActions, HasForms
             'billing' => [
                 'data.customer_id_prefix' => 'nullable|string|max:20',
                 'data.customer_id_start' => 'nullable|integer|min:1|max:99999999',
+                'bill_generate_day' => 'required|integer|min:1|max:28',
+                'bill_generate_at' => 'required|regex:/^\d{1,2}:\d{2}(:\d{2})?$/',
+                'bill_generate_mode' => 'required|in:customer,global',
             ],
             default => [],
         };

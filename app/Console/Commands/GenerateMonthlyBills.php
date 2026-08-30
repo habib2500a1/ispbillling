@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Http\Controllers\ScheduledTasksController;
+use App\Services\Billing\MonthlyBillSchedule;
 use Carbon\Carbon;
 use Illuminate\Console\Command;
 
@@ -29,6 +30,20 @@ class GenerateMonthlyBills extends Command
             $this->info('Force mode — generating bills for all customers…');
             app(ScheduledTasksController::class)->createMonthlyBill(null, true);
             $this->info('Monthly bills generated (force).');
+
+            return self::SUCCESS;
+        }
+
+        if (MonthlyBillSchedule::mode() === 'global') {
+            if (! MonthlyBillSchedule::shouldGenerateAllOn($date)) {
+                $this->info('Skipping — Super Admin bill day is '.MonthlyBillSchedule::day().', today is '.$billingDay.'.');
+
+                return self::SUCCESS;
+            }
+
+            $this->info('Global bill day '.MonthlyBillSchedule::day().' — generating bills for all customers…');
+            app(ScheduledTasksController::class)->createMonthlyBill(null, true);
+            $this->info('Monthly bills generated.');
 
             return self::SUCCESS;
         }

@@ -94,6 +94,22 @@
                             </div>
                         </a>
                     @endcanany
+                    @canany(['payment-collection', 'payment-collection-report', 'amount-collection'])
+                        <a wire:navigate.hover wire:current="active" class="nav-link" href="{{ route('billing.discounts') }}"
+                            role="button">
+                            <div class="d-flex align-items-center">
+                                <span class="nav-link-icon"><i class="bi bi-percent"></i></span>
+                                <span class="nav-link-text ps-1">{{ __('Discount') }}</span>
+                            </div>
+                        </a>
+                        <a wire:navigate.hover wire:current="active" class="nav-link" href="{{ route('billing.advances') }}"
+                            role="button">
+                            <div class="d-flex align-items-center">
+                                <span class="nav-link-icon"><i class="bi bi-wallet2"></i></span>
+                                <span class="nav-link-text ps-1">{{ __('Advance') }}</span>
+                            </div>
+                        </a>
+                    @endcanany
                 </li>
             @endcanany
 
@@ -147,7 +163,7 @@
         @php
             $navIs = fn (...$names) => request()->routeIs(...$names);
             $openClients = $navIs('customers.*', 'new-customer', 'customers.excel-upload', 'online-clients', 'package-list-setup', 'address-setup');
-            $openBilling = $navIs('payment-collection', 'collection-edit', 'payment-invoice', 'billing-notices', 'sms-notices', 'admin.staff-cash');
+            $openBilling = $navIs('payment-collection', 'collection-edit', 'payment-invoice', 'billing-notices', 'sms-notices', 'admin.staff-cash', 'billing.discounts', 'billing.advances');
             $openOptical = $navIs('olt-management', 'onu-management');
             $openMtSetup = $navIs('mikrotik-ip-setup', 'mikrotik-pppoe-setup', 'mikrotik-radius-setup', 'mikrotik-firewall-setup', 'mikrotik-walled-garden', 'mikrotik-queue-setup', 'mikrotik-vpn-setup', 'mikrotik-interface-setup', 'mikrotik-traffic-monitor', 'mikrotik-backup-setup');
             $openNetwork = $openMtSetup || $navIs('mikrotik-sync', 'bandwidth-hub', 'mikrotik-hotspot-manager');
@@ -248,6 +264,16 @@
                     <li class="nav-item">
                         <a wire:navigate.hover class="nav-link {{ $navIs('payment-invoice') ? 'active' : '' }}" href="{{ route('payment-invoice') }}">
                             <div class="d-flex align-items-center"><span class="nav-link-text ps-1">{{ __('Invoices') }}</span></div>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a wire:navigate.hover class="nav-link {{ $navIs('billing.discounts') ? 'active' : '' }}" href="{{ route('billing.discounts') }}">
+                            <div class="d-flex align-items-center"><span class="nav-link-text ps-1">{{ __('Discount') }}</span></div>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a wire:navigate.hover class="nav-link {{ $navIs('billing.advances') ? 'active' : '' }}" href="{{ route('billing.advances') }}">
+                            <div class="d-flex align-items-center"><span class="nav-link-text ps-1">{{ __('Advance') }}</span></div>
                         </a>
                     </li>
                     @if(hasAccess(['Super Admin'], ['billing-notices', 'payment-collection', 'sms-setup']))

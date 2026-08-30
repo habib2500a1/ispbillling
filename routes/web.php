@@ -32,6 +32,7 @@ use App\Livewire\FeatureModulePage;
 use App\Livewire\GroupHub;
 use App\Livewire\IspOsHub;
 use App\Livewire\BandwidthHub;
+use App\Livewire\BillingAdjustments;
 use App\Livewire\BillingNotices;
 use App\Livewire\HrHub;
 use App\Livewire\InventoryHub;
@@ -238,6 +239,8 @@ Route::middleware([
         // payment routes
         Route::get('/payment-collection', PaymentCollection::class)->name('payment-collection');
         Route::get('/payment-collection-edit', CollectionEdit::class)->name('collection-edit');
+        Route::get('/discounts', BillingAdjustments::class)->name('billing.discounts');
+        Route::get('/advances', BillingAdjustments::class)->name('billing.advances');
         Route::get('/payment-invoice', Invoice::class)->name('payment-invoice');
         Route::get('/invoices/{id}', [CollectionInvoiceController::class, 'show'])->name('collection-invoice.show')->whereNumber('id');
         Route::get('/invoices/{id}/download', [CollectionInvoiceController::class, 'download'])->name('collection-invoice.download')->whereNumber('id');

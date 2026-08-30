@@ -40,6 +40,10 @@ class PaymentCollection extends Component
 
     public $advance_paid = 0;
 
+    public $apply_discount = 0;
+
+    public $apply_advance = 0;
+
     public function mount()
     {
         if (! hasAccess(['Super Admin'], ['payment-collection'])) {
@@ -115,40 +119,58 @@ class PaymentCollection extends Component
         }
     }
 
+    public function updatedApplyDiscount(): void
+    {
+        $this->calculatePayment();
+    }
+
+    public function updatedApplyAdvance(): void
+    {
+        $this->calculatePayment();
+    }
+
+    public function updatedPaidAmount(): void
+    {
+        $this->calculatePayment();
+    }
+
     public function calculatePayment()
     {
         if ($this->info_data) {
-            $this->due_amount = (int) $this->info_data->billing->due_amount - (int) $this->paid_amount;
+            $payable = $this->payableDue();
+            $this->total_amount = $payable;
+            $this->due_amount = $payable - (float) ($this->paid_amount ?: 0);
         }
 
         if ($this->paid_amount >= 0 && $this->info_data) {
-            $this->advance_paid = (int) $this->paid_amount - (int) $this->total_amount;
+            $this->advance_paid = (float) ($this->paid_amount ?: 0) - (float) $this->total_amount;
+            $baseExpire = $this->info_data->billing->auto_disable_date
+                ? Carbon::parse($this->info_data->billing->auto_disable_date)
+                : now();
+            $rent = (int) ($this->info_data->billing->monthly_rent ?: 1);
+            $disableMonths = (int) ($this->info_data->billing->auto_disable_month ?: 1);
 
             if ($this->due_amount > 0) {
-                $extra_month = floor(((int) $this->due_amount) / (int) ($this->info_data->billing->monthly_rent == 0 || $this->info_data->billing->monthly_rent == null ? 1 : $this->info_data->billing->monthly_rent));
+                $extra_month = floor(((int) $this->due_amount) / $rent);
 
-                if ($extra_month < $this->info_data->billing->auto_disable_month) {
-                    $this->expire_date = Carbon::parse($this->info_data->billing->auto_disable_date)->month(now()->month)->year(now()->year)
+                if ($extra_month < $disableMonths) {
+                    $this->expire_date = $baseExpire->copy()->month(now()->month)->year(now()->year)
                         ->subMonths($extra_month)
                         ->format('Y-m-d');
                 } else {
-                    $this->expire_date = Carbon::parse($this->info_data->billing->auto_disable_date)->month(now()->month)->year(now()->year)
-                        ->subMonths($this->info_data->billing->auto_disable_month)
+                    $this->expire_date = $baseExpire->copy()->month(now()->month)->year(now()->year)
+                        ->subMonths($disableMonths)
                         ->addMonths(1)
                         ->format('Y-m-d');
                 }
             } elseif ($this->advance_paid > 0) {
-                if ($this->info_data->billing->monthly_rent == 0 || $this->info_data->billing->monthly_rent == null) {
-                    $extra_month = 1;
-                } else {
-                    $extra_month = 1 + floor(((int) $this->advance_paid) / (int) $this->info_data->billing->monthly_rent);
-                }
+                $extra_month = $rent <= 0 ? 1 : 1 + floor(((int) $this->advance_paid) / $rent);
 
-                $this->expire_date = Carbon::parse($this->info_data->billing->auto_disable_date)->month(now()->month)->year(now()->year)
+                $this->expire_date = $baseExpire->copy()->month(now()->month)->year(now()->year)
                     ->addMonths($extra_month)
                     ->format('Y-m-d');
             } else {
-                $this->expire_date = Carbon::parse($this->info_data->billing->auto_disable_date)->month(now()->month)->year(now()->year)
+                $this->expire_date = $baseExpire->copy()->month(now()->month)->year(now()->year)
                     ->addMonths(1)
                     ->format('Y-m-d');
             }
@@ -182,8 +204,19 @@ class PaymentCollection extends Component
             ->whereYear('collection_date', Carbon::now()->year)
             ->get();
         $this->paid_amount = '';
+        $this->apply_discount = 0;
+        $this->apply_advance = 0;
         $this->total_amount = $this->info_data->billing->due_amount;
-        $this->due_amount = (int) $this->total_amount - (int) $this->paid_amount;
+        $this->due_amount = (float) $this->total_amount;
+    }
+
+    private function payableDue(): float
+    {
+        $base = (float) ($this->info_data->billing->due_amount ?? 0);
+        $discount = max(0, (float) ($this->apply_discount ?: 0));
+        $advance = max(0, (float) ($this->apply_advance ?: 0));
+
+        return max(0, $base - $discount - $advance);
     }
 
     public function savePayment()
@@ -226,29 +259,51 @@ class PaymentCollection extends Component
 
     public function paymentSubmit()
     {
+        $paid = (float) ($this->paid_amount ?: 0);
+        $discount = max(0, (float) ($this->apply_discount ?: 0));
+        $advance = max(0, (float) ($this->apply_advance ?: 0));
+
+        if ($paid <= 0 && $discount <= 0 && $advance <= 0) {
+            flash()->error(__('Enter a pay amount, discount, or advance.'));
+
+            return;
+        }
+
+        $this->calculatePayment();
+
         DB::beginTransaction();
         try {
-            CollectionSummary::create([
+            $payload = [
                 'customer_collection_unique_id' => $this->info_data->customer_unique_id,
                 'collection_date' => Carbon::now(),
-                'collection_amount' => $this->paid_amount,
+                'collection_amount' => $paid,
                 'collected_by' => auth()->user()->email,
                 'payment_status' => 'paid',
                 'invoice_no' => CollectionSummary::nextInvoiceNo(),
                 'bill_month' => Carbon::now()->format('F Y'),
-            ]);
+            ];
+            if (\Illuminate\Support\Facades\Schema::hasColumn('collection_summaries', 'discount_amount')) {
+                $payload['discount_amount'] = $discount;
+            }
+            if (\Illuminate\Support\Facades\Schema::hasColumn('collection_summaries', 'advance_amount')) {
+                $payload['advance_amount'] = $advance;
+            }
+            CollectionSummary::create($payload);
 
             $remainingDue = (float) $this->due_amount;
             $advanceBump = $remainingDue < 0 ? abs($remainingDue) : 0;
+            $billing = $this->info_data->billing;
 
             BillingInfo::where('customer_bill_unique_id', $this->info_data->customer_unique_id)
                 ->update([
-                    'paid_amount' => $this->paid_amount + $this->info_data->billing->paid_amount,
+                    'paid_amount' => $paid + (float) $billing->paid_amount,
                     'paid_date' => Carbon::now(),
                     'auto_disable_date' => $this->expire_date,
                     'extra_date' => null,
                     'due_amount' => max(0, $remainingDue),
-                    'advance' => (float) $this->info_data->billing->advance + $advanceBump,
+                    'total_amount' => max(0, (float) $billing->total_amount - $discount - $advance),
+                    'discount' => (float) $billing->discount + $discount,
+                    'advance' => (float) $billing->advance + $advance + $advanceBump,
                 ]);
             DB::commit();
         } catch (\Throwable $th) {

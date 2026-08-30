@@ -18,6 +18,8 @@ class CollectionSummary extends Model
         'customer_collection_unique_id',
         'collection_date',
         'collection_amount',
+        'discount_amount',
+        'advance_amount',
         'collected_by',
         'payment_type',
         'payment_method',

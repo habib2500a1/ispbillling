@@ -211,16 +211,16 @@
                                 </div>
                             </div>
                             <div class="col-6">
-                                <div class="dash-kpi py-2 px-3">
+                                <a class="dash-kpi py-2 px-3 d-block text-decoration-none" href="{{ route('billing.discounts') }}">
                                     <div class="label">{{ __('Discount') }}</div>
                                     <div class="value fs-5">{{ number_format($fs['discount'] ?? 0) }}</div>
-                                </div>
+                                </a>
                             </div>
                             <div class="col-6">
-                                <div class="dash-kpi py-2 px-3">
-                                    <div class="label">{{ __('Remaining') }}</div>
-                                    <div class="value fs-5">{{ number_format($fs['due'] ?? 0) }}</div>
-                                </div>
+                                <a class="dash-kpi py-2 px-3 d-block text-decoration-none" href="{{ route('billing.advances') }}">
+                                    <div class="label">{{ __('Advance') }}</div>
+                                    <div class="value fs-5">{{ number_format($fs['advance'] ?? 0) }}</div>
+                                </a>
                             </div>
                         </div>
                     </div>
@@ -338,14 +338,24 @@
                 </div>
             </div>
             <div class="col-6 col-md-4 col-xl-2">
-                <div class="sum-card" style="--accent:#f59e0b;--ico-bg:#fffbeb;--ico-fg:#d97706;cursor:default;">
+                <a class="sum-card" href="{{ route('billing.discounts') }}" style="--accent:#f59e0b;--ico-bg:#fffbeb;--ico-fg:#d97706;">
                     <div class="ico"><i class="bi bi-percent"></i></div>
                     <div>
                         <div class="eyebrow">{{ $fs['month_label'] ?? '' }}</div>
                         <div class="num">{{ number_format($fs['discount'] ?? 0) }}</div>
                         <div class="sub">{{ __('Discount') }}</div>
                     </div>
-                </div>
+                </a>
+            </div>
+            <div class="col-6 col-md-4 col-xl-2">
+                <a class="sum-card" href="{{ route('billing.advances') }}" style="--accent:#0ea5e9;--ico-bg:#f0f9ff;--ico-fg:#0284c7;">
+                    <div class="ico"><i class="bi bi-wallet2"></i></div>
+                    <div>
+                        <div class="eyebrow">{{ $fs['month_label'] ?? '' }}</div>
+                        <div class="num">{{ number_format($fs['advance'] ?? 0) }}</div>
+                        <div class="sub">{{ __('Advance') }}</div>
+                    </div>
+                </a>
             </div>
             <div class="col-6 col-md-4 col-xl-2">
                 <div class="sum-card" style="--accent:#fb923c;--ico-bg:#fff7ed;--ico-fg:#ea580c;cursor:default;">

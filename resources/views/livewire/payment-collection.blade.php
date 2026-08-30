@@ -182,17 +182,30 @@
                         
                         <!-- Actions Form -->
                         <div class="col-md-12 mt-4 pt-3 border-top">
-                            <form wire:submit.prevent="savePayment" class="row g-2 align-items-center">
-                                <div class="col-md-3 col-sm-12">
-                                    <input type="number" class="form-control form-control-sm" name="paid_amount" id="paid_amount" wire:model="paid_amount" wire:keyup="calculatePayment" min="1" autofocus placeholder="{{ __('Pay Amount') }}" required style="border-radius: 6px;">
+                            <form wire:submit.prevent="savePayment" class="row g-2 align-items-end">
+                                <div class="col-6 col-md-3">
+                                    <label class="form-label small fw-semibold mb-1" for="apply_discount">{{ __('Discount') }}</label>
+                                    <input type="number" min="0" step="0.01" class="form-control form-control-sm" id="apply_discount" wire:model.live="apply_discount" placeholder="0" style="border-radius: 6px;">
                                 </div>
-                                <div class="col-md-3 col-sm-12">
-                                    <input type="text" class="form-control form-control-sm" name="invoice" id="invoice" wire:model.live="invoice" placeholder="{{ __('Invoice No') }}" style="border-radius: 6px;">
+                                <div class="col-6 col-md-3">
+                                    <label class="form-label small fw-semibold mb-1" for="apply_advance">{{ __('Advance') }}</label>
+                                    <input type="number" min="0" step="0.01" class="form-control form-control-sm" id="apply_advance" wire:model.live="apply_advance" placeholder="0" style="border-radius: 6px;">
                                 </div>
-                                <div class="col-md-3 col-sm-12">
+                                <div class="col-6 col-md-3">
+                                    <label class="form-label small fw-semibold mb-1" for="paid_amount">{{ __('Pay Amount') }}</label>
+                                    <input type="number" class="form-control form-control-sm" name="paid_amount" id="paid_amount" wire:model.live="paid_amount" min="0" step="0.01" autofocus placeholder="{{ __('Pay Amount') }}" style="border-radius: 6px;">
+                                </div>
+                                <div class="col-6 col-md-3">
+                                    <label class="form-label small fw-semibold mb-1" for="expire_date">{{ __('Expire Date') }}</label>
                                     <input type="date" class="form-control form-control-sm" name="expire_date" id="expire_date" wire:model.live="expire_date" style="border-radius: 6px;">
                                 </div>
-                                <div class="col-md-3 col-sm-12">
+                                <div class="col-12 col-md-9">
+                                    <div class="small text-muted">
+                                        {{ __('Payable after discount/advance') }}:
+                                        <strong class="text-success">{{ number_format((float) $total_amount, 2) }} {{ siteUrlSettings('site_currency') }}</strong>
+                                    </div>
+                                </div>
+                                <div class="col-12 col-md-3">
                                     <button class="btn btn-sm btn-success w-100 py-1.5" style="border-radius: 6px;">
                                         <i class="bi bi-check-circle me-1"></i>{{ __('Pay Now') }}
                                     </button>

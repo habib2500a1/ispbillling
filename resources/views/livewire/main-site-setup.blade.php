@@ -70,6 +70,8 @@
             .ss-sidebar { position: static !important; top: auto !important; }
             .ss-content-card { padding: 1rem !important; }
             .ss-theme-custom { border-left: 0 !important; padding-left: 0 !important; }
+            .ss-sticky-save { position: sticky; top: 0; z-index: 30; }
+            .ss-pay-head { flex-direction: column; align-items: flex-start !important; gap: .75rem; }
         }
     </style>
 
@@ -122,7 +124,7 @@
             $watch('activeTab', val => localStorage.setItem('siteSetupActiveTab', val));
          ">
 
-        <div class="card border-0 shadow-sm mb-4 glass-card">
+        <div class="card border-0 shadow-sm mb-4 glass-card ss-sticky-save">
             <div class="card-body p-3 p-md-4">
                 <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
                     <div>
@@ -398,7 +400,7 @@
                                     </div>
 
                                     {{-- Custom Portal Color Pickers (only shown when "custom" selected) --}}
-                                    <div class="col-md-7 align-items-center gap-4 border-start ps-4 ss-theme-custom">
+                                    <div class="col-md-7 align-items-center gap-4 border-start ps-4 ss-theme-custom"
                                         x-show="portalPreset === 'custom'"
                                         x-cloak
                                         style="display: none;"
@@ -648,9 +650,44 @@
                                     </small>
                                 </div>
                                 <div class="col-12">
-                                    <div class="alert alert-info border-0 rounded-3 py-2 px-3 mb-0 small">
-                                        {{ __('Bill generate time, SMS day, late fee, and auto-disable schedule are edited on') }}
-                                        <a href="{{ route('automatic-processes') }}" class="fw-semibold">{{ __('Automatic Processes') }}</a>.
+                                    <div class="p-3 border rounded-3 bg-light bg-opacity-50">
+                                        <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+                                            <div>
+                                                <div class="fw-bold">{{ __('Monthly bill generate') }}</div>
+                                                <div class="small text-muted">{{ __('Super Admin sets the date and clock. Staff still collect bills as usual.') }}</div>
+                                            </div>
+                                            <div class="form-check form-switch m-0">
+                                                <input class="form-check-input" type="checkbox" role="switch" id="bill_generate_on" wire:model.live="bill_generate_on">
+                                                <label class="form-check-label fw-semibold" for="bill_generate_on">{{ __('On') }}</label>
+                                            </div>
+                                        </div>
+                                        <div class="row g-3">
+                                            <div class="col-6 col-md-3">
+                                                <label class="form-label fw-semibold">{{ __('Bill day') }}</label>
+                                                <select class="form-select rounded-3" wire:model.live="bill_generate_day">
+                                                    @for ($d = 1; $d <= 28; $d++)
+                                                        <option value="{{ $d }}">{{ $d }}</option>
+                                                    @endfor
+                                                </select>
+                                                <small class="text-muted">{{ __('Day of each month (1–28).') }}</small>
+                                            </div>
+                                            <div class="col-6 col-md-3">
+                                                <label class="form-label fw-semibold">{{ __('Clock') }}</label>
+                                                <input type="time" class="form-control rounded-3" wire:model.live="bill_generate_at">
+                                                @error('bill_generate_at') <div class="text-danger small">{{ $message }}</div> @enderror
+                                            </div>
+                                            <div class="col-12 col-md-6">
+                                                <label class="form-label fw-semibold">{{ __('Who gets a bill that day') }}</label>
+                                                <select class="form-select rounded-3" wire:model.live="bill_generate_mode">
+                                                    <option value="customer">{{ __('Each customer’s own billing day') }}</option>
+                                                    <option value="global">{{ __('All customers on the Super Admin date') }}</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                        <div class="small text-muted mt-2">
+                                            {{ __('SMS day, late fee, and auto-disable stay on') }}
+                                            <a href="{{ route('automatic-processes') }}" class="fw-semibold">{{ __('Automatic Processes') }}</a>.
+                                        </div>
                                     </div>
                                 </div>
                                 <div class="col-md-4">
@@ -707,7 +744,7 @@
                             
                             <!-- BKASH -->
                             <div class="card shadow-none border rounded-3 p-4 mb-4 bg-light bg-opacity-25">
-                                <div class="d-flex align-items-center justify-content-between border-bottom pb-3 mb-3">
+                                <div class="d-flex align-items-center justify-content-between border-bottom pb-3 mb-3 ss-pay-head">
                                     <div class="d-flex align-items-center gap-3">
                                         <span class="badge bg-danger p-2"><i class="bi bi-cash-stack fs-5"></i></span>
                                         <div>
@@ -746,7 +783,7 @@
 
                             <!-- NAGAD -->
                             <div class="card shadow-none border rounded-3 p-4 mb-4 bg-light bg-opacity-25">
-                                <div class="d-flex align-items-center justify-content-between border-bottom pb-3 mb-3">
+                                <div class="d-flex align-items-center justify-content-between border-bottom pb-3 mb-3 ss-pay-head">
                                     <div class="d-flex align-items-center gap-3">
                                         <span class="badge bg-warning p-2"><i class="bi bi-wallet2 fs-5"></i></span>
                                         <div>
@@ -781,7 +818,7 @@
 
                             <!-- SSLCOMMERZ -->
                             <div class="card shadow-none border rounded-3 p-4 bg-light bg-opacity-25">
-                                <div class="d-flex align-items-center justify-content-between border-bottom pb-3 mb-3">
+                                <div class="d-flex align-items-center justify-content-between border-bottom pb-3 mb-3 ss-pay-head">
                                     <div class="d-flex align-items-center gap-3">
                                         <span class="badge bg-primary p-2"><i class="bi bi-credit-card fs-5"></i></span>
                                         <div>

@@ -25,6 +25,7 @@ final class DashboardFinanceService
      *   collection: float,
      *   due: float,
      *   discount: float,
+     *   advance: float,
      *   expense: float,
      *   collection_pct: float,
      *   due_pct: float,
@@ -119,6 +120,11 @@ final class DashboardFinanceService
             ->whereNull('customers_infos.deleted_at')
             ->sum('billing_infos.discount');
 
+        $monthAdvance = (float) BillingInfo::query()
+            ->join('customers_infos', 'billing_infos.customer_bill_unique_id', '=', 'customers_infos.customer_unique_id')
+            ->whereNull('customers_infos.deleted_at')
+            ->sum('billing_infos.advance');
+
         $monthExpense = 0.0;
         if (Schema::hasTable('isp_expenses')) {
             $monthExpense = (float) IspExpense::query()
@@ -135,6 +141,7 @@ final class DashboardFinanceService
             'collection' => round($monthCollection, 2),
             'due' => round($monthDue, 2),
             'discount' => round($monthDiscount, 2),
+            'advance' => round($monthAdvance, 2),
             'expense' => round($monthExpense, 2),
             'collection_pct' => round(($monthCollection / $collectDueTotal) * 100, 1),
             'due_pct' => round(($monthDue / $collectDueTotal) * 100, 1),
