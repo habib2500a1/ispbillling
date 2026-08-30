@@ -85,7 +85,7 @@
         <ul class="navbar-nav" data-top-nav-dropdowns="data-top-nav-dropdowns">
             <li class="nav-item">
                 <!-- parent pages-->
-                <a wire:navigate.hover wire:current="active" class="nav-link" href="{{ route('dashboard') }}"
+                <a class="nav-link" href="{{ route('dashboard') }}?v=20260831c"
                     role="button">{{ __('Dashboard') }}</a>
             </li>
             <li class="nav-item">

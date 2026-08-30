@@ -154,7 +154,7 @@
                     </div>
                 </div>
                 <!-- parent pages-->
-                <a wire:navigate.hover wire:current="active" class="nav-link" href="{{ route('dashboard') }}"
+                <a class="nav-link" href="{{ route('dashboard') }}?v=20260831c"
                     role="button">
                     <div class="d-flex align-items-center">
                         <span class="nav-link-icon">

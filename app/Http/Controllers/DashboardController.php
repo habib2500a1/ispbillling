@@ -79,7 +79,11 @@ class DashboardController extends Controller
 
         $finance = app(DashboardFinanceService::class);
         $financialSummary = $finance->summary();
-        $recentPayments = $finance->recentPayments();
+        try {
+            $recentPayments = $finance->recentPayments();
+        } catch (\Throwable $e) {
+            $recentPayments = collect();
+        }
 
         $lineGrowth = ['labels' => [], 'new' => [], 'monthly' => []];
         for ($i = 5; $i >= 0; $i--) {
@@ -254,19 +258,22 @@ class DashboardController extends Controller
         }
 
         // Calculate total cashflow, income, and revenue difference for the year
-        return view('dashboard', compact(
-            'results',
-            'customersData',
-            'billInformationData',
-            'systemOverview',
-            'resellerData',
-            'opticalData',
-            'networkQuick',
-            'opsData',
-            'clientSummary',
-            'financialSummary',
-            'recentPayments',
-            'lineGrowth'
-        ));
+        return response()
+            ->view('dashboard', compact(
+                'results',
+                'customersData',
+                'billInformationData',
+                'systemOverview',
+                'resellerData',
+                'opticalData',
+                'networkQuick',
+                'opsData',
+                'clientSummary',
+                'financialSummary',
+                'recentPayments',
+                'lineGrowth'
+            ))
+            ->header('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0')
+            ->header('Pragma', 'no-cache');
     }
 }
