@@ -207,14 +207,13 @@ class CustomerList extends Component
                     ? ' <span class="badge bg-info text-dark ms-1" style="font-size:.7rem;"><i class="bi bi-building"></i></span>'
                     : '';
                 $viewUrl = route('customers.show', encrypt($row->customer_unique_id));
-                $viewBtn = ' <a href="'.$viewUrl.'" class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 text-decoration-none ms-1" title="View"><i class="bi bi-eye"></i></a>';
 
                 return '<div class="d-flex align-items-center gap-2">'.
                     $avatar.
                     '<div>'.
                     '<div class="fw-bold text-dark"><a href="'.$viewUrl.'" class="text-dark text-decoration-none">'.$row->customer_name.'</a>'.
                     (! empty($row->contact_person && $row->contact_person != '-') ? '<small class="text-muted"> ('.$row->contact_person.')</small>' : '').
-                    $resellerBadge.$vipBadge.$corpBadge.$viewBtn.
+                    $resellerBadge.$vipBadge.$corpBadge.
                     '</div>'.
 
                     '<div class="small">
