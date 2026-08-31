@@ -55,6 +55,22 @@ class CustomerList extends Component
 
     public $bill_auto_disable_date;
 
+    /** @var list<string> */
+    public const LIST_FILTERS = [
+        'all', 'all_active', 'active', 'online', 'offline', 'inactive', 'inactive_due',
+        'expired', 'expired_today', 'joined_today', 'joined_month',
+        'pending', 'disable', 'free', 'vip', 'corporate',
+        'without_collection', 'collection', 'reseller',
+    ];
+
+    public string $listFilter = 'all_active';
+
+    public function mount(): void
+    {
+        $requested = request()->query('filter', 'all_active');
+        $this->listFilter = in_array($requested, self::LIST_FILTERS, true) ? $requested : 'all_active';
+    }
+
     public function render()
     {
         if (! hasAccess(['Super Admin'], ['all-customer'])) {
@@ -63,8 +79,33 @@ class CustomerList extends Component
 
         $this->routers = RouterList::all();
         $resellers = Reseller::with('user')->get();
+        $listFilter = $this->listFilter;
+        $listFilterLabel = $this->listFilterLabel($listFilter);
 
-        return view('livewire.customer-list', compact('resellers'))->layout('layouts.app');
+        return view('livewire.customer-list', compact('resellers', 'listFilter', 'listFilterLabel'))->layout('layouts.app');
+    }
+
+    private function listFilterLabel(string $filter): string
+    {
+        return match ($filter) {
+            'all' => __('All customers'),
+            'all_active' => __('Active customers'),
+            'active' => __('Active customers'),
+            'online' => __('Online customers only'),
+            'offline' => __('Offline customers only'),
+            'inactive' => __('Inactive customers'),
+            'inactive_due' => __('Inactive with due'),
+            'expired' => __('Expired customers'),
+            'expired_today' => __('Expired today'),
+            'joined_today' => __('Joined today'),
+            'joined_month' => __('Joined this month'),
+            'pending' => __('Pending customers'),
+            'disable' => __('Disabled customers'),
+            'free' => __('Free customers'),
+            'without_collection' => __('Unpaid customers'),
+            'collection' => __('Paid customers'),
+            default => ucwords(str_replace('_', ' ', $filter)),
+        };
     }
 
     public function getData(Request $request)

@@ -33,35 +33,35 @@
     </div>
 
     <div class="cl-filter-card">
-                    <div id="cl-filter-banner" class="cl-filter-banner">
+                    <div id="cl-filter-banner" class="cl-filter-banner {{ ($listFilter ?? 'all_active') !== 'all_active' ? 'is-visible' : '' }}">
                         <i class="bi bi-funnel-fill"></i>
-                        <span id="cl-filter-banner-text"></span>
+                        <span id="cl-filter-banner-text">{{ $listFilterLabel ?? '' }}</span>
                         <a href="{{ route('customers.index') }}" class="btn btn-sm btn-outline-primary ms-auto">{{ __('Clear filter') }}</a>
                     </div>
                     <div class="d-flex flex-wrap align-items-center gap-2">
                         <div class="filter-group cl-chips">
-                            <input type="radio" class="btn-check" name="collection" id="all_list" autocomplete="off">
+                            <input type="radio" class="btn-check" name="collection" id="all_list" autocomplete="off" @checked(($listFilter ?? 'all_active') === 'all')>
                             <label class="cl-chip" for="all_list">{{ __('All') }} <span class="cl-count"></span></label>
                             
-                            <input type="radio" class="btn-check" name="collection" id="all_active_list" autocomplete="off" checked>
+                            <input type="radio" class="btn-check" name="collection" id="all_active_list" autocomplete="off" @checked(($listFilter ?? 'all_active') === 'all_active')>
                             <label class="cl-chip" for="all_active_list">{{ __('Active') }} <span class="cl-count"></span></label>
 
-                            <input type="radio" class="btn-check" name="collection" id="online_customer" autocomplete="off">
+                            <input type="radio" class="btn-check" name="collection" id="online_customer" autocomplete="off" @checked(($listFilter ?? '') === 'online')>
                             <label class="cl-chip cl-chip-online" for="online_customer"><i class="bi bi-wifi me-1"></i>{{ __('Online') }} <span class="cl-count"></span></label>
 
-                            <input type="radio" class="btn-check" name="collection" id="offline_customer" autocomplete="off">
+                            <input type="radio" class="btn-check" name="collection" id="offline_customer" autocomplete="off" @checked(($listFilter ?? '') === 'offline')>
                             <label class="cl-chip cl-chip-offline" for="offline_customer"><i class="bi bi-wifi-off me-1"></i>{{ __('Offline') }} <span class="cl-count"></span></label>
 
-                            <input type="radio" class="btn-check" name="collection" id="collection_list" autocomplete="off">
+                            <input type="radio" class="btn-check" name="collection" id="collection_list" autocomplete="off" @checked(($listFilter ?? '') === 'collection')>
                             <label class="cl-chip" for="collection_list">{{ __('Paid') }} <span class="cl-count"></span></label>
 
-                            <input type="radio" class="btn-check" name="collection" id="without_collection_list" autocomplete="off">
+                            <input type="radio" class="btn-check" name="collection" id="without_collection_list" autocomplete="off" @checked(($listFilter ?? '') === 'without_collection')>
                             <label class="cl-chip" for="without_collection_list">{{ __('Unpaid') }} <span class="cl-count"></span></label>
 
-                            <input type="radio" class="btn-check" name="collection" id="pending_customer" autocomplete="off">
+                            <input type="radio" class="btn-check" name="collection" id="pending_customer" autocomplete="off" @checked(($listFilter ?? '') === 'pending')>
                             <label class="cl-chip" for="pending_customer">{{ __('Pending') }} <span class="cl-count"></span></label>
 
-                            <input type="radio" class="btn-check" name="collection" id="disable_customer" autocomplete="off">
+                            <input type="radio" class="btn-check" name="collection" id="disable_customer" autocomplete="off" @checked(($listFilter ?? '') === 'disable')>
                             <label class="cl-chip" for="disable_customer">{{ __('Disabled') }} <span class="cl-count"></span></label>
 
                             <div class="cl-more" x-data="{ open: false }" @keydown.escape.window="open = false" @click.outside="open = false">
@@ -69,16 +69,16 @@
                                     {{ __('More') }} <i class="bi small" :class="open ? 'bi-chevron-up' : 'bi-chevron-down'"></i>
                                 </button>
                                 <div class="cl-more-menu" x-show="open" x-cloak @click="open = false">
-                                    <label class="dropdown-item" for="active_customer"><input type="radio" class="btn-check" name="collection" id="active_customer" autocomplete="off"> {{ __('Status: Active') }} <span class="cl-count"></span></label>
-                                    <label class="dropdown-item" for="free_customer"><input type="radio" class="btn-check" name="collection" id="free_customer" autocomplete="off"> {{ __('Free') }} <span class="cl-count"></span></label>
-                                    <label class="dropdown-item" for="vip_customer"><input type="radio" class="btn-check" name="collection" id="vip_customer" autocomplete="off"> {{ __('VIP') }} <span class="cl-count"></span></label>
-                                    <label class="dropdown-item" for="corporate_customer"><input type="radio" class="btn-check" name="collection" id="corporate_customer" autocomplete="off"> {{ __('Corporate') }} <span class="cl-count"></span></label>
-                                    <label class="dropdown-item" for="inactive_customer"><input type="radio" class="btn-check" name="collection" id="inactive_customer" autocomplete="off"> {{ __('Inactive') }} <span class="cl-count"></span></label>
-                                    <label class="dropdown-item" for="expired_customer"><input type="radio" class="btn-check" name="collection" id="expired_customer" autocomplete="off"> {{ __('Expired') }} <span class="cl-count"></span></label>
-                                    <label class="dropdown-item" for="expired_today_customer"><input type="radio" class="btn-check" name="collection" id="expired_today_customer" autocomplete="off"> {{ __('Expired Today') }} <span class="cl-count"></span></label>
-                                    <label class="dropdown-item" for="joined_today_customer"><input type="radio" class="btn-check" name="collection" id="joined_today_customer" autocomplete="off"> {{ __('Joined Today') }} <span class="cl-count"></span></label>
-                                    <label class="dropdown-item" for="joined_month_customer"><input type="radio" class="btn-check" name="collection" id="joined_month_customer" autocomplete="off"> {{ __('This Month') }} <span class="cl-count"></span></label>
-                                    <label class="dropdown-item" for="inactive_due_customer"><input type="radio" class="btn-check" name="collection" id="inactive_due_customer" autocomplete="off"> {{ __('Inactive Due') }} <span class="cl-count"></span></label>
+                                    <label class="dropdown-item" for="active_customer"><input type="radio" class="btn-check" name="collection" id="active_customer" autocomplete="off" @checked(($listFilter ?? '') === 'active')> {{ __('Status: Active') }} <span class="cl-count"></span></label>
+                                    <label class="dropdown-item" for="free_customer"><input type="radio" class="btn-check" name="collection" id="free_customer" autocomplete="off" @checked(($listFilter ?? '') === 'free')> {{ __('Free') }} <span class="cl-count"></span></label>
+                                    <label class="dropdown-item" for="vip_customer"><input type="radio" class="btn-check" name="collection" id="vip_customer" autocomplete="off" @checked(($listFilter ?? '') === 'vip')> {{ __('VIP') }} <span class="cl-count"></span></label>
+                                    <label class="dropdown-item" for="corporate_customer"><input type="radio" class="btn-check" name="collection" id="corporate_customer" autocomplete="off" @checked(($listFilter ?? '') === 'corporate')> {{ __('Corporate') }} <span class="cl-count"></span></label>
+                                    <label class="dropdown-item" for="inactive_customer"><input type="radio" class="btn-check" name="collection" id="inactive_customer" autocomplete="off" @checked(($listFilter ?? '') === 'inactive')> {{ __('Inactive') }} <span class="cl-count"></span></label>
+                                    <label class="dropdown-item" for="expired_customer"><input type="radio" class="btn-check" name="collection" id="expired_customer" autocomplete="off" @checked(($listFilter ?? '') === 'expired')> {{ __('Expired') }} <span class="cl-count"></span></label>
+                                    <label class="dropdown-item" for="expired_today_customer"><input type="radio" class="btn-check" name="collection" id="expired_today_customer" autocomplete="off" @checked(($listFilter ?? '') === 'expired_today')> {{ __('Expired Today') }} <span class="cl-count"></span></label>
+                                    <label class="dropdown-item" for="joined_today_customer"><input type="radio" class="btn-check" name="collection" id="joined_today_customer" autocomplete="off" @checked(($listFilter ?? '') === 'joined_today')> {{ __('Joined Today') }} <span class="cl-count"></span></label>
+                                    <label class="dropdown-item" for="joined_month_customer"><input type="radio" class="btn-check" name="collection" id="joined_month_customer" autocomplete="off" @checked(($listFilter ?? '') === 'joined_month')> {{ __('This Month') }} <span class="cl-count"></span></label>
+                                    <label class="dropdown-item" for="inactive_due_customer"><input type="radio" class="btn-check" name="collection" id="inactive_due_customer" autocomplete="off" @checked(($listFilter ?? '') === 'inactive_due')> {{ __('Inactive Due') }} <span class="cl-count"></span></label>
                                     @foreach($resellers as $reseller)
                                         <label class="dropdown-item" for="reseller_{{ $reseller->id }}">
                                             <input type="radio" class="btn-check" name="collection" id="reseller_{{ $reseller->id }}" data-reseller-id="{{ $reseller->id }}" autocomplete="off">
@@ -94,7 +94,8 @@
     <div class="cl-table-card" wire:ignore>
         <div class="table-responsive bg-white px-3 pb-3" wire:key="customer-list-table-wrap">
             <table class="customer-table table table-hover custom-data-table border-0 w-100" style="width:100%"
-                data-url="{{ route('customers.data') }}">
+                data-url="{{ route('customers.data') }}"
+                data-initial-filter="{{ $listFilter ?? 'all_active' }}">
                 <thead class="bg-light">
                     <tr>
                         <th class="text-center">{{ __('SL') }}</th>
@@ -546,6 +547,11 @@
         };
 
         window.resolveCustomerListFilter = function () {
+            var tableFilter = $('.customer-table').data('initial-filter');
+            if (tableFilter) {
+                return tableFilter;
+            }
+
             const params = new URLSearchParams(window.location.search);
             const urlFilter = params.get('filter');
             if (urlFilter) {
@@ -800,6 +806,7 @@
             });
 
             window.customerListTable = table;
+            $('.customer-table').removeData('initial-filter');
             table.on('xhr.dt error.dt draw.dt', function () {
                 $table.closest('.dt-container, .dataTables_wrapper')
                     .find('.dt-processing, .dataTables_processing')
@@ -943,15 +950,3 @@
         document.addEventListener('livewire:navigated', bootCustomerListTable);
     </script>
 @endpush
-
-<script>
-    (function () {
-        function runCustomerListBoot() {
-            if (document.querySelector('.customer-table') && typeof window.initCustomerListTable === 'function') {
-                setTimeout(window.initCustomerListTable, 250);
-            }
-        }
-        runCustomerListBoot();
-        document.addEventListener('livewire:navigated', runCustomerListBoot);
-    })();
-</script>
