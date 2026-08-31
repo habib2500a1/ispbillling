@@ -20,6 +20,9 @@ final class OperatorProvisioningService
 
     public const SELL_PERMISSION = 'saas-sell';
 
+    /** @var list<string> */
+    public const PROTECTED_ROLES = ['Super Admin', 'Operator'];
+
     /** Permissions for tenant staff — billing/ops only, no platform sell or user-role admin. */
     private const STAFF_PERMISSIONS = [
         'view-customer',

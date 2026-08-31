@@ -57,6 +57,8 @@
                                             <span class="text-muted" style="font-size: 0.72rem; font-weight: 500;">
                                                 @if ($role->name === 'Super Admin')
                                                     All System Privileges
+                                                @elseif ($role->name === 'Operator')
+                                                    Sold ISP Admin (all except Sell ISP)
                                                 @else
                                                     {{ $permissionsCount }}
                                                     {{ Str::plural('Permission', $permissionsCount) }}
@@ -74,6 +76,11 @@
                                                 class="badge rounded-pill bg-success-subtle text-success border border-success-subtle px-2.5 py-1"
                                                 style="font-size: 0.72rem; font-weight: 500;"><i
                                                     class="bi bi-star-fill me-1"></i>All Permissions</span>
+                                        @elseif ($role->name === 'Operator')
+                                            <span
+                                                class="badge rounded-pill bg-primary-subtle text-primary border border-primary-subtle px-2.5 py-1"
+                                                style="font-size: 0.72rem; font-weight: 500;"><i
+                                                    class="bi bi-building me-1"></i>Sold ISP — full access, no Sell ISP</span>
                                         @else
                                             @forelse ($role->permissions->take(8) as $permission)
                                                 <span
@@ -98,7 +105,7 @@
 
                                 {{-- Card Footer: Action Buttons --}}
                                 <div class="mt-4 pt-3 border-top border-light d-flex justify-content-end gap-2">
-                                    @if ($role->name !== 'Super Admin')
+                                    @if (! in_array($role->name, \App\Services\Saas\OperatorProvisioningService::PROTECTED_ROLES, true))
                                         @can('edit-user-role')
                                             <button class="btn btn-sm btn-outline-primary rounded-3 px-3 py-1 fw-semibold"
                                                 wire:click="editRole({{ $role->id }})" title="Edit"

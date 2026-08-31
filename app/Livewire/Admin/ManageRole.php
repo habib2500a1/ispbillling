@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Admin;
 
+use App\Services\Saas\OperatorProvisioningService;
 use Livewire\Attributes\On;
 use Livewire\Component;
 use Livewire\WithoutUrlPagination;
@@ -37,8 +38,8 @@ class ManageRole extends Component
 
     public function mount()
     {
-        if (! hasAccess(['Super Admin'], ['create-user-role', 'edit-user-role', 'delete-user-role'])) {
-            abort(403, 'Unauthorized Access.');
+        if (! auth()->user()?->hasRole('Super Admin')) {
+            abort(403, 'Only the platform Super Admin can manage roles.');
         }
     }
 
@@ -67,8 +68,8 @@ class ManageRole extends Component
             return;
         }
 
-        if ($this->role->name === 'Super Admin') {
-            session()->flash('error', 'Super Admin role cannot be edited.');
+        if (in_array($this->role->name, OperatorProvisioningService::PROTECTED_ROLES, true)) {
+            session()->flash('error', $this->role->name.' role cannot be edited.');
 
             return;
         }
@@ -105,8 +106,8 @@ class ManageRole extends Component
 
                     return;
                 }
-                if ($role->name === 'Super Admin') {
-                    flash()->error('Super Admin role cannot be edited.');
+                if (in_array($role->name, OperatorProvisioningService::PROTECTED_ROLES, true)) {
+                    flash()->error($role->name.' role cannot be edited.');
 
                     return;
                 }
@@ -133,8 +134,8 @@ class ManageRole extends Component
         if (abortIfNoAccess(['Super Admin'], ['delete-user-role'], 'You do not have permission to delete roles.')) {
             return;
         }
-        if ($roleName === 'Super Admin') {
-            session()->flash('error', 'Super Admin role cannot be deleted.');
+        if (in_array($roleName, OperatorProvisioningService::PROTECTED_ROLES, true)) {
+            session()->flash('error', $roleName.' role cannot be deleted.');
 
             return;
         }
@@ -167,8 +168,8 @@ class ManageRole extends Component
                 return;
             }
 
-            if ($role->name === 'Super Admin') {
-                flash()->error('Super Admin role cannot be deleted.');
+            if (in_array($role->name, OperatorProvisioningService::PROTECTED_ROLES, true)) {
+                flash()->error($role->name.' role cannot be deleted.');
                 $this->roleId = null;
 
                 return;
