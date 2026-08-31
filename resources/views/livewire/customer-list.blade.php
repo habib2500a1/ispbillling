@@ -33,6 +33,11 @@
     </div>
 
     <div class="cl-filter-card">
+                    <div id="cl-filter-banner" class="cl-filter-banner">
+                        <i class="bi bi-funnel-fill"></i>
+                        <span id="cl-filter-banner-text"></span>
+                        <a href="{{ route('customers.index') }}" class="btn btn-sm btn-outline-primary ms-auto">{{ __('Clear filter') }}</a>
+                    </div>
                     <div class="d-flex flex-wrap align-items-center gap-2">
                         <div class="filter-group cl-chips">
                             <input type="radio" class="btn-check" name="collection" id="all_list" autocomplete="off">
@@ -40,6 +45,12 @@
                             
                             <input type="radio" class="btn-check" name="collection" id="all_active_list" autocomplete="off" checked>
                             <label class="cl-chip" for="all_active_list">{{ __('Active') }} <span class="cl-count"></span></label>
+
+                            <input type="radio" class="btn-check" name="collection" id="online_customer" autocomplete="off">
+                            <label class="cl-chip cl-chip-online" for="online_customer"><i class="bi bi-wifi me-1"></i>{{ __('Online') }} <span class="cl-count"></span></label>
+
+                            <input type="radio" class="btn-check" name="collection" id="offline_customer" autocomplete="off">
+                            <label class="cl-chip cl-chip-offline" for="offline_customer"><i class="bi bi-wifi-off me-1"></i>{{ __('Offline') }} <span class="cl-count"></span></label>
 
                             <input type="radio" class="btn-check" name="collection" id="collection_list" autocomplete="off">
                             <label class="cl-chip" for="collection_list">{{ __('Paid') }} <span class="cl-count"></span></label>
@@ -67,8 +78,6 @@
                                     <label class="dropdown-item" for="expired_today_customer"><input type="radio" class="btn-check" name="collection" id="expired_today_customer" autocomplete="off"> {{ __('Expired Today') }} <span class="cl-count"></span></label>
                                     <label class="dropdown-item" for="joined_today_customer"><input type="radio" class="btn-check" name="collection" id="joined_today_customer" autocomplete="off"> {{ __('Joined Today') }} <span class="cl-count"></span></label>
                                     <label class="dropdown-item" for="joined_month_customer"><input type="radio" class="btn-check" name="collection" id="joined_month_customer" autocomplete="off"> {{ __('This Month') }} <span class="cl-count"></span></label>
-                                    <label class="dropdown-item" for="online_customer"><input type="radio" class="btn-check" name="collection" id="online_customer" autocomplete="off"> {{ __('Online') }} <span class="cl-count"></span></label>
-                                    <label class="dropdown-item" for="offline_customer"><input type="radio" class="btn-check" name="collection" id="offline_customer" autocomplete="off"> {{ __('Offline') }} <span class="cl-count"></span></label>
                                     <label class="dropdown-item" for="inactive_due_customer"><input type="radio" class="btn-check" name="collection" id="inactive_due_customer" autocomplete="off"> {{ __('Inactive Due') }} <span class="cl-count"></span></label>
                                     @foreach($resellers as $reseller)
                                         <label class="dropdown-item" for="reseller_{{ $reseller->id }}">
@@ -315,7 +324,22 @@
             font-size: 0.72rem;
         }
         .btn-check:checked + .cl-chip .cl-count { background: rgba(255,255,255,0.18); color: #fff; }
-        [x-cloak] { display: none !important; }
+        .btn-check:checked + .cl-chip-online { background: #0284c7; border-color: #0284c7; color: #fff; }
+        .btn-check:checked + .cl-chip-offline { background: #64748b; border-color: #64748b; color: #fff; }
+        .cl-filter-banner {
+            display: none;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.45rem 0.75rem;
+            margin-bottom: 0.65rem;
+            border-radius: 8px;
+            background: #eff6ff;
+            border: 1px solid #bfdbfe;
+            color: #1e3a8a;
+            font-size: 0.82rem;
+            font-weight: 600;
+        }
+        .cl-filter-banner.is-visible { display: flex; }
         .cl-more { position: relative; }
         .cl-more-btn { border-style: dashed; }
         .cl-more-menu {
@@ -466,6 +490,96 @@
 
 @push('scripts')
     <script>
+        window.customerListFilterMap = {
+            all: '#all_list',
+            all_active: '#all_active_list',
+            active: '#active_customer',
+            pending: '#pending_customer',
+            disable: '#disable_customer',
+            inactive: '#inactive_customer',
+            expired: '#expired_customer',
+            expired_today: '#expired_today_customer',
+            joined_today: '#joined_today_customer',
+            joined_month: '#joined_month_customer',
+            online: '#online_customer',
+            offline: '#offline_customer',
+            inactive_due: '#inactive_due_customer',
+            free: '#free_customer',
+            without_collection: '#without_collection_list',
+            collection: '#collection_list',
+        };
+
+        window.customerListFilterLabels = {
+            all: @json(__('All customers')),
+            all_active: @json(__('Active customers')),
+            active: @json(__('Active customers')),
+            online: @json(__('Online customers only')),
+            offline: @json(__('Offline customers only')),
+            inactive: @json(__('Inactive customers')),
+            inactive_due: @json(__('Inactive with due')),
+            expired: @json(__('Expired customers')),
+            expired_today: @json(__('Expired today')),
+            joined_today: @json(__('Joined today')),
+            joined_month: @json(__('Joined this month')),
+            pending: @json(__('Pending customers')),
+            disable: @json(__('Disabled customers')),
+            free: @json(__('Free customers')),
+            without_collection: @json(__('Unpaid customers')),
+            collection: @json(__('Paid customers')),
+        };
+
+        window.applyCustomerListFilterFromUrl = function () {
+            const params = new URLSearchParams(window.location.search);
+            const filter = params.get('filter');
+            if (!filter || !window.customerListFilterMap[filter]) {
+                return null;
+            }
+
+            $('input[name="collection"]').prop('checked', false);
+            $(window.customerListFilterMap[filter]).prop('checked', true);
+
+            const label = window.customerListFilterLabels[filter] || filter;
+            $('#cl-filter-banner-text').text(label);
+            $('#cl-filter-banner').addClass('is-visible');
+
+            return filter;
+        };
+
+        window.resolveCustomerListFilter = function () {
+            const params = new URLSearchParams(window.location.search);
+            const urlFilter = params.get('filter');
+            if (urlFilter) {
+                return urlFilter;
+            }
+
+            if ($('#all_list').is(':checked')) return 'all';
+            if ($('#all_active_list').is(':checked')) return 'all_active';
+            if ($('#active_customer').is(':checked')) return 'active';
+            if ($('#without_collection_list').is(':checked')) return 'without_collection';
+            if ($('#collection_list').is(':checked')) return 'collection';
+            if ($('#pending_customer').is(':checked')) return 'pending';
+            if ($('#disable_customer').is(':checked')) return 'disable';
+            if ($('#free_customer').is(':checked')) return 'free';
+            if ($('#vip_customer').is(':checked')) return 'vip';
+            if ($('#corporate_customer').is(':checked')) return 'corporate';
+            if ($('#inactive_customer').is(':checked')) return 'inactive';
+            if ($('#expired_customer').is(':checked')) return 'expired';
+            if ($('#expired_today_customer').is(':checked')) return 'expired_today';
+            if ($('#joined_today_customer').is(':checked')) return 'joined_today';
+            if ($('#joined_month_customer').is(':checked')) return 'joined_month';
+            if ($('#online_customer').is(':checked')) return 'online';
+            if ($('#offline_customer').is(':checked')) return 'offline';
+            if ($('#inactive_due_customer').is(':checked')) return 'inactive_due';
+
+            const checkedRadio = $('input[name="collection"]:checked');
+            const checkedId = checkedRadio.attr('id');
+            if (checkedId && checkedId.startsWith('reseller_')) {
+                return 'reseller';
+            }
+
+            return 'all_active';
+        };
+
         window.initCustomerListTable = function () {
             var $table = $('.customer-table');
             if (!$table.length || typeof $ === 'undefined' || !$.fn || !$.fn.DataTable) {
@@ -480,6 +594,8 @@
             $.ajaxSetup({
                 headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') }
             });
+
+            window.applyCustomerListFilterFromUrl();
 
             var table = $table.DataTable({
                 processing: true,
@@ -548,49 +664,14 @@
                     },
                     data: function(d) {
                         d._token = $('meta[name="csrf-token"]').attr('content');
-                        var checkedRadio = $('input[name="collection"]:checked');
-                        var checkedId = checkedRadio.attr('id');
+                        var filter = window.resolveCustomerListFilter();
+                        d.filter = filter;
 
-                        if ($('#all_list').is(':checked')) {
-                            d.filter = 'all';
-                        } else if ($('#all_active_list').is(':checked')) {
-                            d.filter = 'all_active';
-                        } else if ($('#active_customer').is(':checked')) {
-                            d.filter = 'active';
-                        } else if ($('#without_collection_list').is(':checked')) {
-                            d.filter = 'without_collection';
-                        } else if ($('#collection_list').is(':checked')) {
-                            d.filter = 'collection';
-                        } else if ($('#pending_customer').is(':checked')) {
-                            d.filter = 'pending';
-                        }else if ($('#disable_customer').is(':checked')) {
-                            d.filter = 'disable';
-                        }else if ($('#free_customer').is(':checked')) {
-                            d.filter = 'free';
-                        }else if ($('#vip_customer').is(':checked')) {
-                            d.filter = 'vip';
-                        }else if ($('#corporate_customer').is(':checked')) {
-                            d.filter = 'corporate';
-                        }else if ($('#inactive_customer').is(':checked')) {
-                            d.filter = 'inactive';
-                        }else if ($('#expired_customer').is(':checked')) {
-                            d.filter = 'expired';
-                        }else if ($('#expired_today_customer').is(':checked')) {
-                            d.filter = 'expired_today';
-                        }else if ($('#joined_today_customer').is(':checked')) {
-                            d.filter = 'joined_today';
-                        }else if ($('#joined_month_customer').is(':checked')) {
-                            d.filter = 'joined_month';
-                        }else if ($('#online_customer').is(':checked')) {
-                            d.filter = 'online';
-                        }else if ($('#offline_customer').is(':checked')) {
-                            d.filter = 'offline';
-                        }else if ($('#inactive_due_customer').is(':checked')) {
-                            d.filter = 'inactive_due';
-                        }else if (checkedId && checkedId.startsWith('reseller_')) {
-                            d.filter = 'reseller';
+                        if (filter === 'reseller') {
+                            var checkedRadio = $('input[name="collection"]:checked');
                             d.reseller_id = checkedRadio.data('reseller-id');
                         }
+
                         d.router_name = $('#router_filter').val();
                         if (!d.search) d.search = {};
                         if (!d.search.value) {
@@ -753,10 +834,17 @@
                 $('.dt-search input').val('');
             }
 
-            $('input[name="collection"]').off('change.customerList').on('change.customerList', function() { 
+            $('input[name="collection"]').off('change.customerList').on('change.customerList', function() {
                 resetTableState();
-                table.clear().draw(); 
-                table.ajax.reload(null, true); 
+                const filter = window.resolveCustomerListFilter();
+                if (filter && window.customerListFilterLabels[filter]) {
+                    $('#cl-filter-banner-text').text(window.customerListFilterLabels[filter]);
+                    $('#cl-filter-banner').addClass('is-visible');
+                } else {
+                    $('#cl-filter-banner').removeClass('is-visible');
+                }
+                table.clear().draw();
+                table.ajax.reload(null, true);
             });
 
             $('#router_filter').off('change.customerList').on('change.customerList', function() { 
@@ -853,40 +941,6 @@
 
         bootCustomerListTable();
         document.addEventListener('livewire:navigated', bootCustomerListTable);
-
-        // Dashboard deep-link: /customers?filter=expired
-        (function applyUrlFilter() {
-            const params = new URLSearchParams(window.location.search);
-            const f = params.get('filter');
-            if (!f) return;
-            const map = {
-                all: '#all_list',
-                all_active: '#all_active_list',
-                active: '#active_customer',
-                pending: '#pending_customer',
-                disable: '#disable_customer',
-                inactive: '#inactive_customer',
-                expired: '#expired_customer',
-                expired_today: '#expired_today_customer',
-                joined_today: '#joined_today_customer',
-                joined_month: '#joined_month_customer',
-                online: '#online_customer',
-                offline: '#offline_customer',
-                inactive_due: '#inactive_due_customer',
-                free: '#free_customer',
-            };
-            const sel = map[f];
-            if (sel && document.querySelector(sel)) {
-                document.querySelector(sel).checked = true;
-                setTimeout(function () {
-                    if (window.customerListTable) {
-                        window.customerListTable.ajax.reload();
-                    } else {
-                        $(sel).trigger('change');
-                    }
-                }, 600);
-            }
-        })();
     </script>
 @endpush
 
