@@ -27,6 +27,8 @@ class ManageRole extends Component
 
     public $roleId;
 
+    public $role;
+
     public $perPage = 10;
 
     public $confirmingRole = false;
@@ -91,11 +93,9 @@ class ManageRole extends Component
             'permissions.*' => 'integer|exists:permissions,id',
         ]);
 
-        $permissionIds = Permission::query()
-            ->whereIn('id', $this->permissions ?? [])
-            ->pluck('id')
-            ->map(fn ($id) => (int) $id)
-            ->all();
+        $permissionModels = Permission::query()
+            ->whereIn('id', collect($this->permissions ?? [])->map(fn ($id) => (int) $id)->filter()->all())
+            ->get();
 
         try {
             if ($this->roleId) {
@@ -111,12 +111,12 @@ class ManageRole extends Component
                     return;
                 }
                 $role->name = $this->name;
-                $role->syncPermissions($permissionIds);
+                $role->syncPermissions($permissionModels);
                 $role->save();
                 flash()->success('Role updated successfully.');
             } else {
                 $role = Role::create(['guard_name' => 'web', 'name' => $this->name]);
-                $role->syncPermissions($permissionIds);
+                $role->syncPermissions($permissionModels);
                 flash()->success('Role created successfully.');
             }
 
