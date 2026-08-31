@@ -32,6 +32,22 @@ fi
 if [ -n "${APP_URL}" ]; then
   sed -i "s|^APP_URL=.*|APP_URL=${APP_URL}|" .env || true
 fi
+# NextDeploy panel often leaves APP_URL empty/localhost — derive from APP_DOMAIN.
+if [ -n "${APP_DOMAIN}" ]; then
+  grep -q '^APP_DOMAIN=' .env 2>/dev/null || echo "APP_DOMAIN=${APP_DOMAIN}" >> .env
+  sed -i "s/^APP_DOMAIN=.*/APP_DOMAIN=${APP_DOMAIN}/" .env || true
+  current_url="$(grep '^APP_URL=' .env 2>/dev/null | cut -d= -f2- | tr -d '"')"
+  if [ -z "$current_url" ] || [ "$current_url" = "http://localhost" ] || [ "$current_url" = "https://localhost" ] || [ "$current_url" = "http://127.0.0.1" ]; then
+    sed -i "s|^APP_URL=.*|APP_URL=https://${APP_DOMAIN}|" .env || echo "APP_URL=https://${APP_DOMAIN}" >> .env
+  fi
+  if ! grep -q '^SESSION_DOMAIN=' .env 2>/dev/null || grep -q 'SESSION_DOMAIN=\.mikrotik-api\.test' .env 2>/dev/null; then
+    if grep -q '^SESSION_DOMAIN=' .env 2>/dev/null; then
+      sed -i "s/^SESSION_DOMAIN=.*/SESSION_DOMAIN=.${APP_DOMAIN}/" .env || true
+    else
+      echo "SESSION_DOMAIN=.${APP_DOMAIN}" >> .env
+    fi
+  fi
+fi
 if [ -n "${APP_ENV}" ]; then
   sed -i "s/^APP_ENV=.*/APP_ENV=${APP_ENV}/" .env || true
 fi

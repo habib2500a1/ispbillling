@@ -95,7 +95,7 @@ Route::get('/saas/tls-ask', SaasTlsAskController::class)->name('saas.tls-ask');
 $currentHost = request()->getHost();
 if ($currentHost && ! SaasDomain::isAllowedHost($currentHost)) {
     Route::any('{any}', function () {
-        return redirect()->away(config('app.url') . '/warning');
+        return redirect()->route('warning');
     })->where('any', '.*');
 }
 

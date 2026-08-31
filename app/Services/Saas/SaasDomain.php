@@ -32,11 +32,17 @@ final class SaasDomain
         $base = parse_url((string) config('app.url'), PHP_URL_HOST) ?: (string) config('app.url');
         $base = strtolower(preg_replace('/^www\./', '', (string) $base) ?: '');
 
+        $domain = self::normalize(env('APP_DOMAIN')) ?? ($base !== 'localhost' && $base !== '127.0.0.1' ? $base : null);
+
         $hosts = array_filter([
-            $base,
-            $base !== '' ? 'www.'.$base : null,
-            $base !== '' ? 'portal.'.$base : null,
-            $base !== '' ? 'billing.'.$base : null,
+            $base !== 'localhost' && $base !== '127.0.0.1' ? $base : null,
+            $base !== '' && $base !== 'localhost' ? 'www.'.$base : null,
+            $base !== '' && $base !== 'localhost' ? 'portal.'.$base : null,
+            $base !== '' && $base !== 'localhost' ? 'billing.'.$base : null,
+            $domain,
+            $domain ? 'www.'.$domain : null,
+            $domain ? 'portal.'.$domain : null,
+            $domain ? 'billing.'.$domain : null,
             'localhost',
             '127.0.0.1',
         ]);
