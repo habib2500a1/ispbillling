@@ -38,19 +38,51 @@
         </div>
     </div>
 
-    <div class="card border-0 shadow-sm rounded-4 mb-3" style="border-left: 5px solid #1e3a5f !important;">
+    <div class="card border-0 shadow-sm rounded-4 mb-3 overflow-hidden">
+        <div class="px-3 py-2 d-flex align-items-center justify-content-between" style="background:#1e3a5f;color:#fff;">
+            <span class="fw-bold text-uppercase small">{{ __('Quick setting') }}</span>
+            <i class="bi bi-sliders"></i>
+        </div>
         <div class="card-body">
-            <div class="d-flex flex-wrap align-items-start justify-content-between gap-2">
-                <div>
-                    <h6 class="fw-bold mb-1">{{ __('Invoice & billing rules') }}</h6>
-                    <p class="small text-muted mb-0">{{ __('Bill day, SMS, late fee, invoice PDF, and auto-disable are managed on Site Settings → Billing & Invoice.') }}</p>
+            <div class="row g-3">
+                <div class="col-12 col-lg-6">
+                    <div class="border rounded-3 p-3 h-100">
+                        <div class="fw-semibold mb-1">{{ __('Bill generate period as?') }}</div>
+                        <div class="small text-muted mb-3">{{ __('Start of the month bills every client on the 1st after midnight. Date to date uses each client’s own day.') }}</div>
+                        <div class="form-check mb-2">
+                            <input class="form-check-input" type="radio" id="apBillStart" value="global" wire:model.live="bill_generate_mode">
+                            <label class="form-check-label fw-semibold" for="apBillStart">{{ __('Start of the month') }}</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" id="apBillDate" value="customer" wire:model.live="bill_generate_mode">
+                            <label class="form-check-label fw-semibold" for="apBillDate">{{ __('Date to date') }}</label>
+                        </div>
+                    </div>
                 </div>
-                <a href="{{ route('site-settings', ['tab' => 'billing']) }}" class="btn btn-sm btn-primary">
-                    <i class="bi bi-sliders me-1"></i>{{ __('Open Billing & Invoice') }}
-                </a>
+                <div class="col-12 col-lg-6">
+                    <div class="border rounded-3 p-3 h-100">
+                        <div class="fw-semibold mb-1">{{ __('Allow inactive process at the last day of the month?') }}</div>
+                        <div class="small text-muted mb-3">{{ __('If No, unpaid clients stay on through the last calendar day.') }}</div>
+                        <div class="form-check mb-2">
+                            <input class="form-check-input" type="radio" id="apEomYes" @checked($eom_inactive_process) wire:click="$set('eom_inactive_process', true)">
+                            <label class="form-check-label fw-semibold" for="apEomYes">{{ __('Yes, I want.') }}</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" id="apEomNo" @checked(! $eom_inactive_process) wire:click="$set('eom_inactive_process', false)">
+                            <label class="form-check-label fw-semibold" for="apEomNo">{{ __('No, I don’t.') }}</label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="d-flex flex-wrap gap-2 mt-3">
+                <button type="button" class="btn btn-sm btn-primary" wire:click="saveRules" wire:loading.attr="disabled">
+                    <i class="bi bi-check2 me-1"></i>{{ __('Save') }}
+                </button>
+                <a href="{{ route('site-settings', ['tab' => 'billing']) }}" class="btn btn-sm btn-outline-secondary">{{ __('More clocks on Billing & Invoice') }}</a>
             </div>
         </div>
     </div>
+
     <div class="d-none">
         <div class="card-body">
             <div class="d-flex flex-wrap align-items-start justify-content-between gap-2 mb-3">

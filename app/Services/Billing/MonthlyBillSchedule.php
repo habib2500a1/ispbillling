@@ -24,4 +24,11 @@ final class MonthlyBillSchedule
 
         return (int) $date->day === $effective;
     }
+
+    public static function eomInactiveAllowed(): bool
+    {
+        $raw = MainSiteData::getValue('eom_inactive_process', 1);
+
+        return $raw === true || $raw === 1 || $raw === '1' || $raw === 'yes';
+    }
 }

@@ -76,6 +76,36 @@ class BillingAdjustmentsTest extends TestCase
         $this->assertEquals(15.0, (float) MainSiteData::getValue('late_fee_per_day'));
     }
 
+    public function test_quick_setting_saves_start_of_month_and_last_day_inactive(): void
+    {
+        $this->actingAs($this->admin());
+
+        Livewire::test(MainSiteSetup::class)
+            ->set('activeTab', 'billing')
+            ->set('bill_generate_mode', 'global')
+            ->set('bill_generate_at', '00:05')
+            ->set('bill_generate_on', true)
+            ->set('eom_inactive_process', true)
+            ->call('save', 'billing')
+            ->assertHasNoErrors();
+
+        $this->assertSame('global', MainSiteData::getValue('monthly_bill_mode'));
+        $this->assertSame(1, (int) MainSiteData::getValue('monthly_bill_day'));
+        $this->assertTrue(\App\Services\Billing\MonthlyBillSchedule::eomInactiveAllowed());
+    }
+
+    public function test_disable_unpaid_skips_last_calendar_day_when_turned_off(): void
+    {
+        MainSiteData::setValue('eom_inactive_process', 0);
+        Carbon::setTestNow(Carbon::parse('2026-08-31 11:00', 'Asia/Dhaka'));
+
+        $this->artisan('cpagol:disable-unpaid-users')
+            ->expectsOutputToContain('Skipping disable')
+            ->assertSuccessful();
+
+        Carbon::setTestNow();
+    }
+
     public function test_global_bill_day_skips_other_dates(): void
     {
         MainSiteData::setValue('monthly_bill_mode', 'global');

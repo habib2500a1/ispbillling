@@ -662,6 +662,61 @@
                                     </small>
                                 </div>
                                 <div class="col-12">
+                                    <div class="rounded-3 overflow-hidden mb-3" style="border:1px solid #dbe4f0;">
+                                        <div class="px-3 py-2 d-flex align-items-center justify-content-between" style="background:#1e3a5f;color:#fff;">
+                                            <span class="fw-bold text-uppercase small letter-spacing">{{ __('Quick setting') }}</span>
+                                            <i class="bi bi-sliders"></i>
+                                        </div>
+                                        <div class="p-3 bg-white">
+                                            <div class="row g-3">
+                                                <div class="col-12 col-lg-6">
+                                                    <div class="border rounded-3 p-3 h-100">
+                                                        <div class="fw-semibold mb-1">{{ __('Bill generate period as?') }}</div>
+                                                        <div class="small text-muted mb-3">{{ __('Start of the month = every client billed on the 1st after midnight. Date to date = each client’s own expire / billing day.') }}</div>
+                                                        <div class="form-check mb-2">
+                                                            <input class="form-check-input" type="radio" name="bill_generate_mode" id="billModeStart" value="global" wire:model.live="bill_generate_mode">
+                                                            <label class="form-check-label fw-semibold" for="billModeStart">{{ __('Start of the month') }}</label>
+                                                        </div>
+                                                        <div class="form-check mb-3">
+                                                            <input class="form-check-input" type="radio" name="bill_generate_mode" id="billModeDate" value="customer" wire:model.live="bill_generate_mode">
+                                                            <label class="form-check-label fw-semibold" for="billModeDate">{{ __('Date to date') }}</label>
+                                                        </div>
+                                                        <label class="form-label small mb-1">{{ __('Generate clock') }}</label>
+                                                        <input type="time" class="form-control form-control-sm rounded-3 mb-2" wire:model.live="bill_generate_at">
+                                                        <div class="form-check form-switch">
+                                                            <input class="form-check-input" type="checkbox" role="switch" id="qs_bill_on" wire:model.live="bill_generate_on">
+                                                            <label class="form-check-label small" for="qs_bill_on">{{ __('Job on') }}</label>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-12 col-lg-6">
+                                                    <div class="border rounded-3 p-3 h-100">
+                                                        <div class="fw-semibold mb-1">{{ __('Allow inactive process at the last day of the month?') }}</div>
+                                                        <div class="small text-muted mb-3">{{ __('If No, unpaid clients are not auto-off on the last calendar day.') }}</div>
+                                                        <div class="form-check mb-2">
+                                                            <input class="form-check-input" type="radio" name="eom_inactive_process" id="eomYes" @checked($eom_inactive_process) wire:click="$set('eom_inactive_process', true)">
+                                                            <label class="form-check-label fw-semibold" for="eomYes">{{ __('Yes, I want.') }}</label>
+                                                        </div>
+                                                        <div class="form-check mb-3">
+                                                            <input class="form-check-input" type="radio" name="eom_inactive_process" id="eomNo" @checked(! $eom_inactive_process) wire:click="$set('eom_inactive_process', false)">
+                                                            <label class="form-check-label fw-semibold" for="eomNo">{{ __('No, I don’t.') }}</label>
+                                                        </div>
+                                                        <label class="form-label small mb-1">{{ __('Auto-off clock (every day)') }}</label>
+                                                        <input type="time" class="form-control form-control-sm rounded-3 mb-2" wire:model.live="disable_at">
+                                                        <div class="form-check form-switch">
+                                                            <input class="form-check-input" type="checkbox" role="switch" id="qs_disable_on" wire:model.live="disable_on">
+                                                            <label class="form-check-label small" for="qs_disable_on">{{ __('Auto-off job on') }}</label>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="mt-3">
+                                                <a href="{{ route('automatic-processes') }}" class="small">
+                                                    <i class="bi bi-clock-history me-1"></i>{{ __('Open Automatic Processes to edit every job time') }}
+                                                </a>
+                                            </div>
+                                        </div>
+                                    </div>
                                     <div class="p-3 border rounded-3 bg-light bg-opacity-50">
                                         <div class="fw-bold mb-1">{{ __('Invoice schedule') }}</div>
                                         <div class="small text-muted mb-3">{{ __('Generate, SMS, late fee, and auto-disable are all saved from this tab.') }}</div>
@@ -675,12 +730,16 @@
                                                             <label class="form-check-label small" for="bill_generate_on">{{ __('On') }}</label>
                                                         </div>
                                                     </div>
+                                                    @if($bill_generate_mode === 'customer')
                                                     <label class="form-label small mb-1">{{ __('Bill day') }}</label>
                                                     <select class="form-select form-select-sm rounded-3 mb-2" wire:model.live="bill_generate_day">
                                                         @for ($d = 1; $d <= 28; $d++)
                                                             <option value="{{ $d }}">{{ $d }}</option>
                                                         @endfor
                                                     </select>
+                                                    @else
+                                                    <div class="small text-muted mb-2">{{ __('All clients: 1st of the month.') }}</div>
+                                                    @endif
                                                     <label class="form-label small mb-1">{{ __('Clock') }}</label>
                                                     <input type="time" class="form-control form-control-sm rounded-3 mb-2" wire:model.live="bill_generate_at">
                                                     <label class="form-label small mb-1">{{ __('Who gets the invoice') }}</label>

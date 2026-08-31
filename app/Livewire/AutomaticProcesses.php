@@ -46,6 +46,12 @@ class AutomaticProcesses extends Component
 
     public int $log_retention_days = 30;
 
+    public string $bill_generate_mode = 'customer';
+
+    public int $bill_generate_day = 1;
+
+    public bool $eom_inactive_process = true;
+
     public string $bill_generate_at = '23:45';
 
     public bool $bill_generate_on = true;
@@ -82,6 +88,9 @@ class AutomaticProcesses extends Component
         $this->late_fee_per_day = (float) (MainSiteData::getValue('late_fee_per_day', 10) ?: 0);
         $this->late_fee_grace_days = max(0, (int) (MainSiteData::getValue('late_fee_grace_days', 0) ?: 0));
         $this->log_retention_days = max(1, (int) (MainSiteData::getValue('log_retention_days', 30) ?: 30));
+        $this->bill_generate_mode = MainSiteData::getValue('monthly_bill_mode', 'customer') === 'global' ? 'global' : 'customer';
+        $this->bill_generate_day = max(1, min(28, (int) (MainSiteData::getValue('monthly_bill_day', 1) ?: 1)));
+        $this->eom_inactive_process = \App\Services\Billing\MonthlyBillSchedule::eomInactiveAllowed();
 
         $this->bill_generate_at = $this->clockOf('generate-monthly-bills', '23:45');
         $this->bill_generate_on = $this->enabledOf('generate-monthly-bills');
@@ -118,6 +127,9 @@ class AutomaticProcesses extends Component
         MainSiteData::setValue('late_fee_per_day', $this->late_fee_per_day);
         MainSiteData::setValue('late_fee_grace_days', $this->late_fee_grace_days);
         MainSiteData::setValue('log_retention_days', $this->log_retention_days);
+        MainSiteData::setValue('monthly_bill_mode', $this->bill_generate_mode);
+        MainSiteData::setValue('monthly_bill_day', $this->bill_generate_mode === 'global' ? 1 : (int) $this->bill_generate_day);
+        MainSiteData::setValue('eom_inactive_process', $this->eom_inactive_process ? 1 : 0);
 
         $this->applyJobClock('generate-monthly-bills', $this->bill_generate_at, $this->bill_generate_on);
         $this->applyJobClock('monthly-bill-sms', $this->sms_send_at, $this->sms_send_on);

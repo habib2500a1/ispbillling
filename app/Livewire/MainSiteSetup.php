@@ -73,6 +73,8 @@ class MainSiteSetup extends Component implements HasActions, HasForms
 
     public int $late_fee_grace_days = 0;
 
+    public bool $eom_inactive_process = true;
+
     public bool $operatorSetup = false;
 
     public function mount(): void
@@ -249,6 +251,7 @@ class MainSiteSetup extends Component implements HasActions, HasForms
         $this->payment_reminder_days = max(0, (int) (MainSiteData::getValue('payment_reminder_days', 2) ?? 2));
         $this->late_fee_per_day = (float) (MainSiteData::getValue('late_fee_per_day', 10) ?: 0);
         $this->late_fee_grace_days = max(0, (int) (MainSiteData::getValue('late_fee_grace_days', 0) ?: 0));
+        $this->eom_inactive_process = \App\Services\Billing\MonthlyBillSchedule::eomInactiveAllowed();
     }
 
     private function saveBillClock(): void
@@ -272,6 +275,11 @@ class MainSiteSetup extends Component implements HasActions, HasForms
         MainSiteData::setValue('payment_reminder_days', (int) $this->payment_reminder_days);
         MainSiteData::setValue('late_fee_per_day', $this->late_fee_per_day);
         MainSiteData::setValue('late_fee_grace_days', (int) $this->late_fee_grace_days);
+        MainSiteData::setValue('eom_inactive_process', $this->eom_inactive_process ? 1 : 0);
+        if ($this->bill_generate_mode === 'global') {
+            $this->bill_generate_day = 1;
+            MainSiteData::setValue('monthly_bill_day', 1);
+        }
 
         $this->applyJobClock('generate-monthly-bills', $this->bill_generate_at, $this->bill_generate_on);
         $this->applyJobClock('monthly-bill-sms', $this->sms_send_at, $this->sms_send_on);
@@ -598,6 +606,7 @@ class MainSiteSetup extends Component implements HasActions, HasForms
                 'payment_reminder_days' => 'integer|min:0|max:30',
                 'late_fee_per_day' => 'numeric|min:0|max:99999',
                 'late_fee_grace_days' => 'integer|min:0|max:90',
+                'eom_inactive_process' => 'boolean',
             ],
             default => [],
         };
