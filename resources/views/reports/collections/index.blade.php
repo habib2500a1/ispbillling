@@ -11,10 +11,20 @@
         .cr-page .form-label { font-weight:700; font-size:.8rem; color:var(--cr-navy); }
         .cr-page .form-control, .cr-page .form-select, .cr-page .btn-cr { min-height:44px; }
         .cr-page .btn-cr { background:var(--cr-teal); border-color:var(--cr-teal); font-weight:700; color:#fff; }
-        .cr-page .table { margin-bottom:0; }
+        .cr-page .cr-card,
+        .cr-page .card-body { overflow:visible; }
+        .cr-page .table { margin-bottom:0; width:max-content !important; min-width:920px; }
         .cr-page .table thead th { white-space:nowrap; font-size:.8rem; color:var(--cr-navy); background:#f8fafc; }
-        .cr-page .table td { vertical-align:middle; font-size:.9rem; }
-        .cr-page .cr-table-wrap { overflow-x:auto; -webkit-overflow-scrolling:touch; }
+        .cr-page .table td { vertical-align:middle; font-size:.9rem; white-space:nowrap; }
+        .cr-page .cr-table-wrap,
+        .cr-page .dataTables_wrapper,
+        .cr-page .dataTables_scroll,
+        .cr-page .dataTables_scrollHead,
+        .cr-page .dataTables_scrollBody {
+            overflow-x:auto !important;
+            -webkit-overflow-scrolling:touch;
+            max-width:100%;
+        }
         .cr-page .dt-buttons { display:flex; flex-wrap:wrap; gap:.4rem; }
         .cr-page .dt-buttons .dt-button,
         .cr-page .dt-buttons .btn {
@@ -38,15 +48,14 @@
         @media (max-width: 767.98px) {
             .cr-page .cr-head { gap:.35rem; }
             .cr-page .cr-stat .cr-value { font-size:1.35rem; }
-            .cr-page .cr-table-wrap { margin:0 -0.75rem; padding:0 .25rem; }
+            .cr-page .cr-table-wrap { margin:0 -0.35rem; }
             .cr-page .dataTables_filter { width:100%; }
             .cr-page .dataTables_filter label,
             .cr-page .dataTables_filter input { width:100% !important; }
             .cr-page .dataTables_length { width:100%; }
             .cr-page .dataTables_info, .cr-page .dataTables_paginate { width:100%; }
             .cr-page .dataTables_paginate { overflow-x:auto; }
-            .cr-page .table td, .cr-page .table th { white-space:nowrap; }
-            .cr-page .cr-addr { max-width:180px; overflow:hidden; text-overflow:ellipsis; }
+            .cr-page .cr-swipe-hint { display:block; }
         }
         @media (min-width: 768px) {
             .cr-page .cr-filters .form-control,
@@ -131,9 +140,10 @@
                 </form>
             </div>
 
-            <div class="card-body pt-0 px-3 px-md-4 pb-3 pb-md-4">
+            <div class="card-body pt-0 px-2 px-md-4 pb-3 pb-md-4">
+                <p class="small text-muted mb-2 d-md-none cr-swipe-hint">{{ __('Swipe sideways to see the full table.') }}</p>
                 <div class="cr-table-wrap">
-                    <table class="table table-hover table-bordered align-middle nowrap w-100" id="collection-report-table">
+                    <table class="table table-hover table-bordered align-middle nowrap" id="collection-report-table">
                         <thead>
                             <tr>
                                 <th>{{ __('Id') }}</th>
@@ -196,9 +206,9 @@
                     $table.DataTable({
                         processing: true,
                         serverSide: true,
-                        autoWidth: false,
-                        responsive: true,
-                        scrollX: isMobile(),
+                        autoWidth: true,
+                        responsive: false,
+                        scrollX: true,
                         pageLength: isMobile() ? 10 : 25,
                         lengthMenu: [[10, 25, 50, 100, -1], [10, 25, 50, 100, 'All']],
                         dom: "<'cr-dt-toolbar'<'cr-dt-buttons'B><'cr-dt-search'f>>t<'cr-dt-foot'<'cr-dt-len'l><'cr-dt-info'i><'cr-dt-page'p>>",
@@ -207,12 +217,6 @@
                             { extend: 'excel', text: 'Excel' },
                             { extend: 'pdf', text: 'PDF' },
                             { extend: 'print', text: 'Print' }
-                        ],
-                        columnDefs: [
-                            { responsivePriority: 1, targets: [2, 5, 6] },
-                            { responsivePriority: 2, targets: [1] },
-                            { responsivePriority: 3, targets: [0, 4] },
-                            { responsivePriority: 4, targets: 3 }
                         ],
                         ajax: {
                             url: "{{ route('collection-report.index') }}",
