@@ -323,7 +323,7 @@
                             <td>{{ $col->collection_date ? \Carbon\Carbon::parse($col->collection_date)->format('d M Y H:i') : '—' }}</td>
                             <td class="font-monospace">{{ $col->invoice_no ? '#'.siteUrlSettings('site_invoice_prefix').$col->invoice_no : '#'.$col->id }}</td>
                             <td class="text-end fw-semibold text-success">{{ number_format((float)($col->collection_amount ?? 0), 2) }}</td>
-                            <td>{{ $col->collected_by ?? '—' }}</td>
+                            <td>{{ collectorDisplayName($col->collected_by ?? null) }}</td>
                             <td><span class="badge bg-success">{{ $col->payment_status ?? 'paid' }}</span></td>
                             <td class="text-end text-nowrap no-print">
                                 <a href="{{ route('collection-invoice.show', $col->id) }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-primary" title="{{ __('View invoice') }}">

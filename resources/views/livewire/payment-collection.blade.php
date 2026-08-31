@@ -199,6 +199,16 @@
                                     <label class="form-label small fw-semibold mb-1" for="expire_date">{{ __('Expire Date') }}</label>
                                     <input type="date" class="form-control form-control-sm" name="expire_date" id="expire_date" wire:model.live="expire_date" style="border-radius: 6px;">
                                 </div>
+                                @if($canPickCollector ?? false)
+                                <div class="col-12 col-md-6">
+                                    <label class="form-label small fw-semibold mb-1" for="collector_email">{{ __('Staff name') }}</label>
+                                    <select id="collector_email" class="form-select form-select-sm" wire:model="collector_email" style="border-radius: 6px;">
+                                        @foreach ($collectorChoices as $choice)
+                                            <option value="{{ $choice->email }}">{{ $choice->name }}@if($choice->email && $choice->name !== $choice->email) ({{ $choice->email }})@endif</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                                @endif
                                 <div class="col-12 col-md-9">
                                     <div class="small text-muted">
                                         {{ __('Payable after discount/advance') }}:

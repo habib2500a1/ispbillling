@@ -47,7 +47,7 @@ final class StaffCashService
         $collections = CollectionSummary::query()
             ->when($operator, fn ($q) => $q->withoutGlobalScope('saas_tenant'))
             ->whereBetween('collection_date', [$fromAt, $toAt])
-            ->when($emails !== [], fn ($q) => $q->whereIn('collected_by', $emails))
+            ->when($emails !== [] && $operator, fn ($q) => $q->whereIn('collected_by', $emails))
             ->selectRaw('collected_by, SUM(collection_amount) as total, COUNT(*) as cnt')
             ->groupBy('collected_by')
             ->get()
@@ -80,6 +80,26 @@ final class StaffCashService
                 'due' => $due,
                 'receipts' => $receipts,
             ];
+        }
+
+        if (! $operator) {
+            $known = array_map('strtolower', $emails);
+            foreach ($collections as $by => $col) {
+                if (in_array(strtolower((string) $by), $known, true)) {
+                    continue;
+                }
+                $rows[] = [
+                    'user' => User::make([
+                        'name' => collectorDisplayName((string) $by),
+                        'email' => (string) $by,
+                    ]),
+                    'collected' => (float) ($col->total ?? 0),
+                    'deposited' => 0.0,
+                    'adjusted' => 0.0,
+                    'due' => (float) ($col->total ?? 0),
+                    'receipts' => (int) ($col->cnt ?? 0),
+                ];
+            }
         }
 
         usort($rows, fn ($a, $b) => $b['collected'] <=> $a['collected']);
@@ -129,7 +149,7 @@ final class StaffCashService
                 }
             }])
             ->whereBetween('collection_date', [$fromAt, $toAt])
-            ->when($emails !== [], fn ($q) => $q->whereIn('collected_by', $emails))
+            ->when($emails !== [] && $operator, fn ($q) => $q->whereIn('collected_by', $emails))
             ->orderByDesc('collection_date')
             ->limit($limit)
             ->get()

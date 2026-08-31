@@ -181,6 +181,80 @@ if (! function_exists('canReviewAllCollections')) {
     }
 }
 
+if (! function_exists('collectionCollectorAliases')) {
+    /**
+     * @return list<string>
+     */
+    function collectionCollectorAliases(string $collector): array
+    {
+        $collector = trim($collector);
+        if ($collector === '') {
+            return [];
+        }
+
+        $aliases = [$collector];
+        try {
+            $user = \App\Models\User::query()
+                ->where(function ($q) use ($collector) {
+                    $q->where('email', $collector)->orWhere('name', $collector);
+                })
+                ->first(['name', 'email']);
+            if ($user) {
+                $aliases[] = (string) $user->email;
+                $aliases[] = (string) $user->name;
+            }
+        } catch (\Throwable) {
+        }
+
+        return array_values(array_unique(array_filter($aliases)));
+    }
+}
+
+if (! function_exists('collectionCollectorChoices')) {
+    function collectionCollectorChoices(?bool $seeAll = null): \Illuminate\Support\Collection
+    {
+        $seeAll ??= canReviewAllCollections();
+        if (! $seeAll) {
+            return collect([auth()->user()])->filter();
+        }
+
+        $query = \App\Models\User::query()->select('id', 'name', 'email')->orderBy('name');
+        $operator = \App\Services\Saas\SaasContext::operator();
+        if ($operator && ! canSellSaas()) {
+            $query->where(function ($q) use ($operator) {
+                $q->where('saas_operator_id', $operator->id)
+                    ->orWhere('id', $operator->user_id);
+            });
+        }
+
+        $users = $query->get();
+        $known = $users->pluck('email')->filter()->map(fn ($email) => strtolower((string) $email))->all();
+
+        try {
+            $extras = \App\Models\CollectionSummary::query()
+                ->select('collected_by')
+                ->whereNotNull('collected_by')
+                ->where('collected_by', '!=', '')
+                ->distinct()
+                ->pluck('collected_by');
+            foreach ($extras as $raw) {
+                $raw = trim((string) $raw);
+                if ($raw === '' || in_array(strtolower($raw), $known, true)) {
+                    continue;
+                }
+                $users->push(\App\Models\User::make([
+                    'name' => collectorDisplayName($raw),
+                    'email' => $raw,
+                ]));
+                $known[] = strtolower($raw);
+            }
+        } catch (\Throwable) {
+        }
+
+        return $users->sortBy(fn ($user) => strtolower((string) $user->name))->values();
+    }
+}
+
 if (! function_exists('collectorDisplayName')) {
     function collectorDisplayName(?string $value): string
     {

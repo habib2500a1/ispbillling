@@ -3,8 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Models\CollectionSummary;
-use App\Models\User;
-use App\Services\Saas\SaasContext;
 use Carbon\Carbon;
 use DataTables;
 use Illuminate\Http\Request;
@@ -134,26 +132,13 @@ class CollectionReportController extends Controller
         }
 
         if ($collector !== '') {
-            $query->where('collected_by', $collector);
+            $query->whereIn('collected_by', collectionCollectorAliases($collector));
         }
     }
 
     private function collectorsForViewer(bool $seeAll)
     {
-        if (! $seeAll) {
-            return collect([auth()->user()]);
-        }
-
-        $query = User::query()->select('name', 'email')->orderBy('name');
-        $operator = SaasContext::operator();
-        if ($operator && ! canSellSaas()) {
-            $query->where(function ($q) use ($operator) {
-                $q->where('saas_operator_id', $operator->id)
-                    ->orWhere('id', $operator->user_id);
-            });
-        }
-
-        return $query->get();
+        return collectionCollectorChoices($seeAll);
     }
 
     private function dateOrDefault(mixed $value, string $fallback): string

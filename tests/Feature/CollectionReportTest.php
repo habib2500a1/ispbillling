@@ -110,4 +110,42 @@ class CollectionReportTest extends TestCase
         $this->assertContains('Field Staff', $names);
         $this->assertContains('Main Admin', $names);
     }
+
+    public function test_super_admin_sees_collections_entered_under_another_name(): void
+    {
+        $admin = $this->admin();
+        CustomersInfo::create([
+            'customer_unique_id' => 'CR-OTHER',
+            'customer_name' => 'Other Name Client',
+            'mobile' => '01700000992',
+            'status' => 'active',
+        ]);
+        CollectionSummary::create([
+            'customer_collection_unique_id' => 'CR-OTHER',
+            'collection_date' => now(),
+            'collection_amount' => 500,
+            'collected_by' => 'rohan9222@gmail.com',
+            'invoice_no' => 100003,
+            'payment_status' => 'paid',
+        ]);
+
+        $html = $this->actingAs($admin)
+            ->get(route('collection-report.index'))
+            ->assertOk()
+            ->getContent();
+        $this->assertStringContainsString('rohan9222@gmail.com', $html);
+
+        $json = $this->actingAs($admin)
+            ->withHeaders(['X-Requested-With' => 'XMLHttpRequest'])
+            ->get(route('collection-report.index', [
+                'fromDate' => now()->toDateString(),
+                'toDate' => now()->toDateString(),
+            ]))
+            ->assertOk()
+            ->json();
+
+        $this->assertSame(500.0, (float) $json['summary']['total']);
+        $this->assertSame(1, (int) $json['summary']['count']);
+        $this->assertSame('rohan9222@gmail.com', $json['data'][0]['collected_by']);
+    }
 }

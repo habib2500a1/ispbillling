@@ -44,11 +44,15 @@ class PaymentCollection extends Component
 
     public $apply_advance = 0;
 
+    public string $collector_email = '';
+
     public function mount()
     {
         if (! hasAccess(['Super Admin'], ['payment-collection'])) {
             abort(403, 'Unauthorized action.');
         }
+
+        $this->collector_email = (string) (auth()->user()->email ?? '');
 
         $customerId = request()->query('customer');
         if ($customerId) {
@@ -277,7 +281,7 @@ class PaymentCollection extends Component
                 'customer_collection_unique_id' => $this->info_data->customer_unique_id,
                 'collection_date' => Carbon::now(),
                 'collection_amount' => $paid,
-                'collected_by' => auth()->user()->email,
+                'collected_by' => $this->collectorToCredit(),
                 'payment_status' => 'paid',
                 'invoice_no' => CollectionSummary::nextInvoiceNo(),
                 'bill_month' => Carbon::now()->format('F Y'),
@@ -338,12 +342,27 @@ class PaymentCollection extends Component
             sweetalert()->error($th->getMessage(), ['title' => 'Error']);
         } finally {
             $this->reset();
+            $this->collector_email = (string) (auth()->user()->email ?? '');
             $this->dispatch('focusInput');
         }
     }
 
     public function render()
     {
-        return view('livewire.payment-collection')->layout('layouts.app');
+        return view('livewire.payment-collection', [
+            'canPickCollector' => canReviewAllCollections(),
+            'collectorChoices' => collectionCollectorChoices(canReviewAllCollections()),
+        ])->layout('layouts.app');
+    }
+
+    private function collectorToCredit(): string
+    {
+        if (! canReviewAllCollections()) {
+            return (string) auth()->user()->email;
+        }
+
+        $chosen = trim($this->collector_email);
+
+        return $chosen !== '' ? $chosen : (string) auth()->user()->email;
     }
 }

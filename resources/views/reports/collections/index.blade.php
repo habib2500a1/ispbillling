@@ -251,14 +251,18 @@
                     });
                 }
 
-                var booted = false;
+                var tries = 0;
                 function boot() {
                     bindForm();
-                    if (booted && $.fn.DataTable && $.fn.DataTable.isDataTable('#collection-report-table')) {
+                    if (typeof $ !== 'undefined' && $.fn.DataTable && $.fn.DataTable.isDataTable('#collection-report-table')) {
                         return;
                     }
-                    booted = true;
                     initCollectionReport();
+                    if (typeof $ === 'undefined' || !$.fn.DataTable || !$.fn.DataTable.isDataTable('#collection-report-table')) {
+                        if (tries++ < 40) {
+                            setTimeout(boot, 150);
+                        }
+                    }
                 }
 
                 if (document.readyState === 'loading') {
@@ -267,6 +271,7 @@
                     boot();
                 }
                 document.addEventListener('livewire:navigated', boot);
+                window.addEventListener('load', boot);
             })();
         </script>
     @endpush
