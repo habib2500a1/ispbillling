@@ -170,9 +170,10 @@ final class AdminControlService
         ];
 
         if (! canAccessIspOs()) {
+            $hidden = ['isp-os', 'admin-users', 'admin-roles', 'admin.system-logs'];
             $modules = array_values(array_filter(
                 $modules,
-                fn (array $m): bool => ($m['route'] ?? '') !== 'isp-os'
+                fn (array $m): bool => ! in_array($m['route'] ?? '', $hidden, true)
             ));
         }
 

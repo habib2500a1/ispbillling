@@ -224,6 +224,13 @@ if (! function_exists('canAccessIspOs')) {
     }
 }
 
+if (! function_exists('canAccessAdminCenter')) {
+    function canAccessAdminCenter(): bool
+    {
+        return canAccessIspOs();
+    }
+}
+
 if (! function_exists('canSellSaas')) {
     /**
      * Platform owner only — Super Admin who is not a sold Operator.

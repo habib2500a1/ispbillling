@@ -37,10 +37,10 @@
                     </div>
 
                     <div class="row pt-3 g-1">
-                        @canany(['create-user-role', 'edit-user-role', 'delete-user-role'])
+                        @if (canAccessAdminCenter())
                             <a wire:navigate.hover wire:current="active" class="btn btn-primary col-md mx-1" href="{{ route('admin-roles') }}">
                                 <i class="fa-solid fa-users-gear"></i> Manage Roles</a>
-                        @endcanany
+                        @endif
                         @canany(['create-user', 'edit-user', 'delete-user'])
                             <a wire:navigate.hover wire:current="active" class="btn btn-success col-md mx-1" href="{{ route('admin-users') }}">
                                 <i class="fa-solid fa-user-gear"></i> Manage Users</a>

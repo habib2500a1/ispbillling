@@ -192,12 +192,14 @@
                         </div>
                     </a>
                 @endif
-                <a wire:navigate.hover class="nav-link {{ $navIs('admin-center') ? 'active' : '' }}" href="{{ route('admin-center') }}" role="button">
-                    <div class="d-flex align-items-center">
-                        <span class="nav-link-icon"><i class="bi bi-sliders2 me-2"></i></span>
-                        <span class="nav-link-text ps-1">{{ __('Admin Center') }}</span>
-                    </div>
-                </a>
+                @if (canAccessAdminCenter())
+                    <a wire:navigate.hover class="nav-link {{ $navIs('admin-center') ? 'active' : '' }}" href="{{ route('admin-center') }}" role="button">
+                        <div class="d-flex align-items-center">
+                            <span class="nav-link-icon"><i class="bi bi-sliders2 me-2"></i></span>
+                            <span class="nav-link-text ps-1">{{ __('Admin Center') }}</span>
+                        </div>
+                    </a>
+                @endif
             </li>
 
             <li class="nav-item">

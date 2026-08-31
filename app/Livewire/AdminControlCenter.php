@@ -13,8 +13,8 @@ class AdminControlCenter extends Component
 
     public function mount(): void
     {
-        if (! hasAccess(['Super Admin'], ['site-settings'])) {
-            abort(403, 'Unauthorized action.');
+        if (! canAccessAdminCenter()) {
+            $this->redirect(route('dashboard'), navigate: true);
         }
     }
 

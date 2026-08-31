@@ -143,7 +143,7 @@
                 @if (hasAccess(['Super Admin'], ['create-user', 'edit-user', 'delete-user']))
                     <a class="dropdown-item" wire:navigate.hover wire:current="active" href="{{route('admin-users')}}">{{ __('Manage Users') }}</a>
                 @endif
-                @if (hasAccess(['Super Admin'], ['create-user-role', 'edit-user-role', 'view-user-role','delete-user-role']))
+                @if (canAccessAdminCenter())
                     <a class="dropdown-item" wire:navigate.hover wire:current="active" href="{{route('admin-roles')}}">{{ __('Manage Roles') }}</a>
                 @endif
                 <form method="POST" action="{{ route('logout') }}" x-data>
