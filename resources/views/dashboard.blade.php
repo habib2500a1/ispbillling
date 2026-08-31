@@ -454,7 +454,7 @@
                             </div>
                             <div class="col-6 col-md-3">
                                 <div class="label text-muted small text-uppercase fw-bold">{{ __('PPP online') }}</div>
-                                <div class="fs-4 fw-bold">{{ $networkQuick['ppp_online'] ?? 0 }}</div>
+                                <div class="fs-4 fw-bold">{{ ($networkQuick['ppp_online'] ?? 0) > 0 ? $networkQuick['ppp_online'] : ($clientSummary['online'] ?? 0) }}</div>
                                 <div class="small text-muted"><a href="{{ route('online-clients') }}">{{ __('View live') }}</a></div>
                             </div>
                         </div>
@@ -1686,7 +1686,8 @@
     @push('scripts')
     <script>
         (function () {
-            var intervalMs = 60000;
+            // Soft refresh: only when dashboard tab is open, every 3 minutes (avoid jarring 60s full reload).
+            var intervalMs = 180000;
             setInterval(function () {
                 if (document.hidden) return;
                 window.location.reload();
