@@ -76,6 +76,7 @@ class PermissionSeeder extends Seeder
             'update-bill',
             'amount-collection',
             'amount-collection-report',
+            'payment-collection-report',
             'amount-collection-edit',
             'complain-list',
             'print-setup',

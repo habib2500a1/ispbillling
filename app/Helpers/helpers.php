@@ -169,6 +169,47 @@ if (! function_exists('canManageMasterSetup')) {
     }
 }
 
+if (! function_exists('canReviewAllCollections')) {
+    function canReviewAllCollections(): bool
+    {
+        $user = auth()->user();
+        if (! $user || ! method_exists($user, 'hasRole')) {
+            return false;
+        }
+
+        return canSellSaas() || isOperatorAdmin() || $user->hasRole('Super Admin');
+    }
+}
+
+if (! function_exists('collectorDisplayName')) {
+    function collectorDisplayName(?string $value): string
+    {
+        $value = trim((string) $value);
+        if ($value === '') {
+            return '—';
+        }
+
+        static $map = null;
+        if ($map === null) {
+            $map = [];
+            try {
+                foreach (\App\Models\User::query()->get(['name', 'email']) as $user) {
+                    if (filled($user->email)) {
+                        $map[strtolower((string) $user->email)] = $user->name;
+                    }
+                    if (filled($user->name)) {
+                        $map[strtolower((string) $user->name)] = $user->name;
+                    }
+                }
+            } catch (\Throwable) {
+                $map = [];
+            }
+        }
+
+        return $map[strtolower($value)] ?? $value;
+    }
+}
+
 if (! function_exists('isOperatorAdmin')) {
     function isOperatorAdmin(): bool
     {

@@ -253,10 +253,7 @@
                                                 $customer = $payment->customer;
                                                 $pppoe = $customer?->pppUser?->username
                                                     ?: ($customer?->customer_name ?: $payment->customer_collection_unique_id);
-                                                $received = (string) ($payment->collected_by ?: '—');
-                                                if (str_contains($received, '@')) {
-                                                    $received = strstr($received, '@', true) ?: $received;
-                                                }
+                                                $received = collectorDisplayName($payment->collected_by);
                                                 $when = $payment->collection_date
                                                     ? \Carbon\Carbon::parse($payment->collection_date)
                                                     : null;

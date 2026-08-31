@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\CollectionSummary;
 use App\Models\CustomersAddress;
 use App\Models\User;
+use App\Services\Saas\SaasContext;
 use Carbon\Carbon;
 use DataTables;
 use Illuminate\Http\Request;
@@ -12,27 +13,23 @@ use Illuminate\Support\Facades\Schema;
 
 class CollectionReportController extends Controller
 {
-    public function __construct()
-    {
-        if (! auth()->user()?->can('payment-collection-report')) {
-            abort(403, 'Unauthorized action.');
-        }
-    }
-
     public function index(Request $request)
     {
+        if (! hasAccess(['Super Admin', 'Operator'], ['payment-collection-report', 'payment-collection', 'amount-collection-report'])) {
+            abort(403, 'Unauthorized action.');
+        }
+
         $from = $this->dateOrDefault($request->input('fromDate'), now()->startOfMonth()->toDateString());
         $to = $this->dateOrDefault($request->input('toDate'), now()->toDateString());
         [$fromAt, $toAt] = $this->collectionWindow($from, $to);
-        $collector = trim((string) $request->input('collector', ''));
+        $seeAll = canReviewAllCollections();
+        $collector = $seeAll ? trim((string) $request->input('collector', '')) : (string) auth()->user()->email;
 
         $query = CollectionSummary::query()
             ->with(['customer', 'customer.pppUser'])
             ->whereBetween('collection_date', [$fromAt, $toAt]);
 
-        if ($collector !== '') {
-            $query->where('collected_by', $collector);
-        }
+        $this->constrainToViewer($query, $seeAll, $collector);
 
         if ($request->ajax()) {
             $total = (float) (clone $query)->sum('collection_amount');
@@ -77,6 +74,9 @@ class CollectionReportController extends Controller
                 ->editColumn('collection_amount', function ($row) {
                     return number_format((float) $row->collection_amount, 2);
                 })
+                ->editColumn('collected_by', function ($row) {
+                    return collectorDisplayName($row->collected_by);
+                })
                 ->with([
                     'summary' => [
                         'from' => $from,
@@ -90,7 +90,7 @@ class CollectionReportController extends Controller
                 ->make(true);
         }
 
-        $collectors = User::select('name', 'email')->orderBy('name')->get();
+        $collectors = $this->collectorsForViewer($seeAll);
 
         $fundFlow = [
             'from' => $from,
@@ -103,7 +103,14 @@ class CollectionReportController extends Controller
             $fundFlow['avg'] = round($fundFlow['total'] / $fundFlow['count'], 2);
         }
 
-        return view('reports.collections.index', compact('collectors', 'fundFlow', 'from', 'to'));
+        return view('reports.collections.index', [
+            'collectors' => $collectors,
+            'fundFlow' => $fundFlow,
+            'from' => $from,
+            'to' => $to,
+            'canReviewAll' => $seeAll,
+            'viewerName' => auth()->user()->name,
+        ]);
     }
 
     public function create() {}
@@ -117,6 +124,41 @@ class CollectionReportController extends Controller
     public function update(Request $request, string $id) {}
 
     public function destroy(string $id) {}
+
+    private function constrainToViewer($query, bool $seeAll, string $collector): void
+    {
+        if (! $seeAll) {
+            $user = auth()->user();
+            $query->where(function ($q) use ($user) {
+                $q->where('collected_by', $user->email)
+                    ->orWhere('collected_by', $user->name);
+            });
+
+            return;
+        }
+
+        if ($collector !== '') {
+            $query->where('collected_by', $collector);
+        }
+    }
+
+    private function collectorsForViewer(bool $seeAll)
+    {
+        if (! $seeAll) {
+            return collect([auth()->user()]);
+        }
+
+        $query = User::query()->select('name', 'email')->orderBy('name');
+        $operator = SaasContext::operator();
+        if ($operator && ! canSellSaas()) {
+            $query->where(function ($q) use ($operator) {
+                $q->where('saas_operator_id', $operator->id)
+                    ->orWhere('id', $operator->user_id);
+            });
+        }
+
+        return $query->get();
+    }
 
     private function dateOrDefault(mixed $value, string $fallback): string
     {

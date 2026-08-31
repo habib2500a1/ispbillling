@@ -58,7 +58,13 @@
         <div class="d-flex flex-wrap align-items-start justify-content-between gap-2 mb-3 cr-head">
             <div>
                 <h4 class="mb-1 fw-bold" style="color:var(--cr-navy);">{{ __('Collection Report') }}</h4>
-                <p class="text-muted small mb-0">{{ __('Filter by date and collector. Totals update with the table.') }}</p>
+                <p class="text-muted small mb-0">
+                    @if($canReviewAll ?? true)
+                        {{ __('Filter by date and collector. Each collection stays on that staff or admin name.') }}
+                    @else
+                        {{ __('Your collections only. Amounts credit your staff account.') }}
+                    @endif
+                </p>
             </div>
         </div>
 
@@ -105,12 +111,17 @@
                     </div>
                     <div class="col-12 col-sm-8 col-lg-4">
                         <label class="form-label mb-1" for="collector">{{ __('Collector') }}</label>
-                        <select name="collector" id="collector" class="form-select">
-                            <option value="">{{ __('All collectors') }}</option>
-                            @foreach ($collectors as $collector)
-                                <option value="{{ $collector->email }}">{{ $collector->name }}</option>
-                            @endforeach
-                        </select>
+                        @if($canReviewAll ?? true)
+                            <select name="collector" id="collector" class="form-select">
+                                <option value="">{{ __('All collectors') }}</option>
+                                @foreach ($collectors as $collector)
+                                    <option value="{{ $collector->email }}">{{ $collector->name }}</option>
+                                @endforeach
+                            </select>
+                        @else
+                            <input type="text" class="form-control" value="{{ $viewerName }}" readonly>
+                            <input type="hidden" name="collector" id="collector" value="{{ auth()->user()->email }}">
+                        @endif
                     </div>
                     <div class="col-12 col-sm-4 col-lg-2">
                         <button type="submit" id="report-submit" class="btn btn-success btn-cr w-100">
@@ -131,7 +142,7 @@
                                 <th>{{ __('Address') }}</th>
                                 <th>{{ __('IP/Username') }}</th>
                                 <th class="text-end">{{ __('Amount') }}</th>
-                                <th>{{ __('Collected By') }}</th>
+                                <th>{{ __('Staff name') }}</th>
                             </tr>
                         </thead>
                         <tfoot>
@@ -198,8 +209,8 @@
                             { extend: 'print', text: 'Print' }
                         ],
                         columnDefs: [
-                            { responsivePriority: 1, targets: [2, 5] },
-                            { responsivePriority: 2, targets: [1, 6] },
+                            { responsivePriority: 1, targets: [2, 5, 6] },
+                            { responsivePriority: 2, targets: [1] },
                             { responsivePriority: 3, targets: [0, 4] },
                             { responsivePriority: 4, targets: 3 }
                         ],

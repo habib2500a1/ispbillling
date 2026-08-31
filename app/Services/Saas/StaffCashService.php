@@ -138,7 +138,7 @@ final class StaffCashService
                 'customer' => $row->customer?->customer_name ?: $row->customer_collection_unique_id,
                 'uid' => $row->customer_collection_unique_id,
                 'amount' => (float) $row->collection_amount,
-                'collected_by' => $row->collected_by,
+                'collected_by' => collectorDisplayName($row->collected_by),
                 'collected_at' => \Carbon\Carbon::parse($row->collection_date)->format('d M Y H:i'),
             ])
             ->all();

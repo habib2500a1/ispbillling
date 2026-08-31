@@ -48,7 +48,7 @@
                                 <a wire:navigate.hover wire:current="active" class="dropdown-item link-600 fw-medium"
                                     href="{{ route('payment-invoice') }}">{{ __('Payment Invoice') }}</a>
                             @endcan
-                            @canany(['payment-collection-report', 'collection-list', 'without-collection-list',
+                            @canany(['payment-collection-report', 'payment-collection', 'collection-list', 'without-collection-list',
                                 'amount-collection'])
                                 <a wire:navigate.hover wire:current="active" class="dropdown-item link-600 fw-medium"
                                     href="{{ route('collection-report.index') }}">{{ __('Collection Report') }}</a>
