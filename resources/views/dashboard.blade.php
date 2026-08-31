@@ -66,7 +66,14 @@
         @if(!empty($routerAlerts))
             <div class="alert alert-warning py-2 px-3 mb-3 d-flex flex-wrap align-items-center gap-2">
                 <i class="bi bi-router"></i>
-                <span>{{ __('Router offline — live Online/Offline counts will not update until connected:') }} <strong>{{ implode(', ', $routerAlerts) }}</strong></span>
+                <span>
+                    @if(!empty($routerCredentialWarning))
+                        {{ __('MikroTik login details could not be read (server key changed). Re-connect these routers to restore live Online/Offline:') }}
+                    @else
+                        {{ __('Router offline — live Online/Offline counts will not update until connected:') }}
+                    @endif
+                    <strong>{{ implode(', ', $routerAlerts) }}</strong>
+                </span>
                 <a href="{{ route('mikrotik-sync') }}" class="btn btn-sm btn-outline-dark ms-auto">{{ __('MikroTik sync') }}</a>
             </div>
         @endif

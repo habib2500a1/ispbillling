@@ -250,12 +250,25 @@ class DashboardController extends Controller
         $opsData = app(DashboardOpsService::class)->snapshot();
 
         $routerAlerts = RouterList::query()
-            ->where(function ($q) {
-                $q->whereNull('action')->orWhere('action', '!=', 'connected');
-            })
             ->orderBy('router_name')
+            ->get()
+            ->filter(function (RouterList $router) {
+                if ($router->credentialsLocked()) {
+                    return true;
+                }
+                if (! $router->credentialsUsable()) {
+                    return true;
+                }
+
+                return $router->action !== 'connected';
+            })
             ->pluck('router_name')
+            ->values()
             ->all();
+
+        $routerCredentialWarning = RouterList::query()
+            ->get()
+            ->contains(fn (RouterList $router) => $router->credentialsLocked());
 
         try {
             $insights = app(OpsInsightsService::class)->payload();
@@ -283,7 +296,8 @@ class DashboardController extends Controller
                 'financialSummary',
                 'recentPayments',
                 'lineGrowth',
-                'routerAlerts'
+                'routerAlerts',
+                'routerCredentialWarning'
             ))
             ->header('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0')
             ->header('Pragma', 'no-cache');

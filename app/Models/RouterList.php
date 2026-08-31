@@ -106,6 +106,30 @@ class RouterList extends Model
         return (int) $decrypted;
     }
 
+    /**
+     * Encrypted credentials exist in DB but cannot be decrypted (usually APP_KEY changed).
+     */
+    public function credentialsLocked(): bool
+    {
+        foreach (['ip_address', 'username', 'password'] as $field) {
+            $raw = $this->getRawOriginal($field);
+            if ($raw && $this->looksEncrypted($raw) && $this->{$field} === null) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    public function credentialsUsable(): bool
+    {
+        if ($this->credentialsLocked()) {
+            return false;
+        }
+
+        return filled($this->ip_address) && filled($this->username) && filled($this->password);
+    }
+
     // --- Setters ---
 
     public function setIpAddressAttribute($value)
