@@ -38,8 +38,8 @@ class ManageRole extends Component
 
     public function mount()
     {
-        if (! auth()->user()?->hasRole('Super Admin')) {
-            abort(403, 'Only the platform Super Admin can manage roles.');
+        if (! canAccessAdminCenter()) {
+            $this->redirect(route('dashboard'), navigate: true);
         }
     }
 
