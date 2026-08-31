@@ -67,6 +67,7 @@ final class DashboardOpsService
             $data['routers'] = RouterList::query()->count();
             $data['routers_connected'] = RouterList::query()->where('action', 'connected')->count();
             $data['online_clients'] = PPPSecrets::query()
+                ->visibleToViewer()
                 ->whereNotNull('uptime')
                 ->where('status', '!=', 'removed')
                 ->count();

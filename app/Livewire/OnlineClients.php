@@ -58,8 +58,7 @@ class OnlineClients extends Component
 
     public function refreshOne(int $id): void
     {
-        $row = PPPSecrets::query()
-            ->where('status', '!=', 'removed')
+        $row = $this->secretsQuery()
             ->find($id, ['id', 'username', 'router_name']);
         if (! $row?->router_name) {
             flash()->error(__('Router not found.'));
@@ -109,8 +108,7 @@ class OnlineClients extends Component
 
     public function openTraffic(int $id): void
     {
-        $row = PPPSecrets::query()
-            ->where('status', '!=', 'removed')
+        $row = $this->secretsQuery()
             ->find($id, ['id', 'username', 'router_name', 'uptime']);
         if (! $row) {
             return;
@@ -151,7 +149,7 @@ class OnlineClients extends Component
         }
         $this->lastPollTime = microtime(true);
 
-        $row = PPPSecrets::query()->find($this->trafficId);
+        $row = $this->secretsQuery()->find($this->trafficId);
         if (! $row || empty($row->uptime)) {
             $this->rxSpeed = 0;
             $this->txSpeed = 0;
@@ -191,7 +189,7 @@ class OnlineClients extends Component
 
     public function syncOnu(int $id): void
     {
-        $row = PPPSecrets::query()->with('customer')->find($id);
+        $row = $this->secretsQuery()->with('customer')->find($id);
         if (! $row?->customer) {
             flash()->warning(__('No customer linked to this PPP user.'));
 
@@ -279,11 +277,17 @@ class OnlineClients extends Component
         return sprintf('%dd:%02dh:%02dm:%02ds', $diff->days, $diff->h, $diff->i, $diff->s);
     }
 
+    protected function secretsQuery()
+    {
+        return PPPSecrets::query()
+            ->visibleToViewer()
+            ->where('status', '!=', 'removed');
+    }
+
     public function render()
     {
-        $query = PPPSecrets::query()
+        $query = $this->secretsQuery()
             ->with(['customer.onus', 'customer.official', 'customer.package', 'trafficUsage'])
-            ->where('status', '!=', 'removed')
             ->orderByRaw('CASE WHEN uptime IS NULL THEN 1 ELSE 0 END')
             ->orderBy('username');
 
@@ -317,15 +321,15 @@ class OnlineClients extends Component
             });
         }
 
-        $onlineCount = PPPSecrets::where('status', '!=', 'removed')->whereNotNull('uptime')->count();
-        $offlineCount = PPPSecrets::where('status', '!=', 'removed')->whereNull('uptime')->count();
+        $onlineCount = $this->secretsQuery()->whereNotNull('uptime')->count();
+        $offlineCount = $this->secretsQuery()->whereNull('uptime')->count();
         $rows = $query->paginate(40);
         $usageService = app(CustomerTrafficUsageService::class);
         $usages = $usageService->mapForSecrets($rows->getCollection());
         $trafficUsage = $this->trafficId && isset($usages[$this->trafficId])
             ? $usages[$this->trafficId]
             : ($this->trafficId
-                ? $usageService->presentForSecret(PPPSecrets::with('trafficUsage')->find($this->trafficId))
+                ? $usageService->presentForSecret($this->secretsQuery()->with('trafficUsage')->find($this->trafficId))
                 : $usageService->emptyPresentation());
 
         return view('livewire.online-clients', [

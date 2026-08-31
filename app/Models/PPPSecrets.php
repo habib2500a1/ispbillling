@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Services\Saas\SaasContext;
 use Filament\Models\Contracts\FilamentUser;
 use Filament\Models\Contracts\HasAvatar;
 use Filament\Panel;
@@ -46,6 +47,31 @@ class PPPSecrets extends Authenticatable implements FilamentUser, HasAvatar
     public function trafficUsage()
     {
         return $this->hasOne(CustomerTrafficUsage::class, 'ppp_secret_id');
+    }
+
+    /**
+     * Super Admin sees platform PPP users; a sold ISP admin sees only their own.
+     */
+    public function scopeVisibleToViewer($query)
+    {
+        $mode = SaasContext::tenantScopeMode();
+        if ($mode === 'all') {
+            return $query;
+        }
+
+        $routerNames = RouterList::query()->pluck('router_name')->filter()->values()->all();
+
+        return $query->where(function ($q) use ($routerNames) {
+            $q->whereHas('customer');
+            if ($routerNames !== []) {
+                $q->orWhere(function ($inner) use ($routerNames) {
+                    $inner->whereIn('p_p_p_secrets.router_name', $routerNames)
+                        ->whereDoesntHave('customer', function ($c) {
+                            $c->withoutGlobalScope('saas_tenant');
+                        });
+                });
+            }
+        });
     }
 
     /**
