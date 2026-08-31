@@ -206,16 +206,15 @@
                     $table.DataTable({
                         processing: true,
                         serverSide: true,
-                        autoWidth: true,
+                        autoWidth: false,
                         responsive: false,
-                        scrollX: true,
+                        scrollX: false,
                         pageLength: isMobile() ? 10 : 25,
                         lengthMenu: [[10, 25, 50, 100, -1], [10, 25, 50, 100, 'All']],
                         dom: "<'cr-dt-toolbar'<'cr-dt-buttons'B><'cr-dt-search'f>>t<'cr-dt-foot'<'cr-dt-len'l><'cr-dt-info'i><'cr-dt-page'p>>",
                         buttons: [
                             { extend: 'copy', text: 'Copy' },
                             { extend: 'excel', text: 'Excel' },
-                            { extend: 'pdf', text: 'PDF' },
                             { extend: 'print', text: 'Print' }
                         ],
                         ajax: {
@@ -252,8 +251,13 @@
                     });
                 }
 
+                var booted = false;
                 function boot() {
                     bindForm();
+                    if (booted && $.fn.DataTable && $.fn.DataTable.isDataTable('#collection-report-table')) {
+                        return;
+                    }
+                    booted = true;
                     initCollectionReport();
                 }
 

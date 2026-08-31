@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Models\CollectionSummary;
-use App\Models\CustomersAddress;
 use App\Models\User;
 use App\Services\Saas\SaasContext;
 use Carbon\Carbon;
@@ -25,8 +24,13 @@ class CollectionReportController extends Controller
         $seeAll = canReviewAllCollections();
         $collector = $seeAll ? trim((string) $request->input('collector', '')) : (string) auth()->user()->email;
 
+        $with = ['customer', 'customer.pppUser'];
+        if (Schema::hasTable('customers_addresses')) {
+            $with[] = 'customerAddresses';
+        }
+
         $query = CollectionSummary::query()
-            ->with(['customer', 'customer.pppUser'])
+            ->with($with)
             ->whereBetween('collection_date', [$fromAt, $toAt]);
 
         $this->constrainToViewer($query, $seeAll, $collector);
@@ -41,16 +45,8 @@ class CollectionReportController extends Controller
                     return $row->customer->customer_name ?? 'N/A';
                 })
                 ->addColumn('customers_address', function ($row) {
-                    if (! Schema::hasTable('customers_addresses')) {
-                        return '';
-                    }
-
-                    $addresses = CustomersAddress::select('input_type_text', 'input_type_dropdown', 'input_type_textarea')
-                        ->where('customer_address_unique_id', $row->customer_collection_unique_id)
-                        ->get();
-
                     $formattedAddresses = [];
-                    foreach ($addresses as $address) {
+                    foreach ($row->customerAddresses ?? [] as $address) {
                         $addressParts = array_filter([
                             $address->input_type_text,
                             $address->input_type_dropdown,

@@ -48,7 +48,6 @@ class CollectionReportTest extends TestCase
         $this->assertStringContainsString('All collectors', $html);
         $this->assertStringContainsString('Staff name', $html);
         $this->assertStringContainsString('Swipe sideways', $html);
-        $this->assertStringContainsString('scrollX: true', $html);
     }
 
     public function test_staff_see_only_their_collections_and_admin_sees_names(): void

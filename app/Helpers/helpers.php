@@ -189,24 +189,24 @@ if (! function_exists('collectorDisplayName')) {
             return '—';
         }
 
-        static $map = null;
-        if ($map === null) {
-            $map = [];
-            try {
-                foreach (\App\Models\User::query()->get(['name', 'email']) as $user) {
-                    if (filled($user->email)) {
-                        $map[strtolower((string) $user->email)] = $user->name;
-                    }
-                    if (filled($user->name)) {
-                        $map[strtolower((string) $user->name)] = $user->name;
-                    }
-                }
-            } catch (\Throwable) {
-                $map = [];
-            }
+        $key = strtolower($value);
+        static $map = [];
+        if (array_key_exists($key, $map)) {
+            return $map[$key];
         }
 
-        return $map[strtolower($value)] ?? $value;
+        try {
+            $user = \App\Models\User::query()
+                ->where(function ($q) use ($value) {
+                    $q->where('email', $value)->orWhere('name', $value);
+                })
+                ->first(['name']);
+            $map[$key] = $user?->name ?: $value;
+        } catch (\Throwable) {
+            $map[$key] = $value;
+        }
+
+        return $map[$key];
     }
 }
 

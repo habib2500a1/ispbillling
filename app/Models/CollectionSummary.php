@@ -46,6 +46,11 @@ class CollectionSummary extends Model
         return $this->belongsTo(CustomersInfo::class, 'customer_collection_unique_id', 'customer_unique_id');
     }
 
+    public function customerAddresses()
+    {
+        return $this->hasMany(CustomersAddress::class, 'customer_address_unique_id', 'customer_collection_unique_id');
+    }
+
     public function pppUser()
     {
         return $this->customer()->pppUser();
