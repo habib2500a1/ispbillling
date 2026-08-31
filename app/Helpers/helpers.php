@@ -209,6 +209,21 @@ if (! function_exists('staffHomeUrl')) {
     }
 }
 
+if (! function_exists('canAccessIspOs')) {
+    /**
+     * Platform console (ISP OS hub) — not for sold ISP tenant admins.
+     */
+    function canAccessIspOs(): bool
+    {
+        $user = auth()->user();
+        if (! $user || ! method_exists($user, 'hasRole')) {
+            return false;
+        }
+
+        return $user->hasRole('Super Admin') && ! isOperatorAdmin();
+    }
+}
+
 if (! function_exists('canSellSaas')) {
     /**
      * Platform owner only — Super Admin who is not a sold Operator.

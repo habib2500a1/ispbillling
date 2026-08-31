@@ -11,8 +11,8 @@ class GroupHub extends Component
 
     public function mount(string $group): void
     {
-        if (! hasAccess(['Super Admin'], ['dashboard'])) {
-            abort(403, 'Unauthorized action.');
+        if (! canAccessIspOs()) {
+            $this->redirect(route('dashboard'), navigate: true);
         }
 
         $resolved = FeatureModuleRegistry::groupFromSlug($group);

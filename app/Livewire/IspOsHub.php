@@ -14,8 +14,8 @@ class IspOsHub extends Component
 
     public function mount(): void
     {
-        if (! hasAccess(['Super Admin'], ['dashboard'])) {
-            abort(403, 'Unauthorized action.');
+        if (! canAccessIspOs()) {
+            $this->redirect(route('dashboard'), navigate: true);
         }
     }
 

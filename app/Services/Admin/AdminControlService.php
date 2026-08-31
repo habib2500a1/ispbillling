@@ -158,7 +158,7 @@ final class AdminControlService
      */
     private function adminModules(): array
     {
-        return [
+        $modules = [
             ['label' => 'Site & branding', 'description' => 'Name, logo, theme, portal', 'route' => 'site-settings', 'icon' => 'bi-palette'],
             ['label' => 'Automatic processes', 'description' => 'Billing SMS, disable, OLT poll', 'route' => 'automatic-processes', 'icon' => 'bi-clock-history'],
             ['label' => 'SMS setup', 'description' => 'Templates & notices', 'route' => 'sms-setup', 'icon' => 'bi-envelope-check'],
@@ -168,5 +168,14 @@ final class AdminControlService
             ['label' => 'ISP modules', 'description' => 'All billing/NOC/HR hubs', 'route' => 'isp-os', 'icon' => 'bi-grid-3x3-gap'],
             ['label' => 'System logs', 'description' => 'App & activity logs', 'route' => 'admin.system-logs', 'icon' => 'bi-journal-text'],
         ];
+
+        if (! canAccessIspOs()) {
+            $modules = array_values(array_filter(
+                $modules,
+                fn (array $m): bool => ($m['route'] ?? '') !== 'isp-os'
+            ));
+        }
+
+        return $modules;
     }
 }

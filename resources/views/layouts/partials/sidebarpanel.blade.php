@@ -184,12 +184,14 @@
                         <span class="nav-link-text ps-1">{{ __('Dashboard') }}</span>
                     </div>
                 </a>
-                <a class="nav-link {{ $navIs('isp-os') ? 'active' : '' }}" href="{{ route('isp-os') }}" role="button">
-                    <div class="d-flex align-items-center">
-                        <span class="nav-link-icon"><i class="bi bi-command me-2"></i></span>
-                        <span class="nav-link-text ps-1">{{ __('ISP OS') }}</span>
-                    </div>
-                </a>
+                @if (canAccessIspOs())
+                    <a class="nav-link {{ $navIs('isp-os') ? 'active' : '' }}" href="{{ route('isp-os') }}" role="button">
+                        <div class="d-flex align-items-center">
+                            <span class="nav-link-icon"><i class="bi bi-command me-2"></i></span>
+                            <span class="nav-link-text ps-1">{{ __('ISP OS') }}</span>
+                        </div>
+                    </a>
+                @endif
                 <a wire:navigate.hover class="nav-link {{ $navIs('admin-center') ? 'active' : '' }}" href="{{ route('admin-center') }}" role="button">
                     <div class="d-flex align-items-center">
                         <span class="nav-link-icon"><i class="bi bi-sliders2 me-2"></i></span>

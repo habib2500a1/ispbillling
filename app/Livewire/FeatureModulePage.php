@@ -27,8 +27,8 @@ class FeatureModulePage extends Component
             return;
         }
 
-        if (! hasAccess(['Super Admin'], ['dashboard'])) {
-            abort(403, 'Unauthorized action.');
+        if (! canAccessIspOs()) {
+            $this->redirect(route('dashboard'), navigate: true);
         }
 
         $this->module = $module;
