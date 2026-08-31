@@ -16,7 +16,50 @@ final class OperatorProvisioningService
 {
     public const OPERATOR_ROLE = 'Operator';
 
+    public const STAFF_ROLE = 'Admin';
+
     public const SELL_PERMISSION = 'saas-sell';
+
+    /** Permissions for tenant staff — billing/ops only, no platform sell or user-role admin. */
+    private const STAFF_PERMISSIONS = [
+        'view-customer',
+        'create-customer',
+        'edit-customer',
+        'search-customer',
+        'all-customer',
+        'recent-customer',
+        'customer-billing-info',
+        'customer-server-info',
+        'customer-official-info',
+        'enable-customer',
+        'disable-customer',
+        'inactive-customer',
+        'free-customer',
+        'pending-customer',
+        'collection-customer',
+        'enable-pending-customer',
+        'collection-list',
+        'without-collection-list',
+        'payment-collection',
+        'payment-collection-edit',
+        'payment-collection-invoice',
+        'payment-history',
+        'payment-collection-report',
+        'amount-collection',
+        'amount-collection-report',
+        'billing-notices',
+        'update-bill',
+        'complain-list',
+        'package-setup',
+        'mikrotik-connection',
+        'mikrotik-user-create',
+        'mikrotik-user-edit',
+        'olt-management',
+        'onu-management',
+        'sms-setup',
+        'print-setup',
+        'staff-cash',
+    ];
 
     public function __construct(
         private readonly SaasPlanCatalog $catalog,
@@ -27,8 +70,9 @@ final class OperatorProvisioningService
     {
         Permission::findOrCreate(self::SELL_PERMISSION, 'web');
         Permission::findOrCreate('staff-cash', 'web');
+        Permission::findOrCreate('payment-collection-invoice', 'web');
 
-        foreach (['site-settings', 'site-setup', 'payment-setup'] as $name) {
+        foreach (['site-settings', 'site-setup', 'payment-setup', 'address-setup', 'sms-setup'] as $name) {
             Permission::findOrCreate($name, 'web');
         }
 
@@ -39,6 +83,27 @@ final class OperatorProvisioningService
             ->pluck('name')
             ->all();
         $role->syncPermissions($all);
+
+        return $role;
+    }
+
+    /**
+     * Tenant staff role — limited permissions (no Sell ISP, no user/role admin).
+     */
+    public function ensureStaffRole(): Role
+    {
+        $role = Role::findOrCreate(self::STAFF_ROLE, 'web');
+        $existing = $role->permissions()->pluck('name')->all();
+        $names = Permission::query()
+            ->where('guard_name', 'web')
+            ->whereIn('name', self::STAFF_PERMISSIONS)
+            ->pluck('name')
+            ->all();
+
+        // Only seed defaults when role is empty — do not wipe custom admin setups.
+        if ($existing === []) {
+            $role->syncPermissions($names);
+        }
 
         return $role;
     }
@@ -141,6 +206,7 @@ final class OperatorProvisioningService
         MainSiteData::setValueForTenant($id, 'payment_sslcommerz_enabled', 1);
         MainSiteData::setValueForTenant($id, 'payment_bkash_sandbox', 0);
         MainSiteData::setValueForTenant($id, 'payment_bkash_base_url', \App\Http\Controllers\Payment\BkashPaymentController::LIVE_URL);
+        app(\App\Services\Sms\SmsTemplateCatalogService::class)->syncForTenant($id);
     }
 
     public function setStatus(SaasOperator $operator, string $status): void

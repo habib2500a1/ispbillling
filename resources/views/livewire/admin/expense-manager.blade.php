@@ -389,7 +389,7 @@
                                         <div class="p-2 h-100 position-relative" style="z-index: 1;">
                                             <div class="row">
                                                 <div class="col ps-0 d-flex align-items-start">
-                                                    <img class="img-fluid w-75" src="{{ site_image(siteUrlSettings('site_logo')) }}" alt="Logo">
+                                                    <img class="img-fluid w-75" src="{{ site_invoice_image() }}" alt="Logo">
                                                 </div>
                                                 <div class="col d-flex justify-content-end align-items-center">
                                                     <div class="fw-bold fs-3 text-uppercase">{{ __('Debit Voucher') }}</div>

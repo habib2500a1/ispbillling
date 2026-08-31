@@ -156,4 +156,25 @@ class BillingLifecycleTest extends TestCase
 
         Carbon::setTestNow();
     }
+
+    public function test_inactive_customers_do_not_receive_monthly_bills(): void
+    {
+        Carbon::setTestNow(Carbon::parse('2026-08-20 12:00:00', 'Asia/Dhaka'));
+
+        $customer = $this->seedCustomer([
+            'billing_day' => 20,
+        ], [
+            'status' => 'inactive',
+        ]);
+
+        $customer->official->update(['continue_bill' => true]);
+
+        app(ScheduledTasksController::class)->createMonthlyBill(billingDay: 20);
+
+        $this->assertDatabaseMissing('payment_summaries', [
+            'customer_payment_unique_id' => $customer->customer_unique_id,
+        ]);
+
+        Carbon::setTestNow();
+    }
 }

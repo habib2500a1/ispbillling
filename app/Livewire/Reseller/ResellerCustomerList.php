@@ -239,5 +239,12 @@ class ResellerCustomerList extends Component
     {
         $this->editingCustomerId = null;
         $this->dispatch('customer-action-done');
+        $this->js(<<<'JS'
+            if (window.customerListTable && typeof $ !== 'undefined' && $.fn.DataTable && $.fn.DataTable.isDataTable('.customer-table')) {
+                window.customerListTable.ajax.reload(null, false);
+            } else if (typeof window.initCustomerListTable === 'function') {
+                setTimeout(window.initCustomerListTable, 100);
+            }
+        JS);
     }
 }

@@ -337,46 +337,24 @@ class NewCustomer extends Component
             }
             // Proceed only if service is static and router_name is set than fetch interfaces and profile
             if ($this->service == 'static' && $this->router_name) {
-                try {
-                    // Load physical interfaces via pooled/cached controller
-                    $this->interfaceNames = [];
-                    $results = app(MikrotikController::class)->singleRead(
-                        $this->router_name,
-                        '/interface/print',
-                        '/interface print without-paging terse where type="ether" or type="vlan"'
-                    );
-                    foreach ($results as $item) {
-                        if (is_array($item) && isset($item['name'])) {
-                            $this->interfaceNames[] = $item['name'];
-                        }
-                    }
-                } catch (\Exception $e) {
-                    flash()->error('Router '.$e->getMessage().' is not connected!');
-                }
-
+                $this->interfaceNames = $this->readMikrotikNames(
+                    $this->router_name,
+                    '/interface/print',
+                    '/interface print without-paging terse where type="ether" or type="vlan"'
+                );
                 $this->profileNames = [];
                 $this->username = $this->password = $this->ppp_remote_ip = $this->caller_id = null;
 
                 return;
             } elseif ($this->service == 'pppoe' && $this->router_name) {
-                // Proceed only if service is pppoe and router_name is set
-                try {
-                    // Load PPP profiles via pooled/cached controller
-                    $this->profileNames = [];
-                    $results = app(MikrotikController::class)->singleRead(
-                        $this->router_name,
-                        '/ppp/profile/print',
-                        '/ppp profile print without-paging terse'
-                    );
-                    foreach ($results as $item) {
-                        if (is_array($item) && isset($item['name'])) {
-                            $this->profileNames[] = $item['name'];
-                        }
-                    }
-                } catch (\Exception $e) {
-                    flash()->error('Router '.$e->getMessage().' is not connected!');
+                $this->profileNames = $this->readMikrotikNames(
+                    $this->router_name,
+                    '/ppp/profile/print',
+                    '/ppp profile print without-paging terse'
+                );
+                if ($this->profileNames === []) {
+                    $this->profileNames = PackageList::namesForRouter($this->router_name);
                 }
-
                 $this->interfaceNames = [];
                 $this->ip_address = $this->queue_name = $this->caller_id = $this->bandwidth = null;
 
@@ -387,6 +365,52 @@ class NewCustomer extends Component
 
                 return;
             }
+        }
+    }
+
+    /**
+     * @return list<string>
+     */
+    protected function readMikrotikNames(string $routerName, string $apiCmd, string $sshCmd): array
+    {
+        $names = [];
+        try {
+            $results = app(MikrotikController::class)->singleRead($routerName, $apiCmd, $sshCmd, [], false);
+            foreach ($results as $item) {
+                if (is_array($item) && isset($item['name'])) {
+                    $names[] = $item['name'];
+                }
+            }
+        } catch (\Throwable $e) {
+            \Log::debug('NewCustomer MikroTik read skipped: '.$e->getMessage());
+        }
+
+        return $names;
+    }
+
+    protected function pushNewCustomerToRouter(): void
+    {
+        if (! $this->router_name) {
+            return;
+        }
+
+        $disabled = $this->line_status === 'suspended' ? 'yes' : 'no';
+        try {
+            if ($this->service == 'pppoe') {
+                if ($this->ppp_remote_ip != '') {
+                    $cmd = "/ppp secret add name=\"{$this->username}\" password=\"{$this->password}\" service=\"{$this->service}\" profile=\"{$this->profile}\" comment=\"{$this->comment}\" remote-address=\"{$this->ppp_remote_ip}\" caller-id=\"{$this->caller_id}\" disabled={$disabled}";
+                } else {
+                    $cmd = "/ppp secret add name=\"{$this->username}\" password=\"{$this->password}\" service=\"{$this->service}\" profile=\"{$this->profile}\" comment=\"{$this->comment}\" caller-id=\"{$this->caller_id}\" disabled={$disabled}";
+                }
+                app(MikrotikController::class)->singleWrite($this->router_name, $cmd);
+            } elseif ($this->service == 'static') {
+                app(MikrotikController::class)->singleWrite(
+                    $this->router_name,
+                    "/queue simple add name=\"{$this->queue_name}\" profile=\"{$this->profile}\" address=\"{$this->ip_address}\" max-limit=\"{$this->bandwidth}\" comment=\"{$this->comment}\" disabled={$disabled}"
+                );
+            }
+        } catch (\Throwable $e) {
+            \Log::debug('NewCustomer MikroTik write skipped: '.$e->getMessage());
         }
     }
 
@@ -523,41 +547,10 @@ class NewCustomer extends Component
             $this->calculateTotal('package_name');
             $this->validate();
 
-            if ($this->service == 'pppoe') {
-                try {
-                    $disabled = $this->line_status === 'suspended' ? 'yes' : 'no';
-                    // Add PPP secret via pooled/cached controller
-                    if ($this->ppp_remote_ip != '') {
-                        $cmd = "/ppp secret add name=\"{$this->username}\" password=\"{$this->password}\" service=\"{$this->service}\" profile=\"{$this->profile}\" comment=\"{$this->comment}\" remote-address=\"{$this->ppp_remote_ip}\" caller-id=\"{$this->caller_id}\" disabled={$disabled}";
-                    } else {
-                        $cmd = "/ppp secret add name=\"{$this->username}\" password=\"{$this->password}\" service=\"{$this->service}\" profile=\"{$this->profile}\" comment=\"{$this->comment}\" caller-id=\"{$this->caller_id}\" disabled={$disabled}";
-                    }
-
-                    app(MikrotikController::class)->singleWrite($this->router_name, $cmd);
-
-                    // Router write succeeded
-                    $this->createUser();
-
-                } catch (\Exception $e) {
-                    flash()->error('Router '.$e->getMessage().' is not connected!');
-                }
-            } elseif ($this->service == 'static') {
-                try {
-                    $disabled = $this->line_status === 'suspended' ? 'yes' : 'no';
-                    // Add simple queue via pooled/cached controller
-                    app(MikrotikController::class)->singleWrite(
-                        $this->router_name,
-                        "/queue simple add name=\"{$this->queue_name}\" profile=\"{$this->profile}\" address=\"{$this->ip_address}\" max-limit=\"{$this->bandwidth}\" comment=\"{$this->comment}\" disabled={$disabled}"
-                    );
-
-                    // Router write succeeded
-                    $this->createUser();
-                } catch (\Exception $e) {
-                    flash()->error('Router '.$e->getMessage().' is not connected!');
-                }
-            } else {
-                $this->createUser();
+            if ($this->service == 'pppoe' || $this->service == 'static') {
+                $this->pushNewCustomerToRouter();
             }
+            $this->createUser();
         } catch (ValidationException $e) {
             // Validation failed, extract error messages
             $errors = $e->validator->errors()->all();

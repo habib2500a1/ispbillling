@@ -96,15 +96,34 @@ class MikrotikController extends Controller
         return false;
     }
 
+    public const OFFLINE = 'offline';
+
     /**
-     * Never toast timeout/unreachable noise — it blocks UX and makes the site feel broken.
+     * Billing can run with the router disconnected. Never toast that as an error.
+     */
+    public function isRouterConnected(?string $routerName): bool
+    {
+        return $routerName !== null && $routerName !== '' && $this->findConnectedRouter($routerName) !== null;
+    }
+
+    /**
+     * Never toast timeout/unreachable/offline noise — it blocks UX and makes the site feel broken.
      */
     protected function flashConnectError(string $message): void
     {
         $quiet = stripos($message, 'timeout') !== false
             || stripos($message, 'unreachable') !== false
             || stripos($message, 'timed out') !== false
-            || stripos($message, 'Error 110') !== false;
+            || stripos($message, 'Error 110') !== false
+            || stripos($message, 'connection refused') !== false
+            || stripos($message, 'failed to connect') !== false
+            || stripos($message, 'no route to host') !== false
+            || stripos($message, 'network is unreachable') !== false
+            || stripos($message, 'connection reset') !== false
+            || stripos($message, 'not connected') !== false
+            || stripos($message, 'offline') !== false
+            || stripos($message, 'no such host') !== false
+            || stripos($message, 'name or service not known') !== false;
 
         if ($quiet) {
             \Log::warning('MikroTik offline (no flash): '.$message);
@@ -332,9 +351,7 @@ class MikrotikController extends Controller
     {
         $router = $this->findConnectedRouter($routerName);
         if (! $router) {
-            if ($showErrorFlash) {
-                flash()->error("Router '{$routerName}' not connected.");
-            }
+            \Log::debug("MikroTik [{$routerName}] read skipped — router not connected.");
 
             return [];
         }
@@ -407,7 +424,9 @@ class MikrotikController extends Controller
     {
         $router = $this->findConnectedRouter($routerName);
         if (! $router) {
-            throw new \Exception("Router '{$routerName}' not connected.");
+            \Log::debug("MikroTik [{$routerName}] write skipped — router not connected.");
+
+            return self::OFFLINE;
         }
 
         // Priority 1: Authoritative SSH for write commands (5s timeout)
@@ -662,6 +681,12 @@ class MikrotikController extends Controller
      */
     public function togglePPPSecret(int|string $customerID, string $routerName, string $username, string $action): void
     {
+        if (! $this->isRouterConnected($routerName)) {
+            \Log::debug("MikroTik [{$routerName}] {$action} skipped — router not connected.");
+
+            return;
+        }
+
         $quotedUser = $this->mtQuote($username);
 
         try {
@@ -701,6 +726,12 @@ class MikrotikController extends Controller
 
     public function disablePPPSecret(int|string $customerID, string $routerName, string $username, bool $logFallback = true): string
     {
+        if (! $this->isRouterConnected($routerName)) {
+            \Log::debug("MikroTik [{$routerName}] disable skipped — router not connected.");
+
+            return self::OFFLINE;
+        }
+
         $quotedUser = $this->mtQuote($username);
         $expiredProfile = siteUrlSettings('expired_profile_name') ?? 'Expired';
 
@@ -765,6 +796,12 @@ class MikrotikController extends Controller
 
     public function updatePPPSecret(string $routerName, string $username, string $field, string $value): void
     {
+        if (! $this->isRouterConnected($routerName)) {
+            \Log::debug("MikroTik [{$routerName}] update skipped — router not connected.");
+
+            return;
+        }
+
         $this->singleWrite($routerName, '/ppp secret set '.$field.'='.$this->mtQuote($value).' [find name='.$this->mtQuote($username).']');
     }
 
@@ -1865,6 +1902,10 @@ class MikrotikController extends Controller
     public function getLiveTraffic(string $routerName, string $interface): array
     {
         $empty = ['rx-bits-per-second' => 0, 'tx-bits-per-second' => 0];
+
+        if (! $this->isRouterConnected($routerName)) {
+            return $empty;
+        }
 
         try {
             $res = $this->singleRead(

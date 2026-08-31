@@ -4,6 +4,9 @@ namespace App\Livewire;
 
 use App\Models\AddressField;
 use App\Models\CustomersAddress;
+use App\Models\CustomersInfo;
+use App\Services\Saas\SaasContext;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Livewire\Component;
 
@@ -43,7 +46,21 @@ class AddressSetup extends Component
     protected function rules()
     {
         return [
-            'label' => 'required|string|max:255|unique:address_fields,label,'.$this->addressFieldId,
+            'label' => [
+                'required',
+                'string',
+                'max:255',
+                Rule::unique('address_fields', 'label')
+                    ->ignore($this->addressFieldId)
+                    ->where(function ($q) {
+                        $tenantId = SaasContext::operatorId();
+                        if ($tenantId) {
+                            $q->where('saas_operator_id', $tenantId);
+                        } else {
+                            $q->whereNull('saas_operator_id');
+                        }
+                    }),
+            ],
             'input_type' => 'required|in:dropdown,text,textarea',
             'dropdown_list' => 'required_if:input_type,dropdown|array',
             'dropdown_input' => $this->shouldRequireTypeInput() ? 'required|string' : 'nullable',
@@ -73,7 +90,10 @@ class AddressSetup extends Component
     public function isTypeInUse($type)
     {
         // Check if the type is being used in the customers_address table
-        return CustomersAddress::where('input_type_dropdown', $type)->exists();
+        return CustomersAddress::query()
+            ->where('input_type_dropdown', $type)
+            ->whereIn('customer_address_unique_id', CustomersInfo::query()->select('customer_unique_id'))
+            ->exists();
     }
 
     public function removeTypeFromList($index)

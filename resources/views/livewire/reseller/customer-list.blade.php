@@ -121,15 +121,18 @@
     @if($editingCustomerId)
         <div class="modal fade show" tabindex="-1" style="display: block; background: rgba(0,0,0,0.5);" aria-modal="true" role="dialog" wire:key="edit-customer-modal-{{ $editingCustomerId }}">
             <div class="modal-dialog modal-fullscreen">
-                <div class="modal-content">
-                    <div class="modal-header">
+                <div class="modal-content h-100 d-flex flex-column">
+                    <div class="modal-header flex-shrink-0">
                         <h5 class="modal-title">{{ __('Edit Customer') }}</h5>
                         <button type="button" class="btn-close" wire:click="closeEditCustomerModal" aria-label="Close"></button>
                     </div>
-                    <div class="modal-body bg-light" style="padding: 1.5rem; max-height: 85vh; overflow-y: auto;">
-                        @livewire('edit-customer', ['customerId' => $editingCustomerId], key($editingCustomerId))
+                    <div class="modal-body p-0 flex-grow-1 overflow-hidden bg-light">
+                        <livewire:edit-customer :customer-id="$editingCustomerId" :embedded="true" :key="'edit-'.$editingCustomerId" />
                     </div>
-                    <div class="modal-footer">
+                    <div class="modal-footer flex-shrink-0">
+                        <button type="button" class="btn btn-success" onclick="Livewire.dispatch('save-quick-fields')">
+                            <i class="bi bi-check2-circle me-1"></i>{{ __('Save') }}
+                        </button>
                         <button type="button" class="btn btn-danger" wire:click="closeEditCustomerModal">{{ __('Close') }}</button>
                     </div>
                 </div>

@@ -20,6 +20,7 @@ use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Intervention\Image\Drivers\Gd\Driver;
 use Intervention\Image\ImageManager;
+use Livewire\Attributes\On;
 use Livewire\Attributes\Validate;
 use Livewire\Component;
 use Livewire\WithFileUploads;
@@ -50,8 +51,6 @@ class EditCustomer extends Component
 
     public $profile;
 
-    public $profileNames;
-
     public $service;
 
     public $queue_name;
@@ -80,7 +79,11 @@ class EditCustomer extends Component
 
     public $addressFields;
 
-    public $packageLists;
+    public $packageLists = [];
+
+    public $profileNames = [];
+
+    public string $quickClientType = 'home';
 
     public $photo_url;
 
@@ -106,8 +109,17 @@ class EditCustomer extends Component
 
     public array $networkPath = [];
 
-    public function mount($customerId)
+    public string $quickPackage = '';
+
+    public string $quickCustomerType = 'standard';
+
+    public string $quickStatus = '';
+
+    public bool $embedded = false;
+
+    public function mount($customerId, bool $embedded = false)
     {
+        $this->embedded = $embedded;
         if (! hasAccess(['Super Admin'], ['edit-customer']) && ! auth()->user()->hasRole('Reseller')) {
             abort(403, 'Unauthorized action.');
         }
@@ -119,15 +131,9 @@ class EditCustomer extends Component
             $this->resellersList = Reseller::with('user')->get();
         }
         $this->customerId = $customerId;
-        // Call loadCustomerData with the customerId parameter
         $this->loadCustomerData($customerId);
-        $this->loadInterfaceNames();
-        $this->loadOptical();
-        $this->loadNetworkPath();
-
-        // Load packages based on the customer's router or reseller mapping
-        $customer = CustomersInfo::where('customer_unique_id', decrypt($customerId))->first();
-        $this->loadPackageLists($customer);
+        $this->profileNames = PackageList::namesForRouter($this->fields['pppUser']['router_name'] ?? null);
+        $this->loadOptical(false);
     }
 
     public function loadNetworkPath(): void
@@ -316,14 +322,112 @@ class EditCustomer extends Component
                     $q->whereIn('id', $reseller->assignedPackages->pluck('id'))
                         ->orWhere('reseller_id', $reseller->id);
                 })
-                    ->pluck('package');
+                    ->orderBy('package')
+                    ->pluck('package')
+                    ->filter()
+                    ->unique()
+                    ->values()
+                    ->all();
+                $this->ensureCurrentPackageInList();
+
                 return;
             }
         }
-        
+
         $routerName = $this->fields['pppUser']['router_name'] ?? null;
-        $this->packageLists = PackageList::where('router_name', ! empty($routerName) ? $routerName : null)
-            ->pluck('package');
+        $this->packageLists = PackageList::namesForRouter($routerName ?: null);
+        $this->ensureCurrentPackageInList();
+    }
+
+    protected function ensureCurrentPackageInList(): void
+    {
+        $current = $this->fields['pppUser']['package_name'] ?? '';
+        if ($current !== '' && ! in_array($current, $this->packageLists, true)) {
+            $this->packageLists[] = $current;
+        }
+    }
+
+    protected function findPackageForCustomer(CustomersInfo $customer, string $packageName): ?PackageList
+    {
+        if ($customer->reseller_id) {
+            $reseller = Reseller::find($customer->reseller_id);
+
+            return PackageList::where('package', $packageName)
+                ->where(function ($q) use ($reseller) {
+                    $q->whereIn('id', $reseller->assignedPackages->pluck('id'))
+                        ->orWhere('reseller_id', $reseller->id);
+                })
+                ->first();
+        }
+
+        $router = $customer->pppUser->router_name ?? null;
+
+        return PackageList::where('package', $packageName)
+            ->where(function ($q) use ($router) {
+                if ($router) {
+                    $q->where('router_name', $router)->orWhereNull('router_name');
+                } else {
+                    $q->whereNull('router_name');
+                }
+            })
+            ->first();
+    }
+
+    #[On('save-quick-fields')]
+    public function saveQuickFields(): void
+    {
+        $customer = CustomersInfo::where('customer_unique_id', decrypt($this->customerId))
+            ->with('billing', 'official', 'pppUser')
+            ->first();
+
+        if (! $customer) {
+            flash()->error(__('Customer not found.'));
+
+            return;
+        }
+
+        if (auth()->user()->hasRole('Reseller')) {
+            $reseller = auth()->user()->reseller;
+            if (! $reseller || $customer->reseller_id !== $reseller->id) {
+                abort(403, 'Unauthorized action.');
+            }
+        }
+
+        if ($this->quickPackage !== '') {
+            $pkg = $this->findPackageForCustomer($customer, $this->quickPackage);
+            if (! $pkg) {
+                flash()->error(__('Package not found.'));
+
+                return;
+            }
+            $customer->package_id = $pkg->id;
+            if ($customer->billing) {
+                $customer->billing->monthly_rent = $pkg->price;
+                $this->recalculateBillingTotal($customer->billing);
+            }
+            data_set($this->fields, 'pppUser.package_name', $this->quickPackage);
+        }
+
+        if ($customer->official) {
+            $customer->official->customer_type = $this->quickCustomerType ?: 'standard';
+            $customer->official->client_type = $this->quickClientType ?: 'home';
+            $customer->official->save();
+            data_set($this->fields, 'official.customer_type', $this->quickCustomerType);
+            data_set($this->fields, 'official.client_type', $this->quickClientType);
+        }
+
+        $statusChanged = $this->quickStatus !== '' && $this->quickStatus !== ($customer->status ?? '');
+        $customer->save();
+
+        if ($statusChanged) {
+            $this->updateCustomer('official.status', $this->quickStatus);
+            $this->loadCustomerData($this->customerId);
+
+            return;
+        }
+
+        $this->loadCustomerData($this->customerId);
+        flash()->success(__('Customer updated successfully.'));
     }
 
     public function loadInterfaceNames()
@@ -334,20 +438,17 @@ class EditCustomer extends Component
             // Router details
             $router = RouterList::where('router_name', $routerName)->first();
 
-            if ($router && $router->action === 'connected') {
-                // Clear profileNames before updating (fix: was incorrectly writing to interfaceNames)
+            if ($router) {
                 $this->profileNames = [];
-
-                $results = app(MikrotikController::class)->singleRead(
-                    $routerName,
-                    '/ppp/profile/print',
-                    '/ppp profile print without-paging terse'
-                );
-
-                foreach ($results as $item) {
-                    if (is_array($item) && isset($item['name'])) {
-                        $this->profileNames[] = $item['name'];
-                    }
+                if ($router->action === 'connected') {
+                    $this->profileNames = $this->readMikrotikNames(
+                        $routerName,
+                        '/ppp/profile/print',
+                        '/ppp profile print without-paging terse'
+                    );
+                }
+                if ($this->profileNames === []) {
+                    $this->profileNames = PackageList::namesForRouter($routerName);
                 }
             }
         }
@@ -466,6 +567,11 @@ class EditCustomer extends Component
             $this->service = $customer->pppUser->service ?? '';
             $this->auto_disable = $customer->billing->auto_disable ?? true;
             $this->auto_disable_date = $customer->billing->auto_disable_date ?? null;
+            $this->quickPackage = $customer->package?->package ?? ($this->fields['pppUser']['package_name'] ?? '');
+            $this->quickCustomerType = $customer->official->customer_type ?? 'standard';
+            $this->quickClientType = $customer->official->client_type ?? 'home';
+            $this->quickStatus = $customer->status ?? '';
+            $this->loadPackageLists($customer);
         } else {
             flash()->error('Customer not found.');
         }
@@ -546,46 +652,24 @@ class EditCustomer extends Component
             }
             // Proceed only if service is static and router_name is set than fetch interfaces and profile
             if ($this->service == 'static' && $normalizedRouterName) {
-                try {
-                    // Load physical interfaces via pooled/cached controller
-                    $this->interfaceNames = [];
-                    $results = app(MikrotikController::class)->singleRead(
-                        $normalizedRouterName,
-                        '/interface/print',
-                        '/interface print without-paging terse where type="ether" or type="vlan"'
-                    );
-                    foreach ($results as $item) {
-                        if (is_array($item) && isset($item['name'])) {
-                            $this->interfaceNames[] = $item['name'];
-                        }
-                    }
-                } catch (\Exception $e) {
-                    flash()->error('Router '.$e->getMessage().' is not connected!');
-                }
-
+                $this->interfaceNames = $this->readMikrotikNames(
+                    $normalizedRouterName,
+                    '/interface/print',
+                    '/interface print without-paging terse where type="ether" or type="vlan"'
+                );
                 $this->profileNames = [];
                 $this->username = $this->password = $this->ppp_remote_ip = $this->caller_id = null;
 
                 return;
             } elseif ($this->service == 'pppoe' && $normalizedRouterName) {
-                // Proceed only if service is pppoe and router_name is set
-                try {
-                    // Load PPP profiles via pooled/cached controller
-                    $this->profileNames = [];
-                    $results = app(MikrotikController::class)->singleRead(
-                        $normalizedRouterName,
-                        '/ppp/profile/print',
-                        '/ppp profile print without-paging terse'
-                    );
-                    foreach ($results as $item) {
-                        if (is_array($item) && isset($item['name'])) {
-                            $this->profileNames[] = $item['name'];
-                        }
-                    }
-                } catch (\Exception $e) {
-                    flash()->error('Router '.$e->getMessage().' is not connected!');
+                $this->profileNames = $this->readMikrotikNames(
+                    $normalizedRouterName,
+                    '/ppp/profile/print',
+                    '/ppp profile print without-paging terse'
+                );
+                if ($this->profileNames === []) {
+                    $this->profileNames = PackageList::namesForRouter($normalizedRouterName);
                 }
-
                 $this->interfaceNames = [];
                 $this->ip_address = $this->queue_name = $this->caller_id = $this->bandwidth = null;
 
@@ -597,6 +681,26 @@ class EditCustomer extends Component
                 return;
             }
         }
+    }
+
+    /**
+     * @return list<string>
+     */
+    protected function readMikrotikNames(string $routerName, string $apiCmd, string $sshCmd): array
+    {
+        $names = [];
+        try {
+            $results = app(MikrotikController::class)->singleRead($routerName, $apiCmd, $sshCmd, [], false);
+            foreach ($results as $item) {
+                if (is_array($item) && isset($item['name'])) {
+                    $names[] = $item['name'];
+                }
+            }
+        } catch (\Throwable $e) {
+            \Log::debug('EditCustomer MikroTik read skipped: '.$e->getMessage());
+        }
+
+        return $names;
     }
 
     public function rules()
@@ -671,62 +775,55 @@ class EditCustomer extends Component
                     }
 
                     app(MikrotikController::class)->singleWrite($this->router_name, $cmd);
-
-                    // Router write succeeded — persist to database
-                    try {
-                        $customerId = decrypt($this->customerId);
-                    } catch (\Exception $e) {
-                        flash()->error('Invalid Customer ID!');
-
-                        return;
-                    }
-
-                    // Create or fetch the PPP User record
-                    $pppUser = PPPSecrets::firstOrCreate(
-                        ['router_name' => $this->router_name, 'username' => $this->username],
-                        [
-                            'password' => $this->password,
-                            'service' => $this->service,
-                            'profile' => $this->profile,
-                            'comment' => $this->comment,
-                            'caller_id' => $this->caller_id,
-                            'status' => 'active',
-                            'ppp_remote_ip' => ! empty($this->ppp_remote_ip) ? $this->ppp_remote_ip : $this->ip_address,
-                        ]
-                    );
-
-                    // Update Billing Info
-                    BillingInfo::where('customer_bill_unique_id', $customerId)->update([
-                        'auto_disable_date' => $this->auto_disable_date ? Carbon::parse($this->auto_disable_date) : Carbon::now()->addDays(30),
-                    ]);
-
-                    // Update Customer Info if PPP user is created successfully
-                    if ($pppUser->exists) {
-                        CustomersInfo::where('customer_unique_id', $customerId)->update([
-                            'status' => 'active',
-                            'ppp_user_id' => $pppUser->id,
-                        ]);
-                    }
-
-                    flash()->success('Customer PPP User created successfully!');
-
-                    // Reload customer data and reset form
-                    $this->loadCustomerData($this->customerId);
-                    $this->resetPPPUser();
-
-                } catch (\Exception $e) {
-                    // Handle any connection or execution errors
-                    flash()->error('Router '.$e->getMessage().' is not connected!');
+                } catch (\Throwable $e) {
+                    \Log::debug('EditCustomer MikroTik PPP write skipped: '.$e->getMessage());
                 }
+
+                try {
+                    $customerId = decrypt($this->customerId);
+                } catch (\Exception $e) {
+                    flash()->error('Invalid Customer ID!');
+
+                    return;
+                }
+
+                $pppUser = PPPSecrets::firstOrCreate(
+                    ['router_name' => $this->router_name, 'username' => $this->username],
+                    [
+                        'password' => $this->password,
+                        'service' => $this->service,
+                        'profile' => $this->profile,
+                        'comment' => $this->comment,
+                        'caller_id' => $this->caller_id,
+                        'status' => 'active',
+                        'ppp_remote_ip' => ! empty($this->ppp_remote_ip) ? $this->ppp_remote_ip : $this->ip_address,
+                    ]
+                );
+
+                BillingInfo::where('customer_bill_unique_id', $customerId)->update([
+                    'auto_disable_date' => $this->auto_disable_date ? Carbon::parse($this->auto_disable_date) : Carbon::now()->addDays(30),
+                ]);
+
+                if ($pppUser->exists) {
+                    CustomersInfo::where('customer_unique_id', $customerId)->update([
+                        'status' => 'active',
+                        'ppp_user_id' => $pppUser->id,
+                    ]);
+                }
+
+                flash()->success('Customer PPP User created successfully!');
+                $this->loadCustomerData($this->customerId);
+                $this->resetPPPUser();
             } elseif ($this->service == 'static') {
                 try {
-                    // Add simple queue via pooled/cached controller
                     app(MikrotikController::class)->singleWrite(
                         $this->router_name,
                         "/queue simple add name=\"{$this->queue_name}\" profile=\"{$this->profile}\" address=\"{$this->ip_address}\" max-limit=\"{$this->bandwidth}\" comment=\"{$this->comment}\" disabled=yes"
                     );
+                } catch (\Throwable $e) {
+                    \Log::debug('EditCustomer MikroTik queue write skipped: '.$e->getMessage());
+                }
 
-                    // Router write succeeded — persist to database
                     $pppUser = new PPPSecrets;
                     $pppUser->router_name = $this->router_name;
                     $pppUser->username = ($this->username != '') ? $this->username : $this->queue_name;
@@ -744,10 +841,6 @@ class EditCustomer extends Component
                     flash()->success('Customer PPP User created successfully!');
                     $this->loadCustomerData($this->customerId);
                     $this->resetPPPUser();
-                } catch (\Exception $e) {
-                    // Handle any connection or execution errors
-                    flash()->error('Router '.$e->getMessage().' is not connected!');
-                }
             }
         } catch (ValidationException $e) {
             // Validation failed, extract error messages
@@ -811,6 +904,10 @@ class EditCustomer extends Component
 
     public function startEditing($field)
     {
+        if (str_contains($field, 'profile') || str_contains($field, 'package_name')) {
+            $this->loadInterfaceNames();
+        }
+
         // Store the current value of the field being edited in tempFields
         data_set($this->tempFields, $field, data_get($this->fields, $field));
     }
@@ -989,27 +1086,23 @@ class EditCustomer extends Component
                     data_set($this->fields, $field, $value);
                 } elseif ($relation == 'pppUser' && ($attribute == 'connection_date' || $attribute == 'package_name')) {
                     if ($attribute == 'package_name') {
-                        if ($customer->reseller_id) {
-                            $reseller = Reseller::find($customer->reseller_id);
-                            $pkg = PackageList::where('package', $value)
-                                ->where(function ($q) use ($reseller) {
-                                    $q->whereIn('id', $reseller->assignedPackages->pluck('id'))
-                                        ->orWhere('reseller_id', $reseller->id);
-                                })
-                                ->first();
-                        } else {
-                            $router = $customer->pppUser->router_name ?? null;
-                            $pkg = PackageList::where('package', $value)
-                                ->where('router_name', ! empty($router) ? $router : null)
-                                ->first();
-                        }
+                        $pkg = $this->findPackageForCustomer($customer, $value);
                         $customer->package_id = $pkg?->id;
+                        if ($pkg && $customer->billing) {
+                            $customer->billing->monthly_rent = $pkg->price;
+                            $this->recalculateBillingTotal($customer->billing);
+                            data_set($this->fields, 'billing.monthly_rent', $customer->billing->monthly_rent);
+                            data_set($this->fields, 'billing.total_amount', $customer->billing->total_amount);
+                        }
+                        $customer->save();
+                        data_set($this->fields, $field, $value);
+                        $this->quickPackage = $value;
                     } else {
                         $customer->connection_date = Carbon::parse($value)->format('Y-m-d');
+                        $customer->save();
+                        data_set($this->fields, $field, Carbon::parse($value)->format('Y-m-d'));
                     }
-                    $customer->save();
-                    data_set($this->fields, $field, Carbon::parse($value)->format('Y-m-d'));
-                    flash()->success(ucwords(str_replace('_', ' ', $field)).' updated successfully!');
+                    flash()->success(ucwords(str_replace('_', ' ', $attribute)).' updated successfully!');
                 } elseif ($relation == 'pppUser' && ($attribute == 'auto_disable_date' || $attribute == 'auto_disable_month')) {
                     $customer->billing->$attribute = ($attribute == 'auto_disable_date') ? date('Y-m-d', strtotime($value)) : (($value != '') ? $value : null);
                     $customer->billing->save();
@@ -1074,7 +1167,8 @@ class EditCustomer extends Component
 
                         $customer->$attribute = $value;
                         $customer->save();
-                        data_set($this->fields, $field, $value); // Update the specific field in the 'customer'
+                        data_set($this->fields, $field, $value);
+                        $this->quickStatus = $value;
 
                         \DB::commit();
                         flash()->success(ucwords(str_replace('_', ' ', $attribute)).' updated successfully!');
@@ -1100,6 +1194,9 @@ class EditCustomer extends Component
                         if ($attribute === 'connected_by') {
                             $userName = $this->userLists->where('id', $value)->first()->name ?? '';
                             data_set($this->fields, $field, $userName);
+                        } elseif ($attribute === 'customer_type') {
+                            data_set($this->fields, $field, $value);
+                            $this->quickCustomerType = $value;
                         } else {
                             data_set($this->fields, $field, $value);
                         }
@@ -1132,6 +1229,8 @@ class EditCustomer extends Component
 
     public function render()
     {
-        return view('livewire.edit-customer')->layout('layouts.app');
+        $view = view('livewire.edit-customer');
+
+        return $this->embedded ? $view : $view->layout('layouts.app');
     }
 }

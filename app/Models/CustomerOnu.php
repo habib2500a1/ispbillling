@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Services\Saas\SaasContext;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -47,5 +48,18 @@ class CustomerOnu extends Model
     public function rxHistories(): HasMany
     {
         return $this->hasMany(CustomerOnuRxHistory::class)->orderByDesc('recorded_at');
+    }
+
+    /**
+     * Limit ONU rows to the current SaaS tenant / platform owner view.
+     */
+    public function scopeForViewer($query)
+    {
+        $mode = SaasContext::tenantScopeMode();
+        if ($mode === 'all') {
+            return $query;
+        }
+
+        return $query->whereHas('customer');
     }
 }

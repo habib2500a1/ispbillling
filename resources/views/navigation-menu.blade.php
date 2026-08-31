@@ -1,6 +1,6 @@
 <nav id="navbar" class="navbar navbar-expand-lg fixed-top bg-body-tertiary z-3">
     <div class="container-fluid">
-        <a wire:navigate.hover wire:current="active" href="/" class="navbar-brand d-flex align-items-center mb-md-0 me-md-auto link-body-emphasis text-decoration-none">
+        <a wire:navigate.hover wire:current="active" href="{{ staffHomeUrl() }}" class="navbar-brand d-flex align-items-center mb-md-0 me-md-auto link-body-emphasis text-decoration-none">
             <!-- Logo -->
             <x-application-mark class="sidebar-logo" style="height: 2rem !important; width: 3rem !important;" />
             {{-- {!! siteUrlSettings('site_name') !!} --}}
@@ -18,7 +18,7 @@
             <ul class="navbar-nav ms-auto">
                 <li class="nav-item d-lg-none">
                     {{-- <a href="{{ route('dashboard.index') }}" class="nav-link link-body-emphasis {{ request()->routeIs('dashboard') ? 'active' : '' }}"> --}}
-                        <a wire:navigate.hover wire:current="active" href="" class="nav-link link-body-emphasis">
+        <a wire:navigate.hover wire:current="active" href="{{ staffHomeUrl() }}" class="nav-link link-body-emphasis">
                         <i class="bi bi-pie-chart-fill me-2"></i>
                         <span class="sidebar-text">Dashboard</span>
                     </a>
@@ -60,7 +60,7 @@
                     <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="profileDropdown">
                         <li class="dropdown-header">{{ __('Manage Account') }}</li>
                         <li><a wire:navigate.hover wire:current="active" class="dropdown-item" href="{{ route('profile.show') }}">{{ __('Profile') }}</a></li>
-                        @canany(['create-role', 'edit-role', 'delete-role'])
+                        @canany(['create-user-role', 'edit-user-role', 'delete-user-role'])
                             <li><a wire:navigate.hover wire:current="active" class="dropdown-item" href="{{ route('roles.index') }}">{{ __('Manage Role') }}</a></li>
                         @endcanany
 

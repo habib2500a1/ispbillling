@@ -42,7 +42,16 @@ class SMSController extends Controller
 
     protected function sendTemplate(string $templateName, array $data, string $source): SmsResponse
     {
-        $template = SmsTemplate::where('template_name', $templateName)->first();
+        $tenantId = false;
+        if (isset($data['customer']) && is_object($data['customer'])) {
+            $tenantId = $data['customer']->saas_operator_id ?? null;
+        } elseif (! empty($data['customer_id'])) {
+            $tenantId = \App\Models\CustomersInfo::withoutGlobalScope('saas_tenant')
+                ->where('customer_unique_id', $data['customer_id'])
+                ->value('saas_operator_id');
+        }
+
+        $template = SmsTemplate::named($templateName, $tenantId);
 
         if (! $template) {
             return new SmsResponse(false, 'Template not found');

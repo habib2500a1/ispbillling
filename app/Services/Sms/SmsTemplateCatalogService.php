@@ -2,40 +2,73 @@
 
 namespace App\Services\Sms;
 
+use App\Models\SaasOperator;
 use App\Models\SmsTemplate;
 use App\Support\SmsTemplateCatalog;
 use Illuminate\Support\Facades\Schema;
 
 final class SmsTemplateCatalogService
 {
-    public function syncMissing(): int
+    public function syncMissing(?int $tenantId = null): int
+    {
+        return $this->syncForTenant($tenantId);
+    }
+
+    public function syncAllTenants(): int
+    {
+        $created = $this->syncForTenant(null);
+        if (! Schema::hasTable('saas_operators')) {
+            return $created;
+        }
+
+        foreach (SaasOperator::query()->pluck('id') as $id) {
+            $created += $this->syncForTenant((int) $id);
+        }
+
+        return $created;
+    }
+
+    public function syncForTenant(?int $tenantId): int
     {
         if (! Schema::hasTable('sms_templates')) {
+            return 0;
+        }
+
+        $hasTenant = Schema::hasColumn('sms_templates', 'saas_operator_id');
+        if (! $hasTenant && $tenantId) {
             return 0;
         }
 
         $created = 0;
 
         foreach (SmsTemplateCatalog::defaults() as $row) {
-            $exists = SmsTemplate::query()
-                ->where('template_name', $row['key'])
-                ->exists();
+            $query = SmsTemplate::query()->withoutGlobalScope('saas_tenant')->where('template_name', $row['key']);
+            if ($hasTenant) {
+                if ($tenantId) {
+                    $query->where('saas_operator_id', $tenantId);
+                } else {
+                    $query->whereNull('saas_operator_id');
+                }
+            }
 
-            if ($exists) {
+            if ($query->exists()) {
                 continue;
             }
 
-            SmsTemplate::query()->create([
-                'template_name' => $row['key'],
-                'display_name' => $row['name'],
-                'event_key' => $row['event_key'],
-                'template' => $row['body'],
-                'template_ex_en' => $row['example_en'] ?? '',
-                'template_ex_bn' => $row['example_bn'] ?? '',
-                'placeholders' => $row['placeholders'],
-                'sort_order' => $row['sort_order'],
-                'is_active' => true,
-            ]);
+            $tpl = new SmsTemplate;
+            if ($hasTenant) {
+                $tpl->saas_operator_id = $tenantId;
+            }
+            $tpl->template_name = $row['key'];
+            $tpl->display_name = $row['name'];
+            $tpl->event_key = $row['event_key'];
+            $tpl->template = $row['body'];
+            $tpl->template_ex_en = $row['example_en'] ?? '';
+            $tpl->template_ex_bn = $row['example_bn'] ?? '';
+            $tpl->placeholders = $row['placeholders'];
+            $tpl->sort_order = $row['sort_order'];
+            $tpl->is_active = true;
+            $tpl->save();
             $created++;
         }
 

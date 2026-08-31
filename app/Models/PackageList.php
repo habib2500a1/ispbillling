@@ -36,4 +36,25 @@ class PackageList extends Model
     {
         return $this->belongsTo(Reseller::class, 'reseller_id');
     }
+
+    /**
+     * Local package names for a router (used when MikroTik is offline).
+     *
+     * @return list<string>
+     */
+    public static function namesForRouter(?string $routerName): array
+    {
+        return static::query()
+            ->when($routerName, function ($q) use ($routerName) {
+                $q->where(function ($inner) use ($routerName) {
+                    $inner->where('router_name', $routerName)->orWhereNull('router_name');
+                });
+            })
+            ->orderBy('package')
+            ->pluck('package')
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+    }
 }

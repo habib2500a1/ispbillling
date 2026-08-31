@@ -50,7 +50,7 @@
             {{-- Logo / Brand --}}
             <a class="navbar-brand" href="#top">
                 @if (siteUrlSettings('site_logo'))
-                    <img class="d-inline-block align-text-top" style="width:190px;height:53px;"
+                    <img class="d-inline-block align-text-top" style="width:auto;height:auto;max-height:53px;max-width:190px;object-fit:contain;"
                         src="{{ site_image(siteUrlSettings('site_logo')) }}" alt="logo" />
                 @else
                     @if (siteUrlSettings('site_icon'))
@@ -74,10 +74,22 @@
                     <li class="nav-item"><a class="nav-link" href="#blog">{{ __('Blog') }}</a></li>
                     <li class="nav-item"><a class="nav-link" href="#testimonial">{{ __('Testimonial') }}</a></li>
                     <li class="nav-item"><a class="nav-link" href="#contact-form">{{ __('Contact') }}</a></li>
+                    <li class="nav-item d-md-none mt-2">
+                        <a href="{{ adminLoginUrl() }}"
+                            class="btn btn-success btn-sm w-100 rounded-pill fw-semibold text-decoration-none">
+                            {{ __('Admin Login') }}
+                        </a>
+                    </li>
+                    <li class="nav-item d-md-none mt-2">
+                        <a href="{{ portalLoginUrl() }}"
+                            class="btn btn-outline-success btn-sm w-100 rounded-pill fw-semibold text-decoration-none">
+                            {{ __('Client Login') }}
+                        </a>
+                    </li>
                 </ul>
             </div>
 
-            <div class="d-flex align-items-center ms-auto ms-lg-3 me-2 gap-2">
+            <div class="d-none d-md-flex align-items-center ms-auto ms-lg-3 me-2 gap-2">
                 {{-- Language Switcher next to Theme Toggle --}}
                 @php
                     $currentMainLocale = session()->get(
@@ -85,9 +97,13 @@
                         siteUrlSettings('main_site_locale') ?? 'en',
                     );
                 @endphp
-                <a href="{{ route('login') }}"
+                <a href="{{ adminLoginUrl() }}"
                     class="btn btn-success btn-sm px-3 py-1 rounded-pill fw-semibold text-decoration-none">
-                    {{ __('Login') }}
+                    {{ __('Admin Login') }}
+                </a>
+                <a href="{{ portalLoginUrl() }}"
+                    class="btn btn-outline-success btn-sm px-3 py-1 rounded-pill fw-semibold text-decoration-none">
+                    {{ __('Client Login') }}
                 </a>
                 @if ($currentMainLocale === 'bn')
                     <a href="{{ route('welcome.lang', 'en') }}"
@@ -1062,8 +1078,8 @@
                     <div class="col-lg-3 col-md-6 col-6 mb-4 mb-lg-0">
                         <h5 class="text-light fw-bold mb-3" style="font-size: 1.1rem;">{{ __('Quick Links') }}</h5>
                         <ul class="footer-links-list">
-                            <li><a href="{{ route('login') }}">{{ __('Staff Login') }}</a></li>
-                            <li><a href="{{ url('/portal') }}">{{ __('Client Portal') }}</a></li>
+                            <li><a href="{{ route('login') }}">{{ __('Admin Login') }}</a></li>
+                            <li><a href="{{ portalLoginUrl() }}">{{ __('Client Login') }}</a></li>
                             <li><a href="{{ route('policy.show') }}">{{ __('Privacy Policy') }}</a></li>
                             <li><a href="{{ route('terms.show') }}">{{ __('Terms & Conditions') }}</a></li>
                             <li><a href="{{ $siteData->btcl_tariff_link ?? '#' }}"

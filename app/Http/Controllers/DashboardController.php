@@ -9,6 +9,7 @@ use App\Models\HotspotSale;
 use App\Models\PPPSecrets;
 use App\Models\Reseller;
 use App\Models\ResellerCommission;
+use App\Models\RouterList;
 use App\Services\Ai\OpsInsightsService;
 use App\Services\Dashboard\DashboardFinanceService;
 use App\Services\Dashboard\DashboardOpsService;
@@ -43,20 +44,15 @@ class DashboardController extends Controller
 
         $today = Carbon::today();
 
-        $onlinePppIds = PPPSecrets::query()
-            ->where('status', '!=', 'removed')
-            ->whereNotNull('uptime')
-            ->pluck('id');
-        $offlinePppIds = PPPSecrets::query()
-            ->where('status', '!=', 'removed')
-            ->whereNull('uptime')
-            ->pluck('id');
-
         $clientSummary = [
             'total' => array_sum($statusCounts),
             'active' => $statusCounts['active'] ?? 0,
-            'online' => CustomersInfo::whereIn('ppp_user_id', $onlinePppIds)->count(),
-            'offline' => CustomersInfo::whereIn('ppp_user_id', $offlinePppIds)->count(),
+            'online' => CustomersInfo::query()
+                ->whereHas('pppUser', fn ($q) => $q->where('status', '!=', 'removed')->whereNotNull('uptime'))
+                ->count(),
+            'offline' => CustomersInfo::query()
+                ->whereHas('pppUser', fn ($q) => $q->where('status', '!=', 'removed')->whereNull('uptime'))
+                ->count(),
             'inactive' => ($statusCounts['inactive'] ?? 0) + ($statusCounts['disable'] ?? 0),
             'inactive_due' => CustomersInfo::query()
                 ->whereIn('status', ['inactive', 'disable'])
@@ -253,6 +249,14 @@ class DashboardController extends Controller
 
         $opsData = app(DashboardOpsService::class)->snapshot();
 
+        $routerAlerts = RouterList::query()
+            ->where(function ($q) {
+                $q->whereNull('action')->orWhere('action', '!=', 'connected');
+            })
+            ->orderBy('router_name')
+            ->pluck('router_name')
+            ->all();
+
         try {
             $insights = app(OpsInsightsService::class)->payload();
             $opsData['insights_critical'] = (int) ($insights['counts']['critical'] ?? 0);
@@ -278,7 +282,8 @@ class DashboardController extends Controller
                 'clientSummary',
                 'financialSummary',
                 'recentPayments',
-                'lineGrowth'
+                'lineGrowth',
+                'routerAlerts'
             ))
             ->header('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0')
             ->header('Pragma', 'no-cache');

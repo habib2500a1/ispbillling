@@ -18,7 +18,7 @@
                             name="customer_list"
                             class="form-control form-control-sm w-100 shadow-sm"
                             placeholder="{{ siteUrlSettings('customer_id_prefix') ?: 'FCNET' }}-XXX, name, mobile"
-                            wire:model.live="customer_list"
+                            wire:model.live.debounce.400ms="customer_list"
                             autocomplete="off"
                             tabindex="1"
                             wire:keydown.arrow-down="incrementHighlight"

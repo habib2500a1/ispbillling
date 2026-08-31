@@ -463,28 +463,30 @@ class CustomerList extends Component
                 PPPSecrets::where('id', $customer->ppp_user_id)->update(['status' => 'active']);
 
                 if (! empty($customer->pppUser->router_name)) {
-                    app(MikrotikController::class)->enablePPPSecret(
-                        $unique_id,
-                        $customer->pppUser->router_name,
-                        $customer->pppUser->username
-                    );
-
-                    app(MikrotikController::class)->updatePPPSecret(
-                        $customer->pppUser->router_name,
-                        $customer->pppUser->username,
-                        'profile',
-                        $customer->pppUser->profile
-                    );
-
-                    // Remove active PPP session via pooled/cached controller (auto-invalidates cache)
                     try {
-                        app(MikrotikController::class)->singleWrite(
+                        app(MikrotikController::class)->enablePPPSecret(
+                            $unique_id,
                             $customer->pppUser->router_name,
-                            '/ppp active remove [find name="'.$customer->pppUser->username.'"]'
+                            $customer->pppUser->username
                         );
-                    } catch (\Exception $e) {
-                        // Active session may not exist — not a critical error
-                        \Log::debug('enableCustomer: active session removal skipped: '.$e->getMessage());
+
+                        app(MikrotikController::class)->updatePPPSecret(
+                            $customer->pppUser->router_name,
+                            $customer->pppUser->username,
+                            'profile',
+                            $customer->pppUser->profile
+                        );
+
+                        try {
+                            app(MikrotikController::class)->singleWrite(
+                                $customer->pppUser->router_name,
+                                '/ppp active remove [find name="'.$customer->pppUser->username.'"]'
+                            );
+                        } catch (\Exception $e) {
+                            \Log::debug('enableCustomer: active session removal skipped: '.$e->getMessage());
+                        }
+                    } catch (\Throwable $e) {
+                        \Log::debug('enableCustomer MikroTik skipped: '.$e->getMessage());
                     }
                 }
             }
@@ -615,11 +617,15 @@ class CustomerList extends Component
                 $pppUser = $customerDelete->pppUser;
                 if ($pppUser) {
                     if (! empty($pppUser->router_name)) {
-                        app(MikrotikController::class)->removePPPSecret(
-                            $decryptedId,
-                            $pppUser->router_name,
-                            $pppUser->username
-                        );
+                        try {
+                            app(MikrotikController::class)->removePPPSecret(
+                                $decryptedId,
+                                $pppUser->router_name,
+                                $pppUser->username
+                            );
+                        } catch (\Throwable $e) {
+                            \Log::debug('deleteCustomer MikroTik skipped: '.$e->getMessage());
+                        }
                     }
                     $pppUser->delete();
                 }
@@ -650,6 +656,13 @@ class CustomerList extends Component
     {
         $this->editingCustomerId = null;
         $this->dispatch('customer-action-done');
+        $this->js(<<<'JS'
+            if (window.customerListTable && typeof $ !== 'undefined' && $.fn.DataTable && $.fn.DataTable.isDataTable('.customer-table')) {
+                window.customerListTable.ajax.reload(null, false);
+            } else if (typeof window.initCustomerListTable === 'function') {
+                setTimeout(window.initCustomerListTable, 100);
+            }
+        JS);
     }
 
     #[On('push-customer')]
@@ -677,6 +690,13 @@ class CustomerList extends Component
 
             if (! $customer->pppUser) {
                 flash()->addError('Customer does not have PPP/Mikrotik User details.');
+                $this->dispatch('customer-action-done');
+
+                return;
+            }
+
+            if (! app(MikrotikController::class)->isRouterConnected($customer->pppUser->router_name)) {
+                flash()->addSuccess(__('Customer is in billing. Connect MikroTik later to push live.'));
                 $this->dispatch('customer-action-done');
 
                 return;
@@ -713,9 +733,13 @@ class CustomerList extends Component
                 return;
             }
 
-            $success = 0; $failed = 0;
+            $success = 0; $failed = 0; $offline = 0;
             foreach ($customers as $customer) {
                 try {
+                    if (! app(MikrotikController::class)->isRouterConnected($customer->pppUser->router_name ?? '')) {
+                        $offline++;
+                        continue;
+                    }
                     $this->syncCustomer($customer);
                     $success++;
                 } catch (\Exception $e) {
@@ -725,7 +749,9 @@ class CustomerList extends Component
             }
 
             if ($failed > 0) {
-                flash()->addWarning("Push completed with some issues. Success: {$success}, Failed: {$failed}");
+                flash()->addWarning("Push completed with some issues. Success: {$success}, Failed: {$failed}, Offline: {$offline}");
+            } elseif ($success === 0 && $offline > 0) {
+                flash()->addSuccess(__('Customers are in billing. Connect MikroTik later to push live.'));
             } else {
                 flash()->addSuccess("Successfully pushed/synchronized {$success} customers to MikroTik.");
             }

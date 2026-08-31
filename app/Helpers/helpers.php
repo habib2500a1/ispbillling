@@ -53,6 +53,9 @@ if (! function_exists('siteUrlSettings')) {
             }
 
             $value = MainSiteData::getValue($key);
+            if (in_array($key, ['site_logo', 'site_icon', 'site_favicon', 'site_invoice_logo', 'site_invoice_signature'], true)) {
+                $value = site_asset_path($value);
+            }
             $runtimeCache[$cacheKey] = $value;
 
             return $value === null ? $default : $value;
@@ -109,6 +112,38 @@ if (! function_exists('warningIfNoAccess')) {
     }
 }
 
+if (! function_exists('site_asset_path')) {
+    /**
+     * Unwrap Filament FileUpload arrays / JSON leftovers into a stored relative path.
+     */
+    function site_asset_path(mixed $path): ?string
+    {
+        if (is_array($path)) {
+            $path = array_values(array_filter($path, fn ($item) => $item !== null && $item !== '' && $item !== []))[0] ?? null;
+        }
+
+        if (! is_string($path)) {
+            return null;
+        }
+
+        $path = trim($path);
+        if ($path === '' || $path === '[]' || $path === '{}' || $path === 'null') {
+            return null;
+        }
+
+        if (str_starts_with($path, 'http://') || str_starts_with($path, 'https://')) {
+            return $path;
+        }
+
+        $path = ltrim($path, '/');
+        if (str_starts_with($path, 'storage/')) {
+            $path = substr($path, strlen('storage/'));
+        }
+
+        return $path !== '' ? $path : null;
+    }
+}
+
 if (! function_exists('site_image')) {
     /**
      * Correctly resolve site images from public or storage.
@@ -116,34 +151,61 @@ if (! function_exists('site_image')) {
      */
     function site_image($path, $fallback = 'images/logo.png')
     {
-        // Filament FileUpload sometimes returns an array — unwrap it
-        if (is_array($path)) {
-            $path = array_values(array_filter($path))[0] ?? null;
-        }
+        $path = site_asset_path($path);
 
-        if (! $path || ! is_string($path)) {
+        if (! $path) {
             return asset($fallback);
         }
 
-        if (str_starts_with($path, 'http')) {
+        if (str_starts_with($path, 'http://') || str_starts_with($path, 'https://')) {
             return $path;
         }
 
-        // Path clean up
-        $path = ltrim($path, '/');
-
-        // Check 1: public folder
         if (file_exists(public_path($path))) {
             return asset($path);
         }
 
-        // Check 2: storage folder (standard Filament/Laravel location)
         if (file_exists(public_path('storage/'.$path))) {
             return asset('storage/'.$path);
         }
 
-        // Final fallback: asset with original path
-        return asset($path);
+        try {
+            if (\Illuminate\Support\Facades\Storage::disk('public')->exists($path)) {
+                return asset('storage/'.$path);
+            }
+        } catch (\Throwable $e) {
+            // Ignore missing disk during install.
+        }
+
+        return asset('storage/'.$path);
+    }
+}
+
+if (! function_exists('site_invoice_image')) {
+    function site_invoice_image(?string $fallback = 'images/logo.png'): string
+    {
+        $invoice = siteUrlSettings('site_invoice_logo');
+        if (site_asset_path($invoice)) {
+            return site_image($invoice, $fallback);
+        }
+
+        return site_image(siteUrlSettings('site_logo'), $fallback);
+    }
+}
+
+if (! function_exists('staffHomeUrl')) {
+    function staffHomeUrl(): string
+    {
+        $user = auth()->user();
+        if (! $user) {
+            return url('/');
+        }
+
+        if (method_exists($user, 'hasRole') && $user->hasRole('Reseller')) {
+            return route('reseller.dashboard');
+        }
+
+        return route('dashboard');
     }
 }
 
@@ -349,11 +411,15 @@ if (! function_exists('publicPayUrl')) {
 if (! function_exists('portalLoginUrl')) {
     function portalLoginUrl(): string
     {
-        if (\Illuminate\Support\Facades\Route::has('filament.portal.auth.login')) {
-            return route('filament.portal.auth.login');
-        }
-
+        // Always keep client login on the current host (platform or ISP custom domain).
         return url('/portal/login');
+    }
+}
+
+if (! function_exists('adminLoginUrl')) {
+    function adminLoginUrl(): string
+    {
+        return url('/login');
     }
 }
 

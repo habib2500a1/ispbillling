@@ -13,6 +13,9 @@
     </div>
     <div class="tu-pill tu-pill-month">
         <span>{{ __('This month') }}</span>
-        <strong>{{ $u['month_total_label'] ?? '0 B' }}</strong>
+        <strong title="{{ __('Download') }}: {{ $u['month_tx_label'] ?? '0 B' }} · {{ __('Upload') }}: {{ $u['month_rx_label'] ?? '0 B' }}">{{ $u['month_total_label'] ?? '0 B' }}</strong>
+        @if (! $compact)
+            <small class="d-block text-muted" style="font-size:.68rem;">↓ {{ $u['month_tx_label'] ?? '0 B' }} · ↑ {{ $u['month_rx_label'] ?? '0 B' }}</small>
+        @endif
     </div>
 </div>

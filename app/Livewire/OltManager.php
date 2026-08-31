@@ -45,7 +45,7 @@ class OltManager extends Component
 
     public function mount(): void
     {
-        if (! hasAccess(['Super Admin'], ['olt-management', 'mikrotik-sync'])) {
+        if (! hasAccess(['Super Admin', 'Operator'], ['olt-management', 'mikrotik-sync'])) {
             abort(403, 'Unauthorized action.');
         }
     }

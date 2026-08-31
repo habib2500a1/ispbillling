@@ -75,7 +75,7 @@
                                             </span>
                                             <span class="fw-semibold text-truncate text-dark" style="font-size: 0.8rem;">{{ __($roleName) }}</span>
                                         </div>
-                                        <input class="form-check-input" type="checkbox" value="{{ $roleName }}" wire:model.live="roles" style="display: none;" {{ $isDisabled ? 'disabled' : '' }}>
+                                        <input class="form-check-input" type="checkbox" value="{{ $roleName }}" wire:model.defer="roles" style="display: none;" {{ $isDisabled ? 'disabled' : '' }}>
                                     </div>
                                 </label>
                             </div>
@@ -94,6 +94,6 @@
     <x-slot name="footer">
         <x-button-danger wire:click="$toggle('confirmingUser')" wire:loading.attr="disabled">
             {{ __('Cancel') }}
-        </x-dang-button>
+        </x-button-danger>
     </x-slot>
 </x-dialog-modal>

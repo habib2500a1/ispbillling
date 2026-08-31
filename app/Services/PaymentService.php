@@ -3,8 +3,8 @@
 namespace App\Services;
 
 use App\Events\PackagePurchased;
-use App\Http\Controllers\MikrotikController;
-use App\Http\Controllers\SMSController;
+use App\Jobs\SendPaymentCollectionSmsJob;
+use App\Jobs\SyncCustomerRouterStatusJob;
 use App\Models\BillingInfo;
 use App\Models\CollectionSummary;
 use App\Models\CustomersInfo;
@@ -167,70 +167,33 @@ class PaymentService
                 }
             }
 
-            // 7. Enable customer on Mikrotik Router
-            if ($customer->pppUser) {
-                if ($customer->status === 'active') {
-                    // Enable secret (calls router via API/SSH)
-                    app(MikrotikController::class)->enablePPPSecret(
-                        $customer->customer_unique_id,
-                        $customer->pppUser->router_name,
-                        $customer->pppUser->username
-                    );
-
-                    // Restore their original plan profile
-                    app(MikrotikController::class)->updatePPPSecret(
-                        $customer->pppUser->router_name,
-                        $customer->pppUser->username,
-                        'profile',
-                        $customer->pppUser->profile
-                    );
-
-                    // Kick any current session to force reconnect with the active profile
-                    try {
-                        app(MikrotikController::class)->singleWrite(
-                            $customer->pppUser->router_name,
-                            '/ppp active remove [find name="'.$customer->pppUser->username.'"]'
-                        );
-                    } catch (\Exception $e) {
-                        Log::debug('PaymentService session kick skipped: '.$e->getMessage());
-                    }
-
-                    // Sync the local PPPSecrets status
-                    PPPSecrets::where('id', $customer->ppp_user_id)->update(['status' => 'active']);
-                } else {
-                    // Disable secret on router if not active
-                    app(MikrotikController::class)->disablePPPSecret(
-                        $customer->customer_unique_id,
-                        $customer->pppUser->router_name,
-                        $customer->pppUser->username
-                    );
-                    PPPSecrets::where('id', $customer->ppp_user_id)->update(['status' => 'disabled']);
-                }
-            }
+            // Router activation runs after HTTP response (avoids Cloudflare timeout).
+            $customerUniqueId = $customer->customer_unique_id;
+            $routerStatus = $customer->status === 'active' ? 'active' : 'disable';
+            $shouldSyncRouter = (bool) $customer->pppUser;
 
             DB::commit();
 
-            // Fire reseller commission event
-            event(new PackagePurchased($customer, $amount));
+            $smsData = [
+                'recipient' => $customer->mobile,
+                'customer_id' => $customer->customer_unique_id,
+                'customer_name' => $customer->customer_name,
+                'collection_amount' => $amount,
+                'ip_or_user_name' => $customer->pppUser->username ?? '',
+                'due_amount' => $newDue,
+                'company_name' => siteUrlSettings('site_name') ?: config('app.name'),
+            ];
 
-            // 8. Send SMS confirmation
-            try {
-                $smsData = [
-                    'recipient' => $customer->mobile,
-                    'customer_id' => $customer->customer_unique_id,
-                    'customer_name' => $customer->customer_name,
-                    'collection_amount' => $amount,
-                    'ip_or_user_name' => $customer->pppUser->username ?? '',
-                    'due_amount' => $newDue,
-                    'company_name' => siteUrlSettings('site_name') ?: config('app.name'),
-                ];
-                $smsResponse = app(SMSController::class)->paymentCollectionSMS($smsData);
-                if ($smsResponse && ! $smsResponse->isSuccessful()) {
-                    Log::warning("SMS Confirmation not delivered for {$customer->customer_unique_id}: ".$smsResponse->getMessage());
-                }
-            } catch (\Exception $smsEx) {
-                Log::error("SMS Confirmation failed for {$customer->customer_unique_id}: ".$smsEx->getMessage());
+            $customerForEvent = $customer->fresh(['billing', 'pppUser', 'official']);
+
+            if ($shouldSyncRouter) {
+                SyncCustomerRouterStatusJob::dispatch($customerUniqueId, $routerStatus)->afterResponse();
             }
+
+            dispatch(function () use ($customerForEvent, $amount, $smsData) {
+                event(new PackagePurchased($customerForEvent, $amount));
+                SendPaymentCollectionSmsJob::dispatchSync($smsData);
+            })->afterResponse();
 
             return true;
 

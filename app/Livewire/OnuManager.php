@@ -45,7 +45,7 @@ class OnuManager extends Component
 
     public function mount(): void
     {
-        if (! hasAccess(['Super Admin'], ['olt-management', 'onu-management', 'mikrotik-sync'])) {
+        if (! hasAccess(['Super Admin', 'Operator'], ['olt-management', 'onu-management', 'mikrotik-sync'])) {
             abort(403, 'Unauthorized action.');
         }
     }
@@ -163,7 +163,7 @@ class OnuManager extends Component
     {
         $bridge = app(IspbillingOpticalBridge::class);
         $remote = collect();
-        $local = CustomerOnu::query()->with(['customer.pppUser', 'olt'])->orderByDesc('last_polled_at')->orderByDesc('id');
+        $local = CustomerOnu::query()->forViewer()->with(['customer.pppUser', 'olt'])->orderByDesc('last_polled_at')->orderByDesc('id');
 
         if ($this->search !== '') {
             $q = '%'.$this->search.'%';
@@ -192,6 +192,7 @@ class OnuManager extends Component
             'customers' => CustomersInfo::query()->orderBy('customer_name')->limit(400)->get(['id', 'customer_name', 'customer_unique_id']),
             'oltCount' => Olt::query()->count(),
             'customerCount' => CustomersInfo::query()->count(),
+            'onuTotal' => CustomerOnu::query()->forViewer()->count(),
         ])->layout('layouts.app');
     }
 

@@ -62,7 +62,14 @@
         $custUrl = fn (string $filter) => route('customers.index', ['filter' => $filter]);
     @endphp
 
-    <div class="dash-shell" data-dash-rev="20260831c">
+    <div class="dash-shell" data-dash-rev="20260831d">
+        @if(!empty($routerAlerts))
+            <div class="alert alert-warning py-2 px-3 mb-3 d-flex flex-wrap align-items-center gap-2">
+                <i class="bi bi-router"></i>
+                <span>{{ __('Router offline — live Online/Offline counts will not update until connected:') }} <strong>{{ implode(', ', $routerAlerts) }}</strong></span>
+                <a href="{{ route('mikrotik-sync') }}" class="btn btn-sm btn-outline-dark ms-auto">{{ __('MikroTik sync') }}</a>
+            </div>
+        @endif
         {{-- CLIENT SUMMARY --}}
         <div class="sum-head">
             <span class="dot"></span>
@@ -430,17 +437,17 @@
                             </div>
                             <div class="col-6 col-md-3">
                                 <div class="label text-muted small text-uppercase fw-bold">{{ __('OLT') }}</div>
-                                <div class="fs-4 fw-bold">{{ $opticalData['olts'] ?? ($networkQuick['olts'] ?? 0) }}</div>
+                                <div class="fs-4 fw-bold">{{ ($opticalData['olts'] ?? 0) > 0 ? $opticalData['olts'] : ($networkQuick['olts_local'] ?? 0) }}</div>
                                 <div class="small text-muted">{{ __('ports / PON tracked') }}</div>
                             </div>
                             <div class="col-6 col-md-3">
                                 <div class="label text-muted small text-uppercase fw-bold">{{ __('ONU') }}</div>
-                                <div class="fs-4 fw-bold">{{ $opticalData['onus'] ?? ($networkQuick['onus_local'] ?? 0) }}</div>
+                                <div class="fs-4 fw-bold">{{ ($opticalData['onus'] ?? 0) > 0 ? $opticalData['onus'] : ($networkQuick['onus_local'] ?? 0) }}</div>
                                 <div class="small text-muted">{{ __('local') }} {{ $networkQuick['onus_local'] ?? 0 }}</div>
                             </div>
                             <div class="col-6 col-md-3">
                                 <div class="label text-muted small text-uppercase fw-bold">{{ __('PPP online') }}</div>
-                                <div class="fs-4 fw-bold">{{ $networkQuick['ppp_online'] ?? ($customersData['active'] ?? 0) }}</div>
+                                <div class="fs-4 fw-bold">{{ $networkQuick['ppp_online'] ?? 0 }}</div>
                                 <div class="small text-muted"><a href="{{ route('online-clients') }}">{{ __('View live') }}</a></div>
                             </div>
                         </div>
@@ -1667,6 +1674,18 @@
                 --bs-table-color: #f1f5f9;
             }
         </style>
+    @endpush
+
+    @push('scripts')
+    <script>
+        (function () {
+            var intervalMs = 60000;
+            setInterval(function () {
+                if (document.hidden) return;
+                window.location.reload();
+            }, intervalMs);
+        })();
+    </script>
     @endpush
 
 </x-app-layout>

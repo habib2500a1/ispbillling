@@ -3,7 +3,9 @@
 namespace App\Services\Noc;
 
 use App\Models\CustomerOnu;
+use App\Models\CustomersInfo;
 use App\Models\Olt;
+use App\Models\PPPSecrets;
 use App\Models\RouterList;
 use App\Models\SupportTicket;
 use App\Services\Olt\IspbillingOpticalBridge;
@@ -48,8 +50,14 @@ final class NocOverviewService
                 'network' => [
                     'routers' => RouterList::count(),
                     'routers_connected' => RouterList::where('action', 'connected')->count(),
+                    'routers_online' => RouterList::where('action', 'connected')->count(),
                     'olts_local' => Olt::count(),
-                    'onus_local' => CustomerOnu::count(),
+                    'onus_local' => CustomerOnu::forViewer()->count(),
+                    'ppp_online' => PPPSecrets::query()
+                        ->visibleToViewer()
+                        ->where('status', '!=', 'removed')
+                        ->whereNotNull('uptime')
+                        ->count(),
                 ],
                 'tickets' => $tickets,
                 'breached_tickets' => $breachedTickets,

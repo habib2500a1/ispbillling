@@ -75,7 +75,7 @@
                             </div>
                         </a>
                     @endcan
-                    @can('payment-collection-invoice')
+                    @canany(['payment-collection-invoice', 'payment-collection'])
                         <a wire:navigate.hover wire:current="active" class="nav-link" href="{{ route('payment-invoice') }}"
                             role="button">
                             <div class="d-flex align-items-center">
@@ -83,7 +83,7 @@
                                 <span class="nav-link-text ps-1">{{ __('Payment Invoice') }}</span>
                             </div>
                         </a>
-                    @endcan
+                    @endcanany
                     @canany(['payment-collection-report', 'payment-collection', 'collection-list', 'without-collection-list',
                         'amount-collection'])
                         <a wire:navigate.hover wire:current="active" class="nav-link"

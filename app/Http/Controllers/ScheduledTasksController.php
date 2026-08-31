@@ -89,12 +89,9 @@ class ScheduledTasksController extends Controller
                 return;
             }
 
-            // Active customers always get a bill.
-            // Non-active customers only get a bill if continue_bill is enabled in official info.
-            if ($customer->status !== 'active') {
-                if (! $customer->official || ! $customer->official->continue_bill) {
-                    return;
-                }
+            // Only active (and free/zero) customers receive monthly bills.
+            if (! in_array($customer->status, ['active', 'free'], true)) {
+                return;
             }
 
             $nextMonthStart = Carbon::now()->addMonthNoOverflow()->startOfMonth();
@@ -251,16 +248,15 @@ class ScheduledTasksController extends Controller
         $successfulIDs = [];
         $errorIDs = [];
 
-        $template = SmsTemplate::where('template_name', 'reminder')->first();
-        if ($template && ! $template->is_active) {
-            return;
-        }
-
         CustomersInfo::where('status', 'active')
             ->where('ppp_user_id', '!=', null)
             ->whereHas('billing', fn ($q) => $q->autoDisable()->unpaid())
             ->with(['pppUser', 'billing'])
-            ->each(function ($customer) use (&$successfulIDs, &$errorIDs, &$expiredDate, $template) {
+            ->each(function ($customer) use (&$successfulIDs, &$errorIDs, &$expiredDate) {
+                $template = SmsTemplate::named('reminder', $customer->saas_operator_id);
+                if ($template && ! $template->is_active) {
+                    return;
+                }
                 $disableDate = Carbon::parse($customer->billing->auto_disable_date)->format('Y-m-d');
                 $disableDate2 = Carbon::parse($customer->billing->auto_disable_date)->addMonths($customer->billing->auto_disable_month)->format('Y-m-d');
                 if ($disableDate === $expiredDate || $disableDate2 === $expiredDate) {
@@ -316,14 +312,13 @@ class ScheduledTasksController extends Controller
         $errorIDs = [];
         $fallbackIDs = [];
 
-        $template = SmsTemplate::where('template_name', 'auto_temporary_disable_alert')->first();
-
         CustomersInfo::active()
             ->underDisableLimit(siteUrlSettings('disable_check_no') ?? 1)
             ->hasPPPUser()
             ->whereHas('billing', fn ($q) => $q->autoDisable()->unpaid())
             ->with(['pppUser', 'billing'])
-            ->each(function ($customer) use (&$successfulIDs, &$errorIDs, &$fallbackIDs, $today, $template, $tz) {
+            ->each(function ($customer) use (&$successfulIDs, &$errorIDs, &$fallbackIDs, $today, $tz) {
+                $template = SmsTemplate::named('auto_temporary_disable_alert', $customer->saas_operator_id);
                 $billing = $customer->billing;
                 $pppUser = $customer->pppUser;
 

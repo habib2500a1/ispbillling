@@ -1,12 +1,68 @@
-<div class="zoom-in">
+<div class="edit-customer-root {{ $embedded ? 'edit-customer-root--embedded' : 'zoom-in' }}">
+    @unless($embedded)
     <x-slot name="header">
-        <h2 class="h4 font-weight-bold">
-            {{ __('Edit Customer') }}
-        </h2>
+        <h2 class="h4 font-weight-bold">{{ __('Edit Customer') }}</h2>
     </x-slot>
+    @endunless
 
-    <div x-data="{ isEditing: null, tempValue: {} }" class="row g-2">
-        <div class="col-md-6">
+    {{-- Quick update stays OUTSIDE scroll area so mobile native selects work (iOS overflow bug) --}}
+    <div class="edit-quick-bar">
+        <div class="card border-0 shadow-sm mb-0">
+            <div class="card-body py-3">
+                <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+                    <h3 class="h6 mb-0 fw-bold text-success">
+                        <i class="bi bi-lightning-charge me-1"></i>{{ __('Quick Update') }}
+                    </h3>
+                    <button type="button" class="btn btn-sm btn-success" wire:click="saveQuickFields" wire:loading.attr="disabled">
+                        <span wire:loading.remove wire:target="saveQuickFields"><i class="bi bi-check2-circle me-1"></i>{{ __('Save') }}</span>
+                        <span wire:loading wire:target="saveQuickFields">{{ __('Saving…') }}</span>
+                    </button>
+                </div>
+                <div class="row g-2">
+                    <div class="col-12 col-sm-6 col-lg-3">
+                        <label class="form-label small mb-1" for="quickPackage">{{ __('Package') }}</label>
+                        <select id="quickPackage" class="form-select edit-touch-select" wire:model="quickPackage">
+                            <option value="">{{ __('Select package') }}</option>
+                            @foreach ($packageLists as $packageList)
+                                <option value="{{ $packageList }}">{{ $packageList }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="col-12 col-sm-6 col-lg-3">
+                        <label class="form-label small mb-1" for="quickCustomerType">{{ __('Customer Type') }}</label>
+                        <select id="quickCustomerType" class="form-select edit-touch-select" wire:model="quickCustomerType">
+                            <option value="standard">{{ __('Standard') }}</option>
+                            <option value="free">{{ __('Free (no bill)') }}</option>
+                            <option value="vip">{{ __('VIP') }}</option>
+                        </select>
+                    </div>
+                    <div class="col-12 col-sm-6 col-lg-3">
+                        <label class="form-label small mb-1" for="quickClientType">{{ __('Client Type') }}</label>
+                        <select id="quickClientType" class="form-select edit-touch-select" wire:model="quickClientType">
+                            <option value="home">{{ __('Home / Residential') }}</option>
+                            <option value="commercial">{{ __('Commercial') }}</option>
+                            <option value="corporate">{{ __('Corporate') }}</option>
+                            <option value="business">{{ __('Business') }}</option>
+                        </select>
+                    </div>
+                    <div class="col-12 col-sm-6 col-lg-3">
+                        <label class="form-label small mb-1" for="quickStatus">{{ __('Status') }}</label>
+                        <select id="quickStatus" class="form-select edit-touch-select" wire:model="quickStatus">
+                            <option value="active">{{ __('Active') }}</option>
+                            <option value="disable">{{ __('Temporary Disable') }}</option>
+                            @if(!auth()->user()->hasRole('Reseller'))
+                                <option value="free">{{ __('Free') }}</option>
+                                <option value="inactive">{{ __('Inactive') }}</option>
+                                <option value="pending">{{ __('Pending') }}</option>
+                            @endif
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div x-data="{ isEditing: null, tempValue: {} }" class="edit-customer-scroll row g-2">
             <!-- personel Information Section -->
             <div class="col-md-12">
                 <x-mikrotik.section-form>
@@ -410,8 +466,8 @@
                                                         <select x-model="tempValue['pppUser.{{ $field }}']"
                                                             class="form-control form-control-sm h-50">
                                                             <option value="">{{ __('Select') }} {{ ucwords(str_replace('_', ' ', $field)) }}</option>
-                                                            @foreach ($interfaceNames as $interfaceName)
-                                                                <option value="{{ $interfaceName }}">{{ $interfaceName }}</option>
+                                                            @foreach ($profileNames ?? [] as $profileName)
+                                                                <option value="{{ $profileName }}">{{ $profileName }}</option>
                                                             @endforeach
                                                         </select>
                                                     @elseif ($field === 'auto_disable_date')
@@ -463,7 +519,7 @@
             @endif
 
             <!-- Network path (Phase 2 — ispbilling-style, Code Pagol design) -->
-            <div class="col-md-12 pt-2">
+            <div class="col-md-12 pt-2" wire:init="loadNetworkPath">
                 <x-mikrotik.section-form>
                     <x-slot name="title">{{ __('Network Path') }}</x-slot>
                     <x-slot name="aside">
@@ -477,10 +533,10 @@
                                     <button type="button" class="btn btn-sm btn-outline-primary" wire:click="linkOnuAuto" wire:loading.attr="disabled">
                                         <i class="bi bi-link-45deg"></i> {{ __('Link ONU') }}
                                     </button>
-                                    <button type="button" class="btn btn-sm btn-success" wire:click="setLineActive" wire:confirm="{{ __('Enable this line on MikroTik (Net ON)?') }}">
+                                    <button type="button" class="btn btn-sm btn-success" wire:click="setLineActive" wire:loading.attr="disabled">
                                         {{ __('Net ON') }}
                                     </button>
-                                    <button type="button" class="btn btn-sm btn-danger" wire:click="setLineDisabled" wire:confirm="{{ __('Disable this line on MikroTik (Net OFF)?') }}">
+                                    <button type="button" class="btn btn-sm btn-danger" wire:click="setLineDisabled" wire:loading.attr="disabled">
                                         {{ __('Net OFF') }}
                                     </button>
                                 </div>
@@ -631,6 +687,9 @@
                         <div class="col-12">
                             <table class="table table-sm text-capitalize">
                                 @foreach ($fields['official'] as $field => $value)
+                                    @if (in_array($field, ['customer_type', 'client_type', 'status'], true))
+                                        @continue
+                                    @endif
                                     <tr>
                                         <th>{{ $field === 'reseller_id' ? __('Shifted to Reseller') : __(ucwords(str_replace('_', ' ', $field))) }}:</th>
                                         <td>
@@ -662,7 +721,7 @@
                                                 $wire.cancelEditing('official.{{ $field }}')"
                                                 style="display: none;" class="input-group mt-2">
 
-                                                @if ($field === 'status' || $field === 'client_type' || $field === 'billing_type' || $field === 'connection_type' || $field === 'connectivity_type' || $field === 'distribution_location' || $field === 'connected_by' || $field === 'reseller_id')
+                                                @if ($field === 'status' || $field === 'customer_type' || $field === 'client_type' || $field === 'billing_type' || $field === 'connection_type' || $field === 'connectivity_type' || $field === 'distribution_location' || $field === 'connected_by' || $field === 'reseller_id')
                                                     <select x-model="tempValue['official.{{ $field }}']"
                                                             class="form-control form-control-sm h-50">
                                                         <option value="">{{ $field === 'reseller_id' ? __('No Reseller (Admin)') : (__('Select') . ' ' . __(ucwords(str_replace('_', ' ', $field)))) }}</option>
@@ -671,7 +730,13 @@
                                                             <option value="disable">{{ __('Temporary Disable') }}</option>
                                                             @if(!auth()->user()->hasRole('Reseller'))
                                                                 <option value="free">{{ __('Free') }}</option>
+                                                                <option value="inactive">{{ __('Inactive') }}</option>
+                                                                <option value="pending">{{ __('Pending') }}</option>
                                                             @endif
+                                                        @elseif ($field === 'customer_type')
+                                                            <option value="standard">{{ __('Standard') }}</option>
+                                                            <option value="free">{{ __('Free (no bill)') }}</option>
+                                                            <option value="vip">{{ __('VIP') }}</option>
                                                         @elseif ($field === 'client_type')
                                                             <option value="home">{{ __('Home') }}</option>
                                                             <option value="commercial">{{ __('Commercial') }}</option>
@@ -729,14 +794,61 @@
     </div>
 </div>
 
+<style>
+    .edit-customer-root--embedded {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        min-height: 0;
+    }
+    .edit-customer-root--embedded .edit-quick-bar {
+        flex-shrink: 0;
+        padding: 0.5rem 0.75rem 0;
+        background: #f8f9fa;
+        border-bottom: 1px solid #dee2e6;
+    }
+    .edit-customer-root--embedded .edit-customer-scroll {
+        flex: 1 1 auto;
+        min-height: 0;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+        padding: 0.5rem 0.75rem 1rem;
+    }
+    .edit-touch-select {
+        min-height: 44px;
+        font-size: 16px;
+        width: 100%;
+        -webkit-appearance: menulist;
+        appearance: auto;
+        touch-action: manipulation;
+    }
+    @media (min-width: 768px) {
+        .edit-touch-select {
+            min-height: 38px;
+            font-size: 0.875rem;
+        }
+    }
+</style>
+
+@unless($embedded)
+@push('styles')
+<style>
+    .edit-quick-bar {
+        position: sticky;
+        top: 0;
+        z-index: 20;
+    }
+</style>
+@endpush
+
 @push('scripts')
     <script>
         document.addEventListener('DOMContentLoaded', function () {
-            // remove invalid feedback and error
             $('input, textarea, select').on('focus', function () {
-                $(this).removeClass('is-invalid'); // remove invalid class
-                $(this).nextAll('.invalid-feedback').remove(); // remove invalid feedback
+                $(this).removeClass('is-invalid');
+                $(this).nextAll('.invalid-feedback').remove();
             });
         });
     </script>
 @endpush
+@endunless

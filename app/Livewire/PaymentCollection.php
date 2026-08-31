@@ -2,8 +2,8 @@
 
 namespace App\Livewire;
 
-use App\Http\Controllers\CustomersController;
-use App\Http\Controllers\SMSController;
+use App\Jobs\SendPaymentCollectionSmsJob;
+use App\Jobs\SyncCustomerRouterStatusJob;
 use App\Models\BillingInfo;
 use App\Models\CollectionSummary;
 use App\Models\CustomersInfo;
@@ -84,20 +84,43 @@ class PaymentCollection extends Component
 
     public function updatedCustomerList()
     {
-        if ($this->customer_list) {
-            // Fetch customers dynamically based on the search term
-            $this->customers = $this->resellerScope()
-                ->search($this->customer_list)
-                ->leftJoin('p_p_p_secrets', 'p_p_p_secrets.id', '=', 'customers_infos.ppp_user_id')
-                ->with('customerAddress')
-                ->select('customers_infos.id', 'customers_infos.customer_unique_id', 'customers_infos.customer_name', 'customers_infos.email', 'customers_infos.mobile', 'p_p_p_secrets.username as username')
-                ->take(10)
-                ->get();
-        } else {
+        $term = trim($this->customer_list);
+        if ($term === '') {
             $this->customers = [];
+
+            return;
         }
 
-        // Reset highlighted index whenever the list updates
+        if (strlen($term) < 2) {
+            $this->customers = [];
+
+            return;
+        }
+
+        $query = $this->resellerScope()
+            ->leftJoin('p_p_p_secrets', 'p_p_p_secrets.id', '=', 'customers_infos.ppp_user_id')
+            ->select(
+                'customers_infos.id',
+                'customers_infos.customer_unique_id',
+                'customers_infos.customer_name',
+                'customers_infos.email',
+                'customers_infos.mobile',
+                'p_p_p_secrets.username as username'
+            );
+
+        // Fast path for exact ID / PPP username before broad LIKE search.
+        $exact = (clone $query)
+            ->where(function ($q) use ($term) {
+                $q->where('customers_infos.customer_unique_id', $term)
+                    ->orWhere('p_p_p_secrets.username', $term);
+            })
+            ->take(10)
+            ->get();
+
+        $this->customers = $exact->isNotEmpty()
+            ? $exact
+            : $query->search($term)->take(10)->get();
+
         $this->highlightedIndex = 0;
     }
 
@@ -204,8 +227,8 @@ class PaymentCollection extends Component
             ])
             ->first();
         $this->collectionSummary = CollectionSummary::where('customer_collection_unique_id', $customer_id)
-            ->whereMonth('collection_date', Carbon::now()->month)
-            ->whereYear('collection_date', Carbon::now()->year)
+            ->where('collection_date', '>=', Carbon::now()->startOfMonth())
+            ->where('collection_date', '<', Carbon::now()->addMonth()->startOfMonth())
             ->get();
         $this->paid_amount = '';
         $this->apply_discount = 0;
@@ -243,14 +266,10 @@ class PaymentCollection extends Component
         if ($customerUniqueId) {
             $customer = CustomersInfo::where('customer_unique_id', $customerUniqueId)->first();
             if ($customer) {
-                $customer->update([
-                    'status' => 'active',
-                ]);
+                $customer->update(['status' => 'active']);
                 $this->info_data = $customer;
+                SyncCustomerRouterStatusJob::dispatch($customerUniqueId, 'active')->afterResponse();
             }
-
-            $customerEnable = new CustomersController;
-            $customerEnable->customerEnable(encrypt($customerUniqueId));
         }
         $this->paymentSubmit();
     }
@@ -285,13 +304,9 @@ class PaymentCollection extends Component
                 'payment_status' => 'paid',
                 'invoice_no' => CollectionSummary::nextInvoiceNo(),
                 'bill_month' => Carbon::now()->format('F Y'),
+                'discount_amount' => $discount,
+                'advance_amount' => $advance,
             ];
-            if (\Illuminate\Support\Facades\Schema::hasColumn('collection_summaries', 'discount_amount')) {
-                $payload['discount_amount'] = $discount;
-            }
-            if (\Illuminate\Support\Facades\Schema::hasColumn('collection_summaries', 'advance_amount')) {
-                $payload['advance_amount'] = $advance;
-            }
             CollectionSummary::create($payload);
 
             $remainingDue = (float) $this->due_amount;
@@ -316,28 +331,26 @@ class PaymentCollection extends Component
             return;
         }
 
+        $customer = $this->info_data;
+        $paidForEvent = (float) $this->paid_amount;
+        $smsPayload = [
+            'recipient' => $customer->mobile,
+            'customer_id' => $customer->customer_unique_id,
+            'customer_name' => $customer->customer_name,
+            'collection_amount' => $this->paid_amount,
+            'ip_or_user_name' => $customer->pppUser->username ?? '',
+            'due_amount' => $this->due_amount,
+            'company_name' => siteUrlSettings('site_name'),
+        ];
+
         try {
-            // Fire reseller commission event
-            event(new \App\Events\PackagePurchased($this->info_data, (float) $this->paid_amount));
+            dispatch(function () use ($customer, $paidForEvent) {
+                event(new \App\Events\PackagePurchased($customer, $paidForEvent));
+            })->afterResponse();
 
             flash()->success('Payment added successfully.');
-            $data = [
-                'recipient' => $this->info_data->mobile,
-                'customer_id' => $this->info_data->customer_unique_id,
-                'customer_name' => $this->info_data->customer_name,
-                'collection_amount' => $this->paid_amount,
-                'ip_or_user_name' => $this->info_data->pppUser->username ?? '',
-                'due_amount' => $this->due_amount,
-                'company_name' => siteUrlSettings('site_name'),
-            ];
 
-            // Call the SMSController's method
-            $response = app(SMSController::class)->paymentCollectionSMS($data);
-            if ($response && $response->isSuccessful()) {
-                flash()->success($response->getMessage());
-            } else {
-                flash()->error($response ? $response->getMessage() : 'Failed to send SMS notification.');
-            }
+            SendPaymentCollectionSmsJob::dispatch($smsPayload)->afterResponse();
         } catch (\Throwable $th) {
             sweetalert()->error($th->getMessage(), ['title' => 'Error']);
         } finally {

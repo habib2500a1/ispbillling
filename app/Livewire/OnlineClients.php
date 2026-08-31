@@ -61,7 +61,13 @@ class OnlineClients extends Component
         $row = $this->secretsQuery()
             ->find($id, ['id', 'username', 'router_name']);
         if (! $row?->router_name) {
-            flash()->error(__('Router not found.'));
+            flash()->success(__('Session is offline.'));
+
+            return;
+        }
+
+        if (! app(MikrotikController::class)->isRouterConnected($row->router_name)) {
+            flash()->success(__('Session is offline.'));
 
             return;
         }
@@ -72,7 +78,8 @@ class OnlineClients extends Component
                 ? __('Session is online.')
                 : __('Session is offline.'));
         } catch (\Throwable $e) {
-            flash()->error($e->getMessage());
+            \Log::debug('OnlineClients refresh skipped: '.$e->getMessage());
+            flash()->success(__('Session is offline.'));
         }
     }
 

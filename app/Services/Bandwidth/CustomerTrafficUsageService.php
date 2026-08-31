@@ -53,6 +53,17 @@ final class CustomerTrafficUsageService
         $tx = $bytes['tx'];
 
         if (! $online) {
+            if ($row->online) {
+                $deltaRx = max(0, (int) $row->session_rx_bytes - (int) $row->prev_rx_bytes);
+                $deltaTx = max(0, (int) $row->session_tx_bytes - (int) $row->prev_tx_bytes);
+                if ($deltaRx > 0 || $deltaTx > 0) {
+                    $row->day_rx_bytes = (int) $row->day_rx_bytes + $deltaRx;
+                    $row->day_tx_bytes = (int) $row->day_tx_bytes + $deltaTx;
+                    $row->month_rx_bytes = (int) $row->month_rx_bytes + $deltaRx;
+                    $row->month_tx_bytes = (int) $row->month_tx_bytes + $deltaTx;
+                }
+            }
+
             if ($row->online || $row->session_rx_bytes > 0 || $row->session_tx_bytes > 0) {
                 $row->last_session_rx_bytes = (int) $row->session_rx_bytes;
                 $row->last_session_tx_bytes = (int) $row->session_tx_bytes;
@@ -184,14 +195,14 @@ final class CustomerTrafficUsageService
     public static function formatBytes(int|float|null $bytes): string
     {
         $bytes = max(0, (float) $bytes);
-        if ($bytes >= 1073741824) {
-            return number_format($bytes / 1073741824, 2).' GB';
+        if ($bytes >= 1_000_000_000) {
+            return number_format($bytes / 1_000_000_000, 2).' GB';
         }
-        if ($bytes >= 1048576) {
-            return number_format($bytes / 1048576, 2).' MB';
+        if ($bytes >= 1_000_000) {
+            return number_format($bytes / 1_000_000, 2).' MB';
         }
-        if ($bytes >= 1024) {
-            return number_format($bytes / 1024, 1).' KB';
+        if ($bytes >= 1_000) {
+            return number_format($bytes / 1_000, 1).' KB';
         }
 
         return $bytes > 0 ? number_format($bytes, 0).' B' : '0 B';
@@ -364,13 +375,15 @@ final class CustomerTrafficUsageService
      */
     protected function resolveBytes(?array $session, ?array $ifaceBytes): array
     {
-        $ifaceRx = (int) ($ifaceBytes['rx'] ?? 0);
-        $ifaceTx = (int) ($ifaceBytes['tx'] ?? 0);
-        if ($ifaceRx > 0 || $ifaceTx > 0) {
-            return ['rx' => $ifaceRx, 'tx' => $ifaceTx];
+        $sessionBytes = $this->bytesFromSession($session);
+        if ($sessionBytes['rx'] > 0 || $sessionBytes['tx'] > 0) {
+            return $sessionBytes;
         }
 
-        return $this->bytesFromSession($session);
+        return [
+            'rx' => (int) ($ifaceBytes['rx'] ?? 0),
+            'tx' => (int) ($ifaceBytes['tx'] ?? 0),
+        ];
     }
 
     /**

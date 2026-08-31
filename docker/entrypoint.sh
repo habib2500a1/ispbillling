@@ -71,6 +71,11 @@ fi
 php artisan storage:link --force --no-interaction 2>/dev/null || true
 php artisan cpagol:post-deploy 2>/dev/null || php artisan migrate --force --no-interaction 2>/dev/null || true
 
+# Ensure nginx serves Caddy upstream port (NextDeploy uses 8020).
+if ! grep -q 'listen 8020' /etc/nginx/sites-available/default 2>/dev/null; then
+  echo "WARN: nginx missing listen 8020 — Caddy proxy may fail after redeploy."
+fi
+
 chown -R www-data:www-data storage bootstrap/cache public/storage 2>/dev/null || true
 
 exec "$@"

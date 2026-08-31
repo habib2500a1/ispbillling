@@ -8,6 +8,7 @@ use Livewire\WithoutUrlPagination;
 use Livewire\WithPagination;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
+use Spatie\Permission\PermissionRegistrar;
 
 class ManageRole extends Component
 {
@@ -19,7 +20,8 @@ class ManageRole extends Component
 
     public $search;
 
-    public $permissionList = [];
+    /** @var array<int, array<string, mixed>> */
+    public $groupedPermissions = [];
 
     public $permissions = [];
 
@@ -33,7 +35,7 @@ class ManageRole extends Component
 
     public function mount()
     {
-        if (! hasAccess(['Super Admin'], ['create-user-role', 'edit-user-role', 'view-user-role', 'delete-user-role'])) {
+        if (! hasAccess(['Super Admin'], ['create-user-role', 'edit-user-role', 'delete-user-role'])) {
             abort(403, 'Unauthorized Access.');
         }
     }
@@ -45,7 +47,7 @@ class ManageRole extends Component
         }
 
         $this->reset(['roleType', 'roleId', 'name', 'permissions']);
-        $this->permissionList = Permission::all();
+        $this->loadPermissionGroups();
         $this->roleType = 'Create New Role';
         $this->confirmingRole = true;
     }
@@ -72,8 +74,8 @@ class ManageRole extends Component
         $this->roleType = 'Edit Role';
         $this->roleId = $roleId;
         $this->name = $this->role->name;
-        $this->permissions = $this->role->permissions->pluck('id')->toArray();
-        $this->permissionList = Permission::all();
+        $this->permissions = $this->role->permissions->pluck('id')->map(fn ($id) => (int) $id)->toArray();
+        $this->loadPermissionGroups();
         $this->confirmingRole = true;
     }
 
@@ -86,36 +88,49 @@ class ManageRole extends Component
         $this->validate([
             'name' => 'required|unique:roles,name,'.($this->roleId ?? 'NULL').'|max:255',
             'permissions' => 'array',
+            'permissions.*' => 'integer|exists:permissions,id',
         ]);
 
-        if ($this->roleId) {
-            $role = Role::find($this->roleId);
-            if (! $role) {
-                session()->flash('error', 'Role not found.');
+        $permissionIds = Permission::query()
+            ->whereIn('id', $this->permissions ?? [])
+            ->pluck('id')
+            ->map(fn ($id) => (int) $id)
+            ->all();
 
-                return;
-            }
-            if ($role->name === 'Super Admin') {
-                session()->flash('error', 'Super Admin role cannot be edited.');
+        try {
+            if ($this->roleId) {
+                $role = Role::find($this->roleId);
+                if (! $role) {
+                    flash()->error('Role not found.');
 
-                return;
+                    return;
+                }
+                if ($role->name === 'Super Admin') {
+                    flash()->error('Super Admin role cannot be edited.');
+
+                    return;
+                }
+                $role->name = $this->name;
+                $role->syncPermissions($permissionIds);
+                $role->save();
+                flash()->success('Role updated successfully.');
+            } else {
+                $role = Role::create(['guard_name' => 'web', 'name' => $this->name]);
+                $role->syncPermissions($permissionIds);
+                flash()->success('Role created successfully.');
             }
-            $role->name = $this->name;
-            $role->syncPermissions($this->permissions);
-            $role->save();
-            flash()->success('Role updated successfully.');
-        } else {
-            $role = Role::create(['guard_name' => 'web', 'name' => $this->name]);
-            $role->syncPermissions($this->permissions);
-            flash()->success('Role created successfully.');
+
+            app(PermissionRegistrar::class)->forgetCachedPermissions();
+            $this->confirmingRole = false;
+        } catch (\Throwable $e) {
+            report($e);
+            flash()->error(__('Could not save role permissions. Please try again.'));
         }
-
-        $this->confirmingRole = false;
     }
 
     public function deleteRole($roleId, $roleName)
     {
-        if (abortIfNoAccess(['Super Admin'], ['delete-role'], 'You do not have permission to delete roles.')) {
+        if (abortIfNoAccess(['Super Admin'], ['delete-user-role'], 'You do not have permission to delete roles.')) {
             return;
         }
         if ($roleName === 'Super Admin') {
@@ -138,7 +153,7 @@ class ManageRole extends Component
     {
         try {
             if (! $this->roleId) {
-                session()->flash('error', 'No role selected for deletion.');
+                flash()->error('No role selected for deletion.');
 
                 return;
             }
@@ -146,14 +161,14 @@ class ManageRole extends Component
             $role = Role::find($this->roleId);
 
             if (! $role) {
-                session()->flash('error', 'Role not found.');
+                flash()->error('Role not found.');
                 $this->roleId = null;
 
                 return;
             }
 
             if ($role->name === 'Super Admin') {
-                session()->flash('error', 'Super Admin role cannot be deleted.');
+                flash()->error('Super Admin role cannot be deleted.');
                 $this->roleId = null;
 
                 return;
@@ -161,17 +176,52 @@ class ManageRole extends Component
 
             $role->delete();
             $this->roleId = null;
+            app(PermissionRegistrar::class)->forgetCachedPermissions();
 
-            session()->flash('success', 'Role successfully deleted.');
+            flash()->success('Role successfully deleted.');
         } catch (\Throwable $e) {
-            dd($e->getMessage(), $e->getFile(), $e->getLine());
+            report($e);
+            flash()->error(__('Could not delete role. It may still be assigned to users.'));
         }
     }
 
     #[On('sweetalert:denied')]
     public function onDeny(array $payload): void
     {
-        session()->flash('info', 'Deletion cancelled.');
+        flash()->info('Deletion cancelled.');
+    }
+
+    private function loadPermissionGroups(): void
+    {
+        $grouped = [];
+        foreach (Permission::query()->orderBy('name')->get(['id', 'name']) as $permission) {
+            $name = $permission->name;
+            if (str_contains($name, 'user') && ! str_contains($name, 'role')) {
+                $category = 'User Management';
+            } elseif (str_contains($name, 'role')) {
+                $category = 'Role & Permission';
+            } elseif (str_contains($name, 'router') || str_contains($name, 'interface') || str_contains($name, 'traffic')) {
+                $category = 'Router Management';
+            } elseif (str_contains($name, 'hotspot') || str_contains($name, 'profile')) {
+                $category = 'Hotspot Settings';
+            } elseif (str_contains($name, 'reseller')) {
+                $category = 'Reseller Management';
+            } elseif (str_contains($name, 'payment') || str_contains($name, 'billing') || str_contains($name, 'collection')) {
+                $category = 'Billing & Payments';
+            } elseif (str_contains($name, 'customer') || str_contains($name, 'package')) {
+                $category = 'Customer Management';
+            } elseif (str_contains($name, 'olt') || str_contains($name, 'onu') || str_contains($name, 'optical')) {
+                $category = 'Optical Network';
+            } else {
+                $category = 'Other Permissions';
+            }
+            $grouped[$category][] = [
+                'id' => (int) $permission->id,
+                'name' => $permission->name,
+                'label' => ucwords(str_replace(['-', 'user', 'role', 'router', 'hotspot'], [' ', 'User', 'Role', 'Router', 'Hotspot'], $permission->name)),
+            ];
+        }
+        $this->groupedPermissions = $grouped;
     }
 
     public function render()

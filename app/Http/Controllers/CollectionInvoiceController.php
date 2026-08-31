@@ -19,12 +19,12 @@ class CollectionInvoiceController extends Controller
 
     private function receipt(int $id, bool $autoPrint): View
     {
-        if (! hasAccess(['Super Admin'], ['payment-collection-invoice', 'payment-collection', 'all-customer'])) {
+        if (! hasAccess(['Super Admin', 'Operator'], ['payment-collection-invoice', 'payment-collection', 'all-customer'])) {
             abort(403, 'Unauthorized action.');
         }
 
         $collection = CollectionSummary::query()
-            ->with(['customer.billing', 'customer.pppUser', 'customer.customerAddress', 'customer.package'])
+            ->with(['customer.billing', 'customer.pppUser', 'customer.customerAddress', 'customer.package', 'customer.onus'])
             ->findOrFail($id);
 
         $customer = $collection->customer;

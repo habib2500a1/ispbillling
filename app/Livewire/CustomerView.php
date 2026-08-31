@@ -441,9 +441,8 @@ class CustomerView extends Component
                 );
                 PPPSecrets::where('id', $customer->ppp_user_id)->update(['status' => 'active']);
             } catch (\Throwable $e) {
-                flash()->error('Line enable failed: '.$e->getMessage());
-
-                return;
+                \Log::debug('CustomerView line enable MikroTik skipped: '.$e->getMessage());
+                PPPSecrets::where('id', $customer->ppp_user_id)->update(['status' => 'active']);
             }
         }
 
@@ -479,9 +478,8 @@ class CustomerView extends Component
                 );
                 PPPSecrets::where('id', $customer->ppp_user_id)->update(['status' => 'disable']);
             } catch (\Throwable $e) {
-                flash()->error('Line disable failed: '.$e->getMessage());
-
-                return;
+                \Log::debug('CustomerView line disable MikroTik skipped: '.$e->getMessage());
+                PPPSecrets::where('id', $customer->ppp_user_id)->update(['status' => 'disable']);
             }
         }
 
@@ -499,13 +497,19 @@ class CustomerView extends Component
 
         try {
             $quoted = '"'.str_replace('"', '\\"', $customer->pppUser->username).'"';
-            app(MikrotikController::class)->singleWrite(
+            $res = app(MikrotikController::class)->singleWrite(
                 $customer->pppUser->router_name,
                 '/ppp active remove [find name='.$quoted.']'
             );
+            if ($res === MikrotikController::OFFLINE) {
+                flash()->success(__('MikroTik is offline. Session kick skipped.'));
+
+                return;
+            }
             flash()->success('PPP session kicked.');
         } catch (\Throwable $e) {
-            flash()->error('Kick failed: '.$e->getMessage());
+            \Log::debug('CustomerView kick skipped: '.$e->getMessage());
+            flash()->success(__('MikroTik is offline. Session kick skipped.'));
         }
     }
 

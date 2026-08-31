@@ -4,20 +4,7 @@
             <span class="toggle-line"></span>
         </span>
     </button>
-    <a class="navbar-brand me-1 me-sm-3" href="{{ url('/') }}">
-        <div class="d-flex align-items-center">
-            @if (siteUrlSettings('site_logo'))
-                <img class="me-2" style="width: 190px; height: 53px;" src="{{ site_image(siteUrlSettings('site_logo')) }}" alt="logo"/>
-            @else
-                @if (siteUrlSettings('site_icon'))
-                    <img class="me-2" src="{{ site_image(siteUrlSettings('site_icon')) }}" alt="" width="40" />
-                    <span class="font-sans-serif brand-wordmark">{{ site_brand() }}</span>
-                @else
-                    <span class="font-sans-serif brand-wordmark">{{ site_brand() }}</span>
-                @endif
-            @endif
-        </div>
-    </a>
+    @include('layouts.partials.navbar-brand-mark', ['class' => 'me-1 me-sm-3', 'logoStyle' => 'width: auto; height: auto; max-height: 45px; max-width: 160px; object-fit: contain;'])
     <div class="collapse navbar-collapse scrollbar" id="navbarStandard">
         @include('layouts.partials.searchbar')
     </div>
@@ -30,20 +17,7 @@
             <span class="toggle-line"></span>
         </span>
     </button>
-    <a class="navbar-brand me-1 me-sm-3" href="{{ url('/') }}">
-        <div class="d-flex align-items-center">
-            @if (siteUrlSettings('site_logo'))
-                <img class="me-2" style="width: 190px; height: 53px;" src="{{ site_image(siteUrlSettings('site_logo')) }}" alt="logo"/>
-            @else
-                @if (siteUrlSettings('site_icon'))
-                    <img class="me-2" src="{{ site_image(siteUrlSettings('site_icon')) }}" alt="" width="40" />
-                    <span class="font-sans-serif brand-wordmark">{{ site_brand() }}</span>
-                @else
-                    <span class="font-sans-serif brand-wordmark">{{ site_brand() }}</span>
-                @endif
-            @endif
-        </div>
-    </a>
+    @include('layouts.partials.navbar-brand-mark', ['class' => 'me-1 me-sm-3', 'logoStyle' => 'width: auto; height: auto; max-height: 45px; max-width: 160px; object-fit: contain;'])
     @include('layouts.partials.navpanel')
     @include('layouts.partials.userpanel')
 </nav>

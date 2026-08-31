@@ -43,8 +43,8 @@ class CustomerTrafficUsageTest extends TestCase
         $usage->apply($ppp, [
             'name' => 'habibfree',
             'uptime' => '1h',
-            'bytes-in' => 100 * 1024 * 1024,
-            'bytes-out' => 400 * 1024 * 1024,
+            'bytes-in' => 100 * 1_000_000,
+            'bytes-out' => 400 * 1_000_000,
         ]);
 
         $shown = $usage->presentForSecret($ppp->fresh('trafficUsage'));
@@ -52,7 +52,7 @@ class CustomerTrafficUsageTest extends TestCase
         $this->assertSame('This session', $shown['live_or_last_title']);
         $this->assertSame($shown['session_total'], $shown['day_total']);
         $this->assertSame($shown['session_total'], $shown['month_total']);
-        $this->assertSame(500 * 1024 * 1024, $shown['session_total']);
+        $this->assertSame(500 * 1_000_000, $shown['session_total']);
         $this->assertSame('500.00 MB', $shown['month_total_label']);
     }
 
@@ -136,8 +136,8 @@ class CustomerTrafficUsageTest extends TestCase
 
     public function test_format_bytes_prefers_gb(): void
     {
-        $this->assertSame('1.50 GB', CustomerTrafficUsageService::formatBytes((int) (1.5 * 1024 * 1024 * 1024)));
-        $this->assertSame('20.00 MB', CustomerTrafficUsageService::formatBytes(20 * 1024 * 1024));
+        $this->assertSame('1.50 GB', CustomerTrafficUsageService::formatBytes(1_500_000_000));
+        $this->assertSame('20.00 MB', CustomerTrafficUsageService::formatBytes(20_000_000));
         $this->assertSame('0 B', CustomerTrafficUsageService::formatBytes(0));
     }
 }

@@ -52,7 +52,7 @@ class SMSSetup extends Component
         } catch (\Exception $e) {
             $this->profile = null;
             $this->balance = null;
-            flash()->warning('SMS Gateway Connection Warning: ' . $e->getMessage());
+            \Log::debug('SMS gateway offline: '.$e->getMessage());
         }
         
         // Map SMS template content for Livewire binding

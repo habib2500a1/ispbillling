@@ -73,9 +73,8 @@ class ChangePassword extends Page
             app(\App\Http\Controllers\MikrotikController::class)->updatePPPSecret($user->router_name, $user->username, 'password', $this->newPassword);
         } catch (\Exception $e) {
             \Log::error('ChangePassword router sync failed: '.$e->getMessage());
-            $this->addError('newPassword', 'Failed to update password on the router. Please try again.');
-
-            return;
+            // Still save locally so portal login works when MikroTik is offline.
+            \Log::debug('ChangePassword saved locally after router skip.');
         }
 
         $user->update(['password' => $this->newPassword]);

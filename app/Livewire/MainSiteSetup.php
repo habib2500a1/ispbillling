@@ -35,6 +35,7 @@ use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use App\Rules\ValidPhoneDigits;
 use Livewire\Component;
+use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 
 class MainSiteSetup extends Component implements HasActions, HasForms
 {
@@ -126,9 +127,9 @@ class MainSiteSetup extends Component implements HasActions, HasForms
             'portal_accent_color' => MainSiteData::getValue('portal_accent_color') ?: '#a78bfa',
 
             // Assets
-            'site_logo' => MainSiteData::getValue('site_logo'),
-            'site_icon' => MainSiteData::getValue('site_icon'),
-            'site_favicon' => MainSiteData::getValue('site_favicon'),
+            'site_logo' => $this->assetForForm(MainSiteData::getValue('site_logo')),
+            'site_icon' => $this->assetForForm(MainSiteData::getValue('site_icon')),
+            'site_favicon' => $this->assetForForm(MainSiteData::getValue('site_favicon')),
 
             // SEO
             'site_description' => MainSiteData::getValue('site_description'),
@@ -155,12 +156,12 @@ class MainSiteSetup extends Component implements HasActions, HasForms
             'site_invoice_prefix' => MainSiteData::getValue('site_invoice_prefix', 'INV-'),
             'customer_id_prefix' => MainSiteData::getValue('customer_id_prefix', 'FCNET'),
             'customer_id_start' => MainSiteData::getValue('customer_id_start', 100),
-            'site_invoice_logo' => MainSiteData::getValue('site_invoice_logo'),
+            'site_invoice_logo' => $this->assetForForm(MainSiteData::getValue('site_invoice_logo')),
             'site_invoice_color' => MainSiteData::getValue('site_invoice_color', '#000000'),
             'site_invoice_footer' => MainSiteData::getValue('site_invoice_footer'),
             'site_invoice_notes' => MainSiteData::getValue('site_invoice_notes'),
             'site_invoice_terms' => MainSiteData::getValue('site_invoice_terms'),
-            'site_invoice_signature' => MainSiteData::getValue('site_invoice_signature'),
+            'site_invoice_signature' => $this->assetForForm(MainSiteData::getValue('site_invoice_signature')),
             'disable_check_no' => MainSiteData::getValue('disable_check_no', 0),
             'disable_check_days' => MainSiteData::getValue('disable_check_days', 0),
             'expired_profile_name' => MainSiteData::getValue('expired_profile_name', 'Expired'),
@@ -322,30 +323,20 @@ class MainSiteSetup extends Component implements HasActions, HasForms
     public function form(Schema $schema): Schema
     {
         return $schema->components([
-            FileUpload::make('site_logo')
+            $this->publicImageUpload('site_logo', 'brand')
                 ->label('Main Site Logo')
-                ->image()
-                ->directory($this->tenantUploadDir('brand'))
                 ->helperText('Recommended: 190x53px transparent PNG'),
-            FileUpload::make('site_icon')
+            $this->publicImageUpload('site_icon', 'brand')
                 ->label('Square App Icon')
-                ->image()
-                ->directory($this->tenantUploadDir('brand'))
                 ->helperText('Used for smaller UI elements (1:1 ratio)'),
-            FileUpload::make('site_favicon')
+            $this->publicImageUpload('site_favicon', 'brand')
                 ->label('Browser Favicon')
-                ->image()
-                ->directory($this->tenantUploadDir('brand'))
                 ->helperText('Standard browser tab icon (16x16 or 32x32)'),
-            FileUpload::make('site_invoice_logo')
+            $this->publicImageUpload('site_invoice_logo', 'invoices')
                 ->label('Invoice Logo')
-                ->image()
-                ->directory($this->tenantUploadDir('invoices'))
                 ->helperText('Logo displayed specifically on invoices.'),
-            FileUpload::make('site_invoice_signature')
-                ->label('Authorized Signature')
-                ->image()
-                ->directory($this->tenantUploadDir('invoices')),
+            $this->publicImageUpload('site_invoice_signature', 'invoices')
+                ->label('Authorized Signature'),
             RichEditor::make('site_invoice_terms')
                 ->label('Terms & Conditions')
                 ->grow(),
@@ -357,16 +348,14 @@ class MainSiteSetup extends Component implements HasActions, HasForms
             Repeater::make('hero_slides')
                 ->label('Hero Slider Images')
                 ->schema([
-                    FileUpload::make('image')
-                        ->image()
+                    $this->publicImageUpload('image', 'hero')
                         ->imageEditor()
                         ->imageAspectRatio('8:3')
                         ->automaticallyOpenImageEditorForAspectRatio()
                         ->automaticallyResizeImagesMode('cover')
                         ->automaticallyResizeImagesToWidth('1920')
                         ->automaticallyResizeImagesToHeight('720')
-                        ->rules(['nullable', 'image', 'max:20480'])
-                        ->directory($this->tenantUploadDir('hero')),
+                        ->rules(['nullable', 'image', 'max:20480']),
                     TextInput::make('caption')->placeholder('Slide caption...'),
                 ])->grid(3),
             Repeater::make('services')
@@ -384,10 +373,8 @@ class MainSiteSetup extends Component implements HasActions, HasForms
                 ->schema([
                     TextInput::make('name')
                         ->label('Client Name'),
-                    FileUpload::make('logo')
+                    $this->publicImageUpload('logo', 'clients')
                         ->label('Client Logo')
-                        ->image()
-                        ->directory($this->tenantUploadDir('clients'))
                         ->helperText('If uploaded, the logo will be shown. If not, the name will be used.'),
                     TextInput::make('link')
                         ->label('Client Website/Link')
@@ -414,10 +401,8 @@ class MainSiteSetup extends Component implements HasActions, HasForms
                 ->label('Gallery Items')
                 ->reorderable()
                 ->schema([
-                    FileUpload::make('image')
-                        ->label('Image')
-                        ->image()
-                        ->directory($this->tenantUploadDir('gallery')),
+                    $this->publicImageUpload('image', 'gallery')
+                        ->label('Image'),
                     TextInput::make('caption')
                         ->label('Caption')
                         ->placeholder('Optional caption'),
@@ -476,6 +461,21 @@ class MainSiteSetup extends Component implements HasActions, HasForms
                     continue;
                 }
                 $value = $this->valueForKey($key, $this->data[$key]);
+                if (in_array($key, $this->assetKeys(), true)) {
+                    $value = $this->flattenAssetPath(
+                        $this->persistStoredFiles($value, $this->folderForAsset($key))
+                    );
+                    if ($value === null || $value === '') {
+                        $existing = $this->flattenAssetPath(MainSiteData::getValue($key));
+                        if ($existing) {
+                            continue;
+                        }
+                    }
+                    $this->data[$key] = $value;
+                } elseif (in_array($key, ['hero_slides', 'valuable_clients', 'gallery_items'], true)) {
+                    $value = $this->persistStoredFiles($value, $this->folderForContentKey($key));
+                    $this->data[$key] = $value;
+                }
                 if ($this->operatorSetup && $this->rejectsPlatformAsset($key, $value)) {
                     continue;
                 }
@@ -507,7 +507,14 @@ class MainSiteSetup extends Component implements HasActions, HasForms
                 }
             }
 
+            foreach ($keys as $key) {
+                if (in_array($key, $this->assetKeys(), true)) {
+                    $this->data[$key] = $this->assetForForm(MainSiteData::getValue($key));
+                }
+            }
+
             MainSiteData::forgetSiteCache();
+            $this->form->fill($this->data);
             flash()->success(__('Saved :tab. Other tabs were not changed.', [
                 'tab' => $this->tabLabel($tab),
             ]));
@@ -707,6 +714,103 @@ class MainSiteSetup extends Component implements HasActions, HasForms
         return $tenantId ? 'tenants/'.$tenantId.'/'.$folder : $folder;
     }
 
+    private function publicImageUpload(string $name, string $folder): FileUpload
+    {
+        return FileUpload::make($name)
+            ->disk('public')
+            ->visibility('public')
+            ->directory($this->tenantUploadDir($folder))
+            ->image()
+            ->maxSize(5120)
+            ->downloadable()
+            ->openable()
+            ->deletable();
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function assetKeys(): array
+    {
+        return [
+            'site_logo', 'site_icon', 'site_favicon',
+            'site_invoice_logo', 'site_invoice_signature',
+        ];
+    }
+
+    private function folderForAsset(string $key): string
+    {
+        return in_array($key, ['site_invoice_logo', 'site_invoice_signature'], true)
+            ? 'invoices'
+            : 'brand';
+    }
+
+    private function folderForContentKey(string $key): string
+    {
+        return match ($key) {
+            'hero_slides' => 'hero',
+            'valuable_clients' => 'clients',
+            'gallery_items' => 'gallery',
+            default => 'brand',
+        };
+    }
+
+    /**
+     * Filament FileUpload expects an array of stored relative paths.
+     *
+     * @return list<string>
+     */
+    private function assetForForm(mixed $value): array
+    {
+        $path = $this->flattenAssetPath($value);
+
+        return $path ? [$path] : [];
+    }
+
+    private function flattenAssetPath(mixed $value): ?string
+    {
+        if (function_exists('site_asset_path')) {
+            return site_asset_path($value);
+        }
+
+        if (is_array($value)) {
+            $value = array_values(array_filter($value))[0] ?? null;
+        }
+
+        if (! is_string($value) || trim($value) === '') {
+            return null;
+        }
+
+        return ltrim($value, '/');
+    }
+
+    private function persistStoredFiles(mixed $value, string $folder): mixed
+    {
+        if ($value instanceof TemporaryUploadedFile) {
+            return $value->store($this->tenantUploadDir($folder), 'public');
+        }
+
+        if (is_array($value)) {
+            $out = [];
+            foreach ($value as $k => $item) {
+                $out[$k] = $this->persistStoredFiles($item, $folder);
+            }
+
+            return $out;
+        }
+
+        if (is_string($value)) {
+            $trimmed = trim($value);
+            if ($trimmed === '' || $trimmed === '[]' || $trimmed === '{}') {
+                return null;
+            }
+
+            return ltrim($trimmed, '/');
+        }
+
+        return $value;
+    }
+
     private function rejectsPlatformAsset(string $key, mixed $value): bool
     {
         $assetKeys = [
@@ -717,7 +821,7 @@ class MainSiteSetup extends Component implements HasActions, HasForms
             return false;
         }
 
-        $path = is_array($value) ? (string) (array_values(array_filter($value))[0] ?? '') : (string) $value;
+        $path = $this->flattenAssetPath($value) ?? '';
         if ($path === '') {
             return false;
         }

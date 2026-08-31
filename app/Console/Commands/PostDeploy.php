@@ -24,9 +24,24 @@ class PostDeploy extends Command
         Artisan::call('migrate', ['--force' => true]);
         $this->line(trim(Artisan::output()));
 
+        (new PermissionSeeder)->run();
+
+        try {
+            app(\App\Services\Saas\OperatorProvisioningService::class)->ensureStaffRole();
+            $this->info('ISP staff (Admin) role synced with limited permissions.');
+        } catch (\Throwable $e) {
+            $this->warn('Staff role sync skipped: '.$e->getMessage());
+        }
+
+        try {
+            app(\App\Services\Saas\OperatorProvisioningService::class)->ensureRoles();
+            $this->info('Sold ISP (Operator) synced — all permissions except Sell ISP.');
+        } catch (\Throwable $e) {
+            $this->warn('Operator permission sync skipped: '.$e->getMessage());
+        }
+
         if (! User::query()->role('Super Admin')->exists()) {
             $this->info('First deploy — seeding roles and super admin…');
-            (new PermissionSeeder)->run();
             (new RoleSeeder)->run();
             (new SuperAdminSeeder)->run();
             $this->info('Default login: rohan9222@gmail.com / rohan9222@gmail.com');
@@ -45,14 +60,12 @@ class PostDeploy extends Command
             $processStats['updated'],
         ));
 
-        $smsCreated = app(SmsTemplateCatalogService::class)->syncMissing();
+        $smsCreated = app(SmsTemplateCatalogService::class)->syncAllTenants();
         $this->info("SMS templates synced (created: {$smsCreated}).");
 
         $this->ensureAnetbdBrand();
 
         Artisan::call('storage:link', ['--force' => true]);
-        Artisan::call('config:cache');
-        Artisan::call('route:cache');
         Artisan::call('view:cache');
 
         $this->info('Post-deploy complete.');

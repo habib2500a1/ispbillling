@@ -40,6 +40,7 @@ RUN composer dump-autoload --optimize --no-dev \
     && chown -R www-data:www-data /var/www/html \
     && chmod -R ug+rwx storage bootstrap/cache
 
+# Copy nginx config (listen 80 + 8020 for Caddy/NextDeploy compatibility)
 COPY docker/nginx.conf /etc/nginx/sites-available/default
 COPY docker/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 COPY docker/php.ini /usr/local/etc/php/conf.d/99-app.ini

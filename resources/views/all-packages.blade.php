@@ -74,6 +74,14 @@
                         siteUrlSettings('main_site_locale') ?? 'en',
                     );
                 @endphp
+                <a href="{{ route('login') }}"
+                    class="btn btn-success btn-sm px-3 py-1 rounded-pill fw-semibold text-decoration-none">
+                    {{ __('Admin Login') }}
+                </a>
+                <a href="{{ portalLoginUrl() }}"
+                    class="btn btn-outline-success btn-sm px-3 py-1 rounded-pill fw-semibold text-decoration-none">
+                    {{ __('Client Login') }}
+                </a>
                 @if ($currentMainLocale === 'bn')
                     <a href="{{ route('welcome.lang', 'en') }}"
                         class="btn btn-outline-secondary btn-sm px-2.5 py-1 rounded-3 d-flex align-items-center gap-1 font-sans-serif fw-bold text-decoration-none border-secondary text-secondary"
@@ -347,8 +355,8 @@
                 <div class="col-lg-3 col-md-6 col-6 mb-4 mb-lg-0">
                     <h5 class="text-light fw-bold mb-3" style="font-size: 1.1rem;">{{ __('Quick Links') }}</h5>
                     <ul class="footer-links-list">
-                        <li><a href="https://portal.{{ request()->getHost() }}"
-                                target="_blank">{{ __('Client Portal') }}</a></li>
+                        <li><a href="{{ route('login') }}">{{ __('Admin Login') }}</a></li>
+                        <li><a href="{{ portalLoginUrl() }}">{{ __('Client Login') }}</a></li>
                         <li><a href="{{ route('policy.show') }}">{{ __('Privacy Policy') }}</a></li>
                         <li><a href="{{ route('terms.show') }}">{{ __('Terms & Conditions') }}</a></li>
                         <li><a href="{{ $siteData->btcl_tariff_link ?? '#' }}"

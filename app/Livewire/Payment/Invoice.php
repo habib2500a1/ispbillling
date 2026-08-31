@@ -38,7 +38,7 @@ class Invoice extends Component
 
     public function mount()
     {
-        if (! hasAccess(['Super Admin'], ['payment-collection-invoice'])) {
+        if (! hasAccess(['Super Admin', 'Operator'], ['payment-collection-invoice', 'payment-collection', 'all-customer'])) {
             abort(403, 'Unauthorized action.');
         }
     }
@@ -61,20 +61,37 @@ class Invoice extends Component
 
     public function updatedCustomerList()
     {
-        if ($this->customer_list) {
-            // Fetch customers dynamically based on the search term
-            $this->customers = $this->resellerScope()
-                ->search($this->customer_list)
-                ->leftJoin('p_p_p_secrets', 'p_p_p_secrets.id', '=', 'customers_infos.ppp_user_id')
-                ->with('customerAddress')
-                ->select('customers_infos.id', 'customers_infos.customer_unique_id', 'customers_infos.customer_name', 'customers_infos.email', 'customers_infos.mobile', 'p_p_p_secrets.username as username')
-                ->take(10)
-                ->get();
-        } else {
+        $term = trim($this->customer_list);
+        if ($term === '' || strlen($term) < 2) {
             $this->customers = [];
+            $this->highlightedIndex = 0;
+
+            return;
         }
 
-        // Reset highlighted index whenever the list updates
+        $query = $this->resellerScope()
+            ->leftJoin('p_p_p_secrets', 'p_p_p_secrets.id', '=', 'customers_infos.ppp_user_id')
+            ->select(
+                'customers_infos.id',
+                'customers_infos.customer_unique_id',
+                'customers_infos.customer_name',
+                'customers_infos.email',
+                'customers_infos.mobile',
+                'p_p_p_secrets.username as username'
+            );
+
+        $exact = (clone $query)
+            ->where(function ($q) use ($term) {
+                $q->where('customers_infos.customer_unique_id', $term)
+                    ->orWhere('p_p_p_secrets.username', $term);
+            })
+            ->take(10)
+            ->get();
+
+        $this->customers = $exact->isNotEmpty()
+            ? $exact
+            : $query->search($term)->take(10)->get();
+
         $this->highlightedIndex = 0;
     }
 
@@ -120,15 +137,13 @@ class Invoice extends Component
                 'billing',
                 'official',
                 'pppUser',
-                // 'collectionSummary' => function ($query) {
-                //     $query->whereMonth('collection_date', Carbon::now()->month)
-                //         ->whereYear('collection_date', Carbon::now()->year);
-                // }
+                'onus',
+                'package',
             ])
             ->first();
         $this->collectionSummary = CollectionSummary::where('customer_collection_unique_id', $customer_id)
-            ->whereMonth('collection_date', Carbon::now()->month)
-            ->whereYear('collection_date', Carbon::now()->year)
+            ->where('collection_date', '>=', Carbon::now()->startOfMonth())
+            ->where('collection_date', '<', Carbon::now()->addMonth()->startOfMonth())
             ->get();
         $this->paid_amount = '';
         $this->total_amount = $this->info_data->billing->due_amount;

@@ -26,6 +26,7 @@
     @vite(['resources/sass/app.scss', 'resources/css/app.css', 'resources/js/app.js'])
     @stack('styles')
     @filamentStyles
+    <link rel="stylesheet" href="{{ asset('css/invoice-enterprise.css') }}?v=20260831">
     <link rel="stylesheet" href="{{ asset('css/filament/filament/app.css') }}">
     @livewireStyles
     <style>
@@ -37,6 +38,22 @@
             color: #1e3a5f !important;
             font-weight: 800;
             letter-spacing: -0.03em;
+        }
+        /* Logo uploaded — never show duplicate site name beside it */
+        .navbar-brand:has(.navbar-brand-logo) .brand-wordmark,
+        .navbar-brand:has(img[src*="storage"]) .brand-wordmark,
+        .navbar-brand img + .brand-wordmark {
+            display: none !important;
+        }
+        .navbar-brand-logo {
+            width: auto !important;
+            max-width: 160px !important;
+            height: auto !important;
+            max-height: 45px !important;
+            object-fit: contain;
+        }
+        .navbar-vertical-collapsed:not(.navbar-vertical-collapsed-hover) .navbar-vertical .navbar-brand .navbar-brand-logo {
+            max-width: 2.25rem !important;
         }
         .avatar.avatar-xl img.rounded-circle {
             background: #e8eef5;

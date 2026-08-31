@@ -37,7 +37,7 @@
                     </div>
 
                     <div class="row pt-3 g-1">
-                        @canany(['create-role', 'edit-role', 'delete-role'])
+                        @canany(['create-user-role', 'edit-user-role', 'delete-user-role'])
                             <a wire:navigate.hover wire:current="active" class="btn btn-primary col-md mx-1" href="{{ route('admin-roles') }}">
                                 <i class="fa-solid fa-users-gear"></i> Manage Roles</a>
                         @endcanany

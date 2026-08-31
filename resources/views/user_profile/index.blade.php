@@ -57,7 +57,7 @@
                             </div>
 
                             <div class="row pt-3">
-                                @canany(['create-role', 'edit-role', 'delete-role'])
+                                @canany(['create-user-role', 'edit-user-role', 'delete-user-role'])
                                     <a class="btn btn-primary col-md mx-1" href="{{ route('roles.index') }}">
                                         <i class="fa-solid fa-users-gear"></i> Manage Roles</a>
                                 @endcanany

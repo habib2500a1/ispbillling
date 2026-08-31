@@ -82,8 +82,8 @@
                     </div>
     </div>
 
-    <div class="cl-table-card">
-        <div class="table-responsive bg-white px-3 pb-3" wire:ignore.self wire:key="customer-list-table-wrap">
+    <div class="cl-table-card" wire:ignore>
+        <div class="table-responsive bg-white px-3 pb-3" wire:key="customer-list-table-wrap">
             <table class="customer-table table table-hover custom-data-table border-0 w-100" style="width:100%"
                 data-url="{{ route('customers.data') }}">
                 <thead class="bg-light">
@@ -138,15 +138,18 @@
     @if($editingCustomerId)
         <div class="modal fade show" tabindex="-1" style="display: block; background: rgba(0,0,0,0.5);" aria-modal="true" role="dialog" wire:key="edit-customer-modal-{{ $editingCustomerId }}">
             <div class="modal-dialog modal-fullscreen">
-                <div class="modal-content">
-                    <div class="modal-header">
+                <div class="modal-content h-100 d-flex flex-column">
+                    <div class="modal-header flex-shrink-0">
                         <h5 class="modal-title">{{ __('Edit Customer') }}</h5>
                         <button type="button" class="btn-close" wire:click="closeEditCustomerModal" aria-label="{{ __('Close') }}"></button>
                     </div>
-                    <div class="modal-body bg-light" style="padding: 1.5rem; max-height: 85vh; overflow-y: auto;">
-                        @livewire('edit-customer', ['customerId' => $editingCustomerId], key($editingCustomerId))
+                    <div class="modal-body p-0 flex-grow-1 overflow-hidden bg-light">
+                        <livewire:edit-customer :customer-id="$editingCustomerId" :embedded="true" :key="'edit-'.$editingCustomerId" />
                     </div>
-                    <div class="modal-footer">
+                    <div class="modal-footer flex-shrink-0">
+                        <button type="button" class="btn btn-success" onclick="Livewire.dispatch('save-quick-fields')">
+                            <i class="bi bi-check2-circle me-1"></i>{{ __('Save') }}
+                        </button>
                         <button type="button" class="btn btn-danger" wire:click="closeEditCustomerModal">{{ __('Close') }}</button>
                     </div>
                 </div>
@@ -826,7 +829,13 @@
                 });
             };
 
-            Livewire.on('customer-action-done', () => { table.ajax.reload(null, false); });
+            Livewire.on('customer-action-done', () => {
+                if (window.customerListTable && $.fn.DataTable.isDataTable('.customer-table')) {
+                    window.customerListTable.ajax.reload(null, false);
+                } else if (typeof window.initCustomerListTable === 'function') {
+                    window.initCustomerListTable();
+                }
+            });
 
             return true;
         };

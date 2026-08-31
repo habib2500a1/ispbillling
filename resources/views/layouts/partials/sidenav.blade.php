@@ -1,23 +1,12 @@
 <nav class="navbar navbar-light navbar-glass navbar-top navbar-expand-lg" data-double-top-nav="data-double-top-nav" style="display: none;">
     <div class="w-100">
         <div class="d-flex flex-between-center">
-            {{-- logo and Site name --}}
             <button class="btn navbar-toggler-humburger-icon navbar-toggler me-1 me-sm-3" type="button" data-bs-toggle="collapse" data-bs-target="#navbarDoubleTop" aria-controls="navbarDoubleTop" aria-expanded="false" aria-label="Toggle Navigation">
                 <span class="navbar-toggle-icon">
                     <span class="toggle-line"></span>
                 </span>
             </button>
-            <a class="navbar-brand me-1 me-sm-3" href="{{url('/')}}">
-                <div class="d-flex align-items-center">
-                    {{-- Check if site logo exists and display it, otherwise show site icon or name --}}
-                    @if (siteUrlSettings('site_logo'))
-                        <img class="me-2" style="width: 150px; height: auto; max-height: 45px; max-width: 100%; object-fit: contain; flex-shrink: 0;" src="{{ site_image(siteUrlSettings('site_logo')) }}" alt="{{ site_brand() }}"/>
-                    @elseif (siteUrlSettings('site_icon'))
-                        <img class="me-2" src="{{ site_image(siteUrlSettings('site_icon')) }}" alt="" width="40" />
-                    @endif
-                    <span class="font-sans-serif brand-wordmark">{{ site_brand() }}</span>
-                </div>
-            </a>
+            @include('layouts.partials.navbar-brand-mark', ['class' => 'me-1 me-sm-3'])
             @include('layouts.partials.searchbar')
             @include('layouts.partials.userpanel')
         </div>
@@ -36,16 +25,7 @@
             <span class="toggle-line"></span>
         </span>
     </button>
-    <a class="navbar-brand me-1 me-sm-3" href="{{url('/')}}">
-        <div class="d-flex align-items-center">
-            @if (siteUrlSettings('site_logo'))
-                <img class="me-2" style="width: 150px; height: auto; max-height: 45px; max-width: 100%; object-fit: contain; flex-shrink: 0;" src="{{ site_image(siteUrlSettings('site_logo')) }}" alt="{{ site_brand() }}"/>
-            @elseif (siteUrlSettings('site_icon'))
-                <img class="me-2" src="{{ site_image(siteUrlSettings('site_icon')) }}" alt="" width="40" />
-            @endif
-            <span class="font-sans-serif brand-wordmark">{{ site_brand() }}</span>
-        </div>
-    </a>
+    @include('layouts.partials.navbar-brand-mark', ['class' => 'me-1 me-sm-3'])
     <div class="collapse navbar-collapse scrollbar" id="navbarStandard">
         @include('layouts.partials.navpanel')
     </div>
@@ -67,16 +47,7 @@
                 </span>
             </button>
         </div>
-        <a class="navbar-brand" href="{{url('/')}}">
-            <div class="d-flex align-items-center {{ siteUrlSettings('site_logo') ? 'py-1' : 'py-3' }}">
-                @if (siteUrlSettings('site_logo'))
-                    <img class="me-2" style="width: 150px; height: auto; max-height: 45px; max-width: 100%; object-fit: contain; flex-shrink: 0;" src="{{ site_image(siteUrlSettings('site_logo')) }}" alt="{{ site_brand() }}"/>
-                @elseif (siteUrlSettings('site_icon'))
-                    <img class="me-2" src="{{ site_image(siteUrlSettings('site_icon')) }}" alt="" width="40" />
-                @endif
-                <span class="font-sans-serif brand-wordmark">{{ site_brand() }}</span>
-            </div>
-        </a>
+        @include('layouts.partials.navbar-brand-mark')
     </div>
     <div class="collapse navbar-collapse" id="navbarVerticalCollapse">
         <div class="navbar-vertical-content scrollbar">
