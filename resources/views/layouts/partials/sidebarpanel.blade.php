@@ -163,14 +163,14 @@
         @php
             $navIs = fn (...$names) => request()->routeIs(...$names);
             $openClients = $navIs('customers.*', 'new-customer', 'customers.excel-upload', 'online-clients', 'package-list-setup', 'address-setup');
-            $openBilling = $navIs('payment-collection', 'collection-edit', 'payment-invoice', 'billing-notices', 'sms-notices', 'admin.staff-cash', 'billing.discounts', 'billing.advances');
+            $openBilling = $navIs('payment-collection', 'collection-edit', 'payment-invoice', 'billing-notices', 'sms-notices', 'admin.staff-cash', 'billing.discounts', 'billing.advances', 'admin.waivers');
             $openOptical = $navIs('olt-management', 'onu-management');
             $openMtSetup = $navIs('mikrotik-ip-setup', 'mikrotik-pppoe-setup', 'mikrotik-radius-setup', 'mikrotik-firewall-setup', 'mikrotik-walled-garden', 'mikrotik-queue-setup', 'mikrotik-vpn-setup', 'mikrotik-interface-setup', 'mikrotik-traffic-monitor', 'mikrotik-backup-setup');
             $openNetwork = $openMtSetup || $navIs('mikrotik-sync', 'bandwidth-hub', 'mikrotik-hotspot-manager', 'noc-overview', 'ops-insights');
             $openSupport = $navIs('admin-tickets', 'call-desk', 'noc-outage');
             $openReports = $navIs('collection-report.*', 'customer-summary', 'dis-report');
             $openFinance = $navIs('admin.expenses', 'admin.profit-summary', 'accounts-hub', 'inventory-hub', 'inventory-purchases', 'inventory-sales');
-            $openSystem = $navIs('admin.purchase-requests', 'admin.saas-operators', 'admin.resellers.*', 'admin.activity-logs', 'admin.login-logs', 'admin.system-logs', 'mikrotik-log-viewer', 'admin.vouchers', 'admin.reviews', 'sms-setup', 'automatic-processes', 'sms-bridge.*', 'hr-hub');
+            $openSystem = $navIs('admin.purchase-requests', 'admin.saas-operators', 'admin.resellers.*', 'admin.activity-logs', 'admin.login-logs', 'admin.login-activity', 'admin.system-logs', 'mikrotik-log-viewer', 'admin.pppoe-audit', 'admin.wallet-approvals', 'admin.vouchers', 'admin.reviews', 'sms-setup', 'automatic-processes', 'sms-bridge.*', 'hr-hub');
         @endphp
         <ul class="navbar-nav flex-column mb-3" id="navbarVerticalNav">
             <li class="nav-item">
@@ -280,6 +280,13 @@
                             <div class="d-flex align-items-center"><span class="nav-link-text ps-1">{{ __('Advance') }}</span></div>
                         </a>
                     </li>
+                    @if(hasAccess(['Super Admin'], ['payment-collection', 'amount-collection', 'payment-collection-report']))
+                        <li class="nav-item">
+                            <a wire:navigate.hover class="nav-link {{ $navIs('admin.waivers') ? 'active' : '' }}" href="{{ route('admin.waivers') }}">
+                                <div class="d-flex align-items-center"><span class="nav-link-text ps-1">{{ __('Waivers') }}</span></div>
+                            </a>
+                        </li>
+                    @endif
                     @if(hasAccess(['Super Admin'], ['billing-notices', 'payment-collection', 'sms-setup']))
                         <li class="nav-item">
                             <a wire:navigate.hover class="nav-link {{ $navIs('billing-notices') ? 'active' : '' }}" href="{{ route('billing-notices') }}">
@@ -578,14 +585,22 @@
                     <div class="d-flex align-items-center"><span class="nav-link-text ps-1">{{ __('Reseller Setup') }}</span></div>
                 </a>
                 </li>
+                @if (hasAccess(['Super Admin'], ['all-customer']))
                 <li class="nav-item">
-                <a class="nav-link dropdown-indicator {{ $navIs('admin.activity-logs', 'admin.login-logs', 'admin.system-logs', 'mikrotik-log-viewer', 'admin.vouchers') ? '' : 'collapsed' }}" href="#logsSetupDropdown" role="button"
-                    data-bs-toggle="collapse" aria-expanded="{{ $navIs('admin.activity-logs', 'admin.login-logs', 'admin.system-logs', 'mikrotik-log-viewer', 'admin.vouchers') ? 'true' : 'false' }}" aria-controls="logsSetupDropdown">
+                <a wire:navigate.hover class="nav-link {{ $navIs('admin.wallet-approvals') ? 'active' : '' }}"
+                    href="{{ route('admin.wallet-approvals') }}">
+                    <div class="d-flex align-items-center"><span class="nav-link-text ps-1">{{ __('Wallet Approvals') }}</span></div>
+                </a>
+                </li>
+                @endif
+                <li class="nav-item">
+                <a class="nav-link dropdown-indicator {{ $navIs('admin.activity-logs', 'admin.login-logs', 'admin.login-activity', 'admin.system-logs', 'mikrotik-log-viewer', 'admin.vouchers', 'admin.pppoe-audit') ? '' : 'collapsed' }}" href="#logsSetupDropdown" role="button"
+                    data-bs-toggle="collapse" aria-expanded="{{ $navIs('admin.activity-logs', 'admin.login-logs', 'admin.login-activity', 'admin.system-logs', 'mikrotik-log-viewer', 'admin.vouchers', 'admin.pppoe-audit') ? 'true' : 'false' }}" aria-controls="logsSetupDropdown">
                     <div class="d-flex align-items-center">
                         <span class="nav-link-text ps-1">{{ __('Logs & Audits') }}</span>
                     </div>
                 </a>
-                <ul class="nav collapse {{ $navIs('admin.activity-logs', 'admin.login-logs', 'admin.system-logs', 'mikrotik-log-viewer', 'admin.vouchers') ? 'show' : '' }}" id="logsSetupDropdown">
+                <ul class="nav collapse {{ $navIs('admin.activity-logs', 'admin.login-logs', 'admin.login-activity', 'admin.system-logs', 'mikrotik-log-viewer', 'admin.vouchers', 'admin.pppoe-audit') ? 'show' : '' }}" id="logsSetupDropdown">
                     <li class="nav-item">
                         <a wire:navigate.hover wire:current="active" class="nav-link"
                             href="{{ route('admin.activity-logs') }}">
@@ -594,8 +609,8 @@
                     </li>
                     <li class="nav-item">
                         <a wire:navigate.hover wire:current="active" class="nav-link"
-                            href="{{ route('admin.login-logs') }}">
-                            <div class="d-flex align-items-center"><span class="nav-link-text ps-1">{{ __('Login Logs') }}</span>
+                            href="{{ route('admin.login-activity') }}">
+                            <div class="d-flex align-items-center"><span class="nav-link-text ps-1">{{ __('Login Activity') }}</span>
                             </div>
                         </a>
                     </li>
@@ -604,6 +619,11 @@
                             href="{{ route('admin.system-logs') }}">
                             <div class="d-flex align-items-center"><span class="nav-link-text ps-1">{{ __('System Logs') }}</span>
                             </div>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a wire:navigate.hover wire:current="active" class="nav-link" href="{{ route('admin.pppoe-audit') }}">
+                            <div class="d-flex align-items-center"><span class="nav-link-text ps-1">{{ __('PPPoE Audit') }}</span></div>
                         </a>
                     </li>
                     <li class="nav-item">

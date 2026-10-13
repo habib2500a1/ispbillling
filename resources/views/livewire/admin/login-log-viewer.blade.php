@@ -5,9 +5,9 @@
         <div class="d-flex align-items-center justify-content-between mb-4">
             <div>
                 <h4 class="fw-bold mb-0" style="color:#1a1f36;">
-                    <i class="bi bi-shield-lock me-2 text-primary"></i>{{ __('User Authentication Logs') }}
+                    <i class="bi bi-shield-lock me-2 text-primary"></i>{{ __('Login Activity') }}
                 </h4>
-                <p class="text-muted small mb-0">{{ __('Monitor and audit logins and logouts for both administrators and customers') }}</p>
+                <p class="text-muted small mb-0">{{ __('Review sign-in and sign-out activity for administrators, resellers and customers') }}</p>
             </div>
             <button wire:click="resetFilters" class="btn btn-outline-secondary rounded-3 px-3 fw-semibold shadow-sm">
                 <i class="bi bi-arrow-repeat me-1"></i> {{ __('Reset Filters') }}

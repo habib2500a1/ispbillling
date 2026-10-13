@@ -11,6 +11,9 @@ use App\Livewire\Admin\AdminVoucherList;
 use App\Livewire\Admin\SystemLogViewer;
 use App\Livewire\Admin\ManageSaasOperators;
 use App\Livewire\Admin\StaffCashDesk;
+use App\Livewire\Admin\WalletApprovals;
+use App\Livewire\Admin\WaiverManagement;
+use App\Livewire\Admin\PppoeAudit;
 use App\Http\Controllers\SaasLockedController;
 use App\Http\Controllers\SaasTlsAskController;
 use App\Services\Saas\SaasDomain;
@@ -311,6 +314,12 @@ Route::middleware([
 
             // Login Logs Viewer
             Route::get('login-logs', LoginLogViewer::class)->name('login-logs');
+            Route::get('login-activity', LoginLogViewer::class)->name('login-activity');
+
+            // Billing waivers, reseller wallet approvals and PPPoE audit
+            Route::get('waivers', WaiverManagement::class)->name('waivers');
+            Route::get('wallet-approvals', WalletApprovals::class)->name('wallet-approvals');
+            Route::get('pppoe-audit', PppoeAudit::class)->name('pppoe-audit');
 
             // Customer Reviews Management
             Route::get('reviews', ManageReviews::class)->name('reviews');

@@ -123,6 +123,10 @@
                             href="{{ route('mikrotik-traffic-monitor') }}">{{ __('Live Traffic') }}</a>
                         <a wire:navigate.hover wire:current="active" class="dropdown-item link-600 fw-medium"
                             href="{{ route('mikrotik-log-viewer') }}">{{ __('Router Logs') }}</a>
+                        @if (hasAccess(['Super Admin'], ['mikrotik-setup', 'all-customer']))
+                            <a wire:navigate.hover wire:current="active" class="dropdown-item link-600 fw-medium"
+                                href="{{ route('admin.pppoe-audit') }}">{{ __('PPPoE Audit') }}</a>
+                        @endif
                         <a wire:navigate.hover wire:current="active" class="dropdown-item link-600 fw-medium"
                             href="{{ route('mikrotik-backup-setup') }}">{{ __('Backup & Restore') }}</a>
 
@@ -191,6 +195,10 @@
                                 {{ __('Staff cash') }}
                             </a>
                         @endif
+                        @if (hasAccess(['Super Admin'], ['payment-collection', 'amount-collection', 'payment-collection-report']))
+                            <a wire:navigate.hover wire:current="active" class="dropdown-item link-600 fw-medium"
+                                href="{{ route('admin.waivers') }}">{{ __('Waivers') }}</a>
+                        @endif
                     </div>
                 </div>
             </li>
@@ -256,6 +264,10 @@
                             href="{{ route('admin.resellers.index') }}">
                             {{ __('Reseller Setup') }}
                         </a>
+                        @if (hasAccess(['Super Admin'], ['all-customer']))
+                            <a wire:navigate.hover wire:current="active" class="dropdown-item link-600 fw-medium"
+                                href="{{ route('admin.wallet-approvals') }}">{{ __('Wallet Approvals') }}</a>
+                        @endif
                         <a wire:navigate.hover wire:current="active" class="dropdown-item link-600 fw-medium"
                             href="{{ route('admin.purchase-requests') }}">
                             {{ __('Purchase Requests') }}
@@ -265,8 +277,8 @@
                             {{ __('Activity Logs') }}
                         </a>
                         <a wire:navigate.hover wire:current="active" class="dropdown-item link-600 fw-medium"
-                            href="{{ route('admin.login-logs') }}">
-                            {{ __('Login Logs') }}
+                            href="{{ route('admin.login-activity') }}">
+                            {{ __('Login Activity') }}
                         </a>
                         <a wire:navigate.hover wire:current="active" class="dropdown-item link-600 fw-medium"
                             href="{{ route('admin.system-logs') }}">

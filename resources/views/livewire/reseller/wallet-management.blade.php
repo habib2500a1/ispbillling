@@ -1,4 +1,34 @@
 <div class="container-fluid py-2">
+    <div class="card border-0 shadow-sm rounded-4 mb-4">
+        <div class="card-header bg-white border-0 pt-4 px-4">
+            <h5 class="fw-bold mb-1"><i class="bi bi-plus-circle text-success me-2"></i>{{ __('Request a wallet top-up') }}</h5>
+            <p class="small text-muted mb-0">{{ __('Submit your payment details. Your balance changes only after an administrator approves the request.') }}</p>
+        </div>
+        <div class="card-body px-4 pb-4">
+            <div class="row g-3 align-items-end">
+                <div class="col-md-2"><label class="form-label">{{ __('Amount (৳)') }}</label><input type="number" min="0.01" step="0.01" class="form-control" wire:model="topUpAmount" placeholder="0.00">@error('topUpAmount')<div class="text-danger small">{{ $message }}</div>@enderror</div>
+                <div class="col-md-2"><label class="form-label">{{ __('Payment method') }}</label><select class="form-select" wire:model="paymentMethod"><option value="bkash">bKash</option><option value="nagad">Nagad</option><option value="rocket">Rocket</option><option value="bank">{{ __('Bank') }}</option><option value="cash">{{ __('Cash') }}</option><option value="other">{{ __('Other') }}</option></select>@error('paymentMethod')<div class="text-danger small">{{ $message }}</div>@enderror</div>
+                <div class="col-md-3"><label class="form-label">{{ __('Transaction reference') }}</label><input type="text" class="form-control" wire:model="paymentReference" maxlength="120" placeholder="{{ __('Optional') }}">@error('paymentReference')<div class="text-danger small">{{ $message }}</div>@enderror</div>
+                <div class="col-md-3"><label class="form-label">{{ __('Note') }}</label><input type="text" class="form-control" wire:model="topUpNote" maxlength="1000" placeholder="{{ __('Optional details for the reviewer') }}">@error('topUpNote')<div class="text-danger small">{{ $message }}</div>@enderror</div>
+                <div class="col-md-2 d-grid"><button type="button" class="btn btn-success" wire:click="submitTopUpRequest" wire:loading.attr="disabled"><span wire:loading.remove wire:target="submitTopUpRequest">{{ __('Send for approval') }}</span><span wire:loading wire:target="submitTopUpRequest">{{ __('Sending…') }}</span></button></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm rounded-4 mb-4">
+        <div class="card-header bg-white border-0 pt-4 px-4"><h5 class="fw-bold mb-0">{{ __('Recent top-up requests') }}</h5></div>
+        <div class="table-responsive"><table class="table table-hover align-middle mb-0">
+            <thead class="table-light"><tr><th class="ps-4">{{ __('Date') }}</th><th>{{ __('Payment method') }}</th><th>{{ __('Reference') }}</th><th>{{ __('Amount') }}</th><th>{{ __('Status') }}</th><th class="pe-4">{{ __('Review note') }}</th></tr></thead>
+            <tbody>
+                @forelse($walletRequests as $request)
+                    <tr wire:key="reseller-wallet-request-{{ $request->id }}"><td class="ps-4 small text-muted">{{ $request->created_at?->format('d M Y, h:i A') }}</td><td class="text-uppercase">{{ $request->payment_method }}</td><td>{{ $request->payment_reference ?: '—' }}</td><td class="fw-semibold">৳{{ number_format((float) $request->amount, 2) }}</td><td><span class="badge bg-{{ $request->status === 'approved' ? 'success' : ($request->status === 'rejected' ? 'danger' : 'warning') }}-subtle text-{{ $request->status === 'approved' ? 'success' : ($request->status === 'rejected' ? 'danger' : 'warning') }}">{{ __(ucfirst($request->status)) }}</span></td><td class="pe-4 small text-muted">{{ $request->admin_note ?: '—' }}</td></tr>
+                @empty
+                    <tr><td colspan="6" class="text-center text-muted py-4">{{ __('No top-up requests yet.') }}</td></tr>
+                @endforelse
+            </tbody>
+        </table></div>
+    </div>
+
     <!-- Accounting Statistics Summary -->
     <div class="row g-3 mb-4">
         <!-- Wallet Balance Card -->
