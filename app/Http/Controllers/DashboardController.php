@@ -38,9 +38,8 @@ class DashboardController extends Controller
             ->pluck('count', 'status')
             ->toArray();
 
-        $recentCount = CustomersInfo::whereMonth('created_at', Carbon::now()->month)
-            ->whereYear('created_at', Carbon::now()->year)
-            ->count();
+        $monthStart = Carbon::now()->startOfMonth();
+        $recentCount = CustomersInfo::joinedBetween($monthStart, $monthStart->copy()->addMonth())->count();
 
         $today = Carbon::today();
 
@@ -70,7 +69,7 @@ class DashboardController extends Controller
                 ->whereNotIn('status', ['free'])
                 ->count(),
             'joined_month' => $recentCount,
-            'joined_today' => CustomersInfo::whereDate('created_at', $today)->count(),
+            'joined_today' => CustomersInfo::joinedBetween($today, $today->copy()->addDay())->count(),
             'expired_today' => CustomersInfo::query()
                 ->whereHas('billing', fn ($q) => $q->whereDate('auto_disable_date', $today))
                 ->count(),
