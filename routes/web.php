@@ -72,6 +72,10 @@ use App\Livewire\Mikrotik\WalledGardenSetup;
 use App\Livewire\MikrotikSync;
 use App\Livewire\NewCustomer;
 use App\Livewire\NotificationListAll;
+use App\Livewire\NocOverview;
+use App\Livewire\NocOutageBroadcast;
+use App\Livewire\CallDesk;
+use App\Livewire\OpsInsights;
 use App\Livewire\PackageListSetup;
 use App\Livewire\Payment\Invoice;
 use App\Livewire\PaymentCollection;
@@ -203,7 +207,7 @@ Route::middleware([
         // Optical / OLT (Phase 1)
         Route::get('/olts', OltManager::class)->name('olt-management');
         Route::get('/onus', OnuManager::class)->name('onu-management');
-        Route::get('/noc', fn () => redirect()->route('dashboard'))->name('noc-overview');
+        Route::get('/noc', NocOverview::class)->name('noc-overview');
 
         // Billing extras (Phase 3)
         Route::get('/billing-notices', BillingNotices::class)->name('billing-notices');
@@ -212,16 +216,16 @@ Route::middleware([
 
         // NOC / Bandwidth (Phase 4)
         Route::get('/bandwidth-hub', BandwidthHub::class)->name('bandwidth-hub');
-        Route::get('/noc-outage', fn () => redirect()->route('dashboard'))->name('noc-outage');
+        Route::get('/noc-outage', NocOutageBroadcast::class)->name('noc-outage');
 
         // Ops hubs (Phase 5)
         Route::get('/accounts-hub', AccountsHub::class)->name('accounts-hub');
         Route::get('/hr-hub', HrHub::class)->name('hr-hub');
-        Route::get('/call-desk', fn () => redirect()->route('dashboard'))->name('call-desk');
+        Route::get('/call-desk', CallDesk::class)->name('call-desk');
         Route::get('/inventory-hub', InventoryHub::class)->name('inventory-hub');
         Route::get('/inventory-purchases', InventoryPurchases::class)->name('inventory-purchases');
         Route::get('/inventory-sales', InventorySales::class)->name('inventory-sales');
-        Route::get('/ops-insights', fn () => redirect()->route('dashboard'))->name('ops-insights');
+        Route::get('/ops-insights', OpsInsights::class)->name('ops-insights');
 
         // Mikrotik Setup Routes
         Route::prefix('mikrotik-setup')->group(function () {

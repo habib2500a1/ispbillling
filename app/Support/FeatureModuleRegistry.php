@@ -183,13 +183,13 @@ final class FeatureModuleRegistry
     {
         return [
             ['slug' => 'support-center', 'group' => 'Support', 'section' => 'Hub', 'label' => 'Support center', 'description' => 'Tickets · SLA · chat', 'icon' => 'bi-life-preserver', 'accent' => 'warning', 'route' => 'admin-tickets'],
-            ['slug' => 'call-center', 'group' => 'Support', 'section' => 'Call center', 'label' => 'Call center', 'description' => 'Logs · follow-ups · SIP', 'icon' => 'bi-telephone', 'accent' => 'warning', 'route' => 'admin-tickets'],
+            ['slug' => 'call-center', 'group' => 'Support', 'section' => 'Call center', 'label' => 'Call center', 'description' => 'Logs · follow-ups · SIP', 'icon' => 'bi-telephone', 'accent' => 'warning', 'route' => 'call-desk'],
             ['slug' => 'call-reports', 'group' => 'Support', 'section' => 'Call center', 'label' => 'Call reports', 'description' => 'Staff call performance', 'icon' => 'bi-bar-chart', 'accent' => 'warning'],
             ['slug' => 'new-connections', 'group' => 'Support', 'section' => 'CRM', 'label' => 'New connections', 'description' => 'Website signup · convert', 'icon' => 'bi-person-plus', 'accent' => 'warning'],
             ['slug' => 'sales-pipeline', 'group' => 'Support', 'section' => 'CRM', 'label' => 'Connection pipeline', 'description' => 'Kanban by stage', 'icon' => 'bi-kanban', 'accent' => 'warning'],
             ['slug' => 'all-tickets', 'group' => 'Support', 'section' => 'Tickets', 'label' => 'All tickets', 'description' => 'Complaints queue', 'icon' => 'bi-chat-left-text', 'accent' => 'warning', 'route' => 'admin-tickets'],
             ['slug' => 'task-board', 'group' => 'Support', 'section' => 'Tasks', 'label' => 'Task board', 'description' => 'Kanban for staff', 'icon' => 'bi-columns-gap', 'accent' => 'warning'],
-            ['slug' => 'outage-broadcast', 'group' => 'Support', 'section' => 'Alerts', 'label' => 'Outage broadcast', 'description' => 'SMS / email alerts', 'icon' => 'bi-megaphone', 'accent' => 'warning', 'route' => 'sms-notices'],
+            ['slug' => 'outage-broadcast', 'group' => 'Support', 'section' => 'Alerts', 'label' => 'Outage broadcast', 'description' => 'SMS / email alerts', 'icon' => 'bi-megaphone', 'accent' => 'warning', 'route' => 'noc-outage'],
         ];
     }
 
@@ -198,7 +198,7 @@ final class FeatureModuleRegistry
     {
         return [
             ['slug' => 'workforce-ops', 'group' => 'HR & Payroll', 'section' => 'Hub', 'label' => 'Workforce operations', 'description' => 'Employees · attendance · payroll', 'icon' => 'bi-briefcase', 'accent' => 'rose', 'route' => 'hr-hub'],
-            ['slug' => 'employees', 'group' => 'HR & Payroll', 'section' => 'Staff', 'label' => 'Employees', 'description' => 'Staff profiles', 'icon' => 'bi-person-badge', 'accent' => 'rose', 'route' => 'admin-users'],
+            ['slug' => 'employees', 'group' => 'HR & Payroll', 'section' => 'Staff', 'label' => 'Employees', 'description' => 'Staff profiles', 'icon' => 'bi-person-badge', 'accent' => 'rose', 'route' => 'hr-hub'],
             ['slug' => 'payroll-runs', 'group' => 'HR & Payroll', 'section' => 'Payroll', 'label' => 'Payroll runs', 'description' => 'Salary processing', 'icon' => 'bi-cash-coin', 'accent' => 'rose'],
         ];
     }
@@ -214,7 +214,7 @@ final class FeatureModuleRegistry
             ['slug' => 'retail-sales', 'group' => 'Inventory', 'section' => 'POS', 'label' => 'Retail sales', 'description' => 'POS history', 'icon' => 'bi-receipt', 'accent' => 'orange'],
             ['slug' => 'stock-ledger', 'group' => 'Inventory', 'section' => 'Stock', 'label' => 'Stock ledger', 'description' => 'In / out by warehouse', 'icon' => 'bi-arrow-repeat', 'accent' => 'orange'],
             ['slug' => 'devices-onu', 'group' => 'Inventory', 'section' => 'Stock', 'label' => 'Devices / ONU', 'description' => 'CPE inventory', 'icon' => 'bi-modem', 'accent' => 'orange', 'route' => 'onu-management'],
-            ['slug' => 'purchase-orders', 'group' => 'Inventory', 'section' => 'Purchasing', 'label' => 'Purchase orders', 'description' => 'PO & GRN', 'icon' => 'bi-truck', 'accent' => 'orange', 'route' => 'admin.purchase-requests'],
+            ['slug' => 'purchase-orders', 'group' => 'Inventory', 'section' => 'Purchasing', 'label' => 'Purchase orders', 'description' => 'PO & GRN', 'icon' => 'bi-truck', 'accent' => 'orange', 'route' => 'inventory-purchases'],
             ['slug' => 'vendors', 'group' => 'Inventory', 'section' => 'Purchasing', 'label' => 'Vendors', 'description' => 'Suppliers', 'icon' => 'bi-shop', 'accent' => 'orange'],
         ];
     }

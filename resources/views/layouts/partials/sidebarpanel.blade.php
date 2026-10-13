@@ -166,10 +166,10 @@
             $openBilling = $navIs('payment-collection', 'collection-edit', 'payment-invoice', 'billing-notices', 'sms-notices', 'admin.staff-cash', 'billing.discounts', 'billing.advances');
             $openOptical = $navIs('olt-management', 'onu-management');
             $openMtSetup = $navIs('mikrotik-ip-setup', 'mikrotik-pppoe-setup', 'mikrotik-radius-setup', 'mikrotik-firewall-setup', 'mikrotik-walled-garden', 'mikrotik-queue-setup', 'mikrotik-vpn-setup', 'mikrotik-interface-setup', 'mikrotik-traffic-monitor', 'mikrotik-backup-setup');
-            $openNetwork = $openMtSetup || $navIs('mikrotik-sync', 'bandwidth-hub', 'mikrotik-hotspot-manager');
-            $openSupport = $navIs('admin-tickets');
+            $openNetwork = $openMtSetup || $navIs('mikrotik-sync', 'bandwidth-hub', 'mikrotik-hotspot-manager', 'noc-overview', 'ops-insights');
+            $openSupport = $navIs('admin-tickets', 'call-desk', 'noc-outage');
             $openReports = $navIs('collection-report.*', 'customer-summary', 'dis-report');
-            $openFinance = $navIs('admin.expenses', 'admin.profit-summary', 'accounts-hub', 'inventory-hub');
+            $openFinance = $navIs('admin.expenses', 'admin.profit-summary', 'accounts-hub', 'inventory-hub', 'inventory-purchases', 'inventory-sales');
             $openSystem = $navIs('admin.purchase-requests', 'admin.saas-operators', 'admin.resellers.*', 'admin.activity-logs', 'admin.login-logs', 'admin.system-logs', 'mikrotik-log-viewer', 'admin.vouchers', 'admin.reviews', 'sms-setup', 'automatic-processes', 'sms-bridge.*', 'hr-hub');
         @endphp
         <ul class="navbar-nav flex-column mb-3" id="navbarVerticalNav">
@@ -349,6 +349,20 @@
                     </a>
                 </li>
                 @endif
+                @if(hasAccess(['Super Admin'], ['manage-tickets', 'view-tickets', 'olt-management', 'mikrotik-sync']))
+                <li class="nav-item">
+                    <a wire:navigate.hover class="nav-link {{ $navIs('noc-overview') ? 'active' : '' }}" href="{{ route('noc-overview') }}">
+                        <div class="d-flex align-items-center"><span class="nav-link-text ps-1">{{ __('NOC Overview') }}</span></div>
+                    </a>
+                </li>
+                @endif
+                @if(hasAccess(['Super Admin'], ['mikrotik-sync', 'olt-management', 'manage-tickets', 'payment-collection']))
+                <li class="nav-item">
+                    <a wire:navigate.hover class="nav-link {{ $navIs('ops-insights') ? 'active' : '' }}" href="{{ route('ops-insights') }}">
+                        <div class="d-flex align-items-center"><span class="nav-link-text ps-1">{{ __('Ops Insights') }}</span></div>
+                    </a>
+                </li>
+                @endif
                 <li class="nav-item">
                 <a wire:navigate.hover class="nav-link {{ $navIs('mikrotik-hotspot-manager') ? 'active' : '' }}" href="{{ route('mikrotik-hotspot-manager') }}">
                     <div class="d-flex align-items-center"><span class="nav-link-text ps-1">{{ __('Hotspot') }}</span></div>
@@ -431,6 +445,20 @@
                             <div class="d-flex align-items-center"><span class="nav-link-text ps-1">{{ __('Tickets') }}</span></div>
                         </a>
                     </li>
+                    @if(hasAccess(['Super Admin'], ['manage-tickets', 'view-tickets', 'payment-collection']))
+                    <li class="nav-item">
+                        <a wire:navigate.hover class="nav-link {{ $navIs('call-desk') ? 'active' : '' }}" href="{{ route('call-desk') }}">
+                            <div class="d-flex align-items-center"><span class="nav-link-text ps-1">{{ __('Call Desk') }}</span></div>
+                        </a>
+                    </li>
+                    @endif
+                    @if(hasAccess(['Super Admin'], ['manage-tickets', 'view-tickets', 'olt-management', 'mikrotik-sync']))
+                    <li class="nav-item">
+                        <a wire:navigate.hover class="nav-link {{ $navIs('noc-outage') ? 'active' : '' }}" href="{{ route('noc-outage') }}">
+                            <div class="d-flex align-items-center"><span class="nav-link-text ps-1">{{ __('Outage Broadcast') }}</span></div>
+                        </a>
+                    </li>
+                    @endif
                 </ul>
             </li>
 
@@ -492,6 +520,18 @@
                             <div class="d-flex align-items-center"><span class="nav-link-text ps-1">{{ __('Inventory') }}</span></div>
                         </a>
                     </li>
+                    @if(hasAccess(['Super Admin'], ['admin.expenses', 'olt-management', 'mikrotik-sync']))
+                    <li class="nav-item">
+                        <a wire:navigate.hover class="nav-link {{ $navIs('inventory-purchases') ? 'active' : '' }}" href="{{ route('inventory-purchases') }}">
+                            <div class="d-flex align-items-center"><span class="nav-link-text ps-1">{{ __('Inventory Purchases') }}</span></div>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a wire:navigate.hover class="nav-link {{ $navIs('inventory-sales') ? 'active' : '' }}" href="{{ route('inventory-sales') }}">
+                            <div class="d-flex align-items-center"><span class="nav-link-text ps-1">{{ __('Inventory Sales') }}</span></div>
+                        </a>
+                    </li>
+                    @endif
                 </ul>
             </li>
 
