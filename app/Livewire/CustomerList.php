@@ -77,8 +77,10 @@ class CustomerList extends Component
             abort(403, 'Unauthorized action.');
         }
 
-        $this->routers = RouterList::all();
-        $resellers = Reseller::with('user')->get();
+        $this->routers = RouterList::query()->orderBy('router_name')->get(['router_name']);
+        $resellers = Reseller::query()
+            ->with('user:id,name')
+            ->get(['id', 'company', 'user_id']);
         $listFilter = $this->listFilter;
         $listFilterLabel = $this->listFilterLabel($listFilter);
 
@@ -163,19 +165,19 @@ class CustomerList extends Component
             case 'pending':
             case 'disable':
             case 'free':
+                $data->where('status', $request->filter);
+                break;
+
             case 'inactive':
+                $data->whereIn('status', ['inactive', 'disable']);
+                break;
+
             case 'vip':
-                if ($request->filter === 'vip') {
-                    $data->whereHas('official', fn ($q) => $q->where('customer_type', 'vip'));
-                } elseif ($request->filter === 'inactive') {
-                    $data->whereIn('status', ['inactive', 'disable']);
-                } else {
-                    $data->where('status', $request->filter);
-                }
+                $data->whereHas('official', fn ($q) => $q->whereRaw('LOWER(customer_type) = ?', ['vip']));
                 break;
 
             case 'corporate':
-                $data->whereHas('official', fn ($q) => $q->where('client_type', 'Corporate'));
+                $data->whereHas('official', fn ($q) => $q->whereRaw('LOWER(client_type) = ?', ['corporate']));
                 break;
 
             case 'expired':
@@ -199,12 +201,13 @@ class CustomerList extends Component
                 break;
 
             case 'joined_month':
-                $data->whereMonth('created_at', Carbon::now()->month)
-                    ->whereYear('created_at', Carbon::now()->year);
+                $monthStart = Carbon::now()->startOfMonth();
+                $data->joinedBetween($monthStart, $monthStart->copy()->addMonth());
                 break;
 
             case 'joined_today':
-                $data->whereDate('created_at', Carbon::today());
+                $todayStart = Carbon::today();
+                $data->joinedBetween($todayStart, $todayStart->copy()->addDay());
                 break;
 
             case 'inactive_today':

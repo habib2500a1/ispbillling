@@ -81,7 +81,7 @@
                                     <label class="dropdown-item" for="inactive_due_customer"><input type="radio" class="btn-check" name="collection" id="inactive_due_customer" autocomplete="off" @checked(($listFilter ?? '') === 'inactive_due')> {{ __('Inactive Due') }} <span class="cl-count"></span></label>
                                     @foreach($resellers as $reseller)
                                         <label class="dropdown-item" for="reseller_{{ $reseller->id }}">
-                                            <input type="radio" class="btn-check" name="collection" id="reseller_{{ $reseller->id }}" data-reseller-id="{{ $reseller->id }}" autocomplete="off">
+                                            <input type="radio" class="btn-check" name="collection" id="reseller_{{ $reseller->id }}" data-reseller-id="{{ $reseller->id }}" autocomplete="off" @checked(($listFilter ?? '') === 'reseller' && (string) request()->query('reseller_id') === (string) $reseller->id)>
                                             {{ $reseller->company ?: ($reseller->user->name ?? 'Reseller') }} <span class="cl-count"></span>
                                         </label>
                                     @endforeach
@@ -506,6 +506,8 @@
             offline: '#offline_customer',
             inactive_due: '#inactive_due_customer',
             free: '#free_customer',
+            vip: '#vip_customer',
+            corporate: '#corporate_customer',
             without_collection: '#without_collection_list',
             collection: '#collection_list',
         };
@@ -525,6 +527,8 @@
             pending: @json(__('Pending customers')),
             disable: @json(__('Disabled customers')),
             free: @json(__('Free customers')),
+            vip: @json(__('VIP customers')),
+            corporate: @json(__('Corporate customers')),
             without_collection: @json(__('Unpaid customers')),
             collection: @json(__('Paid customers')),
         };
@@ -547,17 +551,9 @@
         };
 
         window.resolveCustomerListFilter = function () {
-            var tableFilter = $('.customer-table').data('initial-filter');
-            if (tableFilter) {
-                return tableFilter;
-            }
-
-            const params = new URLSearchParams(window.location.search);
-            const urlFilter = params.get('filter');
-            if (urlFilter) {
-                return urlFilter;
-            }
-
+            // The controls are the current source of truth after a filter change.
+            // Reading the URL or data-* value first keeps an old deep-link filter
+            // active even after the user selects a different chip.
             if ($('#all_list').is(':checked')) return 'all';
             if ($('#all_active_list').is(':checked')) return 'all_active';
             if ($('#active_customer').is(':checked')) return 'active';
@@ -583,7 +579,11 @@
                 return 'reseller';
             }
 
-            return 'all_active';
+            const params = new URLSearchParams(window.location.search);
+            const urlFilter = params.get('filter');
+            if (urlFilter) return urlFilter;
+
+            return $('.customer-table').data('initial-filter') || 'all_active';
         };
 
         window.initCustomerListTable = function () {
@@ -806,7 +806,6 @@
             });
 
             window.customerListTable = table;
-            $('.customer-table').removeData('initial-filter');
             table.on('xhr.dt error.dt draw.dt', function () {
                 $table.closest('.dt-container, .dataTables_wrapper')
                     .find('.dt-processing, .dataTables_processing')
@@ -850,21 +849,19 @@
                 } else {
                     $('#cl-filter-banner').removeClass('is-visible');
                 }
-                table.clear().draw();
                 table.ajax.reload(null, true);
             });
 
-            $('#router_filter').off('change.customerList').on('change.customerList', function() { 
+            $('#router_filter').off('change.customerList').on('change.customerList', function() {
                 resetTableState();
-                table.clear().draw();
-                table.ajax.reload(null, true); 
+                table.ajax.reload(null, true);
             });
 
             $('#reset_table').off('click.customerList').on('click.customerList', function() {
                 $('#router_filter').val('');
                 $('#all_active_list').prop('checked', true);
+                $('#cl-filter-banner').removeClass('is-visible');
                 resetTableState();
-                table.clear().draw();
                 table.ajax.reload(null, true);
             });
 

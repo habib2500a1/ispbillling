@@ -3,6 +3,8 @@
 namespace App\Models;
 
 use App\Models\Concerns\BelongsToSaasOperator;
+use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
@@ -53,6 +55,24 @@ class CustomersInfo extends Model
     public function scopeHasPPPUser($query)
     {
         return $query->whereNotNull('ppp_user_id');
+    }
+
+    /**
+     * Match the date displayed as the customer's join date, falling back to
+     * record creation only for older customers without a connection date.
+     */
+    public function scopeJoinedBetween(Builder $query, Carbon $start, Carbon $end): Builder
+    {
+        return $query->where(function (Builder $dates) use ($start, $end) {
+            $dates->where(function (Builder $connectionDate) use ($start, $end) {
+                $connectionDate->where('connection_date', '>=', $start)
+                    ->where('connection_date', '<', $end);
+            })->orWhere(function (Builder $createdAt) use ($start, $end) {
+                $createdAt->whereNull('connection_date')
+                    ->where('created_at', '>=', $start)
+                    ->where('created_at', '<', $end);
+            });
+        });
     }
 
     public function pppUser()
