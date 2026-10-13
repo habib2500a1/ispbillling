@@ -40,12 +40,12 @@
     </script>
 </head>
 
-<body id="top" class="container-fluid m-0 p-0 position-relative overflow-x-hidden">
+<body id="top" class="anet-landing container-fluid m-0 p-0 position-relative overflow-x-hidden">
 
     {{-- =========================================================
          NAVBAR
     ========================================================== --}}
-    <header id="navigation" class="navbar sticky-top animated-header navbar-expand-md bg-light">
+    <header id="navigation" class="navbar sticky-top animated-header navbar-expand-lg bg-light">
         <div class="container text-center">
             {{-- Logo / Brand --}}
             <a class="navbar-brand" href="#top">
@@ -70,17 +70,23 @@
                     <li class="nav-item"><a class="nav-link" href="#features">{{ __('Service') }}</a></li>
                     <li class="nav-item"><a class="nav-link" href="#gallery">{{ __('Gallery') }}</a></li>
                     <li class="nav-item"><a class="nav-link" href="#pricing-table">{{ __('Price') }}</a></li>
-                    <li class="nav-item"><a class="nav-link" href="#team">{{ __('Team') }}</a></li>
-                    <li class="nav-item"><a class="nav-link" href="#blog">{{ __('Blog') }}</a></li>
-                    <li class="nav-item"><a class="nav-link" href="#testimonial">{{ __('Testimonial') }}</a></li>
+                    @if (count($siteData?->team_members ?? []) > 0)
+                        <li class="nav-item"><a class="nav-link" href="#team">{{ __('Team') }}</a></li>
+                    @endif
+                    @if (count($siteData?->blog_posts ?? []) > 0)
+                        <li class="nav-item"><a class="nav-link" href="#blog">{{ __('News') }}</a></li>
+                    @endif
+                    @if (count($siteData?->testimonials ?? []) > 0 || $reviews->isNotEmpty())
+                        <li class="nav-item"><a class="nav-link" href="{{ count($siteData?->testimonials ?? []) > 0 ? '#testimonial' : '#reviews' }}">{{ __('Reviews') }}</a></li>
+                    @endif
                     <li class="nav-item"><a class="nav-link" href="#contact-form">{{ __('Contact') }}</a></li>
-                    <li class="nav-item d-md-none mt-2">
+                    <li class="nav-item d-lg-none mt-2">
                         <a href="{{ adminLoginUrl() }}"
                             class="btn btn-success btn-sm w-100 rounded-pill fw-semibold text-decoration-none">
                             {{ __('Admin Login') }}
                         </a>
                     </li>
-                    <li class="nav-item d-md-none mt-2">
+                    <li class="nav-item d-lg-none mt-2">
                         <a href="{{ portalLoginUrl() }}"
                             class="btn btn-outline-success btn-sm w-100 rounded-pill fw-semibold text-decoration-none">
                             {{ __('Client Login') }}
@@ -89,8 +95,8 @@
                 </ul>
             </div>
 
-            <div class="d-none d-md-flex align-items-center ms-auto ms-lg-3 me-2 gap-2">
-                {{-- Language Switcher next to Theme Toggle --}}
+            <div class="d-flex align-items-center ms-auto ms-lg-3 me-2 gap-1 gap-lg-2">
+                {{-- Language and theme controls stay available on compact screens. --}}
                 @php
                     $currentMainLocale = session()->get(
                         'main_site_locale',
@@ -98,11 +104,11 @@
                     );
                 @endphp
                 <a href="{{ adminLoginUrl() }}"
-                    class="btn btn-success btn-sm px-3 py-1 rounded-pill fw-semibold text-decoration-none">
+                    class="btn btn-success btn-sm px-3 py-1 rounded-pill fw-semibold text-decoration-none d-none d-lg-inline-flex">
                     {{ __('Admin Login') }}
                 </a>
                 <a href="{{ portalLoginUrl() }}"
-                    class="btn btn-outline-success btn-sm px-3 py-1 rounded-pill fw-semibold text-decoration-none">
+                    class="btn btn-outline-success btn-sm px-3 py-1 rounded-pill fw-semibold text-decoration-none d-none d-lg-inline-flex">
                     {{ __('Client Login') }}
                 </a>
                 @if ($currentMainLocale === 'bn')
@@ -141,27 +147,48 @@
         {{-- =========================================================
              HERO / BANNER SLIDER
         ========================================================== --}}
-        <section id="banner">
-            <div id="carouselExampleCaptions" class="carousel slide carousel-fade" data-bs-ride="carousel"
-                data-bs-interval="7000">
+        <section id="banner" class="anet-hero" aria-label="{{ __('Internet services') }}">
+            @php
+                $slides = $siteData?->hero_slides ?? [];
+                if (! is_array($slides) || count($slides) === 0) {
+                    $slides = [
+                        ['image' => 'images/slide/img0.jpg', 'caption' => ''],
+                        ['image' => 'images/slide/img1.jpg', 'caption' => ''],
+                        ['image' => 'images/slide/img2.jpg', 'caption' => ''],
+                    ];
+                }
 
-                {{-- Indicators --}}
-                @php
-                    $slides = $siteData?->hero_slides ?? [];
-                    if (! is_array($slides) || count($slides) === 0) {
-                        $slides = [
-                            ['image' => 'images/slide/img0.jpg', 'caption' => ''],
-                            ['image' => 'images/slide/img1.jpg', 'caption' => ''],
-                            ['image' => 'images/slide/img2.jpg', 'caption' => ''],
-                        ];
-                    }
-                @endphp
+                $slides = array_values($slides);
+
+                $heroTitle = trim((string) ($siteData?->hero_title ?? ''));
+                if (in_array($heroTitle, ['', 'Faster. Reliable. Always On.', 'We are always Faster & Reliable'], true)) {
+                    $heroTitle = __('Fiber internet for the way you live and work.');
+                }
+
+                $heroSubtitle = trim((string) ($siteData?->hero_subtitle ?? ''));
+                if ($heroSubtitle === '') {
+                    $heroSubtitle = __('Enjoy dependable broadband, straightforward plans, and support from a team close to home.');
+                }
+
+                $heroButtonText = trim((string) ($siteData?->hero_button_text ?? ''));
+                if ($heroButtonText === '') {
+                    $heroButtonText = __('Explore internet plans');
+                }
+
+                $heroButtonLink = trim((string) ($siteData?->hero_button_link ?? ''));
+                if ($heroButtonLink === '') {
+                    $heroButtonLink = '#pricing-table';
+                }
+            @endphp
+
+            <div id="carouselExampleCaptions" class="carousel slide carousel-fade" data-bs-ride="carousel"
+                data-bs-interval="7000" data-bs-pause="false">
                 <div class="carousel-indicators">
                     @foreach ($slides as $index => $slide)
                         <button type="button" data-bs-target="#carouselExampleCaptions"
                             data-bs-slide-to="{{ $index }}" class="{{ $index === 0 ? 'active' : '' }}"
                             @if ($index === 0) aria-current="true" @endif
-                            aria-label="Slide {{ $index + 1 }}"></button>
+                            aria-label="{{ __('Slide :number', ['number' => $index + 1]) }}"></button>
                     @endforeach
                 </div>
 
@@ -169,26 +196,52 @@
                     @foreach ($slides as $index => $slide)
                         <div class="carousel-item {{ $index === 0 ? 'active' : '' }}">
                             <img src="{{ isset($slide['image']) ? site_image($slide['image']) : asset('images/slide/img0.jpg') }}"
-                                class="img-fluid" style="width: 100%; height: auto; object-fit: cover;"
-                                alt="{{ $slide['caption'] ?? 'Slide ' . ($index + 1) }}">
+                                class="img-fluid" alt="{{ $slide['caption'] ?? '' }}">
                             @if (!empty($slide['caption']))
-                                <div class="carousel-caption d-none d-md-block">
-                                    <h2 class="display-4 fw-bold">{{ $slide['caption'] }}</h2>
-                                </div>
+                                <div class="anet-slide-caption">{{ $slide['caption'] }}</div>
                             @endif
                         </div>
                     @endforeach
                 </div>
 
-                <button class="carousel-control-prev" type="button" data-bs-target="#carouselExampleCaptions"
-                    data-bs-slide="prev">
+                <div class="anet-hero-shade" aria-hidden="true"></div>
+                <div class="anet-hero-content container">
+                    <div class="anet-hero-copy">
+                        <span class="anet-hero-eyebrow"><i class="bi bi-broadcast-pin"></i>{{ __('Fiber broadband by :brand', ['brand' => siteUrlSettings('site_name') ?? site_brand()]) }}</span>
+                        <h1>{{ $heroTitle }}</h1>
+                        <p class="anet-hero-lead">{{ $heroSubtitle }}</p>
+                        <div class="anet-hero-actions">
+                            <a href="{{ $heroButtonLink }}" class="anet-btn-primary">{{ $heroButtonText }} <i class="bi bi-arrow-up-right" aria-hidden="true"></i></a>
+                            <a href="{{ route('pay.lookup') }}" class="anet-btn-secondary"><i class="bi bi-credit-card-2-front" aria-hidden="true"></i>{{ __('Pay your bill') }}</a>
+                        </div>
+                        <div class="anet-hero-points" aria-label="{{ __('Service highlights') }}">
+                            <span><i class="bi bi-check-circle-fill"></i>{{ __('Fiber-powered connectivity') }}</span>
+                            <span><i class="bi bi-check-circle-fill"></i>{{ __('Plans for home and business') }}</span>
+                        </div>
+                    </div>
+
+                    <aside class="anet-hero-card" aria-label="{{ __('Internet services by :brand', ['brand' => siteUrlSettings('site_name') ?? site_brand()]) }}">
+                        <div class="anet-card-topline"><span class="anet-card-icon"><i class="bi bi-router-fill"></i></span><span>{{ __('A better internet experience') }}</span></div>
+                        <div class="anet-card-network" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></div>
+                        <h2>{{ __('Stay connected to what matters.') }}</h2>
+                        <ul>
+                            <li><i class="bi bi-lightning-charge-fill"></i><span><strong>{{ __('Made for everyday use') }}</strong><small>{{ __('Streaming, learning, work and more') }}</small></span></li>
+                            <li><i class="bi bi-wallet2"></i><span><strong>{{ __('Simple bill payment') }}</strong><small>{{ __('Check and pay your bill online') }}</small></span></li>
+                            <li><i class="bi bi-headset"></i><span><strong>{{ __('Friendly local support') }}</strong><small>{{ __('Help from a team that knows your area') }}</small></span></li>
+                        </ul>
+                        <a href="#contact-form" class="anet-card-link">{{ __('Talk to our team') }} <i class="bi bi-arrow-right"></i></a>
+                    </aside>
+                </div>
+
+                <button class="carousel-control-prev" type="button" data-bs-target="#carouselExampleCaptions" data-bs-slide="prev" aria-label="{{ __('Previous slide') }}">
                     <span class="carousel-control-prev-icon" aria-hidden="true"></span>
-                    <span class="visually-hidden">Previous</span>
                 </button>
-                <button class="carousel-control-next" type="button" data-bs-target="#carouselExampleCaptions"
-                    data-bs-slide="next">
+                <button class="carousel-control-next" type="button" data-bs-target="#carouselExampleCaptions" data-bs-slide="next" aria-label="{{ __('Next slide') }}">
                     <span class="carousel-control-next-icon" aria-hidden="true"></span>
-                    <span class="visually-hidden">Next</span>
+                </button>
+                <button class="anet-carousel-toggle" id="heroCarouselToggle" type="button"
+                    aria-label="{{ __('Automatic slide rotation') }}" aria-pressed="true">
+                    <i class="bi bi-pause-fill" aria-hidden="true"></i>
                 </button>
             </div>
         </section>
@@ -208,7 +261,7 @@
                                 <h5 class="text-success">{{ __('Welcome to') }}
                                     {{ siteUrlSettings('portal_name') ?? siteUrlSettings('site_name') }}</h5>
                             @endif
-                            <h2>{{ $siteData?->hero_title && $siteData->hero_title !== 'Faster. Reliable. Always On.' ? $siteData->hero_title : __('We are always Faster & Reliable') }}</h2>
+                            <h2>{{ __('Services that keep you connected') }}</h2>
                             @php
                                 $aboutBody = (string) ($siteData?->about_body ?? '');
                                 $heroSubtitle = (string) ($siteData?->hero_subtitle ?? '');
@@ -308,6 +361,7 @@
         {{-- =========================================================
             Valuable Clint
         ========================================================== --}}
+        @if (count($siteData?->valuable_clients ?? []) > 0)
         <section id="client-logo" class="py-4">
             <div class="container">
                 <div class="row">
@@ -317,22 +371,7 @@
                         </div>
                     </div>
                 </div>
-                @php
-                    $clients = $siteData?->valuable_clients ?? [];
-                    if (count($clients) === 0) {
-                        $clients = [
-                            ['name' => 'Google'],
-                            ['name' => 'Microsoft'],
-                            ['name' => 'Amazon'],
-                            ['name' => 'Facebook'],
-                            ['name' => 'Twitter'],
-                            ['name' => 'Apple'],
-                            ['name' => 'Intel'],
-                            ['name' => 'IBM'],
-                            ['name' => 'Oracle'],
-                        ];
-                    }
-                @endphp
+                @php $clients = $siteData?->valuable_clients ?? []; @endphp
                 <div class="marquee-container">
                     <div class="marquee-content">
                         @foreach ($clients as $client)
@@ -390,6 +429,7 @@
                 </div>
             </div>
         </section>
+        @endif
 
         {{-- =========================================================
              GALLERY
@@ -652,6 +692,7 @@
         {{-- =========================================================
              TEAM
         ========================================================== --}}
+        @if (count($siteData?->team_members ?? []) > 0)
         <section id="team" class="bg-success">
             <div class="container">
                 <div class="row">
@@ -663,33 +704,7 @@
                     </div>
 
                     <div class="col-md-12">
-                        @php
-                            $teamMembers = $siteData?->team_members ?? [];
-                            if (count($teamMembers) === 0) {
-                                $teamMembers = [
-                                    [
-                                        'name' => __('TEAM MEMBER 1'),
-                                        'role' => __('Staff'),
-                                        'bio' => __('Dedicated team member committed to providing excellent service.'),
-                                    ],
-                                    [
-                                        'name' => __('TEAM MEMBER 2'),
-                                        'role' => __('Staff'),
-                                        'bio' => __('Dedicated team member committed to providing excellent service.'),
-                                    ],
-                                    [
-                                        'name' => __('TEAM MEMBER 3'),
-                                        'role' => __('Staff'),
-                                        'bio' => __('Dedicated team member committed to providing excellent service.'),
-                                    ],
-                                    [
-                                        'name' => __('TEAM MEMBER 4'),
-                                        'role' => __('Staff'),
-                                        'bio' => __('Dedicated team member committed to providing excellent service.'),
-                                    ],
-                                ];
-                            }
-                        @endphp
+                        @php $teamMembers = $siteData?->team_members ?? []; @endphp
 
                         <div id="teamCarousel" class="swiper mySwiper">
                             <div class="swiper-wrapper">
@@ -697,8 +712,11 @@
                                     <div class="swiper-slide p-1">
                                         <div class="block wow fadeInLeft w-100 h-100 d-flex flex-column"
                                             data-wow-delay=".3s">
-                                            <img src="{{ isset($member['image']) && $member['image'] ? site_image($member['image']) : asset('images/team-demo.png') }}"
-                                                alt="{{ $member['name'] ?? '' }}">
+                                            @if (!empty($member['image']))
+                                                <img src="{{ site_image($member['image']) }}" alt="{{ $member['name'] ?? '' }}">
+                                            @else
+                                                <div class="team-image-placeholder" aria-hidden="true"><i class="bi bi-person-fill"></i></div>
+                                            @endif
                                             <div class="team-overlay">
                                                 <h3>{{ strtoupper($member['name'] ?? '') }}
                                                     <span>{{ $member['role'] ?? '' }}</span>
@@ -722,6 +740,7 @@
                 </div>
             </div>
         </section>
+        @endif
 
         {{-- =========================================================
              CUSTOMER REVIEWS / TESTIMONIALS
@@ -797,6 +816,7 @@
         {{-- =========================================================
              BLOG
         ========================================================== --}}
+        @if (count($siteData?->blog_posts ?? []) > 0)
         <section id="blog">
             <div class="container">
                 <div class="row">
@@ -808,42 +828,7 @@
                             @endif
                         </div>
 
-                        @php
-                            $blogPosts = $siteData?->blog_posts ?? [];
-                            if (count($blogPosts) === 0) {
-                                $blogPosts = [
-                                    [
-                                        'title' => __('Latest News & Updates 1'),
-                                        'author' => __('Admin'),
-                                        'excerpt' => __(
-                                            'Stay updated with the latest news, offers, and updates from our network team.',
-                                        ),
-                                    ],
-                                    [
-                                        'title' => __('Latest News & Updates 2'),
-                                        'author' => __('Admin'),
-                                        'excerpt' => __(
-                                            'Stay updated with the latest news, offers, and updates from our network team.',
-                                        ),
-                                    ],
-                                    [
-                                        'title' => __('Latest News & Updates 3'),
-                                        'author' => __('Admin'),
-                                        'excerpt' => __(
-                                            'Stay updated with the latest news, offers, and updates from our network team.',
-                                        ),
-                                    ],
-                                    [
-                                        'title' => __('Latest News & Updates 4'),
-                                        'author' => __('Admin'),
-                                        'excerpt' => __(
-                                            'Stay updated with the latest news, offers, and updates from our network team.',
-                                        ),
-                                    ],
-                                ];
-                            }
-                            $blogChunks = array_chunk($blogPosts, 3);
-                        @endphp
+                        @php $blogPosts = $siteData?->blog_posts ?? []; @endphp
 
                         <div class="px-md-5 position-relative">
                             <div class="swiper blog-swiper">
@@ -856,13 +841,15 @@
                                                         <img src="{{ site_image($post['image']) }}"
                                                             alt="{{ $post['title'] ?? '' }}" class="img-thumbnail">
                                                     @else
-                                                        <img src="{{ site_image(siteUrlSettings('site_logo')) }}"
-                                                            alt="{{ $post['title'] ?? '' }}" class="img-thumbnail">
+                                                        <div class="blog-image-placeholder" aria-hidden="true"><i class="bi bi-journal-text"></i></div>
                                                     @endif
                                                     <div class="content">
                                                         <h4>
-                                                            <a
-                                                                href="{{ $post['link'] ?? '#' }}">{{ $post['title'] ?? '' }}</a>
+                                                            @if (!empty($post['link']))
+                                                                <a href="{{ $post['link'] }}">{{ $post['title'] ?? '' }}</a>
+                                                            @else
+                                                                <span>{{ $post['title'] ?? '' }}</span>
+                                                            @endif
                                                         </h4>
                                                         <small style="color: var(--primary-color-light)">{{ __('By') }}
                                                             {{ $post['author'] ?? __('Admin') }}
@@ -874,10 +861,11 @@
                                                         <p style="color: var(--dark-color-light) !important;">{{ $post['excerpt'] ?? '' }}</p>
                                                     </div>
                                                 </div>
-                                                <div class="content pt-0">
-                                                    <a href="{{ $post['link'] ?? '#' }}"
-                                                        class="btn btn-read text-success">{{ __('Read More') }}</a>
-                                                </div>
+                                                @if (!empty($post['link']))
+                                                    <div class="content pt-0">
+                                                        <a href="{{ $post['link'] }}" class="btn btn-read text-success">{{ __('Read More') }}</a>
+                                                    </div>
+                                                @endif
                                             </div>
                                         </div>
                                     @endforeach
@@ -895,11 +883,13 @@
                 </div>
             </div>
         </section>
+        @endif
 
 
         {{-- =========================================================
              TESTIMONIALS
         ========================================================== --}}
+        @if (count($siteData?->testimonials ?? []) > 0)
         <section id="testimonial">
             <div class="container">
                 <div class="row">
@@ -914,46 +904,24 @@
                     <div class="px-md-5 position-relative">
                         <div class="swiper testimonial-swiper">
                             <div class="swiper-wrapper">
-                                @if (count($testimonials) > 0)
-                                    @foreach ($testimonials as $testimonial)
+                                @foreach ($testimonials as $testimonial)
                                         <div class="swiper-slide h-auto d-flex">
                                             <div class="media w-100 wow fadeInLeft" data-wow-delay=".3s">
                                                 <div class="media-left">
-                                                    <a href="#">
-                                                        <img src="{{ !empty($testimonial['image']) ? site_image($testimonial['image']) : asset('images/team-demo.png') }}"
-                                                            alt="{{ $testimonial['name'] ?? '' }}">
-                                                    </a>
+                                                    @if (!empty($testimonial['image']))
+                                                        <img src="{{ site_image($testimonial['image']) }}" alt="{{ $testimonial['name'] ?? '' }}">
+                                                    @else
+                                                        <span class="testimonial-image-placeholder" aria-hidden="true"><i class="bi bi-person-fill"></i></span>
+                                                    @endif
                                                 </div>
                                                 <div class="media-body">
-                                                    <a href="#">
-                                                        <h4 class="media-heading">{{ $testimonial['name'] ?? '' }}
-                                                        </h4>
-                                                    </a>
+                                                    <h4 class="media-heading">{{ $testimonial['name'] ?? '' }}</h4>
                                                     <p>{{ $testimonial['message'] ?? '' }}</p>
                                                 </div>
                                             </div>
                                         </div>
                                     @endforeach
-                                @else
-                                    {{-- Fallback testimonials --}}
-                                    @foreach (['Satisfied Customer', 'Happy Client', 'Regular User', 'Business Owner'] as $name)
-                                        <div class="swiper-slide h-auto d-flex">
-                                            <div class="media w-100 wow fadeInLeft" data-wow-delay=".3s">
-                                                <div class="media-left">
-                                                    <a href="#"><img src="{{ asset('images/team-demo.png') }}"
-                                                            alt=""></a>
-                                                </div>
-                                                <div class="media-body">
-                                                    <a href="#">
-                                                        <h4 class="media-heading">{{ __($name) }}</h4>
-                                                    </a>
-                                                    <p>{{ __('Excellent internet service with fast speeds and reliable uptime. Customer support is always responsive and helpful. Highly recommended!') }}
-                                                    </p>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    @endforeach
-                                @endif
+
                             </div>
 
                             <!-- Pagination -->
@@ -967,6 +935,7 @@
                 </div>
             </div>
         </section>
+        @endif
 
 
         {{-- =========================================================

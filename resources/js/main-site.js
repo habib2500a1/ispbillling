@@ -17,6 +17,39 @@ import 'swiper/css/effect-coverflow';
 import 'swiper/css/effect-cube';
 import 'swiper/css/grid';
 
+// Respect motion preferences for the automatic hero carousel. Manual controls remain available.
+const heroCarouselElement = document.getElementById('carouselExampleCaptions');
+const reducedMotionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+if (heroCarouselElement && reducedMotionQuery.matches) {
+    heroCarouselElement.removeAttribute('data-bs-ride');
+}
+document.addEventListener('DOMContentLoaded', () => {
+    if (!heroCarouselElement) return;
+    const heroCarousel = bootstrap.Carousel.getOrCreateInstance(heroCarouselElement);
+    const heroCarouselToggle = document.getElementById('heroCarouselToggle');
+    const setHeroRotation = (isPlaying) => {
+        if (heroCarouselToggle) {
+            heroCarouselToggle.setAttribute('aria-pressed', String(isPlaying));
+            const icon = heroCarouselToggle.querySelector('i');
+            icon?.classList.toggle('bi-pause-fill', isPlaying);
+            icon?.classList.toggle('bi-play-fill', !isPlaying);
+        }
+        if (isPlaying) heroCarousel.cycle();
+        else heroCarousel.pause();
+    };
+
+    if (reducedMotionQuery.matches) setHeroRotation(false);
+    heroCarouselToggle?.addEventListener('click', () => {
+        const isPlaying = heroCarouselToggle.getAttribute('aria-pressed') === 'true';
+        setHeroRotation(!isPlaying);
+    });
+    reducedMotionQuery.addEventListener('change', (event) => {
+        if (event.matches) heroCarouselElement.removeAttribute('data-bs-ride');
+        else heroCarouselElement.setAttribute('data-bs-ride', 'carousel');
+        setHeroRotation(!event.matches);
+    });
+});
+
 // Team Swiper
 const teamSwiper = new Swiper('.mySwiper', {
     modules: [Navigation, Pagination, Autoplay, EffectCoverflow],
