@@ -67,6 +67,9 @@ $dark: $dark-color;
 
   // RGB Values
   --primary-rgb: 6, 173, 115;
+  --accent-rgb: var(--primary-rgb);
+  --secondary-rgb: 255, 0, 0;
+  --dark-bg: #0b1329;
 
   // Gradients
   --primary-gradient: linear-gradient(
@@ -1857,3 +1860,5 @@ footer {
     }
   }
 }
+
+@import 'anet-landing';
